@@ -16,6 +16,8 @@ from slack_sdk.models.blocks import (
 )
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
+from sentry.integrations.slack.message_builder.routing import decode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.slack.renderers.seer import AUTOFIX_CONFIG, SeerSlackRenderer
@@ -23,10 +25,20 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
     SeerAgentWriteApprovalSlackRenderer,
 )
 from sentry.notifications.platform.templates.seer import (
+    AGENT_OUT_OF_CREDITS_BILLING_MESSAGE,
+    AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE,
+    AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
     SeerAgentError,
+    SeerAgentOutOfCredits,
+    SeerAgentOutOfCreditsTemplate,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixCodeChange,
+    SeerAutofixOutOfCredits,
+    SeerAutofixOutOfCreditsTemplate,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
     SeerInvestigationConclusionTemplate,
@@ -43,7 +55,9 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
+from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -270,6 +284,10 @@ class SeerSlackRendererTest(TestCase):
             if isinstance(e, LinkButtonElement) and e.text is not None and "PR" in e.text.text
         ]
         assert len(pr_buttons) == 2
+        routing = [decode_action_id(button.action_id or "") for button in pr_buttons]
+        assert [r.action for r in routing] == [SlackAction.SEER_AUTOFIX_VIEW_PR] * 2
+        assert [r.organization_id for r in routing] == [data.organization_id] * 2
+        assert [r.suffix for r in routing] == ["123", "456"]
 
     def test_render_autofix_update_root_cause_with_handoff_target(self) -> None:
         data = self._create_update(
@@ -323,6 +341,119 @@ class SeerSlackRendererTest(TestCase):
         # Should only have link button, no next trigger button
         assert len(actions_block.elements) == 1
         assert isinstance(actions_block.elements[0], LinkButtonElement)
+
+
+def assert_out_of_credits_message(renderable: SlackRenderable, message: str) -> None:
+    assert renderable["text"] == message
+    section = renderable["blocks"][0]
+    assert isinstance(section, SectionBlock)
+    assert section.text is not None
+    assert section.text.text == message
+
+
+def assert_configure_auto_reload_button(
+    renderable: SlackRenderable, *, organization_id: int, billing_slug: str
+) -> None:
+    blocks = renderable["blocks"]
+    assert len(blocks) == 2
+    assert isinstance(blocks[1], ActionsBlock)
+    assert len(blocks[1].elements) == 1
+    button = blocks[1].elements[0]
+    assert isinstance(button, ButtonElement)
+    assert button.text is not None
+    assert button.text.text == "Configure auto-reload"
+    assert button.url is not None
+    assert f"/settings/{billing_slug}/billing/overview/" in button.url
+    assert button.action_id is not None
+    routing = decode_action_id(button.action_id)
+    assert routing.action == SlackAction.SEER_VIEW_BILLING.value
+    assert routing.organization_id == organization_id
+
+
+def assert_contact_admin_button(renderable: SlackRenderable, *, organization_id: int) -> None:
+    blocks = renderable["blocks"]
+    assert len(blocks) == 2
+    assert isinstance(blocks[1], ActionsBlock)
+    assert len(blocks[1].elements) == 1
+    button = blocks[1].elements[0]
+    assert isinstance(button, ButtonElement)
+    assert button.url is None
+    assert button.text is not None
+    assert button.text.text == "Contact Admin"
+    assert button.action_id is not None
+    routing = decode_action_id(button.action_id)
+    assert routing.action == SlackAction.SEER_REQUEST_CREDITS.value
+    assert routing.organization_id == organization_id
+
+
+class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
+    def _render(self, **kwargs: bool) -> SlackRenderable:
+        data = SeerAutofixOutOfCredits(organization_id=self.organization.id, **kwargs)
+        return render_seer(
+            data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
+        )
+
+    def test_member_can_contact_admin(self) -> None:
+        renderable = self._render()
+        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE)
+        assert_contact_admin_button(renderable, organization_id=self.organization.id)
+
+    def test_billing_member_can_configure_auto_reload(self) -> None:
+        renderable = self._render(has_billing_access=True)
+        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE)
+        assert_configure_auto_reload_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
+    def test_billing_member_with_auto_reload_on(self) -> None:
+        renderable = self._render(has_billing_access=True, auto_reload_enabled=True)
+        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE)
+        assert_configure_auto_reload_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
+    def test_missing_organization(self) -> None:
+        data = SeerAutofixOutOfCredits(organization_id=0, has_billing_access=True)
+        renderable = render_seer(
+            data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
+        )
+        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE)
+        assert len(renderable["blocks"]) == 1
+
+
+class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
+    def _render(self, **kwargs: bool) -> SlackRenderable:
+        data = SeerAgentOutOfCredits(organization_id=self.organization.id, **kwargs)
+        return render_seer(
+            data=data, rendered_template=SeerAgentOutOfCreditsTemplate().render(data)
+        )
+
+    def test_member_can_contact_admin(self) -> None:
+        renderable = self._render()
+        assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE)
+        assert_contact_admin_button(renderable, organization_id=self.organization.id)
+
+    def test_billing_member_can_configure_auto_reload(self) -> None:
+        renderable = self._render(has_billing_access=True)
+        assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_BILLING_MESSAGE)
+        assert_configure_auto_reload_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
+    def test_billing_member_with_auto_reload_on(self) -> None:
+        renderable = self._render(has_billing_access=True, auto_reload_enabled=True)
+        assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE)
+        assert_configure_auto_reload_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
 
 
 class SeerSlackRendererAgentErrorTest(TestCase):
@@ -448,6 +579,16 @@ class SeerSlackRendererAgentTest(TestCase):
         assert "Reinstall" in footer_text
         assert "I can't read the whole thread" in footer_text
 
+    def test_render_agent_pr_state_out_of_credits(self) -> None:
+        pr = RepoPRState(
+            repo_name="acme/web",
+            pr_creation_status="error",
+            pr_creation_error_code="out_of_credits",
+        )
+        assert SeerSlackRenderer._render_agent_pr_state(pr) == (
+            "Couldn't push to `acme/web`: your organization is out of Seer credits"
+        )
+
     def test_render_agent_response_no_footer_when_url_not_set(self) -> None:
         data = self._create_agent_response(summary="Some analysis")
         assert data.missing_scope_settings_url is None
@@ -519,16 +660,16 @@ class SeerSlackRendererInvestigationTest(TestCase):
         }
     )
     def test_render_investigation_link_button(self) -> None:
-        url = "https://acme.sentry.io/seer/investigations/1/"
-        data = SeerInvestigationStarted(
-            organization_id=1, slack_user_id="U0123456789", investigation_url=url
+        url = "https://example.sentry.io/seer/investigations/1/"
+        data = NotificationData(
+            organization_id=1, source=NotificationSource.SEER_INVESTIGATION_STARTED
         )
         link_decorator = NotificationLinkDecorator(
             data=data, provider=NotificationProviderKey.SLACK
         )
 
         button = SeerSlackRenderer.render_investigation_link_button(
-            data=data, link_decorator=link_decorator
+            investigation_url=url, link_decorator=link_decorator
         )
 
         assert button.text is not None
@@ -696,10 +837,16 @@ class SeerSlackRendererInvestigationTest(TestCase):
         )
 
         assert renderable["text"] == "Seer finished the investigation"
-        section, divider, actions = renderable["blocks"]
-        assert isinstance(section, SectionBlock)
-        assert section.text is not None
-        assert section.text.text == f"*{data.summary}*\n{data.summary_description}"
+        summary, next_step, divider, actions = renderable["blocks"]
+        assert isinstance(summary, SectionBlock)
+        assert summary.text is not None
+        assert summary.text.text == f"*{data.summary}*\n{data.summary_description}"
+        assert data.next_step is not None
+        assert isinstance(next_step, SectionBlock)
+        assert next_step.text is not None
+        assert next_step.text.text == (
+            f"*Suggested next step:* {data.next_step['title']}\n{data.next_step['rationale']}"
+        )
         assert isinstance(divider, DividerBlock)
         assert isinstance(actions, ActionsBlock)
         (button,) = actions.elements
@@ -714,15 +861,16 @@ class SeerSlackRendererInvestigationTest(TestCase):
         assert button.value == "link_clicked"
         assert links == {NotificationLink.INVESTIGATION}
 
-    def test_render_investigation_conclusion_without_description(self) -> None:
+    def test_render_investigation_conclusion_with_only_a_summary(self) -> None:
         template = SeerInvestigationConclusionTemplate()
-        data = template.example_data.copy(update={"summary_description": None})
+        data = template.example_data.copy(update={"summary_description": None, "next_step": None})
 
         renderable, _ = NotificationService.render_template(
             data=data, template=template, provider=SlackNotificationProvider
         )
 
-        section = renderable["blocks"][0]
+        section, divider, _actions = renderable["blocks"]
+        assert isinstance(divider, DividerBlock)
         assert isinstance(section, SectionBlock)
         assert section.text is not None
         assert section.text.text == f"*{data.summary}*"

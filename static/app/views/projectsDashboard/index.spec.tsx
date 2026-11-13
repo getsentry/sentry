@@ -20,6 +20,7 @@ describe('ProjectsDashboard', () => {
   const teams = [team];
 
   beforeEach(() => {
+    TeamStore.reset();
     TeamStore.loadInitialData(teams);
     MockApiClient.addMockResponse({
       url: `/teams/${org.slug}/${team.slug}/members/`,
@@ -33,7 +34,6 @@ describe('ProjectsDashboard', () => {
   });
 
   afterEach(() => {
-    TeamStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -165,6 +165,7 @@ describe('ProjectsDashboard', () => {
       expect(await screen.findByText('Other Teams')).toBeInTheDocument();
       expect(screen.getByText('#team2')).toBeInTheDocument();
       expect(router.location.query).toEqual({team: ''});
+      expect(router.historyAction).toBe('PUSH');
     });
 
     it('renders projects for specific team that user is not a member of', async () => {

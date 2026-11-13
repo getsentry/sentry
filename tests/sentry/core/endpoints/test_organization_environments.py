@@ -57,3 +57,9 @@ class OrganizationEnvironmentsTest(APITestCase):
         response = self.get_response(self.project.organization.slug, visibility="invalid-vis")
         assert response.status_code == 400
         assert response.data["detail"].startswith("Invalid value for 'visibility'")
+
+    def test_blank_visibility_defaults_to_visible(self) -> None:
+        visible = self.create_environment(name="visible", project=self.project, is_hidden=False)
+        self.create_environment(name="not visible", project=self.project, is_hidden=True)
+        response = self.get_success_response(self.project.organization.slug, visibility="")
+        assert response.data == serialize([visible])

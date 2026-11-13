@@ -18,6 +18,10 @@ const productionEntryPoints = [
   'chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when the autofixRef embed consumes it (#122099)
   'components/seer/autofixChatContext.tsx',
+  // TODO: Remove when the Seer credit gates consume it (#129563, #129565)
+  'utils/seer/useSeerCreditCheck.tsx',
+  // TODO: Remove when the Seer credit gates render it (#129563, #129565)
+  'components/seer/outOfCredits/seerOutOfCreditsCta.tsx',
   'components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'views/authV2/authLogin/**/*.{ts,tsx}',
@@ -62,19 +66,8 @@ const config: KnipConfig = {
       // The root runs app tests, but Jest is declared in the test package.
       jest: {config: 'tests/js/jest.config.ci.mjs'},
       entry: ['scripts/*.ts!', 'build-utils/mdx-plugins.ts'],
-      project: [
-        'static/**/*.{js,ts,tsx,mdx,less}!',
-        'config/**/*.ts',
-        // fixtures can be ignored in production - it's fine that they are only used in tests
-        '!static/**/{fixtures,__fixtures__}/**!',
-        // helper files for tests - it's fine that they are only used in tests
-        '!static/**/*{t,T}estUtils*.{js,ts,tsx}!',
-        // helper files for stories - it's fine that they are only used in tests
-        '!static/app/**/__stories__/*.{js,ts,tsx}!',
-        '!static/app/stories/**/*.{js,ts,tsx}!',
-        // Oxlint JS plugins are separate workspace packages
-        '!static/oxlint/**/*.ts!',
-      ],
+      // The root's project must list mdx since the mdx compiler is configured here
+      project: ['config/**/*.{ts,mdx}'],
       ignoreDependencies: [
         'jest', // CI runner and regression tests resolve Jest from tests/js.
         'tslib', // subdependency of many packages, declare the latest version
@@ -83,9 +76,6 @@ const config: KnipConfig = {
         // Referenced by its node_modules path in tests/js/createJestConfig.ts.
         'reflux',
       ],
-      // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
-      // so do not report them as unused files.
-      ignoreFiles: ['static/**/*.less'],
     },
     'static/app': {
       ...frontendWorkspace,
@@ -114,6 +104,9 @@ const config: KnipConfig = {
         ...frontendWorkspace.entry,
         '**/*.snapshots.tsx',
         '**/__mocks__/**/*.{js,ts,tsx}',
+        '**/*.stories.{js,ts,tsx}',
+        // The story manifest loads MDX stories from gsApp too.
+        '**/*.mdx',
       ],
     },
     'static/gsAdmin': {
@@ -139,6 +132,10 @@ const config: KnipConfig = {
     },
     'static/packages/scraps': {
       oxlint: scopedOxlint,
+      // Component docs are rendered by the app's story viewer, so their demos
+      // can use app dependencies that the package does not ship with.
+      entry: ['src/**/*.mdx'],
+      ignoreDependencies: ['nuqs'],
       project: [
         '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.

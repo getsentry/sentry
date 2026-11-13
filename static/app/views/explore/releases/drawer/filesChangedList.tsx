@@ -13,7 +13,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
 import {FileChange} from 'sentry/views/explore/releases/detail/commitsAndFiles/fileChange';
@@ -22,8 +22,9 @@ import {
   getFilesByRepository,
   getReposToRender,
 } from 'sentry/views/explore/releases/detail/utils';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {releaseCommitFilesApiOptions} from 'sentry/views/explore/releases/utils/releaseCommitFilesApiOptions';
+
+import {ReleasesDrawerFields} from './utils';
 
 interface FilesChangedProps {
   release: string;
@@ -31,13 +32,12 @@ interface FilesChangedProps {
 }
 
 export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
-  const navigate = useNavigate();
   const organization = useOrganization();
   const [rdActiveRepo] = useQueryState(
     ReleasesDrawerFields.ACTIVE_REPO,
     parseAsString.withDefault('')
   );
-  const [rdFilesCursor] = useQueryState(
+  const [rdFilesCursor, setRdFilesCursor] = useQueryState(
     ReleasesDrawerFields.FILES_CURSOR,
     parseAsString.withDefault('')
   );
@@ -105,13 +105,8 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
               );
             })}
             <Pagination
-              pageLinks={fileListPageLinks}
-              onCursor={(cursor, path, searchQuery) => {
-                navigate({
-                  pathname: path,
-                  query: {...searchQuery, [ReleasesDrawerFields.FILES_CURSOR]: cursor},
-                });
-              }}
+              {...getPaginationProps(fileListPageLinks)}
+              onCursor={cursor => setRdFilesCursor(cursor ?? '')}
             />
           </Fragment>
         ) : (

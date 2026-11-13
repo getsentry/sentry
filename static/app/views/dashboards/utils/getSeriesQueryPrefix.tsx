@@ -1,5 +1,6 @@
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
-import {prettifyQueryConditions} from 'sentry/views/dashboards/utils/prettifyQueryConditions';
+
+import {prettifyQueryConditions} from './prettifyQueryConditions';
 
 /**
  * Returns a legend label prefix for a widget query's series, or `undefined`

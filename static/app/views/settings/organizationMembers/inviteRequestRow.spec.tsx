@@ -14,7 +14,8 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OrgRole} from 'sentry/types/organization';
-import {InviteRequestRow} from 'sentry/views/settings/organizationMembers/inviteRequestRow';
+
+import {InviteRequestRow} from './inviteRequestRow';
 
 const roles: OrgRole[] = [
   {
@@ -41,6 +42,10 @@ const roles: OrgRole[] = [
 ];
 
 describe('InviteRequestRow', () => {
+  beforeEach(() => {
+    TeamStore.reset();
+  });
+
   const orgWithoutAdminAccess = OrganizationFixture({
     access: [],
   });
@@ -221,8 +226,6 @@ describe('InviteRequestRow', () => {
       container: document.body,
     });
     expect(mockUpdate).toHaveBeenCalledWith({teams: ['myteam', 'one']});
-
-    TeamStore.reset();
   });
 
   it('cannot be approved when invitee role is not allowed', () => {

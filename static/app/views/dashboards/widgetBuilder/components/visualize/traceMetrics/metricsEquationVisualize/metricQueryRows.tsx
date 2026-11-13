@@ -10,9 +10,6 @@ import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {supportsWidgetTransformations} from 'sentry/views/dashboards/utils/transformations';
-import {BuilderStateMetricsQueryParamsProvider} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/builderStateMetricsQueryParamsProvider';
-import {MetricToolbar} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricToolbar';
-import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
@@ -43,6 +40,10 @@ import {
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {BuilderStateMetricsQueryParamsProvider} from './builderStateMetricsQueryParamsProvider';
+import {MetricToolbar} from './metricToolbar';
+import {dispatchYAxisUpdate} from './utils';
 
 function computeEquationReferencedLabels(
   equationQuery: MetricQuery | undefined,
@@ -277,32 +278,38 @@ export function MetricQueryRows({
           </BuilderStateMetricsQueryParamsProvider>
         );
       })}
-      {equationQuery && (
-        <BuilderStateMetricsQueryParamsProvider
-          metricQuery={equationQuery}
-          isSelected={isEquationSelected}
-        >
-          <MetricToolbar
-            label={equationQuery.label ?? ''}
-            referenceMap={referenceMap}
-            isSelected={isEquationSelected}
-            onRowSelection={onRowSelection}
-            onReferenceLabelsChange={setEquationReferencedLabels}
-            deleteDisabledReason={t('An equation is required')}
-            disabled={hasUnresolvedMetrics}
-          />
-        </BuilderStateMetricsQueryParamsProvider>
+      {(equationQuery || (canTransform && plottedTransformations.length > 0)) && (
+        <Stack gap="md">
+          {equationQuery && (
+            <BuilderStateMetricsQueryParamsProvider
+              metricQuery={equationQuery}
+              isSelected={isEquationSelected}
+            >
+              <MetricToolbar
+                label={equationQuery.label ?? ''}
+                referenceMap={referenceMap}
+                isSelected={isEquationSelected}
+                onRowSelection={onRowSelection}
+                onReferenceLabelsChange={setEquationReferencedLabels}
+                deleteDisabledReason={t('An equation is required')}
+                disabled={hasUnresolvedMetrics}
+              />
+            </BuilderStateMetricsQueryParamsProvider>
+          )}
+          {canTransform && plottedTransformations.length > 0 && (
+            <VisualizeTransformationRows
+              traceItemDataset={TraceItemDataset.TRACEMETRICS}
+              analyticsSource="dashboards"
+              transformations={plottedTransformations}
+              layout="inline"
+              size="sm"
+              gap="md"
+              onChange={setPlottedTransformations}
+            />
+          )}
+        </Stack>
       )}
-      {canTransform && plottedTransformations.length > 0 && (
-        <VisualizeTransformationRows
-          traceItemDataset={TraceItemDataset.TRACEMETRICS}
-          analyticsSource="dashboards"
-          transformations={plottedTransformations}
-          layout="inline"
-          onChange={setPlottedTransformations}
-        />
-      )}
-      <Flex gap="md" align="center">
+      <Flex gap="md" align="baseline">
         <Button
           icon={<IconAdd />}
           onClick={addAggregate}
@@ -325,6 +332,7 @@ export function MetricQueryRows({
         </Button>
         {canTransform && (
           <AddTransformationButton
+            variant="link"
             traceItemDataset={TraceItemDataset.TRACEMETRICS}
             analyticsSource="dashboards"
             transformations={plottedTransformations}

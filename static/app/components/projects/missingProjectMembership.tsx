@@ -1,19 +1,19 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconFlag} from '@sentry/icons/flag';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
@@ -26,8 +26,9 @@ interface JoinTeamActionProps {
 function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
   const api = useApi({persistInFlight: true});
   const [isLoading, setIsLoading] = useState(false);
-  const teamStoreData = useLegacyStore(TeamStore);
-  const selectedTeam = teamStoreData.teams.find(team => team.slug === teamSlug);
+  const selectedTeam = useStore(TeamStore, state =>
+    state.teams.find(team => team.slug === teamSlug)
+  );
 
   const handleJoinTeam = async () => {
     setIsLoading(true);
@@ -37,9 +38,9 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
         orgId: organization.slug,
         teamId: teamSlug,
       });
-      addSuccessMessage(t('Request to join team sent.'));
+      toast.success(t('Request to join team sent.'));
     } catch {
-      addErrorMessage(t('There was an error while trying to request access.'));
+      toast.error(t('There was an error while trying to request access.'));
       // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);
@@ -77,13 +78,13 @@ export function MissingProjectMembership({
   project,
 }: MissingProjectMembershipProps) {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
-  const teamStoreData = useLegacyStore(TeamStore);
+  const teams = useStore(TeamStore, state => state.teams);
 
   const teamOptions = useMemo(() => {
     const request: string[] = [];
     const pending: string[] = [];
     const pendingTeams = new Set<string>(
-      teamStoreData.teams.filter(tm => tm.isPending).map(tm => tm.slug)
+      teams.filter(tm => tm.isPending).map(tm => tm.slug)
     );
     project?.teams?.forEach(({slug}) => {
       if (pendingTeams.has(slug)) {
@@ -111,7 +112,7 @@ export function MissingProjectMembership({
         })),
       },
     ];
-  }, [organization.features, project, teamStoreData.teams]);
+  }, [organization.features, project, teams]);
 
   const hasTeams = !!project?.teams?.length;
   return (

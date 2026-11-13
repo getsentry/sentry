@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -12,8 +13,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type RelatedIssuesResponse = {
@@ -47,20 +47,17 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
     isError,
     data: relatedIssues,
     refetch,
-  } = useApiQuery<RelatedIssuesResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/related-issues/', {
-        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-      }),
+  } = useQuery(
+    apiOptions.as<RelatedIssuesResponse>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/related-issues/',
       {
+        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
         query: {
           type: relationType,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
+        staleTime: 0,
+      }
+    )
   );
 
   const traceMeta = relationType === 'trace_connected' ? relatedIssues?.meta : undefined;

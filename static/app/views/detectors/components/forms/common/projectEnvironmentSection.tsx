@@ -3,11 +3,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
-import {
-  EnvironmentField,
-  type EnvironmentConfig,
-} from 'sentry/views/detectors/components/forms/common/environmentField';
-import {ProjectField} from 'sentry/views/detectors/components/forms/common/projectField';
+
+import {EnvironmentField, type EnvironmentConfig} from './environmentField';
+import {ProjectField} from './projectField';
 
 export type {EnvironmentConfig};
 

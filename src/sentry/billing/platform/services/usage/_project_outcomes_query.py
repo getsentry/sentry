@@ -21,6 +21,7 @@ from sentry.billing.platform.services.usage._outcomes_query import (
     _category_usage_from_row,
     _inclusive_end_to_exclusive,
     _latest_usage_timestamp,
+    _OutcomeRow,
     _parse_day,
     _timestamp_to_datetime,
 )
@@ -31,6 +32,10 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 _REFERRER = Referrer.BILLING_USAGE_SERVICE_CLICKHOUSE.value
+
+
+class _ProjectOutcomeRow(_OutcomeRow):
+    project_id: int
 
 
 class ProjectUsageQueryTruncatedError(RuntimeError):
@@ -82,7 +87,7 @@ def _build_project_query(
 
 
 def _build_project_response(
-    rows: list[dict], last_usage_ts: datetime | None
+    rows: list[_ProjectOutcomeRow], last_usage_ts: datetime | None
 ) -> GetUsageByProjectResponse:
     projects: defaultdict[int, defaultdict[str, dict[int, CategoryUsage]]] = defaultdict(
         lambda: defaultdict(dict)

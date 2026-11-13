@@ -1,5 +1,7 @@
 from collections.abc import Mapping
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
@@ -10,6 +12,8 @@ from sentry.onboarding.agentic_progress.model import (
     StageExtra,
     StageStatus,
 )
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import json
 
 
@@ -24,7 +28,10 @@ def serialize_stage_extra(extra: StageExtra | None) -> dict[str, Any] | None:
     if extra is None:
         return None
 
-    return convert_dict_key_case(json.loads(extra.json()), snake_to_camel_case)
+    return cast(
+        "dict[str, Any]",
+        convert_dict_key_case(json.loads(extra.json()), snake_to_camel_case),
+    )
 
 
 class AgenticOnboardingRunResponse(TypedDict):
@@ -47,7 +54,7 @@ class AgenticOnboardingRunSerializer(Serializer[AgenticOnboardingRunResponse]):
         self,
         obj: OnboardingRun,
         attrs: Mapping[str, Any],
-        user: Any,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> AgenticOnboardingRunResponse:
         data = AgenticOnboardingRunResponse(

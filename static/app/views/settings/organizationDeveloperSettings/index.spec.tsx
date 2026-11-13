@@ -10,7 +10,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
+import OrganizationDeveloperSettings from './index';
 
 describe('Organization Developer Settings', () => {
   const org = OrganizationFixture();

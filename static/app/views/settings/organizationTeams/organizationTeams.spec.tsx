@@ -13,7 +13,8 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
-import {OrganizationTeams} from 'sentry/views/settings/organizationTeams/organizationTeams';
+
+import {OrganizationTeams} from './organizationTeams';
 
 jest.mocked(recreateRoute).mockReturnValue('');
 jest.unmock('@tanstack/react-pacer');
@@ -25,11 +26,13 @@ jest.mock('sentry/actionCreators/modal', () => ({
 const TEAM_SEARCH = 'frontend';
 
 describe('OrganizationTeams', () => {
-  beforeEach(() => TeamStore.loadInitialData([], false, null));
+  beforeEach(() => {
+    TeamStore.reset();
+    TeamStore.loadInitialData([], false, null);
+  });
 
   afterEach(() => {
     jest.useRealTimers();
-    act(() => TeamStore.reset());
   });
 
   it('debounces team search requests', async () => {

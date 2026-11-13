@@ -1,8 +1,9 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {LogLink} from 'sentry/components/seer/markdown/embeds/components/log/logLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+
+import {LogLink} from './logLink';
 
 const LazyLogBlock = lazy(() => import('./logBlock'));
 

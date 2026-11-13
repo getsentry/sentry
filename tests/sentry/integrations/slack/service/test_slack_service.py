@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from unittest import mock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import orjson
@@ -64,7 +65,7 @@ class TestGetNotificationMessageToSend(TestCase):
             group_link = self.group.get_absolute_url(
                 params={
                     "referrer": "activity_notification",
-                    "notification_uuid": uuid,
+                    "notification_uuid": str(uuid),
                 }
             )
             assert (
@@ -127,7 +128,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 extra={
                     "activity_id": self.activity.id,
                     "project_id": self.activity.project.id,
-                    "group_id": self.activity.group.id,
+                    "group_id": self.group.id,
                     "organization_id": self.organization.id,
                 },
             )
@@ -144,7 +145,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 extra={
                     "activity_id": self.activity.id,
                     "project_id": self.activity.project.id,
-                    "group_id": self.activity.group.id,
+                    "group_id": self.group.id,
                     "organization_id": self.organization.id,
                 },
             )
@@ -160,7 +161,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 extra={
                     "activity_id": self.activity.id,
                     "project_id": self.activity.project.id,
-                    "group_id": self.activity.group.id,
+                    "group_id": self.group.id,
                     "organization_id": self.organization.id,
                 },
             )
@@ -176,7 +177,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 extra={
                     "activity_id": self.activity.id,
                     "project_id": self.activity.project.id,
-                    "group_id": self.activity.group.id,
+                    "group_id": self.group.id,
                     "organization_id": self.organization.id,
                 },
             )
@@ -189,8 +190,11 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_calls_handle_parent_notification(
-        self, mock_get_channel_id, mock_send_notification, mock_record
-    ):
+        self,
+        mock_get_channel_id: MagicMock,
+        mock_send_notification: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
         self.service.notify_all_threads_for_activity(activity=self.activity)
 
         mock_get_channel_id.assert_called()
@@ -212,7 +216,10 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_handle_parent_notification_with_open_period(
-        self, mock_get_channel_id, mock_send_notification, mock_record
+        self,
+        mock_get_channel_id: MagicMock,
+        mock_send_notification: MagicMock,
+        mock_record: MagicMock,
     ) -> None:
         group = self.create_group(type=UptimeDomainCheckFailure.type_id)
 
@@ -295,7 +302,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
     )
     def test_platform_threads_filtered_to_current_open_period(
-        self, mock_send_notification, mock_record
+        self, mock_send_notification: MagicMock, mock_record: MagicMock
     ) -> None:
         group = self.create_group(type=UptimeDomainCheckFailure.type_id)
         activity = Activity.objects.create(
@@ -324,7 +331,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
     )
     def test_platform_threads_skipped_outside_platform_rollout(
-        self, mock_send_notification, mock_record
+        self, mock_send_notification: MagicMock, mock_record: MagicMock
     ) -> None:
         group = self.create_group(type=UptimeDomainCheckFailure.type_id)
         activity = Activity.objects.create(
@@ -355,7 +362,10 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_handle_parent_notification_with_open_period_model_open_period_model(
-        self, mock_get_channel_id, mock_send_notification, mock_record
+        self,
+        mock_get_channel_id: MagicMock,
+        mock_send_notification: MagicMock,
+        mock_record: MagicMock,
     ) -> None:
         group = self.create_group(type=UptimeDomainCheckFailure.type_id)
 
@@ -412,7 +422,10 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_handle_parent_notification_with_open_period_uptime_resolved(
-        self, mock_get_channel_id, mock_send_notification, mock_record
+        self,
+        mock_get_channel_id: MagicMock,
+        mock_send_notification: MagicMock,
+        mock_record: MagicMock,
     ) -> None:
         group = self.create_group(type=UptimeDomainCheckFailure.type_id)
 
@@ -485,8 +498,11 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_handle_parent_notification_with_notification_action(
-        self, mock_get_channel_id, mock_send_notification, mock_record
-    ):
+        self,
+        mock_get_channel_id: MagicMock,
+        mock_send_notification: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
         """Test that notification action repository is used when feature flag is enabled"""
         activity = Activity.objects.create(
             group=self.group,
@@ -507,7 +523,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         group_link = self.group.get_absolute_url(
             params={
                 "referrer": "activity_notification",
-                "notification_uuid": uuid,
+                "notification_uuid": str(uuid),
             }
         )
 
@@ -533,8 +549,11 @@ class TestNotifyAllThreadsForActivity(TestCase):
         "sentry.integrations.slack.service.SlackService._get_channel_id_from_parent_notification_notification_action"
     )
     def test_handle_parent_notification_with_notification_action_and_open_period(
-        self, mock_get_channel_id, mock_send_notification, mock_record
-    ):
+        self,
+        mock_get_channel_id: MagicMock,
+        mock_send_notification: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
         """Test that notification action repository is used with open period when both features are enabled"""
         group = self.create_group(type=UptimeDomainCheckFailure.type_id)
 

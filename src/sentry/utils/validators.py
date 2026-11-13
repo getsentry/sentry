@@ -15,25 +15,25 @@ INVALID_SPAN_ID = (
 HEXADECIMAL_16_DIGITS = re.compile("^[0-9a-fA-F]{1,16}$")
 
 
-def normalize_event_id(value):
+def normalize_event_id(value: object) -> str | None:
     try:
         return uuid.UUID(force_str(value)).hex
     except (TypeError, AttributeError, ValueError):
         return None
 
 
-def is_event_id(value):
+def is_event_id(value: object) -> bool:
     return normalize_event_id(value) is not None
 
 
-def is_event_id_or_list(value):
+def is_event_id_or_list(value: object) -> bool:
     if isinstance(value, list):
         return all(is_event_id(item) for item in value)
     else:
         return is_event_id(value)
 
 
-def normalize_event_id_strict(value):
+def normalize_event_id_strict(value: object) -> object:
     """Normalize a UUID by stripping dashes. Returns the original value if normalization fails."""
     result = normalize_event_id(value)
     return result if result is not None else value
@@ -43,16 +43,16 @@ def is_span_id(value: object) -> TypeGuard[str]:
     return bool(HEXADECIMAL_16_DIGITS.search(force_str(value)))
 
 
-def normalize_span_id(value):
+def normalize_span_id(value: object) -> str:
     return force_str(value).lower()
 
 
-def is_span_id_or_list(value):
+def is_span_id_or_list(value: object) -> bool:
     if isinstance(value, list):
         return all(is_span_id(item) for item in value)
     else:
         return is_span_id(value)
 
 
-def is_empty_string(value):
+def is_empty_string(value: object) -> bool:
     return force_str(value) == ""

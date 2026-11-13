@@ -89,7 +89,9 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         # WebElement.clear() doesn't fire input events, so React-controlled
         # textareas keep their old form state. Backspace each character so
         # React's onChange runs.
-        textarea.send_keys(Keys.BACKSPACE * len(textarea.get_attribute("value")))
+        current_value = textarea.get_attribute("value")
+        assert current_value is not None
+        textarea.send_keys(Keys.BACKSPACE * len(current_value))
         textarea.send_keys("{}")
 
         self.browser.click('[aria-label="Save Changes"]')

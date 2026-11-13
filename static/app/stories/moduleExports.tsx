@@ -1,8 +1,7 @@
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
-
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['exports']}) {
   if (!props.exports?.exports || !props.exports.module) {
@@ -11,9 +10,11 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
 
   const lines = [];
   // canonical source: @sentry/scraps/<component> (no deep imports)
-  const importSpecifier = props.exports.module.startsWith('@sentry/scraps/')
-    ? props.exports.module.split('/').slice(0, 3).join('/')
-    : props.exports.module;
+  const importSpecifier =
+    props.exports.module.startsWith('@sentry/scraps/') &&
+    props.exports.module !== '@sentry/scraps/code'
+      ? props.exports.module.split('/').slice(0, 3).join('/')
+      : props.exports.module;
 
   if (Object.entries(props.exports.exports).length > 0) {
     const entries = Object.entries(props.exports.exports);
@@ -79,7 +80,7 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
       <CodeBlock
         dark
         language="tsx"
-        onCopy={() => addSuccessMessage('Imports copied to clipboard')}
+        onCopy={() => toast.success('Imports copied to clipboard')}
       >
         {lines.join('\n')}
       </CodeBlock>

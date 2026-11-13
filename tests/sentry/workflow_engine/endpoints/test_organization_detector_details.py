@@ -20,6 +20,7 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -42,6 +43,7 @@ from sentry.workflow_engine.models import (
     DataSource,
     DataSourceDetector,
     Detector,
+    Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -187,6 +189,13 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
 
 @cell_silo_test
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
+    def test_discovery_exclusion_does_not_block_detail(self) -> None:
+        with override_detector_api_availability(
+            MetricIssue.slug, {DetectorAPIOperation.DISCOVER: False}
+        ):
+            response = self.get_success_response(self.organization.slug, self.detector.id)
+        assert response.data == serialize(self.detector)
+
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)
@@ -557,7 +566,10 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
     def test_update_comparison_delta_invalid(self) -> None:
         data = {**self.valid_data}
-        data["config"]["comparisonDelta"] = 0
+        data["config"] = {
+            "detectionType": AlertRuleDetectionType.PERCENT.value,
+            "comparisonDelta": 0,
+        }
 
         response = self.get_error_response(
             self.organization.slug,
@@ -566,7 +578,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             status_code=400,
         )
         assert response.data["config"][0] == ErrorDetail(
-            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000]",
             code="invalid",
         )
 
@@ -579,7 +591,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             status_code=400,
         )
         assert response.data["config"][0] == ErrorDetail(
-            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000]",
             code="invalid",
         )
 
@@ -592,6 +604,28 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 status_code=200,
             )
         assert response.data["config"]["comparisonDelta"] == 300
+
+    def test_update_comparison_delta_with_non_percent_detection_type(self) -> None:
+        data = {
+            **self.valid_data,
+            "config": {
+                "detectionType": AlertRuleDetectionType.STATIC.value,
+                "comparisonDelta": 3600,
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"] == [
+            ErrorDetail(
+                string="`comparisonDelta` can only be set when `detectionType` is 'percent', not 'static'.",
+                code="invalid",
+            )
+        ]
 
     def test_update_add_data_condition(self) -> None:
         """
@@ -938,6 +972,49 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 == 1
             )
 
+    def test_update_workflows_cannot_attach_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **{**self.valid_data, "workflowIds": [hidden_workflow.id]},
+            status_code=400,
+        )
+
+        assert "Some workflows do not exist" in str(response.data)
+
+        assert not DetectorWorkflow.objects.filter(detector=self.detector).exists()
+
+    def test_update_workflows_keeps_hidden_workflow_connection(self) -> None:
+        alert_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        self.create_detector_workflow(detector=self.detector, workflow=hidden_workflow)
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                workflowIds=[alert_workflow.id],
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(alert_workflow.id)]
+
+        connected_workflow_ids = set(
+            DetectorWorkflow.objects.filter(detector=self.detector).values_list(
+                "workflow_id", flat=True
+            )
+        )
+
+        assert connected_workflow_ids == {alert_workflow.id, hidden_workflow.id}
+
     def test_update_workflows_invalid_workflow_ids(self) -> None:
         """Test validation failure with non-existent workflow IDs"""
         data = {
@@ -1087,7 +1164,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def test_update_config_valid(self) -> None:
         """Test updating detector config with valid schema data"""
         # Initial config
-        initial_config = {"detection_type": "static", "comparison_delta": None}
+        initial_config = {"detection_type": "static"}
         self.detector.config = initial_config
         self.detector.save()
 
@@ -1117,7 +1194,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def test_update_config_invalid_schema(self) -> None:
         """Test updating detector config with invalid schema data fails validation"""
         # Config missing required field 'detection_type'
-        invalid_config = {"comparison_delta": 3600}
+        invalid_config: dict[str, Any] = {}
         data = {
             "config": invalid_config,
         }
@@ -1290,6 +1367,51 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             name="Updated Name",
             status_code=403,
         )
+
+    def test_update_rejects_type_change(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_subscription = create_snuba_subscription(
+            project=other_project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=self.snuba_query,
+        )
+        original_status = other_subscription.status
+
+        cron_detector = self.create_detector(
+            project=self.project, type=MonitorIncidentType.slug, enabled=True
+        )
+        cron_data_source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(other_subscription.id),
+            type=DATA_SOURCE_CRON_MONITOR,
+        )
+        self.create_data_source_detector(data_source=cron_data_source, detector=cron_detector)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            cron_detector.id,
+            type=MetricIssue.slug,
+            enabled=False,
+            status_code=400,
+        )
+        assert response.data == {"type": ["The type of a monitor cannot be changed."]}
+
+        cron_detector.refresh_from_db()
+        assert cron_detector.type == MonitorIncidentType.slug
+        assert cron_detector.enabled is True
+        other_subscription.refresh_from_db()
+        assert other_subscription.status == original_status
+
+    def test_update_with_matching_type_succeeds(self) -> None:
+        self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            type=MetricIssue.slug,
+            name="Renamed",
+        )
+        self.detector.refresh_from_db()
+        assert self.detector.name == "Renamed"
 
 
 @cell_silo_test

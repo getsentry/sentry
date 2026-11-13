@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from unittest import mock
 
@@ -94,7 +95,7 @@ class DeliverDigestTest(TestCase):
 
     def test_unable_to_acquire_lock_propagates(self) -> None:
         @contextmanager
-        def raise_lock_error(*args, **kwargs):
+        def raise_lock_error(*args: object, **kwargs: object) -> Iterator[None]:
             raise UnableToAcquireLock("test lock contention")
             yield  # type: ignore[unreachable]
 

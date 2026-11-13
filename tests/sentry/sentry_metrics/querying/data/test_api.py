@@ -86,7 +86,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         self.query_transformer = MetricsAPIQueryResultsTransformer()
 
-    def now(self):
+    def now(self) -> datetime:
         return MOCK_DATETIME
 
     def ts(self, dt: datetime) -> int:
@@ -1485,7 +1485,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert meta[0][1]["unit"] == expected_unit
             assert meta[0][1]["scaling_factor"] is None
 
-    def setup_project_with_metrics(self, name: str):
+    def setup_project_with_metrics(self, name: str) -> Project:
         new_project = self.create_project(name=name)
         for value, transaction, platform, env, time in (
             (1, "/hello", "android", "prod", self.now()),

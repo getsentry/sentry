@@ -3,7 +3,7 @@ import {Item} from '@react-stately/collections';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
+import {ComboBox} from './comboBox';
 
 function ComboBoxWrapper(props: Omit<ComponentProps<typeof ComboBox>, 'children'>) {
   return (

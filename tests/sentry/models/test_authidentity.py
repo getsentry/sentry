@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -23,7 +23,7 @@ class AuthIdentityUpdateLoggingTest(TestCase):
         )
 
     @patch("sentry.models.authidentity.logger")
-    def test_update_data_logs(self, mock_logger):
+    def test_update_data_logs(self, mock_logger: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.auth_identity.update(data={"new": "value"})
 
@@ -38,7 +38,7 @@ class AuthIdentityUpdateLoggingTest(TestCase):
         )
 
     @patch("sentry.models.authidentity.logger")
-    def test_update_ident_logs(self, mock_logger):
+    def test_update_ident_logs(self, mock_logger: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.auth_identity.update(ident="new-ident")
 
@@ -53,7 +53,7 @@ class AuthIdentityUpdateLoggingTest(TestCase):
         )
 
     @patch("sentry.models.authidentity.logger")
-    def test_update_user_id_logs_old_and_new(self, mock_logger):
+    def test_update_user_id_logs_old_and_new(self, mock_logger: MagicMock) -> None:
         old_user_id = self.user.id
         new_user = self.create_user()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -71,14 +71,14 @@ class AuthIdentityUpdateLoggingTest(TestCase):
         )
 
     @patch("sentry.models.authidentity.logger")
-    def test_update_timestamp_only_does_not_log(self, mock_logger):
+    def test_update_timestamp_only_does_not_log(self, mock_logger: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.auth_identity.update(last_synced=timezone.now())
 
         mock_logger.info.assert_not_called()
 
     @patch("sentry.models.authidentity.logger")
-    def test_update_mixed_meaningful_and_timestamp_logs(self, mock_logger):
+    def test_update_mixed_meaningful_and_timestamp_logs(self, mock_logger: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.auth_identity.update(data={"refreshed": True}, last_synced=timezone.now())
 
@@ -93,14 +93,14 @@ class AuthIdentityUpdateLoggingTest(TestCase):
         )
 
     @patch("sentry.models.authidentity.logger")
-    def test_update_returns_affected_count(self, mock_logger):
+    def test_update_returns_affected_count(self, mock_logger: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             result = self.auth_identity.update(data={"new": "value"})
 
         assert result == 1
 
     @patch("sentry.models.authidentity.logger")
-    def test_delete_logs(self, mock_logger):
+    def test_delete_logs(self, mock_logger: MagicMock) -> None:
         identity_id = self.auth_identity.id
         provider_id = self.auth_provider.id
         user_id = self.user.id

@@ -15,7 +15,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
 
-class InvestigationCommentSerializerResponse(TypedDict):
+class NotebookCommentSerializerResponse(TypedDict):
     """
     Comment with author details, or a null author when unavailable. blockId is null for
     investigation-level comments. Dates are ISO-8601 timestamps.
@@ -30,7 +30,7 @@ class InvestigationCommentSerializerResponse(TypedDict):
 
 
 @register(NotebookComment)
-class InvestigationCommentSerializer(Serializer[InvestigationCommentSerializerResponse]):
+class NotebookCommentSerializer(Serializer[NotebookCommentSerializerResponse]):
     @override
     def get_attrs(
         self,
@@ -58,7 +58,7 @@ class InvestigationCommentSerializer(Serializer[InvestigationCommentSerializerRe
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> InvestigationCommentSerializerResponse:
+    ) -> NotebookCommentSerializerResponse:
         return {
             "id": str(obj.id),
             "blockId": str(obj.block_id) if obj.block_id is not None else None,

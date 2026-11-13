@@ -4,7 +4,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {TeamStore} from 'sentry/stores/teamStore';
-import TeamDetails from 'sentry/views/settings/organizationTeams/teamDetails';
+
+import TeamDetails from './teamDetails';
 
 describe('TeamDetails', () => {
   let joinMock: any;
@@ -24,7 +25,6 @@ describe('TeamDetails', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    TeamStore.reset();
   });
 
   it('can request membership', async () => {

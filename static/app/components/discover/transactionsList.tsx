@@ -21,6 +21,7 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -192,6 +193,7 @@ type TableRenderProps = Omit<React.ComponentProps<typeof Pagination>, 'size'> &
   React.ComponentProps<typeof TransactionsTable> & {
     header: React.ReactNode;
     paginationCursorSize: React.ComponentProps<typeof Pagination>['size'];
+    pageLinks?: string | null;
   };
 
 function TableRender({
@@ -255,7 +257,7 @@ function TableRender({
       >
         {header}
         <Pagination
-          pageLinks={pageLinks}
+          {...getPaginationProps(pageLinks)}
           onCursor={onCursor}
           size={paginationCursorSize}
           css={css`
@@ -293,7 +295,8 @@ function TableRender({
 }
 
 class _TransactionsList extends Component<Props> {
-  handleCursor: CursorHandler = (cursor, pathname, query) => {
+  handleCursor: CursorHandler = cursor => {
+    const {pathname, query} = this.props.location;
     const {navigate} = this.props;
     navigate({
       pathname,

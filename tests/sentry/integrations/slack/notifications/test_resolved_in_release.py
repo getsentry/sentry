@@ -3,6 +3,7 @@ from unittest import mock
 import orjson
 
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
@@ -17,7 +18,9 @@ pytestmark = [requires_snuba]
 class SlackResolvedInReleaseNotificationTest(
     SlackActivityNotificationTest, PerformanceIssueTestCase
 ):
-    def create_notification(self, group, version="meow"):
+    def create_notification(
+        self, group: Group, version: str = "meow"
+    ) -> ResolvedInReleaseActivityNotification:
         return ResolvedInReleaseActivityNotification(
             Activity(
                 project=self.project,
@@ -63,6 +66,7 @@ class SlackResolvedInReleaseNotificationTest(
         and block kit is enabled.
         """
         event = self.create_performance_issue()
+        assert event.group is not None
         notification = self.create_notification(event.group)
         with self.tasks():
             notification.send()

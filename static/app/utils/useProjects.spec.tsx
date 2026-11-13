@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useProjects} from 'sentry/utils/useProjects';
+
+import {useProjects} from './useProjects';
 
 const org = OrganizationFixture();
 

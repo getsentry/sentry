@@ -1,6 +1,7 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import wraps
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -8,6 +9,7 @@ from fixtures.sdk_crash_detection.crash_event_dart import (
     get_crash_event,
     get_crash_event_with_frames,
 )
+from sentry.services.eventstore.models import Event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
@@ -18,13 +20,13 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
 )
 
 
-def decorators(func):
+def decorators(func: Callable[..., Any]) -> Any:
     @wraps(func)
     @django_db_all
     @pytest.mark.snuba
     @patch("random.random", return_value=0.1)
     @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
 
     return wrapper
@@ -184,14 +186,14 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
 )
 @decorators
 def test_sdk_crash_is_reported_with_flutter_paths(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
-    sdk_frame_abs_path,
-    system_frame_abs_path,
-    detected,
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Callable[..., Event],
+    configs: Sequence[SDKCrashDetectionConfig],
+    sdk_frame_abs_path: str,
+    system_frame_abs_path: str,
+    detected: bool,
+) -> None:
     event = store_event(
         data=get_crash_event(
             sdk_frame_abs_path=sdk_frame_abs_path, system_frame_abs_path=system_frame_abs_path
@@ -237,7 +239,10 @@ def test_sdk_crash_is_reported_with_flutter_paths(
 
 @decorators
 def test_ignore_get_current_stack_trace(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event(sdk_function="getCurrentStackTrace")
     event = store_event(data=event_data)
@@ -254,7 +259,10 @@ def test_ignore_get_current_stack_trace(
 
 @decorators
 def test_beta_sdk_version_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="8.2.2-beta.0")
@@ -272,8 +280,11 @@ def test_beta_sdk_version_detected(
 
 @decorators
 def test_too_low_min_sdk_version_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="8.1.9")
     event = store_event(data=event_data)
@@ -290,7 +301,10 @@ def test_too_low_min_sdk_version_not_detected(
 
 @decorators
 def test_ignore_handle_begin_frame(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event(sdk_function="SentryWidgetsBindingMixin.handleBeginFrame")
     event = store_event(data=event_data)
@@ -307,7 +321,10 @@ def test_ignore_handle_begin_frame(
 
 @decorators
 def test_ignore_handle_draw_frame(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event(sdk_function="SentryWidgetsBindingMixin.handleDrawFrame")
     event = store_event(data=event_data)
@@ -331,7 +348,11 @@ def test_ignore_handle_draw_frame(
 )
 @decorators
 def test_ignore_binding_pass_through_frames(
-    mock_sdk_crash_reporter, mock_random, store_event, configs, sdk_function
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+    sdk_function: str,
 ) -> None:
     event_data = get_crash_event(sdk_function=sdk_function)
     event = store_event(data=event_data)
@@ -384,7 +405,10 @@ FLUTTER_DRAW_FRAME_ASSERTION_FRAMES = [
 
 @decorators
 def test_flutter_error_during_draw_frame_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event_with_frames(FLUTTER_DRAW_FRAME_ASSERTION_FRAMES)
     event = store_event(data=event_data)
@@ -401,7 +425,10 @@ def test_flutter_error_during_draw_frame_not_detected(
 
 @decorators
 def test_sdk_error_inside_draw_frame_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     # A crash in the SDK's own app start recorder must still be detected, even though
     # it's called from the ignored drawFrame wrapper.
@@ -425,8 +452,11 @@ def test_sdk_error_inside_draw_frame_detected(
 
 @decorators
 def test_ignore_flutter_error_integration(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     event_data = get_crash_event(sdk_function="FlutterErrorIntegration.call.<fn>")
     event = store_event(data=event_data)
 

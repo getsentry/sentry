@@ -5,8 +5,9 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {PageLayout} from 'sentry/views/performance/transactionSummary/pageLayout';
-import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
+
+import {PageLayout} from './pageLayout';
+import {Tab} from './tabs';
 
 function TransactionSummaryLayout() {
   const location = useLocation();

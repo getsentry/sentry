@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Collection, Iterable
-from typing import TYPE_CHECKING, Any, ClassVar
+from collections.abc import Callable, Collection, Iterable, MutableMapping
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 from uuid import uuid1
 
 from django.conf import settings
@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry_sdk import traces
 
 from bitfield import TypedClassBitField
+from sentry import features
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -53,8 +54,10 @@ from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
     from sentry.models.options.project_option import ProjectOptionManager
     from sentry.models.organization import Organization
+    from sentry.models.organizationmember import OrganizationMember
     from sentry.users.models.user import User
 
 # NOTE:
@@ -82,6 +85,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "dotnet-xamarin",
     "electron",
     "elixir",
+    "expo",
     "flutter",
     "go",
     "go-echo",
@@ -195,19 +199,25 @@ class ProjectManager(BaseManager["Project"]):
                 projects_by_user_id[user_id].add(project_id)
         return projects_by_user_id
 
-    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
+    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet[Project]:
         """Returns the QuerySet of all projects that a set of Users have access to."""
         return self.filter(
             status=ObjectStatus.ACTIVE,
             teams__organizationmember__user_id__in=user_ids,
         )
 
-    def get_for_team_ids(self, team_ids: Collection[int] | Subquery) -> QuerySet:
+    def get_for_team_ids(self, team_ids: Collection[int] | Subquery) -> QuerySet[Project]:
         """Returns the QuerySet of all projects that a set of Teams have access to."""
         return self.filter(status=ObjectStatus.ACTIVE, teams__in=team_ids)
 
     # TODO(dcramer): we might want to cache this per user
-    def get_for_user(self, team, user, scope=None, _skip_team_check=False):
+    def get_for_user(
+        self,
+        team: Team,
+        user: RequestPrincipal,
+        scope: str | None = None,
+        _skip_team_check: bool = False,
+    ) -> list[Project]:
         if not (user and user.is_authenticated):
             return []
 
@@ -406,7 +416,7 @@ class Project(Model):
         else:
             save_callback()
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         save_callback = lambda: super(Project, self).save(*args, **kwargs)
         if getattr(self, "id", None) is not None or self.slug:
             self._save_project(save_callback)
@@ -426,7 +436,7 @@ class Project(Model):
             )
         )
 
-    def get_absolute_url(self, params=None):
+    def get_absolute_url(self, params: MutableMapping[str, str | int] | None = None) -> str:
         path = f"/organizations/{self.organization.slug}/issues/"
         params = {} if params is None else params
         params["project"] = self.id
@@ -435,7 +445,7 @@ class Project(Model):
             query = urlencode(params)
         return self.organization.absolute_url(path, query=query)
 
-    def is_internal_project(self):
+    def is_internal_project(self) -> bool:
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
             if str(self.id) == str(value) or str(self.slug) == str(value):
                 return True
@@ -464,14 +474,14 @@ class Project(Model):
         self.option_manager.unset_value(self, key)
 
     @property
-    def color(self):
+    def color(self) -> str:
         if self.forced_color is not None:
             return f"#{self.forced_color}"
         assert self.slug is not None
         return get_hashed_color(self.slug.upper())
 
     @property
-    def member_set(self):
+    def member_set(self) -> QuerySet[OrganizationMember]:
         """:returns a QuerySet of all Users that belong to this Project"""
         from sentry.models.organizationmember import OrganizationMember
 
@@ -486,9 +496,9 @@ class Project(Model):
 
     def get_members_as_rpc_users(self) -> list[RpcUser]:
         member_ids = self.member_set.values_list("user_id", flat=True)
-        return user_service.get_many_by_id(ids=list(member_ids))
+        return user_service.get_many_by_id(ids=cast(list[int], list(member_ids)))
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         return {
             "id": self.id,
             "slug": self.slug,
@@ -497,12 +507,13 @@ class Project(Model):
             "public": self.public,
         }
 
-    def get_full_name(self):
+    def get_full_name(self) -> str:
         return self.slug
 
     def transfer_to(self, organization: Organization) -> None:
         from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
         from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        from sentry.integrations.base import INTEGRATION_TYPE_TO_PROVIDER, IntegrationDomain
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
@@ -617,12 +628,23 @@ class Project(Model):
             Detector.objects.filter(project_id=self.id).values_list("id", flat=True)
         )
         if detector_ids:
-            # grab the destination org's integrations outside of the transaction since it's an RPC call
+            # grab the destination org's integrations outside of the transaction since it's an RPC call.
+            # Actions without a usable destination integration get disabled, so leave out
+            # integrations the destination org can't send through: disabled org integrations,
+            # and messaging integrations when its plan doesn't include integration alert rules.
+            excluded_providers: Collection[str] = ()
+            if not features.has("organizations:integrations-alert-rule", organization):
+                excluded_providers = INTEGRATION_TYPE_TO_PROVIDER[IntegrationDomain.MESSAGING]
             destination_integration_ids_by_provider: dict[str, list[int]] = defaultdict(list)
             for integration in integration_service.get_integrations(
-                organization_id=organization.id, status=ObjectStatus.ACTIVE
+                organization_id=organization.id,
+                status=ObjectStatus.ACTIVE,
+                org_integration_status=ObjectStatus.ACTIVE,
             ):
-                destination_integration_ids_by_provider[integration.provider].append(integration.id)
+                if integration.provider not in excluded_providers:
+                    destination_integration_ids_by_provider[integration.provider].append(
+                        integration.id
+                    )
             with transaction.atomic(router.db_for_write(Workflow)):
                 # DataSources are 1:1 with their source (e.g. QuerySubscription, Monitor) and are
                 # detector-scoped, so they always transfer.
@@ -796,7 +818,7 @@ class Project(Model):
                 ei.organization_id = organization.id
             ExternalIssue.objects.bulk_update(external_issues, ["organization_id"])
 
-    def add_team(self, team):
+    def add_team(self, team: Team) -> bool:
         from sentry.models.projectteam import ProjectTeam
 
         try:
@@ -807,7 +829,7 @@ class Project(Model):
         else:
             return True
 
-    def remove_team(self, team):
+    def remove_team(self, team: Team) -> None:
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.rule import Rule
@@ -816,7 +838,7 @@ class Project(Model):
         AlertRule.objects.fetch_for_project(self).filter(team_id=team.id).update(team_id=None)
         Rule.objects.filter(owner_team_id=team.id, project=self).update(owner_team_id=None)
 
-    def get_security_token(self):
+    def get_security_token(self) -> str:
         lock = locks.get(self.get_lock_key(), duration=5, name="project_security_token")
         with TimedRetryPolicy(10)(lock.acquire):
             security_token = self.get_option("sentry:token", None)
@@ -865,7 +887,7 @@ class Project(Model):
 
                     # add settings from other project to self
                     for setting in model.objects.filter(project_id=project_id):
-                        setting.pk = None
+                        setattr(setting, "pk", None)
                         setting.project_id = self.id
                         setting.save()
 
@@ -888,7 +910,7 @@ class Project(Model):
         return True
 
     @staticmethod
-    def is_valid_platform(value):
+    def is_valid_platform(value: object) -> bool:
         return not value or value == "other" or value in GETTING_STARTED_DOCS_PLATFORMS
 
     @staticmethod
@@ -912,7 +934,7 @@ class Project(Model):
             object_identifier=project_identifier,
         )
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         # There is no foreign key relationship so we have to manually cascade.
         notifications_service.remove_notification_settings_for_project(project_id=self.id)
 
@@ -937,7 +959,7 @@ class Project(Model):
         # A `Global` restore implies a blanket restoration of all data. In such a case, we want to
         # ensure that project IDs remain unchanged, so that recovering users do not need to mint new
         # DSNs post-recovery.
-        if scope == ImportScope.Global:
+        if scope == ImportScope.Global and old_pk is not None:
             self.pk = old_pk
 
         return old_pk

@@ -23,13 +23,14 @@ import {
   type RawFeedback,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {userDisplayName} from 'sentry/utils/formatters';
+
+import {ArtifactDetails} from './artifactDetails';
 
 const AVATAR_SIZE = 24;
 const SOURCE_BADGE_SIZE = 14;
@@ -99,12 +100,12 @@ type ParsedFeedback =
   | CheckSuiteFeedback
   | OtherFeedback;
 
-// A parsed feedback enriched with the iteration context the caller supplies.
-type IterationFeedback = ParsedFeedback & {
-  iterationIndex: number;
-  status: FeedbackStatus;
+type FeedbackListItem = ParsedFeedback & {
   errorCode?: string | null;
+  status?: FeedbackStatus;
 };
+
+type IterationFeedback = FeedbackListItem & {iterationIndex: number};
 
 // Bot comments arrive as HTML-flavored markdown; keep only the visible prose.
 function toPlainText(text: string): string {
@@ -165,7 +166,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
   }
 }
 
-function parseFeedback(raw: string): ParsedFeedback[] {
+export function parseFeedback(raw: string): ParsedFeedback[] {
   const parsed: RawFeedback | RawFeedback[] = JSON.parse(raw);
   const items = Array.isArray(parsed) ? parsed : [parsed];
   return items.map(parseFeedbackItem).filter(defined);
@@ -177,16 +178,17 @@ function parseFeedback(raw: string): ParsedFeedback[] {
  * PR iterations are folded into the section's blocks. Each drove one iteration;
  * the cumulative diff is already merged into the section's code-change artifact
  * by `getOrderedAutofixSections`, so here we only surface the feedback text.
- * Feedback on a block at/after the current step marker drives the iteration
- * still running (when the section is processing). Only the latest iteration can
- * use the run's current push error; earlier feedback keeps its processed state.
+ * The iteration at the current step marker is the one still running (when the
+ * section is processing). Only that iteration can use the run's current push
+ * error; earlier feedback keeps its processed state. A retry runs another turn
+ * of the same iteration and carries its feedback again, so each iteration's
+ * feedback is shown once.
  * Feedback submitted mid-run that hasn't been folded into a block yet is
  * appended as `queued`. The list is returned newest-first.
  */
 export function usePrIterationFeedback(
   section: AutofixSection,
-  autofix: ReturnType<typeof useExplorerAutofix>,
-  enabled: boolean
+  autofix: ReturnType<typeof useExplorerAutofix>
 ): {feedback: IterationFeedback[]; latestIterationIndex: number | null} {
   const currentStepStart = useMemo(
     () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
@@ -194,10 +196,6 @@ export function usePrIterationFeedback(
   );
 
   const blockFeedback = useMemo<IterationFeedback[]>(() => {
-    if (!enabled) {
-      return [];
-    }
-
     const repoStates = Object.values(autofix.runState?.repo_pr_states ?? {});
     const pushErrors = repoStates.filter(repo => repo.pr_creation_status === 'error');
     const errorCode = pushErrors.find(
@@ -209,7 +207,14 @@ export function usePrIterationFeedback(
       autofix.runState?.status === 'awaiting_user_input' ||
       repoStates.some(repo => repo.pr_creation_status === 'creating');
 
-    return section.blocks.flatMap((block, blockIndex) => {
+    const currentStep = section.blocks[currentStepStart];
+    const currentIterationIndex =
+      currentStep && isPrIterationBlock(currentStep)
+        ? currentStep.message.metadata?.iteration_index
+        : undefined;
+    const seenIterations = new Set<number>();
+
+    return section.blocks.flatMap(block => {
       if (!isPrIterationBlock(block)) {
         return [];
       }
@@ -222,8 +227,16 @@ export function usePrIterationFeedback(
         return [];
       }
 
+      if (seenIterations.has(Number(iterationIndex))) {
+        return [];
+      }
+      seenIterations.add(Number(iterationIndex));
+
       let status: FeedbackStatus = 'processed';
-      if (blockIndex >= currentStepStart) {
+      if (
+        currentIterationIndex !== undefined &&
+        Number(iterationIndex) === Number(currentIterationIndex)
+      ) {
         if (inProgress) {
           status = 'in_progress';
         } else if (section.status === 'error' || pushErrors.length > 0) {
@@ -238,7 +251,7 @@ export function usePrIterationFeedback(
         errorCode: status === 'error' ? errorCode : undefined,
       }));
     });
-  }, [section.blocks, section.status, autofix.runState, currentStepStart, enabled]);
+  }, [section.blocks, section.status, autofix.runState, currentStepStart]);
 
   const latestIterationIndex = useMemo(
     () =>
@@ -251,10 +264,6 @@ export function usePrIterationFeedback(
   );
 
   const queuedFeedback = useMemo<IterationFeedback[]>(() => {
-    if (!enabled) {
-      return [];
-    }
-
     return (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
       const parsed = parseFeedbackItem(raw);
       if (!parsed) {
@@ -269,7 +278,7 @@ export function usePrIterationFeedback(
         },
       ];
     });
-  }, [autofix.runState?.queued_feedback, latestIterationIndex, enabled]);
+  }, [autofix.runState?.queued_feedback, latestIterationIndex]);
 
   const feedback = useMemo(
     () => [...blockFeedback, ...queuedFeedback].reverse(),
@@ -280,37 +289,33 @@ export function usePrIterationFeedback(
 }
 
 type FeedbackNode =
-  | {item: IterationFeedback; type: 'item'}
+  | {item: FeedbackListItem; type: 'item'}
   | {
-      body: GithubPrReviewBodyFeedback & IterationFeedback;
-      comments: IterationFeedback[];
+      body: GithubPrReviewBodyFeedback & FeedbackListItem;
+      comments: FeedbackListItem[];
       type: 'review';
     };
 
 // A group forms only when a review body is present (a comment-only review — e.g.
-// GitHub's "Add single comment" — stays flat). Keyed on `(iterationIndex,
-// reviewId)`: `reviewId` is unique per PR and a review drives exactly one
-// iteration, so the pair can't collide across replays. Grouped comments are
+// GitHub's "Add single comment" — stays flat). Keyed on `reviewId`, which is
+// unique per PR. Grouped comments are
 // identified up front by reference and the group anchored at the body's position,
 // so the caller's newest-first order (a comment can precede its body) is handled.
-function groupFeedback(items: IterationFeedback[]): FeedbackNode[] {
-  const key = (iterationIndex: number, reviewId: number) =>
-    `${iterationIndex}:${reviewId}`;
-
-  const bodies = new Map<string, GithubPrReviewBodyFeedback & IterationFeedback>();
+function groupFeedback(items: FeedbackListItem[]): FeedbackNode[] {
+  const bodies = new Map<number, GithubPrReviewBodyFeedback & FeedbackListItem>();
   for (const item of items) {
     if (item.sourceType === 'github-pr-review-body' && item.reviewId !== undefined) {
-      bodies.set(key(item.iterationIndex, item.reviewId), item);
+      bodies.set(item.reviewId, item);
     }
   }
 
-  const commentsByReview = new Map<string, IterationFeedback[]>();
-  const groupedComments = new Set<IterationFeedback>();
+  const commentsByReview = new Map<number, FeedbackListItem[]>();
+  const groupedComments = new Set<FeedbackListItem>();
   for (const item of items) {
     if (item.sourceType !== 'github-pr-review-comment' || item.reviewId === undefined) {
       continue;
     }
-    const k = key(item.iterationIndex, item.reviewId);
+    const k = item.reviewId;
     if (!bodies.has(k)) {
       continue;
     }
@@ -323,7 +328,7 @@ function groupFeedback(items: IterationFeedback[]): FeedbackNode[] {
   const nodes: FeedbackNode[] = [];
   for (const item of items) {
     if (item.sourceType === 'github-pr-review-body' && item.reviewId !== undefined) {
-      const k = key(item.iterationIndex, item.reviewId);
+      const k = item.reviewId;
       nodes.push({
         type: 'review',
         body: bodies.get(k)!,
@@ -340,7 +345,7 @@ function groupFeedback(items: IterationFeedback[]): FeedbackNode[] {
   return nodes;
 }
 
-export function FeedbackList({items}: {items: IterationFeedback[]}) {
+export function FeedbackList({items}: {items: FeedbackListItem[]}) {
   if (items.length === 0) {
     return null;
   }
@@ -353,12 +358,12 @@ export function FeedbackList({items}: {items: IterationFeedback[]}) {
       {nodes.map((node, index) =>
         node.type === 'review' ? (
           <ReviewGroup
-            key={`review-${node.body.iterationIndex}-${node.body.reviewId}-${index}`}
+            key={`review-${node.body.reviewId}-${index}`}
             body={node.body}
             comments={node.comments}
           />
         ) : (
-          <FeedbackItem key={`${node.item.iterationIndex}-${index}`} item={node.item} />
+          <FeedbackItem key={index} item={node.item} />
         )
       )}
     </ArtifactDetails>
@@ -369,8 +374,8 @@ function ReviewGroup({
   body,
   comments,
 }: {
-  body: GithubPrReviewBodyFeedback & IterationFeedback;
-  comments: IterationFeedback[];
+  body: GithubPrReviewBodyFeedback & FeedbackListItem;
+  comments: FeedbackListItem[];
 }) {
   return (
     // `gap="0"`: all spacing lives inside the rows (their `padding-top`) so the
@@ -384,7 +389,7 @@ function ReviewGroup({
         // (`AVATAR_SIZE / 2` === `space.lg`).
         <Stack gap="0" marginLeft="lg">
           {comments.map((comment, index) => (
-            <ReviewChildRow key={`${comment.iterationIndex}-${index}`}>
+            <ReviewChildRow key={index}>
               <FeedbackItem item={comment} />
             </ReviewChildRow>
           ))}
@@ -440,10 +445,10 @@ const ReviewChildRow = styled('div')`
 // the shared grid shell (avatar · comment · timestamp · status) and dispatches
 // the two varying cells through this table — the single place that switches on
 // `sourceType`. Adding a source means adding one entry plus its cell components.
-type FeedbackCell = React.ComponentType<{item: IterationFeedback}>;
+type FeedbackCell = React.ComponentType<{item: FeedbackListItem}>;
 
 const SOURCE: Record<
-  IterationFeedback['sourceType'],
+  FeedbackListItem['sourceType'],
   {Avatar: FeedbackCell; Comment: FeedbackCell}
 > = {
   'user-ui': {Avatar: UserUiAvatar, Comment: UserUiComment},
@@ -457,7 +462,7 @@ const SOURCE: Record<
   other: {Avatar: UnknownAvatarCell, Comment: OtherComment},
 };
 
-function FeedbackItem({item}: {item: IterationFeedback}) {
+function FeedbackItem({item}: {item: FeedbackListItem}) {
   const {Avatar, Comment} = SOURCE[item.sourceType];
 
   // Four columns: author avatar, comment, timestamp, status icon. `align="start"`
@@ -491,7 +496,7 @@ function Cell({children}: {children: React.ReactNode}) {
   );
 }
 
-function FeedbackTimestamp({item}: {item: IterationFeedback}) {
+function FeedbackTimestamp({item}: {item: FeedbackListItem}) {
   return (
     <Text variant="muted" size="sm" wrap="nowrap">
       {item.status === 'queued' ? (
@@ -509,7 +514,7 @@ function postedOnLabel(author: string | null, source: string): string {
   return author ? t('%s posted on %s', author, source) : t('Posted by %s', source);
 }
 
-function UserUiAvatar({item}: {item: IterationFeedback}) {
+function UserUiAvatar({item}: {item: FeedbackListItem}) {
   const user = item.sourceType === 'user-ui' ? (item.user ?? null) : null;
   const author = user ? userDisplayName(user) : null;
   return (
@@ -542,7 +547,7 @@ function githubAvatarUser(login: string | undefined): AvatarUser | null {
   } as AvatarUser;
 }
 
-function GithubAvatar({item}: {item: IterationFeedback}) {
+function GithubAvatar({item}: {item: FeedbackListItem}) {
   const login =
     item.sourceType === 'github-pr-comment' ||
     item.sourceType === 'github-pr-review-comment'
@@ -567,7 +572,7 @@ function CheckSuiteAvatar() {
 // background: `UserAvatar` derives its color by hashing the identifier into a
 // categorical palette that has no neutral, so a nameless user comes out a
 // vivid color. `?` is the standard empty-name glyph (see `getInitials`).
-function UnknownAvatarCell({item}: {item: IterationFeedback}) {
+function UnknownAvatarCell({item}: {item: FeedbackListItem}) {
   const theme = useTheme();
   const configuration = {
     background: theme.tokens.background.secondary,
@@ -595,11 +600,11 @@ const UnknownLetterAvatar = styled(LetterAvatar)`
   height: ${AVATAR_SIZE}px;
 `;
 
-function UserUiComment({item}: {item: IterationFeedback}) {
+function UserUiComment({item}: {item: FeedbackListItem}) {
   return <CommentBody text={item.text} />;
 }
 
-function GithubComment({item}: {item: IterationFeedback}) {
+function GithubComment({item}: {item: FeedbackListItem}) {
   const url =
     item.sourceType === 'github-pr-comment' ||
     item.sourceType === 'github-pr-review-comment'
@@ -609,7 +614,7 @@ function GithubComment({item}: {item: IterationFeedback}) {
   return <CommentBody text={item.text} externalUrl={url} />;
 }
 
-function GithubReviewBodyAvatar({item}: {item: IterationFeedback}) {
+function GithubReviewBodyAvatar({item}: {item: FeedbackListItem}) {
   const login =
     item.sourceType === 'github-pr-review-body' ? item.githubUsername : undefined;
   return (
@@ -638,7 +643,7 @@ function reviewStateTag(
   }
 }
 
-function GithubReviewBodyComment({item}: {item: IterationFeedback}) {
+function GithubReviewBodyComment({item}: {item: FeedbackListItem}) {
   if (item.sourceType !== 'github-pr-review-body') {
     return null;
   }
@@ -662,13 +667,13 @@ function GithubReviewBodyComment({item}: {item: IterationFeedback}) {
   );
 }
 
-function CheckSuiteComment({item}: {item: IterationFeedback}) {
+function CheckSuiteComment({item}: {item: FeedbackListItem}) {
   const url = item.sourceType === 'check-suite' ? item.checkSuiteUrl : undefined;
   // Automated failures read as system notices: muted, with a link to the run.
   return <CommentBody text={item.text} externalUrl={url} muted />;
 }
 
-function OtherComment({item}: {item: IterationFeedback}) {
+function OtherComment({item}: {item: FeedbackListItem}) {
   // The source is surfaced in the avatar tooltip (see `UnknownAvatarCell`), so
   // the comment itself is just the plain text.
   return <CommentBody text={item.text} />;
@@ -797,8 +802,8 @@ function FeedbackStatusIcon({
   status,
   errorCode,
 }: {
-  status: FeedbackStatus;
   errorCode?: string | null;
+  status?: FeedbackStatus;
 }) {
   switch (status) {
     case 'error':

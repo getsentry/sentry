@@ -1,12 +1,15 @@
-import {Spinner} from '@sentry/scraps/chat';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {useMemo, useState} from 'react';
+
+import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 
 import {type AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {useAutoScroll} from 'sentry/utils/useAutoScroll';
-import {hasValidContent} from 'sentry/views/seerExplorer/components/chat/shared';
+import {
+  groupTranscript,
+  ResponseGroup,
+} from 'sentry/views/seerExplorer/components/chat/responseGroup';
+import {findLatestTodos} from 'sentry/views/seerExplorer/components/chat/toolUse';
+
+import {ArtifactDetails} from './artifactDetails';
 
 interface ArtifactLoadingDetailsProps {
   blocks: AutofixSection['blocks'];
@@ -17,55 +20,34 @@ export function ArtifactLoadingDetails({
   loadingMessage,
   blocks,
 }: ArtifactLoadingDetailsProps) {
-  const {containerRef, onScrollHandler} = useAutoScroll({key: blocks});
+  const [appearedAt] = useState(() => new Date());
+  const responses = useMemo(
+    () =>
+      groupTranscript(blocks).flatMap(segment =>
+        segment.kind === 'response' ? [segment] : []
+      ),
+    [blocks]
+  );
+  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
 
   return (
     <ArtifactDetails>
-      <Stack
-        gap="md"
-        ref={containerRef}
-        maxHeight="200px"
-        overflowY="auto"
-        onScroll={onScrollHandler}
-      >
-        {blocks.map((block, index) => {
-          if (block.message.role === 'user') {
-            // The user role is used to pass the prompts
-            return null;
-          }
-
-          // A block still being written can end mid-embed; streaming hides the
-          // unclosed tag until its closer arrives instead of flashing raw syntax.
-          const variant = block.loading ? 'streaming' : 'static';
-
-          if (
-            hasValidContent(block.message.content) &&
-            block.message.content !== 'Thinking...'
-          ) {
-            return (
-              <SeerMarkdown key={index} raw={block.message.content} variant={variant} />
-            );
-          }
-
-          if (hasValidContent(block.message.thinking_content)) {
-            return (
-              <SeerMarkdown
-                key={index}
-                raw={block.message.thinking_content}
-                variant={variant}
-              />
-            );
-          }
-
-          return null;
-        })}
-        <Flex align="center" gap="md">
-          <Spinner />
-          <Text variant="muted" density="compressed">
-            {loadingMessage}
-          </Text>
-        </Flex>
-      </Stack>
+      {responses.length ? (
+        responses.map(segment => (
+          <ResponseGroup
+            key={segment.indices[0]}
+            group={segment.blocks}
+            blockIndex={segment.indices[0]!}
+            latestTodos={latestTodos}
+            readOnly
+            showThinking
+          />
+        ))
+      ) : (
+        <MessageRow from="assistant" density="compact">
+          <ThinkingBlock title={loadingMessage} startTime={appearedAt} />
+        </MessageRow>
+      )}
     </ArtifactDetails>
   );
 }

@@ -7,15 +7,14 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {ModalStore} from 'sentry/stores/modalStore';
+import {openModal, closeModal} from '@sentry/scraps/modal';
 
 import {MergeAccountsModal} from './mergeAccounts';
 
 describe('MergeAccountsModal', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
     MockApiClient.addMockResponse({url: '/users/', body: []});
   });
 

@@ -1,6 +1,8 @@
 import time
-from datetime import UTC, datetime
+from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 from inspect import unwrap
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -8,11 +10,12 @@ from django.conf import settings
 from django.test import override_settings
 from taskbroker_client.scheduler.config import crontab
 from taskbroker_client.scheduler.runner import ScheduleEntry
+from taskbroker_client.task import Task
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.group import Group
-from sentry.models.organization import OrganizationStatus
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client import SeerAgentClient
@@ -24,11 +27,14 @@ from sentry.seer.models.agentic_triage import (
 )
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
 from sentry.tasks.seer.agentic_triage.cron import (
+    TOKEN_BILLING_CUTOFF,
+    TOKEN_BILLING_PRIOR_RUN_WINDOW,
     AgenticTriageShardPlan,
     ShardDispatchStatus,
     _agentic_triage_cron_expr,
@@ -65,7 +71,9 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.redis import redis_clusters
 
 
-def _dispatched_feature_body(organization):
+def _dispatched_feature_body(
+    organization: Organization,
+) -> tuple[SeerRun, Any]:
     seer_run = SeerRun.objects.get(organization=organization, type=SeerRunType.FEATURE_RUN)
     outbox = CellOutbox.objects.get(
         category=OutboxCategory.SEER_RUN_CREATE,
@@ -77,7 +85,7 @@ def _dispatched_feature_body(organization):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
-def test_dispatch_leaves_tool_mode_to_seer(default_organization):
+def test_dispatch_leaves_tool_mode_to_seer(default_organization: Organization) -> None:
     run = Factories.create_seer_workflow_run(organization=default_organization)
     plan = AgenticTriageShardPlan(payload={"candidates": []}, title="Triage")
     shards = [
@@ -100,7 +108,7 @@ def test_dispatch_leaves_tool_mode_to_seer(default_organization):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
-def test_redispatch_preserves_original_request(default_organization):
+def test_redispatch_preserves_original_request(default_organization: Organization) -> None:
     run = Factories.create_seer_workflow_run(organization=default_organization)
     plan = AgenticTriageShardPlan(payload={"candidates": []}, title="Triage")
     shard = Factories.create_seer_workflow_run_execution(run=run, extras=plan.to_extras())
@@ -127,7 +135,7 @@ class AgenticTriageFixtures(Fixtures):
     project-eligibility and event-seeding logic lives in one place."""
 
     @pytest.fixture(autouse=True)
-    def enable_agentic_triage(self):
+    def enable_agentic_triage(self) -> Iterator[None]:
         with (
             override_options({"seer.night_shift.enable": True}),
             with_feature("organizations:seer-night-shift"),
@@ -135,8 +143,12 @@ class AgenticTriageFixtures(Fixtures):
             yield
 
     def _make_eligible(
-        self, project, *, stopping_point=AutofixStoppingPoint.OPEN_PR.value, **tweak_overrides
-    ):
+        self,
+        project: Project,
+        *,
+        stopping_point: str = AutofixStoppingPoint.OPEN_PR.value,
+        **tweak_overrides: object,
+    ) -> Project:
         """Configure a project to pass every eligibility gate: automation on, a
         connected repo, a PR-producing stopping point, and tweaks enabled.
         Override stopping_point (or pass enabled=False) to exercise one gate."""
@@ -149,7 +161,14 @@ class AgenticTriageFixtures(Fixtures):
         project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
         return project
 
-    def _store_event_and_update_group(self, project, fingerprint, *, timestamp=None, **group_attrs):
+    def _store_event_and_update_group(
+        self,
+        project: Project,
+        fingerprint: object,
+        *,
+        timestamp: datetime | None = None,
+        **group_attrs: object,
+    ) -> Group:
         event = self.store_event(
             data={
                 "fingerprint": [fingerprint],
@@ -231,7 +250,7 @@ class TestBuildRunOptions(TestCase):
         (run_agentic_triage_execution, "run_agentic_triage_execution"),
     ],
 )
-def test_dispatch_keeps_names_known_to_old_workers(task, suffix: str) -> None:
+def test_dispatch_keeps_names_known_to_old_workers(task: Task[..., Any], suffix: str) -> None:
     legacy_suffix = suffix.replace("agentic_triage", "night_shift")
     assert task.fullname == f"seer:sentry.tasks.seer.night_shift.{legacy_suffix}"
     assert seer_tasks.get(task.name) is task
@@ -276,7 +295,7 @@ class TestCurrentScheduleId:
 @django_db_all
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestScheduleAgenticTriage(TestCase):
-    def create_org_with_seer(self):
+    def create_org_with_seer(self) -> Organization:
         """Create an org with a SeerProjectRepository so it survives the pre-filter."""
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -295,6 +314,35 @@ class TestScheduleAgenticTriage(TestCase):
             assert _get_eligible_orgs_from_batch([org]) == [org]
             with override_settings(SENTRY_SELF_HOSTED=True):
                 assert _get_eligible_orgs_from_batch([org]) == []
+
+    def test_eligible_orgs_by_billing(self) -> None:
+        seat_based = self.create_organization()
+        token_billed = self.create_organization()
+        free_cohort = self.create_organization()
+        free_cohort.update_option("agentic-triage-free-cohort", True)
+        onboarding_only = self.create_organization()
+        no_seer = self.create_organization()
+        all_orgs = [seat_based, token_billed, free_cohort, onboarding_only, no_seer]
+
+        with (
+            self.options({"seer.night_shift.enable_for_legacy_orgs": False}),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug for org in all_orgs],
+                    "organizations:seat-based-seer-enabled": [seat_based.slug],
+                    "organizations:seer-token-based-billing-onboarding": [
+                        token_billed.slug,
+                        onboarding_only.slug,
+                    ],
+                    "organizations:token-billed-seer-enabled": [token_billed.slug],
+                }
+            ),
+        ):
+            assert _get_eligible_orgs_from_batch(all_orgs) == [
+                seat_based,
+                token_billed,
+                free_cohort,
+            ]
 
     def test_disabled_by_option(self) -> None:
         with (
@@ -408,6 +456,31 @@ class TestScheduleAgenticTriage(TestCase):
         ):
             schedule_agentic_triage()
             mock_worker.apply_async.assert_not_called()
+
+    def test_dispatches_token_billed_orgs(self) -> None:
+        org = self.create_org_with_seer()
+
+        with (
+            self.options(
+                {
+                    "seer.night_shift.enable": True,
+                    "seer.night_shift.enable_for_legacy_orgs": False,
+                }
+            ),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug],
+                    "organizations:seer-token-based-billing-onboarding": [org.slug],
+                    "organizations:token-billed-seer-enabled": [org.slug],
+                }
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
+            ) as mock_worker,
+        ):
+            schedule_agentic_triage()
+            mock_worker.apply_async.assert_called_once()
+            assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
 
     def test_dispatches_legacy_orgs_when_enabled(self) -> None:
         org = self.create_org_with_seer()
@@ -668,7 +741,7 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
                 return_value=True,
             ),
             patch(
-                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed_enabled",
                 return_value=True,
             ),
         ):
@@ -684,11 +757,30 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
         )
 
         with patch(
-            "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
+            "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed_enabled",
             return_value=True,
         ):
             result = _get_eligible_projects(org, "manual")
 
+        assert result[0].automation_tuning is None
+
+    def test_token_billed_orgs_are_not_legacy(self) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(self.create_project(organization=org))
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.LOW
+        )
+
+        with (
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_autotriggered_autofix_rate_limited",
+                return_value=True,
+            ),
+            self.feature("organizations:token-billed-seer-enabled"),
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [project]
         assert result[0].automation_tuning is None
 
 
@@ -938,6 +1030,86 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
         assert run_id is not None
         mock_quota.assert_not_called()
 
+    def _create_prior_run(
+        self, org: Organization, *, date_added: datetime, trigger_key: str | None
+    ) -> None:
+        run = SeerWorkflowRun.objects.create(
+            organization=org,
+            workflow_config=SeerWorkflowConfig.get_or_create_for_strategy(
+                organization_id=org.id, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+            ),
+            trigger_key=trigger_key,
+        )
+        SeerWorkflowRun.objects.filter(id=run.id).update(date_added=date_added)
+
+    def test_token_billed_org_without_prior_runs_is_not_scheduled(self) -> None:
+        org = self.create_organization()
+        window_start = TOKEN_BILLING_CUTOFF - TOKEN_BILLING_PRIOR_RUN_WINDOW
+        self._create_prior_run(
+            org, date_added=window_start - timedelta(days=1), trigger_key="old-schedule"
+        )
+        self._create_prior_run(org, date_added=window_start + timedelta(days=1), trigger_key=None)
+        self._create_prior_run(
+            org, date_added=TOKEN_BILLING_CUTOFF + timedelta(days=1), trigger_key="after-cutoff"
+        )
+
+        with (
+            self.feature("organizations:token-billed-seer-enabled"),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
+        ):
+            run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        assert run_id is None
+        assert not SeerWorkflowRun.objects.filter(trigger_key="2024-07-22T22:00").exists()
+        mock_execution.assert_not_called()
+
+    def test_token_billed_org_with_prior_scheduled_run_keeps_running(self) -> None:
+        org = self.create_organization()
+        self._create_prior_run(
+            org,
+            date_added=TOKEN_BILLING_CUTOFF - timedelta(days=1),
+            trigger_key="2024-07-21T22:00",
+        )
+
+        with (
+            self.feature("organizations:token-billed-seer-enabled"),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
+        ):
+            run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        assert run_id is not None
+        mock_execution.assert_called_once()
+
+    def test_token_billed_manual_run_skips_prior_run_check(self) -> None:
+        org = self.create_organization()
+
+        with (
+            self.feature("organizations:token-billed-seer-enabled"),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_execution"
+            ) as mock_execution,
+        ):
+            run_id = run_agentic_triage_for_org(org.id, options={"source": "manual"})
+
+        assert run_id is not None
+        mock_execution.assert_called_once()
+
     def test_max_candidates_defaults_to_global_option(self) -> None:
         org = self.create_organization()
         low = self.create_project(organization=org, slug="low")
@@ -1027,7 +1199,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
     reset_snuba_data = False
 
-    def _shard_group_ids(self, shard):
+    def _shard_group_ids(self, shard: SeerWorkflowRunExecution) -> list[int]:
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=shard.seer_run_id
         )
@@ -1159,7 +1331,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
         with (
             patch(
-                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed_enabled",
                 return_value=True,
             ),
         ):
@@ -1279,7 +1451,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
         real_start_feature_run = SeerAgentClient.start_feature_run
         calls = 0
 
-        def fail_second_dispatch(client, *args, **kwargs):
+        def fail_second_dispatch(client: SeerAgentClient, *args: Any, **kwargs: Any) -> SeerRun:
             nonlocal calls
             calls += 1
             if calls == 2:
@@ -1461,6 +1633,7 @@ class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
             "source": "manual",
             "max_candidates": 3,
             "dry_run": True,
+            "single_run": False,
             "intelligence_level": "medium",
             "reasoning_effort": "medium",
             "extra_triage_instructions": "",
@@ -1528,6 +1701,7 @@ class TestRunAgenticTriageForOrgManualPath(AgenticTriageFixtures, TestCase):
                 "source": "manual",
                 "max_candidates": 5,
                 "dry_run": True,
+                "single_run": False,
                 "intelligence_level": "medium",
                 "reasoning_effort": "medium",
                 "extra_triage_instructions": "",

@@ -12,23 +12,23 @@ import {IconGithub} from '@sentry/icons/github';
 import {IconGraph} from '@sentry/icons/graph';
 import {IconGroup} from '@sentry/icons/group';
 import {IconIssues} from '@sentry/icons/issues';
-import {IconLink} from '@sentry/icons/link';
 import {IconList} from '@sentry/icons/list';
 import {IconLock} from '@sentry/icons/lock';
 import {IconOpen} from '@sentry/icons/open';
 import {IconPlay} from '@sentry/icons/play';
-import {IconRepository} from '@sentry/icons/repository';
 import {IconSearch} from '@sentry/icons/search';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import {IconStar} from '@sentry/icons/star';
 import {IconSubscribed} from '@sentry/icons/subscribed';
-import {IconTerminal} from '@sentry/icons/terminal';
 import {IconUser} from '@sentry/icons/user';
 import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
+import {useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {
   OrganizationAvatar,
@@ -38,11 +38,6 @@ import {
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
@@ -57,7 +52,6 @@ import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
@@ -70,8 +64,8 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -103,10 +97,22 @@ import {
   toggleXRayMode,
   useXRayModeEnabled,
 } from 'sentry/views/seerExplorer/xray/xrayModeStore';
-import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
+import {
+  getUserNavigationConfiguration,
+  getUserOrgNavigationConfiguration,
+} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
-import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
+import {
+  getSettingsScopeIcon,
+  getSettingsScopeTitle,
+} from 'sentry/views/settings/settingsScope';
+import type {
+  NavigationGroupProps,
+  NavigationItem,
+  NavigationSection,
+} from 'sentry/views/settings/types';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 /**
  * Returns true if a settings navigation item should be shown in cmd+k.
@@ -121,6 +127,8 @@ export function isNavItemVisible(
   }
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
+import {toast} from '@sentry/scraps/toast';
+
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 
 import {CMDKAction} from './cmdk';
@@ -133,20 +141,6 @@ const DSN_ICONS: React.ReactElement[] = [
   <IconSettings key="settings" />,
   <IconList key="list" />,
 ];
-
-const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
-  '/settings/:orgId/api-keys/': <IconLock />,
-  '/settings/:orgId/auth-tokens/': <IconLock />,
-  '/settings/:orgId/feature-flags/': <IconFlag />,
-  '/settings/:orgId/projects/': <IconAllProjects />,
-  '/settings/:orgId/integrations/': <IconLink />,
-  '/settings/:orgId/mcp-cli/': <IconTerminal />,
-  '/settings/:orgId/members/': <IconUser />,
-  '/settings/:orgId/repos/': <IconRepository />,
-  '/settings/:orgId/seer/': <IconSeer />,
-  '/settings/:orgId/teams/': <IconGroup />,
-  '/settings/account/notifications/': <IconSubscribed />,
-};
 
 const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 const EVENT_ID_PATTERN =
@@ -272,7 +266,7 @@ function ResolvedIdentifierCommandPaletteAction() {
 async function openCurrentReplay() {
   const replay = Sentry.getReplay();
   if (!replay) {
-    addErrorMessage(t('Session Replay is not enabled for this session'));
+    toast.error(t('Session Replay is not enabled for this session'));
     return;
   }
 
@@ -288,7 +282,7 @@ async function openCurrentReplay() {
     replayId = replay.getReplayId();
   }
   if (!replayId) {
-    addErrorMessage(t('No replay is currently recording'));
+    toast.error(t('No replay is currently recording'));
     return;
   }
 
@@ -309,8 +303,15 @@ export function GlobalCommandPaletteActions() {
   const user = useUser();
   const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
-  const {organizations} = useLegacyStore(OrganizationsStore);
-  const sentryConfig = useLegacyStore(ConfigStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const {isSelfHosted, singleOrganization} = useStore(
+    ConfigStore,
+    useShallow(state => ({
+      isSelfHosted: state.isSelfHosted,
+      singleOrganization: state.singleOrganization,
+    }))
+  );
+  const settingsV3 = useSettingsV3();
   const params = useParams();
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
@@ -330,7 +331,8 @@ export function GlobalCommandPaletteActions() {
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
 
-  const queryProjectIds = new Set(decodeList(location.query.project));
+  const [queryProjectIdList] = useQueryState('project', pageFilterParsers.project);
+  const queryProjectIds = new Set(queryProjectIdList);
   const currentProjects = params.projectId
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));
@@ -349,6 +351,7 @@ export function GlobalCommandPaletteActions() {
     };
     return getNavigationConfiguration({
       organization,
+      settingsV3,
     })
       .flatMap(section =>
         section.items.filter(navItem =>
@@ -356,23 +359,35 @@ export function GlobalCommandPaletteActions() {
         )
       )
       .sort((a, b) => a.title.localeCompare(b.title));
-  }, [organization]);
+  }, [organization, settingsV3]);
 
-  const visibleOrgSettingsNavItems = useMemo(() => {
+  const {visibleOrgSettingsNavItems, visibleAccountSettingsNavItems} = useMemo(() => {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),
       features: new Set(organization.features),
-      isSelfHosted: sentryConfig.isSelfHosted,
+      isSelfHosted,
       organization,
     };
-    return getUserOrgNavigationConfiguration()
-      .flatMap(section =>
-        section.items.filter(navItem =>
-          isNavItemVisible(navItem, {...context, ...section})
+    const getVisibleItems = (sections: NavigationSection[]) =>
+      sections
+        .flatMap(section =>
+          section.items.filter(navItem =>
+            isNavItemVisible(navItem, {...context, ...section})
+          )
         )
-      )
-      .sort((a, b) => a.title.localeCompare(b.title));
-  }, [organization, sentryConfig.isSelfHosted]);
+        .sort((a, b) => a.title.localeCompare(b.title));
+
+    return {
+      visibleOrgSettingsNavItems: getVisibleItems(
+        getUserOrgNavigationConfiguration({settingsV3})
+      ),
+      // With settings-v3, account pages leave the organization settings for
+      // their own scope, so they get their own group here too.
+      visibleAccountSettingsNavItems: settingsV3
+        ? getVisibleItems(getUserNavigationConfiguration({settingsV3}))
+        : [],
+    };
+  }, [organization, isSelfHosted, settingsV3]);
 
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
@@ -475,7 +490,7 @@ export function GlobalCommandPaletteActions() {
             />
           )}
           <CMDKAction
-            display={{label: t('All Queries')}}
+            display={{label: t('Saved Queries')}}
             to={`${prefix}/explore/saved-queries/`}
           />
           {starredSavedQueries.map(query => (
@@ -621,11 +636,17 @@ export function GlobalCommandPaletteActions() {
           />
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
+        <CMDKAction
+          display={{
+            label: settingsV3 ? getSettingsScopeTitle('org') : t('Settings'),
+            icon: settingsV3 ? getSettingsScopeIcon('org') : <IconSettings />,
+          }}
+          limit={4}
+        >
           {visibleOrgSettingsNavItems.map(item => (
             <CMDKAction
               key={item.path}
-              display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+              display={{label: item.title, icon: item.icon}}
               keywords={item.keywords}
               to={item.path}
             />
@@ -633,12 +654,31 @@ export function GlobalCommandPaletteActions() {
           <Override name="cmdk:global-settings-actions" />
         </CMDKAction>
 
+        {settingsV3 && (
+          <CMDKAction
+            display={{
+              label: getSettingsScopeTitle('account'),
+              icon: getSettingsScopeIcon('account'),
+            }}
+            limit={4}
+          >
+            {visibleAccountSettingsNavItems.map(item => (
+              <CMDKAction
+                key={item.path}
+                display={{label: item.title, icon: item.icon}}
+                keywords={item.keywords}
+                to={item.path}
+              />
+            ))}
+          </CMDKAction>
+        )}
+
         <CMDKAction
           display={{label: t('Projects'), icon: <IconAllProjects />}}
           to={makeProjectsPathname({path: '/', organization})}
         />
 
-        {!sentryConfig.singleOrganization && !isDemoModeActive() && (
+        {!singleOrganization && !isDemoModeActive() && (
           <CMDKAction
             display={{label: t('Switch Organization'), icon: <IconBuilding />}}
             keywords={[t('organization'), t('change'), t('change organization')]}
@@ -704,7 +744,10 @@ export function GlobalCommandPaletteActions() {
         )}
 
         <CMDKAction
-          display={{label: t('Project Settings'), icon: <IconSettings />}}
+          display={{
+            label: getSettingsScopeTitle('project'),
+            icon: settingsV3 ? getSettingsScopeIcon('project') : <IconSettings />,
+          }}
           limit={4}
         >
           {currentProjects.map(project => (
@@ -1095,27 +1138,27 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('System')}}
             keywords={['default theme', 'system theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'system'});
-              addSuccessMessage(t('Theme preference saved: System'));
+              toast.success(t('Theme preference saved: System'));
             }}
           />
           <CMDKAction
             display={{label: t('Light')}}
             keywords={['light mode', 'light theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'light'});
-              addSuccessMessage(t('Theme preference saved: Light'));
+              toast.success(t('Theme preference saved: Light'));
             }}
           />
           <CMDKAction
             display={{label: t('Dark')}}
             keywords={['dark mode', 'dark theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'dark'});
-              addSuccessMessage(t('Theme preference saved: Dark'));
+              toast.success(t('Theme preference saved: Dark'));
             }}
           />
         </CMDKAction>

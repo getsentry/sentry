@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import {openPipelineModal} from 'sentry/components/pipeline/modal';
 import type {ProvidersByType} from 'sentry/components/pipeline/registry';
@@ -22,7 +23,6 @@ export interface AddIntegrationParams {
       | 'onboarding'
       | 'project_creation'
       | 'seer_onboarding_github'
-      | 'seer_onboarding_code_review'
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';
     referrer?: string;
@@ -114,7 +114,7 @@ export function useAddIntegration() {
           ...analyticsParams,
         });
         if (!suppressSuccessMessage) {
-          addSuccessMessage(t('%s added', provider.name));
+          toast.success(t('%s added', provider.name));
         }
         const integration = data as IntegrationWithConfig;
         setState({status: 'complete', providerKey: provider.key, integration});

@@ -1,28 +1,11 @@
-from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
-    SYSTEM_ACTOR,
-    ActionSource,
-    GroupAction,
-    GroupActionActor,
     ResolveAction,
     ViewAction,
 )
 from sentry.issues.derived.processing import PIPELINE, process_group_log
-from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.action_log import publish_action_for_test as _publish
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.outbox import outbox_runner
-
-
-def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYSTEM_ACTOR) -> None:
-    with outbox_runner():
-        publish_action(
-            action,
-            source=ActionSource.API,
-            group_id=group.id,
-            project=group.project,
-            actor=actor,
-        )
 
 
 @with_feature("projects:issue-action-log-write-to-db")

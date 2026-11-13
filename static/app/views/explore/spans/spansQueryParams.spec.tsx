@@ -5,11 +5,12 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
 import {
   getReadableQueryParamsFromLocation,
   getTargetWithReadableQueryParams,
-} from 'sentry/views/explore/spans/spansQueryParams';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+} from './spansQueryParams';
 
 function locationFixture(query: Location['query']): Location {
   return LocationFixture({query});
@@ -333,6 +334,62 @@ describe('getReadableQueryParamsFromLocation', () => {
     );
   });
 
+  it('skips malformed visualizes and keeps the valid ones', () => {
+    const location = locationFixture({
+      visualize: [
+        '{',
+        'null',
+        JSON.stringify({yAxes: [1]}),
+        JSON.stringify({yAxes: ['avg(span.self_time)'], chartType: 99, extra: true}),
+        JSON.stringify({yAxes: ['p50(span.duration)'], visible: false}),
+      ],
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.aggregateFields).toEqual([
+      {groupBy: ''},
+      new VisualizeFunction('avg(span.self_time)'),
+      new VisualizeFunction('p50(span.duration)', {visible: false}),
+    ]);
+  });
+
+  it('falls back to the default visualize when every visualize is malformed', () => {
+    const location = locationFixture({
+      visualize: ['', '{', JSON.stringify({chartType: ChartType.LINE})],
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(new ReadableQueryParams(readableQueryParamOptions()));
+  });
+
+  it('keeps an aggregate field with a malformed chart type on the default chart type', () => {
+    const location = locationFixture({
+      aggregateField: [
+        JSON.stringify({groupBy: 'span.op'}),
+        JSON.stringify({yAxes: ['avg(span.self_time)'], chartType: 99}),
+      ],
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.aggregateFields).toEqual([
+      {groupBy: 'span.op'},
+      new VisualizeFunction('avg(span.self_time)'),
+    ]);
+  });
+
+  it('decodes custom visualizes with multi aggregate charts', () => {
+    const location = locationFixture({
+      visualize: [
+        JSON.stringify({yAxes: ['count(span.duration)']}),
+        JSON.stringify({yAxes: ['p50(span.duration)', 'p75(span.duration)']}),
+      ],
+    });
+    const [, count, p50, p75] = getReadableQueryParamsFromLocation(location)
+      .aggregateFields as VisualizeFunction[];
+    expect(count!.chartGroup).toBeUndefined();
+    expect(p50!.yAxis).toBe('p50(span.duration)');
+    expect(p75!.yAxis).toBe('p75(span.duration)');
+    expect(p50!.chartGroup).toBeDefined();
+    expect(p50!.chartGroup).toBe(p75!.chartGroup);
+  });
+
   it('decodes custom aggregate fields with multi aggregate charts', () => {
     const location = locationFixture({
       aggregateField: [
@@ -341,9 +398,7 @@ describe('getReadableQueryParamsFromLocation', () => {
         {yAxes: ['p50(span.duration)', 'p75(span.duration)']},
       ].map(aggregateField => JSON.stringify(aggregateField)),
     });
-    const queryParams = getReadableQueryParamsFromLocation(location, undefined, {
-      multiAggregateCharts: true,
-    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
@@ -375,9 +430,7 @@ describe('getReadableQueryParamsFromLocation', () => {
         {yAxes: ['p50(span.duration)', 'p50(span.self_time)']},
       ].map(aggregateField => JSON.stringify(aggregateField)),
     });
-    const queryParams = getReadableQueryParamsFromLocation(location, undefined, {
-      multiAggregateCharts: true,
-    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
@@ -400,28 +453,12 @@ describe('getReadableQueryParamsFromLocation', () => {
         {yAxes: ['p90(span.duration)', 'avg(span.duration)']},
       ].map(aggregateField => JSON.stringify(aggregateField)),
     });
-    const [, p90, avg] = getReadableQueryParamsFromLocation(location, undefined, {
-      multiAggregateCharts: true,
-    }).aggregateFields as VisualizeFunction[];
+    const [, p90, avg] = getReadableQueryParamsFromLocation(location)
+      .aggregateFields as VisualizeFunction[];
     expect(p90!.yAxis).toBe('p90(span.duration)');
     expect(avg!.yAxis).toBe('avg(span.duration)');
     expect(p90!.chartGroup).toBeUndefined();
     expect(avg!.chartGroup).toBeUndefined();
-  });
-
-  it('keeps a chart per y axis without multi aggregate charts', () => {
-    const location = locationFixture({
-      aggregateField: [
-        {groupBy: 'span.op'},
-        {yAxes: ['p50(span.duration)', 'p75(span.duration)']},
-      ].map(aggregateField => JSON.stringify(aggregateField)),
-    });
-    const queryParams = getReadableQueryParamsFromLocation(location);
-    expect(queryParams.aggregateFields).toEqual([
-      {groupBy: 'span.op'},
-      new VisualizeFunction('p50(span.duration)'),
-      new VisualizeFunction('p75(span.duration)'),
-    ]);
   });
 
   it('decodes custom aggregatefields and inserts default group bys', () => {

@@ -1,29 +1,55 @@
 import type {Avatar} from 'sentry/types/core';
 
-export type InboxSubjectType = 'issue' | 'notebook';
+export const INBOX_SUBJECT_TYPES = ['issue', 'notebook'] as const;
 
-interface InboxEventDataByType {
-  'issue.assigned': {
-    /**
-     * What caused the assignment, such as an ownership rule, a Seer suggestion or a user.
-     */
-    source: string;
-  };
-  'issue.mentioned': {commentId: string};
-  'issue.pr_ready_for_review': {prUrl: string; seerRunId: string};
-  'notebook.completed': {seerRunId: string};
-  'notebook.mentioned': {commentId: string};
-  // TODO: Shape is still to be decided in the tech spec
-  'notebook.needs_attention': Record<string, unknown>;
-  'notebook.participant_added': Record<string, never>;
+export type InboxSubjectType = (typeof INBOX_SUBJECT_TYPES)[number];
+
+export const INBOX_RECIPIENTS = ['team', 'user'] as const;
+
+export type InboxRecipient = (typeof INBOX_RECIPIENTS)[number];
+
+export const INBOX_EVENT_TYPES = [
+  'issue.user_assigned',
+  'issue.team_assigned',
+  'issue.user_mentioned',
+  'issue.team_mentioned',
+  'issue.pr_ready_for_review',
+  'notebook.completed',
+  'notebook.user_mentioned',
+  'notebook.team_mentioned',
+  'notebook.participant_added',
+] as const;
+
+export type InboxEventType = (typeof INBOX_EVENT_TYPES)[number];
+
+interface InboxIssueAssignedData {
+  assignmentSource:
+    | 'codeowners'
+    | 'projectOwnership'
+    | 'slack'
+    | 'msteams'
+    | 'discord'
+    | 'suspectCommitter'
+    | 'seerSuggested'
+    | null;
 }
 
-type InboxEventType = keyof InboxEventDataByType;
+interface InboxEventDataByType {
+  'issue.pr_ready_for_review': {prUrl: string; seerRunId: string};
+  'issue.team_assigned': InboxIssueAssignedData;
+  'issue.team_mentioned': {commentId: string};
+  'issue.user_assigned': InboxIssueAssignedData;
+  'issue.user_mentioned': {commentId: string};
+  'notebook.completed': {seerRunId: string};
+  'notebook.participant_added': Record<string, never>;
+  'notebook.team_mentioned': {blockId: string | null; commentId: string};
+  'notebook.user_mentioned': {blockId: string | null; commentId: string};
+}
 
 type InboxSystemActor = {
   avatar: null;
   id: null;
-  name: string;
+  name: 'Sentry';
   type: 'system';
 };
 
@@ -34,18 +60,14 @@ type InboxUserActor = {
   type: 'user';
 };
 
-export type InboxActor = InboxSystemActor | InboxUserActor;
-
-interface InboxSubjectSummary {
-  title: string;
-}
+type InboxActor = InboxSystemActor | InboxUserActor;
 
 interface BaseInboxItemEvent {
   actor: InboxActor;
   dateAdded: string;
   id: string;
-  preview: string | null;
-  title: string;
+  isUnread: boolean;
+  summary: string;
 }
 
 type InboxItemEvent = {
@@ -56,13 +78,24 @@ type InboxItemEvent = {
 }[InboxEventType];
 
 export interface InboxItem {
+  eventCount: number;
+  eventTypes: InboxEventType[];
   id: string;
   isUnread: boolean;
   lastActivityAt: string;
   lastReadAt: string | null;
   latestEvent: InboxItemEvent;
-  subject: InboxSubjectSummary | null;
   subjectId: string;
   subjectType: InboxSubjectType;
+  subtitle: string;
+  title: string | null;
   unreadEventCount: number;
+}
+
+export type InboxSubject = Pick<InboxItem, 'subjectId' | 'subjectType'>;
+
+export interface InboxFilters {
+  eventType: InboxEventType[];
+  recipient: InboxRecipient[];
+  subjectType: InboxSubjectType[];
 }

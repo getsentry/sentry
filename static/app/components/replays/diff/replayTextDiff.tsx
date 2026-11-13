@@ -1,14 +1,15 @@
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
-import {DiffFeedbackBanner} from 'sentry/components/replays/diff/diffFeedbackBanner';
-import {After, Before} from 'sentry/components/replays/diff/utils';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {useExtractPageHtml} from 'sentry/utils/replays/hooks/useExtractPageHtml';
 import {useFormattedCode} from 'sentry/utils/useFormattedCode';
+
+import {useDiffCompareContext} from './diffCompareContext';
+import {DiffFeedbackBanner} from './diffFeedbackBanner';
+import {After, Before} from './utils';
 
 const HTML_FORMAT_OPTIONS = {indent_size: 2} as const;
 

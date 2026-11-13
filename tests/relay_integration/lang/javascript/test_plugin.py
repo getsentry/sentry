@@ -1,11 +1,15 @@
 import os.path
 import zipfile
 from base64 import b64encode
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
 from io import BytesIO
+from typing import Any
 from uuid import uuid4
 
 import pytest
 import responses
+from pytest_django.live_server_helper import LiveServer
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -15,6 +19,8 @@ from sentry.models.artifactbundle import (
     SourceFileType,
 )
 from sentry.models.files.file import File
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
 from sentry.testutils.helpers.datetime import before_now
@@ -49,11 +55,11 @@ BASE64_SOURCEMAP = "data:application/json;base64," + (
 INVALID_BASE64_SOURCEMAP = "data:application/json;base64,A"
 
 
-def get_fixture_path(name):
+def get_fixture_path(name: str) -> str:
     return os.path.join(os.path.dirname(__file__), "fixtures", name)
 
 
-def load_fixture(name):
+def load_fixture(name: str) -> bytes:
     with open(get_fixture_path(name), "rb") as fp:
         return fp.read()
 
@@ -63,7 +69,13 @@ def load_fixture(name):
 @thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class TestJavascriptIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
-    def initialize(self, default_projectkey, default_project, set_sentry_option, live_server):
+    def initialize(
+        self,
+        default_projectkey: ProjectKey,
+        default_project: Project,
+        set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+        live_server: LiveServer,
+    ) -> Iterator[None]:
         self.project = default_project
         self.projectkey = default_projectkey
         self.organization = self.project.organization
@@ -272,7 +284,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert raw_frame_list[1].in_app
         assert raw_frame_list[2].in_app
 
-    def _create_source_files_and_sourcemaps(self, release):
+    def _create_source_files_and_sourcemaps(self, release: Release) -> None:
         for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
             with open(get_fixture_path(file), "rb") as f:
                 f1 = File.objects.create(
@@ -1075,12 +1087,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
-    def _test_expansion_via_release_archive(self, link_sourcemaps: bool):
+    def _test_expansion_via_release_archive(self, link_sourcemaps: bool) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
 
-        manifest = {
+        manifest: dict[str, Any] = {
             "org": self.organization.slug,
             "release": release.version,
             "files": {
@@ -1283,7 +1295,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert len(frame_list) == 6
 
-        def assert_abs_path(abs_path):
+        def assert_abs_path(abs_path: str) -> None:
             # This makes the test assertion forward compatible with percent-encoded URLs
             # See https://github.com/getsentry/symbolicator/pull/1137
             assert abs_path in (
@@ -1913,7 +1925,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
 
-        manifest = {
+        manifest: dict[str, Any] = {
             "org": self.organization.slug,
             "release": release.version,
             "files": {
@@ -2445,7 +2457,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "url": "http://example.com/file.malformed.sourcemap.js",
         }
 
-    def generate_symbolicated_in_app_event_data(self, frames):
+    def generate_symbolicated_in_app_event_data(
+        self, frames: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         return {
             "timestamp": self.min_ago,
             "message": "hello",

@@ -6,11 +6,13 @@ from unittest import TestCase
 
 from sentry.utils.meta import Meta
 
-input_meta = {"": {"err": ["existing"], "val": "original", "rem": [{"type": "x"}]}}
+input_meta: dict[str, Any] = {"": {"err": ["existing"], "val": "original", "rem": [{"type": "x"}]}}
 
-other_meta = {"": {"err": ["additional"], "val": "changed", "rem": [{"type": "y"}]}}
+other_meta: dict[str, Any] = {"": {"err": ["additional"], "val": "changed", "rem": [{"type": "y"}]}}
 
-merged_meta = {"": {"err": ["existing", "additional"], "val": "changed", "rem": [{"type": "y"}]}}
+merged_meta: dict[str, Any] = {
+    "": {"err": ["existing", "additional"], "val": "changed", "rem": [{"type": "y"}]}
+}
 
 
 class MetaTests(TestCase):
@@ -66,19 +68,19 @@ class MetaTests(TestCase):
         assert Meta({"": None}).get_event_errors() == []
 
     def test_create_none(self) -> None:
-        data = {"": None}
+        data: dict[str, Any] = {"": None}
         meta = Meta(data)
         assert meta.create() == {}
         assert data == {"": {}}
 
     def test_merge_none(self) -> None:
-        data = {"": None}
+        data: dict[str, Any] = {"": None}
         meta = Meta(data)
         assert meta.merge(Meta(other_meta)) == other_meta[""]
         assert data == other_meta
 
     def test_add_error_none(self) -> None:
-        data = {"": None}
+        data: dict[str, Any] = {"": None}
         meta = Meta(data)
         meta.add_error("additional", "changed")
         assert data == {"": {"err": ["additional"], "val": "changed"}}
@@ -162,7 +164,7 @@ class MetaTests(TestCase):
         assert meta.enter("field").get() == {"err": ["additional"], "val": "changed"}
 
     def test_get_nested_existing(self) -> None:
-        data = {"field": input_meta}
+        data: dict[str, Any] = {"field": input_meta}
         assert Meta(data).enter("field").raw() == input_meta
         assert Meta(data).enter("field").get() == input_meta[""]
         assert list(Meta(data).enter("field").iter_errors()) == [["existing", {}]]
@@ -171,21 +173,21 @@ class MetaTests(TestCase):
         ]
 
     def test_create_nested_existing(self) -> None:
-        data = {"field": input_meta}
+        data: dict[str, Any] = {"field": input_meta}
         changed = deepcopy(data)
         meta = Meta(changed)
         assert meta.enter("field").create() == input_meta[""]
         assert changed == data
 
     def test_merge_nested_existing(self) -> None:
-        data = {"field": input_meta}
+        data: dict[str, Any] = {"field": input_meta}
         changed = deepcopy(data)
         meta = Meta(changed)
         assert meta.enter("field").merge(Meta(other_meta)) == merged_meta[""]
         assert changed == {"field": merged_meta}
 
     def test_add_error_nested_existing(self) -> None:
-        data = {"field": input_meta}
+        data: dict[str, Any] = {"field": input_meta}
         changed = deepcopy(data)
         meta = Meta(changed)
         meta.enter("field").add_error("additional", "changed")
@@ -196,7 +198,7 @@ class MetaTests(TestCase):
         }
 
     def test_get_nested_index(self) -> None:
-        data = {"0": input_meta}
+        data: dict[str, Any] = {"0": input_meta}
         assert Meta(data).enter(0).raw() == input_meta
         assert Meta(data).enter(0).get() == input_meta[""]
         assert list(Meta(data).enter(0).iter_errors()) == [["existing", {}]]

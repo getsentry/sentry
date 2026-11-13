@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from time import time
 from typing import Any
@@ -28,7 +29,9 @@ pytestmark = [requires_snuba]
 
 
 @contextmanager
-def patch_grouping_helpers(return_values: dict[str, Any]):
+def patch_grouping_helpers(
+    return_values: dict[str, Any],
+) -> Iterator[dict[str, mock.MagicMock]]:
     wrapped_find_grouphash_with_group = capture_results(find_grouphash_with_group, return_values)
     wrapped_calculate_primary_hashes = capture_results(
         _calculate_primary_hashes_and_variants, return_values
@@ -75,7 +78,7 @@ def set_grouping_configs(
     secondary_config: str | None,
     transition_expiry: float | None = None,
     in_transition: bool = False,
-):
+) -> None:
     project.update_option("sentry:grouping_config", primary_config)
     project.update_option("sentry:secondary_grouping_config", secondary_config)
     if in_transition:
@@ -128,7 +131,7 @@ def get_results_from_saving_event(
     secondary_config: str,
     in_transition: bool,
     existing_group_id: int | None = None,
-):
+) -> dict[str, object]:
     # Whether or not these are assigned a value depends on the values of `in_transition` and
     # `existing_group_id`. Everything else we'll return will definitely get a value and therefore
     # doesn't need to be initialized.
@@ -258,7 +261,7 @@ def get_results_from_saving_event(
 def test_new_group(
     in_transition: bool,
     default_project: Project,
-):
+) -> None:
     project = default_project
     event_data = {"message": "testing, testing, 123"}
 
@@ -312,7 +315,7 @@ def test_new_group(
 def test_existing_group_no_new_hash(
     in_transition: bool,
     default_project: Project,
-):
+) -> None:
     project = default_project
     event_data = {"message": "testing, testing, 123"}
 
@@ -375,7 +378,7 @@ def test_existing_group_new_hash_exists(
     secondary_hash_exists: bool,
     in_transition: bool,
     default_project: Project,
-):
+) -> None:
     project = default_project
     event_data = {"message": "testing, testing, 123"}
 

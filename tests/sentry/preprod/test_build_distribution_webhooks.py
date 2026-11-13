@@ -1,6 +1,10 @@
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+from sentry.models.commitcomparison import CommitComparison
+from sentry.preprod.api.models.public.installable_builds import (
+    BuildDistributionSummaryResponseDict,
+)
 from sentry.preprod.build_distribution_webhooks import (
     build_webhook_payload,
     send_build_distribution_webhook,
@@ -23,14 +27,14 @@ class BuildWebhookPayloadTest(TestCase):
 
     def _create_installable_artifact(
         self,
-        commit_comparison=None,
-        artifact_type=PreprodArtifact.ArtifactType.AAB,
-        app_name="Example App",
-        build_version="1.0.0",
-        build_number=1,
-        app_id="com.example.app",
-        installable_app_file_id=12345,
-    ):
+        commit_comparison: CommitComparison | None = None,
+        artifact_type: int = PreprodArtifact.ArtifactType.AAB,
+        app_name: str = "Example App",
+        build_version: str = "1.0.0",
+        build_number: int = 1,
+        app_id: str = "com.example.app",
+        installable_app_file_id: int = 12345,
+    ) -> PreprodArtifact:
         """Create an artifact with installable_app_file_id set (success terminal)."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -47,15 +51,15 @@ class BuildWebhookPayloadTest(TestCase):
 
     def _create_failed_artifact(
         self,
-        error_code=PreprodArtifact.InstallableAppErrorCode.PROCESSING_ERROR,
-        error_message="Unsupported artifact type",
-        commit_comparison=None,
-        artifact_type=PreprodArtifact.ArtifactType.AAB,
-        app_name="Example App",
-        build_version="1.0.0",
-        build_number=1,
-        app_id="com.example.app",
-    ):
+        error_code: int = PreprodArtifact.InstallableAppErrorCode.PROCESSING_ERROR,
+        error_message: str = "Unsupported artifact type",
+        commit_comparison: CommitComparison | None = None,
+        artifact_type: int = PreprodArtifact.ArtifactType.AAB,
+        app_name: str = "Example App",
+        build_version: str = "1.0.0",
+        build_number: int = 1,
+        app_id: str = "com.example.app",
+    ) -> PreprodArtifact:
         """Create an artifact with installable_app_error_code set (failure terminal)."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -71,7 +75,7 @@ class BuildWebhookPayloadTest(TestCase):
         artifact.save(update_fields=["installable_app_error_code", "installable_app_error_message"])
         return artifact
 
-    def _assert_no_transient_fields(self, payload):
+    def _assert_no_transient_fields(self, payload: BuildDistributionSummaryResponseDict) -> None:
         """Assert that transient/mutable fields are absent."""
         for field in ("downloadCount", "releaseNotes", "installGroups"):
             assert field not in payload, f"Transient field '{field}' should not be present"
@@ -330,7 +334,7 @@ class BuildWebhookPayloadTest(TestCase):
 class SendBuildDistributionWebhookTest(TestCase):
     """Tests for the send_build_distribution_webhook function."""
 
-    def _create_installable_artifact(self):
+    def _create_installable_artifact(self) -> PreprodArtifact:
         artifact = self.create_preprod_artifact(
             project=self.project,
             artifact_type=PreprodArtifact.ArtifactType.AAB,
@@ -343,7 +347,7 @@ class SendBuildDistributionWebhookTest(TestCase):
         return artifact
 
     @patch("sentry.preprod.build_distribution_webhooks.broadcast_webhooks_for_organization")
-    def test_sends_webhook(self, mock_broadcast):
+    def test_sends_webhook(self, mock_broadcast: MagicMock) -> None:
         """Webhook is sent for a completed build with correct payload."""
         artifact = self._create_installable_artifact()
 
@@ -360,7 +364,7 @@ class SendBuildDistributionWebhookTest(TestCase):
         assert call_kwargs.kwargs["payload"]["state"] == "COMPLETED"
 
     @patch("sentry.preprod.build_distribution_webhooks.broadcast_webhooks_for_organization")
-    def test_does_not_send_for_non_terminal(self, mock_broadcast):
+    def test_does_not_send_for_non_terminal(self, mock_broadcast: MagicMock) -> None:
         """Webhook is NOT sent for non-terminal state."""
         artifact = self.create_preprod_artifact(project=self.project)
 
@@ -369,7 +373,7 @@ class SendBuildDistributionWebhookTest(TestCase):
         mock_broadcast.delay.assert_not_called()
 
     @patch("sentry.preprod.build_distribution_webhooks.broadcast_webhooks_for_organization")
-    def test_broadcast_exception_is_caught(self, mock_broadcast):
+    def test_broadcast_exception_is_caught(self, mock_broadcast: MagicMock) -> None:
         """Exceptions from broadcast are caught and logged, not re-raised."""
         artifact = self._create_installable_artifact()
         mock_broadcast.delay.side_effect = Exception("Celery task failed")
@@ -380,7 +384,7 @@ class SendBuildDistributionWebhookTest(TestCase):
         mock_broadcast.delay.assert_called_once()
 
     @patch("sentry.preprod.build_distribution_webhooks.broadcast_webhooks_for_organization")
-    def test_sends_webhook_for_failure(self, mock_broadcast):
+    def test_sends_webhook_for_failure(self, mock_broadcast: MagicMock) -> None:
         """Webhook is sent for a failed build."""
         artifact = self.create_preprod_artifact(
             project=self.project,

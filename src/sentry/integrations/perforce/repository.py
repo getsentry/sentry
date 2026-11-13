@@ -286,4 +286,5 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider[PerforceIntegrati
 
     def repository_external_slug(self, repo: Repository) -> str:
         """Get external slug for repository."""
-        return repo.config.get("depot_path", repo.name)
+        depot_path = repo.config.get("depot_path", repo.name)
+        return depot_path

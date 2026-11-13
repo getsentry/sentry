@@ -75,7 +75,7 @@ class BaseDeriveCodeMappings(TestCase):
         self.integration = self.create_integration(
             organization=self.organization,
             provider=self.provider,
-            external_id=self.organization.id,
+            external_id=str(self.organization.id),
             metadata={"domain_name": f"{self.domain_name}/test-org"},
         )
 
@@ -275,24 +275,26 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
     def setUp(self) -> None:
         super().setUp()
         # The platform and event are not relevant for these tests
-        self.event = self.create_event([self.frame("foo/bar.baz", True)], "python")
+        self.group_event = self.create_event([self.frame("foo/bar.baz", True)], "python")
+        assert self.group_event.group.id is not None
+        self.group_id = self.group_event.group.id
 
     def test_api_errors_halts(self, mock_record: Any) -> None:
         error = ApiError('{"message":"Not Found"}')
         with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org", side_effect=error):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            process_event(self.project.id, self.group_id, self.group_event.event_id)
             assert_halt_metric(mock_record, error)
 
     def test_unable_to_get_lock_halts(self, mock_record: Any) -> None:
         error = UnableToAcquireLock()
         with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org", side_effect=error):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            process_event(self.project.id, self.group_id, self.group_event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
             assert_halt_metric(mock_record, error)
 
     def test_generic_errors_fail(self, mock_record: Any) -> None:
         with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org", side_effect=Exception("foo")):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            process_event(self.project.id, self.group_id, self.group_event.event_id)
             # Failures require manual investigation.
             assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
 
@@ -301,14 +303,14 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             f"{CODE_ROOT}.task.get_installation",
             side_effect=InstallationNotFoundError("foo"),
         ):
-            process_event(self.project.id, self.event.group_id, self.event.event_id)
+            process_event(self.project.id, self.group_id, self.group_event.event_id)
 
     def test_project_does_not_exist(self, mock_record: Any) -> None:
         # If the project is deleted after the task is enqueued, process_event
         # should return early without raising.
         non_existent_project_id = 0
         code_mappings, in_app_rules = process_event(
-            non_existent_project_id, self.event.group_id, self.event.event_id
+            non_existent_project_id, self.group_id, self.group_event.event_id
         )
         assert code_mappings == []
         assert in_app_rules == []
@@ -433,7 +435,9 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         frame_filename = "foo/bar.tbd"
         file_in_repo = "src/foo/bar.tbd"
         platform = "other"
-        self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
+        self.group_event = self.create_event(
+            [{"filename": frame_filename, "in_app": True}], platform
+        )
 
         with (
             patch(f"{CODE_ROOT}.utils.platform.get_platform_config", return_value={}),
@@ -450,7 +454,9 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         frame_filename = "foo/bar.tbd"
         file_in_repo = "src/foo/bar.tbd"
         platform = "other"
-        self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
+        self.group_event = self.create_event(
+            [{"filename": frame_filename, "in_app": True}], platform
+        )
 
         with (
             patch(f"{CODE_ROOT}.utils.platform.get_platform_config", return_value={}),

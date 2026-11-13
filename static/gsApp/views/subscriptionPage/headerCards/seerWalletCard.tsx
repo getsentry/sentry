@@ -1,13 +1,12 @@
-import styled from '@emotion/styled';
 import {IconInfo} from '@sentry/icons/info';
+import {IconPause} from '@sentry/icons/pause';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -29,16 +28,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
   const autoTopUpQuery = useQuery(seerWalletAutoTopUpOptions(organization));
 
   if (balanceQuery.isError || autoTopUpQuery.isError) {
-    return (
-      <SubscriptionHeaderCard
-        sections={[
-          <SeerTitle key="title" />,
-          <Text key="error" variant="muted">
-            {t('Unable to load your Seer credits.')}
-          </Text>,
-        ]}
-      />
-    );
+    return <SeerWalletError />;
   }
 
   if (!balanceQuery.data || !autoTopUpQuery.data) {
@@ -48,56 +38,96 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
   const wallet = balanceQuery.data;
   const autoTopUp = autoTopUpQuery.data;
   const isPaused = wallet.balance <= 0;
-  const totalCredits = wallet.included.total + wallet.purchased.total;
+  // Once purchased credits are gone and nothing will buy more, the balance is
+  // just the month's included credits, so the card counts against those.
+  const hasPurchasedCredits = wallet.purchased.remaining > 0 || autoTopUp.enabled;
 
-  const openModal = () =>
-    openSeerAutoTopUpModal({
-      organization,
-      autoTopUp,
-      creditPriceCents: wallet.creditPriceCents,
-    });
+  const openModal = () => openSeerAutoTopUpModal({organization});
 
   return (
     <SubscriptionHeaderCard
       sections={[
-        <Flex key="title" justify="between" align="center" width="100%" gap="sm">
+        <Flex key="title" justify="between" align="center" width="100%" gap="xs">
           <SeerTitle />
-          <AutoTopUpStatus isPaused={isPaused} autoTopUpEnabled={autoTopUp.enabled} />
+          {isPaused && <PausedTag wallet={wallet} autoTopUp={autoTopUp} />}
         </Flex>,
         <Stack key="balance" gap="xs">
-          <Text size="xl" bold>
-            {wallet.balance.toLocaleString()}
+          <Text size="xl" density="compressed" bold>
+            {Math.max(wallet.balance, 0).toLocaleString()}
           </Text>
-          <Flex align="center" gap="xs">
-            <Text variant="muted">
-              {tct('of [totalCredits] credits available', {
-                totalCredits: totalCredits.toLocaleString(),
-              })}
+          {hasPurchasedCredits ? (
+            <Flex align="center" gap="xs">
+              <Text size="sm" variant="muted">
+                {t('credits remaining')}
+              </Text>
+              <Tooltip maxWidth={240} title={<CreditBreakdown wallet={wallet} />}>
+                <Flex align="center" aria-label={t('Credit breakdown')}>
+                  <IconInfo size="xs" variant="muted" />
+                </Flex>
+              </Tooltip>
+            </Flex>
+          ) : (
+            <Text size="sm" variant="muted">
+              {wallet.included.resetsAt
+                ? tct('of [total] credits remaining • Resets [date]', {
+                    total: wallet.included.total.toLocaleString(),
+                    date: moment(wallet.included.resetsAt).format('MMM D'),
+                  })
+                : tct('of [total] credits remaining', {
+                    total: wallet.included.total.toLocaleString(),
+                  })}
             </Text>
-            <Tooltip
-              maxWidth={320}
-              title={<CreditBreakdown wallet={wallet} autoTopUp={autoTopUp} />}
-            >
-              <Flex align="center" aria-label={t('Credit breakdown')}>
-                <IconInfo size="xs" variant="muted" />
-              </Flex>
-            </Tooltip>
-          </Flex>
+          )}
         </Stack>,
-        autoTopUp.enabled ? (
-          <Button key="action" size="sm" onClick={openModal}>
-            {t('Edit')}
-          </Button>
-        ) : (
-          <Button
-            key="action"
-            size="sm"
-            variant={isPaused ? 'primary' : 'secondary'}
-            onClick={openModal}
-          >
-            {t('Turn on auto top-up')}
-          </Button>
-        ),
+        <Flex
+          key="auto-load"
+          justify="between"
+          align="center"
+          gap="lg"
+          width="100%"
+          paddingTop="lg"
+          borderTop="secondary"
+        >
+          <Stack gap="2xs">
+            <Text size="xs" bold>
+              {autoTopUp.enabled ? t('Auto-reload • On') : t('Auto-reload • Off')}
+            </Text>
+            <Text size="xs" variant="muted">
+              {autoTopUp.enabled
+                ? tct('Adds [credits] credits when below [threshold]', {
+                    credits: autoTopUp.topUpCredits.toLocaleString(),
+                    threshold: autoTopUp.thresholdCredits.toLocaleString(),
+                  })
+                : t('Buy more credits when you run low')}
+            </Text>
+          </Stack>
+          {autoTopUp.enabled ? (
+            <Button size="xs" onClick={openModal}>
+              {t('Manage')}
+            </Button>
+          ) : (
+            <Button
+              size="xs"
+              variant={isPaused ? 'primary' : 'secondary'}
+              onClick={openModal}
+            >
+              {t('Set up')}
+            </Button>
+          )}
+        </Flex>,
+      ]}
+    />
+  );
+}
+
+function SeerWalletError() {
+  return (
+    <SubscriptionHeaderCard
+      sections={[
+        <SeerTitle key="title" />,
+        <Text key="error" variant="muted">
+          {t('Unable to load your Seer credits.')}
+        </Text>,
       ]}
     />
   );
@@ -106,147 +136,68 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
 function SeerTitle() {
   return (
     <Flex align="center" gap="sm">
-      <IconSeer />
-      <Heading as="h2" size="lg">
+      <IconSeer size="sm" />
+      <Heading as="h2" size="md">
         {t('Seer')}
       </Heading>
     </Flex>
   );
 }
 
-function AutoTopUpStatus({
-  isPaused,
-  autoTopUpEnabled,
-}: {
-  autoTopUpEnabled: boolean;
-  isPaused: boolean;
-}) {
-  if (isPaused) {
-    return <Tag variant="warning">{t('Paused')}</Tag>;
-  }
-  if (autoTopUpEnabled) {
-    return <Tag variant="success">{t('Auto top-up on')}</Tag>;
-  }
-  return <Tag variant="muted">{t('Auto top-up off')}</Tag>;
-}
-
-function CreditBreakdown({
+function PausedTag({
   wallet,
   autoTopUp,
 }: {
   autoTopUp: SeerWalletAutoTopUp;
   wallet: SeerWalletBalance;
 }) {
-  const {included, purchased} = wallet;
-  const showPurchased = purchased.total > 0 || autoTopUp.enabled;
+  // With auto-reload on, an empty wallet means the daily usage limit stopped the
+  // auto-reloads, so Seer resumes the next day rather than when included credits reset.
+  const resumesAt = autoTopUp.enabled ? null : wallet.included.resetsAt;
 
   return (
-    <Stack gap="md" width="280px" align="stretch">
-      <Stack gap="sm">
-        <Flex justify="between" gap="md">
-          <Text bold>{t('Included')}</Text>
-          {included.resetsAt && (
-            <Text variant="muted">
-              {tct('Resets [date]', {date: moment(included.resetsAt).format('MMM D')})}
-            </Text>
-          )}
-        </Flex>
-        <CreditMeter
-          remaining={included.remaining}
-          total={included.total}
-          variant="included"
-        />
-        <Flex justify="between" gap="md">
-          <Text>
-            {tct('[remaining] remaining', {
-              remaining: Math.max(included.remaining, 0).toLocaleString(),
+    <Tag variant="danger" icon={<IconPause />}>
+      {resumesAt
+        ? tct('Paused until [date]', {date: moment(resumesAt).format('MMM D')})
+        : t('Paused')}
+    </Tag>
+  );
+}
+
+function CreditBreakdown({wallet}: {wallet: SeerWalletBalance}) {
+  const {included, purchased} = wallet;
+
+  return (
+    <Stack gap="lg">
+      <Stack gap="xs">
+        <Text size="sm" align="left" bold>
+          {tct('[remaining] included credits remaining', {
+            remaining: Math.max(included.remaining, 0).toLocaleString(),
+          })}
+        </Text>
+        {included.resetsAt && (
+          <Text size="sm" align="left" variant="muted">
+            {tct('Resets to [total] on [date]', {
+              total: included.total.toLocaleString(),
+              date: moment(included.resetsAt).format('MMM D'),
             })}
           </Text>
-          <Text>{included.total.toLocaleString()}</Text>
-        </Flex>
+        )}
       </Stack>
-      {showPurchased && (
-        <Stack gap="sm">
-          <Separator orientation="horizontal" border="primary" />
-          <Flex justify="between" gap="md">
-            <Text bold>{t('Purchased')}</Text>
-            {purchased.expiresAt && (
-              <Text variant="muted">
-                {tct('Expires [date]', {
-                  date: moment(purchased.expiresAt).format('MMM D, YYYY'),
-                })}
-              </Text>
-            )}
-          </Flex>
-          <CreditMeter
-            remaining={purchased.remaining}
-            total={purchased.total}
-            variant="purchased"
-          />
-          <Flex justify="between" gap="md">
-            <Text>
-              {tct('[remaining] remaining', {
-                remaining: purchased.remaining.toLocaleString(),
-              })}
-            </Text>
-            <Text>{purchased.total.toLocaleString()}</Text>
-          </Flex>
-          {autoTopUp.enabled && (
-            <Grid columns="1fr auto" gap="xs md" paddingLeft="md" borderLeft="primary">
-              <Text align="left">{t('If credits fall below')}</Text>
-              <Text align="right">{autoTopUp.thresholdCredits.toLocaleString()}</Text>
-              <Text align="left">{t('Top up by')}</Text>
-              <Text align="right">{autoTopUp.topUpCredits.toLocaleString()}</Text>
-              <Text align="left">{t('Up to a maximum of')}</Text>
-              <Text align="right">
-                {tct('[credits] / day', {
-                  credits: Math.floor(
-                    autoTopUp.dailySpendCapCents / wallet.creditPriceCents
-                  ).toLocaleString(),
-                })}
-              </Text>
-            </Grid>
-          )}
-        </Stack>
-      )}
+      <Stack gap="xs">
+        <Text size="sm" align="left" bold>
+          {tct('[remaining] purchased credits remaining', {
+            remaining: Math.max(purchased.remaining, 0).toLocaleString(),
+          })}
+        </Text>
+        {purchased.expiresAt && (
+          <Text size="sm" align="left" variant="muted">
+            {tct('Expires on [date]', {
+              date: moment(purchased.expiresAt).format('MMM D, YYYY'),
+            })}
+          </Text>
+        )}
+      </Stack>
     </Stack>
   );
 }
-
-function CreditMeter({
-  remaining,
-  total,
-  variant,
-}: {
-  remaining: number;
-  total: number;
-  variant: 'included' | 'purchased';
-}) {
-  const percent = total > 0 ? Math.min(Math.max(remaining / total, 0), 1) * 100 : 0;
-  return (
-    <MeterTrack
-      role="meter"
-      aria-valuenow={Math.max(remaining, 0)}
-      aria-valuemin={0}
-      aria-valuemax={total}
-    >
-      <MeterFill percent={percent} variant={variant} />
-    </MeterTrack>
-  );
-}
-
-const MeterTrack = styled('div')`
-  height: 6px;
-  border-radius: 100px;
-  overflow: hidden;
-  background: ${p => p.theme.tokens.graphics.neutral.muted};
-`;
-
-const MeterFill = styled('div')<{percent: number; variant: 'included' | 'purchased'}>`
-  height: 100%;
-  width: ${p => p.percent}%;
-  background: ${p =>
-    p.variant === 'included'
-      ? p.theme.tokens.graphics.success.vibrant
-      : p.theme.tokens.graphics.accent.vibrant};
-`;

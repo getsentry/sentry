@@ -90,6 +90,8 @@ class EmailTestCase(AcceptanceTestCase):
             self.browser.wait_until("#preview")
             elem = self.browser.find_element(by=By.CSS_SELECTOR, value="#preview pre")
             text_src = elem.get_attribute("innerHTML")
+            if text_src is None:
+                raise AssertionError("Email preview has no HTML")
 
             # Avoid relying on IDs as this can cause flakey tests
             text_src = redact_ips(redact_ids(replace_amp(text_src)))

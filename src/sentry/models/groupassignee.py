@@ -13,7 +13,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
-from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
+from sentry.inbox.types import SYSTEM_ACTOR, InboxActor, InboxEventSummary
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.issues.derived.features import FIRST_ASSIGNMENT_ACTION_ID
 from sentry.issues.derived.framework import DerivedDataError
@@ -149,10 +149,11 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         force_autoassign: bool = False,
         assignment_source: AssignmentSource | None = None,
     ) -> GroupAssignmentState:
-        from sentry.inbox.issue import record_issue_assignment
+        from sentry.inbox.issue import ISSUE_TEAM_ASSIGNED, ISSUE_USER_ASSIGNED, IssueAssignedData
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
         from sentry.models.activity import Activity, ActivityIntegration
         from sentry.models.groupsubscription import GroupSubscription
+        from sentry.notifications.platform.inbox import create_inbox_items
         from sentry.users.models.user import User as UserModel
         from sentry.users.services.user import RpcUser
 
@@ -241,11 +242,19 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             except ValueError:
                 logger.exception("groupassignee.inbox.invalid_integration")
             else:
+                is_team = assignee_type == "team"
                 safe_execute(
-                    record_issue_assignment,
-                    group=group,
-                    assignee=assigned_to,
-                    assignment_source=inbox_assignment_source,
+                    create_inbox_items,
+                    event_type=ISSUE_TEAM_ASSIGNED if is_team else ISSUE_USER_ASSIGNED,
+                    subject=group,
+                    data=IssueAssignedData(
+                        summary=InboxEventSummary.ISSUE_TEAM_ASSIGNED
+                        if is_team
+                        else InboxEventSummary.ISSUE_USER_ASSIGNED,
+                        assignment_source=inbox_assignment_source,
+                    ),
+                    user_ids=[] if is_team else [assigned_to.id],
+                    team_ids=[assigned_to.id] if is_team else [],
                     actor=InboxActor.user(acting_user.id)
                     if acting_user is not None
                     else SYSTEM_ACTOR,

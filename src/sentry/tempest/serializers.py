@@ -1,7 +1,12 @@
+from collections.abc import Mapping, MutableMapping, Sequence
+
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
 
 from sentry.api.serializers.base import Serializer, register
 from sentry.tempest.models import TempestCredentials
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 
@@ -12,24 +17,36 @@ class TempestCredentialsSerializer(Serializer):
 
     def get_attrs(
         self,
-        item_list,
-        user,
-        **kwargs,
-    ):
+        item_list: Sequence[TempestCredentials],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> MutableMapping[TempestCredentials, dict[str, RpcUser | None]]:
         users_mapping = {}
         user_ids = [item.created_by_id for item in item_list if item.created_by_id is not None]
         users = user_service.get_many_by_id(ids=user_ids)
         for rpc_user in users:
             users_mapping[rpc_user.id] = rpc_user
 
-        attrs = {}
+        attrs: MutableMapping[TempestCredentials, dict[str, RpcUser | None]] = {}
         for item in item_list:
-            attrs[item] = users_mapping.get(item.created_by_id)
+            attrs[item] = {
+                "user": (
+                    users_mapping.get(item.created_by_id)
+                    if item.created_by_id is not None
+                    else None
+                )
+            }
 
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs):
-        rpc_user = attrs
+    def serialize(
+        self,
+        obj: TempestCredentials,
+        attrs: Mapping[str, RpcUser | None],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> Mapping[str, object]:
+        rpc_user = attrs["user"]
         return {
             "id": obj.id,
             "clientId": obj.client_id,
@@ -44,7 +61,7 @@ class TempestCredentialsSerializer(Serializer):
         }
 
 
-class DRFTempestCredentialsSerializer(serializers.ModelSerializer):
+class DRFTempestCredentialsSerializer(serializers.ModelSerializer[TempestCredentials]):
     clientId = serializers.CharField(source="client_id")
     clientSecret = serializers.CharField(source="client_secret")
     message = serializers.CharField(read_only=True)

@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any, ClassVar, Final, Literal, Protocol, override, runtime_checkable
+from typing import Any, ClassVar, Final, Literal, Protocol, cast, override, runtime_checkable
 
 
 class _Missing:
@@ -208,7 +208,7 @@ class Feature[T]:
         self._version: Final[int] = version
         self._default = default
         self._default_factory = default_factory
-        self._codec = codec or IDENTITY_CODEC
+        self._codec: Codec[T] = codec or cast("Codec[T]", IDENTITY_CODEC)
         self._hash = hash((name, version))
 
     @property

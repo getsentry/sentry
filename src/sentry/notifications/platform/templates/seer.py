@@ -56,6 +56,68 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
         )
 
 
+class SeerAutofixStopped(NotificationData):
+    reason: str
+    suggestion: str
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_STOPPED
+
+
+@template_registry.register(NotificationSource.SEER_AUTOFIX_STOPPED)
+class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutofixStopped(
+        organization_id=1,
+        reason="The error comes from an expired third-party API key.",
+        suggestion="Rotate the API key in your provider's dashboard.",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAutofixStopped) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer stopped early",
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=data.reason)]),
+                ParagraphSection(blocks=[PlainTextBlock(text=f"Suggestion: {data.suggestion}")]),
+            ],
+        )
+
+
+# NO_RELOADS is for billing members whose auto-reload is already on.
+AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily token limit or set up auto-reload."
+AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
+AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
+
+
+class SeerAutofixOutOfCredits(NotificationData):
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS
+    has_billing_access: bool = False
+    auto_reload_enabled: bool = False
+
+    @property
+    def message(self) -> str:
+        if not self.has_billing_access:
+            return AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE
+        if self.auto_reload_enabled:
+            return AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE
+        return AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE
+
+
+@template_registry.register(NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS)
+class SeerAutofixOutOfCreditsTemplate(NotificationTemplate[SeerAutofixOutOfCredits]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutofixOutOfCredits(
+        source=NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS,
+        organization_id=1,
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAutofixOutOfCredits) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=data.message,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.message)])],
+        )
+
+
 class SeerAutofixCodeChange(TypedDict):
     repo_name: str
     diff: str
@@ -190,6 +252,38 @@ class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
         )
 
 
+AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE = "Your organization does not have enough credits left for you to message Seer. Ask your admin to set up auto-reload."
+AGENT_OUT_OF_CREDITS_BILLING_MESSAGE = "Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto-reload."
+AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits left for you to message Seer, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
+
+
+class SeerAgentOutOfCredits(NotificationData):
+    source: NotificationSource = NotificationSource.SEER_AGENT_OUT_OF_CREDITS
+    has_billing_access: bool = False
+    auto_reload_enabled: bool = False
+
+    @property
+    def message(self) -> str:
+        if not self.has_billing_access:
+            return AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
+        if self.auto_reload_enabled:
+            return AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE
+        return AGENT_OUT_OF_CREDITS_BILLING_MESSAGE
+
+
+@template_registry.register(NotificationSource.SEER_AGENT_OUT_OF_CREDITS)
+class SeerAgentOutOfCreditsTemplate(NotificationTemplate[SeerAgentOutOfCredits]):
+    category = NotificationCategory.SEER
+    example_data = SeerAgentOutOfCredits(organization_id=1)
+    hide_from_debugger = True
+
+    def render(self, data: SeerAgentOutOfCredits) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=data.message,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.message)])],
+        )
+
+
 class SeerAgentResponse(NotificationData):
     """Notification data for Agent completion response in Slack."""
 
@@ -297,6 +391,11 @@ class SeerInvestigationProgress(TypedDict):
     detail: str
 
 
+class SeerInvestigationNextStep(TypedDict):
+    title: str
+    rationale: str
+
+
 class SeerInvestigationStatus(NotificationData):
     """Live status of a Seer investigation, edited in place in the alert's Slack thread."""
 
@@ -361,6 +460,7 @@ class SeerInvestigationConclusion(NotificationData):
 
     summary: str
     summary_description: str | None
+    next_step: SeerInvestigationNextStep | None
     investigation_url: str
     source: NotificationSource = NotificationSource.SEER_INVESTIGATION_CONCLUSION
 
@@ -373,18 +473,21 @@ class SeerInvestigationConclusionTemplate(NotificationTemplate[SeerInvestigation
         summary="A render-blocking font slowed the login page",
         summary_description="A frontend release added a render-blocking font file, "
         "which delayed the first paint on organization login pages.",
+        next_step=SeerInvestigationNextStep(
+            title="Preload the font file",
+            rationale="Preloading lets the browser fetch the font without blocking the first paint.",
+        ),
         investigation_url="https://sentry.io/organizations/example/seer/investigations/1/",
     )
     hide_from_debugger = True
 
     def render(self, data: SeerInvestigationConclusion) -> NotificationRenderedTemplate:
+        texts = [data.summary, data.summary_description]
+        if data.next_step:
+            texts.append(f"Suggested next step: {data.next_step['title']}")
         return NotificationRenderedTemplate(
             subject="Seer investigation conclusion",
-            body=[
-                ParagraphSection(blocks=[PlainTextBlock(text=text)])
-                for text in (data.summary, data.summary_description)
-                if text
-            ],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=text)]) for text in texts if text],
             actions=[
                 NotificationRenderedAction(
                     label="View full investigation", link=data.investigation_url

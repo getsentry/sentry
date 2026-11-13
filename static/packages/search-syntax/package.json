@@ -45,14 +45,14 @@
     "lint:js": "oxlint --type-aware --report-unused-disable-directives"
   },
   "devDependencies": {
-    "@rslib/core": "1.0.3",
-    "@swc/core": "1.16.13",
+    "@rslib/core": "1.0.6",
+    "@swc/core": "1.16.22",
     "@swc/jest": "0.2.39",
     "@types/jest": "30.0.0",
     "@types/node": "26.6.4",
     "jest": "30.5.1",
-    "oxlint": "1.88.0",
-    "oxlint-tsgolint": "7.0.2004",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   }
 }

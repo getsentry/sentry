@@ -26,13 +26,13 @@ SESSION_TARGET = (
 
 
 class BaseSnapshotArchiveTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
 
-    def _artifact(self):
+    def _artifact(self) -> PreprodArtifact:
         artifact = self.create_preprod_artifact(
             project=self.project, state=PreprodArtifact.ArtifactState.PROCESSED
         )
@@ -41,7 +41,7 @@ class BaseSnapshotArchiveTest(APITestCase):
         )
         return artifact
 
-    def _url(self, snapshot_id, download=False):
+    def _url(self, snapshot_id: int, download: bool = False) -> str:
         url = reverse(
             "sentry-api-0-organization-preprod-snapshots-archive",
             args=[self.org.slug, snapshot_id],
@@ -51,7 +51,7 @@ class BaseSnapshotArchiveTest(APITestCase):
 
 class SnapshotArchiveTriggerTest(BaseSnapshotArchiveTest):
     @patch(ENQUEUE_TARGET)
-    def test_post_enqueues_build_and_returns_202(self, mock_task):
+    def test_post_enqueues_build_and_returns_202(self, mock_task: MagicMock) -> None:
         artifact = self._artifact()
         response = self.client.post(self._url(artifact.id))
         assert response.status_code == 202
@@ -66,13 +66,13 @@ class SnapshotArchiveTriggerTest(BaseSnapshotArchiveTest):
         )
 
     @patch(ENQUEUE_TARGET)
-    def test_post_returns_503_when_enqueue_fails(self, mock_task):
+    def test_post_returns_503_when_enqueue_fails(self, mock_task: MagicMock) -> None:
         artifact = self._artifact()
         mock_task.apply_async.side_effect = RuntimeError("broker down")
         response = self.client.post(self._url(artifact.id))
         assert response.status_code == 503
 
-    def test_rate_limit_applies_to_post_only(self):
+    def test_rate_limit_applies_to_post_only(self) -> None:
         overrides = OrganizationPreprodSnapshotArchiveEndpoint.rate_limits.limit_overrides
         assert isinstance(overrides, Mapping)
         assert "POST" in overrides
@@ -82,7 +82,7 @@ class SnapshotArchiveTriggerTest(BaseSnapshotArchiveTest):
 
 class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
     @patch(SESSION_TARGET)
-    def test_get_reports_ready_when_archive_present(self, mock_session):
+    def test_get_reports_ready_when_archive_present(self, mock_session: MagicMock) -> None:
         artifact = self._artifact()
         session = MagicMock()
         session.get.return_value = MagicMock()
@@ -93,7 +93,7 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
         session.get.assert_called_once_with(f"snapshot_archives/{artifact.id}.zip")
 
     @patch(SESSION_TARGET)
-    def test_get_reports_not_ready_when_archive_absent(self, mock_session):
+    def test_get_reports_not_ready_when_archive_absent(self, mock_session: MagicMock) -> None:
         artifact = self._artifact()
         session = MagicMock()
         session.get.return_value = None
@@ -103,7 +103,9 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
         assert response.data["ready"] is False
 
     @patch(SESSION_TARGET)
-    def test_get_reports_not_ready_on_transient_objectstore_error(self, mock_session):
+    def test_get_reports_not_ready_on_transient_objectstore_error(
+        self, mock_session: MagicMock
+    ) -> None:
         artifact = self._artifact()
         session = MagicMock()
         session.get.side_effect = RequestError("unavailable", status=503, response="")
@@ -115,7 +117,7 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
 
 class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
     @patch(SESSION_TARGET)
-    def test_download_streams_when_object_present(self, mock_session):
+    def test_download_streams_when_object_present(self, mock_session: MagicMock) -> None:
         artifact = self._artifact()
         result = MagicMock()
         result.payload.read.side_effect = [b"ZIPBYTES", b""]
@@ -130,7 +132,7 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
         session.get.assert_called_once_with(f"snapshot_archives/{artifact.id}.zip")
 
     @patch(SESSION_TARGET)
-    def test_download_returns_409_when_absent(self, mock_session):
+    def test_download_returns_409_when_absent(self, mock_session: MagicMock) -> None:
         artifact = self._artifact()
         session = MagicMock()
         session.get.return_value = None
@@ -138,7 +140,7 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
         response = self.client.get(self._url(artifact.id, download=True))
         assert response.status_code == 409
 
-    def _ready_session(self, mock_session):
+    def _ready_session(self, mock_session: MagicMock) -> None:
         result = MagicMock()
         result.payload.read.side_effect = [b"ZIPBYTES", b""]
         result.metadata = MagicMock()
@@ -148,7 +150,9 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
 
     @patch("sentry.analytics.record")
     @patch(SESSION_TARGET)
-    def test_download_records_web_client_analytics(self, mock_session, mock_record):
+    def test_download_records_web_client_analytics(
+        self, mock_session: MagicMock, mock_record: MagicMock
+    ) -> None:
         artifact = self._artifact()
         self._ready_session(mock_session)
         # setUp logged the user in via session cookies and sent no token, so the
@@ -168,7 +172,9 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
 
     @patch("sentry.analytics.record")
     @patch(SESSION_TARGET)
-    def test_download_records_sentry_cli_client_analytics(self, mock_session, mock_record):
+    def test_download_records_sentry_cli_client_analytics(
+        self, mock_session: MagicMock, mock_record: MagicMock
+    ) -> None:
         artifact = self._artifact()
         self._ready_session(mock_session)
         token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
@@ -193,7 +199,9 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
 
     @patch("sentry.analytics.record")
     @patch(SESSION_TARGET)
-    def test_readiness_probe_records_no_download_event(self, mock_session, mock_record):
+    def test_readiness_probe_records_no_download_event(
+        self, mock_session: MagicMock, mock_record: MagicMock
+    ) -> None:
         artifact = self._artifact()
         session = MagicMock()
         session.get.return_value = MagicMock()
@@ -207,7 +215,9 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
 
     @patch("sentry.analytics.record")
     @patch(ENQUEUE_TARGET)
-    def test_post_build_trigger_records_no_download_event(self, mock_task, mock_record):
+    def test_post_build_trigger_records_no_download_event(
+        self, mock_task: MagicMock, mock_record: MagicMock
+    ) -> None:
         artifact = self._artifact()
         response = self.client.post(self._url(artifact.id))
         assert response.status_code == 202

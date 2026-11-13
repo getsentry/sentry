@@ -14,10 +14,11 @@ import {
 
 import {Button} from '@sentry/scraps/button';
 
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {HOUR, MINUTE} from 'sentry/utils/formatters';
+
+import {useDroppedData} from './useDroppedData';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
@@ -111,6 +112,26 @@ describe('useDroppedData', () => {
     );
     expect(request.mock.calls[0][1].query).not.toHaveProperty('yAxis');
     expect(result.current.droppedEvents).toEqual(droppedEvents);
+  });
+
+  it('requests the chart projects over the page filter projects', async () => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useDroppedData({dataset: DiscoverDatasets.SPANS, interval: '1h', projects: [2]}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(request).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-dropped/`,
+      expect.objectContaining({query: expect.objectContaining({project: [2]})})
+    );
   });
 
   it('does not request dropped events without the feature flag', () => {

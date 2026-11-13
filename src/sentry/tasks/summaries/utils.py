@@ -76,7 +76,7 @@ class OrganizationReportContext:
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """
         Returns True if every project context is empty.
         """
@@ -84,6 +84,17 @@ class OrganizationReportContext:
             project_ctx.check_if_project_is_empty()
             for project_ctx in self.projects_context_map.values()
         )
+
+
+KeyPerformanceIssue = tuple[Group, int] | tuple[Group, GroupHistory | None, int]
+
+
+def key_performance_issue_with_history(
+    issue: KeyPerformanceIssue,
+) -> tuple[Group, GroupHistory | None, int]:
+    if len(issue) == 3:
+        return issue
+    return issue[0], None, issue[1]
 
 
 class ProjectContext:
@@ -97,22 +108,22 @@ class ProjectContext:
     total_substatus_count = 0
     prev_week_total_substatus_count = 0
 
-    def __init__(self, project):
+    def __init__(self, project: Project) -> None:
         self.project = project
 
         self.key_error_issues_by_id: list[tuple[int, int]] = []
         self.key_error_issues: list[tuple[Group, int]] = []
         # Array of (Group, count)
-        self.key_performance_issues = []
+        self.key_performance_issues: list[KeyPerformanceIssue] = []
         # Array of (Group, event_count, resolution_label, resolution_url)
         self.past_resolved_issues: list[tuple[Group, int, str, str | None]] = []
 
-        self.key_replay_events = []
+        self.key_replay_events: list[object] = []
 
         # Dictionary of { timestamp: count }
-        self.error_count_by_day = {}
+        self.error_count_by_day: dict[int, int] = {}
         # Dictionary of { timestamp: count }
-        self.issue_count_by_day = {}
+        self.issue_count_by_day: dict[int, int] = {}
 
     def __repr__(self) -> str:
         return "\n".join(
@@ -122,7 +133,7 @@ class ProjectContext:
             ]
         )
 
-    def check_if_project_is_empty(self):
+    def check_if_project_is_empty(self) -> bool:
         return (
             not self.key_error_issues
             and not self.key_performance_issues
@@ -233,9 +244,11 @@ def org_key_error_issues(
         return results
 
 
-def project_key_performance_issues(ctx: OrganizationReportContext, project: Project, referrer: str):
+def project_key_performance_issues(
+    ctx: OrganizationReportContext, project: Project, referrer: str
+) -> list[KeyPerformanceIssue] | None:
     if not project.first_event:
-        return
+        return None
 
     op = "weekly_reports.project_key_performance_issues"
 
@@ -257,7 +270,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
         group_id_to_group = {group.id: group for group in groups}
 
         if len(group_id_to_group) == 0:
-            return
+            return None
 
         snuba_rows = _project_key_performance_issues_snuba(
             ctx=ctx,
@@ -294,7 +307,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
                 },
             )
 
-        key_performance_issues = []
+        key_performance_issues: list[KeyPerformanceIssue] = []
         for result in query_result:
             count = result["count()"]
             group_id = result["group_id"]
@@ -334,7 +347,8 @@ def _project_key_performance_issues_snuba(
         query=query,
         tenant_ids={"organization_id": ctx.organization.id},
     )
-    return raw_snql_query(request, referrer=referrer)["data"]
+    rows = raw_snql_query(request, referrer=referrer)["data"]
+    return rows
 
 
 def _project_key_performance_issues_eap(
@@ -417,11 +431,11 @@ def fetch_key_error_issues(ctx: OrganizationReportContext) -> None:
         ]
 
 
-def fetch_key_performance_issues(ctx: OrganizationReportContext):
+def fetch_key_performance_issues(ctx: OrganizationReportContext) -> None:
     # Organization pass. Depends on project_key_performance_issue.
     all_groups = []
     for project_ctx in ctx.projects_context_map.values():
-        all_groups.extend([group for group, count in project_ctx.key_performance_issues])
+        all_groups.extend([issue[0] for issue in project_ctx.key_performance_issues])
 
     if len(all_groups) == 0:
         return
@@ -440,12 +454,14 @@ def fetch_key_performance_issues(ctx: OrganizationReportContext):
 
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.key_performance_issues = [
-            (group, group_id_to_group_history.get(group.id, None), count)
-            for group, count in project_ctx.key_performance_issues
+            (issue[0], group_id_to_group_history.get(issue[0].id, None), issue[-1])
+            for issue in project_ctx.key_performance_issues
         ]
 
 
-def project_event_counts_for_organization(start, end, ctx, referrer: str) -> list[dict[str, Any]]:
+def project_event_counts_for_organization(
+    start: datetime, end: datetime, ctx: OrganizationReportContext, referrer: str
+) -> list[dict[str, Any]]:
     """
     Populates context.projects which is { project_id: ProjectContext }
     """

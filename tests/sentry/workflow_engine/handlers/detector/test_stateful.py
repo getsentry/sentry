@@ -13,6 +13,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters, get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.detector.test_base import (
     MockDetectorStateHandler,
@@ -39,7 +40,7 @@ class StatefulDetectorTestCase(TestCase):
 
         for level in levels:
             self.create_data_condition(
-                type="eq",
+                type=Condition.EQUAL,
                 comparison=level.name,
                 condition_group=self.detector.workflow_condition_group,
                 condition_result=level,
@@ -333,13 +334,13 @@ class TestStatefulDetectorHandlerEvaluate(StatefulDetectorTestCase):
         self.create_data_condition(
             condition_group=self.detector.workflow_condition_group,
             comparison=5,
-            type="lte",
+            type=Condition.LESS_OR_EQUAL,
             condition_result=Level.OK,
         )
         self.create_data_condition(
             condition_group=self.detector.workflow_condition_group,
             comparison=10,
-            type="gt",
+            type=Condition.GREATER,
             condition_result=Level.HIGH,
         )
         handler = MockDetectorStateHandler(detector=self.detector)

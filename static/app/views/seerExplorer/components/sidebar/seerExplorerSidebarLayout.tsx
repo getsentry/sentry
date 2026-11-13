@@ -10,7 +10,6 @@ import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerE
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
   getSeerExplorerAnalyticsBrowserSize,
@@ -18,6 +17,8 @@ import {
   SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
   useSeerExplorerSidebarOrientation,
 } from 'sentry/views/seerExplorer/utils';
+
+import {SeerExplorerPanel} from './seerExplorerPanel';
 
 // Minimum widths/heights so neither the app content nor Seer collapses to nothing.
 const MIN_CONTENT_WIDTH = 480;

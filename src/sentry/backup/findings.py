@@ -225,7 +225,7 @@ class ComparatorFindings:
 class FindingJSONEncoder(json.JSONEncoder):
     """JSON serializer that handles findings properly."""
 
-    def default(self, obj):
+    def default(self, obj: object) -> Any:
         if isinstance(obj, Finding):
             kind = getattr(obj, "kind", None)
             d = obj.to_dict()

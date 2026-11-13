@@ -2,7 +2,7 @@ import {ApiTokenFixture} from 'sentry-fixture/apiToken';
 
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
+import {displayNewToken} from './newTokenHandler';
 
 describe('displayNewToken', () => {
   it('renders', async () => {

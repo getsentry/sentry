@@ -30,6 +30,7 @@ from sentry.issues.derived.promote import build_and_promote_batch
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
     _discover_stale_pipeline_hashes,
+    _StaleHashDiscovery,
     check_fresh_derived_data_batch,
     generate_group_derived_data,
     generate_project_derived_data,
@@ -53,6 +54,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
+from sentry.utils.db import statement_timeout
 
 
 class DerivedDataTaskTestBase(TestCase):
@@ -412,6 +414,12 @@ class HealSchedulerStateTest(TestCase):
         with patch.object(_state_cache, "get", return_value=state):
             assert load_state() is None
 
+    def test_incomplete_discovery_state_loads(self) -> None:
+        state = HealSchedulerState(head_hash="current", stale={"stale-a": 42})
+
+        with patch.object(_state_cache, "get", return_value=state):
+            assert load_state() == state
+
     def test_old_discovery_keeps_hashes_and_marks(self) -> None:
         state = HealSchedulerState(
             head_hash="current",
@@ -513,7 +521,8 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         with (
             override_options({"issues.derived.check-task-count": 0}),
             patch(
-                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes", return_value=[]
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                return_value=_StaleHashDiscovery(hashes=[]),
             ) as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
@@ -533,7 +542,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             in mock_incr.call_args_list
         )
 
-    def test_discovery_metric_reports_healed_state_when_nothing_is_stale(self) -> None:
+    def test_completed_discovery_is_not_repeated_when_nothing_is_stale(self) -> None:
         state = HealSchedulerState(
             head_hash=PIPELINE.pipeline_hash,
             discovered_at=datetime.now(timezone.utc),
@@ -541,7 +550,27 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         with (
             override_options({"issues.derived.check-task-count": 0}),
             patch("sentry.issues.derived.tasks.load_state", return_value=state),
-            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes", return_value=[]),
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                return_value=GroupIdRangeResult(ranges=[], drained=True),
+            ),
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+        ):
+            heal_stale_derived_data()
+
+        discover.assert_not_called()
+        mock_save.assert_not_called()
+
+    def test_incomplete_discovery_is_retried_when_nothing_is_stale(self) -> None:
+        state = HealSchedulerState(head_hash=PIPELINE.pipeline_hash)
+        with (
+            override_options({"issues.derived.check-task-count": 0}),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch(
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                return_value=_StaleHashDiscovery(hashes=[]),
+            ) as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 return_value=GroupIdRangeResult(ranges=[], drained=True),
@@ -550,11 +579,13 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         ):
             heal_stale_derived_data()
 
+        discover.assert_called_once_with(PIPELINE.pipeline_hash, 5)
+        assert state.discovered_at is not None
         assert (
             call(
                 "issues.derived.heal_stale_hash_discovery",
                 sample_rate=1.0,
-                tags={"reason": "stale_empty"},
+                tags={"reason": "incomplete"},
             )
             in mock_incr.call_args_list
         )
@@ -621,11 +652,12 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         assert mock_save.call_args.args[0].stale == {old_hash: 2}
 
     def test_discovery_timeout_still_schedules_null_and_saves_retryable_state(self) -> None:
+        error = OperationalError("canceling statement due to statement timeout")
         with (
             override_options({"issues.derived.heal-max-tasks": 1}),
             patch(
                 "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
-                side_effect=OperationalError,
+                return_value=_StaleHashDiscovery(hashes=[], error=error),
             ),
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
@@ -640,9 +672,57 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         delay.assert_called_once()
         saved_state = mock_save.call_args.args[0]
         assert saved_state.discovered_at is None
-        mock_logger.exception.assert_called_once_with(
-            "heal_stale_derived_data.stale_hash_discovery_failed"
-        )
+        assert saved_state.head_hash == PIPELINE.pipeline_hash
+        failure_log = mock_logger.error.call_args
+        assert failure_log.args == ("heal_stale_derived_data.stale_hash_discovery_failed",)
+        assert failure_log.kwargs["exc_info"] is error
+
+    def test_partial_discovery_heals_found_hashes_before_retrying(self) -> None:
+        stale_hash = self._pick_stale_hash()
+        options = {
+            "issues.derived.heal-max-tasks": 1,
+            "issues.derived.check-task-count": 0,
+        }
+        with (
+            override_options(options),
+            patch(
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                return_value=_StaleHashDiscovery(hashes=[stale_hash], error=OperationalError()),
+            ),
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(10, 20)], drained=False),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as delay,
+            patch("sentry.issues.derived.tasks.save_state") as first_save,
+        ):
+            heal_stale_derived_data()
+
+        delay.assert_called_once_with(target_hash=stale_hash, group_id_start=10, group_id_end=20)
+        persisted = first_save.call_args.args[0].copy(deep=True)
+        assert persisted.discovered_at is None
+        assert persisted.stale == {stale_hash: 20}
+
+        with (
+            override_options(options),
+            patch("sentry.issues.derived.tasks.load_state", return_value=persisted),
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(20, 30)], drained=False),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+            patch("sentry.issues.derived.tasks.save_state"),
+        ):
+            heal_stale_derived_data()
+
+        discover.assert_not_called()
 
     def test_range_selection_timeout_is_reported_and_other_hashes_continue(self) -> None:
         stale_hash = self._pick_stale_hash()
@@ -727,7 +807,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         with (
             patch(
                 "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
-                return_value=[stale_hash],
+                return_value=_StaleHashDiscovery(hashes=[stale_hash]),
             ),
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
@@ -801,7 +881,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         assert second_ranges.call_args_list[1].kwargs["group_id_lower_bound"] == 20
         discover.assert_not_called()
 
-    def test_drained_hash_is_removed_then_rediscovered(self) -> None:
+    def test_drained_hash_is_removed_without_rediscovery(self) -> None:
         stale_hash = self._pick_stale_hash()
         state = HealSchedulerState(
             head_hash=PIPELINE.pipeline_hash,
@@ -832,22 +912,15 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             override_options(options),
             patch("sentry.issues.derived.tasks.load_state", return_value=retired),
             patch("sentry.issues.derived.tasks.save_state"),
-            patch(
-                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
-                return_value=[stale_hash],
-            ) as discover,
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
-                side_effect=[
-                    GroupIdRangeResult(ranges=[], drained=True),
-                    GroupIdRangeResult(ranges=[(1, 2)], drained=False),
-                ],
+                return_value=GroupIdRangeResult(ranges=[], drained=True),
             ),
-            patch.object(regenerate_stale_derived_data_batch, "delay"),
         ):
             heal_stale_derived_data()
 
-        discover.assert_called_once_with(PIPELINE.pipeline_hash, 5)
+        discover.assert_not_called()
 
     def test_null_starts_at_zero_without_rewriting_state(self) -> None:
         stale_hash = self._pick_stale_hash()
@@ -1977,10 +2050,10 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         current = PIPELINE.pipeline_hash
         self._seed_hashes([current, current, current])
 
-        assert _discover_stale_pipeline_hashes(current, limit=5) == []
+        assert _discover_stale_pipeline_hashes(current, limit=5).hashes == []
 
     def test_returns_empty_when_table_empty(self) -> None:
-        assert _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5) == []
+        assert _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5).hashes == []
 
     def test_query_has_statement_timeout(self) -> None:
         with patch("sentry.issues.derived.tasks.statement_timeout") as timeout:
@@ -1988,22 +2061,40 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
 
         assert timedelta(seconds=80) < timeout.call_args.args[1] <= timedelta(seconds=90)
 
-    def test_exhausted_budget_raises(self) -> None:
+    def test_timeout_returns_partial_progress(self) -> None:
+        self._seed_hashes(["a-hash", "m-current", "y-hash"])
+        real_statement_timeout = statement_timeout
+        calls = 0
+
+        def fail_third_lookup(alias: str, timeout: timedelta) -> Any:
+            nonlocal calls
+            calls += 1
+            if calls == 3:
+                raise OperationalError("canceling statement due to statement timeout")
+            return real_statement_timeout(alias, timeout)
+
+        with patch("sentry.issues.derived.tasks.statement_timeout", side_effect=fail_third_lookup):
+            result = _discover_stale_pipeline_hashes("m-current", limit=5)
+
+        assert result.hashes == ["a-hash"]
+        assert isinstance(result.error, OperationalError)
+
+    def test_exhausted_budget_returns_error(self) -> None:
         self._seed_hashes(["a-hash"])
 
-        with (
-            patch(
-                "sentry.issues.derived.tasks._STALE_HASH_DISCOVERY_TIMEOUT", timedelta(seconds=0)
-            ),
-            pytest.raises(OperationalError),
+        with patch(
+            "sentry.issues.derived.tasks._STALE_HASH_DISCOVERY_TIMEOUT", timedelta(seconds=0)
         ):
-            _discover_stale_pipeline_hashes("m-current", limit=5)
+            result = _discover_stale_pipeline_hashes("m-current", limit=5)
+
+        assert result.hashes == []
+        assert isinstance(result.error, OperationalError)
 
     def test_excludes_null_pipeline_hash(self) -> None:
         current = PIPELINE.pipeline_hash
         self._seed_hashes([None, None])
 
-        assert _discover_stale_pipeline_hashes(current, limit=5) == []
+        assert _discover_stale_pipeline_hashes(current, limit=5).hashes == []
 
     def test_excludes_current_hash(self) -> None:
         current = PIPELINE.pipeline_hash
@@ -2011,7 +2102,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         stale_high = "z" * 16
         self._seed_hashes([stale_low, current, stale_high])
 
-        result = _discover_stale_pipeline_hashes(current, limit=5)
+        result = _discover_stale_pipeline_hashes(current, limit=5).hashes
         assert current not in result
         assert set(result) == {stale_low, stale_high}
 
@@ -2020,7 +2111,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         stale = "0" * 16 if current != "0" * 16 else "1" * 16
         self._seed_hashes([stale], per_hash=25)
 
-        assert _discover_stale_pipeline_hashes(current, limit=5) == [stale]
+        assert _discover_stale_pipeline_hashes(current, limit=5).hashes == [stale]
 
     def test_respects_limit(self) -> None:
         current = PIPELINE.pipeline_hash
@@ -2028,7 +2119,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         assert current not in stale_hashes
         self._seed_hashes(stale_hashes)
 
-        result = _discover_stale_pipeline_hashes(current, limit=3)
+        result = _discover_stale_pipeline_hashes(current, limit=3).hashes
         assert len(result) == 3
         assert result == sorted(result)
         assert set(result).issubset(set(stale_hashes))
@@ -2039,7 +2130,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         assert current not in stale_hashes
         self._seed_hashes(stale_hashes)
 
-        result = _discover_stale_pipeline_hashes(current, limit=10)
+        result = _discover_stale_pipeline_hashes(current, limit=10).hashes
         assert result == ["a-hash", "b-hash", "c-hash"]
 
     def test_limit_honored_when_current_hash_appears_mid_walk(self) -> None:
@@ -2047,7 +2138,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         stale_hashes = ["a-hash", "b-hash", "y-hash", "z-hash"]
         self._seed_hashes(stale_hashes + [current])
 
-        result = _discover_stale_pipeline_hashes(current, limit=3)
+        result = _discover_stale_pipeline_hashes(current, limit=3).hashes
         assert result == ["a-hash", "b-hash", "y-hash"]
 
 

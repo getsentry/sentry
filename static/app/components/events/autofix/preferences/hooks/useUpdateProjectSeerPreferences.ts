@@ -1,11 +1,12 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {projectSeerPreferencesApiOptions} from './useProjectSeerPreferences';
 
 export function useUpdateProjectSeerPreferences(project: Project) {
   const organization = useOrganization();

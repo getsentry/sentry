@@ -4,13 +4,13 @@ from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
-from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.slack.webhooks.actions.investigation import (
     InvalidInvestigationActionValue,
     MissingInvestigationAction,
@@ -113,7 +113,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         detector = self.create_detector(
             project=self.project,
             type=MetricIssue.slug,
-            config={"detection_type": "static", "comparison_delta": None},
+            config={"detection_type": "static"},
             workflow_condition_group=condition_group,
             name="Checkout errors",
         )
@@ -289,6 +289,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         update_kwargs = self.mock_update.call_args.kwargs
         assert update_kwargs["channel"] == CHANNEL_ID
         assert update_kwargs["ts"] == MESSAGE_TS
+        assert update_kwargs["blocks"] is None
         (button,) = update_kwargs["attachments"][0]["blocks"][1]["elements"]
         assert button["text"]["text"] == "Open investigation"
         assert button["url"].startswith(f"{link}?referrer=seer-investigation-started-slack")
@@ -323,6 +324,19 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         }
 
     @with_feature(FEATURES)
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    def test_alert_without_start_button_skips_update(self, mock_record_sent: MagicMock) -> None:
+        message = self.get_original_message()
+        del message["attachments"][0]["blocks"][1]
+        with patch.object(self, "get_original_message", return_value=message):
+            response = self.click()
+
+        assert response.status_code == 200
+        self.mock_update.assert_not_called()
+        self.mock_post_message.assert_called_once()
+        mock_record_sent.assert_called_once_with(ANY, links=set())
+
+    @with_feature(FEATURES)
     @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
     def test_existing_investigation_replies_with_link(self, mock_count: MagicMock) -> None:
         self.click()
@@ -343,7 +357,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
 
     @with_feature(FEATURES)
     def test_slack_error_during_update_still_creates_investigation(self) -> None:
-        self.mock_update.side_effect = SlackApiError(
+        self.mock_update.side_effect = TypedSlackApiError(
             "error", _slack_response({"ok": False, "error": "message_not_found"})
         )
 
@@ -362,7 +376,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
     def test_slack_error_during_started_message_still_creates_investigation(
         self, mock_record_sent: MagicMock
     ) -> None:
-        self.mock_post_message.side_effect = SlackApiError(
+        self.mock_post_message.side_effect = TypedSlackApiError(
             "error", _slack_response({"ok": False, "error": "invalid_blocks"})
         )
 

@@ -6,7 +6,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 import type {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {useUser} from 'sentry/utils/useUser';
-import {OwnerInput} from 'sentry/views/settings/project/projectOwnership/ownerInput';
+
+import {OwnerInput} from './ownerInput';
 
 interface EditOwnershipRulesModalProps extends EditOwnershipRulesModalOptions {
   onCancel: () => void;

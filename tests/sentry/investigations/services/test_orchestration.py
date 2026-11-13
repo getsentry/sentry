@@ -22,7 +22,7 @@ from sentry.investigations.services.orchestration import (
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookStatus
-from sentry.notebooks.services.notebooks import InvestigationValidationError
+from sentry.notebooks.services.notebooks import NotebookValidationError
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -188,9 +188,10 @@ class RebuildOrchestrationSourceTest(BreachedMetricInvestigationTestCase):
 class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(self.feature("organizations:service-accounts"))
         self.organization.flags.allow_joinleave = True
         self.organization.save()
-        self.creator = self.account_creator(id=910001)
+        self.creator = self.account_creator(id=910001, project_ids=[self.project.id])
 
     def account_creator(self, organization: Organization | None = None, **kwargs: Any) -> ActorId:
         with outbox_runner():
@@ -200,10 +201,9 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
         return ActorId(ActorType.SERVICE_ACCOUNT, account.id)
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
-    def test_account_creation_is_rejected_before_dispatch(self, dispatch: mock.Mock) -> None:
-        before = (Notebook.objects.count(), InvestigationOrchestrationRun.objects.count())
-        with pytest.raises(PermissionDenied):
-            create_agentic_manual_investigation(
+    def test_account_creation_dispatches_with_saved_creator(self, dispatch: mock.Mock) -> None:
+        with self.capture_on_commit_callbacks(execute=True):
+            investigation, run = create_agentic_manual_investigation(
                 organization=self.organization,
                 creator=self.creator,
                 title=None,
@@ -211,11 +211,10 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
                 project_ids=[self.project.id],
                 filters={},
             )
-        assert (
-            Notebook.objects.count(),
-            InvestigationOrchestrationRun.objects.count(),
-        ) == before
-        dispatch.assert_not_called()
+        assert investigation.creator_actor == self.creator
+        assert investigation.created_by_id is None
+        assert run.investigation_id == investigation.id
+        dispatch.assert_called_once_with(run.id)
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
     def test_metric_reuse_preserves_creator_and_checks_current_access(
@@ -235,27 +234,24 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             filters={},
         )
         with self.feature("organizations:investigations"):
-            for creator in (ActorId(ActorType.USER, self.user.id), self.creator):
-                with self.subTest(creator=creator), pytest.raises(InvestigationValidationError):
+            for creator, error in (
+                (ActorId(ActorType.USER, self.user.id), NotebookValidationError),
+                (self.creator, PermissionDenied),
+            ):
+                with self.subTest(creator=creator), pytest.raises(error):
                     create_agentic_breached_metric_investigation(
                         creator=creator, **{**arguments, "project_ids": []}
                     )
             dispatch.assert_not_called()
 
             self.investigation.update(status=NotebookStatus.ARCHIVED)
-            with pytest.raises(PermissionDenied):
-                create_agentic_breached_metric_investigation(creator=self.creator, **arguments)
-            assert not Notebook.objects.filter(status=NotebookStatus.ACTIVE).exists()
-            dispatch.assert_not_called()
-
-            # Existing account attribution remains valid while new account dispatch is blocked.
-            investigation = self.investigation
-            investigation.update(
-                status=NotebookStatus.ACTIVE,
-                created_by_id=None,
-                created_by_service_account_id=self.creator.id,
-            )
+            with self.capture_on_commit_callbacks(execute=True):
+                investigation, created = create_agentic_breached_metric_investigation(
+                    creator=self.creator, **arguments
+                )
+            assert created
             assert investigation.creator_actor == self.creator
+            dispatch.assert_called_once_with(investigation.orchestration_run.id)
 
             reused, created = create_agentic_breached_metric_investigation(
                 creator=self.creator, **arguments
@@ -274,7 +270,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             )
             with pytest.raises(PermissionDenied):
                 create_agentic_breached_metric_investigation(creator=self.creator, **arguments)
-            dispatch.assert_not_called()
+            dispatch.assert_called_once_with(investigation.orchestration_run.id)
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
     def test_invalid_creators_and_access_have_no_side_effects(self, dispatch: mock.Mock) -> None:
@@ -284,6 +280,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
         inactive_project = self.create_project(
             organization=self.organization, status=ObjectStatus.PENDING_DELETION
         )
+        unlinked_project = self.create_project(organization=self.organization)
         inactive_user = self.create_user(is_active=False)
         self.create_member(organization=self.organization, user=inactive_user)
         arguments: dict[str, Any] = dict(
@@ -299,19 +296,20 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             filters={},
         )
         cases: list[tuple[dict[str, Any], type[Exception]]] = [
-            ({"creator": ActorId(ActorType.SYSTEM, None)}, InvestigationValidationError),
-            ({"creator": ActorId(ActorType.USER, True)}, InvestigationValidationError),
+            ({"creator": ActorId(ActorType.SYSTEM, None)}, NotebookValidationError),
+            ({"creator": ActorId(ActorType.USER, True)}, NotebookValidationError),
             ({"creator": foreign_creator}, PermissionDenied),
             ({"creator": unprivileged_creator}, PermissionDenied),
+            ({"project_ids": [unlinked_project.id]}, PermissionDenied),
             ({"creator": ActorId(ActorType.USER, self.create_user().id)}, PermissionDenied),
             ({"creator": ActorId(ActorType.USER, inactive_user.id)}, PermissionDenied),
-            ({"project_ids": [inactive_project.id]}, InvestigationValidationError),
+            ({"project_ids": [inactive_project.id]}, NotebookValidationError),
             (
                 {
                     "creator": ActorId(ActorType.USER, self.user.id),
                     "project_ids": [inactive_project.id],
                 },
-                InvestigationValidationError,
+                NotebookValidationError,
             ),
         ]
         before = (Notebook.objects.count(), InvestigationOrchestrationRun.objects.count())

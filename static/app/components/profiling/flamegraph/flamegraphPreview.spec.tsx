@@ -1,8 +1,9 @@
-import {computePreviewConfigView} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+
+import {computePreviewConfigView} from './flamegraphPreview';
 
 describe('computePreviewConfigView', () => {
   it('uses early exit with 0', () => {

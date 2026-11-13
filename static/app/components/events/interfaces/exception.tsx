@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {StacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
@@ -13,6 +12,7 @@ import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import {NoStackTraceMessage} from './noStackTraceMessage';
+import {StacktraceContext} from './stackTraceContext';
 import {isStacktraceNewestFirst} from './utils';
 
 type Props = {

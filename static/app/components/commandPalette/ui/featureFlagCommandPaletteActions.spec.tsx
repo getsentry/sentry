@@ -24,12 +24,12 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
+import {CommandPaletteSlot} from './commandPaletteSlot';
+import {CommandPaletteHotkeys} from './commandPaletteStateContext';
 import {
   FeatureFlagCommandPaletteActions,
   setLocalFeatureFlagOverride,
@@ -68,7 +68,7 @@ function ExampleFeatureFlagActions() {
 
 async function openCommandPalette() {
   await userEvent.keyboard('{Control>}k{/Control}');
-  return screen.findByRole('textbox', {name: 'Search commands'});
+  return screen.findByRole('searchbox', {name: 'Search commands'});
 }
 
 describe('FeatureFlagCommandPaletteActions', () => {
@@ -83,7 +83,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     setLocalFeatureFlagOverride(organization, 'new-feature', true);
 
     expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe('{"new-feature":true}');
-    const updatedFeatures = OrganizationStore.get().organization?.features;
+    const updatedFeatures = OrganizationStore.getState().organization?.features;
     expect(updatedFeatures).toHaveLength(2);
     expect(updatedFeatures).toContain('enabled-feature');
     expect(updatedFeatures).toContain('new-feature');
@@ -96,7 +96,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Toggle Org Feature Flag'
     );
     await userEvent.click(
@@ -107,7 +107,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
       '{"enabled-feature":false}'
     );
-    expect(OrganizationStore.get().organization?.features).not.toContain(
+    expect(OrganizationStore.getState().organization?.features).not.toContain(
       'enabled-feature'
     );
   });
@@ -118,7 +118,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Toggle Org Feature Flag'
     );
     await userEvent.click(
@@ -128,13 +128,13 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByRole('textbox', {name: 'Search commands'})
+        screen.queryByRole('searchbox', {name: 'Search commands'})
       ).not.toBeInTheDocument()
     );
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Toggle Org Feature Flag'
     );
     await userEvent.click(
@@ -153,7 +153,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Add Feature Flag'
     );
     await userEvent.click(await screen.findByRole('option', {name: /Add Feature Flag/}));
@@ -164,7 +164,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Feature Flag'}));
 
     await waitFor(() =>
-      expect(OrganizationStore.get().organization?.features).toContain('new-feature')
+      expect(OrganizationStore.getState().organization?.features).toContain('new-feature')
     );
     expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe('{"new-feature":true}');
   });
@@ -174,7 +174,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Clear Local Feature Flag Overrides'
     );
 
@@ -192,7 +192,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
 
     await openCommandPalette();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
+      screen.getByRole('searchbox', {name: 'Search commands'}),
       'Clear Local Feature Flag Overrides'
     );
     await userEvent.click(

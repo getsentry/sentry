@@ -15,14 +15,15 @@ import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
-import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {
   StatuspageIncident,
   StatusPageIncidentUpdate,
   StatusPageServiceStatus,
 } from 'sentry/types/system';
+
+import {DateTime} from './dateTime';
+import {TimeSince} from './timeSince';
 
 interface Props {
   incident: StatuspageIncident;

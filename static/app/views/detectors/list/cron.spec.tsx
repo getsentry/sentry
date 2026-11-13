@@ -17,7 +17,8 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {StatusPageComponent} from 'sentry/types/system';
-import CronDetectorsList from 'sentry/views/detectors/list/cron';
+
+import CronDetectorsList from './cron';
 
 describe('CronDetectorsList', () => {
   const organization = OrganizationFixture();

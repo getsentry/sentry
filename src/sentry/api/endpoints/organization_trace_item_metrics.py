@@ -312,6 +312,8 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
 
         for metric in metrics:
             type_id = TraceMetricTypes.get_id_for_type_name(metric["type"])
+            if type_id is None:
+                continue
             context_row = context_by_key.get((metric["name"], type_id))
             if context_row is None:
                 continue

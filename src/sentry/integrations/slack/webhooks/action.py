@@ -62,6 +62,13 @@ from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.notifications.platform.registry import template_registry
+from sentry.notifications.platform.tracking import (
+    NotificationEngagementMechanism,
+    NotificationTrackingContext,
+    is_tracking_enabled,
+    record_engagement,
+)
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
@@ -777,6 +784,39 @@ class SlackActionEndpoint(Endpoint):
 
         return action_list
 
+    @classmethod
+    def record_tracked_clicks(cls, slack_request: SlackActionRequest) -> None:
+        """
+        Records a click on each button whose action ID names the notification it was sent in.
+        Never raises.
+        """
+        try:
+            for action_data in slack_request.data.get("actions", []):
+                routing_data = decode_action_id(action_data.get("action_id", ""))
+                tracking = routing_data.tracking
+                if (
+                    tracking is None
+                    or routing_data.organization_id is None
+                    or routing_data.action not in SlackAction
+                    or not is_tracking_enabled(tracking.source, slack_request.integration.provider)
+                ):
+                    continue
+                identity = slack_request.get_identity()
+                record_engagement(
+                    NotificationTrackingContext(
+                        source=tracking.source,
+                        provider=slack_request.integration.provider,
+                        category=template_registry.get(tracking.source).category,
+                        notification_uuid=tracking.notification_uuid,
+                        organization_id=routing_data.organization_id,
+                    ),
+                    mechanism=NotificationEngagementMechanism.PROVIDER_CALLBACK,
+                    link=routing_data.action,
+                    user_id=identity.user_id if identity else None,
+                )
+        except Exception:
+            _logger.exception("slack.action.record_tracked_clicks.failed")
+
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)
@@ -800,6 +840,8 @@ class SlackActionEndpoint(Endpoint):
         bind_org_context_from_integration(slack_request.integration.id)
         sentry_sdk.set_tag("integration_id", slack_request.integration.id)
         sentry_sdk.set_attribute("integration_id", slack_request.integration.id)
+
+        self.record_tracked_clicks(slack_request)
 
         # Actions list may be empty when receiving a dialog response.
 
@@ -851,6 +893,8 @@ class SlackActionEndpoint(Endpoint):
             SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
             SlackAction.SEER_AUTOFIX_VIEW_PR.value,
             SlackAction.SEER_INVESTIGATION_START.value,
+            SlackAction.SEER_VIEW_BILLING.value,
+            SlackAction.SEER_REQUEST_CREDITS.value,
         }:
             return self.respond()
 
@@ -898,10 +942,22 @@ class SlackActionEndpoint(Endpoint):
         try:
             member = OrganizationMember.objects.get_member_invite_query(member_id).get()
         except OrganizationMember.DoesNotExist:
-            # member request is gone, likely someone else rejected it
             member_email = slack_request.callback_data["member_email"]
+            approved_member = (
+                OrganizationMember.objects.filter(
+                    id=member_id, invite_status=InviteStatus.APPROVED.value
+                )
+                .select_related("organization")
+                .first()
+            )
+            # Only reveal the request status to users who can see the organization.
+            if approved_member and approved_member.organization.has_access(identity_user):
+                text = f"Member invitation for {member_email} has already been approved."
+            else:
+                # Rejecting a request deletes the member row.
+                text = f"Member invitation for {member_email} no longer exists."
             webhook_client.send(
-                text=f"Member invitation for {member_email} no longer exists.",
+                text=text,
                 response_type="in_channel",
                 replace_original=False,
             )

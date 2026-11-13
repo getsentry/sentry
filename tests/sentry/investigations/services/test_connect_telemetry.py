@@ -16,12 +16,13 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRerun,
 )
 from sentry.investigations.services.action_kinds.connect_telemetry import telemetry_available
-from sentry.investigations.services.action_requests import upsert_action_request
+from sentry.notebooks.contracts import ActionRequestItem
 from sentry.notebooks.models import (
     NotebookActionRequest,
     NotebookActionRequestState,
     NotebookStatus,
 )
+from sentry.notebooks.services.action_requests import upsert_action_request
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.signals import integration_added
 from sentry.tasks.seer.investigation import (
@@ -163,10 +164,10 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
 
     def apply(self, **data: Any) -> Any:
         url = reverse(
-            "sentry-api-0-organization-investigation-action-request-apply",
+            "sentry-api-0-organization-notebook-action-request-apply",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.investigation.id,
+                "notebook_id": self.investigation.id,
                 "action_request_id": self.action_request.id,
             },
         )
@@ -178,10 +179,10 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
 
     def retry_follow_up(self, **data: Any) -> Any:
         url = reverse(
-            "sentry-api-0-organization-investigation-action-request-retry-follow-up",
+            "sentry-api-0-organization-notebook-action-request-retry-follow-up",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.investigation.id,
+                "notebook_id": self.investigation.id,
                 "action_request_id": self.action_request.id,
             },
         )
@@ -493,6 +494,18 @@ class ConnectionHookTest(TelemetryFixtures):
         assert {"type": rerun.type, **rerun.payload} == fixture("command_rerun_after_connection")
         assert request.followup_request_id == rerun.request_id
 
+    @mock.patch("sentry.notebooks.telemetry.metrics.incr")
+    def test_a_connection_counts_the_applied_request(self, incr: mock.MagicMock) -> None:
+        self.connect_request()
+
+        self.connected(self.user.id)
+
+        incr.assert_any_call(
+            "investigations.action_request.applied",
+            tags={"kind": "connect_telemetry", "provider": "datadog"},
+            sample_rate=1.0,
+        )
+
     def test_requests_for_the_same_provider_share_one_re_run(self) -> None:
         first = self.connect_request()
         second = self.connect_request(key="connect-telemetry-datadog-r2")
@@ -660,7 +673,7 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
     def test_a_new_connect_request_schedules_one_check(self, delay: mock.MagicMock) -> None:
         with self.capture_on_commit_callbacks(execute=True):
             upsert_action_request(
-                self.orchestration_run,
+                self.investigation,
                 {
                     "key": "connect-telemetry-gcp-r0",
                     "reportRevision": 0,
@@ -676,3 +689,37 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
         delay.assert_called_once_with(
             organization_id=self.organization.id, provider="gcp", user_id=None, retry=False
         )
+
+    @mock.patch("sentry.tasks.seer.investigation.mark_investigation_telemetry_connected.delay")
+    @mock.patch("sentry.notebooks.telemetry.metrics.incr")
+    def test_a_connect_request_is_counted_once_when_suggested(
+        self, incr: mock.MagicMock, delay: mock.MagicMock
+    ) -> None:
+        item: ActionRequestItem = {
+            "key": "connect-telemetry-gcp-r0",
+            "reportRevision": 0,
+            "title": "Connect Google Cloud",
+            "rationale": "Logs live there.",
+            "impact": None,
+            "primary": False,
+            "anchor": None,
+            "action": {"kind": "connect_telemetry", "provider": "gcp"},
+        }
+
+        upsert_action_request(self.orchestration_run.investigation, item)
+        upsert_action_request(
+            self.orchestration_run.investigation, {**item, "title": "Connect GCP"}
+        )
+
+        suggested = [
+            call
+            for call in incr.call_args_list
+            if call.args[0] == "investigations.action_request.suggested"
+        ]
+        assert suggested == [
+            mock.call(
+                "investigations.action_request.suggested",
+                tags={"kind": "connect_telemetry", "provider": "gcp"},
+                sample_rate=1.0,
+            )
+        ]

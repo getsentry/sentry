@@ -209,7 +209,7 @@ class TestCanEditDetectorWithAccess(TestCase):
     def test_the_all_projects_detector_cannot_be_edited(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
 
-        assert detector.project_id is None
+        assert detector.project is None
         assert not can_edit_detector_with_access(detector, from_user(self.user, self.organization))
 
     def test_request_variant_uses_the_request_access(self) -> None:

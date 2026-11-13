@@ -20,4 +20,4 @@ class TestEventLink(ReplaysSnubaTestCase):
             stored = transform_event_for_linking_payload(replay_id, event)
             # make sure snuba 200s which means that the payload was successfully written to clickhouse
             # (method will raise if it doesnt)
-            self.store_replays(stored)
+            self.store_replays(dict(stored))

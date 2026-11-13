@@ -1,15 +1,16 @@
 import {useMemo} from 'react';
 
 import type {AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {
-  AUTOFIX_EVIDENCE_PROPS_RESOLVER,
-  type EvidenceButtonProps,
-} from 'sentry/components/events/autofix/v3/autofixEvidence';
 import {defined} from 'sentry/utils/defined';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ToolCall, ToolLink, ToolResult} from 'sentry/views/seerExplorer/types';
+
+import {
+  AUTOFIX_EVIDENCE_PROPS_RESOLVER,
+  type EvidenceButtonProps,
+} from './autofixEvidence';
 
 interface Evidence {
   evidenceButtonProps: EvidenceButtonProps;

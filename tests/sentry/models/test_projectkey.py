@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 from django.test import override_settings
 
+from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeyStatus
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -184,7 +185,9 @@ class ProjectKeyTest(TestCase):
 
 @mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
 @django_db_all
-def test_key_deleted_projconfig_invalidated(inv_proj_config, default_project) -> None:
+def test_key_deleted_projconfig_invalidated(
+    inv_proj_config: mock.MagicMock, default_project: Project
+) -> None:
     assert inv_proj_config.call_count == 0
 
     key = ProjectKey.objects.get(project=default_project)
@@ -196,7 +199,9 @@ def test_key_deleted_projconfig_invalidated(inv_proj_config, default_project) ->
 
 @mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
 @django_db_all
-def test_key_saved_projconfig_invalidated(inv_proj_config, default_project) -> None:
+def test_key_saved_projconfig_invalidated(
+    inv_proj_config: mock.MagicMock, default_project: Project
+) -> None:
     assert inv_proj_config.call_count == 0
 
     key = ProjectKey.objects.get(project=default_project)

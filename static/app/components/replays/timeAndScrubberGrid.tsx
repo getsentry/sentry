@@ -9,17 +9,18 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
-import {ReplayTimeline} from 'sentry/components/replays/breadcrumbs/replayTimeline';
-import {TimelineTooltip} from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
-import {ReplayCurrentTime} from 'sentry/components/replays/player/replayCurrentTime';
-import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import {useTimelineMouseTracking} from 'sentry/components/replays/player/useTimelineMouseTracking';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useTimelineScale} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {ReplayTimeline} from './breadcrumbs/replayTimeline';
+import {TimelineTooltip} from './breadcrumbs/replayTimelineTooltip';
+import {ReplayCurrentTime} from './player/replayCurrentTime';
+import {PlayerScrubber} from './player/scrubber';
+import {useTimelineMouseTracking} from './player/useTimelineMouseTracking';
 
 type TimeAndScrubberGridProps = {
   isCompact?: boolean;

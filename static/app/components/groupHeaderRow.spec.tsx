@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {EventOrGroupType} from 'sentry/types/event';
+
+import {GroupHeaderRow} from './groupHeaderRow';
 
 const organization = OrganizationFixture();
 

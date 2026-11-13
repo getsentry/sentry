@@ -15,7 +15,8 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
+
+import {getTransactionSummaryBaseUrl} from './pathnames';
 
 export {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
 

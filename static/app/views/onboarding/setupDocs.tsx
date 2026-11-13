@@ -1,5 +1,6 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -9,26 +10,21 @@ import {useOnboardingContext} from 'sentry/components/onboarding/onboardingConte
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeList} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SetupIntroduction} from 'sentry/views/onboarding/components/setupIntroduction';
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
 import {FirstEventFooter} from './components/firstEventFooter';
+import {SetupIntroduction} from './components/setupIntroduction';
 import type {StepProps} from './types';
 
 export function SetupDocs({recentCreatedProject: project, genBackButton}: StepProps) {
   const organization = useOrganization();
-  const location = useLocation();
   const navigate = useNavigate();
   const {setSelectedFeatures} = useOnboardingContext();
-  const products = useMemo<ProductSolution[]>(
-    () => decodeList(location.query.product ?? []) as ProductSolution[],
-    [location.query.product]
-  );
+  const [products] = useQueryState('product', parseAsStringArray);
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform =
@@ -57,7 +53,7 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
                 platform={currentPlatform}
                 organization={organization}
                 project={project}
-                activeProductSelection={products}
+                activeProductSelection={products as ProductSolution[]}
                 onProductSelectionSync={setSelectedFeatures}
                 docsFlow="onboarding-scm"
               />

@@ -1,10 +1,14 @@
+from django.test import override_settings
 from django.urls import reverse
+from rest_framework.response import Response
 
+from sentry.models.apikey import ApiKey
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class PromptsActivityTestBase(APITestCase):
@@ -54,9 +58,80 @@ class GetPromptsActivityTest(PromptsActivityTestBase):
         assert resp.status_code == 400
         assert resp.data["detail"] == 'Missing required field "project_id"'
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_no_prompt_state(self) -> None:
+        PromptsActivity.objects.create(
+            user_id=self.user.id,
+            feature="releases",
+            organization_id=self.org.id,
+            project_id=self.project.id,
+            data={"dismissed_ts": 1},
+        )
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        resp = self.client.get(
+            self.path,
+            {"project_id": self.project.id, "feature": "releases"},
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+        assert resp.status_code == 200, resp.content
+        assert resp.data == {"data": None, "features": {}}
+
 
 class PutPromptsActivityTest(PromptsActivityTestBase):
     method = "put"
+
+    def _dismiss(self, **headers: str | bytes) -> Response:
+        return self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": self.project.id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+            **headers,
+        )
+
+    def test_api_key_cannot_dismiss(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["org:read"])
+            self.client.logout()
+
+        resp = self._dismiss(HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key))
+
+        assert resp.status_code == 401, resp.content
+        assert not PromptsActivity.objects.filter(feature="releases").exists()
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_dismiss(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        resp = self._dismiss(HTTP_X_VIEWER_CONTEXT=viewer_context)
+
+        assert resp.status_code == 403, resp.content
+        assert resp.data["detail"]["code"] == "user-required"
+        assert not PromptsActivity.objects.filter(feature="releases").exists()
 
     def test_regular_org_member_can_dismiss(self) -> None:
         member_user = self.create_user()
@@ -133,8 +208,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
 
     def test_invalid_project(self) -> None:
         # Invalid project id
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -155,8 +230,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         assert resp.data["detail"] == "Project does not belong to this organization"
 
     def test_dismiss(self) -> None:
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -191,8 +266,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         )
         assert resp.status_code == 201, resp.content
 
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -202,8 +277,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         assert "dismissed_ts" in resp.data["data"]
 
     def test_snooze(self) -> None:
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -227,8 +302,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         assert "snoozed_ts" in resp.data["data"]
 
     def test_visible(self) -> None:
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -252,8 +327,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         assert resp.data["data"].get("snoozed_ts") is None
 
     def test_visible_after_dismiss(self) -> None:
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -287,8 +362,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         assert resp.data["data"].get("snoozed_ts") is None
 
     def test_batched(self) -> None:
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": ["releases", "alert_stream"],
         }
         resp = self.client.get(self.path, data)
@@ -360,7 +435,6 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
 
 
 @with_feature("organizations:granular-permission-scopes")
-@granular_roles_granting("user_preference:read", "user_preference:write")
 class PromptsActivityScopeTest(PromptsActivityTestBase):
     def _use_token(self, scope_list: list[str]) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -368,8 +442,8 @@ class PromptsActivityScopeTest(PromptsActivityTestBase):
             token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
-    def dismiss(self):
-        return self.client.put(
+    def dismiss(self) -> Response:
+        response: Response = self.client.put(
             self.path,
             {
                 "organization_id": self.org.id,
@@ -378,10 +452,13 @@ class PromptsActivityScopeTest(PromptsActivityTestBase):
                 "status": "dismissed",
             },
         )
+        return response
 
     def test_read_scope_can_get(self) -> None:
         self._use_token(["user_preference:read"])
-        resp = self.client.get(self.path, {"project_id": self.project.id, "feature": "releases"})
+        resp = self.client.get(
+            self.path, {"project_id": str(self.project.id), "feature": "releases"}
+        )
         assert resp.status_code == 200, resp.content
 
     def test_read_scope_cannot_dismiss(self) -> None:
@@ -396,5 +473,7 @@ class PromptsActivityScopeTest(PromptsActivityTestBase):
     def test_write_scope_cannot_get(self) -> None:
         # Write does not imply read.
         self._use_token(["user_preference:write"])
-        resp = self.client.get(self.path, {"project_id": self.project.id, "feature": "releases"})
+        resp = self.client.get(
+            self.path, {"project_id": str(self.project.id), "feature": "releases"}
+        )
         assert resp.status_code == 403

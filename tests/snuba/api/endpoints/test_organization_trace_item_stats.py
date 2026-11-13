@@ -1,7 +1,12 @@
+from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 from django.urls import reverse
+from rest_framework.response import Response
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import (
     APITransactionTestCase,
     OccurrenceTestCase,
@@ -27,23 +32,31 @@ class OrganizationTraceItemStatsEndpointTest(
         self.ten_mins_ago = before_now(minutes=10)
         self.ten_mins_ago_iso = self.ten_mins_ago.replace(microsecond=0).isoformat()
 
-    def do_request(self, query=None, features=None, **kwargs):
+    def do_request(
+        self,
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if query:
             query.setdefault("sampling", "HIGHEST_ACCURACY")
 
-        response = self.client.get(
+        response: Response[Any] = self.client.get(
             reverse(
                 self.view,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             ),
             query,
             format="json",
-            **kwargs,
         )
-
         return response
 
-    def _store_span(self, description=None, sentry_tags=None, tags=None, duration=None):
+    def _store_span(
+        self,
+        description: str | None = None,
+        sentry_tags: dict[str, str] | None = None,
+        tags: dict[str, str] | None = None,
+        duration: int | None = None,
+    ) -> None:
         if sentry_tags is None:
             sentry_tags = {"foo": "bar"}
 
@@ -59,7 +72,12 @@ class OrganizationTraceItemStatsEndpointTest(
             ),
         )
 
-    def _store_occurrence(self, level="error", title="test error", attributes=None):
+    def _store_occurrence(
+        self,
+        level: str = "error",
+        title: str = "test error",
+        attributes: dict[str, object] | None = None,
+    ) -> TraceItem:
         group = self.create_group(project=self.project)
         occ = self.create_eap_occurrence(
             group_id=group.id,
@@ -71,7 +89,7 @@ class OrganizationTraceItemStatsEndpointTest(
         self.store_eap_items([occ])
         return occ
 
-    def _parse_links(self, response):
+    def _parse_links(self, response: Response) -> dict[str | None, dict[str, str | None]]:
         links = {}
         for url, attrs in parse_link_header(response["Link"]).items():
             attrs["href"] = url
@@ -164,11 +182,11 @@ class OrganizationTraceItemStatsEndpointTest(
             self._store_span(sentry_tags=tag)
 
         def can_expose_attribute_to_api(
-            attribute,
-            item_type,
-            include_internal=False,
-            include_internal_convention_attributes=False,
-        ):
+            attribute: str,
+            item_type: int,
+            include_internal: bool = False,
+            include_internal_convention_attributes: bool = False,
+        ) -> bool:
             return attribute not in {"device", "sentry.device"}
 
         with mock.patch(
@@ -289,6 +307,27 @@ class OrganizationTraceItemStatsEndpointTest(
             item["label"] == "mobile" or item["label"] == "tablet" for item in device_data
         )
 
+    def test_aggregate_filter_returns_400(self) -> None:
+        self._store_span()
+
+        for query, names in [
+            ("count(span.duration):466", "count(span.duration)"),
+            ("browser:chrome count():>1", "count()"),
+            ("browser:chrome OR (device:desktop count():>1)", "count()"),
+            ("count():>1 OR (browser:chrome cuont():>2)", "count(), cuont()"),
+        ]:
+            response = self.do_request(
+                query={
+                    "query": query,
+                    "statsType": ["attributeDistributions"],
+                }
+            )
+            assert response.status_code == 400, response.data
+            assert (
+                response.data["detail"]
+                == f"Aggregate filters are not supported for trace item stats: {names}"
+            )
+
     def test_pagination_traverses_all_pages(self) -> None:
         # Four custom attributes sharing a prefix so substringMatch yields a
         # deterministic total, independent of the default span attributes.
@@ -313,7 +352,9 @@ class OrganizationTraceItemStatsEndpointTest(
         assert links["next"]["results"] == "true"
 
         # Second page: the remaining 2 attributes, with no further pages.
-        next_response = self.client.get(links["next"]["href"], format="json")
+        next_href = links["next"]["href"]
+        assert next_href is not None
+        next_response = self.client.get(next_href, format="json")
         assert next_response.status_code == 200, next_response.content
         second_page = next_response.data["data"][0]["attributeDistributions"]["data"]
         assert len(second_page) == 2
@@ -441,3 +482,41 @@ class OrganizationTraceItemStatsEndpointTest(
 
         assert "user.geo.subregion" not in attribute_distribution
         assert "user.geo.city" not in attribute_distribution
+
+    def test_preflight_narrows_time_range_to_sampled_items(self) -> None:
+        oldest = before_now(hours=3).replace(microsecond=750_000)
+        newest = before_now(minutes=10).replace(microsecond=750_000)
+        for start_ts, tag in [(oldest, "edge_oldest"), (newest, "edge_newest")]:
+            self.store_span(
+                self.create_span({"tags": {tag: "value"}}, start_ts=start_ts, duration=100)
+            )
+
+        with mock.patch.object(
+            Spans, "run_stats_query", wraps=Spans.run_stats_query
+        ) as run_stats_query:
+            response = self.do_request(
+                query={
+                    "statsType": ["attributeDistributions"],
+                    "substringMatch": "edge_",
+                    "statsPeriod": "1d",
+                }
+            )
+
+        assert response.status_code == 200, response.data
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        assert set(attribute_distribution) == {"edge_oldest", "edge_newest"}
+
+        (preflight_call,) = [
+            call for call in run_stats_query.call_args_list if call.kwargs.get("max_buckets") == 1
+        ]
+        preflight_params = preflight_call.kwargs["params"]
+        assert preflight_params.start == oldest.replace(microsecond=0)
+        assert preflight_params.end == newest.replace(microsecond=0) + timedelta(seconds=1)
+
+        stats_calls = [
+            call for call in run_stats_query.call_args_list if call.kwargs.get("max_buckets") != 1
+        ]
+        assert stats_calls
+        for call in stats_calls:
+            assert call.kwargs["params"].start < oldest - timedelta(hours=1)
+            assert call.kwargs["params"].end > newest

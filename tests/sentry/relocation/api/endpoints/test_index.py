@@ -6,6 +6,8 @@ from uuid import UUID
 
 import orjson
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+from django.urls import reverse
 from rest_framework import status
 
 from sentry.analytics.events.relocation_created import RelocationCreatedEvent
@@ -29,7 +31,9 @@ from sentry.testutils.helpers.analytics import (
 )
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 FRESH_INSTALL_PATH = get_fixture_path("backup", "fresh-install.json")
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
@@ -275,6 +279,23 @@ class GetRelocationsTest(APITestCase):
         # Only show user's own relocations.
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_no_relocations(self) -> None:
+        organization = self.create_organization(owner=self.owner)
+        service_account = self.create_service_account(organization=organization)
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(reverse(self.endpoint), HTTP_X_VIEWER_CONTEXT=viewer_context)
+        assert response.status_code == 200, response.content
+        assert response.data == []
 
     @override_options({"staff.ga-rollout": True})
     def test_bad_unknown_status(self) -> None:

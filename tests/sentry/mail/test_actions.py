@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.core import mail
 
 from sentry.eventstream.types import EventStreamEventType
@@ -193,9 +195,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
             assert "uh oh" in x
 
     def test_full_integration_performance(self) -> None:
-        event = self.create_performance_issue()
-        assert isinstance(event, GroupEvent)
-        assert event.group is not None
+        event = cast("GroupEvent", self.create_performance_issue())
 
         action = self.create_action(
             config={
@@ -243,7 +243,7 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
         }
 
     def test_legacy_simple(self) -> None:
-        event = self.get_event()
+        event = self.get_group_event()
         rule = self.get_rule(data={"targetType": ActionTargetType.ISSUE_OWNERS.value})
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 

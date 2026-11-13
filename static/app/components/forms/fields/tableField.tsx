@@ -5,11 +5,11 @@ import {IconDelete} from '@sentry/icons/delete';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 
-import {Confirm} from 'sentry/components/confirm';
 import {FormField} from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
