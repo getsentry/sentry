@@ -13,32 +13,27 @@ import pytest
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
 
-SAVEPOINT_OVERFLOW = 64
-SAVEPOINT_LOOP_REPEATS = 6
+# Postgres caches this many subtransaction ids per transaction; past it every query slows down.
+SUBTRANSACTION_CACHE_SIZE = 64
+# Report-only: one function opening this many savepoints in a transaction looks like a loop.
+LOOP_REPORT_THRESHOLD = 6
 SAVEPOINT_LOOP_PROPERTY = "savepoint_loop"
-SUMMARY_NODEIDS_PER_CALLER = 3
+SUMMARY_NODEIDS_PER_OPENER = 3
+STATEMENT_HEAD_CHARS = 24
+LOCKING_CLAUSE_TAIL_CHARS = 120
 
 _SEP_LINE = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
-SKIP_PATH_PARTS = (
+CONTEXTLIB_PATH_PART = "/contextlib.py"
+SKIPPED_PATH_PARTS = (
+    CONTEXTLIB_PATH_PART,
     "/site-packages/django/",
-    "/contextlib.py",
     "sentry/db/",
     "sentry/utils/db.py",
     "sentry/silo/base.py",
-    "testutils/pytest/savepoints.py",
-)
-CALLER_SKIP_PATH_PARTS = SKIP_PATH_PARTS + (
     "sentry/utils/snowflake.py",
-    "sentry/db/models/manager/base.py",
 )
-CALLER_SKIP_FUNCTIONS = (
-    ("sentry/hybridcloud/models/outbox.py", "outbox_context"),
-    ("sentry/db/models/", "save"),
-    ("sentry/db/models/", "create"),
-    ("sentry/db/models/", "get_or_create"),
-    ("sentry/db/models/", "update_or_create"),
-)
+SKIPPED_FUNCTIONS = (("sentry/hybridcloud/models/outbox.py", "outbox_context"),)
 PATH_MARKERS = ("/src/", "/tests/", "/getsentry/", "/site-packages/")
 
 SAVEPOINT_NAME_RE = re.compile(r"SAVEPOINT\s+\"?([\w$]+)\"?", re.IGNORECASE)
@@ -46,50 +41,61 @@ LOCKING_TAIL_RE = re.compile(r"\bFOR\s+(NO\s+KEY\s+UPDATE|UPDATE|KEY\s+SHARE|SHA
 WITH_WRITE_RE = re.compile(r"\b(INSERT\s+INTO|DELETE\s+FROM|UPDATE\s+\"?\w)", re.IGNORECASE)
 
 
+class Opening(NamedTuple):
+    opened_in: str
+    line: int
+
+
+class TopOpener(NamedTuple):
+    opened_in: str
+    line: int
+    savepoints_opened: int
+
+
+class LoopHit(NamedTuple):
+    savepoints_opened: int
+    nodeid: str
+    line: int
+
+
+class OpenerSummary(NamedTuple):
+    opened_in: str
+    line: int
+    savepoints_opened: int
+    hits: list[LoopHit]
+
+
 @dataclasses.dataclass
 class Savepoint:
     sid: str
-    caller: str
-    site: str
-    has_xid: bool = False
-    dead: bool = False
-
-
-class TopCaller(NamedTuple):
-    caller: str
-    repeats: int
-    site: str
+    opened_in: str
+    holds_id: bool = False
 
 
 @dataclasses.dataclass
 class ApplicationTransaction:
     call_site: str
-    counting_savepoints: int = 0
-    live_counting: int = 0
+    peak_held_ids: int = 0
+    held_ids: int = 0
     root_sid: str | None = None
     savepoints: list[Savepoint] = dataclasses.field(default_factory=list)
     open_stack: list[Savepoint] = dataclasses.field(default_factory=list)
-    callers: Counter[str] = dataclasses.field(default_factory=Counter)
-    sites_by_caller: dict[str, Counter[str]] = dataclasses.field(default_factory=dict)
+    savepoints_opened: Counter[str] = dataclasses.field(default_factory=Counter)
+    first_lines: dict[str, int] = dataclasses.field(default_factory=dict)
 
-    def record(self, savepoint: Savepoint) -> None:
+    def record(self, savepoint: Savepoint, line: int) -> None:
         self.savepoints.append(savepoint)
         self.open_stack.append(savepoint)
-        self.callers[savepoint.caller] += 1
-        sites = self.sites_by_caller.get(savepoint.caller)
-        if sites is None:
-            sites = Counter()
-            self.sites_by_caller[savepoint.caller] = sites
-        sites[savepoint.site] += 1
+        self.savepoints_opened[savepoint.opened_in] += 1
+        if savepoint.opened_in not in self.first_lines:
+            self.first_lines[savepoint.opened_in] = line
 
-    def top_caller(self) -> TopCaller:
-        ranked = self.callers.most_common(1)
+    def top_opener(self) -> TopOpener:
+        ranked = self.savepoints_opened.most_common(1)
         if not ranked:
-            return TopCaller("none", 0, "none")
-        caller, repeats = ranked[0]
-        top_sites = self.sites_by_caller[caller].most_common(1)
-        site = top_sites[0][0]
-        return TopCaller(caller, repeats, site)
+            return TopOpener("none", 0, 0)
+        opened_in, savepoints_opened = ranked[0]
+        return TopOpener(opened_in, self.first_lines[opened_in], savepoints_opened)
 
 
 @dataclasses.dataclass
@@ -103,9 +109,7 @@ class SavepointUsage:
 @dataclasses.dataclass
 class Entry:
     atomic: Any
-    harness: bool
-    caller: str
-    site: str
+    opening: Opening
     txn: ApplicationTransaction | None = None
     root: bool = False
 
@@ -121,17 +125,12 @@ class ConnectionState:
         return self.stack[-1].txn
 
 
-class LoopHit(NamedTuple):
-    repeats: int
-    nodeid: str
-    site: str
-
-
-class CallerSummary(NamedTuple):
-    caller: str
-    repeats: int
-    site: str
-    hits: list[LoopHit]
+def outward_frames() -> Iterator[FrameType]:
+    frame: FrameType | None = sys._getframe()
+    while frame is not None:
+        if frame.f_code.co_filename != __file__:
+            yield frame
+        frame = frame.f_back
 
 
 def short_path(path: str) -> str:
@@ -152,47 +151,42 @@ def contains_any(text: str, parts: tuple[str, ...]) -> bool:
     return False
 
 
-def first_app_site(start_depth: int) -> str:
-    frame: FrameType | None = sys._getframe(start_depth)
-    while frame is not None:
-        filename = frame.f_code.co_filename
-        if not contains_any(filename, SKIP_PATH_PARTS):
-            return f"{short_path(filename)}:{frame.f_lineno}:{frame.f_code.co_name}"
-        frame = frame.f_back
-    return "unknown"
+def format_opening(opened_in: str, line: int) -> str:
+    return f"{opened_in} (line {line})"
 
 
-def is_caller_skipped(filename: str, function: str) -> bool:
-    if contains_any(filename, CALLER_SKIP_PATH_PARTS):
+def is_skipped(filename: str, function: str) -> bool:
+    if contains_any(filename, SKIPPED_PATH_PARTS):
         return True
     if function == "__enter__":
         return True
-    for path_part, skipped_function in CALLER_SKIP_FUNCTIONS:
+    for path_part, skipped_function in SKIPPED_FUNCTIONS:
         if path_part in filename and function == skipped_function:
             return True
     return False
 
 
-def caller_of_app_frame(start_depth: int) -> str:
-    frame: FrameType | None = sys._getframe(start_depth)
-    seen_app_frame = False
-    while frame is not None:
+def find_opening() -> Opening:
+    for frame in outward_frames():
         filename = frame.f_code.co_filename
         function = frame.f_code.co_name
-        if not is_caller_skipped(filename, function):
-            if seen_app_frame:
-                return f"{short_path(filename)}:{frame.f_lineno}:{function}"
-            seen_app_frame = True
-        frame = frame.f_back
-    return "unknown"
+        if is_skipped(filename, function):
+            continue
+        return Opening(f"{short_path(filename)}:{function}", frame.f_lineno)
+    return Opening("unknown", 0)
 
 
-def is_harness(atomic: Any, caller_file: str, site: str) -> bool:
+def entered_by_harness(atomic: Any) -> bool:
     if getattr(atomic, "_from_testcase", False):
         return True
-    if caller_file.endswith("django/test/testcases.py"):
-        return True
-    return "pytest_django/" in site
+    for frame in outward_frames():
+        filename = frame.f_code.co_filename
+        if CONTEXTLIB_PATH_PART in filename:
+            continue
+        if filename.endswith("django/test/testcases.py"):
+            return True
+        return "pytest_django/" in filename
+    return False
 
 
 def is_write_statement(sql: str, head: str) -> bool:
@@ -201,62 +195,60 @@ def is_write_statement(sql: str, head: str) -> bool:
     if head.startswith("WITH"):
         return WITH_WRITE_RE.search(sql) is not None
     if head.startswith("SELECT"):
-        tail = sql[-120:]
+        tail = sql[-LOCKING_CLAUSE_TAIL_CHARS:]
         return LOCKING_TAIL_RE.search(tail) is not None
     return False
 
 
+def last_index_of(savepoints: list[Savepoint], sid: str) -> int | None:
+    for index in range(len(savepoints) - 1, -1, -1):
+        if savepoints[index].sid == sid:
+            return index
+    return None
+
+
 def mark_write(txn: ApplicationTransaction) -> None:
-    for savepoint in txn.open_stack:
-        if not savepoint.has_xid:
-            savepoint.has_xid = True
-            txn.live_counting += 1
-    txn.counting_savepoints = max(txn.counting_savepoints, txn.live_counting)
+    # A write gives every open savepoint an id; a released one keeps it until the transaction ends.
+    for savepoint in reversed(txn.open_stack):
+        if savepoint.holds_id:
+            break
+        savepoint.holds_id = True
+        txn.held_ids += 1
+    txn.peak_held_ids = max(txn.peak_held_ids, txn.held_ids)
 
 
-def clear_xid(txn: ApplicationTransaction, savepoint: Savepoint) -> None:
-    if savepoint.has_xid and not savepoint.dead:
-        txn.live_counting -= 1
-    savepoint.has_xid = False
+def release_ids(txn: ApplicationTransaction, savepoints: list[Savepoint]) -> None:
+    for savepoint in savepoints:
+        if savepoint.holds_id:
+            savepoint.holds_id = False
+            txn.held_ids -= 1
 
 
-def kill_all(txn: ApplicationTransaction) -> None:
-    for savepoint in txn.savepoints:
-        clear_xid(txn, savepoint)
-        savepoint.dead = True
-    txn.open_stack = []
+def release_all(txn: ApplicationTransaction) -> None:
+    release_ids(txn, txn.savepoints)
+    txn.open_stack.clear()
 
 
 def on_release(txn: ApplicationTransaction, sid: str) -> None:
-    for index in range(len(txn.open_stack) - 1, -1, -1):
-        if txn.open_stack[index].sid == sid:
-            del txn.open_stack[index:]
-            return
+    index = last_index_of(txn.open_stack, sid)
+    if index is not None:
+        del txn.open_stack[index:]
 
 
 def on_rollback_to(txn: ApplicationTransaction, sid: str) -> None:
     if sid == txn.root_sid:
-        kill_all(txn)
+        release_all(txn)
         return
-    target_index = None
-    for index in range(len(txn.savepoints) - 1, -1, -1):
-        if txn.savepoints[index].sid == sid:
-            target_index = index
-            break
+    target_index = last_index_of(txn.savepoints, sid)
     if target_index is None:
         return
     target = txn.savepoints[target_index]
-    for later in txn.savepoints[target_index + 1 :]:
-        clear_xid(txn, later)
-        later.dead = True
-    clear_xid(txn, target)
-    position = None
-    for index, savepoint in enumerate(txn.open_stack):
-        if savepoint is target:
-            position = index
-            break
-    if position is not None:
-        del txn.open_stack[position + 1 :]
+    opened_after = txn.savepoints[target_index + 1 :]
+    rolled_back = [target, *opened_after]
+    release_ids(txn, rolled_back)
+    stack_index = last_index_of(txn.open_stack, sid)
+    if stack_index is not None:
+        del txn.open_stack[stack_index + 1 :]
 
 
 class SavepointTracker:
@@ -294,7 +286,7 @@ class SavepointTracker:
             return execute(sql, params, many, context)
         state = self.connection_state(context["connection"].alias)
         text = str(sql)
-        head = text[:24].lstrip().upper()
+        head = text[:STATEMENT_HEAD_CHARS].lstrip().upper()
         if head.startswith("SAVEPOINT"):
             self.on_savepoint(state, text)
         txn = state.current_txn()
@@ -312,6 +304,7 @@ class SavepointTracker:
             rows_written = True
             cursor = context.get("cursor")
             rowcount = getattr(cursor, "rowcount", None)
+            # A statement that touched no rows takes no id; a locking read that matched does.
             if rowcount is not None and rowcount >= 0:
                 rows_written = rowcount > 0
             if rows_written:
@@ -323,42 +316,38 @@ class SavepointTracker:
         if match is None:
             return
         sid = match.group(1)
-        entering = state.entering
-        if entering is not None and entering.harness:
-            return
         txn = state.current_txn()
         if txn is None:
             return
+        entering = state.entering
         if entering is not None and entering.root:
+            # In tests the outermost savepoint stands in for the transaction; it is not counted.
             txn.root_sid = sid
             return
         if entering is not None:
-            caller = entering.caller
-            site = entering.site
+            opening = entering.opening
         else:
-            caller = caller_of_app_frame(1)
-            site = first_app_site(1)
-        savepoint = Savepoint(sid=sid, caller=caller, site=site)
-        txn.record(savepoint)
+            opening = find_opening()
+        savepoint = Savepoint(sid=sid, opened_in=opening.opened_in)
+        txn.record(savepoint, opening.line)
 
     def enter(self, atomic: Any, original_enter: Any) -> Any:
         if not self.active:
             return original_enter(atomic)
         connection = transaction.get_connection(atomic.using)
         state = self.connection_state(connection.alias)
-        caller_file = sys._getframe(2).f_code.co_filename
-        site = first_app_site(2)
-        harness = is_harness(atomic, caller_file, site)
-        caller = caller_of_app_frame(2)
-        entry = Entry(atomic=atomic, harness=harness, caller=caller, site=site)
-        if not harness:
+        opening = find_opening()
+        entry = Entry(atomic=atomic, opening=opening)
+        if not entered_by_harness(atomic):
             parent_txn = state.current_txn()
             if parent_txn is not None:
                 entry.txn = parent_txn
             else:
-                entry.txn = ApplicationTransaction(call_site=site)
+                call_site = format_opening(opening.opened_in, opening.line)
+                entry.txn = ApplicationTransaction(call_site=call_site)
                 entry.root = True
         state.stack.append(entry)
+        # Django issues SAVEPOINT inside Atomic.__enter__; this links the statement to its atomic.
         state.entering = entry
         try:
             return original_enter(atomic)
@@ -388,7 +377,7 @@ class SavepointTracker:
                 del state.stack[found:]
                 if entry.root and entry.txn is not None:
                     if exc_type is not None:
-                        kill_all(entry.txn)
+                        release_all(entry.txn)
                     self.usage.transactions.append(entry.txn)
 
     @contextlib.contextmanager
@@ -423,18 +412,18 @@ class SavepointTracker:
 
 
 def format_overflow_message(txn: ApplicationTransaction) -> str:
-    top = txn.top_caller()
+    top = txn.top_opener()
+    opener = format_opening(top.opened_in, top.line)
     return f"""\
 {_SEP_LINE}
-A transaction in this test reached {txn.counting_savepoints} savepoints that each hold a
-Postgres subtransaction id (the limit is {SAVEPOINT_OVERFLOW}).
+A transaction in this test reached {txn.peak_held_ids} savepoints that each hold a
+Postgres subtransaction id (the limit is {SUBTRANSACTION_CACHE_SIZE}).
 
   - Transaction opened at: {txn.call_site}
-  - Savepoints holding an id: {txn.counting_savepoints}
-  - Caller that opened the most savepoints: {top.caller} ({top.repeats})
-  - Where that caller's savepoints were opened: {top.site}
+  - Savepoints holding an id: {txn.peak_held_ids}
+  - Opened the most savepoints: {opener} ({top.savepoints_opened})
 
-Postgres caches up to {SAVEPOINT_OVERFLOW} subtransaction ids per transaction.
+Postgres caches up to {SUBTRANSACTION_CACHE_SIZE} subtransaction ids per transaction.
 Past that the cache overflows, and every query on the database slows down for as
 long as the transaction stays open.
 
@@ -462,16 +451,16 @@ def evaluate_usage(
     usage: SavepointUsage, nodeid: str, user_properties: list[tuple[str, Any]]
 ) -> None:
     for txn in usage.transactions:
-        top = txn.top_caller()
-        if txn.counting_savepoints >= SAVEPOINT_OVERFLOW:
+        top = txn.top_opener()
+        if txn.peak_held_ids >= SUBTRANSACTION_CACHE_SIZE:
             pytest.fail(format_overflow_message(txn))
-        if top.repeats >= SAVEPOINT_LOOP_REPEATS:
+        if top.savepoints_opened >= LOOP_REPORT_THRESHOLD:
             loop = {
                 "nodeid": nodeid,
-                "caller": top.caller,
-                "repeats": top.repeats,
-                "site": top.site,
-                "counting_savepoints": txn.counting_savepoints,
+                "opened_in": top.opened_in,
+                "line": top.line,
+                "savepoints_opened": top.savepoints_opened,
+                "peak_held_ids": txn.peak_held_ids,
                 "call_site": txn.call_site,
             }
             user_properties.append((SAVEPOINT_LOOP_PROPERTY, loop))
@@ -487,42 +476,52 @@ def savepoint_usage(request: pytest.FixtureRequest) -> Generator[SavepointUsage]
 
 
 def collect_loop_hits(stats: dict[str, list[Any]]) -> dict[str, list[LoopHit]]:
-    hits_by_caller: dict[str, list[LoopHit]] = {}
+    hits_by_opener: dict[str, list[LoopHit]] = {}
     seen: set[tuple[str, str]] = set()
     for reports in stats.values():
         for report in reports:
             for name, loop in getattr(report, "user_properties", []):
                 if name != SAVEPOINT_LOOP_PROPERTY:
                     continue
-                key = (loop["nodeid"], loop["caller"])
+                key = (loop["nodeid"], loop["opened_in"])
                 if key in seen:
                     continue
                 seen.add(key)
-                hit = LoopHit(repeats=loop["repeats"], nodeid=loop["nodeid"], site=loop["site"])
-                hits = hits_by_caller.get(loop["caller"])
+                hit = LoopHit(
+                    savepoints_opened=loop["savepoints_opened"],
+                    nodeid=loop["nodeid"],
+                    line=loop["line"],
+                )
+                hits = hits_by_opener.get(loop["opened_in"])
                 if hits is None:
                     hits = []
-                    hits_by_caller[loop["caller"]] = hits
+                    hits_by_opener[loop["opened_in"]] = hits
                 hits.append(hit)
-    return hits_by_caller
+    return hits_by_opener
 
 
 def pytest_terminal_summary(terminalreporter: Any) -> None:
-    hits_by_caller = collect_loop_hits(terminalreporter.stats)
-    if not hits_by_caller:
+    hits_by_opener = collect_loop_hits(terminalreporter.stats)
+    if not hits_by_opener:
         return
-    summaries: list[CallerSummary] = []
-    for caller, hits in hits_by_caller.items():
-        ordered = sorted(hits, key=lambda hit: hit.repeats, reverse=True)
+    summaries: list[OpenerSummary] = []
+    for opened_in, hits in hits_by_opener.items():
+        ordered = sorted(hits, key=lambda hit: hit.savepoints_opened, reverse=True)
         worst = ordered[0]
-        summary = CallerSummary(caller=caller, repeats=worst.repeats, site=worst.site, hits=ordered)
+        summary = OpenerSummary(
+            opened_in=opened_in,
+            line=worst.line,
+            savepoints_opened=worst.savepoints_opened,
+            hits=ordered,
+        )
         summaries.append(summary)
-    summaries.sort(key=lambda summary: summary.repeats, reverse=True)
+    summaries.sort(key=lambda summary: summary.savepoints_opened, reverse=True)
     terminalreporter.section("savepoint loops")
     for summary in summaries:
+        opener = format_opening(summary.opened_in, summary.line)
         terminalreporter.write_line(
-            f"{summary.caller}: up to {summary.repeats} savepoints in one transaction, "
-            f"opened at {summary.site}"
+            f"{opener}: up to {summary.savepoints_opened} savepoints opened in one transaction"
         )
-        for hit in summary.hits[:SUMMARY_NODEIDS_PER_CALLER]:
-            terminalreporter.write_line(f"    {hit.nodeid} ({hit.repeats})")
+        shown_hits = summary.hits[:SUMMARY_NODEIDS_PER_OPENER]
+        for hit in shown_hits:
+            terminalreporter.write_line(f"    {hit.nodeid} ({hit.savepoints_opened})")
