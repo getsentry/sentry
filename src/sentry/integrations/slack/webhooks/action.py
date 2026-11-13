@@ -893,6 +893,8 @@ class SlackActionEndpoint(Endpoint):
             SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
             SlackAction.SEER_AUTOFIX_VIEW_PR.value,
             SlackAction.SEER_INVESTIGATION_START.value,
+            SlackAction.SEER_VIEW_BILLING.value,
+            SlackAction.SEER_REQUEST_CREDITS.value,
         }:
             return self.respond()
 
