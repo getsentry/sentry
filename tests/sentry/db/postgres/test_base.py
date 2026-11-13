@@ -67,62 +67,47 @@ class CursorWrapperTestCase(TestCase):
         assert bad_str_from_db == "HelloWorld🇦🇹!"
 
 
+def _open_savepoints(count: int) -> None:
+    for _ in range(count):
+        with transaction.atomic(using="default"):
+            pass
+
+
 class SavepointMetricsTest(TransactionTestCase):
-    @mock.patch("sentry.db.postgres.base.metrics")
-    def test_counts_savepoints_per_transaction(self, metrics: mock.MagicMock) -> None:
-        tags = {"taskname": "none", "alias": "default"}
-        overflow = mock.call("db.transaction.savepoint_overflow", tags=tags)
-
-        with transaction.atomic(using="default"):
-            for _ in range(64):
-                with transaction.atomic(using="default"):
-                    pass
-            assert metrics.incr.call_args_list == []
-
-            with transaction.atomic(using="default"):
-                pass
-            assert metrics.incr.call_args_list == [overflow]
-
-            for _ in range(5):
-                with transaction.atomic(using="default"):
-                    pass
-
-        with transaction.atomic(using="default"):
-            for _ in range(9):
-                with transaction.atomic(using="default"):
-                    pass
-
-        with pytest.raises(ValueError):
-            with transaction.atomic(using="default"):
-                for _ in range(10):
-                    with transaction.atomic(using="default"):
-                        pass
-                raise ValueError
-
-        assert metrics.incr.call_args_list == [overflow]
-        assert metrics.distribution.call_args_list == [
-            mock.call("db.transaction.savepoints", 70, tags=tags),
-            mock.call("db.transaction.savepoints", 10, tags=tags),
-        ]
-
     @mock.patch("sentry.db.postgres.base.current_task")
     @mock.patch("sentry.db.postgres.base.metrics")
-    def test_close_reports_savepoints_of_abandoned_transaction(
+    def test_reports_savepoints_per_transaction(
         self, metrics: mock.MagicMock, current_task: mock.MagicMock
     ) -> None:
         current_task.return_value = mock.Mock(taskname="sentry.tasks.example")
+        tags = {"taskname": "sentry.tasks.example", "alias": "default"}
+        overflow = mock.call("db.transaction.savepoint_overflow", tags=tags)
+
+        with transaction.atomic(using="default"):
+            _open_savepoints(64)
+            assert metrics.incr.call_args_list == []
+            _open_savepoints(1)
+            assert metrics.incr.call_args_list == [overflow]
+            _open_savepoints(5)
+
+        with transaction.atomic(using="default"):
+            _open_savepoints(9)
+
+        with pytest.raises(ValueError):
+            with transaction.atomic(using="default"):
+                _open_savepoints(10)
+                raise ValueError
 
         transaction.set_autocommit(False, using="default")
         for _ in range(10):
             transaction.savepoint(using="default")
         connection.close()
 
+        assert metrics.incr.call_args_list == [overflow]
         assert metrics.distribution.call_args_list == [
-            mock.call(
-                "db.transaction.savepoints",
-                10,
-                tags={"taskname": "sentry.tasks.example", "alias": "default"},
-            ),
+            mock.call("db.transaction.savepoints", 70, tags=tags),
+            mock.call("db.transaction.savepoints", 10, tags=tags),
+            mock.call("db.transaction.savepoints", 10, tags=tags),
         ]
 
 
