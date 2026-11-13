@@ -12,6 +12,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/dataUtils';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {AgentRunHighlights} from 'sentry/components/events/interfaces/performance/agentRun/agentRunHighlights';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {KeyValueColumns, KeyValueRow} from 'sentry/components/tables/keyValueTable';
@@ -234,6 +235,9 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
           {columnCount => splitIntoColumns(rows, columnCount)}
         </KeyValueColumns>
       )}
+      <ErrorBoundary mini>
+        <AgentRunHighlights event={event} />
+      </ErrorBoundary>
     </Container>
   );
 }
