@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.models.organization import Organization
 
 if TYPE_CHECKING:
-    from sentry.auth.access import Access
+    from sentry.auth.access import Access, ServiceAccountAccess
     from sentry.auth.principal import RequestPrincipal
 
 NOTEBOOKS_FEATURE = "organizations:investigations"
@@ -23,6 +24,13 @@ def has_notebooks_access(organization: Organization, actor: RequestPrincipal | N
     return features.has(NOTEBOOKS_FEATURE, organization, actor=actor) and bool(
         organization.flags.allow_joinleave
     )
+
+
+def service_account_reaches(access: ServiceAccountAccess, project_ids: Collection[int]) -> bool:
+    """Whether a service account can work on these projects. No projects means every project."""
+    if project_ids:
+        return set(project_ids).issubset(access.accessible_project_ids)
+    return access.has_all_projects
 
 
 def issue_links_enabled(organization: Organization, actor: RequestPrincipal | None = None) -> bool:

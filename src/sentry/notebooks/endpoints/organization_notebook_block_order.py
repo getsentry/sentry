@@ -62,7 +62,7 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
         user or service account. Requires the organizations:investigations feature and open
         organization membership.
         """
-        require_notebook_writer(request)
+        require_notebook_writer(request, notebook)
         validator = BlockOrderValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -17,6 +17,7 @@ from sentry.notebooks.endpoints.base import (
     OrganizationNotebookEndpoint,
     request_creator_actor,
     require_notebook_writer,
+    require_project_access,
     service_error,
     writable_project_ids,
 )
@@ -102,7 +103,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
         account. Requires the organizations:investigations feature and open organization
         membership.
         """
-        require_notebook_writer(request)
+        require_notebook_writer(request, notebook)
         validator = NotebookUpdateValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -116,6 +117,8 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
                 {"detail": "One or more projects are inaccessible."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if requested_project_ids is not None:
+            require_project_access(request, requested_project_ids)
         restoring_only = (
             values == {"status": NotebookStatus.ACTIVE} and requested_project_ids is None
         )
@@ -191,7 +194,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
         executions must first be stopped. Returns no body. Requires a user or service account.
         Requires the organizations:investigations feature and open organization membership.
         """
-        require_notebook_writer(request)
+        require_notebook_writer(request, notebook)
         validator = NotebookDeleteValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)

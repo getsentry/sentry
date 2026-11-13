@@ -66,7 +66,7 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
         version. Requires a user or service account. Requires the organizations:investigations
         feature and open organization membership.
         """
-        actor_id = require_notebook_writer(request)
+        actor_id = require_notebook_writer(request, notebook)
         validator = BlockCreateValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)

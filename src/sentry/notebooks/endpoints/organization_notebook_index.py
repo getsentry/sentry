@@ -20,6 +20,7 @@ from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
     require_notebook_writer,
+    require_project_access,
     service_error,
     writable_project_ids,
 )
@@ -215,6 +216,7 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
                 {"detail": "One or more projects are inaccessible."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        require_project_access(request, requested_project_ids)
         try:
             notebook = create_manual_notebook(
                 organization=organization,

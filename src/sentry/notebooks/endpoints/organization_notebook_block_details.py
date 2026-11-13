@@ -73,7 +73,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         Requires a user or service account. Requires the organizations:investigations feature
         and open organization membership.
         """
-        actor_id = require_notebook_writer(request)
+        actor_id = require_notebook_writer(request, notebook)
         if block.deleted_at is not None:
             raise ResourceDoesNotExist
 
@@ -144,7 +144,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         other state conflicts return 409. Returns no body. Requires a user or service account.
         Requires the organizations:investigations feature and open organization membership.
         """
-        require_notebook_writer(request)
+        require_notebook_writer(request, notebook)
         if block.deleted_at is not None:
             raise ResourceDoesNotExist
 

@@ -1,20 +1,17 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest import mock
 
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
 from sentry.investigations.models import InvestigationOrchestrationCommand
-from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.notebooks.models import Notebook, NotebookBlock, NotebookProject, NotebookStatus
 from sentry.seer import agent_token
-from sentry.silo.base import SiloMode
+from sentry.tasks.seer.investigation import _dispatch_viewer_scope
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
@@ -51,8 +48,12 @@ class NotebookWriterTest(APITestCase):
         return client
 
     def service_account_client(self, project_ids: list[int] | None = None) -> tuple[APIClient, int]:
+        """An account linked to `project_ids`, or to every project when it's None."""
         service_account = self.create_service_account(
-            organization=self.organization, scope_list=["org:read"], project_ids=project_ids or ()
+            organization=self.organization,
+            scope_list=["org:read"],
+            project_ids=project_ids or (),
+            all_projects=project_ids is None,
         )
         viewer_context = encode_viewer_context(
             ViewerContext(
@@ -67,14 +68,13 @@ class NotebookWriterTest(APITestCase):
 
     def org_token_client(self) -> APIClient:
         token = generate_token(self.organization.slug, "")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            OrgAuthToken.objects.create(
-                organization_id=self.organization.id,
-                name="notebook token",
-                token_hashed=hash_token(token),
-                token_last_characters=token[-4:],
-                scope_list=["org:read"],
-            )
+        self.create_org_auth_token(
+            organization_id=self.organization.id,
+            name="notebook token",
+            token_hashed=hash_token(token),
+            token_last_characters=token[-4:],
+            scope_list=["org:read"],
+        )
         client = APIClient()
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
         return client
@@ -232,7 +232,7 @@ class NotebookWriterTest(APITestCase):
         client, service_account_id = self.service_account_client()
         url = self.url("sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id)
 
-        with mock.patch("sentry.investigations.services.orchestration.transaction.on_commit"):
+        with self.captureOnCommitCallbacks(execute=False):
             response = client.delete(url, {"investigationVersion": 1}, format="json")
 
         assert response.status_code == 204, response.data
@@ -242,9 +242,98 @@ class NotebookWriterTest(APITestCase):
         assert command.type == "cancel"
         assert command.actor_id is None
         assert command.requested_by_service_account_id == service_account_id
+        # Dispatch checks the account again; the cancel only reaches Seer if this passes.
+        with _dispatch_viewer_scope(self.notebook, command=command):
+            pass
+
+    def test_project_limited_service_account_cannot_archive_a_running_investigation(
+        self,
+    ) -> None:
+        other = self.create_project(organization=self.organization)
+        self.create_notebook_project(self.notebook, other)
+        run = self.create_investigation_orchestration_run(
+            investigation=self.notebook,
+            projection={"workflowVersion": 1, "report": {"revision": 0, "status": "running"}},
+        )
+        client, _ = self.service_account_client(project_ids=[self.project.id])
+        url = self.url("sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id)
+
+        response = client.delete(url, {"investigationVersion": 1}, format="json")
+
+        assert response.status_code == 403, response.data
+        self.notebook.refresh_from_db()
+        assert self.notebook.status == NotebookStatus.ACTIVE
+        assert not InvestigationOrchestrationCommand.objects.filter(orchestration_run=run).exists()
+
+    def test_project_limited_service_account_cannot_change_other_notebooks(self) -> None:
+        other = self.create_project(organization=self.organization)
+        self.create_notebook_project(self.notebook, other)
+        block = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
+        client, _ = self.service_account_client(project_ids=[self.project.id])
+        details_url = self.url(
+            "sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id
+        )
+        block_url = self.url(
+            "sentry-api-0-organization-notebook-block-details",
+            notebook_id=self.notebook.id,
+            block_id=block.id,
+        )
+
+        responses = [
+            client.put(details_url, {"investigationVersion": 1, "title": "No"}, format="json"),
+            client.put(
+                details_url,
+                {"investigationVersion": 1, "projectIds": [self.project.id]},
+                format="json",
+            ),
+            client.delete(details_url, {"investigationVersion": 1}, format="json"),
+            client.post(
+                self.url("sentry-api-0-organization-notebook-blocks", notebook_id=self.notebook.id),
+                {"investigationVersion": 1, "kind": "text", "content": "no"},
+                format="json",
+            ),
+            client.put(
+                block_url, {"investigationVersion": 1, "version": 1, "content": "no"}, format="json"
+            ),
+            client.put(
+                self.url(
+                    "sentry-api-0-organization-notebook-block-order", notebook_id=self.notebook.id
+                ),
+                {"investigationVersion": 1, "blockIds": [block.id]},
+                format="json",
+            ),
+            client.delete(block_url, {"investigationVersion": 1, "version": 1}, format="json"),
+        ]
+
+        assert [response.status_code for response in responses] == [403] * 7
+        self.notebook.refresh_from_db()
+        assert self.notebook.title == "Writers"
+        assert self.notebook.status == NotebookStatus.ACTIVE
+        assert list(self.notebook.projects.values_list("id", flat=True)) == [other.id]
+        block.refresh_from_db()
+        assert block.content == ""
+        assert block.deleted_at is None
+
+    def test_service_account_needs_every_project_for_an_unscoped_notebook(self) -> None:
+        self.create_notebook_project(self.notebook, self.project)
+        client, _ = self.service_account_client(project_ids=[self.project.id])
+
+        created = client.post(
+            self.url("sentry-api-0-organization-notebooks"), {"title": "Unscoped"}, format="json"
+        )
+        cleared = client.put(
+            self.url("sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id),
+            {"investigationVersion": 1, "projectIds": []},
+            format="json",
+        )
+
+        assert [created.status_code, cleared.status_code] == [403, 403]
+        assert not Notebook.objects.filter(title="Unscoped").exists()
+        assert list(self.notebook.projects.values_list("id", flat=True)) == [self.project.id]
 
     def test_service_account_only_attaches_its_own_projects(self) -> None:
         other = self.create_project(organization=self.organization)
+        self.create_notebook_project(self.notebook, self.project)
         client, _ = self.service_account_client(project_ids=[self.project.id])
         index_url = self.url("sentry-api-0-organization-notebooks")
         details_url = self.url(
@@ -264,7 +353,7 @@ class NotebookWriterTest(APITestCase):
             == 400
         )
         assert not Notebook.objects.filter(title="Other").exists()
-        assert not NotebookProject.objects.filter(notebook=self.notebook).exists()
+        assert list(self.notebook.projects.values_list("id", flat=True)) == [self.project.id]
 
         created = client.post(
             index_url, {"title": "Mine", "projectIds": [self.project.id]}, format="json"
