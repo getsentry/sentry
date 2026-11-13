@@ -65,6 +65,7 @@ _KNOWN_ALIASES = {
 _ALIAS_SOURCES = {
     "utils/seer/showNewSeer.ts": "96a95fd07e5ce7da",
     "utils/seer/orgHasNewSeerPlan.ts": "ec7683ec625ced39",
+    "views/settings/useSettingsV3.ts": "360452eb683738f5",
 }
 _SETTINGS_FUNCTION_SPLIT_RE = re.compile(r"\n(?:export )?function ")
 _SETTINGS_SHOW_RE = re.compile(r"\bshow:\s*")
