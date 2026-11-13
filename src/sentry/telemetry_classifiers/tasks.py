@@ -4,7 +4,7 @@ import hashlib
 import logging
 from collections.abc import Sequence
 from contextlib import AbstractContextManager
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 from django.utils import timezone
 from taskbroker_client.retry import Retry
@@ -18,6 +18,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_classifiers_tasks
 from sentry.telemetry_classifiers.constants import RESULT_ATTRIBUTE_PREFIX
 from sentry.telemetry_classifiers.datasets import DATASETS
+from sentry.telemetry_classifiers.datasets.base import SelectedEntity
 from sentry.telemetry_classifiers.definitions import (
     InvalidClassifierDefinition,
     resolve_classifier_definition,
@@ -43,10 +44,11 @@ logger = logging.getLogger(__name__)
 
 # How often each classifier selects entities.
 SCAN_INTERVAL = timedelta(minutes=5)
-# Long enough to outlive retries of a selection.
+# Each selection covers two scan intervals, so a classifier that runs late doesn't leave a gap.
+# Longer gaps are skipped, so selection never falls behind.
+_SELECT_WINDOW = 2 * SCAN_INTERVAL
+# Long enough to outlive retries and overlapping selections.
 _SENT_TTL_SECONDS = 60 * 60
-# After a longer gap, selection restarts from one SCAN_INTERVAL ago.
-_SELECTED_UNTIL_TTL_SECONDS = 60 * 60
 _PROCESSING_FEATURE = "organizations:classifiers-ui"
 
 
@@ -85,7 +87,7 @@ def schedule_classifiers() -> None:
     silo_mode=SiloMode.CELL,
 )
 def select_entities(classifier_id: int) -> None:
-    """Classify the entities whose cooldown ended since this classifier's last selection."""
+    """Classify the entities whose cooldown ended recently, unless they were already sent."""
     classifier = _get_enabled_classifier(classifier_id)
     if classifier is None:
         return
@@ -94,41 +96,31 @@ def select_entities(classifier_id: int) -> None:
         _record_selection("unsupported_dataset", classifier.dataset)
         return
 
-    client = redis_clusters.get("default")
-    selected_until_key = f"telemetry-classifiers:selected-until:{classifier_id}"
-    end = int(timezone.now().timestamp())
-    selected_until = client.get(selected_until_key)
-    start = int(selected_until) if selected_until else end - int(SCAN_INTERVAL.total_seconds())
-    if start >= end:
-        return
-
+    end = timezone.now()
     limit = options.get("telemetry-classifiers.select-limit")
     with _system_viewer(classifier.project):
         try:
-            entity_ids = dataset.select(
-                classifier.project,
-                classifier.filter_query,
-                datetime.fromtimestamp(start, tz=UTC),
-                datetime.fromtimestamp(end, tz=UTC),
-                limit,
+            selected = dataset.select(
+                classifier.project, classifier.filter_query, end - _SELECT_WINDOW, end, limit
             )
         except InvalidSearchQuery:
             _record_selection("invalid_filter", classifier.dataset)
             return
 
     # Entities beyond the limit aren't classified.
-    if len(entity_ids) >= limit:
+    if len(selected) >= limit:
         _record_selection("limit_reached", classifier.dataset)
-    sent_keys = [_sent_key(classifier_id, start, entity_id) for entity_id in entity_ids]
-    already_sent = client.mget(sent_keys) if sent_keys else []
-    for entity_id, sent_key, sent in zip(entity_ids, sent_keys, already_sent):
+    if not selected:
+        return
+    client = redis_clusters.get("default")
+    sent_keys = [_sent_key(classifier_id, entity) for entity in selected]
+    for entity, sent_key, sent in zip(selected, sent_keys, client.mget(sent_keys)):
+        # Windows overlap and selections retry, so an entity can be selected again.
         if sent:
             continue
-        classify_entity.delay(classifier_id=classifier_id, entity_id=entity_id)
-        # Marked after sending, so an entity is skipped on retry only once it was sent.
+        classify_entity.delay(classifier_id=classifier_id, entity_id=entity.entity_id)
+        # Marked after sending, so an entity is skipped only once it was sent.
         client.set(sent_key, b"1", ex=_SENT_TTL_SECONDS)
-    # Set last, so a retry selects from the same start and skips entities already sent.
-    client.set(selected_until_key, end, ex=_SELECTED_UNTIL_TTL_SECONDS)
 
 
 @instrumented_task(
@@ -226,14 +218,14 @@ def _get_enabled_classifier(classifier_id: int) -> TelemetryClassifier | None:
     )
 
 
-def _sent_key(classifier_id: int, start: int, entity_id: str) -> str:
-    """Key marking an entity as sent by this classifier's selection from ``start``.
+def _sent_key(classifier_id: int, entity: SelectedEntity) -> str:
+    """Key marking an entity as sent for its period of activity ending at ``last_seen``.
 
-    A retried selection starts from the same ``start``, so it skips entities already sent.
+    Newer telemetry changes ``last_seen``, so an entity that becomes active again is sent again.
     """
     # Entity IDs come from telemetry, so they're hashed to bound the key's length.
-    digest = hashlib.sha256(entity_id.encode()).hexdigest()
-    return f"telemetry-classifiers:sent:{classifier_id}:{start}:{digest}"
+    digest = hashlib.sha256(f"{entity.entity_id}:{entity.last_seen.isoformat()}".encode())
+    return f"telemetry-classifiers:sent:{classifier_id}:{digest.hexdigest()}"
 
 
 def _system_viewer(project: Project) -> AbstractContextManager[None]:

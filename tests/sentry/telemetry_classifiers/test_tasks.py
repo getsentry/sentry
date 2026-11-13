@@ -1,11 +1,12 @@
 from collections.abc import Generator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 
 from sentry.constants import DataCategory
 from sentry.exceptions import InvalidSearchQuery
+from sentry.telemetry_classifiers.datasets.base import SelectedEntity
 from sentry.telemetry_classifiers.definitions import resolve_prebuilt_definition
 from sentry.telemetry_classifiers.inference import ClassifierExecutionError
 from sentry.telemetry_classifiers.models import TelemetryClassifier
@@ -26,7 +27,9 @@ from sentry.testutils.silo import cell_silo_test
 
 NOW = datetime(2020, 1, 1, 12, 7, 31, tzinfo=UTC)
 LATER = datetime(2020, 1, 1, 12, 12, 31, tzinfo=UTC)
-FIRST_START = datetime(2020, 1, 1, 12, 2, 31, tzinfo=UTC)
+# When the entities' newest telemetry happened.
+SEEN = datetime(2020, 1, 1, 11, 45, 0, tzinfo=UTC)
+SEEN_LATER = datetime(2020, 1, 1, 11, 50, 0, tzinfo=UTC)
 
 
 class ClassifierTaskTestCase(TestCase):
@@ -79,9 +82,12 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
             self.classify_entity = mock
             yield
 
-    def test_selects_since_the_last_selection(self) -> None:
+    def test_selects_recent_entities_once(self) -> None:
         classifier = self.create_telemetry_classifier(project=self.project, filter_query="a:b")
-        self.dataset.select.side_effect = [["one"], ["two"]]
+        one = SelectedEntity("one", SEEN)
+        two = SelectedEntity("two", SEEN_LATER)
+        # Windows overlap, so the second selection finds "one" again.
+        self.dataset.select.side_effect = [[one], [two, one]]
 
         with freeze_time(NOW):
             select_entities(classifier.id)
@@ -89,18 +95,32 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
             select_entities(classifier.id)
 
         assert self.dataset.select.call_args_list == [
-            call(self.project, "a:b", FIRST_START, NOW, 100),
-            call(self.project, "a:b", NOW, LATER, 100),
+            call(self.project, "a:b", NOW - timedelta(minutes=10), NOW, 100),
+            call(self.project, "a:b", LATER - timedelta(minutes=10), LATER, 100),
         ]
         assert self.classify_entity.call_args_list == [
             call(classifier_id=classifier.id, entity_id="one"),
             call(classifier_id=classifier.id, entity_id="two"),
         ]
 
-    @freeze_time(NOW)
+    def test_sends_entities_again_after_new_activity(self) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project)
+        self.dataset.select.side_effect = [
+            [SelectedEntity("one", SEEN)],
+            [SelectedEntity("one", SEEN_LATER)],
+        ]
+
+        select_entities(classifier.id)
+        select_entities(classifier.id)
+
+        assert self.classify_entity.call_count == 2
+
     def test_retries_skip_entities_already_sent(self) -> None:
         classifier = self.create_telemetry_classifier(project=self.project)
-        self.dataset.select.return_value = ["one", "two"]
+        self.dataset.select.return_value = [
+            SelectedEntity("one", SEEN),
+            SelectedEntity("two", SEEN),
+        ]
         self.classify_entity.side_effect = [None, ConnectionError("broker unavailable")]
 
         with pytest.raises(ConnectionError):
@@ -108,7 +128,6 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
         self.classify_entity.side_effect = None
         select_entities(classifier.id)
 
-        assert self.dataset.select.call_args_list[1].args[2:4] == (FIRST_START, NOW)
         # "two" failed to send, so only it is sent again.
         assert self.classify_entity.call_args_list == [
             call(classifier_id=classifier.id, entity_id="one"),
@@ -120,7 +139,10 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
     @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
     def test_records_when_limit_is_reached(self, mock_incr: MagicMock) -> None:
         classifier = self.create_telemetry_classifier(project=self.project)
-        self.dataset.select.return_value = ["one", "two"]
+        self.dataset.select.return_value = [
+            SelectedEntity("one", SEEN),
+            SelectedEntity("two", SEEN),
+        ]
 
         select_entities(classifier.id)
 

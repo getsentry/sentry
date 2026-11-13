@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from django.utils import timezone
@@ -21,6 +21,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.telemetry_classifiers.datasets.base import SelectedEntity
 from sentry.telemetry_classifiers.types import Dataset, Event, TelemetryInput
 from sentry.utils import metrics
 
@@ -57,7 +58,7 @@ class ConversationDataset:
 
     def select(
         self, project: Project, filter_query: str, start: datetime, end: datetime, limit: int
-    ) -> list[str]:
+    ) -> list[SelectedEntity]:
         """Return conversations whose cooldown ended in ``[start, end)`` and that match the filter.
 
         Any newer span keeps a conversation out until it goes quiet again.
@@ -76,14 +77,20 @@ class ConversationDataset:
                 f"max(timestamp):>={last_span_start} max(timestamp):<{last_span_end}"
             ),
             selected_columns=[CONVERSATION_ID, "max(timestamp)"],
-            orderby=["max(timestamp)", CONVERSATION_ID],
+            orderby=["-max(timestamp)", CONVERSATION_ID],
             offset=0,
             limit=limit,
             referrer=Referrer.TELEMETRY_CLASSIFIERS_CONVERSATIONS_SELECT.value,
             config=CONVERSATION_RESOLVER_CONFIG,
             sampling_mode="HIGHEST_ACCURACY",
         )
-        return [row[CONVERSATION_ID] for row in result["data"]]
+        return [
+            SelectedEntity(
+                entity_id=row[CONVERSATION_ID],
+                last_seen=datetime.fromtimestamp(float(row["max(timestamp)"]), tz=UTC),
+            )
+            for row in result["data"]
+        ]
 
     def load(self, project: Project, entity_id: str) -> TelemetryInput | None:
         """Load the conversation's newest spans with messages as user and assistant messages."""

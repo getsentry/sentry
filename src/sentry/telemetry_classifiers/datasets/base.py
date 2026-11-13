@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Protocol
+from typing import NamedTuple, Protocol
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
 from sentry.telemetry_classifiers.types import TelemetryInput
+
+
+class SelectedEntity(NamedTuple):
+    entity_id: str
+    # When the entity's newest telemetry happened. A newer value is a new period of activity.
+    last_seen: datetime
 
 
 class ClassifierDataset(Protocol):
@@ -21,11 +27,11 @@ class ClassifierDataset(Protocol):
 
     def select(
         self, project: Project, filter_query: str, start: datetime, end: datetime, limit: int
-    ) -> list[str]:
-        """Return IDs of entities whose cooldown ended in ``[start, end)`` and that match the filter.
+    ) -> list[SelectedEntity]:
+        """Return entities whose cooldown ended in ``[start, end)`` and that match the filter.
 
         That's entities whose last telemetry is in ``[start - cooldown, end - cooldown)``, with
-        nothing newer. Consecutive windows select each entity once per period of activity.
+        nothing newer. The newest entities come first.
         """
         ...
 

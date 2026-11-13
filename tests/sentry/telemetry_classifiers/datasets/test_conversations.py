@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.telemetry_classifiers.datasets.base import SelectedEntity
 from sentry.telemetry_classifiers.datasets.conversations import ConversationDataset
 from sentry.telemetry_classifiers.types import TelemetryInput
 from tests.sentry.api.endpoints.test_organization_ai_conversations_base import (
@@ -28,8 +29,9 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
             conversation_id, timestamp, operation_type="ai_client", agent_name=agent_name
         )
 
-    def select(self, filter_query: str = "") -> list[str]:
-        return DATASET.select(self.project, filter_query, self.start, self.end, limit=100)
+    def select(self, filter_query: str = "", limit: int = 100) -> list[str]:
+        selected = DATASET.select(self.project, filter_query, self.start, self.end, limit)
+        return [entity.entity_id for entity in selected]
 
     def test_selects_conversations_that_became_inactive_in_window(self) -> None:
         self.store_conversation_span("inactive", self.last_span_end - timedelta(minutes=2))
@@ -41,6 +43,15 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
         )
 
         assert self.select() == ["inactive"]
+
+    def test_reports_when_conversations_were_last_seen(self) -> None:
+        last_seen = self.last_span_end - timedelta(minutes=2)
+        self.store_conversation_span("conversation", last_seen - timedelta(minutes=1))
+        self.store_conversation_span("conversation", last_seen)
+
+        assert DATASET.select(self.project, "", self.start, self.end, limit=100) == [
+            SelectedEntity("conversation", last_seen)
+        ]
 
     def test_filter_matches_spans_from_before_the_window(self) -> None:
         self.store_conversation_span(
@@ -54,11 +65,11 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
 
         assert self.select("gen_ai.agent.name:researcher") == ["researcher"]
 
-    def test_respects_limit(self) -> None:
-        self.store_conversation_span("first", self.last_span_end - timedelta(minutes=3))
-        self.store_conversation_span("second", self.last_span_end - timedelta(minutes=2))
+    def test_limit_keeps_the_newest(self) -> None:
+        self.store_conversation_span("oldest", self.last_span_end - timedelta(minutes=3))
+        self.store_conversation_span("newest", self.last_span_end - timedelta(minutes=2))
 
-        assert DATASET.select(self.project, "", self.start, self.end, limit=1) == ["first"]
+        assert self.select(limit=1) == ["newest"]
 
     def test_limit_applies_after_the_filter(self) -> None:
         self.store_conversation_span(
@@ -68,9 +79,7 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
             "researcher", self.last_span_end - timedelta(minutes=2), agent_name="researcher"
         )
 
-        assert DATASET.select(
-            self.project, "gen_ai.agent.name:researcher", self.start, self.end, limit=1
-        ) == ["researcher"]
+        assert self.select("gen_ai.agent.name:researcher", limit=1) == ["researcher"]
 
 
 class LoadConversationTest(BaseAIConversationsTestCase):
