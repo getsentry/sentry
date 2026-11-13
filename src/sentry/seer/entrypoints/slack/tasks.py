@@ -429,7 +429,7 @@ def _send_out_of_credits_message(
     user: RpcUser,
     thread_ts: str,
 ) -> None:
-    """Tell the user, in the thread and only to them, that the org is out of Seer credits."""
+    """Reply in the thread, for everyone to see, that the org is out of Seer credits."""
     try:
         send_thread_update(
             install=entrypoint.install,
@@ -438,7 +438,6 @@ def _send_out_of_credits_message(
                 organization_id=organization.id,
                 has_billing_access=from_user(user, organization).has_scope("org:billing"),
             ),
-            ephemeral_user_id=entrypoint.slack_user_id,
         )
     except Exception as e:
         _logger.warning("seer.slack.process_mention.send_out_of_credits_failed", exc_info=e)

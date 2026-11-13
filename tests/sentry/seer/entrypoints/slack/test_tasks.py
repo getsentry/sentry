@@ -422,13 +422,13 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_agent_cls.return_value = self.mock_entrypoint
         process_mention_for_slack(**{**TASK_KWARGS, "organization_id": self.organization.id})
 
-    def _sent_text(self) -> str:
-        send = self.mock_entrypoint.install.send_threaded_ephemeral_message
+    def _sent_text(self, thread_ts: str = "1234567890.123456") -> str:
+        self.mock_entrypoint.install.send_threaded_ephemeral_message.assert_not_called()
+        send = self.mock_entrypoint.install.send_threaded_message
         send.assert_called_once()
         call_kwargs = send.call_args.kwargs
-        assert call_kwargs["slack_user_id"] == self.mock_entrypoint.slack_user_id
         assert call_kwargs["channel_id"] == self.mock_entrypoint.channel_id
-        assert call_kwargs["thread_ts"] == "1234567890.123456"
+        assert call_kwargs["thread_ts"] == thread_ts
         return call_kwargs["renderable"]["text"]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -493,6 +493,27 @@ class ProcessMentionSeerCreditsTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_out_of_credits_top_level_mention_starts_a_thread(
+        self,
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_can_run: MagicMock,
+    ) -> None:
+        mock_operator_cls.has_access.return_value = True
+        mock_resolve_user.return_value = MagicMock(id=self.user.id, username="alice")
+        mock_agent_cls.return_value = self.mock_entrypoint
+
+        process_mention_for_slack(
+            **{**TASK_KWARGS, "organization_id": self.organization.id, "thread_ts": None}
+        )
+
+        assert self._sent_text(thread_ts=TASK_KWARGS["ts"]) == AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
+
+    @patch("sentry.seer.entrypoints.slack.tasks.can_run_seer_operation", return_value=False)
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
     def test_out_of_credits_still_clears_status_when_reply_fails(
         self,
         mock_resolve_user: MagicMock,
@@ -501,7 +522,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_can_run: MagicMock,
     ) -> None:
         mock_operator_cls.has_access.return_value = True
-        self.mock_entrypoint.install.send_threaded_ephemeral_message.side_effect = IntegrationError(
+        self.mock_entrypoint.install.send_threaded_message.side_effect = IntegrationError(
             "slack down"
         )
 
@@ -542,7 +563,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
 
         mock_check.assert_called_once()
         mock_operator_cls.return_value.trigger_agent.assert_called_once()
-        self.mock_entrypoint.install.send_threaded_ephemeral_message.assert_not_called()
+        self.mock_entrypoint.install.send_threaded_message.assert_not_called()
 
     @patch("sentry.seer.credits.seer_credit.backend.check_seer_credits")
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
