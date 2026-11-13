@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -5,6 +6,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -285,9 +287,11 @@ describe('attributesTree', () => {
       }
       // jsdom does not evaluate :hover styles, so bypass the hidden action's pointer-events check.
       await userEvent.click(actionsButton, {pointerEventsCheck: 0});
-      expect(await within(row).findByText('Visible Action')).toBeInTheDocument();
-      expect(await within(row).findByText('Disabled Action')).toBeInTheDocument();
-      expect(within(row).queryByText('Hidden Action')).not.toBeInTheDocument();
+      expect(actionsButton).toHaveAttribute('aria-expanded', 'true');
+      expect(within(row).queryByRole('menu')).not.toBeInTheDocument();
+      expect(await screen.findByText('Visible Action')).toBeInTheDocument();
+      expect(await screen.findByText('Disabled Action')).toBeInTheDocument();
+      expect(screen.queryByText('Hidden Action')).not.toBeInTheDocument();
     }
   });
 
@@ -417,5 +421,37 @@ describe('attributesTree', () => {
     expect(screen.getByTitle('logger.name')).toContainElement(
       screen.getByTestId('tree-key-sentry.logger.name')
     );
+  });
+
+  it('renders the actions menu in the surrounding overlay container when one is provided', async () => {
+    function OverlayContainer({children}: {children: React.ReactNode}) {
+      const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
+      return (
+        <div data-test-id="overlay-container" ref={setContainer}>
+          <TooltipContext value={{container}}>{children}</TooltipContext>
+        </div>
+      );
+    }
+
+    render(
+      <OverlayContainer>
+        <AttributesTree
+          attributes={[{type: 'str', value: 'test value', name: 'test'}]}
+          rendererExtra={{theme, location, navigate: jest.fn(), organization}}
+        />
+      </OverlayContainer>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Attribute Actions Menu'}), {
+      pointerEventsCheck: 0,
+    });
+
+    expect(
+      await within(screen.getByTestId('overlay-container')).findByRole('menu')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('attribute-tree-row')).queryByRole('menu')
+    ).not.toBeInTheDocument();
   });
 });
