@@ -652,10 +652,9 @@ def _drain_queued_autofix_feedback(
         return
 
     # An errored run should already be paused. A processing run's completion hook drains the
-    # queue when it finishes. A run Seer stopped for credits isn't paused, so it iterates again;
-    # until the organization can pay, the agent call below refuses it.
-    stopped_for_credits = state.status == "error" and state.failure_reason == "out_of_credits"
-    if state.status == "processing" or (state.status == "error" and not stopped_for_credits):
+    # queue when it finishes. A run that ran out of credits isn't paused, so it iterates again.
+    seer_ran_out_of_credits = state.status == "error" and state.failure_reason == "out_of_credits"
+    if state.status == "processing" or (state.status == "error" and not seer_ran_out_of_credits):
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -694,9 +693,9 @@ def _drain_queued_autofix_feedback(
         # drains the queue and runs it.
         return
 
-    # Wait for the previous iteration to push. Its completion hook drains the queue. A run Seer
-    # stopped for credits has no push coming, so its next iteration pushes the partial changes.
-    if not all_changes_pushed and not stopped_for_credits:
+    # Wait for the previous iteration to push. Its completion hook drains the queue. A run where
+    # Seer ran out of credits has no push coming, so its next iteration pushes the partial changes.
+    if not all_changes_pushed and not seer_ran_out_of_credits:
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",

@@ -102,8 +102,7 @@ def fail_pr_iteration(
     )
     set_pr_iteration_attributes(group_id=group_id, iteration_id=log_ctx.iteration_id)
 
-    # A run Seer stopped for credits isn't paused: the credit check holds new feedback back
-    # until the organization can pay, and then the run iterates again.
+    # Don't pause a run that ran out of credits, since the next feedback after a top-up resumes it.
     paused = state.failure_reason != "out_of_credits" and pause_pr_iteration(
         run_id=run_id,
         organization_id=organization.id,

@@ -1424,7 +1424,7 @@ class TestPrIterationCompletionHook(TestCase):
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
-    def test_a_seer_push_out_of_credits_records_a_stranded_action(
+    def test_a_seer_push_that_ran_out_of_credits_records_a_stranded_action(
         self, mock_push: MagicMock, mock_consume: MagicMock, mock_complete: MagicMock
     ) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -1451,7 +1451,7 @@ class TestPrIterationCompletionHook(TestCase):
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
-    def test_a_single_run_push_out_of_credits_records_no_stranded_action(
+    def test_a_single_run_seer_push_that_ran_out_of_credits_records_no_stranded_action(
         self, mock_push: MagicMock, mock_complete: MagicMock
     ) -> None:
         # The agent pushes a single run's PR itself, so Sentry has no push to redo.
@@ -1591,7 +1591,7 @@ class TestFailedRunCompletionHook(TestCase):
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
     @patch(f"{HOOK_PATH}.fetch_run_status")
-    def test_an_iteration_stopped_for_credits_does_not_pause(
+    def test_a_seer_iteration_that_ran_out_of_credits_does_not_pause(
         self, mock_fetch: MagicMock, mock_push: MagicMock, mock_consume: MagicMock
     ) -> None:
         self.create_seer_run(

@@ -1231,7 +1231,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_drains_when_errored_for_credits(
+    def test_drains_when_seer_ran_out_of_credits(
         self,
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
