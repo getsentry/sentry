@@ -514,9 +514,6 @@ describe('provisionSubscriptionAction', () => {
   });
 
   it('prefills the form based on an annual billing platform enterprise subscription', async () => {
-    // Billing platform plan ids are a package uuid with the interval in months
-    // appended, so the annual subscription's plan is `<uuid>-12` while the
-    // provisionable (monthly) option is `<uuid>-1`.
     const packageUid = '00000000-0000-4000-8000-000000000001';
     const monthlyPlanId = `${packageUid}-1`;
     const annualPlanId = `${packageUid}-12`;
