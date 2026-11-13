@@ -65,6 +65,58 @@ describe('ChartLegend', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('includes the suffix in accessible labels and preserves selection keys', async () => {
+    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+    const onSelectionChange = jest.fn();
+    render(
+      <ChartLegend
+        items={[
+          {
+            name: 'transformed-series',
+            label: 'Duration',
+            suffix: 'fill(linear) → SMA(5)',
+            color: '#ff0000',
+          },
+        ]}
+        selected={{}}
+        onSelectionChange={onSelectionChange}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Toggle Duration · fill(linear) → SMA(5)'})
+    );
+
+    expect(onSelectionChange).toHaveBeenCalledWith({'transformed-series': false});
+    expect(
+      screen.getByRole('checkbox', {name: 'Duration · fill(linear) → SMA(5)'})
+    ).toBeChecked();
+  });
+
+  it('includes suffixes in overflow options', async () => {
+    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(100);
+    jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({width: 80} as DOMRect);
+    const onSelectionChange = jest.fn();
+    render(
+      <ChartLegend
+        truncateMenuLabels
+        items={[
+          {name: 'original', label: 'Duration', color: '#ff0000'},
+          {name: 'smoothed', label: 'Duration', suffix: 'SMA(5)', color: '#0000ff'},
+        ]}
+        selected={{}}
+        onSelectionChange={onSelectionChange}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Duration · SMA(5)'}));
+
+    expect(onSelectionChange).toHaveBeenCalledWith({original: true, smoothed: false});
+  });
+
   it('toggles item selection when clicked', async () => {
     mockDimensions(1000);
     const onSelectionChange = jest.fn();
