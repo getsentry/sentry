@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useRef} from 'react';
+import type {RefObject} from 'react';
 import {Global, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
@@ -12,10 +13,10 @@ import seerEye from 'sentry-images/spot/seer-eye.svg';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import {Container, Grid, Stack, Surface} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {streamingAnimationStyles, useTextDecodeAnimation} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
-import {useMedia} from '@sentry/scraps/useMedia';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -25,8 +26,10 @@ import type {ChatSuggestion, SeerExplorerRunId} from 'sentry/views/seerExplorer/
 const SUGGESTION_PLACEHOLDER_COUNT = 3;
 
 interface EmptyStateProps {
+  composerRef?: RefObject<HTMLDivElement | null>;
   displaySlackAgentReminder?: boolean;
   errorStatusCode?: number | null;
+  hasDraft?: boolean;
   /** The conversation could not be loaded: the request failed, or it came back errored. */
   isError?: boolean;
   isLoading?: boolean;
@@ -46,6 +49,8 @@ export function EmptyState({
   onStartNewChat,
   onSuggestionClick,
   suggestions,
+  composerRef,
+  hasDraft = false,
 }: EmptyStateProps) {
   const characterRef = useRef<HTMLDivElement>(null);
   const suggestionCount = suggestions?.isLoading
@@ -58,13 +63,31 @@ export function EmptyState({
       return;
     }
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let pointer: Pick<PointerEvent, 'clientX' | 'clientY'> | null = null;
 
     function handlePointerMove(event: PointerEvent) {
-      const character = characterRef.current;
-      if (!character || reducedMotion.matches || event.pointerType === 'touch') {
+      if (event.pointerType === 'touch') {
         return;
       }
-      const {x, y} = getPupilOffset(character.getBoundingClientRect(), event);
+      pointer = {clientX: event.clientX, clientY: event.clientY};
+      updateGaze();
+    }
+
+    function updateGaze() {
+      const character = characterRef.current;
+      if (!character) {
+        return;
+      }
+      if (reducedMotion.matches) {
+        resetPupil();
+        return;
+      }
+      const target = getComposerCaretPoint(composerRef?.current ?? null) ?? pointer;
+      if (!target) {
+        resetPupil();
+        return;
+      }
+      const {x, y} = getPupilOffset(character.getBoundingClientRect(), target);
       character.style.setProperty('--pupil-x', `${x}px`);
       character.style.setProperty('--pupil-y', `${y}px`);
     }
@@ -74,17 +97,39 @@ export function EmptyState({
       characterRef.current?.style.setProperty('--pupil-y', '0px');
     }
 
+    function handlePointerLeave() {
+      pointer = null;
+      updateGaze();
+    }
+
     document.addEventListener('pointermove', handlePointerMove, {passive: true});
-    document.addEventListener('pointerleave', resetPupil);
+    const caretEvents = [
+      'selectionchange',
+      'focusin',
+      'focusout',
+      'input',
+      'keyup',
+      'scroll',
+    ];
+    for (const event of caretEvents) {
+      document.addEventListener(event, updateGaze, true);
+    }
+    document.addEventListener('pointerleave', handlePointerLeave);
     window.addEventListener('blur', resetPupil);
-    reducedMotion.addEventListener('change', resetPupil);
+    window.addEventListener('resize', updateGaze);
+    reducedMotion.addEventListener('change', updateGaze);
+    updateGaze();
     return () => {
       document.removeEventListener('pointermove', handlePointerMove);
-      document.removeEventListener('pointerleave', resetPupil);
+      for (const event of caretEvents) {
+        document.removeEventListener(event, updateGaze, true);
+      }
+      document.removeEventListener('pointerleave', handlePointerLeave);
       window.removeEventListener('blur', resetPupil);
-      reducedMotion.removeEventListener('change', resetPupil);
+      window.removeEventListener('resize', updateGaze);
+      reducedMotion.removeEventListener('change', updateGaze);
     };
-  }, [isError, isLoading]);
+  }, [isError, isLoading, composerRef]);
 
   return (
     <Fragment>
@@ -165,6 +210,9 @@ export function EmptyState({
               <BeamScan data-beam-scan="" position="absolute" inset="0" />
             </FloatingCharacter>
             <SuggestionContent
+              $hidden={hasDraft}
+              aria-hidden={hasDraft || undefined}
+              inert={hasDraft}
               area="1 / 1"
               position="relative"
               alignSelf="start"
@@ -199,13 +247,7 @@ export function EmptyState({
                         key={index}
                         suggestion={suggestion}
                         position={index}
-                        onClick={(selected, position, card) => {
-                          const character = characterRef.current;
-                          if (character) {
-                            slurpSuggestion(card, character);
-                          }
-                          onSuggestionClick(selected, position);
-                        }}
+                        onClick={onSuggestionClick}
                       />
                     );
                   })}
@@ -216,7 +258,12 @@ export function EmptyState({
         )}
       </Stack>
       {!isLoading && !isError && displaySlackAgentReminder && (
-        <Container padding="0 xl">
+        <DraftExtras
+          padding="0 xl"
+          $hidden={hasDraft}
+          aria-hidden={hasDraft || undefined}
+          inert={hasDraft}
+        >
           <Alert variant="muted">
             {tct('Want to chat in Slack? Just ask [mention] to debug issues.', {
               mention: (
@@ -226,7 +273,7 @@ export function EmptyState({
               ),
             })}
           </Alert>
-        </Container>
+        </DraftExtras>
       )}
     </Fragment>
   );
@@ -248,57 +295,65 @@ export function getPupilOffset(
   };
 }
 
+function getComposerCaretPoint(editor: HTMLDivElement | null) {
+  if (!editor) {
+    return null;
+  }
+  if (editor.ownerDocument.activeElement !== editor) {
+    return null;
+  }
+  const selection = editor.ownerDocument.getSelection();
+  if (selection?.focusNode && editor.contains(selection.focusNode)) {
+    const range = editor.ownerDocument.createRange();
+    range.setStart(selection.focusNode, selection.focusOffset);
+    range.collapse(true);
+    const rect = range.getBoundingClientRect?.();
+    if (rect?.height) {
+      return {clientX: rect.left, clientY: rect.top + rect.height / 2};
+    }
+  }
+  const bounds = editor.getBoundingClientRect();
+  const style = getComputedStyle(editor);
+  return {
+    clientX: bounds.left + (parseFloat(style.paddingLeft) || 0),
+    clientY:
+      bounds.top +
+      (parseFloat(style.paddingTop) || 0) +
+      (parseFloat(style.lineHeight) || parseFloat(style.fontSize) || 0) / 2,
+  };
+}
+
 function SuggestionItem({
   suggestion,
   position,
   onClick,
 }: {
-  onClick: (suggestion: ChatSuggestion, position: number, card: HTMLElement) => void;
+  onClick: (suggestion: ChatSuggestion, position: number) => void;
   position: number;
   suggestion: ChatSuggestion | undefined;
 }) {
-  const cardRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
-  const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
   const text = suggestion?.text;
-  useTextDecodeAnimation(textRef, text, {pending: text === undefined});
-
-  useEffect(() => {
-    const card = cardRef.current;
-    if (reducedMotion || !card?.animate) {
-      return;
-    }
-    const animation = card.animate(
-      [
-        {transform: 'translateX(24px)', opacity: 0},
-        {transform: 'translateX(0)', opacity: 1},
-      ],
-      {duration: 260, delay: position * 80, easing: 'ease-out', fill: 'backwards'}
-    );
-    return () => animation.cancel();
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Replay the entrance when a page's prompt text changes.
-  }, [text, position, reducedMotion]);
+  useTextDecodeAnimation(textRef, text, {
+    pending: text === undefined,
+    delay: position * 80,
+  });
 
   return (
-    <Surface
-      ref={cardRef}
+    <ToggleCard
       data-suggestion-card=""
-      variant="overlay"
-      elevation="medium"
-      radius="lg"
+      variant="button"
+      padding="md lg"
+      disabled={!suggestion}
+      tabIndex={suggestion ? undefined : -1}
+      aria-label={text}
+      onClick={() => {
+        if (suggestion) {
+          onClick(suggestion, position);
+        }
+      }}
     >
-      <SuggestionCard
-        variant="transparent"
-        size="zero"
-        disabled={!suggestion}
-        aria-label={text}
-        onClick={() => {
-          const card = cardRef.current;
-          if (suggestion && card) {
-            onClick(suggestion, position, card);
-          }
-        }}
-      >
+      <Flex align="center" justify="center" minHeight="48px">
         <Text
           key={text ?? 'pending'}
           ref={textRef}
@@ -311,69 +366,9 @@ function SuggestionItem({
         >
           {text ?? t('Preparing your suggested questions…')}
         </Text>
-      </SuggestionCard>
-    </Surface>
+      </Flex>
+    </ToggleCard>
   );
-}
-
-function slurpSuggestion(card: HTMLElement, character: HTMLElement) {
-  if (!card.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return;
-  }
-  const clone = card.cloneNode(true);
-  const artwork = character.cloneNode(true);
-  if (!(clone instanceof HTMLElement) || !(artwork instanceof HTMLElement)) {
-    return;
-  }
-  const bounds = card.getBoundingClientRect();
-  const target = character.getBoundingClientRect();
-  for (const visual of [artwork, clone]) {
-    visual.setAttribute('aria-hidden', 'true');
-    visual.setAttribute('inert', '');
-    Object.assign(visual.style, {
-      position: 'fixed',
-      pointerEvents: 'none',
-      zIndex: '2147483647',
-    });
-  }
-  artwork.setAttribute('data-seer-slurp', '');
-  Object.assign(artwork.style, {
-    left: `${target.left}px`,
-    top: `${target.top}px`,
-    width: `${target.width}px`,
-    height: `${target.height}px`,
-    animation: 'none',
-    transform: 'none',
-  });
-  clone.removeAttribute('data-suggestion-card');
-  clone.setAttribute('data-suggestion-slurp', '');
-  Object.assign(clone.style, {
-    left: `${bounds.left}px`,
-    top: `${bounds.top}px`,
-    width: `${bounds.width}px`,
-    height: `${bounds.height}px`,
-  });
-  // Keep the visual transition alive after sending unmounts the empty state.
-  document.body.append(artwork, clone);
-  artwork.animate([{opacity: 1}, {opacity: 0}], {
-    delay: 200,
-    duration: 120,
-    fill: 'forwards',
-  });
-  const x = target.left + target.width * 0.506 - bounds.left - bounds.width / 2;
-  const y = target.top + target.height * 0.21 - bounds.top - bounds.height / 2;
-  const animation = clone.animate(
-    [
-      {transform: 'translate(0, 0) scale(1)', opacity: 1},
-      {transform: `translate(${x}px, ${y}px) scale(0.08)`, opacity: 0},
-    ],
-    {duration: 320, easing: 'cubic-bezier(0.55, 0.04, 0.95, 0.45)', fill: 'forwards'}
-  );
-  const cleanup = () => {
-    clone.remove();
-    artwork.remove();
-  };
-  void animation.finished.then(cleanup, cleanup);
 }
 
 const float = keyframes`
@@ -393,7 +388,19 @@ const scan = keyframes`
   100% { transform: translateY(-50%); opacity: 0; }
 `;
 
-const SuggestionContent = styled(Stack)`
+const DraftExtras = styled(Stack)<{$hidden: boolean}>`
+  opacity: ${p => (p.$hidden ? 0 : 1)};
+  visibility: ${p => (p.$hidden ? 'hidden' : 'visible')};
+  transition:
+    opacity 180ms ease-out,
+    visibility 0s linear ${p => (p.$hidden ? '180ms' : '0s')};
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const SuggestionContent = styled(DraftExtras)`
   padding-top: calc(237.4 / 170.58 * 43%);
 `;
 
@@ -470,12 +477,4 @@ const BeamScan = styled(Container)`
       animation: ${scan} 6s ease-in-out infinite;
     }
   }
-`;
-
-const SuggestionCard = styled(Button)`
-  width: 100%;
-  min-height: 64px;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  border-radius: ${p => p.theme.radius.lg};
 `;
