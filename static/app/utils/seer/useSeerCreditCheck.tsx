@@ -82,7 +82,7 @@ export function useSeerCreditCheck(
     ...seerCreditCheckApiOptions(organization, operation),
     enabled: isChecking,
     // Credits move outside this page: a run elsewhere spends them and a billing
-    // member can top up from another tab. Recheck on every mount and window
+    // member can turn on auto-reload from another tab. Recheck on every mount and window
     // focus (which the app's query client turns off by default) so a gate
     // never outlives the balance it was based on.
     refetchOnWindowFocus: true,
