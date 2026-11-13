@@ -4,6 +4,7 @@ import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {NotificationSettingsByType} from './notifications/notificationSettingsByType';
@@ -25,7 +26,7 @@ const accountNotifications = [
 export default function AccountNotificationFineTuningController() {
   const loaded = useStore(OrganizationsStore, state => state.loaded);
   const organizationLoading = useStore(OrganizationStore, state => state.loading);
-  const organization = useStore(OrganizationStore, state => state.organization);
+  const organization = useOrganization({allowNull: true});
   const {fineTuneType: pathnameType} = useParams<{fineTuneType: string}>();
   const fineTuneType = getNotificationTypeFromPathname(pathnameType);
 

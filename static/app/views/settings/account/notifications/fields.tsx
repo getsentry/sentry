@@ -378,4 +378,4 @@ export const INBOX_FIELDS = [
       'Your investigation is completed, blocked or failed and is awaiting your review.'
     ),
   },
-] as const;
+];
