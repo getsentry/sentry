@@ -54,10 +54,7 @@ import type {
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
-import {
-  RELEASE_BUBBLE_SERIES_NAME,
-  useReleaseBubbles,
-} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
+import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
@@ -468,7 +465,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {
     connectReleaseBubbleChartRef,
-    onReleaseBubbleLegendSelectChanged,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
@@ -478,7 +474,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     minTime: earliestTimeStamp,
     maxTime: latestTimeStamp,
     releases: bubbleReleases,
-    legendSelected: legendSelection[RELEASE_BUBBLE_SERIES_NAME] !== false,
+    legendSelected: true,
     yAxisIndex: yAxes.length,
   });
 
@@ -541,11 +537,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 
   const handleLegendSelectChanged = useCallback<EChartLegendSelectChangeHandler>(
-    (event, instance) => {
-      onReleaseBubbleLegendSelectChanged(event, instance);
+    event => {
       handleLegendSelectionChange(event.selected);
     },
-    [onReleaseBubbleLegendSelectChanged, handleLegendSelectionChange]
+    [handleLegendSelectionChange]
   );
 
   const handleChartReady = useCallback(
@@ -610,8 +605,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // that label, add some grid padding.
   const xAxisGrid = showXAxis ? {} : {bottom: 5};
 
+  // Release bubbles are toggled from outside the chart (e.g., a dashboard
+  // widget's Layers menu), so only release lines get a legend item.
+  const releaseLegendSeries = hasReleaseBubbles ? null : releaseSeries;
+
   let visibleSeriesCount = props.plottables.length;
-  if (releaseSeries) {
+  if (releaseLegendSeries) {
     visibleSeriesCount += 1;
   }
 
@@ -686,13 +685,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     };
   });
 
-  if (releaseSeries) {
-    const releaseName = typeof releaseSeries.name === 'string' ? releaseSeries.name : '';
+  if (releaseLegendSeries) {
+    const releaseName =
+      typeof releaseLegendSeries.name === 'string' ? releaseLegendSeries.name : '';
     const releaseColor =
-      typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
+      typeof releaseLegendSeries.color === 'string' ? releaseLegendSeries.color : '';
     chartLegendItems.push({
       name: releaseName,
-      label: hasReleaseBubbles ? t('Releases') : releaseName,
+      label: releaseName,
       color: releaseColor,
     });
   }
