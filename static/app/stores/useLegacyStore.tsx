@@ -9,7 +9,7 @@ interface LegacyStoreShape extends Pick<Store, 'listen'> {
  * Returns the state of a reflux store. Automatically unsubscribes when destroyed
  *
  * ```tsx
- * const teams = useLegacyStore(TeamStore);
+ * const {projects} = useLegacyStore(ProjectsStore);
  * ```
  *
  * @link https://react.dev/reference/react/useSyncExternalStore

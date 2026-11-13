@@ -8,9 +8,9 @@ from uuid import uuid4
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry.inbox.issue import record_issue_team_mention, record_issue_user_mention
+from sentry.inbox.issue import ISSUE_TEAM_MENTIONED, ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
-from sentry.inbox.types import InboxActor
+from sentry.inbox.types import InboxActor, InboxEventSummary
 from sentry.integrations.tasks.create_comment import create_comment as create_external_comment
 from sentry.integrations.tasks.update_comment import update_comment as update_external_comment
 from sentry.issues.action_log import (
@@ -24,6 +24,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created, comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
@@ -136,19 +137,25 @@ def create_comment(
             )
             mentions = data.get("mentions", [])
             safe_execute(
-                record_issue_user_mention,
-                group=group,
-                comment_id=note.id,
-                mentioned_user_ids=[
+                create_inbox_items,
+                event_type=ISSUE_USER_MENTIONED,
+                subject=group,
+                data=IssueMentionedData(
+                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=note.id
+                ),
+                user_ids=[
                     mention["id"] for mention in mentions if mention["actor_type"] == ActorType.USER
                 ],
                 actor=inbox_actor,
             )
             safe_execute(
-                record_issue_team_mention,
-                group=group,
-                comment_id=note.id,
-                mentioned_team_ids=[
+                create_inbox_items,
+                event_type=ISSUE_TEAM_MENTIONED,
+                subject=group,
+                data=IssueMentionedData(
+                    summary=InboxEventSummary.ISSUE_TEAM_MENTIONED, comment_id=note.id
+                ),
+                team_ids=[
                     mention["id"] for mention in mentions if mention["actor_type"] == ActorType.TEAM
                 ],
                 actor=inbox_actor,

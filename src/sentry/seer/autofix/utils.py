@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal, NotRequired, TypedDict
@@ -23,6 +23,7 @@ from sentry.constants import (
 )
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import (
+    convert_stacktrace_frame_path_to_source_path,
     get_sorted_code_mapping_configs,
 )
 from sentry.models.group import Group
@@ -58,6 +59,12 @@ from sentry.seer.models.project_repository import (
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils.cache import cache
+from sentry.utils.event_frames import (
+    EventFrame,
+    find_stack_frames,
+    get_sdk_name,
+    try_munge_frame_path,
+)
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -115,7 +122,7 @@ def get_valid_automated_run_stopping_points(
     organization: Organization,
 ) -> frozenset[AutofixStoppingPoint]:
     """Return the set of stopping points valid for an org's billing tier."""
-    if is_seer_seat_based_tier_enabled(organization):
+    if is_seer_seat_or_token_billed_enabled(organization):
         return SEAT_BASED_STOPPING_POINTS
     return USAGE_BASED_STOPPING_POINTS
 
@@ -555,6 +562,7 @@ def build_seer_repo_definition(
 
 # Automatic links only fill a project up to this many repos. Links a user made are never cut.
 MAX_SEER_REPOS_PER_PROJECT = 8
+EVENT_MATCHED_REPOS_CACHE_TTL_SECONDS = 300
 USER_CREATED_LINK_PRIORITY = SOURCE_PRIORITY[ProjectRepositorySource.MANUAL]
 
 
@@ -565,20 +573,108 @@ def _get_link_priority(project_repo: ProjectRepository) -> int:
     return SOURCE_PRIORITY.get(ProjectRepositorySource(project_repo.source), 0)
 
 
+def get_event_matched_project_repo_ids(group: Group) -> set[int]:
+    """Linked repos of the group's project whose code mapping matches an in-app frame of its event."""
+    organization = group.project.organization
+    if not is_seer_token_based_billing_onboarding_enabled(organization):
+        return set()
+    project_repos = get_token_based_billing_project_repos(organization, [group.project_id])
+    # The order only matters when the limit can cut a repo, and loading the event hits Snuba.
+    if project_repos.count() <= MAX_SEER_REPOS_PER_PROJECT:
+        return set()
+
+    cache_key = f"seer:event-matched-project-repo-ids:{group.id}"
+    try:
+        cached_ids = cache.get(cache_key)
+        if cached_ids is not None:
+            return set(cached_ids)
+        matched_ids = _match_event_frames_to_project_repos(group, project_repos)
+        cache.set(cache_key, list(matched_ids), timeout=EVENT_MATCHED_REPOS_CACHE_TTL_SECONDS)
+        return matched_ids
+    except Exception:
+        sentry_sdk.capture_exception()
+        return set()
+
+
+def _match_event_frames_to_project_repos(
+    group: Group, project_repos: QuerySet[ProjectRepository]
+) -> set[int]:
+    event = group.get_recommended_event_for_environments() or group.get_latest_event()
+    if event is None:
+        return set()
+    sdk_name = get_sdk_name(event.data)
+
+    # Recursion repeats frames, so match each distinct one once.
+    distinct_frames = {
+        EventFrame(
+            abs_path=frame.get("abs_path"),
+            filename=frame.get("filename"),
+            package=frame.get("package"),
+            module=frame.get("module"),
+        )
+        for frame in find_stack_frames(event.data)
+        if frame and frame.get("in_app")
+    }
+    frames_by_paths: dict[tuple[str, ...], EventFrame] = {}
+    for frame in distinct_frames:
+        stacktrace_path = (
+            try_munge_frame_path(frame=frame, platform=event.platform, sdk_name=sdk_name)
+            or frame.filename
+        )
+        paths = tuple(path for path in (stacktrace_path, frame.abs_path) if path)
+        if paths:
+            frames_by_paths.setdefault(paths, frame)
+
+    usable_project_repo_ids = set(project_repos.values_list("id", flat=True))
+    code_mappings = [
+        code_mapping
+        for code_mapping in get_sorted_code_mapping_configs(group.project)
+        if code_mapping.project_repository_id in usable_project_repo_ids
+    ]
+
+    matched_ids: set[int] = set()
+    for paths, frame in frames_by_paths.items():
+        for code_mapping in code_mappings:
+            # A cheap prefix check keeps the full conversion off the mappings that can't match.
+            if not any(path.startswith(code_mapping.stack_root) for path in paths):
+                continue
+            if (
+                convert_stacktrace_frame_path_to_source_path(
+                    frame=frame,
+                    code_mapping=code_mapping,
+                    platform=event.platform,
+                    sdk_name=sdk_name,
+                )
+                is not None
+            ):
+                matched_ids.add(code_mapping.project_repository_id)
+                break
+    return matched_ids
+
+
 def _get_repo_definitions_by_project(
-    organization: Organization, project_ids: Sequence[int], *, limit_repos: bool = False
+    organization: Organization,
+    project_ids: Sequence[int],
+    *,
+    limit_repos: bool = False,
+    priority_project_repo_ids: Collection[int] = (),
 ) -> dict[int, list[SeerRepoDefinition]]:
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
     if is_seer_token_based_billing_onboarding_enabled(organization):
         project_repos = sorted(
             get_token_based_billing_project_repos(organization, project_ids),
-            key=lambda project_repo: (-_get_link_priority(project_repo), project_repo.id),
+            key=lambda project_repo: (
+                project_repo.id not in priority_project_repo_ids,
+                -_get_link_priority(project_repo),
+                project_repo.id,
+            ),
         )
         for project_repo in project_repos:
             repo_defs = repo_definitions_by_project[project_repo.project_id]
             if (
                 limit_repos
                 and len(repo_defs) >= MAX_SEER_REPOS_PER_PROJECT
+                and project_repo.id not in priority_project_repo_ids
                 and _get_link_priority(project_repo) < USER_CREATED_LINK_PRIORITY
             ):
                 continue
@@ -626,11 +722,17 @@ def get_automation_handoff(
 
 
 def read_preference_from_sentry_db(
-    project: Project, *, limit_repos: bool = False
+    project: Project,
+    *,
+    limit_repos: bool = False,
+    priority_project_repo_ids: Collection[int] = (),
 ) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB."""
     repo_definitions = _get_repo_definitions_by_project(
-        project.organization, [project.id], limit_repos=limit_repos
+        project.organization,
+        [project.id],
+        limit_repos=limit_repos,
+        priority_project_repo_ids=priority_project_repo_ids,
     ).get(project.id, [])
     return SeerProjectPreference(
         organization_id=project.organization_id,
@@ -643,7 +745,11 @@ def read_preference_from_sentry_db(
 
 
 def bulk_read_preferences_from_sentry_db(
-    organization_id: int, project_ids: list[int], *, limit_repos: bool = False
+    organization_id: int,
+    project_ids: list[int],
+    *,
+    limit_repos: bool = False,
+    priority_project_repo_ids: Collection[int] = (),
 ) -> dict[int, SeerProjectPreference]:
     """Bulk read Seer preferences from Sentry DB."""
     if not project_ids:
@@ -656,7 +762,10 @@ def bulk_read_preferences_from_sentry_db(
     organization = Organization.objects.get_from_cache(id=organization_id)
 
     repo_definitions_by_project = _get_repo_definitions_by_project(
-        organization, [project.id for project in projects], limit_repos=limit_repos
+        organization,
+        [project.id for project in projects],
+        limit_repos=limit_repos,
+        priority_project_repo_ids=priority_project_repo_ids,
     )
 
     # get_value_bulk_id returns None for missing options, unlike project.get_option
@@ -1046,6 +1155,16 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     return has_seat_based_seer
 
 
+def is_seer_seat_or_token_billed_enabled(organization: Organization) -> bool:
+    """
+    Check if the organization is on seat-based or token-billed Seer, as opposed to
+    legacy usage-based Seer. Both use agentic triage for automation.
+    """
+    return is_seer_seat_based_tier_enabled(organization) or features.has(
+        "organizations:token-billed-seer-enabled", organization
+    )
+
+
 def is_seer_token_based_billing_onboarding_enabled(organization: Organization) -> bool:
     """Check if Seer onboarding changes for token-based billing apply to this organization."""
     return features.has(
@@ -1058,17 +1177,17 @@ def is_free_cohort_org(organization: Organization) -> bool:
     orgs that receive agentic triage and autofix without a Seer subscription.
 
     Returns True when the kill switch is NOT engaged (flag disabled = cohort
-    active), the org is NOT on a paid seat-based Seer plan, and the org
-    option is set to True.
+    active), the org is NOT on a paid seat-based or token-billed Seer plan, and
+    the org option is set to True.
     """
     try:
         if features.has("organizations:agentic-triage-free-cohort-killswitch", organization):
             return False
     except Exception:
         return False
-    return not is_seer_seat_based_tier_enabled(organization) and bool(
+    return bool(
         OrganizationOption.objects.get_value(organization, "agentic-triage-free-cohort", False)
-    )
+    ) and not is_seer_seat_or_token_billed_enabled(organization)
 
 
 def is_issue_category_eligible(group: Group) -> bool:

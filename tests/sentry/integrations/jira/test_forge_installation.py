@@ -46,7 +46,7 @@ def _invocation(**overrides: str | None) -> ForgeInvocation:
 
 @control_silo_test
 @patch("sentry.integrations.jira.webhooks.forge_installation.sync_forge_installation")
-@patch("sentry.integrations.jira.webhooks.forge_installation.verify_forge_invocation_token")
+@patch("sentry.integrations.jira.forge.invocation_token.verify_forge_invocation_token")
 class JiraForgeInstallationWebhookTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

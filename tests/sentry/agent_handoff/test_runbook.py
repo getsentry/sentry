@@ -1,5 +1,6 @@
 import shlex
-from unittest.mock import patch
+from collections.abc import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import ValidationError
@@ -7,8 +8,23 @@ from pydantic import ValidationError
 from sentry.agent_handoff.codes import HandoffFlow, ProjectSetupContext
 from sentry.agent_handoff.flows import get_flow
 from sentry.agent_handoff.flows.base import InvalidHandoffContext
+from sentry.agent_handoff.installer import PinnedInstaller, installer_command
 from sentry.agent_handoff.runbook import render_agent_runbook, render_claim_runbook
 from sentry.organizations.services.organization.model import RpcOnboardingReportingCode
+
+INSTALLER = PinnedInstaller(
+    url="https://github.com/getsentry/toolkit/releases/download/cli@0.48.0/install",
+    version="0.48.0",
+    sha256="a" * 64,
+)
+
+
+@pytest.fixture(autouse=True)
+def pinned() -> Generator[MagicMock]:
+    with patch(
+        "sentry.agent_handoff.runbook.pinned_installer", return_value=None
+    ) as pinned_installer:
+        yield pinned_installer
 
 
 def render(**overrides: str) -> str:
@@ -129,6 +145,19 @@ def test_setup_page_explains_handoff_code_redemption() -> None:
     assert "--data-urlencode 'handoff_code=HANDOFF_CODE'" in guide
 
 
+def test_runbook_verifies_and_pins_installer_to_latest_release(pinned: MagicMock) -> None:
+    pinned.return_value = INSTALLER
+    environment = (
+        "SENTRY_HOST=https://sentry.example.com SENTRY_URL=https://sentry.example.com "
+        "SENTRY_CLIENT_ID=example-client-id SENTRY_SETUP_CODE=sntryc_example-setup-code"
+    )
+
+    guide = render()
+
+    assert installer_command(environment, INSTALLER) in guide
+    assert "do not run the installer any other way" in guide
+
+
 def test_runbook_includes_flow_instructions_after_authentication() -> None:
     guide = render(flow_instructions="Follow the tracing setup guide.")
     assert guide.rstrip().endswith("Follow the tracing setup guide.")
@@ -198,13 +227,14 @@ def test_onboarding_preview_uses_live_documentation() -> None:
     guide = render(flow_instructions=get_flow(HandoffFlow.ONBOARDING).preview())
     assert "You're onboarding a new user to Sentry" in guide
     assert "https://docs.sentry.io/index.md" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md), both with `curl -sS`" in guide
 
 
 def test_create_project_preview_uses_project_wording() -> None:
     guide = render(flow_instructions=get_flow(HandoffFlow.CREATE_PROJECT).preview())
     assert "helping an existing Sentry user set up a new project" in guide
     assert "https://docs.sentry.io/index.md" in guide
-    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md), both with `curl -sS`" in guide
 
 
 @pytest.mark.parametrize("sentry_url", ["sentry.io", "https://sentry.io", "https://sentry.io/"])
@@ -239,7 +269,7 @@ def test_onboarding_claim_issues_reporting_code() -> None:
     assert "using the organization slug above" in guide
     assert "guide's Onboarding Progress section" in guide
     assert "https://docs.sentry.io/index.md" in guide
-    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md), both with `curl -sS`" in guide
 
 
 def test_create_project_claim_issues_reporting_code() -> None:
@@ -257,7 +287,8 @@ def test_create_project_claim_issues_reporting_code() -> None:
     issue.assert_called_once_with(organization_id=2, user_id=1, run_id=context.run_id)
     assert "helping an existing Sentry user set up a new project" in guide
     assert "Your onboarding run code is `a1B2c3D4e5`" in guide
-    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
+    assert "https://docs.sentry.io/index.md" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md), both with `curl -sS`" in guide
 
 
 def test_create_project_claim_rejects_unavailable_run() -> None:

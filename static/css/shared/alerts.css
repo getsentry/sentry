@@ -1,0 +1,86 @@
+/* Alerts */
+/* -------------------------------------------------- */
+
+/* Base styles */
+/* ------------------------- */
+
+.alert {
+  padding: var(--legacy-alert-padding);
+  margin-bottom: var(--legacy-line-height-computed);
+  border: 1px solid transparent;
+  border-radius: var(--legacy-alert-border-radius);
+
+  /* Headings for larger alerts */
+  h4 {
+    margin-top: 0;
+    color: inherit; /* Specified for the h4 to prevent conflicts of changing headings color */
+  }
+
+  /* Improve alignment and spacing of inner content */
+  > p,
+  > ul {
+    margin-bottom: 0;
+  }
+
+  > p + p {
+    margin-top: 5px;
+  }
+}
+
+/* Alternate styles */
+
+.alert-success {
+  color: var(--legacy-state-success-text);
+  background-color: var(--legacy-alert-success-bg-color);
+  border-color: var(--legacy-alert-success-border-color);
+
+  hr {
+    border-top-color: #accda2; /* darken(alert-success-border-color, 5%) */
+  }
+
+  .alert-link {
+    color: #132513; /* darken(state-success-text, 10%) */
+  }
+}
+
+.alert-info {
+  color: var(--legacy-state-info-text);
+  background-color: var(--legacy-alert-info-bg-color);
+  border-color: var(--legacy-alert-info-border-color);
+
+  hr {
+    border-top-color: #a0cbe8; /* darken(alert-info-border-color, 5%) */
+  }
+
+  .alert-link {
+    color: #08101f; /* darken(state-info-text, 10%) */
+  }
+}
+
+.alert-warning {
+  color: var(--legacy-state-warning-text);
+  background-color: var(--legacy-alert-warning-bg-color);
+  border-color: var(--legacy-alert-warning-border-color);
+
+  hr {
+    border-top-color: #dbce83; /* darken(alert-warning-border-color, 5%) */
+  }
+
+  .alert-link {
+    color: #3b2f19; /* darken(state-warning-text, 10%) */
+  }
+}
+
+.alert-danger {
+  color: var(--legacy-state-danger-text);
+  background-color: var(--legacy-alert-danger-bg-color);
+  border-color: var(--legacy-alert-danger-border-color);
+
+  hr {
+    border-top-color: #e0aea9; /* darken(alert-danger-border-color, 5%) */
+  }
+
+  .alert-link {
+    color: #421b1a; /* darken(state-danger-text, 10%) */
+  }
+}

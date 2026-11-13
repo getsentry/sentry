@@ -125,7 +125,9 @@ function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
           query={query}
           items={items}
           filters={filters}
-          onClearFilters={() => void setFilters({subjectType: null, eventType: null})}
+          onClearFilters={() =>
+            void setFilters({subjectType: null, eventType: null, recipient: null})
+          }
           selectedItemId={selectedItem?.id ?? null}
         />
       </Container>
@@ -247,7 +249,7 @@ function InboxContent() {
         </Container>
       </Stack>
       {/* Keyed so that selecting another item starts the preview scrolled to the top */}
-      <Container
+      <Stack
         key={
           selectedSubject
             ? `${selectedSubject.subjectType}:${selectedSubject.subjectId}`
@@ -257,7 +259,7 @@ function InboxContent() {
         minHeight={0}
       >
         <InboxItemPreview subject={selectedSubject} />
-      </Container>
+      </Stack>
     </Grid>
   );
 }

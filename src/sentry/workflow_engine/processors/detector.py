@@ -131,7 +131,7 @@ def _is_issue_stream_detector_enabled(event_data: WorkflowEventData) -> bool:
     """
     Check if the issue stream detector should be enabled for this event's group type.
     """
-    group_type_id = event_data.group.type
+    group_type_id = event_data.require_group().type
     disabled_type_ids = options.get("workflow_engine.group.type_id.disable_issue_stream_detector")
     if group_type_id not in disabled_type_ids:
         return True
@@ -164,6 +164,9 @@ def get_detectors_for_event_data(
 
     We expect a detector to be passed in for Activity updates.
     """
+    if event_data.group is None:
+        return None
+
     # NOTE: Order determines priority: project-scoped first, then fall back to all-projects
     issue_stream_detectors: list[Detector] = []
 
@@ -243,7 +246,7 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
                 raise Detector.DoesNotExist("No detectors found for event")
             return event_detectors.preferred_detector
         elif isinstance(event_data.event, Activity):
-            return _get_detector_for_group(event_data.group)
+            return _get_detector_for_group(event_data.require_group())
         else:
             raise TypeError(f"Cannot determine the detector from {type(event_data.event)}.")
     except Detector.DoesNotExist:
