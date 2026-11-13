@@ -10,7 +10,7 @@ from sentry.seer.workflows.breached_metrics import (
     MetricAlertTrigger,
     MetricBreachInputs,
 )
-from sentry.seer.workflows.schedule import (
+from sentry.seer.workflows.scheduled import (
     PromptedInvestigationAction,
     ScheduledRunInputs,
     ScheduleTrigger,
