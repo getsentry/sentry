@@ -20,6 +20,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
@@ -50,6 +51,12 @@ from sentry.seer.autofix.pr_iteration.logs import (
     LogCtxIteration,
     PrIterationLogContext,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    OutOfCredits,
+    StrandedAction,
+    get_out_of_credits,
+    mark_out_of_credits,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -63,11 +70,6 @@ from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
-from sentry.seer.autofix.pr_iteration.stranded_action import (
-    StrandedAction,
-    record_stranded_action,
-    take_stranded_action,
-)
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import (
@@ -982,7 +984,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
     def _strand(self, action: StrandedAction) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
-        record_stranded_action(
+        mark_out_of_credits(
             run_id=67890, organization_id=self.organization.id, stranded_action=action
         )
 
@@ -1231,21 +1233,22 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_drains_when_seer_ran_out_of_credits(
+    def test_drains_when_the_run_stopped_on_credits(
         self,
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
         # Its partial changes are unpushed, but no push is coming: the next iteration pushes them.
-        state = self._state(status="error", blocks=[self._unpushed_block()])
-        state.failure_reason = "out_of_credits"
-        mock_fetch.return_value = state
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state(status="error", blocks=[self._unpushed_block()])
         mock_pop.return_value = [self._ui_queued()]
 
         self._call()
 
         mock_trigger.assert_called_once()
+        assert get_out_of_credits(run_id=67890, organization_id=self.organization.id) is None
 
     @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
@@ -1267,7 +1270,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         # The redo's completion hook drains the queue.
         mock_pop.assert_not_called()
         mock_trigger.assert_not_called()
-        assert take_stranded_action(run_id=67890, organization_id=self.organization.id) is None
+        assert get_out_of_credits(run_id=67890, organization_id=self.organization.id) is None
 
     @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
@@ -1289,33 +1292,20 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         mock_redo.assert_not_called()
         mock_trigger.assert_called_once()
-        assert take_stranded_action(run_id=67890, organization_id=self.organization.id) is None
+        assert get_out_of_credits(run_id=67890, organization_id=self.organization.id) is None
 
-    @patch(f"{TASK_PATH}.can_run_seer_operation", return_value=False)
-    @patch(f"{TASK_PATH}.trigger_pr_iteration_details")
-    @patch(f"{TASK_PATH}.trigger_autofix_agent")
-    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_returns_and_keeps_queue_when_out_of_credits(
-        self,
-        mock_fetch: MagicMock,
-        mock_pop: MagicMock,
-        mock_trigger: MagicMock,
-        mock_claim: MagicMock,
-        _mock_can_run: MagicMock,
-    ) -> None:
-        # The feedback waits for a top-up instead of being taken off the queue and dropped.
-        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+    def test_an_empty_queue_leaves_the_out_of_credits_marker(self, mock_fetch: MagicMock) -> None:
+        # Only a step that starts clears the marker.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
         mock_fetch.return_value = self._state()
-        self._open_iteration_row()
 
         self._call()
 
-        mock_claim.assert_not_called()
-        mock_pop.assert_not_called()
-        mock_trigger.assert_not_called()
-        (row,) = open_iterations(seer_run)
-        assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
+        assert get_out_of_credits(
+            run_id=67890, organization_id=self.organization.id
+        ) == OutOfCredits(stranded_action=None)
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -1732,6 +1722,29 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._call()
 
         assert peek_queued_autofix_feedback(67890) == []
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=SeerOutOfCreditsException())
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_trigger_refused_for_credits_requeues_the_batch(
+        self,
+        mock_fetch: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        # The batch waits for a top-up instead of being dropped.
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state()
+        self._open_iteration_row()
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        assert [item.feedback.text for item in peek_queued_autofix_feedback(67890)] == ["fix it"]
+        assert get_out_of_credits(
+            run_id=67890, organization_id=self.organization.id
+        ) == OutOfCredits(stranded_action=None)
+        (row,) = open_iterations(seer_run)
+        assert row.triggered is False
+        assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
 
     @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
