@@ -79,7 +79,7 @@ function PageloadServerRendering(props: TraceTreeNodeDetailsProps<ServerRenderNo
     projectId: pageload.value.project_id.toString(),
     traceId: pageload.extra?.replayTraceSlug ?? props.traceId,
     traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details', // TODO: change to span details
+    referrer: 'api.trace-view.span-detail',
     timestamp: pageload.value.start_timestamp,
     enabled: true,
   });
