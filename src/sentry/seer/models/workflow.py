@@ -34,9 +34,6 @@ SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
     {SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION}
 )
 
-# Configurable strategies whose runs are started on a schedule.
-SEER_CRON_WORKFLOW_STRATEGIES = frozenset({SeerWorkflowStrategy.AGENTIC_TRIAGE_V2})
-
 # Soft bound on configs per organization. Actual count could go over a bit from concurrent writes.
 MAX_WORKFLOW_CONFIGS_PER_ORG = 50
 
@@ -51,6 +48,9 @@ class SeerWorkflowConfigExtras(BaseModel):
     # The user who most recently updated this config through the API, or "bot" for
     # non-user callers. Unset until the first update.
     updated_by: int | Literal["bot"] | None = None
+    # Settings for the automation's trigger and action, in the shapes those classes declare.
+    trigger_settings: dict[str, Any] | None = None
+    action_settings: dict[str, Any] | None = None
 
 
 class SeerWorkflowFilters(BaseModel):

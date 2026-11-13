@@ -1,10 +1,17 @@
 import {Outlet} from 'react-router';
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationsList, {getNextUpdate} from 'sentry/views/seerWorkflows/automations';
@@ -205,8 +212,115 @@ describe('AutomationsList', () => {
 
     const heading = await screen.findByRole('heading', {name: 'Agentic triage'});
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
-    await userEvent.hover(heading.nextElementSibling!);
+    await userEvent.hover(heading.nextElementSibling!.lastElementChild!);
     expect(await screen.findByText('Built and maintained by Sentry')).toBeInTheDocument();
+  });
+
+  describe('metric automations', () => {
+    const detectorsUrl = `/organizations/${organization.slug}/detectors/`;
+
+    function metricConfig(id: string, name: string, monitorIds: number[]) {
+      return SeerWorkflowConfigFixture({
+        id,
+        name,
+        strategy: 'breached_metric_investigation',
+        monitorIds,
+      });
+    }
+
+    // The tooltip stays disabled until monitors load, and enabling it remounts
+    // the trigger, so query the trigger fresh once it is enabled
+    async function hoverMonitors(text: string) {
+      await waitFor(() =>
+        expect(screen.getByText(text).closest('[aria-describedby]')).not.toBeNull()
+      );
+      await userEvent.hover(screen.getByText(text));
+    }
+
+    it('shows a monitor count in place of projects', async () => {
+      mockConfigs([metricConfig('1', 'none', []), metricConfig('2', 'some', [1, 2, 3])]);
+      MockApiClient.addMockResponse({url: detectorsUrl, body: []});
+
+      render(<AutomationsList />, {organization});
+
+      await screen.findByRole('heading', {name: 'some'});
+      expect(getCard('none').getByText('No monitors')).toBeInTheDocument();
+      expect(getCard('some').getByText('3 monitors')).toBeInTheDocument();
+      expect(getCard('some').queryByText(/projects/)).not.toBeInTheDocument();
+    });
+
+    it('fetches the monitors of every card in one request', async () => {
+      mockConfigs([
+        metricConfig('1', 'first', [2, 1]),
+        metricConfig('2', 'second', [1, 3]),
+      ]);
+      const request = MockApiClient.addMockResponse({
+        url: detectorsUrl,
+        match: [MockApiClient.matchQuery({id: ['1', '2', '3']})],
+        body: [],
+      });
+
+      render(<AutomationsList />, {organization});
+
+      await screen.findByRole('heading', {name: 'second'});
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('lists monitor names as links on hover', async () => {
+      mockConfigs([metricConfig('1', 'metrics', [1, 2])]);
+      MockApiClient.addMockResponse({
+        url: detectorsUrl,
+        body: [
+          MetricDetectorFixture({id: '1', name: 'Error rate'}),
+          MetricDetectorFixture({id: '2', name: 'Latency'}),
+        ],
+      });
+
+      render(<AutomationsList />, {organization});
+
+      await hoverMonitors('2 monitors');
+      expect((await screen.findByText('Error rate')).closest('a')).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/monitors/1/'
+      );
+      expect(screen.getByText('Latency').closest('a')).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/monitors/2/'
+      );
+    });
+
+    it('shows five monitors and a remainder count for six or more', async () => {
+      const ids = [1, 2, 3, 4, 5, 6, 7];
+      mockConfigs([metricConfig('1', 'metrics', ids)]);
+      MockApiClient.addMockResponse({
+        url: detectorsUrl,
+        body: ids.map(id =>
+          MetricDetectorFixture({id: String(id), name: `Monitor ${id}`})
+        ),
+      });
+
+      render(<AutomationsList />, {organization});
+
+      await hoverMonitors('7 monitors');
+      expect(await screen.findByText('Monitor 5')).toBeInTheDocument();
+      expect(screen.queryByText('Monitor 6')).not.toBeInTheDocument();
+      expect(screen.getByText('+2 more')).toBeInTheDocument();
+    });
+
+    it('does not show the tooltip until monitors load', async () => {
+      mockConfigs([metricConfig('1', 'metrics', [1])]);
+      MockApiClient.addMockResponse({
+        url: detectorsUrl,
+        body: [MetricDetectorFixture({id: '1', name: 'Error rate'})],
+        asyncDelay: new Promise(() => {}),
+      });
+
+      render(<AutomationsList />, {organization});
+
+      await userEvent.hover(await screen.findByText('1 monitor'));
+      expect(screen.queryByText('Error rate')).not.toBeInTheDocument();
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
   });
 });
 
