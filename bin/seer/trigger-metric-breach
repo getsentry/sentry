@@ -1,0 +1,505 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import argparse
+import random
+import sys
+import time
+from collections.abc import Iterator
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
+from uuid import uuid4
+
+from django.conf import settings
+from django.db.models import Max, Min
+from django.http import HttpRequest
+from django.utils import timezone
+from rest_framework.request import Request
+
+from sentry import deletions, features, options
+from sentry.auth.principal import set_request_principal
+from sentry.event_manager import EventManager
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.tasks.deliver_from_outbox import drain_outbox_shards
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    ProcessedSubscriptionUpdate,
+)
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowConfigExtras,
+    SeerWorkflowRun,
+    SeerWorkflowRunStatus,
+    SeerWorkflowStrategy,
+)
+from sentry.seer.workflows.base import SeerServiceAccountGrant, SelectedMonitors
+from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.users.models.user import User
+from sentry.workflow_engine.models import (
+    DataPacket,
+    DataSourceDetector,
+    Detector,
+    DetectorGroup,
+    DetectorWorkflow,
+)
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors.data_packet import process_data_packet
+from sentry.workflow_engine.types import DetectorPriorityLevel
+
+AUTOMATION_NAME = "Script-triggered metric breaches"
+SERVICE_ACCOUNT_SCOPES = ("event:read", "member:read", "org:read", "project:read", "team:read")
+ENVIRONMENT = "production"
+BUCKET = timedelta(minutes=5)
+RUN_WAIT = timedelta(seconds=90)
+
+
+@dataclass(frozen=True)
+class ErrorPattern:
+    transaction: str
+    method: str
+    exception_type: str
+    exception_value: str
+    handled: bool
+    frames: tuple[tuple[str, str, int, str], ...]
+    tags: tuple[tuple[str, str], ...] = ()
+
+    def event(self, timestamp: datetime, release: str) -> dict[str, Any]:
+        return {
+            "event_id": uuid4().hex,
+            "platform": "python",
+            "level": "error",
+            "timestamp": timestamp.timestamp(),
+            "environment": ENVIRONMENT,
+            "release": release,
+            "transaction": self.transaction,
+            "server_name": f"checkout-api-{random.choice(('7d9f4-xk2p1', '7d9f4-m8qzn', '7d9f4-c41rt'))}",
+            "tags": dict(self.tags),
+            "user": {"id": str(random.randint(10_000, 99_999))},
+            "request": {
+                "url": f"https://shop.example.com{self.transaction}",
+                "method": self.method,
+            },
+            "exception": {
+                "values": [
+                    {
+                        "type": self.exception_type,
+                        "value": self.exception_value,
+                        "mechanism": {"type": "django", "handled": self.handled},
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "filename": filename,
+                                    "abs_path": f"/app/{filename}",
+                                    "module": filename.removesuffix(".py").replace("/", "."),
+                                    "function": function,
+                                    "lineno": lineno,
+                                    "context_line": context_line,
+                                    "in_app": True,
+                                }
+                                for filename, function, lineno, context_line in self.frames
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+
+@dataclass(frozen=True)
+class Scenario:
+    """Background errors for the whole history, plus errors a deploy introduces at the end."""
+
+    project_name: str
+    monitor_name: str
+    threshold: int
+    previous_release: str
+    breaching_release: str
+    background: tuple[tuple[ErrorPattern, int], ...]
+    regression: ErrorPattern
+    regression_counts: tuple[int, ...]
+    history: timedelta = timedelta(hours=3)
+
+    def events(self, now: datetime) -> Iterator[dict[str, Any]]:
+        deploy = now - BUCKET * len(self.regression_counts)
+        bucket_start = now - self.history
+        while bucket_start < now:
+            release = self.breaching_release if bucket_start >= deploy else self.previous_release
+            patterns = list(self.background)
+            if bucket_start >= deploy:
+                index = round((bucket_start - deploy) / BUCKET)
+                patterns.append((self.regression, self.regression_counts[index]))
+            for pattern, count in patterns:
+                for _ in range(count + random.randint(-1, 1)):
+                    offset = timedelta(seconds=random.uniform(0, BUCKET.total_seconds()))
+                    yield pattern.event(bucket_start + offset, release)
+            bucket_start += BUCKET
+
+    def monitor(self) -> dict[str, Any]:
+        return {
+            "name": self.monitor_name,
+            "type": MetricIssue.slug,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": "",
+                    "aggregate": "count()",
+                    "timeWindow": int(BUCKET.total_seconds()),
+                    "environment": ENVIRONMENT,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
+            "conditionGroup": {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": self.threshold,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": self.threshold,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                    },
+                ],
+            },
+            "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
+        }
+
+
+SCENARIOS = {
+    "error-spike-after-deploy": Scenario(
+        project_name="checkout-api",
+        monitor_name="Checkout API error volume",
+        threshold=50,
+        previous_release="checkout-api@2.13.4",
+        breaching_release="checkout-api@2.14.0",
+        background=(
+            (
+                ErrorPattern(
+                    transaction="/api/checkout/address",
+                    method="POST",
+                    exception_type="ValidationError",
+                    exception_value="postal_code: Enter a valid postal code.",
+                    handled=True,
+                    frames=(
+                        (
+                            "checkout/api/address.py",
+                            "post",
+                            58,
+                            "address = AddressSerializer(data=request.data).validated()",
+                        ),
+                        (
+                            "checkout/serializers/address.py",
+                            "validated",
+                            31,
+                            "raise ValidationError(self.errors)",
+                        ),
+                    ),
+                ),
+                3,
+            ),
+            (
+                ErrorPattern(
+                    transaction="/api/checkout/cart",
+                    method="GET",
+                    exception_type="ReadTimeout",
+                    exception_value="HTTPConnectionPool(host='inventory.internal', port=8080): Read timed out. (read timeout=2)",
+                    handled=True,
+                    frames=(
+                        (
+                            "checkout/api/cart.py",
+                            "get",
+                            44,
+                            "stock = inventory.availability(cart.sku_ids)",
+                        ),
+                        (
+                            "checkout/clients/inventory.py",
+                            "availability",
+                            27,
+                            "response = self.session.get(url, params=params, timeout=2)",
+                        ),
+                    ),
+                ),
+                2,
+            ),
+            (
+                ErrorPattern(
+                    transaction="/api/checkout/confirm",
+                    method="POST",
+                    exception_type="CardDeclined",
+                    exception_value="Your card was declined.",
+                    handled=True,
+                    frames=(
+                        (
+                            "checkout/api/confirm.py",
+                            "post",
+                            92,
+                            "charge = payments.charge(order, payment_method)",
+                        ),
+                        (
+                            "checkout/clients/payments.py",
+                            "charge",
+                            63,
+                            "raise CardDeclined(body['error']['message'])",
+                        ),
+                    ),
+                ),
+                1,
+            ),
+        ),
+        regression=ErrorPattern(
+            transaction="/api/checkout/confirm",
+            method="POST",
+            exception_type="TypeError",
+            exception_value="'NoneType' object is not subscriptable",
+            handled=False,
+            frames=(
+                (
+                    "checkout/api/confirm.py",
+                    "post",
+                    81,
+                    "order.total = pricing.total(order, discount_code)",
+                ),
+                (
+                    "checkout/pricing/totals.py",
+                    "total",
+                    40,
+                    "subtotal -= apply_discount(order, discount_code)",
+                ),
+                (
+                    "checkout/pricing/discounts.py",
+                    "apply_discount",
+                    117,
+                    'currency = discount.rules["currency"][order.currency]',
+                ),
+            ),
+            tags=(("discount.kind", "percentage"),),
+        ),
+        regression_counts=(38, 71, 76),
+    ),
+}
+
+
+@dataclass(frozen=True)
+class MetricBreachTrigger:
+    organization: Organization
+    scenario: Scenario
+    user: User
+
+    def run(self) -> None:
+        if not features.has("organizations:seer-automations", self.organization):
+            sys.exit("> organizations:seer-automations is not enabled for this organization.")
+
+        workflow = self._automation()
+        previous_monitor_ids = self._connected_monitor_ids(workflow)
+        project = self._project()
+
+        now = timezone.now()
+        self._write(f"> Writing error events to {project.slug}...")
+        breach_value = 0
+        for data in self.scenario.events(now):
+            manager = EventManager(data)
+            manager.normalize()
+            manager.save(project.id)
+            if data["timestamp"] >= (now - BUCKET).timestamp():
+                breach_value += 1
+
+        monitor = self._create_monitor(project)
+        with workflow.update_config() as update:
+            update.set_enabled(True)
+            update.set_scope(SelectedMonitors((monitor.id,)))
+        for previous in Detector.objects.filter(id__in=previous_monitor_ids):
+            deletions.exec_sync(previous)
+        self._write(f"> Created monitor {monitor.id} ({monitor.name}).")
+
+        self._write(f"> Breaching with {breach_value} errors in the last 5 minutes...")
+        subscription = self._subscription(monitor)
+        process_data_packet(
+            DataPacket[ProcessedSubscriptionUpdate](
+                source_id=str(subscription.id),
+                packet=ProcessedSubscriptionUpdate(
+                    entity="events",
+                    subscription_id=subscription.subscription_id or str(subscription.id),
+                    values={"value": breach_value},
+                    timestamp=now,
+                ),
+            ),
+            DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+        self._drain_outbox()
+        self._report(workflow, monitor)
+
+    def _automation(self) -> SeerWorkflow:
+        config = SeerWorkflowConfig.objects.filter(
+            organization_id=self.organization.id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            extras__name=AUTOMATION_NAME,
+        ).first()
+        if config is not None:
+            workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)
+        else:
+            workflow = SeerWorkflow.create(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+                enabled=True,
+                scope=SelectedMonitors(()),
+                extras=SeerWorkflowConfigExtras(name=AUTOMATION_NAME, created_by=self.user.id),
+                service_account_grant=SeerServiceAccountGrant(
+                    scopes=SERVICE_ACCOUNT_SCOPES, all_projects=True
+                ),
+            )
+            self._write(f'> Created automation "{AUTOMATION_NAME}".')
+
+        if workflow.get_config().service_account_id is None:
+            self._drain_outbox()
+        if workflow.get_config().service_account_id is None:
+            sys.exit("> The automation has no service account; its outbox has not delivered.")
+        return workflow
+
+    def _connected_monitor_ids(self, workflow: SeerWorkflow) -> list[int]:
+        return list(
+            DetectorWorkflow.objects.filter(
+                workflow_id=workflow.get_config().backing_workflow_id
+            ).values_list("detector_id", flat=True)
+        )
+
+    def _project(self) -> Project:
+        project = Project.objects.create(
+            organization=self.organization,
+            name=self.scenario.project_name,
+            platform="python",
+        )
+        team = Team.objects.filter(organization=self.organization).first()
+        if team is not None:
+            project.add_team(team)
+        Environment.get_or_create(project=project, name=ENVIRONMENT)
+        return project
+
+    def _create_monitor(self, project: Project) -> Detector:
+        http_request = HttpRequest()
+        http_request.method = "POST"
+        http_request.META["REMOTE_ADDR"] = "127.0.0.1"
+        request = Request(http_request)
+        set_request_principal(request, self.user, None)
+        validator = MetricIssueDetectorValidator(
+            data=self.scenario.monitor(),
+            context={
+                "organization": self.organization,
+                "project": project,
+                "request": request,
+                "user": self.user,
+            },
+        )
+        if not validator.is_valid():
+            sys.exit(f"> Could not create the monitor: {validator.errors}")
+        return validator.save()
+
+    def _subscription(self, monitor: Detector) -> QuerySubscription:
+        source = DataSourceDetector.objects.select_related("data_source").get(
+            detector=monitor, data_source__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+        return QuerySubscription.objects.get(id=int(source.data_source.source_id))
+
+    def _drain_outbox(self) -> None:
+        bounds = CellOutbox.objects.aggregate(Min("id"), Max("id"))
+        if bounds["id__min"] is None:
+            return
+        drain_outbox_shards(
+            outbox_identifier_low=bounds["id__min"], outbox_identifier_hi=bounds["id__max"] + 1
+        )
+
+    def _report(self, workflow: SeerWorkflow, monitor: Detector) -> None:
+        base = f"{options.get('system.url-prefix')}/organizations/{self.organization.slug}"
+        self._write(f"> Automation: {base}/seer/automations/{workflow.config_id}/")
+
+        link = DetectorGroup.objects.filter(detector=monitor).first()
+        if link is None:
+            self._write("> The monitor did not open an issue.")
+            return
+        self._write(f"> Issue: {base}/issues/{link.group_id}/")
+
+        self._write("> Waiting for the automation run...")
+        run = self._await_run(workflow, link.group_id)
+        if run is None:
+            self._write(
+                f"> No automation run started within {int(RUN_WAIT.total_seconds())} seconds. "
+                "Is the devserver running?"
+            )
+            return
+        self._write(f"> Run {run.id}: {run.status}")
+        error = run.extras.get("error")
+        if error:
+            self._write(f">   {error}")
+        for execution in run.executions.all():
+            self._write(f">   Execution {execution.id}: {execution.status}")
+            execution_error = execution.extras.get("error")
+            if execution_error:
+                self._write(f">     {execution_error}")
+            for output in execution.output_links.all():
+                self._write(
+                    f">     Investigation: {base}/seer/investigations/{output.notebook_id}/"
+                )
+
+    def _await_run(self, workflow: SeerWorkflow, group_id: int) -> SeerWorkflowRun | None:
+        deadline = time.monotonic() + RUN_WAIT.total_seconds()
+        while True:
+            run = (
+                SeerWorkflowRun.objects.filter(
+                    workflow_config_id=workflow.config_id,
+                    trigger_key=f"issue_created:{group_id}",
+                )
+                .prefetch_related("executions__output_links")
+                .first()
+            )
+            dispatched = run is not None and (
+                run.status not in (SeerWorkflowRunStatus.QUEUED, SeerWorkflowRunStatus.RUNNING)
+                or any(execution.output_links.all() for execution in run.executions.all())
+            )
+            if dispatched or time.monotonic() >= deadline:
+                return run
+            time.sleep(2)
+
+    def _write(self, message: str) -> None:
+        sys.stdout.write(f"{message}\n")
+
+
+if __name__ == "__main__":
+    settings.TASKWORKER_ALWAYS_EAGER = True
+
+    parser = argparse.ArgumentParser(
+        description="Breach a fresh metric monitor with realistic data to start a Seer automation run."
+    )
+    parser.add_argument(
+        "org_id", nargs="?", default=1, type=int, help="Organization ID (default: 1)"
+    )
+    parser.add_argument(
+        "--scenario",
+        choices=sorted(SCENARIOS),
+        default="error-spike-after-deploy",
+        help="Which breach to generate (default: error-spike-after-deploy)",
+    )
+    args = parser.parse_args()
+
+    superuser = User.objects.filter(is_superuser=True).first()
+    if superuser is None:
+        sys.exit("> No superuser exists (run `sentry createuser --superuser`).")
+    MetricBreachTrigger(
+        organization=Organization.objects.get(id=args.org_id),
+        scenario=SCENARIOS[args.scenario],
+        user=superuser,
+    ).run()
