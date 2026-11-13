@@ -276,7 +276,8 @@ class RepositoryDefinitionResponse(BaseModel):
 
 
 class RepositoryDefinitionFailure(BaseModel):
-    failure_reason: Literal["no_scm_integration"]
+    failure_reason: Literal["no_scm_integration", "scm_account_not_connected", "repo_not_in_sentry"]
+    connected_accounts: list[str] = []
 
 
 class EventFilterKeyEntry(BaseModel):
