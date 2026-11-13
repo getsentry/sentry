@@ -66,6 +66,7 @@ from sentry.seer.autofix.pr_iteration.out_of_credits import (
     OutOfCredits,
     StrandedAction,
     get_out_of_credits,
+    mark_out_of_credits,
 )
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
@@ -839,10 +840,34 @@ class TestPrIterationCompletionHook(TestCase):
         self, mock_broadcast: MagicMock
     ) -> None:
         # The redo's push emits it once the changes land.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mark_out_of_credits(
+            run_id=123, organization_id=self.organization.id, stranded_action=StrandedAction.PUSH
+        )
         state = self._unsynced()
         repo_state = state.repo_pr_states["test-repo"]
         repo_state.pr_creation_status = "error"
         repo_state.pr_creation_error_code = "out_of_credits"
+
+        self._webhook(state)
+
+        mock_broadcast.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_branch_moved_retry_refused_for_credits_does_not_emit_webhook(
+        self, mock_broadcast: MagicMock
+    ) -> None:
+        # The redone retry's push emits it once the changes land.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mark_out_of_credits(
+            run_id=123,
+            organization_id=self.organization.id,
+            stranded_action=StrandedAction.BRANCH_MOVED_RETRY,
+        )
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        repo_state.pr_creation_error_code = "branch_moved"
 
         self._webhook(state)
 

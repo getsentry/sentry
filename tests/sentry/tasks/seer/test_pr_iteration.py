@@ -864,11 +864,13 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         status: Literal["processing", "completed", "error", "awaiting_user_input"] = "completed",
         metadata: dict[str, Any] | None = None,
         blocks: list[MemoryBlock] | None = None,
+        failure_reason: str | None = None,
     ) -> SeerRunState:
         return SeerRunState(
             run_id=67890,
             blocks=blocks or [],
             status=status,
+            failure_reason=failure_reason,
             updated_at="2024-01-01T00:00:00Z",
             metadata={"group_id": self.group.id} if metadata is None else metadata,
         )
@@ -1242,7 +1244,9 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         # Its partial changes are unpushed, but no push is coming: the next iteration pushes them.
         self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
-        mock_fetch.return_value = self._state(status="error", blocks=[self._unpushed_block()])
+        mock_fetch.return_value = self._state(
+            status="error", failure_reason="out_of_credits", blocks=[self._unpushed_block()]
+        )
         mock_pop.return_value = [self._ui_queued()]
 
         self._call()
@@ -1745,6 +1749,32 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         (row,) = open_iterations(seer_run)
         assert row.triggered is False
         assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_run_stopped_on_credits_drains_again_after_a_trigger_that_cannot_succeed(
+        self,
+        mock_fetch: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # Seer's run stays errored until an iteration starts, as on the normal path's retry.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state(
+            status="error", failure_reason="out_of_credits", blocks=[self._unpushed_block()]
+        )
+        mock_trigger.side_effect = [SeerPermissionError("denied"), None]
+
+        self._enqueue_ui_feedback("fix it")
+        self._call()
+
+        assert get_out_of_credits(run_id=67890, organization_id=self.organization.id) is None
+        assert get_pause_reason(run_id=67890, organization_id=self.organization.id) is None
+
+        self._enqueue_ui_feedback("fix it again")
+        self._call()
+
+        assert mock_trigger.call_count == 2
 
     @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

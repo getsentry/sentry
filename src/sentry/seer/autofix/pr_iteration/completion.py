@@ -33,7 +33,11 @@ from sentry.seer.autofix.pr_iteration.iterations import (
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import failed_tool_calls
-from sentry.seer.autofix.pr_iteration.out_of_credits import StrandedAction, mark_out_of_credits
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    StrandedAction,
+    get_out_of_credits,
+    mark_out_of_credits,
+)
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
@@ -237,10 +241,12 @@ def iteration_completed_webhook_fields(
             errored_repos=errored_repos,
         )
         return None
-    if not is_single_run(state) and any(
-        state.repo_pr_states[repo].pr_creation_error_code == "out_of_credits"
-        for repo in errored_repos
-    ):
+    out_of_credits = (
+        None
+        if is_synced
+        else get_out_of_credits(run_id=state.run_id, organization_id=organization.id)
+    )
+    if out_of_credits is not None and out_of_credits.stranded_action is not None:
         # The drain redoes the push after a top-up; its completion emits the webhook.
         log_ctx.info(
             "autofix.pr_iteration.iteration_outcome",
@@ -304,31 +310,31 @@ def continue_pr_iteration(
         )
         return isinstance(outcome, Retrying)
 
-    errored_codes = {
-        state.repo_pr_states[repo].pr_creation_error_code
-        for repo in iteration_terminal_errored_repos(state)
-    }
-    if outcome == PrIterationOutcome.PR_CREATION_ERRORED and "out_of_credits" in errored_codes:
-        # Mark the run stopped on credits, with the push for the next drain to redo.
-        mark_out_of_credits(
-            run_id=run_id,
-            organization_id=organization.id,
-            # A single run's agent pushes on its next turn, so it has no push to redo.
-            stranded_action=None if is_single_run(state) else StrandedAction.PUSH,
-        )
-    elif (
-        state.status == "completed"
-        and not is_single_run(state)
-        and outcome == PrIterationOutcome.PR_CREATION_ERRORED
-        and "branch_moved" in errored_codes
-    ):
-        # A terminal refusal to overwrite newer PR commits is a failed iteration,
-        # not a successful hand-back to the feedback queue.
-        pause_pr_iteration(
-            run_id=run_id,
-            organization_id=organization.id,
-            reason=PauseReason.RUN_ERRORED,
-        )
+    if outcome == PrIterationOutcome.PR_CREATION_ERRORED:
+        errored_codes = {
+            state.repo_pr_states[repo].pr_creation_error_code
+            for repo in iteration_terminal_errored_repos(state)
+        }
+        if "out_of_credits" in errored_codes:
+            # Mark the run stopped on credits, with the push for the next drain to redo.
+            mark_out_of_credits(
+                run_id=run_id,
+                organization_id=organization.id,
+                # A single run's agent pushes on its next turn, so it has no push to redo.
+                stranded_action=None if is_single_run(state) else StrandedAction.PUSH,
+            )
+        elif (
+            state.status == "completed"
+            and not is_single_run(state)
+            and "branch_moved" in errored_codes
+        ):
+            # A terminal refusal to overwrite newer PR commits is a failed iteration,
+            # not a successful hand-back to the feedback queue.
+            pause_pr_iteration(
+                run_id=run_id,
+                organization_id=organization.id,
+                reason=PauseReason.RUN_ERRORED,
+            )
 
     if outcome == PrIterationOutcome.ALREADY_PUSHED:
         metrics.incr(
