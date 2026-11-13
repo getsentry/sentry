@@ -109,8 +109,10 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
         select_entities(classifier.id)
 
         assert self.dataset.select.call_args_list[1].args[2:4] == (FIRST_START, NOW)
+        # "two" failed to send, so only it is sent again.
         assert self.classify_entity.call_args_list == [
             call(classifier_id=classifier.id, entity_id="one"),
+            call(classifier_id=classifier.id, entity_id="two"),
             call(classifier_id=classifier.id, entity_id="two"),
         ]
 

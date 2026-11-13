@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # How often each classifier selects entities.
 SCAN_INTERVAL = timedelta(minutes=5)
 # Long enough to outlive retries of a selection.
-_CLAIM_TTL_SECONDS = 60 * 60
+_SENT_TTL_SECONDS = 60 * 60
 # After a longer gap, selection restarts from one SCAN_INTERVAL ago.
 _SELECTED_UNTIL_TTL_SECONDS = 60 * 60
 _PROCESSING_FEATURE = "organizations:classifiers-ui"
@@ -119,9 +119,15 @@ def select_entities(classifier_id: int) -> None:
     # Entities beyond the limit aren't classified.
     if len(entity_ids) >= limit:
         _record_selection("limit_reached", classifier.dataset)
-    for entity_id in _claim(classifier_id, entity_ids, start):
+    sent_keys = [_sent_key(classifier_id, start, entity_id) for entity_id in entity_ids]
+    already_sent = client.mget(sent_keys) if sent_keys else []
+    for entity_id, sent_key, sent in zip(entity_ids, sent_keys, already_sent):
+        if sent:
+            continue
         classify_entity.delay(classifier_id=classifier_id, entity_id=entity_id)
-    # Set last, so a retry selects from the same start and its claims skip entities already sent.
+        # Marked after sending, so an entity is skipped on retry only once it was sent.
+        client.set(sent_key, b"1", ex=_SENT_TTL_SECONDS)
+    # Set last, so a retry selects from the same start and skips entities already sent.
     client.set(selected_until_key, end, ex=_SELECTED_UNTIL_TTL_SECONDS)
 
 
@@ -220,27 +226,14 @@ def _get_enabled_classifier(classifier_id: int) -> TelemetryClassifier | None:
     )
 
 
-def _claim(classifier_id: int, entity_ids: Sequence[str], start: int) -> list[str]:
-    """Return the entities not yet claimed by this classifier's selection from ``start``.
+def _sent_key(classifier_id: int, start: int, entity_id: str) -> str:
+    """Key marking an entity as sent by this classifier's selection from ``start``.
 
-    A retried selection starts from the same ``start``, so claims make sure each entity is
-    classified once.
+    A retried selection starts from the same ``start``, so it skips entities already sent.
     """
-    if not entity_ids:
-        return []
-    client = redis_clusters.get("default")
-    with client.pipeline(transaction=False) as pipeline:
-        for entity_id in entity_ids:
-            # Entity IDs come from telemetry, so they're hashed to bound the key's length.
-            digest = hashlib.sha256(entity_id.encode()).hexdigest()
-            pipeline.set(
-                f"telemetry-classifiers:claim:{classifier_id}:{start}:{digest}",
-                b"1",
-                ex=_CLAIM_TTL_SECONDS,
-                nx=True,
-            )
-        claims = pipeline.execute()
-    return [entity_id for entity_id, claimed in zip(entity_ids, claims) if claimed]
+    # Entity IDs come from telemetry, so they're hashed to bound the key's length.
+    digest = hashlib.sha256(entity_id.encode()).hexdigest()
+    return f"telemetry-classifiers:sent:{classifier_id}:{start}:{digest}"
 
 
 def _system_viewer(project: Project) -> AbstractContextManager[None]:
