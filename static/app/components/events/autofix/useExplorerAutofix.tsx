@@ -12,6 +12,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -940,10 +941,9 @@ export function useExplorerAutofix(
           await invalidation;
         }
 
-        if (
-          organization.features.includes('autofix-browser-notifications') &&
-          serviceWorker.isServiceWorkerSupported
-        ) {
+        // The sandbox can start Seer runs to showcase AI, but announcing them
+        // to a demo visitor's OS is not part of that pitch.
+        if (!isDemoModeActive() && serviceWorker.isServiceWorkerSupported) {
           serviceWorker.controller
             .postMessage({
               type: 'event',
