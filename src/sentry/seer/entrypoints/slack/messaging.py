@@ -462,9 +462,8 @@ def update_investigation_alert_message(
         lifecycle.add_extras({"channel_id": channel_id, "message_ts": message_ts})
         try:
             original_message = request.data["message"]
-            parsed_blocks = [Block.parse(block) for block in original_message.get("blocks", [])]
             message = SlackRenderable(
-                blocks=[block for block in parsed_blocks if block is not None],
+                blocks=[],
                 text=original_message["text"],
                 attachments=original_message.get("attachments", []),
             )

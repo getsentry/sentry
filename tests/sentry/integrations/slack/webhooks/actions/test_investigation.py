@@ -348,9 +348,6 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         action = self.get_action(tracking=tracking)
         original_message = self.get_original_message()
         original_message["attachments"][0]["blocks"][1]["elements"] = [action]
-        original_message["blocks"] = [
-            {"type": "section", "text": {"type": "mrkdwn", "text": "Alert context"}}
-        ]
 
         response = self.post_webhook_block_kit(
             action_data=[action], original_message=original_message
@@ -372,7 +369,6 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert update_kwargs["channel"] == CHANNEL_ID
         assert update_kwargs["ts"] == MESSAGE_TS
         assert update_kwargs["text"] == original_message["text"]
-        assert update_kwargs["blocks"][0].to_dict() == original_message["blocks"][0]
         attachment = update_kwargs["attachments"][0]
         assert attachment["color"] == original_message["attachments"][0]["color"]
         assert attachment["blocks"][0] == original_message["attachments"][0]["blocks"][0]
