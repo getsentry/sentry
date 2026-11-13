@@ -116,7 +116,10 @@ function AcrossEventsValue({
   event: Event;
 }) {
   const {steps, matchedEvents, sampledEvents, traceIds} = breakdown;
-  const top = steps[0]!;
+  const [top] = steps;
+  if (!top) {
+    return null;
+  }
 
   const recentEvents = (
     <InfoText
@@ -182,11 +185,12 @@ export function AgentRunHighlights({event}: {event: Event}) {
   }
 
   const {failingNode, nodes} = agentRun;
-  const runNode = nodes[0]!;
-  const agentName = getIsAiAgentNode(runNode)
-    ? getStringAttr(runNode, SpanFields.GEN_AI_AGENT_NAME) ||
-      getStringAttr(runNode, SpanFields.GEN_AI_FUNCTION_ID)
-    : undefined;
+  const [runNode] = nodes;
+  const agentName =
+    runNode && getIsAiAgentNode(runNode)
+      ? getStringAttr(runNode, SpanFields.GEN_AI_AGENT_NAME) ||
+        getStringAttr(runNode, SpanFields.GEN_AI_FUNCTION_ID)
+      : undefined;
   const model = getModel(nodes);
   const toolInput = getToolInput(failingNode);
   const stepIndex = nodes.findIndex(node => node.id === failingNode.id);
