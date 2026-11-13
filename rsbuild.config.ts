@@ -15,7 +15,7 @@ import type {
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
-import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
+import {sentryWebpackPlugin} from '@sentry/bundler-plugins/webpack';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
