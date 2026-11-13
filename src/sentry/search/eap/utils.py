@@ -19,6 +19,7 @@ from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.constants import (
     ARRAY,
     BOOLEAN,
+    MAX_STATS_REQUEST_ATTRIBUTES,
     SENTRY_INTERNAL_PREFIXES,
     STRING,
     TYPE_MAP,
@@ -676,3 +677,7 @@ def parse_formula(
         raise InvalidSearchQuery(e)
 
     return f"{final_equation}"
+
+
+def get_stats_chunk_count(attribute_count: int, min_chunks: int) -> int:
+    return max(min_chunks, math.ceil(attribute_count / MAX_STATS_REQUEST_ATTRIBUTES))
