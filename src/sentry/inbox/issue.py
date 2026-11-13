@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxEventData, InboxEventType, InboxItemType
+from sentry.inbox.types import InboxEventData, InboxEventSummary, InboxEventType, InboxItemType
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
