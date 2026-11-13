@@ -345,6 +345,7 @@ function SuggestionItem({
       variant="button"
       padding="md lg"
       disabled={!suggestion}
+      style={{opacity: 1}}
       tabIndex={suggestion ? undefined : -1}
       aria-label={text}
       onClick={() => {
