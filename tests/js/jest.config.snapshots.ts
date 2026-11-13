@@ -66,6 +66,8 @@ const ESM_NODE_MODULES = [
   'cbor2',
   'nuqs',
   'color',
+  // App views reach these through shared components such as DetectorLink. Keep in
+  // sync with createJestConfig.ts.
   'marked',
   '@sentry\\+sqlish',
   '@tanstack\\+(?:react-)?hotkeys@',
