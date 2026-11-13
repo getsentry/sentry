@@ -107,12 +107,13 @@ export function useStreamingAnimation(
  *
  * The initial mount is skipped unless `pending` keeps the glyphs shuffling
  * until the key changes, without revealing the placeholder text.
+ * `delay` staggers the reveal in milliseconds without moving its container.
  * Requires `streamingAnimationStyles` to be present in the tree.
  */
 export function useTextDecodeAnimation(
   ref: RefObject<HTMLElement | null>,
   key: unknown,
-  {pending = false}: {pending?: boolean} = {}
+  {pending = false, delay = 0}: {delay?: number; pending?: boolean} = {}
 ): void {
   const prefersReducedMotion = useMedia('(prefers-reduced-motion: reduce)');
   const isInitial = useRef(true);
@@ -131,10 +132,10 @@ export function useTextDecodeAnimation(
     if (!element) {
       return;
     }
-    const animation = animateElement(element, 0, pending);
+    const animation = animateElement(element, delay / STAGGER_MS, pending);
     return () => animation.destroy();
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [ref, key, pending, prefersReducedMotion]);
+  }, [ref, key, pending, delay, prefersReducedMotion]);
 }
 
 const STAGGER_MS = 8;

@@ -1,6 +1,60 @@
+import {Fragment, useRef, useState} from 'react';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Composer, type ComposerValue} from '@sentry/scraps/composer';
+
 import {EmptyState, getPupilOffset} from './emptyState';
+
+function DraftPreview() {
+  const composerRef = useRef<HTMLDivElement>(null);
+  const [value, setValue] = useState<ComposerValue>({text: '', mentions: []});
+  return (
+    <Fragment>
+      <EmptyState
+        composerRef={composerRef}
+        hasDraft={value.text.length > 0}
+        displaySlackAgentReminder
+        onSuggestionClick={() => {}}
+        suggestions={{
+          isLoading: false,
+          source: 'generated',
+          suggestions: [{text: 'What should I investigate?'}],
+        }}
+      />
+      <Composer
+        ref={composerRef}
+        aria-label="Seer question"
+        value={value}
+        onChange={setValue}
+        plugins={[]}
+      />
+    </Fragment>
+  );
+}
+
+describe('draft focus', () => {
+  it('removes suggestions from navigation while drafting and restores them when cleared', async () => {
+    render(<DraftPreview />);
+    const editor = screen.getByRole('combobox', {name: 'Seer question'});
+    // user-event does not yet recognize contenteditable="plaintext-only".
+    editor.setAttribute('contenteditable', 'true');
+    expect(screen.getByRole('group', {name: 'Suggested questions'})).toBeInTheDocument();
+    await userEvent.type(editor, 'Investigate this');
+    expect(editor).toHaveFocus();
+    expect(
+      screen.queryByRole('group', {name: 'Suggested questions'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'What should I investigate?'})
+    ).not.toBeInTheDocument();
+    await userEvent.clear(editor);
+    expect(
+      screen.getByRole('button', {name: 'What should I investigate?'})
+    ).toBeInTheDocument();
+    expect(editor).toHaveFocus();
+  });
+});
 
 describe('suggestion loading', () => {
   it('offers every question to the keyboard and submits the selected position immediately', async () => {
