@@ -1268,14 +1268,6 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# No longer read: the source map debugger checks `ProjectArtifactBundle.has_debug_ids` instead.
-# Stays registered until the options automator no longer sets it.
-register(
-    "sourcemaps.source-map-debug.debug-id-check-max-bundles",
-    type=Int,
-    default=1000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
