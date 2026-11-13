@@ -29,7 +29,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notebooks: 0004_add_notebook_org_auth_token_creator
 
-notifications: 0017_add_notificationthread_integration_id
+notifications: 0018_inbox_event_idempotency
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 
@@ -41,7 +41,7 @@ seer: 0046_add_workflow_config_backing_workflow
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1255_grouprelease_drop_stale_checks
+sentry: 1258_artifactbundleindex_drop_organization_id_index
 
 service_accounts: 0007_add_service_account_token_replica
 

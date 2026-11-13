@@ -11,6 +11,7 @@ from openapi_schema_validator import OAS30Validator
 from sentry.apidocs.examples.seer_workflow_examples import WORKFLOW_RUNS_RESPONSE
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.db.models.fields.bounded import I64_MAX
+from sentry.models.group import GroupStatus
 from sentry.notebooks.models import NotebookStatus
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     SeerWorkflowRunsResponse,
@@ -80,6 +81,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 {
                     "id": str(run.id),
                     "configId": str(self.config.id),
+                    "configName": None,
                     "strategy": "breached_metric_investigation",
                     "trigger": None,
                     "status": "running",
@@ -425,7 +427,10 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             Factories.create_seer_workflow_run_execution(run)
         runs = list(
             SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
-            .annotate(strategy=F("workflow_config__strategy"))
+            .annotate(
+                strategy=F("workflow_config__strategy"),
+                config_extras=F("workflow_config__extras"),
+            )
             .order_by("id")
         )
         using = router.db_for_read(SeerWorkflowRunExecution)
@@ -476,22 +481,8 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
     def test_returns_the_triggering_monitor(self) -> None:
         detector = self.create_detector(project=self.project)
-        run = self.create_run(
-            inputs={
-                "event_id": "a" * 32,
-                "occurrence_id": "abc",
-                "detector_id": detector.id,
-                "evidence": {},
-                "observed_at": "2025-01-01T10:00:00Z",
-                "environment": "production",
-                "group_id": 1,
-                "group_short_id": "BACKEND-1A",
-                "project_id": self.project.id,
-                "binding_id": 1,
-                "workflow_id": 1,
-                "action_id": 1,
-            }
-        )
+        group = self.create_group(project=self.project)
+        run = self.create_run(inputs=self.monitor_inputs(detector.id, self.project.id, group.id))
 
         response = self.get_success_response(self.organization.slug)
 
@@ -500,14 +491,109 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert serialized_run["trigger"] == {
             "type": "monitor",
             "detectorId": str(detector.id),
+            "detectorName": detector.name,
             "environment": "production",
             "eventId": "a" * 32,
-            "groupId": "1",
+            "groupExists": True,
+            "groupId": str(group.id),
             "groupShortId": "BACKEND-1A",
             "observedAt": datetime(2025, 1, 1, 10, tzinfo=UTC),
             "occurrenceId": "abc",
             "projectId": str(self.project.id),
         }
+
+    def test_returns_the_config_name(self) -> None:
+        self.config.update(extras={"name": "Checkout latency"})
+        self.create_run()
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["configName"] == "Checkout latency"
+
+    def test_detector_name_is_null_for_a_deleted_detector(self) -> None:
+        detector = self.create_detector(project=self.project)
+        detector_id = detector.id
+        self.create_run(inputs=self.monitor_inputs(detector_id, self.project.id))
+        detector.delete()
+
+        response = self.get_success_response(self.organization.slug)
+
+        trigger = response.data["runs"][0]["trigger"]
+        assert trigger["detectorId"] == str(detector_id)
+        assert trigger["detectorName"] is None
+
+    def test_detector_name_is_null_when_the_detector_left_the_trigger_project(self) -> None:
+        detector = self.create_detector(project=self.create_project())
+        self.create_run(inputs=self.monitor_inputs(detector.id, self.project.id))
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"]["detectorName"] is None
+
+    def test_detector_name_is_null_for_a_foreign_detector(self) -> None:
+        foreign_project = self.create_project(organization=self.create_organization())
+        detector = self.create_detector(project=foreign_project)
+        self.create_run(inputs=self.monitor_inputs(detector.id, foreign_project.id))
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"]["detectorName"] is None
+
+    def test_triggered_runs_only_require_access_to_the_trigger_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        visible_project = self.create_project(teams=[team])
+        hidden_project = self.create_project(
+            teams=[self.create_team(organization=self.organization)]
+        )
+        visible_detector = self.create_detector(project=visible_project, name="Visible monitor")
+        hidden_detector = self.create_detector(project=hidden_project, name="Hidden monitor")
+        # Triggered in a hidden project, even though the saved scope is fully visible.
+        self.create_run(
+            project_ids=[visible_project.id],
+            inputs=self.monitor_inputs(hidden_detector.id, hidden_project.id),
+        )
+        # Triggered in a visible project, even though the saved scope includes a hidden one.
+        visible = self.create_run(
+            project_ids=[visible_project.id, hidden_project.id],
+            inputs=self.monitor_inputs(visible_detector.id, visible_project.id),
+        )
+        self.login_as(member)
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert [(run["id"], run["trigger"]["detectorName"]) for run in response.data["runs"]] == [
+            (str(visible.id), "Visible monitor"),
+        ]
+        assert "Hidden monitor" not in response.content.decode()
+
+    def test_group_exists_is_false_for_a_deleted_group(self) -> None:
+        detector = self.create_detector(project=self.project)
+        deleted = self.create_group(project=self.project)
+        deleted_id = deleted.id
+        pending_deletion = self.create_group(
+            project=self.project, status=GroupStatus.PENDING_DELETION
+        )
+        pending_run = self.create_run(
+            inputs=self.monitor_inputs(detector.id, self.project.id, pending_deletion.id)
+        )
+        deleted_run = self.create_run(
+            inputs=self.monitor_inputs(detector.id, self.project.id, deleted_id)
+        )
+        deleted.delete()
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert [
+            (run["id"], run["trigger"]["groupId"], run["trigger"]["groupExists"])
+            for run in response.data["runs"]
+        ] == [
+            (str(deleted_run.id), str(deleted_id), False),
+            (str(pending_run.id), str(pending_deletion.id), False),
+        ]
 
     def test_returns_cron_trigger_for_scheduled_runs(self) -> None:
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
@@ -530,6 +616,24 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data["runs"][0]["trigger"] is None
+
+    def monitor_inputs(
+        self, detector_id: int, project_id: int, group_id: int = 1
+    ) -> dict[str, object]:
+        return {
+            "event_id": "a" * 32,
+            "occurrence_id": "abc",
+            "detector_id": detector_id,
+            "evidence": {},
+            "observed_at": "2025-01-01T10:00:00Z",
+            "environment": "production",
+            "group_id": group_id,
+            "group_short_id": "BACKEND-1A",
+            "project_id": project_id,
+            "binding_id": 1,
+            "workflow_id": 1,
+            "action_id": 1,
+        }
 
     def create_run(
         self,

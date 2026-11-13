@@ -23,12 +23,7 @@ def authenticate_service_account(
 ) -> tuple[ServiceAccountPrincipal, AuthenticatedToken] | None:
     """
     Resolve a service-account ViewerContext to its principal and a credential for its
-    organization.
-
-    Only for organizations with ``organizations:service-accounts``. The token carries no
-    scopes, so they're read on every request: on control from a read replica of the account,
-    elsewhere from the cell replica. Narrowing, disabling or deleting the account applies
-    once that replica catches up, not when the token expires.
+    organization. See ``resolve_service_account``.
     """
     actor = vc.actor
     if (
@@ -37,13 +32,28 @@ def authenticate_service_account(
         or vc.organization_id is None
     ):
         return None
+    return resolve_service_account(actor.actor_id, vc.organization_id)
 
+
+def resolve_service_account(
+    service_account_id: int, organization_id: int
+) -> tuple[ServiceAccountPrincipal, AuthenticatedToken] | None:
+    """
+    Resolve an active service account in an organization to its principal and a credential
+    for that organization. Every way of authenticating as a service account goes through
+    this, so they all apply the same checks.
+
+    Only for organizations with ``organizations:service-accounts``. The credential carries
+    the account's current scopes, read on every request: on control from a read replica of
+    the account, elsewhere from the cell replica. Narrowing, disabling or deleting the
+    account applies once that replica catches up.
+    """
     service_account: ServiceAccount | ServiceAccountReplica | None
     organization: Organization | RpcOrganization | None
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         service_account = (
             ServiceAccount.objects.using_replica()
-            .filter(id=actor.actor_id, organization_id=vc.organization_id, is_active=True)
+            .filter(id=service_account_id, organization_id=organization_id, is_active=True)
             .first()
         )
         if service_account is None:
@@ -54,7 +64,7 @@ def authenticate_service_account(
         organization = org_context.organization if org_context is not None else None
     else:
         service_account = ServiceAccountReplica.objects.filter(
-            service_account_id=actor.actor_id, organization_id=vc.organization_id, is_active=True
+            service_account_id=service_account_id, organization_id=organization_id, is_active=True
         ).first()
         if service_account is None:
             return None
@@ -66,13 +76,13 @@ def authenticate_service_account(
         return None
 
     principal = ServiceAccountPrincipal(
-        service_account_id=actor.actor_id,
+        service_account_id=service_account_id,
         organization_id=service_account.organization_id,
         name=service_account.name,
     )
     token = AuthenticatedToken(
         kind=SERVICE_ACCOUNT_TOKEN_KIND,
-        entity_id=actor.actor_id,
+        entity_id=service_account_id,
         organization_id=service_account.organization_id,
         scopes=sorted(service_account.scope_list),
     )

@@ -264,7 +264,7 @@ class SeerMetricAlertActionHandler(ActionHandler):
         event = invocation.event_data.event
         if not isinstance(event, GroupEvent):
             return
-        group = invocation.event_data.group
+        group = invocation.event_data.require_group()
         extra: dict[str, object] = {
             "organization_id": group.project.organization_id,
             "group_id": group.id,

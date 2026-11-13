@@ -1299,7 +1299,9 @@ describe('ScmCreateProject', () => {
       const session = request.mock.calls[0]?.[1]?.data;
       expect(session.clientRunId).not.toBe(onboardingSession.agenticProgressClientRunId);
       expect(session.onboardingCode).toBeUndefined();
-      expect(screen.getByText('Detects your stack')).toBeInTheDocument();
+      expect(
+        screen.getByText('Detects your stack and installs the Sentry CLI')
+      ).toBeInTheDocument();
       expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual(
         onboardingSession
       );
@@ -1348,7 +1350,7 @@ describe('ScmCreateProject', () => {
         url: `/organizations/${agentOrganization.slug}/agent-handoff/prompts/`,
         method: 'POST',
         body: {
-          prompt: 'Private agent handoff prompt',
+          code: 'sntryh_example',
           expiresAt: new Date(Date.now() + 300_000).toISOString(),
         },
       });
@@ -1371,7 +1373,7 @@ describe('ScmCreateProject', () => {
             data: {
               context: {runId: run.runId},
               disableIpPinning: false,
-              flow: 'onboarding',
+              flow: 'create_project',
             },
           })
         )

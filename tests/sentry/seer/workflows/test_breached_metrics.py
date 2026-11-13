@@ -36,6 +36,7 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.base import (
     AdmittedRunExtras,
     AllProjects,
+    SeerServiceAccountGrant,
     SelectedMonitors,
     SelectedProjects,
 )
@@ -46,7 +47,7 @@ from sentry.seer.workflows.breached_metrics import (
     SeerMetricAlertActionHandler,
     get_config_monitors_bulk,
 )
-from sentry.seer.workflows.workflow import SeerServiceAccountGrant, SeerWorkflow
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
 from sentry.service_accounts.models import ServiceAccountReplica

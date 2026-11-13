@@ -49,6 +49,7 @@ class NotificationsDjangoAppTest(TestCase):
             (NotificationProviderKey.SLACK, NotificationSource.SEER_AGENT_RESPONSE),
             (NotificationProviderKey.SLACK, NotificationSource.SEER_AGENT_WRITE_APPROVAL),
             (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_ERROR),
+            (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_STOPPED),
             (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_SUCCESS),
             (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_TRIGGER),
             (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_UPDATE),

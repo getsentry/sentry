@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+import logging
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -23,11 +24,20 @@ from sentry.seer.models.workflow import (
     WorkflowRunSnapshot,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
+from sentry.service_accounts.models import (
+    InvalidScopeError,
+    ServiceAccountProjectReplica,
+    ServiceAccountReplica,
+    validate_grantable_scopes,
+)
+from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowUpdateError(ValueError):
-    """A rejected workflow update whose message is safe to show users."""
+    """A workflow create or update rejected for its input or the workflow's state."""
 
 
 @dataclass(frozen=True)
@@ -57,6 +67,33 @@ def validate_project_ids(organization_id: int, project_ids: set[int]) -> None:
     )
     if project_ids != valid_project_ids:
         raise WorkflowUpdateError("Selected projects must exist in the workflow's organization")
+
+
+@dataclass(frozen=True)
+class SeerServiceAccountGrant:
+    """The scopes and projects an automation's investigations run with."""
+
+    scopes: Sequence[str]
+    project_ids: Sequence[int] = ()
+    all_projects: bool = False
+
+    def __post_init__(self) -> None:
+        # Sorted and deduplicated so grants with the same access compare equal.
+        object.__setattr__(self, "scopes", tuple(sorted(set(self.scopes))))
+        object.__setattr__(
+            self,
+            "project_ids",
+            () if self.all_projects else tuple(sorted(set(self.project_ids))),
+        )
+
+
+def validate_service_account_grant(organization_id: int, grant: SeerServiceAccountGrant) -> None:
+    if not grant.all_projects:
+        validate_project_ids(organization_id, set(grant.project_ids))
+    try:
+        validate_grantable_scopes(grant.scopes)
+    except InvalidScopeError as e:
+        raise WorkflowUpdateError(" ".join(e.messages)) from e
 
 
 # A config row read with ``select_for_update`` inside the current transaction.
@@ -293,6 +330,61 @@ class ConfigUpdate:
             return
         self.config.extras = new_extras
         self.mark("extras")
+
+    def current_service_account_grant(self) -> SeerServiceAccountGrant:
+        """The grant of the automation's service account, as last replicated to the cell."""
+        replica = self._service_account_replica()
+        return SeerServiceAccountGrant(
+            scopes=replica.scope_list,
+            project_ids=list(
+                ServiceAccountProjectReplica.objects.filter(service_account=replica).values_list(
+                    "project_id", flat=True
+                )
+            ),
+            all_projects=replica.all_projects,
+        )
+
+    def set_service_account_grant(self, grant: SeerServiceAccountGrant) -> bool:
+        """Replace the scopes and projects of the automation's service account.
+
+        Returns whether the grant differs from the replicated one. Callers must authorize
+        the grant and audit a change.
+        """
+        validate_service_account_grant(self.config.organization_id, grant)
+        replica = self._service_account_replica()
+        # Sent even when the replica already matches: it can lag control, and applying the
+        # same grant twice changes nothing.
+        service_account_grant_update_outbox(
+            organization_id=self.config.organization_id,
+            service_account_id=replica.service_account_id,
+            scope_list=grant.scopes,
+            project_ids=grant.project_ids,
+            all_projects=grant.all_projects,
+        ).save()
+        if grant == self.current_service_account_grant():
+            return False
+        self.mark_related_changed()
+        return True
+
+    def _service_account_replica(self) -> ServiceAccountReplica:
+        if self.config.service_account_id is None:
+            raise WorkflowUpdateError("The automation doesn't have a service account")
+        replica = ServiceAccountReplica.objects.filter(
+            service_account_id=self.config.service_account_id,
+            organization_id=self.config.organization_id,
+            is_active=True,
+        ).first()
+        if replica is None:
+            logger.warning(
+                "seer.workflow.service_account_missing",
+                extra={
+                    "organization_id": self.config.organization_id,
+                    "config_id": self.config.id,
+                    "service_account_id": self.config.service_account_id,
+                },
+            )
+            raise WorkflowUpdateError("The automation's service account can't be found")
+        return replica
 
     def set_scope(self, selection: ScopeSelection) -> None:
         """Replace which projects the automation covers, in the form its trigger takes.
