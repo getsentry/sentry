@@ -331,13 +331,8 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         return Response(response, status=201)
 
 
-@control_silo_endpoint
-class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
-    }
+class ServiceAccountScopedEndpointBase(OrganizationServiceAccountEndpointBase):
+    """Resolves `service_account_id` to an active account in the URL's organization."""
 
     def convert_args(
         self, request: Request, *args: Any, **kwargs: Any
@@ -352,6 +347,15 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         except ServiceAccount.DoesNotExist:
             raise ResourceDoesNotExist
         return args, kwargs
+
+
+@control_silo_endpoint
+class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
 
     @extend_schema(
         operation_id="Retrieve a Service Account",

@@ -5,7 +5,6 @@ import {apiOptions} from './api/apiOptions';
 interface SeerOnboardingCheckResponse {
   hasSupportedScmIntegration: boolean;
   isAutofixEnabled: boolean;
-  isCodeReviewEnabled: boolean;
   isSeerConfigured: boolean;
 }
 

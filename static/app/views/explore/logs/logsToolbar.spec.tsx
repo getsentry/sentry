@@ -227,7 +227,7 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       const listbox = await screen.findByRole('listbox');
       const menu = listbox.closest<HTMLElement>('[data-overlay]')!;
-      const searchInput = within(menu).getByRole('textbox');
+      const searchInput = within(menu).getByRole('searchbox');
       await userEvent.type(searchInput, 'searched');
       await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
 
@@ -712,7 +712,7 @@ describe('LogsToolbar', () => {
 
     const listbox = await screen.findByRole('listbox');
     const menu = listbox.closest<HTMLElement>('[data-overlay]')!;
-    const searchInput = within(menu).getByRole('textbox');
+    const searchInput = within(menu).getByRole('searchbox');
     await userEvent.type(searchInput, 'searched');
 
     await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());

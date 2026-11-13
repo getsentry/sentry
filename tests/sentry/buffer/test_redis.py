@@ -1,19 +1,19 @@
-import copy
 import datetime
 import pickle
 from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager
 from typing import Any, cast
 from unittest import mock
+from zlib import crc32
 
 import pytest
 from django.utils import timezone
 from redis import StrictRedis
+from redis.exceptions import ConnectionError as RedisConnectionError
 from sentry_redis_tools.clients import RedisCluster
 
-from sentry import options
 from sentry.buffer.base import Buffer, BufferField
-from sentry.buffer.redis import RedisBuffer, _coerce_val, make_key
+from sentry.buffer.redis import PENDING_SLICES, RedisBuffer, _coerce_val, make_key
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.tasks.process_buffer import process_incr
@@ -25,27 +25,27 @@ from sentry.utils.services import Delegator
 
 
 def _hgetall_decode_keys(
-    client: "RedisCluster[bytes] | StrictRedis[bytes]", key: str, is_redis_cluster: bool
-) -> dict[Any, Any]:
-    ret: dict[Any, Any] = client.hgetall(key)
-    if not is_redis_cluster:
-        return {k.decode(): v for k, v in ret.items()}
-    else:
-        return ret
+    client: "RedisCluster[bytes] | StrictRedis[bytes]", key: str
+) -> dict[str, bytes]:
+    return {k.decode(): v for k, v in client.hgetall(key).items()}
 
 
 @pytest.mark.django_db
 class TestRedisBuffer:
     @pytest.fixture(params=["cluster", "standalone"])
-    def buffer(
-        self,
-        set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
-        request: pytest.FixtureRequest,
-    ) -> Iterator[RedisBuffer]:
-        value = copy.deepcopy(options.get("redis.clusters"))
-        value["default"]["is_redis_cluster"] = request.param == "cluster"
-        with set_sentry_option("redis.clusters", value):
-            yield RedisBuffer()
+    def buffer(self, request: pytest.FixtureRequest) -> Iterator[RedisBuffer]:
+        # `cluster` is a real Redis Cluster with `is_redis_cluster`, and `default` is a single
+        # host. Use each entry as it is configured: a client is cached by cluster name only, so
+        # a changed entry can get a client of the wrong shape from the cache, or leave one there.
+        if request.param == "cluster":
+            buf = RedisBuffer(cluster="cluster")
+            assert buf.is_redis_cluster
+            # The client deletes only the keys with the key prefix of this worker.
+            buf.cluster.flushdb()
+        else:
+            buf = RedisBuffer()
+            assert not buf.is_redis_cluster
+        yield buf
 
     @pytest.fixture(autouse=True)
     def setup_buffer(self, buffer: RedisBuffer) -> None:
@@ -183,7 +183,7 @@ class TestRedisBuffer:
         filters = cast(dict[str, BufferField], {"pk": 1, "datetime": now})
         key = make_key(model, filters=filters)
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
-        result = _hgetall_decode_keys(client, key, self.buf.is_redis_cluster)
+        result = _hgetall_decode_keys(client, key)
 
         f = result.pop("f")
         load_values: Callable[[Any], Any]
@@ -202,32 +202,21 @@ class TestRedisBuffer:
         assert load_value(result.pop("e+datetime")) == now
         assert load_value(result.pop("e+foo")) == "bar"
 
-        if self.buf.is_redis_cluster:
-            assert result == {"i+times_seen": "1", "m": "unittest.mock.Mock"}
-        else:
-            assert result == {"i+times_seen": b"1", "m": b"unittest.mock.Mock"}
+        assert result == {"i+times_seen": b"1", "m": b"unittest.mock.Mock"}
 
-        pending = client.zrange("b:p", 0, -1)
-        if self.buf.is_redis_cluster:
-            assert pending == [key]
-        else:
-            assert pending == [key.encode("utf-8")]
+        pending_key = f"b:p:{crc32(key.encode()) % PENDING_SLICES}"
+        pending = client.zrange(pending_key, 0, -1)
+        assert pending == [key.encode("utf-8")]
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
-        result = _hgetall_decode_keys(client, key, self.buf.is_redis_cluster)
+        result = _hgetall_decode_keys(client, key)
         f = result.pop("f")
         assert load_values(f) == {"pk": 1, "datetime": now}
         assert load_value(result.pop("e+datetime")) == now
         assert load_value(result.pop("e+foo")) == "baz"
-        if self.buf.is_redis_cluster:
-            assert result == {"i+times_seen": "2", "m": "unittest.mock.Mock"}
-        else:
-            assert result == {"i+times_seen": b"2", "m": b"unittest.mock.Mock"}
+        assert result == {"i+times_seen": b"2", "m": b"unittest.mock.Mock"}
 
-        pending = client.zrange("b:p", 0, -1)
-        if self.buf.is_redis_cluster:
-            assert pending == [key]
-        else:
-            assert pending == [key.encode("utf-8")]
+        pending = client.zrange(pending_key, 0, -1)
+        assert pending == [key.encode("utf-8")]
 
     def test_incr_bounds_pending_key(self) -> None:
         """The pending zset gets an expiry, and that expiry outlives the rows."""
@@ -240,7 +229,7 @@ class TestRedisBuffer:
         self.buf.incr(model, {"times_seen": 1}, filters)
 
         row_ttl = client.ttl(key)
-        pending_ttl = client.ttl("b:p")
+        pending_ttl = client.ttl(f"b:p:{crc32(key.encode()) % PENDING_SLICES}")
         # Both keys are bounded.
         assert 0 < row_ttl <= self.buf.key_expire
         assert 0 < pending_ttl <= self.buf.pending_key_expire
@@ -277,7 +266,7 @@ class TestRedisBuffer:
             },
         )
         # A non-sorted-set value makes ZREM fail, as a dead shard would.
-        client.set("b:p", "not-a-zset")
+        client.set(f"b:p:{crc32(b'foo') % PENDING_SLICES}", "not-a-zset")
 
         self.buf.process("foo")
 
@@ -304,6 +293,61 @@ class TestRedisBuffer:
 
         assert process.call_args.args[1] == {"times_seen": 8}
         assert client.hgetall(key) == {}
+
+    @mock.patch("sentry.buffer.base.Buffer.process")
+    def test_split_lists_and_clears_row_in_its_slice(self, process: mock.MagicMock) -> None:
+        client = self.buf.cluster
+        model = mock.Mock()
+        model.__name__ = "Mock"
+        filters: dict[str, Any] = {"pk": 1}
+        key = make_key(model, filters=filters)
+        pending_key = f"b:p:{crc32(key.encode()) % PENDING_SLICES}"
+
+        self.buf.incr(model, {"times_seen": 1}, filters)
+
+        assert client.zrange("b:p", 0, -1) == []
+        assert len(client.zrange(pending_key, 0, -1)) == 1
+        assert 0 < client.ttl(pending_key) <= self.buf.pending_key_expire
+
+        self.buf.process(key=key)
+
+        assert client.zrange(pending_key, 0, -1) == []
+
+    @mock.patch("sentry.buffer.redis.process_incr")
+    def test_process_pending_reads_every_slice(self, process_incr: mock.MagicMock) -> None:
+        self.buf.incr_batch_size = 5
+        client = self.buf.cluster
+        client.zadd("b:p", {"foo": 1})
+        client.zadd("b:p:63", {"bar": 1})
+
+        self.buf.process_pending()
+
+        assert len(process_incr.apply_async.mock_calls) == 1
+        batch_keys = process_incr.apply_async.mock_calls[0].kwargs["kwargs"]["batch_keys"]
+        assert sorted(batch_keys) == ["bar", "foo"]
+        assert client.zrange("b:p", 0, -1) == []
+        assert client.zrange("b:p:63", 0, -1) == []
+
+    @mock.patch("sentry.buffer.redis.random.shuffle")
+    @mock.patch("sentry.buffer.redis.process_incr")
+    def test_process_pending_flushes_rows_read_before_a_slice_failure(
+        self, process_incr: mock.MagicMock, shuffle: mock.MagicMock
+    ) -> None:
+        self.buf.incr_batch_size = 5
+        client = self.buf.cluster
+        client.zadd("b:p", {"foo": 1})
+        client.zadd("b:p:1", {"bar": 1})
+        # With shuffle disabled, b:p is read first and b:p:0 second.
+        side_effect = [client.zrange("b:p", 0, -1), RedisConnectionError()]
+
+        with mock.patch.object(client, "zrange", side_effect=side_effect) as zrange:
+            self.buf.process_pending()
+
+        assert zrange.call_count == 2
+        assert process_incr.apply_async.mock_calls == [
+            mock.call(kwargs={"batch_keys": ["foo"]}, headers=mock.ANY)
+        ]
+        assert client.zrange("b:p:1", 0, -1) != []
 
     @django_db_all
     @freeze_time()

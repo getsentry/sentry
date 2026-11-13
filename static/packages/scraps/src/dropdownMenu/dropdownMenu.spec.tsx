@@ -76,7 +76,7 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search projects'}),
+      screen.getByRole('searchbox', {name: 'Search projects'}),
       'python'
     );
 
@@ -607,7 +607,7 @@ describe('DropdownMenu', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
 
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    const search = screen.getByRole('searchbox', {name: 'Search projects'});
     expect(search).toHaveFocus();
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
@@ -666,7 +666,7 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    const search = screen.getByRole('searchbox', {name: 'Search projects'});
     expect(search).toHaveFocus();
 
     await userEvent.keyboard('{ArrowDown}');
@@ -696,7 +696,7 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    const search = screen.getByRole<HTMLInputElement>('textbox', {
+    const search = screen.getByRole<HTMLInputElement>('searchbox', {
       name: 'Search projects',
     });
     await userEvent.type(search, 'sentry');
@@ -715,7 +715,7 @@ describe('DropdownMenu', () => {
     expect(search.selectionStart).toBe(0);
 
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus()
     );
@@ -725,7 +725,7 @@ describe('DropdownMenu', () => {
     );
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
 
-    expect(screen.getByRole('textbox', {name: 'Search projects'})).toHaveValue('');
+    expect(screen.getByRole('searchbox', {name: 'Search projects'})).toHaveValue('');
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
   });
 
@@ -747,7 +747,7 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    const search = screen.getByRole('searchbox', {name: 'Search projects'});
     await userEvent.type(search, 'java');
 
     const escape = new KeyboardEvent('keydown', {
@@ -764,7 +764,7 @@ describe('DropdownMenu', () => {
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus()
     );
@@ -1324,7 +1324,7 @@ describe('DropdownMenu', () => {
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
-      const search = screen.getByRole('textbox', {name: 'Search items'});
+      const search = screen.getByRole('searchbox', {name: 'Search items'});
       await waitFor(() => expect(search).toHaveFocus());
 
       scrollMenuTo(20_000);
@@ -1518,7 +1518,10 @@ describe('DropdownMenu', () => {
       // Leaves Item 1 and Item 10–19 and 100–199, which is under the threshold.
       // Rendering all 111 matches at once would be slow, so the menu still
       // mounts only the matches near the viewport.
-      await userEvent.type(screen.getByRole('textbox', {name: 'Search items'}), 'Item 1');
+      await userEvent.type(
+        screen.getByRole('searchbox', {name: 'Search items'}),
+        'Item 1'
+      );
 
       await waitFor(() =>
         expect(

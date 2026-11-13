@@ -7,6 +7,12 @@ import type {ClassifierDataset} from './types';
 
 export const CLASSIFIER_PREVIEW_PER_PAGE = 10;
 
+export const ENRICHMENT_ATTRIBUTE_PREFIX = 'sentry.enrichment.';
+
+export function getEnrichmentAttributeName(resultAttribute: string) {
+  return `${ENRICHMENT_ATTRIBUTE_PREFIX}${resultAttribute}`;
+}
+
 export function getClassifiersPath(organizationSlug: string) {
   return normalizeUrl(`/organizations/${organizationSlug}/seer/classifiers/`);
 }
@@ -21,6 +27,10 @@ export function getNewClassifierPath(organizationSlug: string) {
 
 export function getDatasetLabel(dataset: ClassifierDataset) {
   return dataset === 'conversation' ? t('Conversations') : t('Spans');
+}
+
+export function getResultAttributeKey(resultAttribute: string) {
+  return `sentry.enrichment.${resultAttribute}`;
 }
 
 export function getEnvironmentsFilter(environments: readonly string[]) {

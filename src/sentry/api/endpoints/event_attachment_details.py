@@ -39,6 +39,7 @@ from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.services import eventstore
 from sentry.types.activity import ActivityType
 
@@ -91,7 +92,8 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 
         role = request.access.role
         if role is None:
-            return False
+            # A service account has no role: it can read attachments only where any member can.
+            return is_service_account_auth(request.auth) and required_role == roles.get_default().id
 
         required_role = roles.get(required_role)
         om_role = roles.get(role)

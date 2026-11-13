@@ -5,8 +5,10 @@ from collections.abc import Mapping
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from sentry.agent_handoff.installer import installer_command, pinned_installer
+
 # Markdown labels and shell blocks are escaped for their respective contexts below.
-_ENVIRONMENT = Environment(
+MARKDOWN_JINJA_ENV = Environment(
     loader=PackageLoader("sentry", "templates"),
     autoescape=False,
     undefined=StrictUndefined,
@@ -95,14 +97,13 @@ def render_agent_runbook(
     unix_auth_status = _code_block(
         " ".join(filter(None, (instance_environment, "sentry auth status --fresh --json")))
     )
-    unix_installer = _code_block(
-        "curl -fsSL https://cli.sentry.dev/install | " + setup_environment + " bash"
-    )
+    pinned = pinned_installer()
+    unix_installer = _code_block(installer_command(setup_environment, pinned))
     unix_bootstrap = _code_block(
         f"{setup_environment} sentry auth bootstrap --url {shlex.quote(sentry_url)}"
     )
 
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/runbook.md").render(
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/runbook.md").render(
         {
             "sentry_url": _escape_label(sentry_url),
             "user_email": _escape_label(user_email),
@@ -110,6 +111,7 @@ def render_agent_runbook(
             "organization_slug": _escape_label(organization_slug),
             "unix_auth_status": unix_auth_status,
             "unix_installer": unix_installer,
+            "installer_verified": pinned is not None,
             "unix_bootstrap": unix_bootstrap,
             "windows_auth_status": _powershell_command(
                 "sentry auth status --fresh --json", instance_variables
@@ -150,15 +152,11 @@ def render_claim_runbook(*, claim_url: str) -> str:
             "}",
         ]
     )
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/claim.md").render(
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/claim.md").render(
         unix_claim_command=_code_block(unix_claim_command),
         windows_claim_command=_code_block(windows_claim_command, "powershell"),
     )
 
 
 def render_ip_mismatch_runbook() -> str:
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/ip_mismatch.md").render()
-
-
-def render_onboarding_runbook(*, run_code: str) -> str:
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/onboarding.md").render(run_code=run_code)
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/ip_mismatch.md").render()

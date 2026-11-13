@@ -10,11 +10,13 @@ from typing import (
     Any,
     ClassVar,
     Generic,
+    Protocol,
     Sequence,
     TypeAlias,
     TypedDict,
     TypeVar,
 )
+from uuid import UUID
 
 from django.db.models import Q
 
@@ -117,14 +119,25 @@ class _WorkflowEventLocalCache(TypedDict, total=False):
     activity_environment: Environment | None
 
 
+class OrganizationWorkflowEvent(Protocol):
+    """Source identity for organization events, independent of issue/project models."""
+
+    @property
+    def organization_id(self) -> int: ...
+
+    @property
+    def event_id(self) -> UUID: ...
+
+
 @dataclass(frozen=True)
 class WorkflowEventData:
-    event: GroupEvent | Activity
-    group: Group
+    event: GroupEvent | Activity | OrganizationWorkflowEvent
+    group: Group | None = None
     group_state: GroupState | None = None
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+    organization: Organization | None = field(default=None, kw_only=True)
 
     # The cache field is used to deduplicate repeated work within the context
     # of a single event. This field violates the "frozen" requirement of the
@@ -133,6 +146,60 @@ class WorkflowEventData:
     _cache: _WorkflowEventLocalCache = field(
         default_factory=lambda: _WorkflowEventLocalCache(), repr=False, compare=False, hash=False
     )
+
+    def get_organization(self) -> Organization:
+        from sentry.models.activity import Activity
+        from sentry.services.eventstore.models import GroupEvent
+
+        if isinstance(self.event, (GroupEvent, Activity)):
+            source_organization_id = self.event.project.organization_id
+            organization = self.organization or self.event.project.organization
+        else:
+            if self.organization is None:
+                raise ValueError(
+                    "Organization workflow events require explicit organization context"
+                )
+            source_organization_id = self.event.organization_id
+            organization = self.organization
+        if source_organization_id != organization.id:
+            raise ValueError("Workflow event and organization must belong to the same organization")
+        if self.group is not None and self.group.project_id != self.project_id:
+            if self.group.project.organization_id != organization.id:
+                raise ValueError("Workflow group and event must belong to the same organization")
+        return organization
+
+    @property
+    def event_id(self) -> str:
+        from sentry.models.activity import Activity
+        from sentry.services.eventstore.models import GroupEvent
+
+        if isinstance(self.event, GroupEvent):
+            return self.event.event_id
+        if isinstance(self.event, Activity):
+            return str(self.event.id)
+        return self.event.event_id.hex
+
+    @property
+    def project_id(self) -> int | None:
+        from sentry.models.activity import Activity
+        from sentry.services.eventstore.models import GroupEvent
+
+        if isinstance(self.event, (GroupEvent, Activity)):
+            return self.event.project_id
+        return None
+
+    @property
+    def group_id(self) -> int | None:
+        return self.group.id if self.group is not None else None
+
+    def require_group(self) -> Group:
+        if self.group is None:
+            from sentry.workflow_engine.processors.evaluations import (
+                DataConditionEvaluationException,
+            )
+
+            raise DataConditionEvaluationException("This operation requires an issue group")
+        return self.group
 
 
 @dataclass(frozen=True)

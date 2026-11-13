@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Collection, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
@@ -12,7 +12,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry import audit_log, features, roles
 from sentry.api.api_owners import ApiOwner
@@ -25,8 +24,10 @@ from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
-from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
+from sentry.cadence.api import ScheduledTriggerType, get_schedules
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS, ObjectStatus
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
@@ -38,21 +39,20 @@ from sentry.seer.models.workflow import (
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
+from sentry.seer.workflows.base import (
+    AllProjects,
+    SeerServiceAccountGrant,
+    SelectedMonitors,
+    SelectedProjects,
+    WorkflowUpdateError,
+)
 from sentry.seer.workflows.breached_metrics import (
-    BreachedMetricConfigUpdate,
-    BreachedMetricWorkflow,
     ConnectedMonitor,
     get_config_monitors_bulk,
     get_monitor_project_ids,
 )
-from sentry.seer.workflows.registry import get_seer_workflow
-from sentry.seer.workflows.workflow import (
-    AllProjects,
-    SeerServiceAccountGrant,
-    SeerWorkflow,
-    SelectedProjects,
-    WorkflowUpdateError,
-)
+from sentry.seer.workflows.definitions import get_definition
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
     ServiceAccountProjectReplica,
@@ -63,7 +63,9 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
-type ServiceAccountAuditEvent = Literal["SERVICE_ACCOUNT_ADD", "SERVICE_ACCOUNT_REMOVE"]
+type ServiceAccountAuditEvent = Literal[
+    "SERVICE_ACCOUNT_ADD", "SERVICE_ACCOUNT_EDIT", "SERVICE_ACCOUNT_REMOVE"
+]
 
 
 class SeerServiceAccountResponse(TypedDict):
@@ -86,6 +88,8 @@ class SeerWorkflowConfigResponse(TypedDict):
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
     seededDefault: str | None
+    # When the automation next runs on its schedule, or None if it doesn't run on one.
+    nextRunAt: datetime | None
     dateAdded: datetime
     dateUpdated: datetime
     dateLastRun: NotRequired[datetime]
@@ -131,8 +135,8 @@ class ServiceAccountGrantSerializer(serializers.Serializer):
                 }
             )
         return SeerServiceAccountGrant(
-            scopes=sorted(set(data["scopes"])),
-            project_ids=sorted(set(data["projectIds"])),
+            scopes=data["scopes"],
+            project_ids=data["projectIds"],
             all_projects=data["allProjects"],
         )
 
@@ -182,13 +186,15 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
                 )
         elif "monitorIds" in data:
             raise serializers.ValidationError(
-                {"monitorIds": "Only metric automations support monitor selection."}
+                {"monitorIds": "This automation type does not support monitor selection."}
             )
         return data
 
 
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
     enabled = serializers.BooleanField(required=False)
+    serviceAccount = ServiceAccountGrantSerializer(required=False)
+    name = serializers.CharField(required=False, max_length=64)
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -208,7 +214,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data:
-            raise serializers.ValidationError("Send projectIds, monitorIds, or enabled.")
+            raise serializers.ValidationError("Send fields to update.")
         if "projectIds" in data and "monitorIds" in data:
             raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
@@ -250,6 +256,16 @@ def _check_project_access(
     return None
 
 
+def _readable_project_ids(
+    request: Request, organization: Organization, endpoint: OrganizationEndpoint
+) -> set[int]:
+    return {
+        project.id
+        for project in endpoint.get_projects(request, organization, include_all_accessible=True)
+        if request.access.has_project_scope(project, "project:read")
+    }
+
+
 def _with_no_access_project_ids(
     project_ids: Sequence[int],
     curr_project_ids: Sequence[int],
@@ -265,11 +281,7 @@ def _with_no_access_project_ids(
     """
     if not curr_project_ids:
         return sorted(set(project_ids))
-    readable = {
-        project.id
-        for project in endpoint.get_projects(request, organization, include_all_accessible=True)
-        if request.access.has_project_scope(project, "project:read")
-    }
+    readable = _readable_project_ids(request, organization, endpoint)
     return sorted(set(project_ids) | (set(curr_project_ids) - readable))
 
 
@@ -287,11 +299,7 @@ def _with_no_access_monitor_ids(
     """
     if not curr_monitors:
         return sorted(set(monitor_ids))
-    readable = {
-        project.id
-        for project in endpoint.get_projects(request, organization, include_all_accessible=True)
-        if request.access.has_project_scope(project, "project:read")
-    }
+    readable = _readable_project_ids(request, organization, endpoint)
     return sorted(
         set(monitor_ids) | {m.monitor_id for m in curr_monitors if m.project_id not in readable}
     )
@@ -351,6 +359,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``name`` is the user-supplied name, omitted if unset.
         ``createdBy`` is the ID of the user who created the config, omitted if unset.
         ``updatedBy`` is the ID of the user who last changed it, omitted if unset.
+        ``nextRunAt`` is when the automation next runs on its schedule, or null if it
+        isn't scheduled to run.
         ``dateLastRun`` is the latest visible run's creation time and ``lastRunStatus``
         is its status (null for older runs that predate status tracking). Both are
         omitted if no runs are visible under the runs endpoint's project-scope rules.
@@ -406,8 +416,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         service account created for the automation.
 
         The number of automations per organization is capped, and creation is rate
-        limited. Failures past request validation, such as reaching the cap, return an
-        empty 400. Returns the new config in the same shape as an item in ``configs``.
+        limited. A create the caller isn't allowed to make returns a 403. One that is
+        rejected, such as reaching the cap, returns a 400 with a generic detail. Returns
+        the new config in the same shape as an item in ``configs``.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -420,7 +431,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         project_ids: list[int] = data.get("projectIds") or []
         monitor_ids: list[int] = data.get("monitorIds") or []
-        if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+        if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
             denied = _check_project_access(
                 get_monitor_project_ids(monitor_ids, organization),
                 request=request,
@@ -441,32 +452,43 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
             created_by=acting_user_id(request.user),
         )
         try:
-            workflow: SeerWorkflow
-            if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-                workflow = BreachedMetricWorkflow.create_with_monitors(
-                    organization.id,
+            if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+                workflow = SeerWorkflow.create(
+                    organization_id=organization.id,
+                    strategy=strategy,
                     enabled=data["enabled"],
+                    scope=SelectedMonitors(tuple(monitor_ids)),
                     environments=data["environments"],
-                    monitor_ids=monitor_ids,
                     extras=extras,
                     service_account_grant=grant,
                 )
-            else:
+            elif strategy is SeerWorkflowStrategy.AGENTIC_TRIAGE_V2:
                 workflow = SeerWorkflow.create(
                     organization_id=organization.id,
                     strategy=strategy,
                     enabled=data["enabled"],
                     schedule=SeerWorkflowSchedule(data.get("schedule", SeerWorkflowSchedule.DAILY)),
+                    scope=(
+                        AllProjects()
+                        if set(project_ids) == ALL_ACCESS_PROJECTS
+                        else SelectedProjects(tuple(project_ids))
+                    ),
                     environments=data["environments"],
-                    project_ids=project_ids,
                     extras=extras,
                     service_account_grant=grant,
                 )
-        except ValueError as e:
-            logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
-            if isinstance(e, WorkflowUpdateError):
-                return Response({"detail": str(e)}, status=400)
-            return Response(status=400)
+            else:
+                raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
+        except WorkflowUpdateError as e:
+            logger.info(
+                "seer.workflow_config.create_rejected",
+                extra={
+                    "organization_id": organization.id,
+                    "strategy": strategy.value,
+                    "reason": str(e),
+                },
+            )
+            return Response({"detail": "Couldn't create the automation."}, status=400)
 
         account = workflow.get_service_account()
         if account is not None:
@@ -494,13 +516,18 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (SeerWorkflowConfigPermission,)
 
     def serialize(
-        self, request: Request, organization: Organization, config: SeerWorkflowConfig
+        self,
+        request: Request,
+        organization: Organization,
+        config: SeerWorkflowConfig,
+        account: RpcServiceAccount | None = None,
     ) -> SeerWorkflowConfigResponse:
         projects = self.get_projects(request, organization, include_all_accessible=True)
         return serialize_workflow_configs(
             [config],
             accessible_project_ids=[p.id for p in projects],
             has_global_access=request.access.has_global_access,
+            accounts=[account] if account else (),
         )["configs"][0]
 
     @extend_schema(
@@ -553,9 +580,14 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - ``monitorIds`` replaces the monitors of a metric automation and is rejected
           for other strategies.
         - Enabling or pausing requires access to every project the config covers.
+        - ``serviceAccount`` replaces the scopes and projects of the automation's service
+          account. Like ``projectIds``, the account's projects the caller can't access are
+          kept, and scopes can't be added while any are.
+        - ``name`` renames the config. It is trimmed and must be non-empty.
 
-        Failures past request validation return an empty 400. Returns the updated config
-        in the same shape as an item in the list endpoint's ``configs``.
+        An update the caller isn't allowed to make returns a 403. One the automation
+        rejects returns a 400 with a generic detail. Returns the updated config in the
+        same shape as an item in the list endpoint's ``configs``.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -572,16 +604,20 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             )
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
-        workflow = get_seer_workflow(config)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=organization.id)
 
         enabled: bool | None = serializer.validated_data.get("enabled")
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
+        name: str | None = serializer.validated_data.get("name")
 
         # Checks that depend only on the request run before taking the lock.
-        if monitor_ids is not None and not isinstance(workflow, BreachedMetricWorkflow):
+        if (
+            monitor_ids is not None
+            and get_definition(config.strategy).trigger.scoped_by != "monitors"
+        ):
             return Response(
-                {"detail": "Only metric automations support monitor selection."}, status=400
+                {"detail": "This automation type does not support monitor selection."}, status=400
             )
 
         if project_ids or monitor_ids:
@@ -597,6 +633,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             )
             if denied is not None:
                 raise PermissionDenied(detail=denied)
+
+        grant: SeerServiceAccountGrant | None = serializer.validated_data.get("serviceAccount")
+        if grant is not None:
+            check_can_grant_service_account(grant, request, organization, self)
+        applied_grant: SeerServiceAccountGrant | None = None
 
         # Updates are done in one txn. Error cases must raise instead of early return,
         # so the transaction can rollback.
@@ -638,10 +679,10 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         )
 
                     if all_projects:
-                        update.set_project_selection(AllProjects())
+                        update.set_scope(AllProjects())
                     else:
                         # Replace only what the caller can see; keep current projects they can't.
-                        update.set_project_selection(
+                        update.set_scope(
                             SelectedProjects(
                                 project_ids=tuple(
                                     _with_no_access_project_ids(
@@ -656,18 +697,37 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         )
 
                 if monitor_ids is not None:
-                    assert isinstance(workflow, BreachedMetricWorkflow)
-                    assert isinstance(update, BreachedMetricConfigUpdate)
                     # Replace only what the caller can see; keep monitors in projects they can't.
-                    update.set_monitor_selection(
-                        _with_no_access_monitor_ids(
-                            monitor_ids,
-                            workflow.get_monitors(),
-                            request=request,
-                            organization=organization,
-                            endpoint=self,
+                    update.set_scope(
+                        SelectedMonitors(
+                            tuple(
+                                _with_no_access_monitor_ids(
+                                    monitor_ids,
+                                    get_config_monitors_bulk([update.config]).get(config.id, []),
+                                    request=request,
+                                    organization=organization,
+                                    endpoint=self,
+                                )
+                            )
                         )
                     )
+
+                if grant is not None:
+                    current_grant = update.current_service_account_grant()
+                    no_access_project_ids = _no_access_service_account_project_ids(
+                        current_grant, request=request, organization=organization, endpoint=self
+                    )
+                    _check_can_replace_service_account_grant(
+                        grant, current_grant, no_access_project_ids, request
+                    )
+                    grant = replace(grant, project_ids=[*grant.project_ids, *no_access_project_ids])
+                    if update.set_service_account_grant(grant):
+                        applied_grant = grant
+
+                if name is not None:
+                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
+                    extras.name = name
+                    update.set_extras(extras)
 
                 if update.changed:
                     user_id = acting_user_id(request.user)
@@ -675,14 +735,38 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     extras.updated_by = "bot" if user_id is None else user_id
                     update.set_extras(extras)
 
-        except ValueError as e:
-            logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
-            if isinstance(e, WorkflowUpdateError):
-                return Response({"detail": str(e)}, status=400)
-            return Response(status=400)
+        except WorkflowUpdateError as e:
+            logger.info(
+                "seer.workflow_config.update_rejected",
+                extra={
+                    "organization_id": organization.id,
+                    "config_id": workflow.config_id,
+                    "reason": str(e),
+                },
+            )
+            return Response({"detail": "Couldn't update the automation."}, status=400)
+
+        account: RpcServiceAccount | None = None
+        if grant is not None:
+            account = workflow.get_service_account()
+            if applied_grant is not None and account is None:
+                logger.warning(
+                    "seer.workflow_config.service_account_missing_after_update",
+                    extra={"organization_id": organization.id, "config_id": workflow.config_id},
+                )
+            elif applied_grant is not None and account is not None:
+                # The saved grant, since control may not have applied it yet.
+                account = account.copy(
+                    update={
+                        "scope_list": list(applied_grant.scopes),
+                        "project_ids": list(applied_grant.project_ids),
+                        "all_projects": applied_grant.all_projects,
+                    }
+                )
+                audit_service_account(self, request, organization, account, "SERVICE_ACCOUNT_EDIT")
 
         config = workflow.get_config()
-        return Response(self.serialize(request, organization, config))
+        return Response(self.serialize(request, organization, config, account))
 
     @extend_schema(
         operation_id="Delete a Seer automation workflow",
@@ -709,7 +793,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
 
-        workflow = get_seer_workflow(config)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=organization.id)
         account = workflow.get_service_account()
         workflow.delete()
         if account is not None:
@@ -747,6 +831,7 @@ def serialize_workflow_configs(
         has_global_access=has_global_access,
     )
     last_runs_by_config_id = {run.config_id: run for run in last_runs}
+    next_run_times = get_next_run_times(configs)
     return {
         "configs": [
             serialize_workflow_config(
@@ -759,6 +844,7 @@ def serialize_workflow_configs(
                     if config.service_account_id
                     else None
                 ),
+                next_run_at=next_run_times.get(config.id),
             )
             for config in configs
         ]
@@ -805,6 +891,22 @@ def get_config_last_runs(
     ]
 
 
+def get_next_run_times(configs: Sequence[SeerWorkflowConfig]) -> dict[int, datetime | None]:
+    """When each config next runs on its schedule, keyed by config id."""
+    by_organization: defaultdict[int, list[int]] = defaultdict(list)
+    for config in configs:
+        by_organization[config.organization_id].append(config.id)
+    return {
+        config_id: info.next_fire_at
+        for organization_id, config_ids in by_organization.items()
+        for config_id, info in get_schedules(
+            organization_id=organization_id,
+            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+            target_ids=config_ids,
+        ).items()
+    }
+
+
 def serialize_workflow_config(
     config: SeerWorkflowConfig,
     *,
@@ -812,6 +914,7 @@ def serialize_workflow_config(
     connected_monitors: list[ConnectedMonitor],
     last_run: WorkflowConfigLastRun | None,
     service_account: SeerServiceAccountResponse | None,
+    next_run_at: datetime | None,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
     monitor_ids = [m.monitor_id for m in connected_monitors]
@@ -842,6 +945,7 @@ def serialize_workflow_config(
         ),
         "outputPolicy": config.output_policy,
         "seededDefault": SeerWorkflowConfigExtras.parse_obj(config.extras).seeded_default,
+        "nextRunAt": next_run_at,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,
     }
@@ -913,6 +1017,44 @@ def _require_global_role(request: Request, detail: str) -> None:
     role = request.access.role
     if role is None or not roles.get(role).is_global:
         raise PermissionDenied(detail)
+
+
+def _no_access_service_account_project_ids(
+    current: SeerServiceAccountGrant,
+    *,
+    request: Request,
+    organization: Organization,
+    endpoint: OrganizationEndpoint,
+) -> list[int]:
+    """The account's active projects the caller can't read."""
+    if not current.project_ids:
+        return []
+    return list(
+        Project.objects.filter(
+            organization_id=organization.id,
+            id__in=current.project_ids,
+            status=ObjectStatus.ACTIVE,
+        )
+        .exclude(id__in=_readable_project_ids(request, organization, endpoint))
+        .values_list("id", flat=True)
+    )
+
+
+def _check_can_replace_service_account_grant(
+    grant: SeerServiceAccountGrant,
+    current: SeerServiceAccountGrant,
+    no_access_project_ids: Collection[int],
+    request: Request,
+) -> None:
+    if current.all_projects and not grant.all_projects:
+        _require_global_role(
+            request,
+            "Only a role with access to all projects can narrow a service account's projects.",
+        )
+    if no_access_project_ids and set(grant.scopes) - set(current.scopes):
+        raise PermissionDenied(
+            "You can't add scopes to a service account that has projects you can't access."
+        )
 
 
 def audit_service_account(
