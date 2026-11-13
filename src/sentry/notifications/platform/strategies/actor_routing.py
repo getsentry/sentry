@@ -91,8 +91,9 @@ def _get_participant_map(
 @dataclass(frozen=True)
 class UserRoutingStrategy(NotificationStrategy):
     """
-    `project` is optional for settings without project scope, such as Inbox settings. Without it,
-    `organization_id` picks the organization whose members and Slack integrations are used.
+    Inbox settings are user-level and apply to all of a user's organizations, so they never use a
+    project: pass `organization_id` instead, or a `project` only to pick its organization. Every
+    other setting needs a `project` for its project overrides and project email addresses.
     """
 
     user_ids: list[int]
@@ -101,14 +102,23 @@ class UserRoutingStrategy(NotificationStrategy):
     organization_id: int | None = None
 
     def __post_init__(self) -> None:
-        if self.project is None and self.organization_id is None:
+        if self.project is not None:
+            return
+        if self.organization_id is None:
             raise ValueError("UserRoutingStrategy needs a project or an organization_id")
+        if self.settings_key not in INBOX_NOTIFICATION_SETTINGS:
+            raise ValueError(
+                f"{self.settings_key.value} needs a project; only Inbox settings can use organization_id alone"
+            )
 
     def get_targets(self) -> list[NotificationTarget]:
         organization_id = (
             self.project.organization_id if self.project is not None else self.organization_id
         )
         assert organization_id is not None
+        settings_project = (
+            None if self.settings_key in INBOX_NOTIFICATION_SETTINGS else self.project
+        )
 
         user_ids = OrganizationMember.objects.filter(
             organization_id=organization_id,
@@ -123,12 +133,12 @@ class UserRoutingStrategy(NotificationStrategy):
             recipients,
             settings_key=self.settings_key,
             organization_id=organization_id,
-            project_ids=[self.project.id] if self.project is not None else None,
+            project_ids=[settings_project.id] if settings_project is not None else None,
         )
         return get_targets_from_participant_map(
             participant_map,
             organization_id=organization_id,
-            project=self.project,
+            project=settings_project,
         )
 
 

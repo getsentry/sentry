@@ -128,6 +128,52 @@ class UserRoutingStrategyInboxTest(TestCase):
                 user_ids=[self.user.id], settings_key=NotificationSettingEnum.INBOX_MENTIONS
             )
 
+    def test_non_inbox_setting_requires_project(self) -> None:
+        with pytest.raises(ValueError):
+            UserRoutingStrategy(
+                organization_id=self.organization.id,
+                user_ids=[self.user.id],
+                settings_key=NotificationSettingEnum.ISSUE_ALERTS,
+            )
+
+    def test_ignores_project_email(self) -> None:
+        project_email = "project-specific@example.com"
+        self.create_useremail(user=self.user, email=project_email)
+        self.create_user_option(
+            user=self.user, project_id=self.project.id, key="mail:email", value=project_email
+        )
+
+        targets = UserRoutingStrategy(
+            project=self.project,
+            user_ids=[self.user.id],
+            settings_key=NotificationSettingEnum.INBOX_MENTIONS,
+        ).get_targets()
+
+        assert {(target.provider_key, target.resource_id) for target in targets} == {
+            (NotificationProviderKey.EMAIL, self.user.email),
+            (NotificationProviderKey.SLACK, "U123"),
+        }
+
+    def test_ignores_project_settings(self) -> None:
+        self.create_notification_setting_option(
+            user_id=self.user.id,
+            scope_type="project",
+            scope_identifier=self.project.id,
+            type=NotificationSettingEnum.INBOX_MENTIONS.value,
+            value="never",
+        )
+
+        targets = UserRoutingStrategy(
+            project=self.project,
+            user_ids=[self.user.id],
+            settings_key=NotificationSettingEnum.INBOX_MENTIONS,
+        ).get_targets()
+
+        assert {(target.provider_key, target.resource_id) for target in targets} == {
+            (NotificationProviderKey.EMAIL, self.user.email),
+            (NotificationProviderKey.SLACK, "U123"),
+        }
+
     def test_defaults_to_email_and_slack(self) -> None:
         assert self._get_targets() == {
             (NotificationProviderKey.EMAIL, self.user.email),
