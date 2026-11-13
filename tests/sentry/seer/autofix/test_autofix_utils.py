@@ -1648,7 +1648,9 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
             organization=self.organization, provider="github", external_id="github:1"
         )
 
-    def _link_repo(self, name: str, stack_root: str | None = None) -> ProjectRepository:
+    def _link_repo(
+        self, name: str, stack_root: str | None = None, automatically_generated: bool = False
+    ) -> ProjectRepository:
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -1666,6 +1668,7 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
                 project_repository=project_repo,
                 stack_root=stack_root,
                 source_root=f"src/{stack_root}",
+                automatically_generated=automatically_generated,
             )
         return project_repo
 
@@ -1780,6 +1783,14 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
         self._link_filler_repos()
         self._link_repo("catch-all", stack_root="")
         matched = self._link_repo("billing", stack_root="billing/")
+
+        assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_specific_automatic_mapping_beats_user_made_catch_all(self) -> None:
+        self._link_filler_repos()
+        self._link_repo("catch-all", stack_root="")
+        matched = self._link_repo("billing", stack_root="billing/", automatically_generated=True)
 
         assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
 

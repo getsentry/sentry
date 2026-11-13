@@ -634,21 +634,23 @@ def _match_event_frames_to_project_repos(
 
     matched_ids: set[int] = set()
     for paths, frame in frames_by_paths.items():
-        for code_mapping in code_mappings:
+        matches = [
+            code_mapping
+            for code_mapping in code_mappings
             # A cheap prefix check keeps the full conversion off the mappings that can't match.
-            if not any(path.startswith(code_mapping.stack_root) for path in paths):
-                continue
-            if (
-                convert_stacktrace_frame_path_to_source_path(
-                    frame=frame,
-                    code_mapping=code_mapping,
-                    platform=event.platform,
-                    sdk_name=sdk_name,
-                )
-                is not None
-            ):
-                matched_ids.add(code_mapping.project_repository_id)
-                break
+            if any(path.startswith(code_mapping.stack_root) for path in paths)
+            and convert_stacktrace_frame_path_to_source_path(
+                frame=frame,
+                code_mapping=code_mapping,
+                platform=event.platform,
+                sdk_name=sdk_name,
+            )
+            is not None
+        ]
+        if matches:
+            # User-made mappings sort first, and a catch-all one would claim every frame.
+            best_match = max(matches, key=lambda code_mapping: len(code_mapping.stack_root))
+            matched_ids.add(best_match.project_repository_id)
     return matched_ids
 
 
