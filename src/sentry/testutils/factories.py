@@ -206,7 +206,8 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowTriggerBinding,
 )
-from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
+from sentry.seer.workflows.base import SelectedMonitors
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -3632,11 +3633,9 @@ class Factories:
         for action in trigger_actions:
             Factories.create_seer_workflow_trigger_binding(config, action)
         if monitors:
-            workflow = BreachedMetricWorkflow(
-                config_id=config.id, organization_id=config.organization_id
-            )
+            workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
             with workflow.update_config() as update:
-                update.set_monitor_selection([monitor.id for monitor in monitors])
+                update.set_scope(SelectedMonitors(tuple(monitor.id for monitor in monitors)))
             config.refresh_from_db()
         return config
 

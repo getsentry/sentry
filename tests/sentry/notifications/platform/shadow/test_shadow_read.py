@@ -316,7 +316,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
 
         self.assert_match(observation)
         legacy, _ = observation.payloads
-        assert invocation.event_data.group.title in legacy["text"]
+        assert invocation.event_data.require_group().title in legacy["text"]
 
     @with_feature("organizations:slack-reinstall-nudge-on-issue-alert")
     @override_options({"slack.nudge-frequency": 1.0})

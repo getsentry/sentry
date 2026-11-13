@@ -18,9 +18,10 @@ import {darkTheme} from '@sentry/scraps/theme';
 import {toast} from '@sentry/scraps/toast';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
+import {getHandoffPrompt} from './handoffPrompt';
 import {
   AgentHandoffFlow,
   type AgentHandoffContext,
@@ -44,11 +45,10 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   onSelect,
 }: AgentHandoffPromptProps<Flow>) {
   const links = useStore(ConfigStore, state => state.links);
-  const urlPrefix = useStore(ConfigStore, state => state.urlPrefix);
   const [useIpPinning, setUseIpPinning] = useState(true);
+  const [isPromptSelected, setIsPromptSelected] = useState(false);
   const handoff = useAgentHandoff(flow, context);
   const copyDisabled = !context || handoff.isPending;
-  const guideUrl = `${urlPrefix.replace(/\/$/, '')}/agent-handoff/`;
   const previewUrl = new URL(`/agent-handoff/?preview=1&flow=${flow}`, links.sentryUrl)
     .href;
 
@@ -72,6 +72,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   const handlePointerDown: PointerEventHandler<HTMLDivElement> = event => {
     onPointerDown(event);
     if (event.button === 0) {
+      setIsPromptSelected(true);
       onSelect?.();
     }
   };
@@ -101,23 +102,19 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
                 size="sm"
                 tabIndex={tabIndex}
                 textWrap="wrap"
+                onBlur={() => setIsPromptSelected(false)}
                 onPointerDown={handlePointerDown}
               >
-                {tct(
-                  'Follow the instructions verbatim at [guideUrl]. Your handoff code is [token].',
-                  {
-                    guideUrl,
-                    token: (
-                      <MaskedCode
-                        monospace
-                        variant="warning"
-                        title={t('The secret code authorizes your agent on your behalf')}
-                      >
-                        sntryh_****
-                      </MaskedCode>
-                    ),
-                  }
-                )}
+                {getHandoffPrompt('sntryh_****', maskedCode => (
+                  <MaskedCode
+                    data-selected={isPromptSelected || undefined}
+                    monospace
+                    variant="warning"
+                    title={t('The secret code authorizes your agent on your behalf')}
+                  >
+                    {maskedCode}
+                  </MaskedCode>
+                ))}
               </PromptText>
               <Container position="absolute" top="8px" right="8px">
                 <Button
@@ -224,9 +221,22 @@ const PromptText = styled(Text)`
 `;
 
 const MaskedCode = styled(InfoText)`
-  background: ${p => p.theme.tokens.background.transparent.warning.muted};
-  border-radius: ${p => p.theme.radius.sm};
-  padding: 0 ${p => p.theme.space['2xs']};
+  position: relative;
+  isolation: isolate;
   text-decoration: none;
   ${accentSelection}
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 calc(-1 * ${p => p.theme.space.xs});
+    z-index: -1;
+    background: ${p => p.theme.tokens.background.transparent.warning.muted};
+    border-radius: ${p => p.theme.radius.xs};
+    pointer-events: none;
+  }
+
+  &[data-selected]::before {
+    display: none;
+  }
 `;

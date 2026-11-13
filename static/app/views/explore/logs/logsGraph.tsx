@@ -11,8 +11,8 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -287,7 +287,7 @@ function Graph({
   const Actions = visualize.visible ? (
     <Fragment>
       {droppedData.layerControl ? (
-        <DroppedDataLayerControl {...droppedData.layerControl} />
+        <ChartLayersControl {...droppedData.layerControl} />
       ) : null}
       <CompactSelect
         trigger={triggerProps => (

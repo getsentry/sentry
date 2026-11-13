@@ -43,7 +43,7 @@ class OrganizationNotebookIndexTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation_id,
+                "notebook_id": investigation_id,
             },
         )
 
@@ -193,7 +193,7 @@ class OrganizationNotebookIndexTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": first.id,
+                "notebook_id": first.id,
             },
         )
         assert self.client.get(first_url).status_code == 200
@@ -202,7 +202,7 @@ class OrganizationNotebookIndexTest(APITestCase):
             "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": second.id,
+                "notebook_id": second.id,
             },
         )
         assert (
@@ -420,10 +420,10 @@ class OrganizationNotebookIndexTest(APITestCase):
         with patched_settings(PRIVATE_SCHEMA_SETTINGS):
             schema = CustomGenerator().get_schema(public=True)
         base = "/api/0/organizations/{organization_id_or_slug}/notebooks/"
-        detail_path = base + "{investigation_id}/"
+        detail_path = base + "{notebook_id}/"
         orchestration_path = (
             "/api/0/organizations/{organization_id_or_slug}/investigations/"
-            "{investigation_id}/orchestration/"
+            "{notebook_id}/orchestration/"
         )
 
         def validate_response(response: Response, method: str, path: str) -> None:

@@ -45,7 +45,7 @@ class NotebookQueryExecutionEndpointTest(APITestCase):
             "sentry-api-0-organization-notebook-block-executions",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.notebook.id,
+                "notebook_id": self.notebook.id,
                 "block_id": self.block.id,
             },
         )
@@ -246,7 +246,7 @@ class NotebookTextExecutionEndpointTest(APITestCase):
             "sentry-api-0-organization-notebook-block-executions",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.notebook.id,
+                "notebook_id": self.notebook.id,
                 "block_id": self.block.id,
             },
         )

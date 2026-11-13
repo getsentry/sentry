@@ -2,6 +2,7 @@ import {useState, type ReactNode} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {dragHandle} from 'sentry-test/dragMove';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
@@ -2564,6 +2565,76 @@ describe('Investigation detail', () => {
     expect(screen.getByText('820ms')).not.toBeVisible();
     await userEvent.click(toggle);
     expect(screen.getByText('820ms')).toBeVisible();
+  });
+
+  it('sizes the leading table column to its content and lets every column resize', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        title: 'Database latency',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'table',
+          tableMarkdown:
+            '| issue | endpoint | count |\n| --- | --- | --- |\n| ISSUE-1 | /api/0/projects/ | 12 |',
+          chart: null,
+          chartUnavailableReason: null,
+          isEmpty: false,
+          queryLinks: [],
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByText('ISSUE-1')).toBeInTheDocument();
+
+    const table = within(screen.getByTestId('query-block')).getByRole('table');
+    expect(table).toHaveStyle({
+      gridTemplateColumns: 'fit-content(40%) minmax(0, 1fr) minmax(0, 1fr)',
+    });
+
+    // One handle per column but the last, which has nothing to its right to give
+    // width back to. Columns measure 0 in jsdom, so the width is the drag distance.
+    const resizers = within(table).getAllByRole('separator');
+    expect(resizers).toHaveLength(2);
+
+    dragHandle(resizers[1]!, {from: 100, to: 340});
+
+    await waitFor(() =>
+      expect(table).toHaveStyle({
+        gridTemplateColumns: 'fit-content(40%) 240px minmax(0, 1fr)',
+      })
+    );
+  });
+
+  it('gives a single-column table the full width', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        title: 'Database latency',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'table',
+          tableMarkdown: '| p95 |\n| --- |\n| 820ms |',
+          chart: null,
+          chartUnavailableReason: null,
+          isEmpty: false,
+          queryLinks: [],
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByText('820ms')).toBeInTheDocument();
+    expect(within(screen.getByTestId('query-block')).getByRole('table')).toHaveStyle({
+      gridTemplateColumns: 'minmax(0, 1fr)',
+    });
   });
 
   it('shows generated query evidence expanded when ready', async () => {

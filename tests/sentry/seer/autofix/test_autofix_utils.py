@@ -9,6 +9,7 @@ from sentry.constants import (
     DataCategory,
     ObjectStatus,
 )
+from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -21,6 +22,8 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
     MAX_SEER_REPOS_PER_PROJECT,
+    SEAT_BASED_STOPPING_POINTS,
+    USAGE_BASED_STOPPING_POINTS,
     AutofixState,
     AutofixStoppingPoint,
     AutomationCodingAgent,
@@ -30,11 +33,15 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     deduplicate_repositories,
     extract_api_error_message,
+    get_event_matched_project_repo_ids,
     get_org_default_seer_automation_handoff,
     get_repo_url_path,
     get_token_based_billing_project_repos,
+    get_valid_automated_run_stopping_points,
     has_project_connected_repos,
+    is_free_cohort_org,
     is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
     read_preference_from_sentry_db,
     replace_all_seer_project_repos,
     update_seer_project_settings,
@@ -52,7 +59,8 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
@@ -272,6 +280,58 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         # Even without feature flags enabled, should return cached True
         result = is_seer_seat_based_tier_enabled(self.organization)
         assert result is True
+
+
+class TestIsSeerSeatOrTokenBilled(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(name="test-org")
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        cache.delete(f"seer:seat-based-tier:{self.organization.id}")
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    def test_seat_based(self) -> None:
+        assert is_seer_seat_or_token_billed_enabled(self.organization) is True
+        assert get_valid_automated_run_stopping_points(self.organization) == (
+            SEAT_BASED_STOPPING_POINTS
+        )
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    def test_token_billed(self) -> None:
+        assert is_seer_seat_or_token_billed_enabled(self.organization) is True
+        assert get_valid_automated_run_stopping_points(self.organization) == (
+            SEAT_BASED_STOPPING_POINTS
+        )
+
+    def test_legacy(self) -> None:
+        assert is_seer_seat_or_token_billed_enabled(self.organization) is False
+        assert get_valid_automated_run_stopping_points(self.organization) == (
+            USAGE_BASED_STOPPING_POINTS
+        )
+
+
+class TestIsFreeCohortOrg(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(name="test-org")
+        self.organization.update_option("agentic-triage-free-cohort", True)
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        cache.delete(f"seer:seat-based-tier:{self.organization.id}")
+
+    def test_legacy(self) -> None:
+        assert is_free_cohort_org(self.organization) is True
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    def test_seat_based(self) -> None:
+        assert is_free_cohort_org(self.organization) is False
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    def test_token_billed(self) -> None:
+        assert is_free_cohort_org(self.organization) is False
 
 
 class HasProjectConnectedReposBaseTest(TestCase):
@@ -1573,6 +1633,203 @@ class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(BulkReadPreferencesFr
 
         result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
         assert len(result[self.project1.id].repositories) == MAX_SEER_REPOS_PER_PROJECT + 2
+
+
+TOKEN_BILLING_FEATURES = {
+    "organizations:seer-token-based-billing-onboarding": True,
+    "organizations:token-billed-seer-enabled": True,
+}
+
+
+class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+    def _link_repo(self, name: str, stack_root: str | None = None) -> ProjectRepository:
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id=name,
+            name=f"test-org/{name}",
+        )
+        project_repo = self.create_project_repository(
+            project=self.project, repository=repo, source=ProjectRepositorySource.AUTO_EVENT
+        )
+        if stack_root is not None:
+            self.create_code_mapping(
+                project=self.project,
+                repo=repo,
+                project_repository=project_repo,
+                stack_root=stack_root,
+                source_root=f"src/{stack_root}",
+            )
+        return project_repo
+
+    def _link_filler_repos(self, count: int = MAX_SEER_REPOS_PER_PROJECT) -> None:
+        for i in range(count):
+            self._link_repo(f"filler-{i}")
+
+    def _store_group(self, in_app: bool = True) -> Group:
+        event = self.store_event(
+            data={
+                "platform": "python",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "boom",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "billing/charge.py",
+                                        "function": "charge",
+                                        "lineno": 10,
+                                        "in_app": in_app,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+        return event.group
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_returns_link_matching_an_in_app_frame(self) -> None:
+        self._link_filler_repos()
+        matched = self._link_repo("billing", stack_root="billing/")
+        self._link_repo("search", stack_root="search/")
+
+        assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_repeat_call_for_the_group_uses_the_cached_match(self) -> None:
+        self._link_filler_repos()
+        matched = self._link_repo("billing", stack_root="billing/")
+        group = self._store_group()
+        assert get_event_matched_project_repo_ids(group) == {matched.id}
+
+        matched.repositoryprojectpathconfig_set.all().delete()
+
+        assert get_event_matched_project_repo_ids(group) == {matched.id}
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_matches_a_repeated_frame_once(self) -> None:
+        self._link_filler_repos()
+        matched = self._link_repo("billing", stack_root="billing/")
+        frame = {"filename": "billing/charge.py", "function": "charge", "in_app": True}
+        event = self.store_event(
+            data={
+                "platform": "python",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "exception": {
+                    "values": [{"type": "RecursionError", "stacktrace": {"frames": [frame] * 50}}]
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        assert get_event_matched_project_repo_ids(event.group) == {matched.id}
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_empty_when_limit_cannot_cut(self) -> None:
+        self._link_filler_repos(MAX_SEER_REPOS_PER_PROJECT - 1)
+        self._link_repo("billing", stack_root="billing/")
+
+        assert get_event_matched_project_repo_ids(self._store_group()) == set()
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_empty_without_event(self) -> None:
+        self._link_filler_repos()
+        self._link_repo("billing", stack_root="billing/")
+
+        assert get_event_matched_project_repo_ids(self.create_group(project=self.project)) == set()
+
+    def test_empty_when_not_token_billed(self) -> None:
+        self._link_filler_repos()
+        self._link_repo("billing", stack_root="billing/")
+
+        assert get_event_matched_project_repo_ids(self._store_group()) == set()
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_empty_when_no_frame_matches(self) -> None:
+        self._link_filler_repos()
+        self._link_repo("search", stack_root="search/")
+
+        assert get_event_matched_project_repo_ids(self._store_group()) == set()
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_ignores_mapping_of_a_repo_seer_cannot_use(self) -> None:
+        self._link_filler_repos(MAX_SEER_REPOS_PER_PROJECT + 1)
+        unusable = self._link_repo("billing", stack_root="billing/")
+        unusable.repository.update(status=ObjectStatus.DISABLED)
+
+        assert get_event_matched_project_repo_ids(self._store_group()) == set()
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_most_specific_mapping_wins(self) -> None:
+        self._link_filler_repos()
+        self._link_repo("catch-all", stack_root="")
+        matched = self._link_repo("billing", stack_root="billing/")
+
+        assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_single_catch_all_mapping_matches(self) -> None:
+        self._link_filler_repos()
+        matched = self._link_repo("catch-all", stack_root="")
+        self._link_repo("search", stack_root="search/")
+
+        assert get_event_matched_project_repo_ids(self._store_group()) == {matched.id}
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_ignores_frames_not_in_app(self) -> None:
+        self._link_filler_repos()
+        self._link_repo("billing", stack_root="billing/")
+
+        assert get_event_matched_project_repo_ids(self._store_group(in_app=False)) == set()
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_matched_link_is_first_and_survives_limit(self) -> None:
+        self._link_filler_repos(MAX_SEER_REPOS_PER_PROJECT + 2)
+        self._link_repo("billing", stack_root="billing/")
+        group = self._store_group()
+
+        result = read_preference_from_sentry_db(
+            self.project,
+            limit_repos=True,
+            priority_project_repo_ids=get_event_matched_project_repo_ids(group),
+        )
+
+        assert [r.name for r in result.repositories] == [
+            "billing",
+            *[f"filler-{i}" for i in range(MAX_SEER_REPOS_PER_PROJECT - 1)],
+        ]
+
+    @with_feature(TOKEN_BILLING_FEATURES)
+    def test_bulk_read_puts_matched_link_first(self) -> None:
+        self._link_filler_repos(MAX_SEER_REPOS_PER_PROJECT + 2)
+        matched = self._link_repo("billing", stack_root="billing/")
+
+        result = bulk_read_preferences_from_sentry_db(
+            self.organization.id,
+            [self.project.id],
+            limit_repos=True,
+            priority_project_repo_ids={matched.id},
+        )
+
+        repositories = result[self.project.id].repositories
+        assert len(repositories) == MAX_SEER_REPOS_PER_PROJECT
+        assert repositories[0].name == "billing"
 
 
 class TestGetOrgDefaultSeerAutomationHandoff(TestCase):

@@ -35,6 +35,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.number }}
           LABEL: 'Trigger: Override Decision Model Lint'
+          # Rules diff each file against the PR's base, it must match --base below
+          DECISION_MODEL_LINT_BASE: HEAD^1
           OVERRIDDEN: "${{ contains(github.event.pull_request.labels.*.name, 'Trigger: Override Decision Model Lint') }}"
         run: |
           report="$RUNNER_TEMP/decision-model-lint.md"

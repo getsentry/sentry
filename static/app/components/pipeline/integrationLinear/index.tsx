@@ -46,7 +46,7 @@ function LinearOAuthLoginStep({
         serviceName="Linear"
         onOAuthCallback={handleOAuthCallback}
         description={t(
-          'Connect your Linear workspace so Seer can read issues, projects, and comments for everyone in your organization. A Linear workspace admin must approve this read-only connection.'
+          'Connect your Linear workspace so Seer can work with issues, projects, and comments for everyone in your organization. Sentry requests read and write access, which a Linear workspace admin must approve.'
         )}
       />
     </Stack>

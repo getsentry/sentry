@@ -231,6 +231,7 @@ export function VisualizeTransformationRows({
 }
 
 interface AddTransformationButtonProps extends Props {
+  disabled?: boolean;
   iconOnly?: boolean;
   variant?: 'transparent' | 'link';
 }
@@ -239,6 +240,7 @@ export function AddTransformationButton({
   transformations,
   onChange,
   traceItemDataset,
+  disabled = false,
   iconOnly = false,
   analyticsSource = 'explore',
   variant = 'transparent',
@@ -252,7 +254,7 @@ export function AddTransformationButton({
   return (
     <CompactSelect
       options={kindOptions}
-      disabled={transformations.length >= KIND_OPTIONS.length}
+      disabled={disabled || transformations.length >= KIND_OPTIONS.length}
       value={undefined}
       trigger={props =>
         iconOnly ? (

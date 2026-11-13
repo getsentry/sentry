@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {SEARCH_PAGE__SERVER_RENDERING__TYPE} from '@sentry/conventions/attributes/search';
 import {IconClose} from '@sentry/icons/close';
 import * as Sentry from '@sentry/react';
 
@@ -110,6 +111,8 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       'gen_ai.operation.type',
       'http.response.status_code',
       'span.status',
+      // Marks pageloads of reused pages, see TraceTree.AddServerRenderPlaceholders
+      SEARCH_PAGE__SERVER_RENDERING__TYPE,
     ],
   });
   const tree = useTraceTree({trace, replay: null});

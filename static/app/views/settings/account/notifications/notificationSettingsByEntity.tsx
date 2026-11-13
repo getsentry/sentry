@@ -41,7 +41,7 @@ interface NotificationSettingsByEntityProps {
   handleRemoveNotificationOption: (id: string) => void;
   notificationOptions: NotificationOptionsObject[];
   notificationType: string;
-  organizations: OrganizationSummary[];
+  organizations: readonly OrganizationSummary[];
 }
 
 export function NotificationSettingsByEntity({

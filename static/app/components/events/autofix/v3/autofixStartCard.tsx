@@ -70,7 +70,11 @@ export function AutofixStartCard({
     <Stack gap="md">
       {/* The Billing Gates design gives the sidebar one card: the notice takes the explainer's place. */}
       {showOutOfCreditsNotice && !creditCheck.hasEnoughCredits ? (
-        <SeerOutOfCreditsCta reason="autofix-start" variant="muted" />
+        <SeerOutOfCreditsCta
+          reason="autofix-start"
+          denialReason={creditCheck.denialReason}
+          variant="muted"
+        />
       ) : (
         <AutofixStartCardContent />
       )}

@@ -1,4 +1,4 @@
-import {useEffect, useImperativeHandle, type RefObject} from 'react';
+import {useEffect, useImperativeHandle, type ReactNode, type RefObject} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
@@ -19,7 +19,7 @@ import {
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {t, tn} from 'sentry/locale';
@@ -245,160 +245,148 @@ export function MetricAutomationForm(props: Props) {
               {getRequestErrorUserMessage(mutationError, t('Unable to save automation.'))}
             </Alert>
           )}
-          <form.FieldGroup title={t('Description')}>
-            {props.mode === 'create' && (
-              <form.AppField name="name">
+          <FormSection title={t('Description')}>
+            <form.FieldGroup>
+              {props.mode === 'create' && (
+                <form.AppField name="name">
+                  {field => (
+                    <field.Layout.Stack label={t('Name')} required>
+                      <field.Input
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        placeholder={t('e.g. Investigate checkout errors')}
+                        maxLength={64}
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+              )}
+              <Container padding="lg xl">
+                <Text variant="muted">
+                  {t(
+                    'Investigate metric breaches using related errors, traces, and recent changes to find likely causes.'
+                  )}
+                </Text>
+              </Container>
+            </form.FieldGroup>
+          </FormSection>
+
+          <FormSection title={t('Trigger')}>
+            <form.FieldGroup>
+              <DisplayField.Row
+                label={t('Metric breach')}
+                hintText={t(
+                  'Runs when any connected monitor crosses its alert threshold.'
+                )}
+              >
+                <Flex>
+                  <Tag icon={<IconFire />} variant="muted">
+                    {t('When a monitor breaches')}
+                  </Tag>
+                </Flex>
+              </DisplayField.Row>
+            </form.FieldGroup>
+          </FormSection>
+
+          <FormSection title={t('Scope')}>
+            <form.FieldGroup>
+              <form.AppField name="monitorIds">
                 {field => (
-                  <field.Layout.Stack label={t('Name')} required>
-                    <field.Input
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      placeholder={t('e.g. Investigate checkout errors')}
-                      maxLength={64}
-                    />
+                  <field.Layout.Stack
+                    label={t('Connected monitors')}
+                    hintText={t(
+                      'Seer investigates when any of these metric monitors breaches.'
+                    )}
+                  >
+                    <field.Base>
+                      {() => (
+                        <ConnectedMonitors
+                          monitorIds={field.state.value}
+                          monitors={monitors}
+                          isPending={monitorsQuery.isLoading}
+                          isError={hasMonitorsError}
+                          disabled={readOnly}
+                          onChange={next => {
+                            const remaining = new Set(
+                              monitors
+                                .filter(monitor => next.includes(monitor.id))
+                                .map(monitor => monitor.projectId)
+                            );
+                            // A project leaves the grant with its last connected monitor
+                            const dropped = new Set(
+                              connectedMonitors
+                                .map(monitor => monitor.projectId)
+                                .filter(projectId => !remaining.has(projectId))
+                            );
+                            if (dropped.size > 0) {
+                              form.setFieldValue('serviceAccountProjects', {
+                                ...serviceAccountProjects,
+                                projectIds: serviceAccountProjects.projectIds.filter(
+                                  projectId => !dropped.has(projectId)
+                                ),
+                              });
+                            }
+                            field.handleChange(next);
+                          }}
+                        />
+                      )}
+                    </field.Base>
                   </field.Layout.Stack>
                 )}
               </form.AppField>
-            )}
-            <Container padding="lg xl">
-              <Text variant="muted">
-                {t(
-                  'Investigate metric breaches using related errors, traces, and recent changes to find likely causes.'
-                )}
-              </Text>
-            </Container>
-          </form.FieldGroup>
+            </form.FieldGroup>
+          </FormSection>
 
-          <form.FieldGroup title={t('Trigger')}>
-            <DisplayField.Row
-              label={t('Metric breach')}
-              hintText={t('Runs when any connected monitor crosses its alert threshold.')}
-            >
-              <Flex>
-                <Tag icon={<IconFire />} variant="muted">
-                  {t('When a monitor breaches')}
-                </Tag>
-              </Flex>
-            </DisplayField.Row>
-          </form.FieldGroup>
+          <FormSection title={t('Actions')}>
+            <form.FieldGroup>
+              {/* Not configurable yet, so these show the fixed behavior */}
+              <DisplayField.Row
+                label={t('Start investigations')}
+                hintText={t('Automatically investigate connected monitor breaches.')}
+              >
+                <Switch checked disabled aria-label={t('Start investigations')} />
+              </DisplayField.Row>
+              <DisplayField.Row
+                label={t('Send notifications')}
+                hintText={t('Post findings to alert targets of the connected monitors')}
+              >
+                <Switch checked disabled aria-label={t('Send notifications')} />
+              </DisplayField.Row>
+            </form.FieldGroup>
+          </FormSection>
 
-          <form.FieldGroup title={t('Scope')}>
-            <form.AppField name="monitorIds">
-              {field => (
-                <field.Layout.Stack
-                  label={t('Connected monitors')}
-                  hintText={t(
-                    'Seer investigates when any of these metric monitors breaches.'
+          <FormSection title={t('Service account')}>
+            <form.FieldGroup>
+              <Stack gap="lg">
+                <Text variant="muted">
+                  {t(
+                    'Investigations run as a service account that belongs to this automation. It can only reach the projects and permissions it is given.'
                   )}
-                >
-                  <field.Base>
-                    {() => (
-                      <ConnectedMonitors
-                        monitorIds={field.state.value}
-                        monitors={monitors}
-                        isPending={monitorsQuery.isLoading}
-                        isError={hasMonitorsError}
-                        disabled={readOnly}
-                        onChange={next => {
-                          const remaining = new Set(
-                            monitors
-                              .filter(monitor => next.includes(monitor.id))
-                              .map(monitor => monitor.projectId)
-                          );
-                          // A project leaves the grant with its last connected monitor
-                          const dropped = new Set(
-                            connectedMonitors
-                              .map(monitor => monitor.projectId)
-                              .filter(projectId => !remaining.has(projectId))
-                          );
-                          if (dropped.size > 0) {
-                            form.setFieldValue('serviceAccountProjects', {
-                              ...serviceAccountProjects,
-                              projectIds: serviceAccountProjects.projectIds.filter(
-                                projectId => !dropped.has(projectId)
-                              ),
-                            });
-                          }
-                          field.handleChange(next);
-                        }}
-                      />
-                    )}
-                  </field.Base>
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-          </form.FieldGroup>
-
-          <form.FieldGroup title={t('Actions')}>
-            {/* Not configurable yet, so these show the fixed behavior */}
-            <DisplayField.Row
-              label={t('Start investigations')}
-              hintText={t('Automatically investigate connected monitor breaches.')}
-            >
-              <Switch checked disabled aria-label={t('Start investigations')} />
-            </DisplayField.Row>
-            <DisplayField.Row
-              label={t('Send notifications')}
-              hintText={t('Post findings to alert targets of the connected monitors')}
-            >
-              <Switch checked disabled aria-label={t('Send notifications')} />
-            </DisplayField.Row>
-          </form.FieldGroup>
-
-          <form.FieldGroup title={t('Service account')}>
-            <Stack gap="lg">
-              <Text variant="muted">
-                {t(
-                  'Investigations run as a service account that belongs to this automation. It can only reach the projects and permissions it is given.'
-                )}
-              </Text>
-              <Disclosure>
-                <Disclosure.Title>
-                  <ServiceAccountSummary
-                    access={serviceAccountProjects}
-                    monitors={connectedMonitors}
-                    scopes={scopes}
-                  />
-                </Disclosure.Title>
-                <Disclosure.Content>
-                  <Stack gap="2xl" paddingTop="md">
-                    <form.AppField name="serviceAccountProjects">
-                      {field => (
-                        <field.Layout.Stack label={t('Project access')}>
-                          <field.Base>
-                            {() => (
-                              <Stack gap="lg" width="100%">
-                                <Text size="sm" variant="muted">
-                                  {t(
-                                    'Projects with a connected monitor are always included. Add any others an investigation should look into, like upstream services.'
-                                  )}
-                                </Text>
-                                <ServiceAccountProjects
-                                  value={field.state.value}
-                                  monitors={connectedMonitors}
-                                  disabled={readOnly}
-                                  onChange={field.handleChange}
-                                />
-                              </Stack>
-                            )}
-                          </field.Base>
-                        </field.Layout.Stack>
-                      )}
-                    </form.AppField>
-                    <Container borderTop="primary" paddingTop="2xl">
-                      <form.AppField name="scopes">
+                </Text>
+                <Disclosure>
+                  <Disclosure.Title>
+                    <ServiceAccountSummary
+                      access={serviceAccountProjects}
+                      monitors={connectedMonitors}
+                      scopes={scopes}
+                    />
+                  </Disclosure.Title>
+                  <Disclosure.Content>
+                    <Stack gap="2xl" paddingTop="md">
+                      <form.AppField name="serviceAccountProjects">
                         {field => (
-                          <field.Layout.Stack label={t('Permissions')}>
+                          <field.Layout.Stack label={t('Project access')}>
                             <field.Base>
                               {() => (
                                 <Stack gap="lg" width="100%">
                                   <Text size="sm" variant="muted">
                                     {t(
-                                      'Read access is enough to investigate. Grant write access only for the actions you want this automation to take.'
+                                      'Projects with a connected monitor are always included. Add any others an investigation should look into, like upstream services.'
                                     )}
                                   </Text>
-                                  <ServiceAccountPermissions
+                                  <ServiceAccountProjects
                                     value={field.state.value}
+                                    monitors={connectedMonitors}
                                     disabled={readOnly}
                                     onChange={field.handleChange}
                                   />
@@ -408,12 +396,36 @@ export function MetricAutomationForm(props: Props) {
                           </field.Layout.Stack>
                         )}
                       </form.AppField>
-                    </Container>
-                  </Stack>
-                </Disclosure.Content>
-              </Disclosure>
-            </Stack>
-          </form.FieldGroup>
+                      <Container borderTop="primary" paddingTop="2xl">
+                        <form.AppField name="scopes">
+                          {field => (
+                            <field.Layout.Stack label={t('Permissions')}>
+                              <field.Base>
+                                {() => (
+                                  <Stack gap="lg" width="100%">
+                                    <Text size="sm" variant="muted">
+                                      {t(
+                                        'Read access is enough to investigate. Grant write access only for the actions you want this automation to take.'
+                                      )}
+                                    </Text>
+                                    <ServiceAccountPermissions
+                                      value={field.state.value}
+                                      disabled={readOnly}
+                                      onChange={field.handleChange}
+                                    />
+                                  </Stack>
+                                )}
+                              </field.Base>
+                            </field.Layout.Stack>
+                          )}
+                        </form.AppField>
+                      </Container>
+                    </Stack>
+                  </Disclosure.Content>
+                </Disclosure>
+              </Stack>
+            </form.FieldGroup>
+          </FormSection>
 
           <Flex align="center" justify="between" gap="lg" wrap="wrap">
             <Text variant="muted" size="sm">
@@ -436,6 +448,19 @@ export function MetricAutomationForm(props: Props) {
         </Stack>
       </form.AppForm>
     </Container>
+  );
+}
+
+function FormSection({title, children}: {children: ReactNode; title: string}) {
+  return (
+    <Stack gap="md">
+      <Container paddingLeft="md">
+        <Heading as="h2" size="lg">
+          {title}
+        </Heading>
+      </Container>
+      {children}
+    </Stack>
   );
 }
 

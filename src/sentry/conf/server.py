@@ -19,6 +19,7 @@ from taskbroker_client.scheduler.config import ScheduleConfigMap, crontab
 
 import sentry
 import sentry.utils.types as env_types
+from sentry.conf import api_base_path
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
@@ -1047,6 +1048,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
     "sentry.telemetry_classifiers.poc_tasks",
+    "sentry.telemetry_classifiers.tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1065,6 +1067,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "cadence-tick": {
         "task": "issues:sentry.cadence.tasks.cadence_tick",
         "schedule": timedelta(seconds=10),
+    },
+    "cadence-sweep": {
+        "task": "issues:sentry.cadence.tasks.cadence_sweep",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
@@ -1124,10 +1130,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "auto-remove-inbox": {
         "task": "issues:sentry.tasks.auto_remove_inbox",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
-    },
-    "cleanup-universal-inbox-events": {
-        "task": "notifications:sentry.inbox.event_retention.schedule_inbox_event_cleanup",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "schedule-deletions": {
@@ -1198,6 +1200,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "telemetry-classifiers-conversations": {
         "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_conversation_classifiers",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
+    },
+    "telemetry-classifiers-schedule": {
+        "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_classifiers",
+        "schedule": timedelta(minutes=1),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -1514,11 +1520,14 @@ if os.environ.get("OPENAPIGENERATE", False):
         "POSTPROCESSING_HOOKS": [
             "sentry.apidocs.hooks.custom_postprocessing_hook",
             "drf_spectacular.hooks.postprocess_schema_enum_id_removal",
+            # Last, so the hooks above see full paths.
+            "sentry.apidocs.hooks.relative_paths_hook",
         ],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
         "SERVERS": [
             {
-                "url": "https://{region}.sentry.io",
+                # The path is the API base path; operation paths are relative to it.
+                "url": f"https://{{region}}.sentry.io{api_base_path.API_BASE_PATH}",
                 "variables": {
                     "region": {
                         "default": "us",
