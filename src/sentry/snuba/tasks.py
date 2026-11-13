@@ -386,7 +386,8 @@ def _create_snql_in_snuba(
     )
     if response.status != 202:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
-        raise SnubaError("HTTP %s response from Snuba!" % response.status)
+        error_body = response.data.decode("utf-8", errors="replace")
+        raise SnubaError(f"HTTP {response.status} response from Snuba! {error_body}")
 
     subscription_id = orjson.loads(response.data)["subscription_id"]
     return subscription_id
@@ -418,7 +419,8 @@ def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: Entit
         "DELETE", f"/{dataset.value}/{entity_key.value}/subscriptions/{subscription_id}"
     )
     if response.status != 202:
-        raise SnubaError("HTTP %s response from Snuba!" % response.status)
+        error_body = response.data.decode("utf-8", errors="replace")
+        raise SnubaError(f"HTTP {response.status} response from Snuba! {error_body}")
 
 
 @instrumented_task(
