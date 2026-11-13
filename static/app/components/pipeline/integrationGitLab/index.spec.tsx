@@ -96,6 +96,10 @@ describe('InstallationConfigStep', () => {
       'my-app-id'
     );
     await userEvent.type(screen.getByLabelText('GitLab Application Secret'), 'my-secret');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'GitLab Group Path'}),
+      'my-group'
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -103,12 +107,36 @@ describe('InstallationConfigStep', () => {
       expect(advance).toHaveBeenCalledWith({
         url: undefined,
         verify_ssl: undefined,
-        group: '',
-        include_subgroups: undefined,
+        group: 'my-group',
+        include_subgroups: false,
         client_id: 'my-app-id',
         client_secret: 'my-secret',
       });
     });
+  });
+
+  it('requires a group path before submitting', async () => {
+    const advance = jest.fn();
+    render(
+      <InstallationConfigStep
+        {...makeStepProps({stepData: {setupValues: []}, advance})}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'GitLab Application ID'}),
+      'my-app-id'
+    );
+    await userEvent.type(screen.getByLabelText('GitLab Application Secret'), 'my-secret');
+    await userEvent.type(screen.getByRole('textbox', {name: 'GitLab Group Path'}), '   ');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(await screen.findByText('Group path is required')).toBeInTheDocument();
+    expect(advance).not.toHaveBeenCalled();
   });
 
   it('submits with group and include_subgroups when group is set', async () => {
@@ -191,6 +219,10 @@ describe('InstallationConfigStep', () => {
       'my-app-id'
     );
     await userEvent.type(screen.getByLabelText('GitLab Application Secret'), 'my-secret');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'GitLab Group Path'}),
+      'my-group'
+    );
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Self-Hosted Instance'}));
 
@@ -232,6 +264,10 @@ describe('InstallationConfigStep', () => {
       'id'
     );
     await userEvent.type(screen.getByLabelText('GitLab Application Secret'), 'secret');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'GitLab Group Path'}),
+      'my-group'
+    );
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Self-Hosted Instance'}));
 
