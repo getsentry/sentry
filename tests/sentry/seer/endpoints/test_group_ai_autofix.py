@@ -33,8 +33,6 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeed
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
-    get_pause_reason,
-    pause_for_out_of_credits,
     pause_pr_iteration,
 )
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
@@ -1716,68 +1714,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 409, response.data
         assert response.data["detail"] == "Seer can no longer iterate on this pull request"
         mock_enqueue.assert_not_called()
-
-    def _post_pr_iteration_paused_for_credits(self, mock_run_state: MagicMock) -> tuple[Group, Any]:
-        """POST feedback on a run whose iteration is paused for credits."""
-        group = self.create_group()
-        self.create_seer_run(
-            organization=group.organization, seer_run_state_id=123, user_id=self.user.id
-        )
-        mock_run_state.return_value = SeerRunState(
-            run_id=123,
-            blocks=[],
-            status="completed",
-            updated_at="2024-01-01T00:00:00Z",
-            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7)},
-        )
-        pause_for_out_of_credits(run_id=123, organization_id=group.organization.id)
-
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id),
-            data={"step": "pr_iteration", "run_id": 123, "user_context": "please fix this"},
-            format="json",
-        )
-        return group, response
-
-    @patch("sentry.seer.autofix.pr_iteration.pause.can_run_seer_operation", return_value=False)
-    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
-    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
-    def test_pr_iteration_rejected_when_paused_for_credits(
-        self, mock_run_state: MagicMock, mock_enqueue: MagicMock, _mock_can_lift: MagicMock
-    ) -> None:
-        group, response = self._post_pr_iteration_paused_for_credits(mock_run_state)
-
-        assert response.status_code == 402, response.data
-        assert response.data["code"] == "seer_out_of_credits"
-        mock_enqueue.assert_not_called()
-        assert (
-            get_pause_reason(run_id=123, organization_id=group.organization.id)
-            == PauseReason.OUT_OF_CREDITS
-        )
-
-    @patch("sentry.seer.autofix.pr_iteration.pause.can_run_seer_operation", return_value=True)
-    @patch(
-        "sentry.seer.autofix.pr_iteration.manual_trigger.can_run_seer_operation",
-        return_value=True,
-    )
-    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
-    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
-    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
-    def test_pr_iteration_allowed_when_credits_pause_lifts(
-        self,
-        mock_run_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        _mock_can_run: MagicMock,
-        _mock_can_lift: MagicMock,
-    ) -> None:
-        group, response = self._post_pr_iteration_paused_for_credits(mock_run_state)
-
-        assert response.status_code == 202, response.data
-        mock_enqueue.assert_called_once()
-        mock_consume.assert_called_once()
-        assert get_pause_reason(run_id=123, organization_id=group.organization.id) is None
 
     @patch(
         "sentry.seer.autofix.pr_iteration.manual_trigger.can_run_seer_operation",

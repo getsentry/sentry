@@ -101,7 +101,6 @@ class PrIterationOutcome(StrEnum):
     PAUSED_RUN_ERRORED = "paused_run_errored"
     PAUSED_PR_CLOSED = "paused_pr_closed"
     PAUSED_DRAIN_FAILED = "paused_drain_failed"
-    PAUSED_OUT_OF_CREDITS = "paused_out_of_credits"
 
     # the trigger gate refused the batch, so no drain was scheduled
     STALE_HEAD = "stale_head"
@@ -123,7 +122,6 @@ _PAUSE_REASON_OUTCOMES: dict[PauseReason, PrIterationOutcome] = {
     PauseReason.RUN_ERRORED: PrIterationOutcome.PAUSED_RUN_ERRORED,
     PauseReason.PR_CLOSED: PrIterationOutcome.PAUSED_PR_CLOSED,
     PauseReason.DRAIN_FAILED: PrIterationOutcome.PAUSED_DRAIN_FAILED,
-    PauseReason.OUT_OF_CREDITS: PrIterationOutcome.PAUSED_OUT_OF_CREDITS,
 }
 
 

@@ -11,21 +11,15 @@ from sentry.seer.autofix.pr_iteration.logs import (
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
-    StrandedAction,
     get_pause_reason,
     is_pr_iteration_paused,
-    lift_out_of_credits_pause,
-    pause_for_out_of_credits,
     pause_pr_iteration,
-    take_stranded_action,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
 )
 from sentry.testutils.cases import TestCase
-
-PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
 
 RUN_ID = 67890
 OTHER_RUN_ID = 67891
@@ -113,25 +107,6 @@ class PausePrIterationTest(TestCase):
         assert self._marker() == first_marker
         assert peek_queued_autofix_feedback(RUN_ID) == []
 
-    @patch(f"{PAUSE_PATH}.can_run_seer_operation", return_value=True)
-    def test_permanent_pause_replaces_out_of_credits(self, _mock_can_run: MagicMock) -> None:
-        pause_pr_iteration(
-            run_id=RUN_ID, organization_id=self.organization.id, reason=PauseReason.OUT_OF_CREDITS
-        )
-        pause_pr_iteration(
-            run_id=RUN_ID, organization_id=self.organization.id, reason=PauseReason.USER_STOP
-        )
-
-        assert (
-            get_pause_reason(run_id=RUN_ID, organization_id=self.organization.id)
-            == PauseReason.USER_STOP
-        )
-        # A top-up can't lift the stop that replaced it.
-        assert (
-            lift_out_of_credits_pause(run_id=RUN_ID, organization_id=self.organization.id) is False
-        )
-        assert self._is_paused() is True
-
     def test_returns_false_without_seer_run_row(self) -> None:
         self.seer_run.delete()
 
@@ -208,51 +183,3 @@ class PausePrIterationTest(TestCase):
             get_pause_reason(run_id=RUN_ID, organization_id=self.organization.id)
             == PauseReason.USER_STOP
         )
-
-
-class OutOfCreditsPauseTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.create_seer_run(
-            organization=self.organization, seer_run_state_id=RUN_ID, user_id=self.user.id
-        )
-
-    def _reason(self) -> PauseReason | None:
-        return get_pause_reason(run_id=RUN_ID, organization_id=self.organization.id)
-
-    def _lift(self) -> bool:
-        return lift_out_of_credits_pause(run_id=RUN_ID, organization_id=self.organization.id)
-
-    def _take(self) -> StrandedAction | None:
-        return take_stranded_action(run_id=RUN_ID, organization_id=self.organization.id)
-
-    @patch(f"{PAUSE_PATH}.can_run_seer_operation", return_value=False)
-    def test_lift_keeps_the_pause_while_out_of_credits(self, _mock_can_run: MagicMock) -> None:
-        pause_for_out_of_credits(run_id=RUN_ID, organization_id=self.organization.id)
-
-        assert self._lift() is False
-        assert self._reason() == PauseReason.OUT_OF_CREDITS
-
-    @patch(f"{PAUSE_PATH}.can_run_seer_operation", return_value=True)
-    def test_lift_clears_the_pause_once_credits_return(self, _mock_can_run: MagicMock) -> None:
-        pause_for_out_of_credits(run_id=RUN_ID, organization_id=self.organization.id)
-
-        assert self._lift() is True
-        assert self._reason() is None
-
-    def test_stranded_action_is_taken_once(self) -> None:
-        pause_for_out_of_credits(
-            run_id=RUN_ID,
-            organization_id=self.organization.id,
-            stranded_action=StrandedAction.BRANCH_MOVED_RETRY,
-        )
-
-        assert self._reason() == PauseReason.OUT_OF_CREDITS
-        assert self._take() == StrandedAction.BRANCH_MOVED_RETRY
-        assert self._take() is None
-
-    def test_pause_without_stranded_action_records_none(self) -> None:
-        pause_for_out_of_credits(run_id=RUN_ID, organization_id=self.organization.id)
-
-        assert self._reason() == PauseReason.OUT_OF_CREDITS
-        assert self._take() is None

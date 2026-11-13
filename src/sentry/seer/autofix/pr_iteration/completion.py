@@ -33,16 +33,12 @@ from sentry.seer.autofix.pr_iteration.iterations import (
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import failed_tool_calls
-from sentry.seer.autofix.pr_iteration.pause import (
-    PauseReason,
-    StrandedAction,
-    pause_for_out_of_credits,
-    pause_pr_iteration,
-)
+from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
     record_pr_closed,
 )
+from sentry.seer.autofix.pr_iteration.stranded import StrandedAction, record_stranded_action
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
 from sentry.seer.autofix.steps import AutofixStep
@@ -104,14 +100,12 @@ def fail_pr_iteration(
     )
     set_pr_iteration_attributes(group_id=group_id, iteration_id=log_ctx.iteration_id)
 
-    paused = pause_pr_iteration(
+    # A run Seer stopped for credits isn't paused: the credit check holds new feedback back
+    # until the organization can pay, and then the run iterates again.
+    paused = state.failure_reason != "out_of_credits" and pause_pr_iteration(
         run_id=run_id,
         organization_id=organization.id,
-        reason=(
-            PauseReason.OUT_OF_CREDITS
-            if state.failure_reason == "out_of_credits"
-            else PauseReason.RUN_ERRORED
-        ),
+        reason=PauseReason.RUN_ERRORED,
     )
     log_ctx.info(
         "autofix.pr_iteration.paused_on_error",
@@ -296,7 +290,8 @@ def continue_pr_iteration(
         for repo in iteration_terminal_errored_repos(state)
     }
     if outcome == PrIterationOutcome.PR_CREATION_ERRORED and "out_of_credits" in errored_codes:
-        pause_for_out_of_credits(
+        # Seer's push ran out of credits. The next drain pushes again.
+        record_stranded_action(
             run_id=run_id, organization_id=organization.id, stranded_action=StrandedAction.PUSH
         )
     elif (
@@ -507,7 +502,8 @@ def _push_iteration_changes(
         )
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="failed", reason="out_of_credits")
-        pause_for_out_of_credits(
+        # The next drain pushes again, before it takes new feedback.
+        record_stranded_action(
             run_id=run_id,
             organization_id=group.organization.id,
             stranded_action=StrandedAction.PUSH,
@@ -626,9 +622,8 @@ def _retry_push_on_moved_branch(
         )
     except SeerOutOfCreditsException:
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="out_of_credits")
-        # Paused for credits, not as a branch-moved failure. The drain runs this turn again
-        # after a person retriggers.
-        pause_for_out_of_credits(
+        # Not a branch-moved failure: the next drain runs this turn again.
+        record_stranded_action(
             run_id=run_id,
             organization_id=group.organization.id,
             stranded_action=StrandedAction.BRANCH_MOVED_RETRY,

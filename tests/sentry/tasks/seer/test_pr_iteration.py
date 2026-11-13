@@ -52,13 +52,9 @@ from sentry.seer.autofix.pr_iteration.logs import (
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
-    StrandedAction,
     get_pause_reason,
     is_pr_iteration_paused,
-    lift_out_of_credits_pause,
-    pause_for_out_of_credits,
     pause_pr_iteration,
-    take_stranded_action,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
@@ -66,6 +62,11 @@ from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
+from sentry.seer.autofix.pr_iteration.stranded import (
+    StrandedAction,
+    record_stranded_action,
+    take_stranded_action,
+)
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import (
@@ -228,30 +229,6 @@ class TriggerPrIterationFromCommentTest(TestCase):
             comment_id=999,
             reaction="eyes",
         )
-
-    @patch(f"{PAUSE_PATH}.can_run_seer_operation", return_value=True)
-    @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
-    @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    def test_lifts_a_credits_pause_after_a_top_up(
-        self,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_trigger_consume: MagicMock,
-        mock_has_access: MagicMock,
-        mock_reaction: MagicMock,
-        _mock_can_run: MagicMock,
-    ) -> None:
-        mock_get_state.return_value = self._agent_state()
-        pause_for_out_of_credits(run_id=67890, organization_id=self.organization.id)
-
-        self._call()
-
-        assert get_pause_reason(run_id=67890, organization_id=self.organization.id) is None
-        mock_enqueue.assert_called_once()
-        mock_trigger_consume.assert_called_once()
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_resolves_pr_id_from_row_without_calling_github(
@@ -698,36 +675,6 @@ class PausePrIterationFromCommentTest(TestCase):
             "autofix.pr_iteration.stop_command", tags={"outcome": "already_paused"}
         )
 
-    @patch(f"{PAUSE_PATH}.can_run_seer_operation", return_value=True)
-    @patch(f"{TASK_PATH}._add_comment_reaction")
-    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    def test_stop_replaces_a_credits_pause(
-        self,
-        mock_get_state: MagicMock,
-        mock_has_access: MagicMock,
-        mock_reaction: MagicMock,
-        _mock_can_run: MagicMock,
-    ) -> None:
-        mock_get_state.return_value = self._agent_state()
-        pause_for_out_of_credits(run_id=67890, organization_id=self.organization.id)
-
-        self._call()
-
-        assert (
-            get_pause_reason(run_id=67890, organization_id=self.organization.id)
-            == PauseReason.USER_STOP
-        )
-        self.mock_actions.create_pull_request_comment.assert_called_once_with(
-            self.mock_make_scm.return_value,
-            "7",
-            STOPPED_PR_ITERATION_COMMENT,
-        )
-        # A top-up can't undo the stop.
-        assert (
-            lift_out_of_credits_pause(run_id=67890, organization_id=self.organization.id) is False
-        )
-
     @patch(f"{TASK_PATH}.metrics")
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
@@ -1033,13 +980,10 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         )
 
     def _strand(self, action: StrandedAction) -> None:
-        """Strand ``action``, then lift the credits pause the way a person's retrigger would."""
         self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
-        pause_for_out_of_credits(
+        record_stranded_action(
             run_id=67890, organization_id=self.organization.id, stranded_action=action
         )
-        with patch(f"{PAUSE_PATH}.can_run_seer_operation", return_value=True):
-            lift_out_of_credits_pause(run_id=67890, organization_id=self.organization.id)
 
     def _state_with_open_pr(self) -> SeerRunState:
         state = self._state()
@@ -1283,30 +1227,6 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop.assert_not_called()
         mock_trigger.assert_not_called()
 
-    @patch(f"{PAUSE_PATH}.can_run_seer_operation", return_value=True)
-    @patch(f"{TASK_PATH}.trigger_autofix_agent")
-    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
-    @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_returns_when_paused_for_credits_after_a_top_up(
-        self,
-        mock_fetch: MagicMock,
-        mock_pop: MagicMock,
-        mock_trigger: MagicMock,
-        _mock_can_run: MagicMock,
-    ) -> None:
-        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
-        pause_for_out_of_credits(run_id=67890, organization_id=self.organization.id)
-        mock_fetch.return_value = self._state()
-
-        self._call()
-
-        mock_pop.assert_not_called()
-        mock_trigger.assert_not_called()
-        assert (
-            get_pause_reason(run_id=67890, organization_id=self.organization.id)
-            == PauseReason.OUT_OF_CREDITS
-        )
-
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -1316,6 +1236,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
+        # Its partial changes are unpushed, but no push is coming: the next iteration pushes them.
         state = self._state(status="error", blocks=[self._unpushed_block()])
         state.failure_reason = "out_of_credits"
         mock_fetch.return_value = state
@@ -1359,8 +1280,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_redo: MagicMock,
     ) -> None:
         self._strand(StrandedAction.BRANCH_MOVED_RETRY)
-        # Nothing left unpushed: Seer pushed the changes during the pause (for example
-        # through Retry PR in the UI).
+        # Nothing left unpushed: Seer pushed the changes since, for example through Retry PR.
         mock_fetch.return_value = self._state()
         mock_pop.return_value = [self._ui_queued()]
 
