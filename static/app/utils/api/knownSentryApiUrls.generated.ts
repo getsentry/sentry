@@ -9,7 +9,7 @@
 
 export type KnownSentryApiUrls =
   | '/'
-  | '/_admin/cells/$cellId/workflow-engine/debugger/'
+  | '/_admin/workflow-engine/artifacts/'
   | '/accept-invite/$organizationIdOrSlug/$memberId/$token/'
   | '/accept-transfer/'
   | '/api-applications/'
