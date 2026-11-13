@@ -1,5 +1,4 @@
 import {Item} from '@react-stately/collections';
-import type {TreeProps} from '@react-stately/tree';
 import {act, renderHook} from '@testing-library/react';
 
 import type {MenuItemProps} from './item';
@@ -13,9 +12,11 @@ const items: MenuItemProps[] = [
 // `DropdownMenuContent`. A new function would rebuild the collection.
 const renderItem = (item: MenuItemProps) => <Item key={item.key}>{item.label}</Item>;
 
-function renderTreeState(props: Partial<TreeProps<MenuItemProps>> = {}) {
+type HookProps = Partial<Parameters<typeof useStableTreeState>[0]>;
+
+function renderTreeState(props: HookProps = {}) {
   return renderHook(
-    (hookProps: Partial<TreeProps<MenuItemProps>>) =>
+    (hookProps: HookProps) =>
       useStableTreeState({
         items,
         children: renderItem,
@@ -75,4 +76,17 @@ describe('useStableTreeState', () => {
     expect(result.current).not.toBe(initial);
     expect(result.current.disabledKeys.has('two')).toBe(true);
   });
+
+  // Rows that kept an old state would call the callbacks it was built with.
+  it.each(['onAction', 'onSelectionChange', 'onExpandedChange'] as const)(
+    'returns a new state when %s changes',
+    callback => {
+      const {result, rerender} = renderTreeState({[callback]: jest.fn()});
+      const initial = result.current;
+
+      rerender({[callback]: jest.fn()});
+
+      expect(result.current).not.toBe(initial);
+    }
+  );
 });
