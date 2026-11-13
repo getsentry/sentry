@@ -19,8 +19,7 @@ class GithubAppPermissionsWarning(BaseModel):
 
 
 class PrIterationOutOfCreditsWarning(BaseModel):
-    """PR iteration stopped when the organization ran out of credits; the next
-    trigger after a top-up resumes it."""
+    """PR iteration stopped when the organization ran out of credits."""
 
     warning_type: Literal["pr_iteration_out_of_credits"] = "pr_iteration_out_of_credits"
 
