@@ -15,6 +15,7 @@ import {EventOrGroupType, type Event} from 'sentry/types/event';
 import type {KeyValueListDataItem} from 'sentry/types/group';
 import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -169,8 +170,10 @@ function AcrossEventsValue({
  */
 export function AgentRunHighlights({event}: {event: Event}) {
   const organization = useOrganization();
+  const project = useProjectFromId({project_id: event.projectID});
   const enabled =
     organization.features.includes('issue-details-agent-run') &&
+    !!project?.hasInsightsAgentMonitoring &&
     event.type === EventOrGroupType.ERROR &&
     !!event.contexts.trace?.trace_id &&
     !eventHasSyntheticTrace(event);
