@@ -17,11 +17,11 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     get_blocked_pr_iteration_permissions,
 )
-from sentry.seer.autofix.pr_iteration.out_of_credits import OUT_OF_CREDITS_EXTRA
+from sentry.seer.autofix.pr_iteration.out_of_credits import out_of_credits_for_run
 from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA, pause_reason_from_marker
 from sentry.seer.autofix.pr_iteration.queue import peek_queued_autofix_feedback
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
-from sentry.seer.autofix.types import GithubAppPermissionsWarning
+from sentry.seer.autofix.types import GithubAppPermissionsWarning, PrIterationOutOfCreditsWarning
 from sentry.seer.models.run import SeerRun
 
 
@@ -55,11 +55,11 @@ def get_pr_iteration_state_fields(
     # Off the fetched row, not is_pr_iteration_paused: polled every second.
     paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
     pause_reason = pause_reason_from_marker(paused_marker)
-    out_of_credits = run is not None and get_run_extra(run, OUT_OF_CREDITS_EXTRA) is not None
+    if run is not None and out_of_credits_for_run(run) is not None:
+        warnings.append(PrIterationOutOfCreditsWarning().dict())
     return {
         "queued_feedback": queued_feedback,
         "pr_iteration_paused": paused_marker is not None,
         "pr_iteration_pause_reason": pause_reason.value if pause_reason else None,
-        "pr_iteration_out_of_credits": out_of_credits,
         "warnings": warnings,
     }

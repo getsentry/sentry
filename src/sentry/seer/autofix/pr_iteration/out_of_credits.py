@@ -61,6 +61,10 @@ def get_out_of_credits(*, run_id: int, organization_id: int) -> OutOfCredits | N
     seer_run = _get_seer_run(run_id, organization_id)
     if seer_run is None:
         return None
+    return out_of_credits_for_run(seer_run)
+
+
+def out_of_credits_for_run(seer_run: SeerRun) -> OutOfCredits | None:
     return _parse(get_run_extra(seer_run, OUT_OF_CREDITS_EXTRA))
 
 
