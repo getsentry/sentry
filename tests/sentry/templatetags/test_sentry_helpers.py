@@ -209,3 +209,9 @@ def test_sanitize_periods_breaks_url_scheme() -> None:
 )
 def test_format_duration_ms(value: int | float | str | None, expected: str) -> None:
     assert format_duration_ms(value) == expected
+
+
+def test_sanitize_periods_on_tag_keys() -> None:
+    input = '{% load sentry_helpers %} {{ "os.name"|as_tag_alias|sanitize_periods }}'
+    result = engines["django"].from_string(input).render().strip()
+    assert result == "os\u2060.name"
