@@ -174,6 +174,20 @@ class UserRoutingStrategyInboxTest(TestCase):
             (NotificationProviderKey.SLACK, "U123"),
         }
 
+    def test_ignores_organization_settings(self) -> None:
+        self.create_notification_setting_option(
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier=self.organization.id,
+            type=NotificationSettingEnum.INBOX_MENTIONS.value,
+            value="never",
+        )
+
+        assert self._get_targets() == {
+            (NotificationProviderKey.EMAIL, self.user.email),
+            (NotificationProviderKey.SLACK, "U123"),
+        }
+
     def test_defaults_to_email_and_slack(self) -> None:
         assert self._get_targets() == {
             (NotificationProviderKey.EMAIL, self.user.email),

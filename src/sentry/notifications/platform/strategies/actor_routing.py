@@ -27,7 +27,7 @@ def _get_providers_by_recipient(
     recipients: list[Actor],
     *,
     settings_key: NotificationSettingEnum,
-    organization_id: int,
+    organization_id: int | None,
     project_ids: list[int] | None,
 ) -> Mapping[int, Mapping[int, str]]:
     providers_by_recipient = notifications_service.get_participants(
@@ -67,7 +67,7 @@ def _get_participant_map(
     recipients: list[Actor],
     *,
     settings_key: NotificationSettingEnum,
-    organization_id: int,
+    organization_id: int | None,
     project_ids: list[int] | None,
 ) -> ParticipantMap:
     participant_map = ParticipantMap()
@@ -91,9 +91,11 @@ def _get_participant_map(
 @dataclass(frozen=True)
 class UserRoutingStrategy(NotificationStrategy):
     """
-    Inbox settings are user-level and apply to all of a user's organizations, so they never use a
-    project: pass `organization_id` instead, or a `project` only to pick its organization. Every
-    other setting needs a `project` for its project overrides and project email addresses.
+    Inbox settings are user-level and apply to all of a user's organizations, so they're never
+    scoped to a project or organization. The organization still picks which members to notify and
+    which Slack workspace to use: pass `organization_id`, or a `project` only to pick its
+    organization. Every other setting needs a `project` for its project overrides and project email
+    addresses.
     """
 
     user_ids: list[int]
@@ -116,9 +118,8 @@ class UserRoutingStrategy(NotificationStrategy):
             self.project.organization_id if self.project is not None else self.organization_id
         )
         assert organization_id is not None
-        settings_project = (
-            None if self.settings_key in INBOX_NOTIFICATION_SETTINGS else self.project
-        )
+        is_inbox = self.settings_key in INBOX_NOTIFICATION_SETTINGS
+        settings_project = None if is_inbox else self.project
 
         user_ids = OrganizationMember.objects.filter(
             organization_id=organization_id,
@@ -132,7 +133,7 @@ class UserRoutingStrategy(NotificationStrategy):
         participant_map = _get_participant_map(
             recipients,
             settings_key=self.settings_key,
-            organization_id=organization_id,
+            organization_id=None if is_inbox else organization_id,
             project_ids=[settings_project.id] if settings_project is not None else None,
         )
         return get_targets_from_participant_map(
