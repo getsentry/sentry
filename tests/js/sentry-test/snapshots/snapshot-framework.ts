@@ -15,12 +15,6 @@ jest.mock('@sentry/scraps/tooltip', () => ({
   Tooltip: mockTooltip,
 }));
 
-// useSyncExternalStore needs a server snapshot under SSR, which the app never
-// provides because it only renders on the client. Read the store directly.
-jest.mock('sentry/stores/useLegacyStore', () => ({
-  useLegacyStore: (store: {getState: () => unknown}) => store.getState(),
-}));
-
 const BREAKPOINT_WIDTHS = Object.fromEntries(
   Object.entries(lightTheme.breakpoints).map(([k, v]) => [k, parseInt(v, 10)])
 ) as Record<keyof typeof lightTheme.breakpoints, number>;

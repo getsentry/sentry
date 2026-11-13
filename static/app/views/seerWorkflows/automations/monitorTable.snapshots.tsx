@@ -9,7 +9,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {Button} from '@sentry/scraps/button';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus} from 'sentry/types/group';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -20,6 +19,7 @@ import {MonitorTable} from './monitorTable';
 import {
   AutomationSnapshotFrame,
   freezeSnapshotTime,
+  loadSnapshotProjects,
   makeSnapshotQueryClient,
   minutesAgo,
   SNAPSHOT_TAGS,
@@ -141,12 +141,10 @@ function renderTable(
 describe('MonitorTable', () => {
   freezeSnapshotTime();
 
-  beforeAll(() => {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '1', slug: 'frontend', platform: 'javascript-react'}),
-      ProjectFixture({id: '2', slug: 'backend', platform: 'python-django'}),
-    ]);
-  });
+  loadSnapshotProjects([
+    ProjectFixture({id: '1', slug: 'frontend', platform: 'javascript-react'}),
+    ProjectFixture({id: '2', slug: 'backend', platform: 'python-django'}),
+  ]);
 
   for (const viewport of [960, 600, 400]) {
     it.snapshot('monitors', () => renderTable(viewport, {monitors: MONITORS}), {
