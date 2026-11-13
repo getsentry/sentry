@@ -8,6 +8,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
+    has_code_review_access,
     has_supported_scm_integration,
     is_autofix_enabled,
     is_code_review_enabled,
@@ -173,6 +174,21 @@ class TestIsCodeReviewEnabled(TestCase):
         assert not is_code_review_enabled(org2)
 
 
+class TestHasCodeReviewAccess(TestCase):
+    """Unit tests for has_code_review_access()"""
+
+    def test_no_access(self) -> None:
+        assert not has_code_review_access(self.organization)
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    def test_seat_based_seer(self) -> None:
+        assert has_code_review_access(self.organization)
+
+    @with_feature("organizations:code-review-beta")
+    def test_code_review_beta(self) -> None:
+        assert has_code_review_access(self.organization)
+
+
 class TestIsAutofixEnabled(TestCase):
     """Unit tests for is_autofix_enabled()"""
 
@@ -320,75 +336,32 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         response: Response[Any] = self.client.get(url, format="json", **kwargs)
         return response
 
+    def create_github_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="GitHub Test",
+            external_id="123",
+        )
+
     def test_nothing_configured(self) -> None:
         response = self.get_response(self.organization.slug)
 
         assert response.status_code == 200
         assert response.data == {
             "hasSupportedScmIntegration": False,
-            "isCodeReviewEnabled": False,
             "isAutofixEnabled": False,
             "isSeerConfigured": False,
-        }
-
-    def test_all_configured(self) -> None:
-        autofix_repo = self.create_repo(project=self.project)
-        self.create_seer_project_repository(project=self.project, repository=autofix_repo)
-
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="GitHub Test",
-            external_id="123",
-        )
-
-        code_review_repo = self.create_repo(project=self.project)
-        self.create_repository_settings(
-            repository=code_review_repo,
-            enabled_code_review=True,
-        )
-
-        response = self.get_response(self.organization.slug)
-
-        assert response.status_code == 200
-        assert response.data == {
-            "hasSupportedScmIntegration": True,
-            "isCodeReviewEnabled": True,
-            "isAutofixEnabled": True,
-            "isSeerConfigured": True,
         }
 
     def test_github_integration_only(self) -> None:
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="GitHub Test",
-            external_id="123",
-        )
+        self.create_github_integration()
 
         response = self.get_response(self.organization.slug)
 
         assert response.status_code == 200
         assert response.data == {
             "hasSupportedScmIntegration": True,
-            "isCodeReviewEnabled": False,
-            "isAutofixEnabled": False,
-            "isSeerConfigured": False,
-        }
-
-    def test_code_review_enabled_only(self) -> None:
-        repo = self.create_repo(project=self.project)
-        self.create_repository_settings(
-            repository=repo,
-            enabled_code_review=True,
-        )
-
-        response = self.get_response(self.organization.slug)
-
-        assert response.status_code == 200
-        assert response.data == {
-            "hasSupportedScmIntegration": False,
-            "isCodeReviewEnabled": True,
             "isAutofixEnabled": False,
             "isSeerConfigured": False,
         }
@@ -402,72 +375,65 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {
             "hasSupportedScmIntegration": False,
-            "isCodeReviewEnabled": False,
             "isAutofixEnabled": True,
             "isSeerConfigured": False,
-        }
-
-    def test_github_and_code_review_enabled(self) -> None:
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="GitHub Test",
-            external_id="123",
-        )
-
-        repo = self.create_repo(project=self.project)
-        self.create_repository_settings(
-            repository=repo,
-            enabled_code_review=True,
-        )
-
-        response = self.get_response(self.organization.slug)
-
-        assert response.status_code == 200
-        assert response.data == {
-            "hasSupportedScmIntegration": True,
-            "isCodeReviewEnabled": True,
-            "isAutofixEnabled": False,
-            "isSeerConfigured": True,
         }
 
     def test_github_and_autofix_enabled(self) -> None:
         repo = self.create_repo(project=self.project)
         self.create_seer_project_repository(project=self.project, repository=repo)
-
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="GitHub Test",
-            external_id="123",
-        )
+        self.create_github_integration()
 
         response = self.get_response(self.organization.slug)
 
         assert response.status_code == 200
         assert response.data == {
             "hasSupportedScmIntegration": True,
-            "isCodeReviewEnabled": False,
             "isAutofixEnabled": True,
             "isSeerConfigured": True,
         }
 
-    def test_code_review_and_autofix_enabled(self) -> None:
-        autofix_repo = self.create_repo(project=self.project)
-        self.create_seer_project_repository(project=self.project, repository=autofix_repo)
+    def create_code_review_repo(self) -> None:
+        repo = self.create_repo(project=self.project)
+        self.create_repository_settings(repository=repo, enabled_code_review=True)
 
-        code_review_repo = self.create_repo(project=self.project)
-        self.create_repository_settings(
-            repository=code_review_repo,
-            enabled_code_review=True,
-        )
+    def test_code_review_without_access_does_not_configure_seer(self) -> None:
+        self.create_github_integration()
+        self.create_code_review_repo()
 
         response = self.get_response(self.organization.slug)
 
         assert response.status_code == 200
         assert response.data == {
-            "hasSupportedScmIntegration": False,
-            "isCodeReviewEnabled": True,
-            "isAutofixEnabled": True,
+            "hasSupportedScmIntegration": True,
+            "isAutofixEnabled": False,
             "isSeerConfigured": False,
+        }
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    def test_code_review_configures_seer_for_seat_based_org(self) -> None:
+        self.create_github_integration()
+        self.create_code_review_repo()
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasSupportedScmIntegration": True,
+            "isAutofixEnabled": False,
+            "isSeerConfigured": True,
+        }
+
+    @with_feature("organizations:code-review-beta")
+    def test_code_review_configures_seer_for_code_review_beta_org(self) -> None:
+        self.create_github_integration()
+        self.create_code_review_repo()
+
+        response = self.get_response(self.organization.slug)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "hasSupportedScmIntegration": True,
+            "isAutofixEnabled": False,
+            "isSeerConfigured": True,
         }

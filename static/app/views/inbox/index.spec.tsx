@@ -35,6 +35,30 @@ function mockIssuePreviewRequests(groupId: string) {
     url: '/projects/org-slug/project-slug/events/event-id/owners/',
     body: {owners: [], rules: []},
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/first-last-release/`,
+    body: {firstRelease: null, lastRelease: null},
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/integrations/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/external-issues/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/sentry-app-components/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/sentry-app-installations/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/pull-requests/`,
+    body: {pullRequests: []},
+  });
 }
 
 describe('Inbox', () => {

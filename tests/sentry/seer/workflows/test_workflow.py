@@ -21,13 +21,13 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.base import (
     AllProjects,
+    SeerServiceAccountGrant,
     SelectedMonitors,
     SelectedProjects,
     WorkflowUpdateError,
 )
 from sentry.seer.workflows.workflow import (
     SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER,
-    SeerServiceAccountGrant,
     SeerWorkflow,
 )
 from sentry.service_accounts.models import (
@@ -734,6 +734,41 @@ class SeerWorkflowServiceAccountTest(TestCase):
         assert account.id == workflow.get_config().service_account_id
         assert account.scope_list == ["event:read"]
         assert not ServiceAccountReplica.objects.filter(service_account_id=account.id).exists()
+
+    def test_set_service_account_grant_commits_with_the_other_changes(self) -> None:
+        self.link(self.account.id)
+        version = self.workflow.get_config().version
+        grant = SeerServiceAccountGrant(scopes=["project:read"], all_projects=True)
+
+        with pytest.raises(WorkflowUpdateError):
+            with outbox_runner(), self.workflow.update_config() as update:
+                update.set_service_account_grant(grant)
+                update.set_enabled(True)
+                raise WorkflowUpdateError("failed")
+
+        assert not self.workflow.get_config().enabled
+        assert not self.control_service_account(self.account.id).all_projects
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
+        ).exists()
+
+        with outbox_runner(), self.workflow.update_config() as update:
+            update.set_service_account_grant(grant)
+            update.set_enabled(True)
+
+        config = self.workflow.get_config()
+        assert config.enabled
+        assert config.version == version + 1
+        account = self.control_service_account(self.account.id)
+        assert account.scope_list == ["project:read"]
+        assert account.all_projects
+
+        with self.workflow.update_config() as update:
+            assert not update.set_service_account_grant(grant)
+            assert CellOutbox.objects.filter(
+                category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
+            ).exists()
+        assert self.workflow.get_config().version == version + 1
 
     def test_resolution_uses_the_account_id_not_the_replica_id(self) -> None:
         with outbox_runner():

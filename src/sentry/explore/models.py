@@ -360,6 +360,7 @@ class TraceItemTypes(TypesClass):
     PROCESSING_ERRORS = 7
     OCCURRENCES = 8
     REPLAYS = 9
+    ENRICHMENT_ATTRIBUTES = 10
 
     TYPES = [
         (SPANS, SupportedTraceItemType.SPANS.value),
@@ -372,6 +373,7 @@ class TraceItemTypes(TypesClass):
         (PROCESSING_ERRORS, SupportedTraceItemType.PROCESSING_ERRORS.value),
         (OCCURRENCES, SupportedTraceItemType.OCCURRENCES.value),
         (REPLAYS, SupportedTraceItemType.REPLAYS.value),
+        (ENRICHMENT_ATTRIBUTES, SupportedTraceItemType.ENRICHMENT_ATTRIBUTES.value),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

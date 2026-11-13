@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
@@ -15,6 +16,7 @@ import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection, SectionDivider} from 'sentry/views/issueDetails/foldSection';
@@ -26,7 +28,7 @@ import {RelatedExceptions} from './relatedExceptions';
 import {StackTrace} from './stackTrace';
 import {
   prepareSourceMapDebuggerFrameInformation,
-  useSourceMapDebugQuery,
+  sourceMapDebugApiOptions,
   type SourceMapDebugResponse,
 } from './useSourceMapDebuggerData';
 import {renderLinksInText} from './utils';
@@ -258,10 +260,15 @@ export function Content({
 }: Props) {
   const {projects} = useProjects({slugs: [projectSlug]});
 
-  const {data: sourceMapDebuggerData} = useSourceMapDebugQuery(
-    projectSlug,
-    event.id,
-    event.sdk?.name ?? null
+  const organization = useOrganization({allowNull: true});
+
+  const {data: sourceMapDebuggerData} = useQuery(
+    sourceMapDebugApiOptions({
+      organizationSlug: organization?.slug,
+      projectSlug,
+      eventId: event.id,
+      sdkName: event.sdk?.name ?? null,
+    })
   );
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
