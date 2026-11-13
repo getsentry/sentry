@@ -68,6 +68,10 @@ class InboxItemType[SubjectT](ABC):
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         """Subject URL, independent of inbox items or events."""
 
+    @abstractmethod
+    def filter_recipients(self, *, subject: SubjectT, user_ids: Sequence[int]) -> list[int]:
+        """The given users who are allowed to see the subject."""
+
 
 class InboxEventSummary(StrEnum):
     ISSUE_USER_ASSIGNED = "Assigned to you"
@@ -109,18 +113,19 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
         data: DataT,
         recipient_user_ids: Iterable[int],
         actor: InboxActor,
-    ) -> None:
+    ) -> list[InboxItemEvent]:
+        """Returns one recorded event per recipient, each with its inbox_item set."""
         recipients = set(recipient_user_ids)
         if actor.type == InboxActorType.USER:
             recipients -= {actor.id}
         if not recipients:
-            return
+            return []
 
         organization = Organization.objects.get_from_cache(
             id=self.item_type.get_organization_id(subject)
         )
         if not features.has("organizations:universal-inbox-recording", organization):
-            return
+            return []
 
         subject_id = self.item_type.get_subject_id(subject)
         payload = asdict(data)
@@ -168,3 +173,4 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
             InboxItem.objects.bulk_update(items, ["last_activity_at", "date_updated"])
 
         metrics.incr("inbox.events.recorded", amount=len(recipients), tags=tags)
+        return events
