@@ -1350,7 +1350,7 @@ describe('ScmCreateProject', () => {
         url: `/organizations/${agentOrganization.slug}/agent-handoff/prompts/`,
         method: 'POST',
         body: {
-          prompt: 'Private agent handoff prompt',
+          code: 'sntryh_example',
           expiresAt: new Date(Date.now() + 300_000).toISOString(),
         },
       });

@@ -11,7 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
-import {useIssueDetailsEventView} from './useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventView} from './issueDetailsEventsQuery';
 
 export function useReleaseMarkLineSeries({
   group,

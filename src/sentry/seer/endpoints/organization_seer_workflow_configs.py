@@ -39,21 +39,20 @@ from sentry.seer.models.workflow import (
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
+from sentry.seer.workflows.base import (
+    AllProjects,
+    SeerServiceAccountGrant,
+    SelectedMonitors,
+    SelectedProjects,
+    WorkflowUpdateError,
+)
 from sentry.seer.workflows.breached_metrics import (
-    BreachedMetricConfigUpdate,
-    BreachedMetricWorkflow,
     ConnectedMonitor,
     get_config_monitors_bulk,
     get_monitor_project_ids,
 )
-from sentry.seer.workflows.registry import get_seer_workflow
-from sentry.seer.workflows.workflow import (
-    AllProjects,
-    SeerServiceAccountGrant,
-    SeerWorkflow,
-    SelectedProjects,
-    WorkflowUpdateError,
-)
+from sentry.seer.workflows.definitions import get_definition
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
     ServiceAccountProjectReplica,
@@ -187,7 +186,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
                 )
         elif "monitorIds" in data:
             raise serializers.ValidationError(
-                {"monitorIds": "Only metric automations support monitor selection."}
+                {"monitorIds": "This automation type does not support monitor selection."}
             )
         return data
 
@@ -432,7 +431,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         project_ids: list[int] = data.get("projectIds") or []
         monitor_ids: list[int] = data.get("monitorIds") or []
-        if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+        if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
             denied = _check_project_access(
                 get_monitor_project_ids(monitor_ids, organization),
                 request=request,
@@ -453,27 +452,33 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
             created_by=acting_user_id(request.user),
         )
         try:
-            workflow: SeerWorkflow
-            if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-                workflow = BreachedMetricWorkflow.create_with_monitors(
-                    organization.id,
+            if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+                workflow = SeerWorkflow.create(
+                    organization_id=organization.id,
+                    strategy=strategy,
                     enabled=data["enabled"],
+                    scope=SelectedMonitors(tuple(monitor_ids)),
                     environments=data["environments"],
-                    monitor_ids=monitor_ids,
                     extras=extras,
                     service_account_grant=grant,
                 )
-            else:
+            elif strategy is SeerWorkflowStrategy.AGENTIC_TRIAGE_V2:
                 workflow = SeerWorkflow.create(
                     organization_id=organization.id,
                     strategy=strategy,
                     enabled=data["enabled"],
                     schedule=SeerWorkflowSchedule(data.get("schedule", SeerWorkflowSchedule.DAILY)),
+                    scope=(
+                        AllProjects()
+                        if set(project_ids) == ALL_ACCESS_PROJECTS
+                        else SelectedProjects(tuple(project_ids))
+                    ),
                     environments=data["environments"],
-                    project_ids=project_ids,
                     extras=extras,
                     service_account_grant=grant,
                 )
+            else:
+                raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
         except WorkflowUpdateError as e:
             logger.info(
                 "seer.workflow_config.create_rejected",
@@ -599,7 +604,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             )
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
-        workflow = get_seer_workflow(config)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=organization.id)
 
         enabled: bool | None = serializer.validated_data.get("enabled")
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
@@ -607,9 +612,12 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         name: str | None = serializer.validated_data.get("name")
 
         # Checks that depend only on the request run before taking the lock.
-        if monitor_ids is not None and not isinstance(workflow, BreachedMetricWorkflow):
+        if (
+            monitor_ids is not None
+            and get_definition(config.strategy).trigger.scoped_by != "monitors"
+        ):
             return Response(
-                {"detail": "Only metric automations support monitor selection."}, status=400
+                {"detail": "This automation type does not support monitor selection."}, status=400
             )
 
         if project_ids or monitor_ids:
@@ -671,10 +679,10 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         )
 
                     if all_projects:
-                        update.set_project_selection(AllProjects())
+                        update.set_scope(AllProjects())
                     else:
                         # Replace only what the caller can see; keep current projects they can't.
-                        update.set_project_selection(
+                        update.set_scope(
                             SelectedProjects(
                                 project_ids=tuple(
                                     _with_no_access_project_ids(
@@ -689,16 +697,18 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         )
 
                 if monitor_ids is not None:
-                    assert isinstance(workflow, BreachedMetricWorkflow)
-                    assert isinstance(update, BreachedMetricConfigUpdate)
                     # Replace only what the caller can see; keep monitors in projects they can't.
-                    update.set_monitor_selection(
-                        _with_no_access_monitor_ids(
-                            monitor_ids,
-                            workflow.get_monitors(),
-                            request=request,
-                            organization=organization,
-                            endpoint=self,
+                    update.set_scope(
+                        SelectedMonitors(
+                            tuple(
+                                _with_no_access_monitor_ids(
+                                    monitor_ids,
+                                    get_config_monitors_bulk([update.config]).get(config.id, []),
+                                    request=request,
+                                    organization=organization,
+                                    endpoint=self,
+                                )
+                            )
                         )
                     )
 
@@ -783,7 +793,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
 
-        workflow = get_seer_workflow(config)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=organization.id)
         account = workflow.get_service_account()
         workflow.delete()
         if account is not None:
