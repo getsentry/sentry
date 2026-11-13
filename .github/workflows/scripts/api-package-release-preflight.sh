@@ -52,14 +52,17 @@ released=$(mktemp -d)
 trap 'rm -rf "$released"' EXIT
 trap 'exit 1' INT TERM
 # The last release's GitHub release has the spec files it was built from as
-# assets. A release from before they were attached has none, so every file
-# counts as changed.
-json_assets=$(gh release view "$base" --repo "$GITHUB_REPOSITORY" --json assets \
-  --jq '[.assets[].name | select(endswith(".json"))] | length')
-if [ "$json_assets" -gt 0 ]; then
-  timeout 300 gh release download "$base" --repo "$GITHUB_REPOSITORY" \
-    --pattern '*.json' --dir "$released"
+# assets. Craft's github target attaches them before craft merges the release
+# branch, so a run for that merge sees them. A release without them cannot be
+# compared, and treating every file as changed would cut a release for nothing.
+json_assets=$(timeout 60 gh release view "$base" --repo "$GITHUB_REPOSITORY" \
+  --json assets --jq '[.assets[].name | select(endswith(".json"))] | length')
+if [ "$json_assets" -eq 0 ]; then
+  printf '::error::Release %s has no spec files attached to compare with.\n' "$base"
+  exit 1
 fi
+timeout 300 gh release download "$base" --repo "$GITHUB_REPOSITORY" \
+  --pattern '*.json' --dir "$released"
 
 spec_changed=false
 data_changed=false
