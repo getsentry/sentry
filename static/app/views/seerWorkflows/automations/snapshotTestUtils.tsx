@@ -14,7 +14,7 @@ import {OrganizationContext} from 'sentry/utils/organizationContext';
 /**
  * The fixed "now" snapshots render at, so relative times stay the same between runs.
  */
-export const SNAPSHOT_NOW = new Date('2026-04-20T12:00:00Z');
+const SNAPSHOT_NOW = new Date('2026-04-20T12:00:00Z');
 
 export const SNAPSHOT_TAGS = {area: 'seer'} as const;
 
@@ -91,12 +91,16 @@ const globalStyles = css`
 const FRAME_PADDING = 16;
 
 function getContainerBreakpoint(width: number) {
-  const breakpoints = Object.entries(lightTheme.container) as Array<
-    [keyof typeof lightTheme.container, string]
-  >;
-  return breakpoints
-    .filter(([, minWidth]) => parseInt(minWidth, 10) <= width)
-    .sort((a, b) => parseInt(b[1], 10) - parseInt(a[1], 10))[0]![0];
+  let active: keyof typeof lightTheme.container = 'zero';
+  for (const [breakpoint, minWidth] of Object.entries(lightTheme.container)) {
+    if (
+      parseInt(minWidth, 10) <= width &&
+      parseInt(minWidth, 10) >= parseInt(lightTheme.container[active], 10)
+    ) {
+      active = breakpoint as keyof typeof lightTheme.container;
+    }
+  }
+  return active;
 }
 
 /**

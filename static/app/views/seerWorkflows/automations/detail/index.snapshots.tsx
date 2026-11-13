@@ -25,6 +25,15 @@ jest.mock('@sentry/scraps/markdown', () => ({}));
 
 const editor = UserFixture({id: '7', name: 'Jane Bloggs', email: 'jane@example.com'});
 
+const LONG_NAME_CONFIG = SeerWorkflowConfigFixture({
+  id: '7',
+  strategy: 'breached_metric_investigation',
+  name: 'Investigate every checkout, payments and inventory metric breach',
+  monitorIds: [1, 2, 3, 4, 5, 6, 7],
+  dateLastRun: minutesAgo(60 * 24 * 12),
+  updatedBy: editor.id,
+});
+
 const CONFIGS: Record<string, SeerWorkflowConfigResponse> = {
   'scheduled-active': SeerWorkflowConfigFixture({
     id: '7',
@@ -45,14 +54,7 @@ const CONFIGS: Record<string, SeerWorkflowConfigResponse> = {
     createdBy: '3',
     updatedBy: editor.id,
   }),
-  'long-name': SeerWorkflowConfigFixture({
-    id: '7',
-    strategy: 'breached_metric_investigation',
-    name: 'Investigate every checkout, payments and inventory metric breach',
-    monitorIds: [1, 2, 3, 4, 5, 6, 7],
-    dateLastRun: minutesAgo(60 * 24 * 12),
-    updatedBy: editor.id,
-  }),
+  'long-name': LONG_NAME_CONFIG,
   'unknown-strategy-and-user': SeerWorkflowConfigFixture({
     id: '7',
     strategy: 'not_a_known_strategy',
@@ -106,7 +108,7 @@ describe('AutomationDetail', () => {
     it.snapshot(name, () => renderDetail(1200, {data: [config]}), wide);
   }
 
-  it.snapshot('long-name', () => renderDetail(520, {data: [CONFIGS['long-name']!]}), {
+  it.snapshot('long-name', () => renderDetail(520, {data: [LONG_NAME_CONFIG]}), {
     viewport: 520,
     tags: SNAPSHOT_TAGS,
   });
