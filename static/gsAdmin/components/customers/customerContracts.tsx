@@ -74,6 +74,9 @@ type PackageConfig = {
 type ContractRow = {
   contract: PlatformContract;
   package: PackageConfig | null;
+  // Names of line items across every package, since a contract can override a line
+  // item its own package lacks.
+  lineItemNames?: Record<string, string>;
 };
 
 function formatDate(d?: ContractDate): string {
@@ -102,18 +105,6 @@ function formatUnits(isUnlimited?: boolean, units?: string): string {
   return isUnlimited ? 'Unlimited' : Number(units ?? 0).toLocaleString();
 }
 
-function lineItemNames(pkg: PackageConfig | null): Map<string, string> {
-  const names = new Map<string, string>();
-  const add = (item?: LineItemDetails) => {
-    if (item?.uid) {
-      names.set(item.uid, item.customerFacingName || item.uid);
-    }
-  };
-  pkg?.lineItemConfigs?.forEach(config => add(config.lineItem));
-  pkg?.sharedLineItemPools?.forEach(pool => add(pool.sharedLineItem));
-  return names;
-}
-
 function describeBilling(contract: PlatformContract): string {
   const config = contract.billingConfig;
   const interval = config?.monthInterval === 12 ? 'Annual' : 'Monthly';
@@ -133,7 +124,7 @@ function describeBilling(contract: PlatformContract): string {
   return `${type}, ${interval}${sponsorship}`;
 }
 
-function describeUserConfig(config: UserConfig, names: Map<string, string>): string {
+function describeUserConfig(config: UserConfig, names: Record<string, string>): string {
   let change = 'Unknown override';
   if (config.paygBudget) {
     change = `PAYG budget ${formatCents(config.paygBudget.budgetCents)}`;
@@ -149,7 +140,7 @@ function describeUserConfig(config: UserConfig, names: Map<string, string>): str
     change = `Spend allocation ${Number(quantity ?? 0).toLocaleString()} to project ${projectId}`;
   }
   const items = config.specificItems
-    ? (config.specificItems.uids ?? []).map(uid => names.get(uid) ?? uid).join(', ')
+    ? (config.specificItems.uids ?? []).map(uid => names[uid] ?? uid).join(', ')
     : 'All line items';
   return `${items}: ${change}`;
 }
@@ -176,10 +167,9 @@ function describeRetention(retention?: RetentionConfig): string[] {
 }
 
 function Overrides({row}: {row: ContractRow}) {
-  const names = lineItemNames(row.package);
   const overrides = [
     ...(row.contract.pricingConfig?.userConfig ?? []).map(config =>
-      describeUserConfig(config, names)
+      describeUserConfig(config, row.lineItemNames ?? {})
     ),
     ...describeRetention(row.contract.retentionConfig),
   ];

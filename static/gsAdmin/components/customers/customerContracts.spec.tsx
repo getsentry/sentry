@@ -23,6 +23,10 @@ describe('CustomerContracts', () => {
                   specificItems: {uids: ['errors']},
                   reservation: {numReservedUnits: '100000', reservedPriceCents: '2900'},
                 },
+                {
+                  specificItems: {uids: ['seer_users']},
+                  reservation: {numReservedUnits: '0', reservedPriceCents: '0'},
+                },
                 {allItems: {}, paygBudget: {budgetCents: '5000'}},
               ],
             },
@@ -39,6 +43,7 @@ describe('CustomerContracts', () => {
               },
             ],
           },
+          lineItemNames: {errors: 'Errors', seer_users: 'Seer User'},
         },
       ],
     });
@@ -48,6 +53,7 @@ describe('CustomerContracts', () => {
     expect(await screen.findByText('42')).toBeInTheDocument();
     expect(screen.getByText('Credit Card, Monthly')).toBeInTheDocument();
     expect(screen.getByText('Errors: Reserved 100,000 for $29.00')).toBeInTheDocument();
+    expect(screen.getByText('Seer User: Reserved 0 for $0.00')).toBeInTheDocument();
     expect(screen.getByText('All line items: PAYG budget $50.00')).toBeInTheDocument();
     expect(screen.getByText('Organization retention: 90 days')).toBeInTheDocument();
 
