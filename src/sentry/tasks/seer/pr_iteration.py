@@ -658,8 +658,6 @@ def _drain_queued_autofix_feedback(
 
     # An errored run should already be paused. A processing run's completion hook drains the
     # queue when it finishes. A run that ran out of credits isn't paused, so it iterates again.
-    # Seer keeps its failure_reason until the next iteration starts, unlike the marker, which a
-    # drain takes before it knows whether the iteration starts.
     if state.status == "processing" or (
         state.status == "error" and state.failure_reason != "out_of_credits"
     ):
