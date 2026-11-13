@@ -19,7 +19,8 @@ class StrandedActionTest(TestCase):
     def _take(self) -> StrandedAction | None:
         return take_stranded_action(run_id=RUN_ID, organization_id=self.organization.id)
 
-    def test_stranded_action_is_taken_once(self) -> None:
+    def test_take_returns_a_recorded_action_once(self) -> None:
+        assert self._take() is None
         assert (
             record_stranded_action(
                 run_id=RUN_ID,
@@ -32,10 +33,7 @@ class StrandedActionTest(TestCase):
         assert self._take() == StrandedAction.BRANCH_MOVED_RETRY
         assert self._take() is None
 
-    def test_returns_none_when_nothing_is_stranded(self) -> None:
-        assert self._take() is None
-
-    def test_returns_none_for_an_unknown_action(self) -> None:
+    def test_take_returns_none_for_an_unknown_action(self) -> None:
         self.seer_run.update(extras={STRANDED_ACTION_EXTRA: {"action": "something_new"}})
 
         assert self._take() is None

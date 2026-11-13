@@ -1404,6 +1404,23 @@ class TestPrIterationCompletionHook(TestCase):
             == StrandedAction.PUSH
         )
 
+    def test_a_redone_branch_moved_retry_past_the_retry_cap_pauses_as_an_error(self) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES + 1)
+
+        redo_stranded_action(
+            iteration_log_context(self.organization, self.group, state),
+            self.group,
+            123,
+            state,
+            StrandedAction.BRANCH_MOVED_RETRY,
+        )
+
+        assert (
+            get_pause_reason(run_id=123, organization_id=self.organization.id)
+            == PauseReason.RUN_ERRORED
+        )
+
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
@@ -1574,7 +1591,7 @@ class TestFailedRunCompletionHook(TestCase):
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
     @patch(f"{HOOK_PATH}.fetch_run_status")
-    def test_an_iteration_stopped_for_credits_is_not_paused(
+    def test_an_iteration_stopped_for_credits_does_not_pause(
         self, mock_fetch: MagicMock, mock_push: MagicMock, mock_consume: MagicMock
     ) -> None:
         self.create_seer_run(
