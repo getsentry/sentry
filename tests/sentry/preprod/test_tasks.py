@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from hashlib import sha1
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
@@ -34,6 +34,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
@@ -1422,3 +1423,49 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
 
         assert snapshot_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
         assert regular_artifact.state == PreprodArtifact.ArtifactState.FAILED
+
+    @patch("sentry.preprod.tasks.metrics")
+    def test_detect_expired_preprod_artifacts_counts_unreferenced_result_files(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        run_time = datetime(2024, 3, 5, 12, 7, 41, tzinfo=UTC)
+        inside_window = datetime(2024, 3, 5, 11, 10, tzinfo=UTC)
+        window_end = datetime(2024, 3, 5, 11, 30, tzinfo=UTC)
+
+        with freeze_time(run_time):
+            detect_expired_preprod_artifacts()
+
+        mock_metrics.incr.assert_called_once_with(
+            "preprod.size_analysis.compare.unreferenced_result_files", amount=0, sample_rate=1.0
+        )
+        mock_metrics.reset_mock()
+
+        referenced_file = self.create_file(
+            name="referenced", type="size_analysis_comparison.json", timestamp=inside_window
+        )
+        self.create_file(
+            name="unreferenced", type="size_analysis_comparison.json", timestamp=inside_window
+        )
+        self.create_file(
+            name="next-window", type="size_analysis_comparison.json", timestamp=window_end
+        )
+        self.create_file(name="other-type", type="size_analysis.json", timestamp=inside_window)
+
+        head_artifact = self.create_preprod_artifact(project=self.project)
+        head_size_metric = self.create_preprod_artifact_size_metrics(head_artifact)
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        base_size_metric = self.create_preprod_artifact_size_metrics(base_artifact)
+        self.create_preprod_artifact_size_comparison(
+            head_size_analysis=head_size_metric,
+            base_size_analysis=base_size_metric,
+            organization=self.organization,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+            file_id=referenced_file.id,
+        )
+
+        with freeze_time(run_time):
+            detect_expired_preprod_artifacts()
+
+        mock_metrics.incr.assert_called_once_with(
+            "preprod.size_analysis.compare.unreferenced_result_files", amount=1, sample_rate=1.0
+        )

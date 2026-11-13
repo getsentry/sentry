@@ -13,6 +13,7 @@ from taskbroker_client.retry import Retry
 
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.files.file import File
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.preprod.build_distribution_webhooks import send_build_distribution_webhook
@@ -55,6 +56,9 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
+
+# Must equal the preprod-detect-expired-artifacts schedule, or consecutive windows overlap or leave gaps.
+UNREFERENCED_RESULT_FILE_WINDOW_MINUTES = 30
 
 
 # Typed RPC stub — the body is never called. The decorator registers the task signature
@@ -834,6 +838,28 @@ def assemble_preprod_artifact_installable_app(
     )
 
 
+def _count_unreferenced_size_comparison_result_files(current_time: datetime.datetime) -> int:
+    window = datetime.timedelta(minutes=UNREFERENCED_RESULT_FILE_WINDOW_MINUTES)
+    minutes_into_slot = current_time.minute % UNREFERENCED_RESULT_FILE_WINDOW_MINUTES
+    slot_start = current_time.replace(
+        minute=current_time.minute - minutes_into_slot, second=0, microsecond=0
+    )
+    window_end = slot_start - window
+    window_start = window_end - window
+
+    result_files = File.objects.filter(
+        type="size_analysis_comparison.json",
+        timestamp__gte=window_start,
+        timestamp__lt=window_end,
+    )
+    file_ids = list(result_files.values_list("id", flat=True))
+
+    referencing_comparisons = PreprodArtifactSizeComparison.objects.filter(file_id__in=file_ids)
+    referenced_file_ids = set(referencing_comparisons.values_list("file_id", flat=True))
+
+    return len(file_ids) - len(referenced_file_ids)
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.detect_expired_preprod_artifacts",
     namespace=preprod_size_tasks,
@@ -850,6 +876,8 @@ def detect_expired_preprod_artifacts(**kwargs: Any) -> None:
     - PreprodArtifactSizeMetrics that have been in progress for more than 30 minutes
     - PreprodArtifactSizeComparisons that have been in progress for more than 30 minutes
     - PreprodSnapshotComparisons that have been in progress for more than 30 minutes
+
+    It also counts size comparison result files that no comparison references, without deleting them.
     """
     current_time = timezone.now()
     timeout_threshold = current_time - datetime.timedelta(minutes=30)
@@ -1005,6 +1033,21 @@ def detect_expired_preprod_artifacts(**kwargs: Any) -> None:
             "preprod.tasks.detect_expired_preprod_artifacts.failed_to_batch_update_expired_snapshot_comparisons",
         )
         expired_snapshot_comparisons_count = 0
+
+    try:
+        unreferenced_result_files_count = _count_unreferenced_size_comparison_result_files(
+            current_time
+        )
+    except Exception:
+        logger.exception(
+            "preprod.tasks.detect_expired_preprod_artifacts.failed_to_count_unreferenced_result_files",
+        )
+    else:
+        metrics.incr(
+            "preprod.size_analysis.compare.unreferenced_result_files",
+            amount=unreferenced_result_files_count,
+            sample_rate=1.0,
+        )
 
     logger.info(
         "preprod.tasks.detect_expired_preprod_artifacts.completed",
