@@ -68,7 +68,7 @@ class AgentHandoffViewTest(TestCase):
 
     def claim(self, code: str, ip_address: str = "127.0.0.1") -> HttpResponse:
         return self.client.post(
-            "/agent-handoff/",
+            "/agent-handoff.md",
             urlencode({"handoff_code": code}),
             content_type="application/x-www-form-urlencoded",
             REMOTE_ADDR=ip_address,
@@ -77,7 +77,7 @@ class AgentHandoffViewTest(TestCase):
     def test_claim_mints_once_and_returns_the_private_guide(self) -> None:
         code = self.issue()
         response = self.client.post(
-            "/agent-handoff/",
+            "/agent-handoff.md",
             urlencode({"handoff_code": code}),
             content_type="application/x-www-form-urlencoded",
             HTTP_ACCEPT="text/markdown",
@@ -228,7 +228,7 @@ class AgentHandoffViewTest(TestCase):
 
     def test_preview_is_public_and_preserves_the_code(self) -> None:
         code = self.issue()
-        response = self.client.get("/agent-handoff/", HTTP_ACCEPT="text/markdown")
+        response = self.client.get("/agent-handoff.md", HTTP_ACCEPT="text/markdown")
         assert response.status_code == 200
         assert "The user initiated this agent handoff in Sentry" in response.content.decode()
         assert "It does not run those instructions" in response.content.decode()
@@ -334,7 +334,7 @@ class AgentHandoffViewTest(TestCase):
 @control_silo_test
 class AgentHandoffPreviewTest(TestCase):
     def test_public_preview_uses_placeholders(self) -> None:
-        response = self.client.get("/agent-handoff/", {"preview": "1"})
+        response = self.client.get("/agent-handoff.md", {"preview": "1"})
 
         assert response.status_code == 200
         body = response.content.decode()
@@ -352,7 +352,7 @@ class AgentHandoffPreviewTest(TestCase):
         with patch(
             "sentry.agent_handoff.flows.onboarding.organization_service.issue_onboarding_reporting_code"
         ) as issue:
-            response = self.client.get("/agent-handoff/", {"preview": "1", "flow": "onboarding"})
+            response = self.client.get("/agent-handoff.md", {"preview": "1", "flow": "onboarding"})
 
         assert response.status_code == 200
         body = response.content.decode()
@@ -361,15 +361,15 @@ class AgentHandoffPreviewTest(TestCase):
         issue.assert_not_called()
 
     def test_preview_is_independent_of_the_session(self) -> None:
-        anonymous = self.client.get("/agent-handoff/", {"preview": "1"})
+        anonymous = self.client.get("/agent-handoff.md", {"preview": "1"})
         self.login_as(self.user)
-        authenticated = self.client.get("/agent-handoff/", {"preview": "1"})
+        authenticated = self.client.get("/agent-handoff.md", {"preview": "1"})
 
         assert anonymous.status_code == authenticated.status_code == 200
         assert anonymous.content == authenticated.content
 
     def test_unknown_preview_flow(self) -> None:
-        response = self.client.get("/agent-handoff/", {"preview": "1", "flow": "unknown"})
+        response = self.client.get("/agent-handoff.md", {"preview": "1", "flow": "unknown"})
 
         assert response.status_code == 400
         assert "Unknown Handoff Flow" in response.content.decode()

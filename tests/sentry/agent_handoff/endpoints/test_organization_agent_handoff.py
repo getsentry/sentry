@@ -43,7 +43,7 @@ class OrganizationAgentHandoffTest(APITestCase):
             status_code=201,
         )
         url = urlsplit(response.data["guideUrl"])
-        assert url.path == "/agent-handoff/"
+        assert url.path == "/agent-handoff.md"
         assert not url.query
         assert not url.fragment
         code = response.data["code"]
