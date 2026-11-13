@@ -119,7 +119,7 @@ function MenuHeader({
           <Text size="sm" density="fixed" bold variant="primary" tabular>
             {label}
           </Text>
-          <Flex align="center" gap="md">
+          <Flex align="start" gap="md">
             {avatar}
             <Stack gap="0">
               <Text size="md" density="comfortable" bold variant="primary">
