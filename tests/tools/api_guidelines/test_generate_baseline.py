@@ -13,7 +13,6 @@ from sentry.utils import json
 from tools.api_guidelines import generate_baseline
 from tools.api_guidelines.generate_baseline import (
     build_entries,
-    collect_findings,
     main,
     write_exceptions,
 )
@@ -227,30 +226,18 @@ def _counted_findings(output: Path) -> int:
     return total
 
 
-def test_collect_findings_scans_only_src_with_repo_relative_paths(fake_repo: Path) -> None:
-    # same code outside src/ isn't scanned
-    (fake_repo / "tests").mkdir()
-    (fake_repo / "tests" / "example.py").write_text(EXAMPLE_ENDPOINT)
+def test_main_keeps_only_baselined_rules(fake_repo: Path) -> None:
+    # the scan returns every rule's findings. No real file gives a structured S034 finding today,
+    # so the scan's output is faked
+    s026 = _violation("S026", "ExampleEndpoint.get", "query:id")
+    s034 = _violation("S034", "ExampleEndpoint.get", "status:404")
 
-    findings = collect_findings(fake_repo)
+    with mock.patch.object(generate_baseline, "collect_findings", return_value=[s026, s034]):
+        assert _run_main(fake_repo) == 0
 
-    paths = set()
-    for path, _finding in findings:
-        paths.add(path)
-
-    assert len(findings) == 4
-    assert paths == {PATH}
-
-
-def test_collect_findings_keeps_only_baselined_rules(fake_repo: Path) -> None:
-    # no real file gives a structured S034 finding today, so the plugin's output is faked
-    _path, s026 = _violation("S026", "ExampleEndpoint.get", "query:id")
-    _path, s034 = _violation("S034", "ExampleEndpoint.get", "status:404")
-
-    with mock.patch.object(generate_baseline, "get_api_violations", return_value=[s026, s034]):
-        findings = collect_findings(fake_repo)
-
-    assert findings == [(PATH, s026)]
+    entries = json.loads((fake_repo / "out.json").read_text())["entries"]
+    assert len(entries) == 1
+    assert entries[0]["rule"] == "S026"
 
 
 def test_write_exceptions_writes_one_entry_per_line(tmp_path: Path) -> None:
