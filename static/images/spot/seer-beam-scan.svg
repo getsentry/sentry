@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170.58 38" preserveAspectRatio="none">
+  <defs>
+    <filter id="glow" x="-10%" y="-50%" width="120%" height="200%">
+      <feGaussianBlur stdDeviation="1.2"/>
+    </filter>
+  </defs>
+  <path d="M0 2Q85.29 36 170.58 2" fill="none" stroke="#9ee54c" stroke-width="10" stroke-opacity=".14" filter="url(#glow)"/>
+  <path d="M0 2Q85.29 36 170.58 2" fill="none" stroke="#c0ff40" stroke-width="2" stroke-opacity=".7"/>
+</svg>
