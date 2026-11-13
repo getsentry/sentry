@@ -14,19 +14,17 @@ from sentry.users.services.user import RpcUser
 class ServiceHookSerializerResponse(TypedDict):
     id: str | None
     url: str
-    status: str
-    events: list[str]
-    dateCreated: datetime
-
-
-class ServiceHookCreationSerializerResponse(ServiceHookSerializerResponse):
     secret: Annotated[
         str,
         ApiDescription(
-            "The webhook signing secret. Only returned when the hook is created; "
-            "store it securely to verify webhook signatures."
+            "The webhook signing secret. Populated only when the hook is created; "
+            "an empty string on subsequent reads and updates. "
+            "Store the creation value securely to verify webhook signatures."
         ),
     ]
+    status: str
+    events: list[str]
+    dateCreated: datetime
 
 
 @register(ServiceHook)
@@ -41,6 +39,7 @@ class ServiceHookSerializer(Serializer[ServiceHookSerializerResponse]):
         return {
             "id": obj.guid,
             "url": obj.url,
+            "secret": "",
             "status": obj.get_status_display(),
             "events": sorted(obj.events),
             "dateCreated": obj.date_added,

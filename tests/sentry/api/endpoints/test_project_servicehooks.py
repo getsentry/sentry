@@ -15,7 +15,7 @@ class ListProjectServiceHooksTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["id"] == self.hook.guid
-        assert "secret" not in response.data[0]
+        assert response.data[0]["secret"] == ""
 
     def test_member_cannot_read_secret(self) -> None:
         member = self.create_user()
@@ -28,7 +28,7 @@ class ListProjectServiceHooksTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["id"] == self.hook.guid
-        assert "secret" not in response.data[0]
+        assert response.data[0]["secret"] == ""
 
 
 class CreateProjectServiceHookTest(APITestCase):

@@ -15,7 +15,7 @@ class ProjectServiceHookDetailsTest(APITestCase):
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert response.data["id"] == self.hook.guid
-        assert "secret" not in response.data
+        assert response.data["secret"] == ""
 
     def test_member_cannot_read_secret_with_feature_disabled(self) -> None:
         member = self.create_user()
@@ -27,7 +27,7 @@ class ProjectServiceHookDetailsTest(APITestCase):
             response = self.client.get(self.path)
         assert response.status_code == 200
         assert response.data["id"] == self.hook.guid
-        assert "secret" not in response.data
+        assert response.data["secret"] == ""
 
 
 class UpdateProjectServiceHookTest(APITestCase):
@@ -46,7 +46,7 @@ class UpdateProjectServiceHookTest(APITestCase):
             data={"url": "http://example.com/foo", "events": ["event.alert", "event.created"]},
         )
         assert resp.status_code == 200, resp.content
-        assert "secret" not in resp.data
+        assert resp.data["secret"] == ""
         hook = ServiceHook.objects.get(id=self.hook.id)
         assert hook.url == "http://example.com/foo"
         assert hook.events == ["event.alert", "event.created"]

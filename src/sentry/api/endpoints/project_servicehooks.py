@@ -24,7 +24,6 @@ from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
 from sentry.sentry_apps.api.serializers.servicehook import (
-    ServiceHookCreationSerializerResponse,
     ServiceHookSerializer,
     ServiceHookSerializerResponse,
 )
@@ -100,23 +99,19 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=ServiceHookValidator,
         responses={
-            201: inline_sentry_response_serializer(
-                "CreatedServiceHook", ServiceHookCreationSerializerResponse
-            ),
+            201: inline_sentry_response_serializer("ServiceHook", ServiceHookSerializerResponse),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(
-        self, request: Request, project: Project
-    ) -> Response[ServiceHookCreationSerializerResponse]:
+    def post(self, request: Request, project: Project) -> Response[ServiceHookSerializerResponse]:
         """
         Register a new service hook on a project.
 
         The signing secret is only returned in this response. Store it securely;
-        subsequent reads and updates do not return it.
+        subsequent reads and updates return an empty string in the secret field.
 
         Events include:
 
@@ -163,9 +158,6 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         )
 
         created_hook = ServiceHook.objects.get(id=hook.id)
-        # Only the authorized creation response exposes the signing secret.
-        data: ServiceHookCreationSerializerResponse = {
-            **serialize(created_hook, request.user, ServiceHookSerializer()),
-            "secret": created_hook.secret,
-        }
+        data = serialize(created_hook, request.user, ServiceHookSerializer())
+        data["secret"] = created_hook.secret
         return self.respond(data, status=201)

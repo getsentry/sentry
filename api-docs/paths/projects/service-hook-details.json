@@ -1,7 +1,7 @@
 {
   "get": {
     "tags": ["Projects"],
-    "description": "Return a service hook bound to a project.\n\nThe response does not include the webhook signing secret.",
+    "description": "Return a service hook bound to a project.\n\nThe secret field is an empty string. The signing secret is only returned when the hook is created.",
     "operationId": "Retrieve a Service Hook",
     "parameters": [
       {
@@ -45,7 +45,8 @@
               "events": ["event.alert", "event.created"],
               "id": "4f9d73e63b7144ecb8944c41620a090b",
               "status": "active",
-              "url": "https://empowerplant.io/sentry-hook"
+              "url": "https://empowerplant.io/sentry-hook",
+              "secret": ""
             }
           }
         }
@@ -65,7 +66,7 @@
   },
   "put": {
     "tags": ["Projects"],
-    "description": "Update a service hook.\n\nThe response does not include the webhook signing secret.",
+    "description": "Update a service hook.\n\nThe secret field is an empty string. The signing secret is only returned when the hook is created.",
     "operationId": "Update a Service Hook",
     "parameters": [
       {
@@ -137,7 +138,8 @@
               "events": ["event.alert", "event.created"],
               "id": "4f9d73e63b7144ecb8944c41620a090b",
               "status": "active",
-              "url": "https://empowerplant.io/sentry-hook"
+              "url": "https://empowerplant.io/sentry-hook",
+              "secret": ""
             }
           }
         }

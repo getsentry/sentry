@@ -1,7 +1,7 @@
 {
   "get": {
     "tags": ["Projects"],
-    "description": "Return a list of service hooks bound to a project.\n\nThe response does not include the webhook signing secret.",
+    "description": "Return a list of service hooks bound to a project.\n\nThe secret field is an empty string. The signing secret is only returned when the hook is created.",
     "operationId": "List a Project's Service Hooks",
     "parameters": [
       {
@@ -43,7 +43,8 @@
                 "events": ["event.alert", "event.created"],
                 "id": "4f9d73e63b7144ecb8944c41620a090b",
                 "status": "active",
-                "url": "https://empowerplant.io/sentry-hook"
+                "url": "https://empowerplant.io/sentry-hook",
+                "secret": ""
               }
             ]
           }
@@ -61,7 +62,7 @@
   },
   "post": {
     "tags": ["Projects"],
-    "description": "Register a new service hook on a project.\n\nEvents include:\n\n- event.alert: An alert is generated for an event (via rules).\n- event.created: A new event has been processed.\n\nThis endpoint requires the 'servicehooks' feature to be enabled for your project.\n\nThe signing secret is only returned in this response. Store it securely; subsequent reads and updates do not return it.",
+    "description": "Register a new service hook on a project.\n\nEvents include:\n\n- event.alert: An alert is generated for an event (via rules).\n- event.created: A new event has been processed.\n\nThis endpoint requires the 'servicehooks' feature to be enabled for your project.\n\nThe signing secret is only returned in this response. Store it securely; subsequent reads and updates return an empty string in the secret field.",
     "operationId": "Register a New Service Hook",
     "parameters": [
       {
@@ -117,7 +118,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "../../components/schemas/service-hook.json#/CreatedServiceHook"
+              "$ref": "../../components/schemas/service-hook.json#/ServiceHook"
             },
             "example": {
               "dateCreated": "2018-11-06T21:20:08.143Z",
