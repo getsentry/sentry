@@ -658,8 +658,11 @@ def _drain_queued_autofix_feedback(
 
     # An errored run should already be paused. A processing run's completion hook drains the
     # queue when it finishes. A run that ran out of credits isn't paused, so it iterates again.
-    out_of_credits = get_out_of_credits(run_id=run_id, organization_id=organization_id)
-    if state.status == "processing" or (state.status == "error" and out_of_credits is None):
+    # Seer keeps its failure_reason until the next iteration starts, unlike the marker, which a
+    # drain takes before it knows whether the iteration starts.
+    if state.status == "processing" or (
+        state.status == "error" and state.failure_reason != "out_of_credits"
+    ):
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -681,6 +684,7 @@ def _drain_queued_autofix_feedback(
 
     # A credit stop may have left the last iteration's push or branch-moved retry unfinished.
     # Redo it here if necessary.
+    out_of_credits = get_out_of_credits(run_id=run_id, organization_id=organization_id)
     stranded_action = out_of_credits.stranded_action if out_of_credits else None
     if stranded_action is not None:
         take_out_of_credits(run_id=run_id, organization_id=organization_id)
