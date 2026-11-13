@@ -135,10 +135,10 @@ class SlackInvestigationCachePayload(TypedDict):
     channel_id: str
     thread_ts: str
     alert_message_ts: str
-    status_message_ts: str | None
+    status_message_ts: NotRequired[str | None]
     slack_user_id: str
-    last_sent_state: str | None
-    final_sent: bool
+    last_sent_state: NotRequired[str | None]
+    final_sent: NotRequired[bool]
 
 
 class SlackPendingMentionPayload(TypedDict):
@@ -1027,9 +1027,9 @@ class SlackInvestigationEntrypoint(
         )
         send_conclusion = (
             run.status == InvestigationOrchestrationStatus.COMPLETED
-            and not cache_payload["final_sent"]
+            and not cache_payload.get("final_sent")
         )
-        if fingerprint == cache_payload["last_sent_state"] and not send_conclusion:
+        if fingerprint == cache_payload.get("last_sent_state") and not send_conclusion:
             return
 
         organization_id = cache_payload["organization_id"]
@@ -1044,13 +1044,13 @@ class SlackInvestigationEntrypoint(
 
         install = SlackIntegration(model=integration, organization_id=organization_id)
         new_payload = cache_payload
-        if fingerprint != cache_payload["last_sent_state"]:
+        if fingerprint != cache_payload.get("last_sent_state"):
             renderable, links = NotificationService.render_template(
                 data=data,
                 template=SeerInvestigationStatusTemplate(),
                 provider=provider_registry.get(NotificationProviderKey.SLACK),
             )
-            status_message_ts = cache_payload["status_message_ts"]
+            status_message_ts = cache_payload.get("status_message_ts")
             try:
                 if status_message_ts:
                     install.update_message(
