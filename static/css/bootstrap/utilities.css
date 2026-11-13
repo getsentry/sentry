@@ -1,8 +1,15 @@
 /* stylelint-disable declaration-no-important */
-/* Utility classes */
-/* -------------------------------------------------- */
-/* Floats */
-/* ------------------------- */
+
+/*
+//
+// Utility classes
+// --------------------------------------------------
+
+// Floats
+// -------------------------
+*/
+
+/* .nav, .container, .row and .form-horizontal .form-group used Less's :extend(.clearfix all) */
 .clearfix:before,
 .clearfix:after,
 .nav:before,
@@ -13,8 +20,8 @@
 .row:after,
 .form-horizontal .form-group:before,
 .form-horizontal .form-group:after {
-  display: table;
-  content: ' ';
+  display: table; /* 2 */
+  content: ' '; /* 1 */
 }
 .clearfix:after,
 .nav:after,
@@ -26,9 +33,13 @@
 .pull-right {
   float: right !important;
 }
-/* Toggling content */
-/* ------------------------- */
-/* Note: Deprecated .hide in favor of .hidden or .sr-only (as appropriate) in v3.0.1 */
+
+/*
+// Toggling content
+// -------------------------
+
+// Note: Deprecated .hide in favor of .hidden or .sr-only (as appropriate) in v3.0.1
+*/
 .hide {
   display: none !important;
 }
@@ -38,13 +49,22 @@
 .invisible {
   visibility: hidden;
 }
-/* Hide from screenreaders and browsers */
-/* Credit: HTML5 Boilerplate */
+
+/*
+// Hide from screenreaders and browsers
+//
+// Credit: HTML5 Boilerplate
+*/
+
 .hidden {
   display: none !important;
 }
-/* For Affix plugin */
-/* ------------------------- */
+
+/*
+// For Affix plugin
+// -------------------------
+*/
+
 .affix {
   position: fixed;
 }
