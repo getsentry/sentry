@@ -10,6 +10,7 @@ from slack_sdk.web import SlackResponse
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.integration import SlackIntegration
 from sentry.integrations.slack.message_builder.routing import (
     SlackActionTracking,
@@ -101,10 +102,12 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationResourceNotFoundError,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.locking import UnableToAcquireLock
 
 SEER_OUT_OF_CREDITS_TEXT = (
@@ -2106,6 +2109,20 @@ class SlackInvestigationEntrypointTest(TestCase):
         assert started_call.kwargs["text"] != "Investigating FCP on organization login pages"
         assert not self._investigation_threads().exists()
 
+    def test_updates_skip_disabled_organization_integration(self) -> None:
+        self._set_cache()
+        self._complete_with_conclusion()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).update(status=ObjectStatus.DISABLED)
+
+        self._update([_hypothesis()])
+
+        self.mock_update.assert_not_called()
+        self.mock_post_message.assert_not_called()
+        assert not self._get_state().get("final_sent")
+
     def test_update_with_hypotheses_updates_status_message(self) -> None:
         self._set_cache()
 
@@ -2568,6 +2585,22 @@ class SlackInvestigationEntrypointTest(TestCase):
             ("CALERT0001", self.message_ts, "conclusion"),
             ("CALERT0002", self.message_ts, "conclusion"),
         ]
+
+    def test_alert_threads_skip_disabled_organization_integration(self) -> None:
+        self._use_open_period()
+        other = self._create_other_integration("TXXXXXXXXX4")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=self.organization.id, integration_id=other.id
+            ).update(status=ObjectStatus.DISABLED)
+        self._alert_thread("CDISABLED1", integration_id=other.id)
+        self._alert_thread("CALERT0001")
+        self._complete_with_conclusion()
+
+        self._update_alert_threads()
+
+        assert self._posts() == [("CALERT0001", self.message_ts, "conclusion")]
+        assert not self._get_state("CDISABLED1").get("final_sent")
 
     def test_delayed_alert_thread_gets_conclusion(self) -> None:
         self._use_open_period()

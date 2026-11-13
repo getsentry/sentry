@@ -1108,8 +1108,6 @@ class SlackInvestigationEntrypoint(
     def _update_investigation_status(
         *, cache_payload: SlackInvestigationCachePayload, run_id: int, lifecycle: EventLifecycle
     ) -> None:
-        from sentry.integrations.slack.integration import SlackIntegration
-
         try:
             run = InvestigationOrchestrationRun.objects.select_related("investigation").get(
                 id=run_id
@@ -1138,17 +1136,14 @@ class SlackInvestigationEntrypoint(
         if fingerprint == state.get("last_sent_state") and not send_conclusion:
             return
 
-        organization_id = cache_payload["organization_id"]
-        integration = integration_service.get_integration(
+        install = _get_install(
             integration_id=cache_payload["integration_id"],
-            organization_id=organization_id,
-            status=ObjectStatus.ACTIVE,
+            organization_id=cache_payload["organization_id"],
         )
-        if integration is None:
+        if install is None:
             lifecycle.record_halt(halt_reason="integration_not_found")
             return
 
-        install = SlackIntegration(model=integration, organization_id=organization_id)
         new_state = state
         if fingerprint != state.get("last_sent_state"):
             renderable, links = NotificationService.render_template(
@@ -1345,13 +1340,12 @@ def _get_investigation_thread(
 def _get_install(*, integration_id: int, organization_id: int) -> SlackIntegration | None:
     from sentry.integrations.slack.integration import SlackIntegration
 
-    integration = integration_service.get_integration(
-        integration_id=integration_id,
-        organization_id=organization_id,
-        status=ObjectStatus.ACTIVE,
-    )
-    if integration is None:
+    active = integration_service.organization_context(
+        integration_id=integration_id, organization_id=organization_id
+    ).active()
+    if active is None:
         return None
+    integration, _ = active
     return SlackIntegration(model=integration, organization_id=organization_id)
 
 
