@@ -119,9 +119,12 @@ describe('WidgetPreview', () => {
           })
         );
       });
-      expect(await screen.findAllByLabelText('Toggle p90(span.duration)')).toHaveLength(
-        2
-      );
+      expect(
+        await screen.findByLabelText('Toggle p90(span.duration)')
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByLabelText('Toggle p90(span.duration) · SMA(5)')
+      ).toBeInTheDocument();
     }
   );
 });
