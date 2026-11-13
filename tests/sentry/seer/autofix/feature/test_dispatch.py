@@ -602,6 +602,7 @@ class TestSingleRunStart(TestCase):
                 assert start_kwargs["agent_run_options"]["enable_coding"] is False
                 assert "enable_write_pull_request" not in start_kwargs["agent_run_options"]
                 assert start_kwargs["payload"]["pr_internal_settings"] is None
+                assert start_kwargs["payload"]["coding_agent_handoff"] is True
                 assert start_kwargs["extras"][CODING_AGENT_HANDOFF_KEY] is True
 
     def test_handoff_project_manual_run_does_not_hand_off(self) -> None:
@@ -614,6 +615,7 @@ class TestSingleRunStart(TestCase):
         start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
         assert start_kwargs["agent_run_options"]["enable_coding"] is True
         assert start_kwargs["extras"]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES.value
+        assert start_kwargs["payload"]["coding_agent_handoff"] is False
         assert CODING_AGENT_HANDOFF_KEY not in start_kwargs["extras"]
 
     def test_handoff_project_stopping_at_root_cause_does_not_hand_off(self) -> None:
@@ -633,6 +635,7 @@ class TestSingleRunStart(TestCase):
 
         start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
         assert start_kwargs["agent_run_options"]["enable_coding"] is True
+        assert start_kwargs["payload"]["coding_agent_handoff"] is False
         assert CODING_AGENT_HANDOFF_KEY not in start_kwargs["extras"]
 
     def test_retry_never_single_run(self) -> None:
@@ -782,6 +785,12 @@ class TestContinueSingleRun(TestCase):
         assert kwargs["agent_run_options"]["enable_coding"] is False
         assert kwargs["agent_run_options"]["enable_write_pull_request"] is False
         assert kwargs["payload"]["pr_internal_settings"] is None
+        assert kwargs["payload"]["coding_agent_handoff"] is True
+
+    def test_reply_without_handoff_does_not_send_the_flag(self) -> None:
+        kwargs = self._continue_kwargs(self._reply())
+
+        assert kwargs["payload"]["coding_agent_handoff"] is False
 
     def test_respects_org_coding_opt_out(self) -> None:
         self.organization.update_option("sentry:enable_seer_coding", False)

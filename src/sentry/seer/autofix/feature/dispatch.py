@@ -295,6 +295,7 @@ def _continue_single_run(
         existing_run_id=agent_run.run.seer_run_state_id,
         reply=reply,
         pr_internal_settings=pr_internal_settings,
+        coding_agent_handoff=hands_off_to_coding_agent(agent_run),
         pr_feedback=pr_feedback,
     )
     agent_run_options = AgentRunOptions(
@@ -402,6 +403,7 @@ def trigger_autofix_feature(
         enable_coding = (
             stopping_point in _CODING_STOPPING_POINTS and not hand_off and _org_allows_coding(group)
         )
+        payload.coding_agent_handoff = hand_off
         open_pr = enable_coding and stopping_point == AutofixStoppingPoint.OPEN_PR
         if open_pr:
             payload.pr_internal_settings = _single_run_pr_internal_settings(group, args.referrer)
