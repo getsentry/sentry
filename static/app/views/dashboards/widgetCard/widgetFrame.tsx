@@ -92,8 +92,6 @@ export function WidgetFrame(props: WidgetFrameProps) {
       revealActions={props.revealTooltip === 'always' ? 'always' : 'hover'}
       Actions={
         <Fragment>
-          {!error && props.headerActions}
-
           {props.description && (
             // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
             <Widget.WidgetDescription
@@ -158,6 +156,8 @@ export function WidgetFrame(props: WidgetFrameProps) {
               ) : null}
             </TitleActionsWrapper>
           )}
+
+          {!error && props.headerActions}
 
           {shouldShowCopyUrlButton && (
             <Tooltip title={t('Copy Widget URL')}>
