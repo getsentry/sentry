@@ -145,6 +145,8 @@ class SlackAgentCachePayload(TypedDict):
     integration_id: int
     thread: SlackThreadDetails
     slack_user_id: NotRequired[str]
+    # The Sentry user linked to slack_user_id.
+    user_id: NotRequired[int | None]
 
 
 class SlackInvestigationCachePayload(TypedDict):
@@ -696,6 +698,8 @@ class SlackAgentEntrypoint(
         self.integration = integration
         self.install = SlackIntegration(model=integration, organization_id=organization_id)
         self.slack_user_id = slack_user_id
+        # Set by the caller once it has resolved the Slack user to a Sentry user.
+        self.user_id: int | None = None
 
     @staticmethod
     def has_access(organization: Organization | RpcOrganization) -> bool:
@@ -718,6 +722,7 @@ class SlackAgentEntrypoint(
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
             slack_user_id=self.slack_user_id,
+            user_id=self.user_id,
         )
 
     @staticmethod
@@ -794,7 +799,7 @@ class SlackAgentEntrypoint(
                 else send_thread_update(
                     install=install,
                     thread=thread,
-                    data=SeerAgentOutOfCredits(organization_id=organization_id),
+                    data=_agent_out_of_credits(cache_payload),
                 )
             )
             if message_ts:
@@ -850,6 +855,17 @@ class SlackAgentEntrypoint(
 
 def _get_repo_pr_states(state: SeerRunState) -> list[RepoPRState]:
     return [state.repo_pr_states[repo] for repo in sorted(state.repo_pr_states)]
+
+
+def _agent_out_of_credits(cache_payload: SlackAgentCachePayload) -> SeerAgentOutOfCredits:
+    """The out-of-credits notice, written for whoever sent the message that started the run."""
+    return SeerAgentOutOfCredits(
+        organization_id=cache_payload["organization_id"],
+        has_billing_access=user_has_billing_access(
+            organization_id=cache_payload["organization_id"],
+            user_id=cache_payload.get("user_id"),
+        ),
+    )
 
 
 def _is_pr_out_of_credits(pr: RepoPRState) -> bool:
@@ -942,7 +958,7 @@ def _next_agent_reply(
         key = _out_of_credits_key(state)
         if key in replies:
             return None
-        return key, SeerAgentOutOfCredits(organization_id=organization_id)
+        return key, _agent_out_of_credits(cache_payload)
     else:
         turn = next((turn for turn in reversed(state.get_turns()) if turn.answer), None)
         if turn is None or turn.answer is None:

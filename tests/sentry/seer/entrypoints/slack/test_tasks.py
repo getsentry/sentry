@@ -8,7 +8,10 @@ from unittest.mock import ANY, MagicMock, patch
 from django.test import override_settings
 
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
-from sentry.notifications.platform.templates.seer import AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
+from sentry.notifications.platform.templates.seer import (
+    AGENT_OUT_OF_CREDITS_BILLING_MESSAGE,
+    AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE,
+)
 from sentry.seer.credits import SeerFeature, SeerOperation
 from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
@@ -96,6 +99,7 @@ class ProcessMentionForSlackTest(TestCase):
         call_kwargs = mock_operator.trigger_agent.call_args[1]
         assert call_kwargs["organization"] == self.organization
         assert call_kwargs["user"] is mock_user
+        assert mock_entrypoint.user_id == self.user.id
         assert call_kwargs["prompt"] == "What is causing this issue?"
         assert call_kwargs["on_page_context"] is None
         assert call_kwargs["category_key"] == "slack_thread"
@@ -460,6 +464,30 @@ class ProcessMentionSeerCreditsTest(TestCase):
             status="",
         )
         assert_halt_metric(mock_record, ProcessMentionHaltReason.OUT_OF_SEER_CREDITS)
+
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    @patch("sentry.seer.entrypoints.slack.tasks.can_run_seer_operation", return_value=False)
+    @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
+    @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
+    @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
+    def test_out_of_credits_reply_is_written_for_billing_member(
+        self,
+        mock_resolve_user: MagicMock,
+        mock_agent_cls: MagicMock,
+        mock_operator_cls: MagicMock,
+        mock_can_run: MagicMock,
+        _mock_get_scopes: MagicMock,
+    ) -> None:
+        mock_operator_cls.has_access.return_value = True
+        mock_resolve_user.return_value = self.user
+        mock_agent_cls.return_value = self.mock_entrypoint
+
+        process_mention_for_slack(**{**TASK_KWARGS, "organization_id": self.organization.id})
+
+        assert self._sent_text() == AGENT_OUT_OF_CREDITS_BILLING_MESSAGE
 
     @patch("sentry.seer.entrypoints.slack.tasks.can_run_seer_operation", return_value=False)
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
