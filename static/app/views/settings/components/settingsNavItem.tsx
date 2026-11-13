@@ -60,18 +60,12 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
 }
 
 function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement}) {
-  const settingsV3 = useSettingsV3();
   if (badge === 'new' || badge === 'beta' || badge === 'alpha') {
     return <SecondaryNavigation.FeatureBadge type={badge} />;
   }
   if (badge === 'warning') {
     return (
-      // In settings v3 the badge sits before the label, so a tooltip on the
-      // right would cover the label of the hovered item.
-      <Tooltip
-        title={t('This setting needs review')}
-        position={settingsV3 ? 'top' : 'right'}
-      >
+      <Tooltip title={t('This setting needs review')} position="top">
         <StyledBadge variant="warning">{badge}</StyledBadge>
       </Tooltip>
     );
