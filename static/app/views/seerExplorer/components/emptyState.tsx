@@ -74,6 +74,7 @@ export function EmptyState({
       return;
     }
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const characterElement = characterRef.current;
     let pointer: Pick<PointerEvent, 'clientX' | 'clientY'> | null = null;
 
     function handlePointerMove(event: PointerEvent) {
@@ -113,6 +114,12 @@ export function EmptyState({
       updateGaze();
     }
 
+    function handleCharacterTransitionEnd(event: TransitionEvent) {
+      if (event.target === characterElement && event.propertyName === 'translate') {
+        updateGaze();
+      }
+    }
+
     document.addEventListener('pointermove', handlePointerMove, {passive: true});
     const caretEvents = [
       'selectionchange',
@@ -129,6 +136,7 @@ export function EmptyState({
     window.addEventListener('blur', resetPupil);
     window.addEventListener('resize', updateGaze);
     reducedMotion.addEventListener('change', updateGaze);
+    characterElement?.addEventListener('transitionend', handleCharacterTransitionEnd);
     updateGaze();
     return () => {
       document.removeEventListener('pointermove', handlePointerMove);
@@ -139,6 +147,10 @@ export function EmptyState({
       window.removeEventListener('blur', resetPupil);
       window.removeEventListener('resize', updateGaze);
       reducedMotion.removeEventListener('change', updateGaze);
+      characterElement?.removeEventListener(
+        'transitionend',
+        handleCharacterTransitionEnd
+      );
     };
   }, [isError, isLoading, composerRef]);
 
@@ -191,17 +203,18 @@ export function EmptyState({
           <Grid position="relative" width="100%" maxWidth="360px" columns="1fr">
             <FloatingCharacter
               ref={characterRef}
+              $focused={hasDraft}
               area="1 / 1"
               alignSelf="start"
               position="relative"
               pointerEvents="none"
               aria-hidden
             >
-              <Arm position="absolute" inset="0" $side="left">
-                <Image src={seerArmLeft} alt="" loading="eager" />
+              <Arm position="absolute" inset="0" $side="left" $focused={hasDraft}>
+                <Image data-arm-reaction="" src={seerArmLeft} alt="" loading="eager" />
               </Arm>
-              <Arm position="absolute" inset="0" $side="right">
-                <Image src={seerArmRight} alt="" loading="eager" />
+              <Arm position="absolute" inset="0" $side="right" $focused={hasDraft}>
+                <Image data-arm-reaction="" src={seerArmRight} alt="" loading="eager" />
               </Arm>
               <EyeSocket position="absolute" inset="0">
                 <Pupil
@@ -221,7 +234,6 @@ export function EmptyState({
               <BeamScan data-beam-scan="" position="absolute" inset="0" />
             </FloatingCharacter>
             <SuggestionContent
-              $hidden={hasDraft}
               aria-hidden={hasDraft || undefined}
               inert={hasDraft}
               area="1 / 1"
@@ -231,7 +243,7 @@ export function EmptyState({
               gap="lg"
               paddingBottom="lg"
             >
-              <Container width="100%">
+              <DraftExtras width="100%" $hidden={hasDraft}>
                 <BeamCaption
                   as="div"
                   align="center"
@@ -240,7 +252,7 @@ export function EmptyState({
                 >
                   {t('Ask Seer anything about your application.')}
                 </BeamCaption>
-              </Container>
+              </DraftExtras>
               {onSuggestionClick && suggestions && (
                 <Stack
                   width="100%"
@@ -254,12 +266,18 @@ export function EmptyState({
                       ? undefined
                       : orderedSuggestions[index];
                     return (
-                      <SuggestionItem
+                      <DraftExtras
                         key={index}
-                        suggestion={suggestion}
-                        position={index}
-                        onClick={onSuggestionClick}
-                      />
+                        $hidden={hasDraft}
+                        $offset={-12}
+                        $delay={index * 45}
+                      >
+                        <SuggestionItem
+                          suggestion={suggestion}
+                          position={index}
+                          onClick={onSuggestionClick}
+                        />
+                      </DraftExtras>
                     );
                   })}
                 </Stack>
@@ -272,6 +290,7 @@ export function EmptyState({
         <DraftExtras
           padding="0 xl"
           $hidden={hasDraft}
+          $offset={32}
           aria-hidden={hasDraft || undefined}
           inert={hasDraft}
         >
@@ -393,6 +412,12 @@ const armDrift = keyframes`
   50% { transform: rotate(var(--arm-tilt)) translateY(1px); }
 `;
 
+const armKick = keyframes`
+  0%, 100% { transform: translateY(0) rotate(0); }
+  28% { transform: translateY(-4px) rotate(var(--arm-kick)); }
+  68% { transform: translateY(1px) rotate(var(--arm-rebound)); }
+`;
+
 const scan = keyframes`
   0% { transform: translateY(450%); opacity: 0; }
   15% { opacity: 0.2; }
@@ -400,39 +425,56 @@ const scan = keyframes`
   100% { transform: translateY(-50%); opacity: 0; }
 `;
 
-const DraftExtras = styled(Stack)<{$hidden: boolean}>`
+const DraftExtras = styled(Stack)<{
+  $hidden: boolean;
+  $delay?: number;
+  $offset?: number;
+}>`
   opacity: ${p => (p.$hidden ? 0 : 1)};
   visibility: ${p => (p.$hidden ? 'hidden' : 'visible')};
-  transition:
-    opacity 180ms ease-out,
-    visibility 0s linear ${p => (p.$hidden ? '180ms' : '0s')};
 
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
+  @media (prefers-reduced-motion: no-preference) {
+    transform: ${p => (p.$hidden ? `translateY(${p.$offset ?? 0}px)` : 'none')};
+    transition:
+      opacity 220ms ease-out ${p => (p.$hidden ? (p.$delay ?? 0) : 0)}ms,
+      transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1)
+        ${p => (p.$hidden ? (p.$delay ?? 0) : 0)}ms,
+      visibility 0s linear ${p => (p.$hidden ? 280 + (p.$delay ?? 0) : 0)}ms;
   }
 `;
 
-const SuggestionContent = styled(DraftExtras)`
+const SuggestionContent = styled(Stack)`
   padding-top: calc(237.4 / 170.58 * 43%);
 `;
 
-const Arm = styled(Container)<{$side: 'left' | 'right'}>`
+const Arm = styled(Container)<{$focused: boolean; $side: 'left' | 'right'}>`
   z-index: 0;
   transform-origin: ${p => (p.$side === 'left' ? '39% 27%' : '62% 27%')};
   --arm-tilt: ${p => (p.$side === 'left' ? '1.5deg' : '-1.5deg')};
+  --arm-kick: ${p => (p.$side === 'left' ? '4deg' : '-4deg')};
+  --arm-rebound: ${p => (p.$side === 'left' ? '-0.75deg' : '0.75deg')};
 
   @media (prefers-reduced-motion: no-preference) {
     animation: ${armDrift} ${p => (p.$side === 'left' ? '5.2s' : '4.6s')} ease-in-out
       infinite;
     animation-delay: ${p => (p.$side === 'left' ? '-1s' : '-2.4s')};
+
+    [data-arm-reaction] {
+      transform-origin: inherit;
+      animation: ${p => (p.$focused ? armKick : 'none')}
+        ${p => (p.$side === 'left' ? '600ms' : '660ms')} cubic-bezier(0.2, 0.8, 0.2, 1)
+        both;
+    }
   }
 `;
 
-const FloatingCharacter = styled(Container)`
+const FloatingCharacter = styled(Container)<{$focused: boolean}>`
   isolation: isolate;
 
   @media (prefers-reduced-motion: no-preference) {
     animation: ${float} 6s ease-in-out infinite;
+    translate: 0 ${p => (p.$focused ? '16px' : '0')};
+    transition: translate 620ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 `;
 
