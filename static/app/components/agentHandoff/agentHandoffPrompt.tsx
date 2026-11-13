@@ -49,7 +49,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   const [isPromptSelected, setIsPromptSelected] = useState(false);
   const handoff = useAgentHandoff(flow, context);
   const copyDisabled = !context || handoff.isPending;
-  const previewUrl = new URL(`/agent-handoff/?preview=1&flow=${flow}`, links.sentryUrl)
+  const previewUrl = new URL(`/agent-handoff.md?preview=1&flow=${flow}`, links.sentryUrl)
     .href;
 
   function copyPrompt() {
