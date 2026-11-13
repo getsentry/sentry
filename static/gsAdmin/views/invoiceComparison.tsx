@@ -22,8 +22,7 @@ import {getCells} from 'sentry/utils/cells';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-// Matching orgs are counted in the summary but never listed as rows.
-type RowStatus = 'mismatch' | 'legacy_only' | 'platform_only';
+type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
 
 type Row = {
   delta_cents: number;
@@ -42,9 +41,6 @@ type Row = {
 };
 
 type Summary = {
-  // Every migrated org compared in the window, matching or not; the
-  // denominator for `over_threshold_pct`.
-  compared_count: number;
   end: string;
   legacy_count: number;
   over_threshold_count: number;
@@ -64,6 +60,7 @@ type ComparisonResponse = {
 };
 
 const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
+  match: 'success',
   mismatch: 'warning',
   legacy_only: 'danger',
   platform_only: 'danger',
@@ -357,11 +354,9 @@ export function InvoiceComparison() {
         <strong>Platform invoices</strong> reflect every <code>PlatformInvoice</code> in
         the window; in production milestone-1 those are equivalent to both-sided since{' '}
         <code>InvoicerService</code> only generates platform invoices for orgs with a{' '}
-        <code>Contract</code> (which already have a legacy counterpart). The table lists
-        only the migrated orgs whose two sides disagree (<code>mismatch</code>,{' '}
-        <code>legacy_only</code> or <code>platform_only</code>), sorted by absolute %
-        delta (relative to legacy), largest first. Matching orgs count toward the summary
-        but are not listed.
+        <code>Contract</code> (which already have a legacy counterpart). The table
+        compares the migrated orgs, sorted by absolute % delta (relative to legacy),
+        largest first.
       </p>
 
       <Panel>
@@ -464,7 +459,7 @@ export function InvoiceComparison() {
                     {formatPercentOrNA(data.summary.over_threshold_pct)}
                     <TruncatedNote size="sm" variant="muted">
                       ({formatCountOrNA(data.summary.over_threshold_count)} of{' '}
-                      {formatCountOrNA(data.summary.compared_count)} compared)
+                      {formatCountOrNA(data.summary.row_count)})
                     </TruncatedNote>
                   </Text>
                 </Stack>
@@ -474,8 +469,7 @@ export function InvoiceComparison() {
 
           <Panel>
             <PanelHeader>
-              Mismatching orgs (sorted by |delta|, biggest first) — queried{' '}
-              {data.summary.queried_at}
+              Rows (sorted by |delta|, biggest first) — queried {data.summary.queried_at}
             </PanelHeader>
             <PanelBody>
               <Paginator

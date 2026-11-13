@@ -29,7 +29,6 @@ function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
     summary: {
       start: '2026-01-01',
       end: '2026-01-01',
-      compared_count: 1,
       legacy_count: 1,
       platform_count: 1,
       over_threshold_count: 1,
