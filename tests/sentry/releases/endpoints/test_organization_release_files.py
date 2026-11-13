@@ -5,10 +5,39 @@ from django.urls import reverse
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class ReleaseFilesListTest(APITestCase):
+    def test_org_auth_token_ci_cannot_list(self) -> None:
+        # org:ci (sentry-cli) uploads release files via the chunk-upload/assemble
+        # endpoints; it must not enumerate the release-file catalog.
+        project = self.create_project(name="foo")
+        release = Release.objects.create(organization_id=project.organization_id, version="1")
+        release.add_project(project)
+        token_str = generate_token(project.organization.slug, "")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_org_auth_token(
+                organization_id=project.organization_id,
+                name="ci-token",
+                token_hashed=hash_token(token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+        url = reverse(
+            "sentry-api-0-organization-release-files",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
+        )
+        response = self.client_class().get(url, HTTP_AUTHORIZATION=f"Bearer {token_str}")
+        assert response.status_code == 403, response.content
+
     def test_simple(self) -> None:
         project = self.create_project(name="foo")
 

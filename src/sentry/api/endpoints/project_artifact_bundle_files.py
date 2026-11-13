@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleaseArtifactReadPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.artifactbundle import ArtifactBundleFilesSerializer
@@ -62,7 +62,9 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (ProjectReleasePermission,)
+    # GET lists the files inside an artifact bundle; org:ci (sentry-cli) uploads via
+    # the artifactbundle/assemble endpoint and does not read this catalog.
+    permission_classes = (ProjectReleaseArtifactReadPermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )

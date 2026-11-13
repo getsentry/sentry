@@ -7,7 +7,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.bases.organization import (
+    OrganizationReleaseArtifactReadPermission,
+    OrganizationReleasesBaseEndpoint,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release_file import ReleaseFileSerializerResponse
 from sentry.apidocs.constants import (
@@ -54,6 +57,10 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    # GET lists a release's uploaded files (e.g. source maps); org:ci (sentry-cli)
+    # uploads via the chunk-upload/assemble endpoints and does not read this catalog.
+    # Overrides the base's OrganizationReleasePermission to drop org:ci from GET.
+    permission_classes = (OrganizationReleaseArtifactReadPermission,)
     idempotent_methods = frozenset()
 
     rate_limits = RateLimitConfig(

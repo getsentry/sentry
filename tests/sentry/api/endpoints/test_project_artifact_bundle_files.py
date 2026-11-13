@@ -4,12 +4,40 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.models.artifactbundle import ProjectArtifactBundle, ReleaseArtifactBundle
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @freeze_time("2023-03-15 00:00:00")
 class ProjectArtifactBundleFilesEndpointTest(APITestCase):
+    def test_org_auth_token_ci_cannot_list(self) -> None:
+        # org:ci org-auth-tokens (sentry-cli) upload artifact bundles via the
+        # artifactbundle/assemble endpoint; they must not read a bundle's files.
+        project = self.create_project(name="foo")
+        token_str = generate_token(project.organization.slug, "")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_org_auth_token(
+                organization_id=project.organization_id,
+                name="ci-token",
+                token_hashed=hash_token(token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+        url = reverse(
+            "sentry-api-0-project-artifact-bundle-files",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "bundle_id": "not-a-uuid",
+            },
+        )
+        response = self.client_class().get(url, HTTP_AUTHORIZATION=f"Bearer {token_str}")
+        assert response.status_code == 403, response.content
+
     def test_get_artifact_bundle_files_with_invalid_bundle_id(self) -> None:
         project = self.create_project(name="foo")
         url = reverse(

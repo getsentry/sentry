@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import BaseEndpointMixin, cell_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleaseArtifactReadPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.releases import ensure_access_to_release_projects
 from sentry.api.paginator import ChainPaginator
@@ -293,7 +293,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
         "POST": ApiPublishStatus.PUBLIC,
     }
     idempotent_methods = frozenset()
-    permission_classes = (ProjectReleasePermission,)
+    # GET lists a release's uploaded files (e.g. source maps); org:ci (sentry-cli)
+    # uploads via the chunk-upload/assemble endpoints and does not read this catalog.
+    permission_classes = (ProjectReleaseArtifactReadPermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )

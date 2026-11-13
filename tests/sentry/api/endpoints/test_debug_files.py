@@ -19,10 +19,13 @@ from sentry.models.debugfile import (
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.objectstore import debug_files_test_both_backends
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_objectstore
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -292,6 +295,23 @@ class DebugFilesTest(DebugFilesTestCases):
         # accessing foreign files should not work
         response = self.client.get(f"{url}?id={download_id}")
         assert response.status_code == 404
+
+    def test_org_auth_token_ci_cannot_list(self) -> None:
+        # org:ci org-auth-tokens (sentry-cli) upload debug files via the
+        # chunk-upload/assemble endpoints; they must not enumerate the catalog.
+        token_str = generate_token(self.organization.slug, "")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_org_auth_token(
+                organization_id=self.organization.id,
+                name="ci-token",
+                token_hashed=hash_token(token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+        # Fresh client so only the org-auth-token authenticates (setUp logs in a user).
+        response = self.client_class().get(self.url, HTTP_AUTHORIZATION=f"Bearer {token_str}")
+        assert response.status_code == 403, response.content
 
     def test_dsyms_requests(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
@@ -658,6 +678,22 @@ class SourceMapsEndpointTest(APITestCase):
             },
         )
         self.login_as(user=self.user)
+
+    def test_org_auth_token_ci_cannot_list(self) -> None:
+        # org:ci (sentry-cli) uploads source maps via the chunk-upload/assemble
+        # endpoints; it must not enumerate the source-map archive catalog.
+        token_str = generate_token(self.organization.slug, "")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_org_auth_token(
+                organization_id=self.organization.id,
+                name="ci-token",
+                token_hashed=hash_token(token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+        response = self.client_class().get(self.url, HTTP_AUTHORIZATION=f"Bearer {token_str}")
+        assert response.status_code == 403, response.content
 
     def test_source_maps(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="1")

@@ -220,9 +220,18 @@ class OrganizationEventPermission(OrganizationPermission):
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
     """
-    Includes org:ci so CI org-auth-tokens (e.g. sentry-cli) can manage releases.
-    Use only for release endpoints. Do not reuse an org:ci permission for endpoints
-    exposing data a CI token should not read.
+    Grants `org:ci` on GET/POST/PUT so CI org-auth-tokens (e.g. sentry-cli) can
+    create releases and upload artifacts.
+
+    Choosing between this and OrganizationReleaseArtifactReadPermission (default to
+    the more restrictive one):
+    - GET only lists/reads already-uploaded artifacts (release files / source maps)?
+      Use OrganizationReleaseArtifactReadPermission — a CI token must not be able to
+      enumerate a project's artifacts.
+    - CI genuinely needs GET (upload dedup/assemble status, or release management
+      such as creating/reading releases, deploys, commits)? Use this class.
+    - Unsure? Use OrganizationReleaseArtifactReadPermission; CI uploads still work
+      via POST/PUT.
     """
 
     scope_map = {
@@ -230,6 +239,25 @@ class OrganizationReleasePermission(OrganizationPermission):
         "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
         "PUT": ["project:write", "project:admin", "project:releases", "org:ci"],
         "DELETE": ["project:admin", "project:releases"],
+    }
+
+
+class OrganizationReleaseArtifactReadPermission(OrganizationReleasePermission):
+    """
+    PREFERRED release/artifact permission. Like OrganizationReleasePermission, but
+    GET does not grant `org:ci` (POST/PUT still do, so CI uploads keep working).
+
+    Use this for any endpoint whose GET lists or reads already-uploaded release
+    artifacts (release files / source maps). sentry-cli uploads via the
+    chunk-upload/assemble endpoints and never reads these catalogs, so a CI
+    org-auth-token must not be able to enumerate them.
+
+    Fall back to OrganizationReleasePermission only when a CI token genuinely needs GET.
+    """
+
+    scope_map = {
+        **OrganizationReleasePermission.scope_map,
+        "GET": ["project:read", "project:write", "project:admin", "project:releases"],
     }
 
 

@@ -78,9 +78,18 @@ class StrictProjectPermission(ProjectPermission):
 
 class ProjectReleasePermission(ProjectPermission):
     """
-    Includes org:ci so CI org-auth-tokens (e.g. sentry-cli) can manage releases.
-    Use only for release endpoints. Do not reuse an org:ci permission for endpoints
-    exposing data a CI token should not read.
+    Grants `org:ci` on GET/POST/PUT so CI org-auth-tokens (e.g. sentry-cli) can
+    create releases and upload artifacts.
+
+    Choosing between this and ProjectReleaseArtifactReadPermission (default to the
+    more restrictive one):
+    - GET only lists/reads already-uploaded artifacts (debug files, source maps,
+      artifact bundles, release files)? Use ProjectReleaseArtifactReadPermission —
+      a CI token must not be able to enumerate a project's artifacts.
+    - CI genuinely needs GET (upload dedup/assemble status, or release management
+      such as creating/reading releases, deploys, commits)? Use this class.
+    - Unsure? Use ProjectReleaseArtifactReadPermission; CI uploads still work via
+      POST/PUT.
     """
 
     scope_map = {
@@ -88,6 +97,25 @@ class ProjectReleasePermission(ProjectPermission):
         "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
         "PUT": ["project:write", "project:admin", "project:releases", "org:ci"],
         "DELETE": ["project:admin", "project:releases"],
+    }
+
+
+class ProjectReleaseArtifactReadPermission(ProjectReleasePermission):
+    """
+    PREFERRED release/artifact permission. Like ProjectReleasePermission, but GET
+    does not grant `org:ci` (POST/PUT still do, so CI uploads keep working).
+
+    Use this for any endpoint whose GET lists or reads already-uploaded artifacts
+    (debug files, source maps, artifact bundles, release files). sentry-cli uploads
+    via the chunk-upload/assemble endpoints and never reads these catalogs, so a CI
+    org-auth-token must not be able to enumerate a project's artifacts.
+
+    Fall back to ProjectReleasePermission only when a CI token genuinely needs GET.
+    """
+
+    scope_map = {
+        **ProjectReleasePermission.scope_map,
+        "GET": ["project:read", "project:write", "project:admin", "project:releases"],
     }
 
 

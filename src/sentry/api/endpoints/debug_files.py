@@ -31,7 +31,11 @@ from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.project import (
+    ProjectEndpoint,
+    ProjectReleaseArtifactReadPermission,
+    ProjectReleasePermission,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -314,7 +318,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (ProjectReleasePermission,)
+    # GET lists a project's uploaded debug files; org:ci (sentry-cli) uploads via
+    # the chunk-upload/assemble endpoints and does not read this catalog.
+    permission_classes = (ProjectReleaseArtifactReadPermission,)
 
     def download(
         self, debug_file_id: int, project: Project
@@ -1083,7 +1089,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (ProjectReleasePermission,)
+    # GET lists a project's source map archives; org:ci (sentry-cli) uploads via the
+    # chunk-upload/assemble endpoints and does not read this catalog.
+    permission_classes = (ProjectReleaseArtifactReadPermission,)
 
     def get(self, request: Request, project: Project) -> Response:
         """
