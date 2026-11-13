@@ -269,6 +269,26 @@ class IntegrationSerializerTest(TestCase):
         assert result["configData"] is None
         assert result["organizationId"] == self.organization.id
 
+    def test_organization_config_error_disables_integration(self) -> None:
+        integration = self.create_provider_integration(
+            provider="example", name="Example", external_id="example:1"
+        )
+        org_integration = self.create_organization_integration(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        with patch(
+            "sentry.integrations.example.integration.ExampleIntegration.get_organization_config",
+            side_effect=ApiError("integration_configuration_disabled"),
+        ):
+            result = serialize(org_integration, self.user)
+
+        assert result is not None
+        assert result["status"] == "disabled"
+        assert result["configOrganization"] == []
+        assert result["provider"]["key"] == "example"
+        assert result["organizationId"] == self.organization.id
+
     def test_provider_without_installation(self) -> None:
         integration = self.create_provider_integration(
             provider="example", name="Example", external_id="example:1"

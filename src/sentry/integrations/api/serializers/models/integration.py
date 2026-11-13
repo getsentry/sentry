@@ -362,9 +362,28 @@ class IntegrationConfigSerializer(IntegrationSerializer):
                 },
             )
 
+        try:
+            config_organization = installation.get_organization_config()
+        except ApiError as e:
+            # The provider rejected the request (e.g. the installation was disabled
+            # on their side). Serialize the integration as disabled rather than
+            # failing the whole response.
+            logger.info(
+                "sentry.serializers.model.integrationconfig",
+                extra={
+                    "error": str(e),
+                    "integration_id": obj.id,
+                    "integration_provider": obj.provider,
+                },
+            )
+            return cast(
+                "IntegrationConfigSerializerResponse",
+                {**base, "configOrganization": [], "status": "disabled"},
+            )
+
         return cast(
             "IntegrationConfigSerializerResponse",
-            {**base, "configOrganization": installation.get_organization_config()},
+            {**base, "configOrganization": config_organization},
         )
 
 
