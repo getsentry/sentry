@@ -1007,7 +1007,7 @@ class SlackInvestigationEntrypoint(
                 with lock.blocking_acquire(initial_delay=0.1, timeout=10):
                     if cache_payload is not None:
                         SlackInvestigationEntrypoint._update_investigation_status(
-                            run_id=run.id, lifecycle=lifecycle
+                            cache_payload=cache_payload, run_id=run.id, lifecycle=lifecycle
                         )
                     SlackInvestigationEntrypoint._send_conclusion_to_alert_threads(run_id=run.id)
             except UnableToAcquireLock as e:
@@ -1016,7 +1016,9 @@ class SlackInvestigationEntrypoint(
                 raise
 
     @staticmethod
-    def _update_investigation_status(*, run_id: int, lifecycle: EventLifecycle) -> None:
+    def _update_investigation_status(
+        *, cache_payload: SlackInvestigationCachePayload, run_id: int, lifecycle: EventLifecycle
+    ) -> None:
         from sentry.integrations.slack.integration import SlackIntegration
 
         try:
@@ -1025,12 +1027,6 @@ class SlackInvestigationEntrypoint(
             )
         except InvestigationOrchestrationRun.DoesNotExist:
             lifecycle.record_halt(halt_reason="run_not_found")
-            return
-        cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
-            entrypoint_key=str(SlackInvestigationEntrypoint.key),
-            investigation_id=run.investigation_id,
-        )
-        if cache_payload is None:
             return
         thread = _get_investigation_thread(
             investigation_id=run.investigation_id,

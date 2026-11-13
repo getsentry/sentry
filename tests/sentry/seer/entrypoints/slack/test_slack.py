@@ -1974,13 +1974,13 @@ class SlackInvestigationEntrypointTest(TestCase):
         self.mock_post_message.assert_not_called()
         assert_halt_metric(mock_record, UnableToAcquireLock())
 
-    def test_stale_cache_payload_argument_is_ignored(self) -> None:
-        stale_payload = self._set_cache()
+    def test_reused_cache_payload_uses_latest_thread_state(self) -> None:
+        cache_payload = self._set_cache()
         self._update([_hypothesis()])
         self.mock_update.reset_mock()
 
         SlackInvestigationEntrypoint.on_investigation_update(
-            cache_payload=stale_payload, run=self.orchestration_run
+            cache_payload=cache_payload, run=self.orchestration_run
         )
 
         self.mock_update.assert_not_called()
