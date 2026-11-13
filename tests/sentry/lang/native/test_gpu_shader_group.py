@@ -109,3 +109,54 @@ def test_no_group_changes_nothing() -> None:
     assert "shader_group" not in data["contexts"]["gpu_crash"]
     (applied,) = data["exception"]["values"][0]["stacktrace"]["frames"]
     assert "filename" not in applied
+
+
+def _apply_page_fault(frames: list[dict[str, Any]]) -> MutableMapping[str, Any]:
+    response = _response(frames[0])
+    response.update(
+        fault_category="page_fault",
+        frames=frames,
+        shader_context={
+            "active_shaders": [
+                {"shader_hash": frame["data"]["shader_hash"], "shader_type": "Compute"}
+                for frame in frames
+            ]
+        },
+    )
+    data: dict[str, Any] = {"event_id": "g" * 32, "platform": "native"}
+    result = apply_gpu_crash_symbolication(data, response)
+    assert result is not None
+    return result
+
+
+def test_page_fault_takes_the_group_of_the_faulted_frame() -> None:
+    running = _frame(data={"shader_hash": "1111111111111111", "shader_group": GLOBAL_GROUP})
+    faulted = _frame(
+        instruction_addr="0x50",
+        data={"shader_hash": "49478268ce7710e2", "shader_group": MATERIAL_GROUP, "faulted": True},
+    )
+    data = _apply_page_fault([running, faulted])
+
+    tags = dict(data["tags"])
+    assert tags["gpu.shader_group"] == MATERIAL_GROUP
+    assert tags["gpu.shader_hash"] == "49478268ce7710e2"
+    assert data["culprit"] == MATERIAL_GROUP
+    assert data["contexts"]["gpu_crash"]["faulting_pc"] == "0x50"
+
+
+def test_page_fault_without_a_faulted_frame_names_no_shader() -> None:
+    running = _frame(data={"shader_hash": "49478268ce7710e2", "shader_group": MATERIAL_GROUP})
+    data = _apply_page_fault([running])
+
+    tags = dict(data["tags"])
+    assert "gpu.shader_group" not in tags and "gpu.shader_hash" not in tags
+    assert "culprit" not in data
+    assert "shader_group" not in data["contexts"]["gpu_crash"]
+
+
+def test_decoder_name_is_kept_as_raw_function() -> None:
+    data = _apply(_frame(raw_function="fragment_01"))
+
+    (applied,) = data["exception"]["values"][0]["stacktrace"]["frames"]
+    assert applied["function"] == "Main"
+    assert applied["raw_function"] == "fragment_01"

@@ -158,16 +158,41 @@ def apply_gpu_crash_symbolication(
     return data
 
 
+def _faulted_frame(response: Mapping[str, Any]) -> dict[str, Any]:
+    """The frame of the shader that faulted, which teapot marks with `data.faulted`.
+
+    The frames follow the order of the active shaders. Without a mark, the first
+    frame is the faulted one on a hang, but on a page fault it can be any shader
+    that was running, so there is none.
+    """
+    frames = [frame for frame in response.get("frames") or [] if isinstance(frame, dict)]
+    for frame in frames:
+        if (frame.get("data") or {}).get("faulted") is True:
+            return frame
+    if not frames or response.get("fault_category") == "page_fault":
+        return {}
+    return frames[0]
+
+
 def _primary_shader(response: Mapping[str, Any]) -> dict[str, Any]:
-    active = (response.get("shader_context") or {}).get("active_shaders") or []
+    """The active shader of the faulted frame. When that frame has no hash, the first
+    active shader, except on a page fault (see `_faulted_frame`)."""
+    active = [
+        s
+        for s in (response.get("shader_context") or {}).get("active_shaders") or []
+        if isinstance(s, dict)
+    ]
+    shader_hash = (_faulted_frame(response).get("data") or {}).get("shader_hash")
+    if shader_hash:
+        return next((s for s in active if s.get("shader_hash") == shader_hash), {})
+    if response.get("fault_category") == "page_fault":
+        return {}
     return active[0] if active else {}
 
 
 def _shader_group(response: Mapping[str, Any]) -> str | None:
-    """The UE shader group recorded with the faulting frame's dxil debug file, if any."""
-    frames = response.get("frames") or []
-    first = frames[0] if frames and isinstance(frames[0], dict) else {}
-    group = (first.get("data") or {}).get("shader_group")
+    """The UE shader group recorded with the faulted frame's dxil debug file, if any."""
+    group = (_faulted_frame(response).get("data") or {}).get("shader_group")
     return group if isinstance(group, str) and group else None
 
 
@@ -351,8 +376,7 @@ def _build_gpu_crash_context(response: Mapping[str, Any]) -> dict[str, Any]:
     fault = response.get("fault") or {}
     gpu_state = response.get("gpu_state") or {}
     primary_shader = _primary_shader(response)
-    frames = response.get("frames") or []
-    primary_frame = frames[0] if frames and isinstance(frames[0], dict) else {}
+    primary_frame = _faulted_frame(response)
     resource = _faulting_resource(fault)
     sections = _raw_sections(response)
     faulted = _faulted_warps(sections)
@@ -488,6 +512,7 @@ def _normalize_gpu_frames(teapot_frames: list[Any]) -> list[dict[str, Any]]:
         frame: dict[str, Any] = {}
         for field in (
             "function",
+            "raw_function",
             "module",
             "filename",
             "abs_path",
