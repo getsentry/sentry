@@ -68,7 +68,7 @@ def schedule_classifiers() -> None:
             status=TelemetryClassifierStatus.ENABLED,
             project__status=ObjectStatus.ACTIVE,
             project__organization__status=ObjectStatus.ACTIVE,
-        ).select_related("project__organization"),
+        ),
         task=select_entities,
         cycle_duration=SCAN_INTERVAL,
     ).tick()

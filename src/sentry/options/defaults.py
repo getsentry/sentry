@@ -1672,7 +1672,7 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Maximum entities each telemetry classifier selects per scan.
+# Most entities one telemetry classifier selection enqueues, and its page size.
 register(
     "telemetry-classifiers.select-limit",
     type=Int,
