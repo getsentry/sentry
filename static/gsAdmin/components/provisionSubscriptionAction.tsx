@@ -3,12 +3,15 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {openModal} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
@@ -38,6 +41,7 @@ import {
 } from 'getsentry/utils/dataCategory';
 
 const CPE_DECIMAL_PRECISION = 8;
+const FORM_ID = 'provision-subscription-form';
 
 type Props = {
   billingConfig: BillingConfig | null;
@@ -108,8 +112,9 @@ function toCents(dollars: number | null | undefined) {
 }
 
 /**
- * Minimal field wrapper that replicates the deprecated FormField's DOM structure.
- * Renders: label[htmlFor] -> input[id] association for accessibility.
+ * Labels a form control. Inputs and switches are associated through
+ * `htmlFor`; selects also get an `aria-label` because react-select renders its
+ * own internal input.
  */
 function FormFieldWrapper({
   label,
@@ -123,43 +128,17 @@ function FormFieldWrapper({
   help?: string;
 }) {
   return (
-    <div className="control-group">
-      <div className="controls">
-        <label htmlFor={`id-${name}`} className="control-label">
-          {label}
-        </label>
-        {children}
-        {help ? <p className="help-block">{help}</p> : null}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Select field wrapper - does NOT use htmlFor since react-select has its own
- * labeling via aria-label on the internal input.
- */
-function SelectFieldWrapper({
-  label,
-  name,
-  help,
-  children,
-}: {
-  children: React.ReactNode;
-  label: string;
-  name: string;
-  help?: string;
-}) {
-  return (
-    <div className="control-group">
-      <div className="controls">
-        <label htmlFor={`id-${name}`} className="control-label">
-          {label}
-        </label>
-        {children}
-        {help ? <p className="help-block">{help}</p> : null}
-      </div>
-    </div>
+    <Stack gap="sm" paddingBottom="xl">
+      <Text as="label" htmlFor={`id-${name}`} bold>
+        {label}
+      </Text>
+      {children}
+      {help ? (
+        <Text size="sm" variant="muted">
+          {help}
+        </Text>
+      ) : null}
+    </Stack>
   );
 }
 
@@ -186,7 +165,7 @@ const SoftCapTypeField = memo(function SoftCapTypeField({
   value: string | null | undefined;
 }) {
   return (
-    <SelectFieldWrapper
+    <FormFieldWrapper
       label={`Soft Cap Type ${titleName}`}
       name={`softCapType${capitalizedApiName}`}
     >
@@ -200,7 +179,7 @@ const SoftCapTypeField = memo(function SoftCapTypeField({
         value={value ?? null}
         onChange={(option: any) => onChange(capitalizedApiName, option?.value)}
       />
-    </SelectFieldWrapper>
+    </FormFieldWrapper>
   );
 });
 
@@ -640,7 +619,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   };
 
   render() {
-    const {Header, Body, closeModal} = this.props;
+    const {Header, Body, Footer, closeModal} = this.props;
     const {data} = this.state;
 
     // every provisionable plan is AM Enterprise and has custom SKU prices
@@ -657,17 +636,20 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         <Header>Provision Subscription Changes</Header>
         <Body>
           <form
+            id={FORM_ID}
             onSubmit={e => {
               e.preventDefault();
               this.handleSubmit();
             }}
           >
             {this.state.errorMessage ? (
-              <div className="alert alert-error">{this.state.errorMessage}</div>
+              <Alert.Container>
+                <Alert variant="danger">{this.state.errorMessage}</Alert>
+              </Alert.Container>
             ) : null}
             <Grid gap="2xl" columns="1fr 1fr">
               <div>
-                <SelectFieldWrapper label="Plan" name="plan">
+                <FormFieldWrapper label="Plan" name="plan">
                   <Select
                     name="plan"
                     id="id-plan"
@@ -698,7 +680,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     }}
                     value={this.state.data.plan}
                   />
-                </SelectFieldWrapper>
+                </FormFieldWrapper>
                 <FormFieldWrapper
                   label={`Apply Changes at the End of the Current Billing Period (${prettyDate(
                     this.props.subscription.billingPeriodEnd
@@ -757,7 +739,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     }
                   />
                 </FormFieldWrapper>
-                <SelectFieldWrapper label="Billing Interval" name="billingInterval">
+                <FormFieldWrapper label="Billing Interval" name="billingInterval">
                   <Select
                     name="billingInterval"
                     id="id-billingInterval"
@@ -779,7 +761,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                       }));
                     }}
                   />
-                </SelectFieldWrapper>
+                </FormFieldWrapper>
                 <FormFieldWrapper label="Managed Subscription" name="managed">
                   <Switch
                     id="id-managed"
@@ -798,7 +780,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                   />
                 </FormFieldWrapper>
 
-                <SelectFieldWrapper label="Billing Type" name="type">
+                <FormFieldWrapper label="Billing Type" name="type">
                   <Select
                     name="type"
                     id="id-type"
@@ -822,9 +804,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     }}
                     value={this.state.data.type}
                   />
-                </SelectFieldWrapper>
+                </FormFieldWrapper>
                 {this.state.data.type === 'invoiced' && (
-                  <SelectFieldWrapper
+                  <FormFieldWrapper
                     label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
                     name="onDemandInvoicedManual"
                     help={`Used to enable (Shared or Per Category) or disable ${selectedPlan ? displayBudgetName(selectedPlan) : 'pay-as-you-go'} max spend for invoiced customers. Cannot be provisioned with soft cap.`}
@@ -860,7 +842,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         }));
                       }}
                     />
-                  </SelectFieldWrapper>
+                  </FormFieldWrapper>
                 )}
 
                 {!this.disableRetainOnDemand() && (
@@ -1214,16 +1196,16 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 </FormFieldWrapper>
               </div>
             </Grid>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-default" onClick={closeModal}>
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Submit
-              </button>
-            </div>
           </form>
         </Body>
+        <Footer>
+          <Flex gap="md" justify="end">
+            <Button onClick={closeModal}>Cancel</Button>
+            <Button type="submit" form={FORM_ID} variant="primary">
+              Submit
+            </Button>
+          </Flex>
+        </Footer>
       </Fragment>
     );
   }
