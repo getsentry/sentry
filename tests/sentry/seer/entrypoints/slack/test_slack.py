@@ -26,6 +26,7 @@ from sentry.notebooks.models import Notebook, NotebookActionRequestState
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
+    AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE,
     SeerAgentError,
     SeerAgentResponse,
@@ -215,6 +216,7 @@ class SlackAutofixEntrypointTest(TestCase):
         assert cache_payload["group_id"] == self.group.id
         assert cache_payload["threads"] == [self.thread]
         assert cache_payload["handoff_target"] is None
+        assert cache_payload["slack_user_id"] == self.slack_user_id
 
     @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
     def test_create_autofix_cache_payload_captures_handoff_target(
@@ -382,6 +384,54 @@ class SlackAutofixEntrypointTest(TestCase):
         blocks = str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
         assert AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE in blocks
         assert "couldn't finish working on this issue" not in blocks
+
+    def _post_out_of_credits_message_for_linked_user(self) -> str:
+        self.create_identity(
+            user=self.user,
+            identity_provider=self.create_identity_provider(integration=self.integration),
+            external_id=self.slack_user_id,
+        )
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=self._get_entrypoint().create_autofix_cache_payload(),
+        )
+        with (
+            patch.object(SeerAutofixOperator, "has_access", return_value=True),
+            patch(
+                "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+                return_value={"ok": True, "ts": "1234567890.000100"},
+            ) as mock_send_threaded_message,
+            self.tasks(),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ERRORED,
+                event_payload={
+                    "run_id": MOCK_RUN_ID,
+                    "group_id": self.group.id,
+                    "failure_reason": "out_of_credits",
+                },
+                organization_id=self.organization.id,
+            )
+        return str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
+
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    def test_out_of_credits_run_started_by_billing_member_posts_billing_message(
+        self, _mock_get_scopes: MagicMock
+    ) -> None:
+        blocks = self._post_out_of_credits_message_for_linked_user()
+
+        assert AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE in blocks
+        assert "Configure auto-reload" in blocks
+
+    def test_out_of_credits_run_started_by_member_posts_member_message(self) -> None:
+        blocks = self._post_out_of_credits_message_for_linked_user()
+
+        assert AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE in blocks
+        assert "Contact Admin" in blocks
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(

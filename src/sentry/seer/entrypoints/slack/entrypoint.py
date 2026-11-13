@@ -9,12 +9,14 @@ import orjson
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.identity.services.identity import identity_service
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import InvestigationOrchestrationStatus
 from sentry.locks import locks
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.project import Project
 from sentry.notebooks.models import Notebook
 from sentry.notifications.platform.registry import provider_registry
@@ -101,6 +103,41 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
+def has_billing_access(*, organization_id: int, user_id: int) -> bool:
+    """Whether the user's role in the organization lets them manage billing."""
+    member = OrganizationMember.objects.filter(
+        organization_id=organization_id,
+        user_id=user_id,
+        invite_status=InviteStatus.APPROVED.value,
+    ).first()
+    return member is not None and "org:billing" in member.get_scopes()
+
+
+def slack_user_has_billing_access(
+    *, integration_id: int, organization_id: int, slack_user_id: str | None
+) -> bool:
+    """Whether the Slack user is linked to a Sentry user who can manage the organization's billing."""
+    if not slack_user_id:
+        return False
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    if not integration:
+        return False
+    identity = identity_service.get_identity(
+        filter={
+            "provider_type": integration.provider,
+            "provider_ext_id": integration.external_id,
+            "identity_ext_id": slack_user_id,
+        }
+    )
+    if not identity:
+        return False
+    return has_billing_access(organization_id=organization_id, user_id=identity.user_id)
+
+
 class EntrypointSetupError(Exception):
     """Raised when entrypoint construction fails during mention processing."""
 
@@ -122,6 +159,8 @@ class SlackAutofixCachePayload(TypedDict):
     # Captured at cache creation. When set, the Slack ROOT_CAUSE update swaps the
     # next-stage trigger button for a "Hand off to ..." button.
     handoff_target: CodingAgentProviderType | None
+    # Who started the run from Slack. Unset for runs that nobody started by hand.
+    slack_user_id: NotRequired[str | None]
 
 
 class SlackAgentCachePayload(TypedDict):
@@ -441,6 +480,7 @@ class SlackAutofixEntrypoint(
             group_id=self.group.id,
             group_link=self.get_group_link(self.group),
             handoff_target=_get_handoff_target(self.group.project),
+            slack_user_id=self.slack_user_id,
         )
 
     @staticmethod
@@ -477,8 +517,14 @@ class SlackAutofixEntrypoint(
                         suggestion=escape_slack_text(stop["suggestion"]),
                     )
                 elif event_payload.get("failure_reason") == OUT_OF_CREDITS:
+                    # The copy is written for whoever started the run.
                     message = SeerAutofixOutOfCredits(
-                        organization_id=cache_payload["organization_id"]
+                        organization_id=cache_payload["organization_id"],
+                        has_billing_access=slack_user_has_billing_access(
+                            integration_id=cache_payload["integration_id"],
+                            organization_id=cache_payload["organization_id"],
+                            slack_user_id=cache_payload.get("slack_user_id"),
+                        ),
                     )
                 else:
                     message = SeerAutofixError(
