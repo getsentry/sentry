@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django.urls import reverse
-from objectstore_client import TimeToIdle
+from objectstore_client import Permission, TimeToIdle
 from objectstore_client.metadata import format_expiration
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -57,7 +57,13 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
                 ("org", str(organization.id)),
                 ("project", str(project.id)),
             ],
-            authToken=session.mint_token(expiry_seconds=60 * 60),  # 1H
+            # Clients HEAD keys to skip existing uploads, then PUT the rest. Omitting
+            # `permissions` would fall back to the signing key defaults, which also
+            # grant delete.
+            authToken=session.mint_token(
+                permissions=[Permission.OBJECT_READ, Permission.OBJECT_WRITE],
+                expiry_seconds=60 * 60,  # 1H
+            ),
             expirationPolicy=format_expiration(TimeToIdle(timedelta(days=30))),
         )
 
