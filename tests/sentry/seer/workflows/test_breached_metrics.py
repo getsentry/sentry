@@ -260,7 +260,7 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
             workflow_id=1,
         )
 
-        assert rejected == IgnoredMetricBreach("configuration_unavailable")
+        assert rejected == IgnoredMetricBreach("config_disabled")
         assert not SeerWorkflowRun.objects.exists()
         assert not SeerWorkflowRunExecution.objects.exists()
 

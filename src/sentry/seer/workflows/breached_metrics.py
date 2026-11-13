@@ -233,6 +233,7 @@ class IgnoredMetricBreach:
         "unsupported_trigger",
         "invalid_source",
         "feature_disabled",
+        "config_disabled",
         "configuration_unavailable",
         "out_of_scope",
     ]
@@ -344,12 +345,10 @@ class SeerMetricAlertActionHandler(ActionHandler):
 
         try:
             with lock_config(group.organization.id, binding.workflow_config_id) as config:
+                if not config.enabled:
+                    return IgnoredMetricBreach("config_disabled")
                 definition = _definition_for(config)
-                if (
-                    not config.enabled
-                    or definition is None
-                    or not isinstance(definition.trigger, MetricAlertTrigger)
-                ):
+                if definition is None or not isinstance(definition.trigger, MetricAlertTrigger):
                     return IgnoredMetricBreach("configuration_unavailable")
                 if not definition.covers(config, group.project_id, inputs.environment):
                     return IgnoredMetricBreach("out_of_scope")
