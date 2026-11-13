@@ -66,6 +66,8 @@ const ESM_NODE_MODULES = [
   'cbor2',
   'nuqs',
   'color',
+  'marked',
+  '@sentry\\+sqlish',
   '@tanstack\\+(?:react-)?hotkeys@',
 ];
 
@@ -120,6 +122,11 @@ const config: Config.InitialOptions = {
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+
+    // @sentry/sqlish is ESM-only with `exports` that only define `import`
+    // conditions. Jest's CJS resolver can't follow them without explicit mapping.
+    '^@sentry/sqlish/react$': '<rootDir>/node_modules/@sentry/sqlish/dist/react.js',
+    '^@sentry/sqlish$': '<rootDir>/node_modules/@sentry/sqlish/dist/index.js',
   },
 
   transform: {
