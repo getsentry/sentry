@@ -115,6 +115,27 @@ class NotificationTaskTests(TestCase):
             ],
         )
 
+    @patch("sentry.notifications.utils.tasks._send_notification.delay")
+    def test_call_task_with_rpc_user(self, mock_delay: MagicMock) -> None:
+        register()(AnotherDummyNotification)
+
+        rpc_user = serialize_generic_user(self.user)
+        assert rpc_user
+        async_send_notification(AnotherDummyNotification, rpc_user, user=rpc_user)
+        expected_data = rpc_user.dict()
+        expected_data["emails"] = list(expected_data["emails"])
+        expected_data["useremails"] = list(expected_data["useremails"])
+        expected_data["permissions"] = list(expected_data["permissions"])
+        expected_data["last_active"] = expected_data["last_active"].isoformat()
+
+        mock_delay.assert_called_with(
+            "AnotherDummyNotification",
+            [
+                {"type": "lazyobjectrpcuser", "data": expected_data, "key": None},
+                {"type": "lazyobjectrpcuser", "data": expected_data, "key": "user"},
+            ],
+        )
+
     @patch(
         "sentry.testutils.helpers.notifications.AnotherDummyNotification",
     )

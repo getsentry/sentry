@@ -37,8 +37,10 @@ def _serialize_value(v: Any) -> Any:
     return v
 
 
-def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) -> dict[str, Any]:
-    raw_data = arg.dict()  # type: ignore[attr-defined]
+def serialize_lazy_object_user(
+    arg: SimpleLazyObject | RpcUser, key: str | None = None
+) -> dict[str, Any]:
+    raw_data = arg.dict()  # type: ignore[union-attr]
     parsed_data = {k: _serialize_value(v) for k, v in raw_data.items()}
 
     return {
@@ -85,7 +87,7 @@ def async_send_notification(
     for arg in args:
         if isinstance(arg, Model):
             task_args.append(serialize_model(arg))
-        elif isinstance(arg, SimpleLazyObject):
+        elif isinstance(arg, (SimpleLazyObject, RpcUser)):
             task_args.append(serialize_lazy_object_user(arg))
         elif isinstance(arg, AnonymousUser):
             task_args.append(serialize_anonymous_user(arg))
@@ -95,7 +97,7 @@ def async_send_notification(
     for key, val in kwargs.items():
         if isinstance(val, Model):
             task_args.append(serialize_model(val, key))
-        elif isinstance(val, SimpleLazyObject):
+        elif isinstance(val, (SimpleLazyObject, RpcUser)):
             task_args.append(serialize_lazy_object_user(val, key))
         elif isinstance(val, AnonymousUser):
             task_args.append(serialize_anonymous_user(val, key))

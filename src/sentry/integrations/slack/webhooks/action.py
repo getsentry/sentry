@@ -55,6 +55,7 @@ from sentry.integrations.slack.webhooks.actions.seer_agent import (
     SEER_AGENT_WRITE_APPROVAL_ACTIONS,
     handle_seer_agent_write_approval,
 )
+from sentry.integrations.slack.webhooks.actions.seer_credits import handle_seer_request_credits
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
@@ -879,6 +880,17 @@ class SlackActionEndpoint(Endpoint):
                 identity_user=identity_user,
             )
 
+        if action_id == SlackAction.SEER_REQUEST_CREDITS.value:
+            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
+            identity_user = slack_request.get_identity_user()
+            if not identity_user:
+                return self._respond_link_identity(slack_request)
+            return handle_seer_request_credits(
+                slack_request=slack_request,
+                organization_id=routing_data.organization_id,
+                identity_user=identity_user,
+            )
+
         # If a user is just clicking a button link we return a 200
         if action_option in (
             "sentry_docs_link_clicked",
@@ -894,7 +906,6 @@ class SlackActionEndpoint(Endpoint):
             SlackAction.SEER_AUTOFIX_VIEW_PR.value,
             SlackAction.SEER_INVESTIGATION_START.value,
             SlackAction.SEER_VIEW_BILLING.value,
-            SlackAction.SEER_REQUEST_CREDITS.value,
         }:
             return self.respond()
 
