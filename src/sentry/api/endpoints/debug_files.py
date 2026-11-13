@@ -64,6 +64,7 @@ from sentry.models.debugfile import (
     find_existing_dif,
     get_debug_id_from_dif_request,
     get_dif_download_filename,
+    normalize_shader_code_id,
     wasm_legacy_code_id,
     wasm_legacy_debug_id,
 )
@@ -687,11 +688,17 @@ def get_file_info(file: AssembleRequestFile) -> tuple[str, str | None, list[str]
     return name, debug_id, chunks
 
 
-def _cached_dif_lacks_shader_group(file: AssembleRequestFile, detail: object) -> bool:
-    if not file.get("shader_group"):
-        return False
-    data = detail.get("data") if isinstance(detail, Mapping) else None
-    return not (isinstance(data, Mapping) and data.get("shader_group"))
+def _cached_dif_lacks_shader_metadata(file: AssembleRequestFile, detail: object) -> bool:
+    """The request has a shader group or a shader code id that the cached file does not."""
+    cached = detail if isinstance(detail, Mapping) else {}
+    data = cached.get("data")
+    lacks_group = bool(file.get("shader_group")) and not (
+        isinstance(data, Mapping) and data.get("shader_group")
+    )
+    lacks_code_id = normalize_shader_code_id(file.get("code_id")) is not None and not cached.get(
+        "codeId"
+    )
+    return lacks_group or lacks_code_id
 
 
 def batch_assemble(
@@ -712,11 +719,11 @@ def batch_assemble(
         requested_debug_id = _get_requested_debug_id(file)
         cached_debug_id = detail.get("uuid") if isinstance(detail, Mapping) else None
 
-        # A shader group the cached file lacks goes through the database lookup
-        # below, so it can be stored on the already assembled file.
+        # A shader group or code id the cached file lacks goes through the database
+        # lookup below, so it can be stored on the already assembled file.
         if (
             state == ChunkFileState.OK
-            and not _cached_dif_lacks_shader_group(file, detail)
+            and not _cached_dif_lacks_shader_metadata(file, detail)
             and not _is_proguard_reupload_clone_request(
                 file=file,
                 requested_debug_id=requested_debug_id,
@@ -763,13 +770,19 @@ def batch_assemble(
             )
             continue
 
-        shader_group = file.get("shader_group")
-        if (
-            shader_group
-            and debug_file.file_format == "dxil"
-            and not (debug_file.data or {}).get("shader_group")
-        ):
-            debug_file.update(data={**(debug_file.data or {}), "shader_group": shader_group})
+        # A file first uploaded without a manifest entry gets its shader group and
+        # code id when it is uploaded again with one; without the code id the
+        # shader binary lookup can never find it.
+        if debug_file.file_format == "dxil":
+            updates: dict[str, Any] = {}
+            shader_group = file.get("shader_group")
+            if shader_group and not (debug_file.data or {}).get("shader_group"):
+                updates["data"] = {**(debug_file.data or {}), "shader_group": shader_group}
+            code_id = normalize_shader_code_id(file.get("code_id"))
+            if code_id and not debug_file.code_id:
+                updates["code_id"] = code_id
+            if updates:
+                debug_file.update(**updates)
 
         file_response[checksum] = {
             "state": ChunkFileState.OK,

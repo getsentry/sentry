@@ -72,6 +72,15 @@ _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 _DXIL_HEADER = b"DXBC"
 _SHADER_CODE_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 
+
+def normalize_shader_code_id(code_id: str | None) -> str | None:
+    """The `code_id` of a `dxil` file in lower case, or None unless it is 16 hex characters."""
+    if code_id is None:
+        return None
+    code_id = code_id.lower()
+    return code_id if _SHADER_CODE_ID_RE.match(code_id) else None
+
+
 SHADER_GROUP_MAX_LENGTH = 512
 
 
@@ -1048,8 +1057,8 @@ def detect_dif_from_path(
             ]
     elif dif_kind == DifKind.Dxil:
         if code_id is not None:
-            code_id = code_id.lower()
-            if not _SHADER_CODE_ID_RE.match(code_id):
+            code_id = normalize_shader_code_id(code_id)
+            if code_id is None:
                 raise BadDif("Invalid code_id for dxil (expected 16 hex characters)")
         shader_group = (shader_group or "").strip()
         if len(shader_group) > SHADER_GROUP_MAX_LENGTH:

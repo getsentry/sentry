@@ -128,11 +128,16 @@ def test_detect_dxil_rejects_overlong_shader_group(tmp_path: Path) -> None:
 
 
 def _create_shader_dif(
-    project: Project, tmp_path: Path, name: str, data: bytes, shader_group: str | None
+    project: Project,
+    tmp_path: Path,
+    name: str,
+    data: bytes,
+    shader_group: str | None,
+    code_id: str | None = AFTERMATH_HASH,
 ) -> tuple[ProjectDebugFile, bool]:
     path = _write(tmp_path, name, data)
     meta = detect_single_dif_from_path(
-        path, name=name, debug_id=DXC_HASH, code_id=AFTERMATH_HASH, shader_group=shader_group
+        path, name=name, debug_id=DXC_HASH, code_id=code_id, shader_group=shader_group
     )
     session = mock.Mock()
     session.put.return_value = f"difs/{name}"
@@ -201,6 +206,43 @@ def test_assemble_backfills_shader_group_despite_cached_ok_status(
     assert response[first.checksum]["state"] == ChunkFileState.OK
     first.refresh_from_db()
     assert first.data["shader_group"] == "Group A"
+
+
+@pytest.mark.parametrize("cached", [False, True])
+@django_db_all
+def test_assemble_backfills_code_id_for_known_checksum(
+    default_project: Project, tmp_path: Path, cached: bool
+) -> None:
+    first, _ = _create_shader_dif(
+        default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group A", code_id=None
+    )
+    assert first.checksum is not None
+    if cached:
+        set_assemble_status(
+            AssembleTask.DIF,
+            default_project.id,
+            first.checksum,
+            ChunkFileState.OK,
+            serialize(first),
+        )
+
+    response = batch_assemble(
+        default_project,
+        {
+            first.checksum: {
+                "name": "a.dxil",
+                "debug_id": DEBUG_ID,
+                "chunks": [first.checksum],
+                "code_id": AFTERMATH_HASH.upper(),
+                "shader_group": "Group A",
+            }
+        },
+    )
+
+    assert response[first.checksum]["state"] == ChunkFileState.OK
+    first.refresh_from_db()
+    assert first.code_id == AFTERMATH_HASH
+    assert list(ProjectDebugFile.objects.filter(code_id=AFTERMATH_HASH)) == [first]
 
 
 @django_db_all
