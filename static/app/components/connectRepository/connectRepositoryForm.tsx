@@ -14,7 +14,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
   ConnectionModalFrame,
-  LockedProjectField,
+  ProjectTitleSubject,
   getApiErrorMessage,
 } from './connectionModalFrame';
 import {PathMappingList} from './pathMappingList';
@@ -101,22 +101,18 @@ export function ConnectRepositoryForm({
   );
 
   const pathsSection = selectedOption ? (
-    <Container paddingTop="2xl">
-      <PathMappingList
-        key={selectedOption.value}
-        form={form}
-        projectSlug={project.slug}
-        repositoryId={selectedOption.repositoryId}
-        providerKey={selectedOption.providerKey}
-        defaultBranch={selectedOption.defaultBranch ?? undefined}
-        existingMappings={existingMappings}
-      />
-    </Container>
+    <PathMappingList
+      key={selectedOption.value}
+      form={form}
+      projectSlug={project.slug}
+      repositoryId={selectedOption.repositoryId}
+      providerKey={selectedOption.providerKey}
+      defaultBranch={selectedOption.defaultBranch ?? undefined}
+      existingMappings={existingMappings}
+    />
   ) : (
-    <Stack gap="xs" paddingTop="2xl">
-      <Text size="sm" bold>
-        {t('Paths')}
-      </Text>
+    <Stack gap="md">
+      <Text bold>{t('Paths')}</Text>
       <PathsPlaceholder />
     </Stack>
   );
@@ -152,7 +148,8 @@ export function ConnectRepositoryForm({
             !codeMappingsError &&
             !hasExactDuplicate(pathMappings, existingMappings);
 
-          const alerts = (
+          // Render nothing when there is no alert so the body keeps its spacing.
+          const alerts = (codeMappingsError || saveMutation.isError) && (
             <Stack gap="xs">
               {codeMappingsError && (
                 <Alert.Container>
@@ -175,13 +172,13 @@ export function ConnectRepositoryForm({
               Body={Body}
               Footer={Footer}
               closeModal={closeModal}
-              title={tct('Connect a repository to [project]', {project: project.slug})}
+              title={tct('Link a repository to [project]', {
+                project: <ProjectTitleSubject project={project} />,
+              })}
               intro={intro}
               alerts={alerts}
-              leftLabel={t('Project')}
-              leftField={<LockedProjectField project={project} />}
-              rightLabel={t('Repository')}
-              rightField={repoField}
+              fieldLabel={t('Repository')}
+              field={repoField}
               pathsSection={pathsSection}
               canSave={canSave}
               isSaving={saveMutation.isPending}

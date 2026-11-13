@@ -145,9 +145,10 @@ describe('ConnectRepositoryModal', () => {
   it('renders initial modal state', async () => {
     renderModal();
     expect(
-      screen.getByText(`Connect a repository to ${project.slug}`)
+      screen.getByRole('heading', {name: `Link a repository to ${project.slug}`})
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: /project/i})).toBeDisabled();
+    // The project is named in the title, so there is no locked project field.
+    expect(screen.queryByRole('textbox', {name: /project/i})).not.toBeInTheDocument();
     expect(
       await screen.findByText('Select a repository first to configure code paths')
     ).toBeInTheDocument();
@@ -564,11 +565,12 @@ describe('ConnectRepositoryModal', () => {
 
       renderEditModal();
 
-      expect(screen.getByText('Edit code mappings')).toBeInTheDocument();
-      // Both selects are disabled in edit mode.
-      const [projectSelect, repoSelect] = screen.getAllByRole('textbox');
-      expect(projectSelect).toBeDisabled();
-      expect(repoSelect).toBeDisabled();
+      expect(
+        screen.getByRole('heading', {name: `Edit code mappings for ${project.slug}`})
+      ).toBeInTheDocument();
+      // The project is named in the title; the repository is shown locked.
+      expect(screen.queryByRole('textbox', {name: 'Project'})).not.toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Repository'})).toBeDisabled();
 
       // Seeded row becomes visible after the query resolves.
       expect(await screen.findByText('src/')).toBeInTheDocument();
@@ -1152,10 +1154,12 @@ describe('ConnectRepositoryModal', () => {
         renderRepoLockedConnect();
 
         expect(
-          await screen.findByText('Connect a project to getsentry/sentry')
+          await screen.findByRole('heading', {name: 'Link a project to getsentry/sentry'})
         ).toBeInTheDocument();
-        // Repository field is locked (disabled).
-        expect(screen.getByRole('textbox', {name: /repository/i})).toBeDisabled();
+        // The repository is named in the title, so there is no locked repository field.
+        expect(
+          screen.queryByRole('textbox', {name: /repository/i})
+        ).not.toBeInTheDocument();
         // Paths placeholder until a project is chosen.
         expect(
           await screen.findByText('Select a project first to configure code paths')
@@ -1264,13 +1268,17 @@ describe('ConnectRepositoryModal', () => {
         });
       });
 
-      it('locks both repository and project fields and shows seeded paths', async () => {
+      it('names the repository in the title, locks the project field, and shows seeded paths', async () => {
         renderRepoLockedEdit();
 
-        // Both selects are locked in edit mode.
-        const [repoSelect, projectSelect] = screen.getAllByRole('textbox');
-        expect(repoSelect).toBeDisabled();
-        expect(projectSelect).toBeDisabled();
+        expect(
+          screen.getByRole('heading', {name: 'Edit code mappings for getsentry/sentry'})
+        ).toBeInTheDocument();
+        // The repository is named in the title; the project is shown locked.
+        expect(
+          screen.queryByRole('textbox', {name: 'Repository'})
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('textbox', {name: 'Project'})).toBeDisabled();
 
         // Seeded row appears; Save enabled once paths load.
         expect(await screen.findByText('src/')).toBeInTheDocument();

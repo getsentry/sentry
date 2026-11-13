@@ -1,13 +1,13 @@
-import {Fragment, type ReactNode, useMemo} from 'react';
+import {type ReactNode, useMemo} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,6 +16,8 @@ import {
   ConnectionModalFrame,
   LockedProjectField,
   LockedRepoField,
+  ProjectTitleSubject,
+  RepoTitleSubject,
   getApiErrorMessage,
 } from './connectionModalFrame';
 import {DEFAULT_BRANCH} from './normalization';
@@ -36,8 +38,8 @@ export type EditFormProps = ModalRenderProps & {
   providerKey: string | null;
   repoName: string;
   repositoryId: string;
-  // When 'repo', the repo field is on the left and project on the right.
-  // Defaults to 'project' (project on the left, repo on the right).
+  // The side the modal was opened from: it is named in the title and the
+  // other side is shown as a locked field. Defaults to 'project'.
   lockedSide?: 'project' | 'repo';
 };
 
@@ -46,12 +48,11 @@ export type EditFormProps = ModalRenderProps & {
 interface EditRepositoryFormBodyProps extends Omit<EditFormProps, 'CloseButton'> {
   allMappings: RepositoryProjectPathConfig[];
   defaultBranch: string | null;
+  field: ReactNode;
+  fieldLabel: string;
   invalidateQueries: () => Promise<unknown[]>;
-  leftField: ReactNode;
-  leftLabel: string;
-  rightField: ReactNode;
-  rightLabel: string;
   seededMappings: RepositoryProjectPathConfig[];
+  title: ReactNode;
 }
 
 function EditRepositoryFormBody({
@@ -67,10 +68,9 @@ function EditRepositoryFormBody({
   seededMappings,
   defaultBranch,
   invalidateQueries,
-  leftLabel,
-  leftField,
-  rightLabel,
-  rightField,
+  title,
+  fieldLabel,
+  field,
 }: EditRepositoryFormBodyProps) {
   const organization = useOrganization();
 
@@ -118,14 +118,10 @@ function EditRepositoryFormBody({
             (pathMappings.length > 0 || seededMappings.length > 0) &&
             !hasExactDuplicate(pathMappings, existingMappings, seededById);
 
-          const alerts = (
-            <Fragment>
-              {editMutation.isError && (
-                <Alert.Container>
-                  <Alert variant="danger">{getApiErrorMessage(editMutation.error)}</Alert>
-                </Alert.Container>
-              )}
-            </Fragment>
+          const alerts = editMutation.isError && (
+            <Alert.Container>
+              <Alert variant="danger">{getApiErrorMessage(editMutation.error)}</Alert>
+            </Alert.Container>
           );
 
           return (
@@ -134,26 +130,22 @@ function EditRepositoryFormBody({
               Body={Body}
               Footer={Footer}
               closeModal={closeModal}
-              title={t('Edit code mappings')}
+              title={title}
               alerts={alerts}
-              leftLabel={leftLabel}
-              leftField={leftField}
-              rightLabel={rightLabel}
-              rightField={rightField}
+              fieldLabel={fieldLabel}
+              field={field}
               pathsSection={
-                <Container paddingTop="2xl">
-                  <PathMappingList
-                    key={repositoryId}
-                    form={form}
-                    allowEmpty
-                    providerKey={providerKey ?? undefined}
-                    defaultBranch={defaultBranch ?? undefined}
-                    existingMappings={existingMappings}
-                    seededById={seededById}
-                    projectSlug={project.slug}
-                    repositoryId={repositoryId}
-                  />
-                </Container>
+                <PathMappingList
+                  key={repositoryId}
+                  form={form}
+                  allowEmpty
+                  providerKey={providerKey ?? undefined}
+                  defaultBranch={defaultBranch ?? undefined}
+                  existingMappings={existingMappings}
+                  seededById={seededById}
+                  projectSlug={project.slug}
+                  repositoryId={repositoryId}
+                />
               }
               canSave={canSave}
               isSaving={editMutation.isPending}
@@ -223,16 +215,24 @@ export function EditRepositoryForm({
 
   const isPending = codeMappingsQuery.isPending || isRepoInfoPending;
 
-  const projectField = <LockedProjectField project={project} />;
-  const repoFieldLocked = (
-    <LockedRepoField repoName={repoName} providerKey={providerKey} />
-  );
-
-  // lockedSide determines field order only; both are always locked in edit mode.
-  const [leftLabel, leftField, rightLabel, rightField] =
+  // Both sides are locked in edit mode. The side the modal was opened from is
+  // named in the title; the other side is shown as a locked field.
+  const {title, fieldLabel, field} =
     lockedSide === 'repo'
-      ? [t('Repository'), repoFieldLocked, t('Project'), projectField]
-      : [t('Project'), projectField, t('Repository'), repoFieldLocked];
+      ? {
+          title: tct('Edit code mappings for [subject]', {
+            subject: <RepoTitleSubject repoName={repoName} providerKey={providerKey} />,
+          }),
+          fieldLabel: t('Project'),
+          field: <LockedProjectField project={project} />,
+        }
+      : {
+          title: tct('Edit code mappings for [subject]', {
+            subject: <ProjectTitleSubject project={project} />,
+          }),
+          fieldLabel: t('Repository'),
+          field: <LockedRepoField repoName={repoName} providerKey={providerKey} />,
+        };
 
   if (codeMappingsQuery.isError) {
     return (
@@ -241,16 +241,14 @@ export function EditRepositoryForm({
         Body={Body}
         Footer={Footer}
         closeModal={closeModal}
-        title={t('Edit code mappings')}
+        title={title}
         alerts={
           <Alert.Container>
             <Alert variant="danger">{t('Failed to load path mappings.')}</Alert>
           </Alert.Container>
         }
-        leftLabel={leftLabel}
-        leftField={leftField}
-        rightLabel={rightLabel}
-        rightField={rightField}
+        fieldLabel={fieldLabel}
+        field={field}
         pathsSection={null}
         canSave={false}
         isSaving={false}
@@ -266,12 +264,10 @@ export function EditRepositoryForm({
         Body={Body}
         Footer={Footer}
         closeModal={closeModal}
-        title={t('Edit code mappings')}
+        title={title}
         alerts={null}
-        leftLabel={leftLabel}
-        leftField={leftField}
-        rightLabel={rightLabel}
-        rightField={rightField}
+        fieldLabel={fieldLabel}
+        field={field}
         pathsSection={
           <Flex justify="center" padding="2xl">
             <LoadingIndicator mini />
@@ -300,10 +296,9 @@ export function EditRepositoryForm({
       seededMappings={seededMappings}
       defaultBranch={repoDefaultBranch}
       invalidateQueries={() => invalidateQueries(project)}
-      leftLabel={leftLabel}
-      leftField={leftField}
-      rightLabel={rightLabel}
-      rightField={rightField}
+      title={title}
+      fieldLabel={fieldLabel}
+      field={field}
     />
   );
 }

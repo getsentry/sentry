@@ -252,11 +252,11 @@ describe('ConnectedRepositoriesPanel', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
 
-    // Both fields are locked in edit mode.
-    expect(await screen.findByText('Edit code mappings')).toBeInTheDocument();
-    const [projectSelect, repoSelect] = screen.getAllByRole('textbox');
-    expect(projectSelect).toBeDisabled();
-    expect(repoSelect).toBeDisabled();
+    // The project is named in the title; the repository is shown locked.
+    expect(
+      await screen.findByRole('heading', {name: `Edit code mappings for ${project.slug}`})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Repository'})).toBeDisabled();
 
     // Seeded row from the server is rendered and Save is enabled.
     expect(await screen.findByText('src/')).toBeInTheDocument();
@@ -376,7 +376,7 @@ describe('ConnectedRepositoriesPanel', () => {
     );
 
     expect(
-      await screen.findByText(`Connect a repository to ${project.slug}`)
+      await screen.findByRole('heading', {name: `Link a repository to ${project.slug}`})
     ).toBeInTheDocument();
   });
 

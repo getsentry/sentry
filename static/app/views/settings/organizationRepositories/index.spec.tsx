@@ -569,7 +569,7 @@ describe('OrganizationRepositories', () => {
       await userEvent.click(await screen.findByRole('button', {name: 'Connect project'}));
 
       expect(
-        await screen.findByText('Connect a project to getsentry/sentry')
+        await screen.findByRole('heading', {name: 'Link a project to getsentry/sentry'})
       ).toBeInTheDocument();
     });
 
@@ -615,7 +615,9 @@ describe('OrganizationRepositories', () => {
       await userEvent.click(chip);
 
       expect(
-        await screen.findByRole('heading', {name: 'Edit code mappings'})
+        await screen.findByRole('heading', {
+          name: 'Edit code mappings for getsentry/sentry',
+        })
       ).toBeInTheDocument();
     });
   });

@@ -1,10 +1,9 @@
 import {Fragment, type ReactNode} from 'react';
-import {IconArrow} from '@sentry/icons/arrow';
 import {IconLock} from '@sentry/icons/lock';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -93,9 +92,49 @@ export function LockedRepoField({
   );
 }
 
+/**
+ * The project or repository named in the modal title, with its avatar or
+ * SCM logo. The title row centers it against the surrounding text.
+ */
+function ModalTitleSubject({icon, name}: {icon: ReactNode; name: string}) {
+  return (
+    <Flex as="span" align="center" gap="sm" minWidth={0}>
+      <Flex as="span" flexShrink={0}>
+        {icon}
+      </Flex>
+      {name}
+    </Flex>
+  );
+}
+
+export function ProjectTitleSubject({project}: {project: Project}) {
+  return (
+    <ModalTitleSubject
+      icon={<ProjectAvatar project={project} size={18} />}
+      name={project.slug}
+    />
+  );
+}
+
+export function RepoTitleSubject({
+  repoName,
+  providerKey,
+}: {
+  providerKey: string | null | undefined;
+  repoName: string;
+}) {
+  return (
+    <ModalTitleSubject
+      icon={getIntegrationIcon(providerKey ?? undefined)}
+      name={repoName}
+    />
+  );
+}
+
 // Presentational shell shared by all modes — owns no queries or mutations.
-// Callers provide both field slots so the frame stays layout-only and can
-// support any locked/selectable combination without internal branching.
+// The locked side of the connection is named in the title, so the body only
+// renders the one field the user can still change (or a locked reference to
+// it in edit mode).
 export interface ConnectionModalFrameProps {
   Body: ModalRenderProps['Body'];
   Footer: ModalRenderProps['Footer'];
@@ -103,15 +142,11 @@ export interface ConnectionModalFrameProps {
   alerts: ReactNode;
   canSave: boolean;
   closeModal: () => void;
+  field: ReactNode;
+  fieldLabel: string;
   isSaving: boolean;
-  // Left column of the connection grid (label + field).
-  leftField: ReactNode;
-  leftLabel: string;
   onSave: () => void;
   pathsSection: ReactNode;
-  // Right column of the connection grid (label + field).
-  rightField: ReactNode;
-  rightLabel: string;
   title: ReactNode;
   intro?: ReactNode;
 }
@@ -124,10 +159,8 @@ export function ConnectionModalFrame({
   title,
   intro,
   alerts,
-  leftLabel,
-  leftField,
-  rightLabel,
-  rightField,
+  fieldLabel,
+  field,
   pathsSection,
   canSave,
   isSaving,
@@ -136,24 +169,21 @@ export function ConnectionModalFrame({
   return (
     <Fragment>
       <Header closeButton>
-        <Heading as="h4">{title}</Heading>
+        <Heading as="h4">
+          {/* One centered row so the icon lines up with the title text. */}
+          <Flex as="span" align="center" gap="md" wrap="wrap">
+            {title}
+          </Flex>
+        </Heading>
       </Header>
       <Body>
-        <Stack gap="xl">
-          {alerts}
+        <Stack gap="2xl">
           {intro}
-          <Grid columns="1fr auto 1fr" gap="xs md" align="center">
-            <Text size="sm" bold>
-              {leftLabel}
-            </Text>
-            <Container />
-            <Text size="sm" bold>
-              {rightLabel}
-            </Text>
-            <Container minWidth={0}>{leftField}</Container>
-            <IconArrow direction="right" />
-            <Container minWidth={0}>{rightField}</Container>
-          </Grid>
+          {alerts}
+          <Stack gap="md">
+            <Text bold>{fieldLabel}</Text>
+            <Container minWidth={0}>{field}</Container>
+          </Stack>
           {pathsSection}
         </Stack>
       </Body>

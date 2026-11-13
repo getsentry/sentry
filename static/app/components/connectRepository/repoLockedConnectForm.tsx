@@ -16,7 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
   ConnectionModalFrame,
-  LockedRepoField,
+  RepoTitleSubject,
   getApiErrorMessage,
 } from './connectionModalFrame';
 import {DEFAULT_BRANCH} from './normalization';
@@ -139,7 +139,9 @@ export function RepoLockedConnectForm({
     },
   });
 
-  const title = tct('Connect a project to [repo]', {repo: repoName});
+  const title = tct('Link a project to [repo]', {
+    repo: <RepoTitleSubject repoName={repoName} providerKey={providerKey} />,
+  });
 
   const intro = (
     <Text as="p">
@@ -191,7 +193,10 @@ export function RepoLockedConnectForm({
             Boolean(integrationId) &&
             !isBranchPending;
 
-          const alerts = (
+          // Render nothing when there is no alert so the body keeps its spacing.
+          const alerts = (isProjectsError ||
+            codeMappingsError ||
+            saveMutation.isError) && (
             <Stack gap="xs">
               {isProjectsError && (
                 <Alert.Container>
@@ -219,26 +224,22 @@ export function RepoLockedConnectForm({
           // the initial row has been seeded into the form.
           const pathsSection =
             selectedProject && (isBranchPending || pathMappings.length === 0) ? (
-              <Flex justify="center" paddingTop="2xl">
+              <Flex justify="center">
                 <LoadingIndicator mini />
               </Flex>
             ) : selectedProject ? (
-              <Container paddingTop="2xl">
-                <PathMappingList
-                  key={selectedProject.id}
-                  form={form}
-                  projectSlug={selectedProject.slug}
-                  repositoryId={repositoryId}
-                  providerKey={providerKey ?? undefined}
-                  defaultBranch={defaultBranch ?? undefined}
-                  existingMappings={existingMappings}
-                />
-              </Container>
+              <PathMappingList
+                key={selectedProject.id}
+                form={form}
+                projectSlug={selectedProject.slug}
+                repositoryId={repositoryId}
+                providerKey={providerKey ?? undefined}
+                defaultBranch={defaultBranch ?? undefined}
+                existingMappings={existingMappings}
+              />
             ) : (
-              <Stack gap="xs" paddingTop="2xl">
-                <Text size="sm" bold>
-                  {t('Paths')}
-                </Text>
+              <Stack gap="md">
+                <Text bold>{t('Paths')}</Text>
                 <PathsPlaceholder />
               </Stack>
             );
@@ -252,12 +253,8 @@ export function RepoLockedConnectForm({
               title={title}
               intro={intro}
               alerts={alerts}
-              leftLabel={t('Repository')}
-              leftField={
-                <LockedRepoField repoName={repoName} providerKey={providerKey} />
-              }
-              rightLabel={t('Project')}
-              rightField={projectField}
+              fieldLabel={t('Project')}
+              field={projectField}
               pathsSection={pathsSection}
               canSave={canSave}
               isSaving={saveMutation.isPending}
