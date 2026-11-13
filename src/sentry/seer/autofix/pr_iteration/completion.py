@@ -33,7 +33,11 @@ from sentry.seer.autofix.pr_iteration.iterations import (
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import failed_tool_calls
-from sentry.seer.autofix.pr_iteration.out_of_credits import StrandedAction, mark_out_of_credits
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    StrandedAction,
+    get_out_of_credits,
+    mark_out_of_credits,
+)
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
@@ -237,10 +241,12 @@ def iteration_completed_webhook_fields(
             errored_repos=errored_repos,
         )
         return None
-    if not is_single_run(state) and any(
-        state.repo_pr_states[repo].pr_creation_error_code == "out_of_credits"
-        for repo in errored_repos
-    ):
+    out_of_credits = (
+        None
+        if is_synced
+        else get_out_of_credits(run_id=state.run_id, organization_id=organization.id)
+    )
+    if out_of_credits is not None and out_of_credits.stranded_action is not None:
         # The drain redoes the push after a top-up; its completion emits the webhook.
         log_ctx.info(
             "autofix.pr_iteration.iteration_outcome",
