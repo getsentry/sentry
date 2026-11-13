@@ -13,7 +13,7 @@ from typing import Any, NotRequired, TypedDict, cast
 
 from django.db import router, transaction
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
@@ -22,13 +22,15 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import Serializer, serialize
-from sentry.api.utils import generate_locality_url
+from sentry.api.utils import generate_locality_url, to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
@@ -59,6 +61,14 @@ from sentry.utils.security.orgauthtoken_token import SystemUrlPrefixMissingExcep
 logger = logging.getLogger(__name__)
 
 DEFAULT_TOKEN_LIFETIME = timedelta(days=30)
+
+TOKEN_ID = OpenApiParameter(
+    name="token_id",
+    description="The ID of the service account token.",
+    required=True,
+    type=str,
+    location="path",
+)
 
 
 class ServiceAccountTokenResponse(TypedDict):
@@ -278,3 +288,65 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
         )
         response["token"] = token_str
         return Response(response, status=201)
+
+
+@control_silo_endpoint
+class OrganizationServiceAccountTokenDetailsEndpoint(ServiceAccountTokenEndpointBase):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
+
+    @extend_schema(
+        operation_id="Revoke a Service Account Token",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, SERVICE_ACCOUNT_ID, TOKEN_ID],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def delete(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+        service_account: ServiceAccount,
+        token_id: str,
+    ) -> Response:
+        """Revoke a token. It stops working once the revocation reaches the org's cell."""
+        # Set only once the save succeeds, so a flush failure is told apart from a failed save.
+        revoked: ServiceAccountToken | None = None
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccountToken))):
+                try:
+                    token = ServiceAccountToken.objects.select_for_update().get(
+                        id=to_valid_int_id("token_id", token_id, raise_404=True),
+                        service_account=service_account,
+                        organization_id=organization.id,
+                        date_deactivated__isnull=True,
+                    )
+                except ServiceAccountToken.DoesNotExist:
+                    raise ResourceDoesNotExist
+                token.date_deactivated = timezone.now()
+                token.save()
+                revoked = token
+        except (OutboxDatabaseError, OutboxFlushError):
+            if revoked is None:
+                raise
+            # The revocation and its outbox are committed, so it reaches the cell when the
+            # outbox drains.
+            logger.warning(
+                "service_accounts.token.outbox-flush-failure",
+                extra={"token_id": revoked.id, "organization_id": organization.id},
+                exc_info=True,
+            )
+
+        self.create_audit_entry(
+            request,
+            organization=organization,
+            target_object=token.id,
+            event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"),
+            data=_audit_log_data(service_account, token),
+        )
+        return Response(status=204)
