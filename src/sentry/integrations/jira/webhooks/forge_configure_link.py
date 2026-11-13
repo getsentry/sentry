@@ -23,10 +23,6 @@ from sentry.shared_integrations.exceptions import ApiError
 
 from .base import JiraWebhookBase
 
-# The Forge config page (`jira:adminPage` with `useAsConfig`). It lives in Jira's admin
-# settings, but Atlassian doesn't document that access to it is enforced, so the caller
-# must also be a Jira admin.
-FORGE_CONFIGURE_MODULE_KEY = "sentry-configure"
 # Sent for invocations with a user in session when the endpoint enables `appUserToken`.
 FORGE_USER_TOKEN_HEADER = "X-Forge-OAuth-User"
 
@@ -53,9 +49,10 @@ class JiraForgeConfigureLinkWebhook(JiraWebhookBase):
         except ForgeInvocationTokenError:
             return self.respond({"detail": "Invalid Forge invocation token"}, status=401)
 
-        # Other modules are visible to every Jira user, so only the config page may mint links.
-        if invocation.module_key != FORGE_CONFIGURE_MODULE_KEY or invocation.principal is None:
-            return self.respond({"detail": "Not the Forge config page"}, status=403)
+        # Only a Jira admin may link the site, whichever page they call from. Atlassian
+        # doesn't document that its admin pages enforce that, so it's checked below.
+        if invocation.principal is None:
+            return self.respond({"detail": "No user in session"}, status=403)
 
         cloud_id = jira_cloud_id(invocation)
         if cloud_id is None:

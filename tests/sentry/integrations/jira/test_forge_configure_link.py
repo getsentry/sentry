@@ -13,7 +13,6 @@ from sentry.integrations.jira.forge.invocation_token import (
     ForgeSigningKeysUnavailableError,
 )
 from sentry.integrations.jira.views import SALT
-from sentry.integrations.jira.webhooks.forge_configure_link import FORGE_CONFIGURE_MODULE_KEY
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import unsign
@@ -41,7 +40,7 @@ def _invocation(**overrides: str | None) -> ForgeInvocation:
         "api_base_url": f"https://api.atlassian.com/ex/jira/{CLOUD_ID}",
         "cloud_id": CLOUD_ID,
         "environment_type": "DEVELOPMENT",
-        "module_key": FORGE_CONFIGURE_MODULE_KEY,
+        "module_key": "sentry-configure",
         "principal": "admin-account-id",
     }
     fields.update(overrides)
@@ -106,9 +105,7 @@ class JiraForgeConfigureLinkWebhookTest(APITestCase):
         assert self.client.post(self.url, headers=self.headers).status_code == 503
         mock_verify.side_effect = None
 
-        # Only the admin config page, invoked by a user, may mint links.
-        mock_verify.return_value = _invocation(module_key="issue-panel")
-        assert self.client.post(self.url, headers=self.headers).status_code == 403
+        # Only a user can be checked for Jira admin.
         mock_verify.return_value = _invocation(principal=None)
         assert self.client.post(self.url, headers=self.headers).status_code == 403
 
