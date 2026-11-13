@@ -1007,7 +1007,6 @@ def _repository_lookup_failure(
         providers=supported_providers,
         status=ObjectStatus.ACTIVE,
         org_integration_status=ObjectStatus.ACTIVE,
-        limit=1,
     )
     if not integrations:
         return RepositoryDefinitionFailure(failure_reason="no_scm_integration")
