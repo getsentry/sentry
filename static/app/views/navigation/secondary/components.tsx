@@ -35,6 +35,7 @@ import {IconClose} from '@sentry/icons/close';
 import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
@@ -456,9 +457,7 @@ function SectionTitle(props: SectionTitleProps) {
 
   if (props.canCollapse) {
     return (
-      // A Flex, not a Grid: the button label inherits the display but not the
-      // grid columns, so a Grid would stack the title and chevron.
-      <Flex justify="between" align="center" gap="sm" width="100%" padding="sm lg">
+      <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
         {p => (
           <Button
             {...p}
@@ -478,7 +477,7 @@ function SectionTitle(props: SectionTitleProps) {
             </Flex>
           </Button>
         )}
-      </Flex>
+      </Grid>
     );
   }
 
@@ -1113,6 +1112,18 @@ const GrabHandleAnimation = styled('div')`
   }
 `;
 
+interface SecondaryNavigationFeatureBadgeProps {
+  type: FeatureBadgeProps['type'];
+}
+
+/**
+ * Feature badges can sit before the link label, so a tooltip on the right
+ * would cover the label of the hovered link.
+ */
+function SecondaryNavigationFeatureBadge({type}: SecondaryNavigationFeatureBadgeProps) {
+  return <FeatureBadge type={type} tooltipProps={{position: 'top'}} />;
+}
+
 interface SecondaryNavigationIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
   ref?: React.Ref<HTMLDivElement>;
@@ -1353,4 +1364,5 @@ export const SecondaryNavigation = {
   ReorderableList: SecondaryNavigationReorderableList,
   ReorderableLink: SecondaryNavigationReorderableLink,
   Indicator: SecondaryNavigationIndicator,
+  FeatureBadge: SecondaryNavigationFeatureBadge,
 };
