@@ -1,3 +1,4 @@
+import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import type {SentryRouteObject} from 'sentry/router/types';
 
@@ -40,6 +41,8 @@ import {SentryApps} from 'admin/views/sentryApps';
 import {SentryEmployees} from 'admin/views/sentryEmployees';
 import {UserDetails} from 'admin/views/userDetails';
 import {Users} from 'admin/views/users';
+
+const WorkflowEngine = make(() => import('admin/views/workflowEngine'));
 
 function buildRoutes() {
   const routes: SentryRouteObject = {
@@ -293,6 +296,10 @@ function buildRoutes() {
             component: SeerAdminPage,
           },
         ],
+      },
+      {
+        path: 'workflow-engine/',
+        component: WorkflowEngine,
       },
       {
         path: '*',

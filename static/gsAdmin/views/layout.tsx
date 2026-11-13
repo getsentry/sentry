@@ -152,6 +152,7 @@ export function Layout() {
                   <NavLink to="/_admin/policies/">Policies</NavLink>
                   <NavLink to="/_admin/options/">Options</NavLink>
                   <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
+                  <NavLink to="/_admin/workflow-engine/">Workflow Engine</NavLink>
                   <NavLink to="/_admin/instance-level-oauth">
                     Instance level OAuth Clients
                   </NavLink>
