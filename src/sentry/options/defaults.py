@@ -3746,6 +3746,18 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Maximum number of seconds a newly started flusher process waits for the
+# consumer to set the drift (the message-time clock) before its first flush.
+# Without a drift, a fresh flusher flushes with wall-clock time, so its first
+# cycles flush every segment that became due during an outage or rebalance,
+# back to back at the max-flush-segments cap. If no message arrives in time
+# (e.g. idle topic), flushing starts without drift. 0 disables waiting.
+register(
+    "spans.buffer.flusher.wait-for-drift-seconds",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # TTL (in seconds) for the per-segment lock acquired at flush time to
 # prevent two flushers from producing the same segment concurrently.
 # The lock is explicitly released by the flusher after the segment payloads
