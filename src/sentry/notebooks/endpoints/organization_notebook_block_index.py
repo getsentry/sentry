@@ -15,7 +15,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookEndpoint,
-    is_producer_writer,
     require_notebook_writer,
     service_error,
 )
@@ -25,6 +24,7 @@ from sentry.notebooks.endpoints.serializers import (
 )
 from sentry.notebooks.endpoints.validators import BlockCreateValidator
 from sentry.notebooks.models import Notebook
+from sentry.service_accounts.auth import is_service_account_auth
 
 
 @extend_schema(tags=["Investigations"])
@@ -80,7 +80,7 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
         and a block with a newer revision returns 409. Returns 201 with the new block, or 200
         when a producer's write updates one; fetch investigation details for the updated
         notebook version. Requires a user or service account; key and revision require a
-        service account or Seer agent token. Requires the
+        service account. Requires the
         organizations:investigations feature and open organization membership.
         """
         actor_id = require_notebook_writer(request, notebook)
@@ -89,7 +89,7 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
             context={
                 "notebook": notebook,
                 "user_id": actor_id,
-                "producer_writer": is_producer_writer(request),
+                "producer_writer": is_service_account_auth(request.auth),
             },
         )
         if not validator.is_valid():

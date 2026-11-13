@@ -150,7 +150,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
     key = serializers.CharField(
         max_length=128,
         required=False,
-        help_text="The producer's stable key for the block. Writing the same key again updates the block, even if a user edited or deleted it. Send with revision instead of investigationVersion. Only service accounts and Seer agents can send it.",
+        help_text="The producer's stable key for the block. Writing the same key again updates the block, even if a user edited or deleted it. Send with revision instead of investigationVersion. Only service accounts can send it.",
     )
     revision = serializers.IntegerField(
         min_value=1,
@@ -201,7 +201,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
                 {"investigation_version": "Send investigationVersion, or key and revision."}
             )
         elif not self.context["producer_writer"]:
-            raise PermissionDenied("Only service accounts and Seer agents write by key.")
+            raise PermissionDenied("Only service accounts write by key.")
         elif attrs["kind"] != NotebookBlockKind.TEXT:
             raise serializers.ValidationError({"kind": "A producer's block must be text."})
         elif not attrs.get("content"):

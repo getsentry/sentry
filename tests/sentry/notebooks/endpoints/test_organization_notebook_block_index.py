@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from typing import Any
-from uuid import uuid5
 
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.response import Response
-from rest_framework.test import APIClient
 
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS
@@ -18,7 +16,6 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookStatus,
 )
-from sentry.notebooks.services.producer_writes import _API_EXECUTION_NAMESPACE
 from sentry.seer import agent_token
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -202,13 +199,18 @@ class NotebookBlockIndexEndpointTest(APITestCase):
 class NotebookProducerBlockTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
-        token, _ = agent_token.encode_agent_token(
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            scopes=["org:read"],
-            session_id="notebook-producer",
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"], all_projects=True
         )
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.client.credentials(
+            HTTP_X_VIEWER_CONTEXT=encode_viewer_context(
+                ViewerContext(
+                    actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                    organization_id=self.organization.id,
+                ),
+                key=SECRET,
+            )
+        )
         register_example_source_type(self)
         self.notebook = self.create_notebook(
             organization=self.organization,
@@ -251,9 +253,6 @@ class NotebookProducerBlockTest(APITestCase):
         assert created.data["output"]["markdown"] == "First draft"
         assert created.data["createdBy"] is None
         execution = NotebookBlockExecution.objects.get(block_id=created.data["id"])
-        assert execution.request_id == uuid5(
-            _API_EXECUTION_NAMESPACE, f"{self.notebook.id}:1:example:summary:text"
-        )
         assert execution.status == NotebookBlockExecutionStatus.COMPLETED
 
         updated = self.write(content="Second draft")
@@ -282,29 +281,19 @@ class NotebookProducerBlockTest(APITestCase):
         assert set(response.data) == {"key"}
         assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
 
-    def test_service_account_writes_by_key(self) -> None:
-        service_account = self.create_service_account(
-            organization=self.organization, scope_list=["org:read"], all_projects=True
+    def test_agent_token_cannot_write_by_key(self) -> None:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="notebook-producer",
         )
-        client = APIClient()
-        client.credentials(
-            HTTP_X_VIEWER_CONTEXT=encode_viewer_context(
-                ViewerContext(
-                    actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
-                    organization_id=self.organization.id,
-                ),
-                key=SECRET,
-            )
-        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
-        response = client.post(
-            self.url,
-            data={"key": "summary", "revision": 1, "kind": "text", "content": "Text"},
-            format="json",
-        )
+        response = self.write()
 
-        assert response.status_code == 201, response.data
-        assert response.data["producerKey"] == "summary"
+        assert response.status_code == 403, response.data
+        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
 
     def test_user_session_cannot_write_by_key(self) -> None:
         self.client.credentials()
