@@ -41,6 +41,13 @@ class ProducerSourceType:
     def notebook_source(self, resolved: ResolvedProducerSource) -> dict[str, Any]:
         return {**resolved.source, "type": self.name}
 
+    # Producer blocks are stored under the producer's name, so callers send and get bare keys.
+    def block_key(self, key: str) -> str:
+        return f"{self.producer}:{key}"
+
+    def caller_block_key(self, stored_key: str) -> str:
+        return stored_key.removeprefix(f"{self.producer}:")
+
 
 PRODUCER_SOURCE_TYPES: dict[str, ProducerSourceType] = {}
 
