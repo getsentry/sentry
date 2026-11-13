@@ -95,8 +95,6 @@ describe('NewWidgetBuilder', () => {
     });
   });
 
-  afterEach(() => PageFiltersStore.reset());
-
   it('renders', async () => {
     render(
       <PageFiltersContainer skipLoadLastUsed skipInitializeUrlParams disablePersistence>

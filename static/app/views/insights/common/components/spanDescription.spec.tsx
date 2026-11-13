@@ -20,10 +20,6 @@ describe('DatabaseSpanDescription', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   const organization = OrganizationFixture();
 
   const project = ProjectFixture();

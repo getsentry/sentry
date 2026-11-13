@@ -14,10 +14,6 @@ describe('useAttributeBreakdowns', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('sends the case setting when ignoring case', async () => {
     const statsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/stats/',

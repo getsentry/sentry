@@ -74,10 +74,6 @@ describe('MCP Transport Distribution', () => {
     });
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('counts standard transports together and preserves custom names in the existing chart', async () => {
     const requests = mockTransportRequests();
 

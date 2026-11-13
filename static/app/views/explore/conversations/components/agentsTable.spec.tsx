@@ -53,7 +53,6 @@ describe('AgentsTable', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });

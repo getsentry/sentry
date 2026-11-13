@@ -34,10 +34,6 @@ describe('DroppedDataLLMContext', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('registers nothing without the feature flag', () => {
     const {result} = renderHookWithProviders(() => useLLMContext(), {
       organization: OrganizationFixture({features: []}),

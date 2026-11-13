@@ -22,10 +22,6 @@ describe('useExploreTimeseries', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('keeps transformations aligned after sorting and deduplicating axes', async () => {
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
@@ -242,6 +238,10 @@ describe('useExploreTimeseries', () => {
 });
 
 describe('shouldTriggerHighAccuracy', () => {
+  beforeEach(() => {
+    PageFiltersStore.reset();
+  });
+
   it.each([
     {sampleCount: 0, expected: true},
     {sampleCount: 4, expected: false},

@@ -56,7 +56,6 @@ describe('useLogsSearchQueryBuilderProps', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     jest.clearAllMocks();
   });
 

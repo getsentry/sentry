@@ -129,10 +129,6 @@ describe('MetricsSamplesExportModalButton', () => {
     });
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('asks the server export for the accuracy the table escalates to', async () => {
     const queryInfo = await submitExport();
 
