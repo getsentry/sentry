@@ -4,7 +4,8 @@ import {Text} from '@sentry/scraps/text';
 import {tct} from 'sentry/locale';
 
 function parseWholeNumber(value: string) {
-  return Math.max(0, parseInt(value.replace(/\D/g, ''), 10) || 0);
+  const digits = value.replace(/\D/g, '');
+  return digits ? parseInt(digits, 10) : null;
 }
 
 /**
@@ -16,13 +17,17 @@ export function DollarInput({
   onChange,
   ...inputProps
 }: {
-  cents: number;
+  cents: number | null;
   creditPriceCents: number;
-  onChange: (cents: number) => void;
+  /**
+   * Called with null when the input is cleared.
+   */
+  onChange: (cents: number | null) => void;
   'aria-describedby'?: string;
   'aria-invalid'?: boolean;
   'aria-label'?: string;
   id?: string;
+  placeholder?: string;
 }) {
   return (
     <InputGroup>
@@ -32,16 +37,21 @@ export function DollarInput({
       <InputGroup.Input
         {...inputProps}
         inputMode="numeric"
-        value={(cents / 100).toLocaleString()}
-        onChange={e => onChange(parseWholeNumber(e.target.value) * 100)}
+        value={cents === null ? '' : (cents / 100).toLocaleString()}
+        onChange={e => {
+          const dollars = parseWholeNumber(e.target.value);
+          onChange(dollars === null ? null : dollars * 100);
+        }}
       />
-      <InputGroup.TrailingItems disablePointerEvents>
-        <Text variant="muted">
-          {tct('[credits] credits', {
-            credits: Math.floor(cents / creditPriceCents).toLocaleString(),
-          })}
-        </Text>
-      </InputGroup.TrailingItems>
+      {cents !== null && (
+        <InputGroup.TrailingItems disablePointerEvents>
+          <Text variant="muted">
+            {tct('[credits] credits', {
+              credits: Math.floor(cents / creditPriceCents).toLocaleString(),
+            })}
+          </Text>
+        </InputGroup.TrailingItems>
+      )}
     </InputGroup>
   );
 }

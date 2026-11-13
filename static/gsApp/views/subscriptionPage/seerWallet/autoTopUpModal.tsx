@@ -39,6 +39,11 @@ interface AutoTopUpModalOptions {
 
 type AutoTopUpModalProps = AutoTopUpModalOptions & ModalRenderProps;
 
+type AutoTopUpSettings = Pick<
+  SeerWalletAutoTopUp,
+  'enabled' | 'thresholdCredits' | 'topUpCredits' | 'dailySpendCapCents'
+>;
+
 type AutoTopUpFormProps = AutoTopUpModalProps & {
   autoTopUp: SeerWalletAutoTopUp;
   balanceCredits: number;
@@ -137,12 +142,14 @@ function AutoTopUpForm({
   const [amountCents, setAmountCents] = useState(initialAmount.cents);
   const [isCustomAmount, setIsCustomAmount] = useState(initialAmount.isCustom);
   const [dailyLimitCents, setDailyLimitCents] = useState(
-    toWholeDollarCents(autoTopUp.dailySpendCapCents)
+    autoTopUp.dailySpendCapCents === null
+      ? null
+      : toWholeDollarCents(autoTopUp.dailySpendCapCents)
   );
   const [error, setError] = useState<string | null>(null);
 
   const {mutate: save, isPending} = useMutation({
-    mutationFn: (data: SeerWalletAutoTopUp) =>
+    mutationFn: (data: AutoTopUpSettings) =>
       fetchMutation<SeerWalletAutoTopUp>({
         url: getApiUrl('/customers/$organizationIdOrSlug/seer-wallet/auto-top-up/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -298,7 +305,7 @@ function AutoTopUpForm({
                   aria-label={t('Custom credit amount')}
                   cents={amountCents}
                   creditPriceCents={creditPriceCents}
-                  onChange={setAmountCents}
+                  onChange={cents => setAmountCents(cents ?? 0)}
                 />
               )}
             </Stack>

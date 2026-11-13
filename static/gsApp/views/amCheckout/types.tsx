@@ -25,7 +25,10 @@ type BaseCheckoutData = {
  * goes through.
  */
 export type SeerAutoReload = {
-  dailyLimitCents: number;
+  /**
+   * Null means no daily usage limit.
+   */
+  dailyLimitCents: number | null;
   enabled: boolean;
   reloadAmountCents: number;
 };

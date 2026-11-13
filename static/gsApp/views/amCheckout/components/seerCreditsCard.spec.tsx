@@ -24,6 +24,7 @@ describe('SeerCreditsCard', () => {
     features: ['seer-billing', 'token-billed-seer-enabled'],
   });
   const autoTopUpUrl = `/customers/${organization.slug}/seer-wallet/auto-top-up/`;
+  const walletUrl = `/customers/${organization.slug}/seer-wallet/`;
 
   function mockAutoTopUp(body: Partial<SeerWalletAutoTopUp> = {}) {
     return MockApiClient.addMockResponse({
@@ -32,9 +33,24 @@ describe('SeerCreditsCard', () => {
       body: {
         enabled: false,
         thresholdCredits: 500,
-        topUpCredits: 1000,
-        dailySpendCapCents: 7500,
+        topUpCredits: 1500,
+        dailySpendCapCents: null,
+        minTopUpCredits: 1500,
         ...body,
+      },
+    });
+  }
+
+  function mockWalletBalance(balance: number) {
+    MockApiClient.addMockResponse({
+      url: walletUrl,
+      method: 'GET',
+      body: {
+        balance,
+        percentUsed: 0,
+        included: {total: 500, remaining: Math.min(balance, 500), resetsAt: null},
+        purchased: {total: 0, remaining: Math.max(balance - 500, 0), expiresAt: null},
+        creditPriceCents: 1,
       },
     });
   }
@@ -84,11 +100,8 @@ describe('SeerCreditsCard', () => {
       url: `/organizations/${organization.slug}/teams/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/seer-wallet/`,
-      method: 'GET',
-      body: {},
-    });
+    // Above the 500-credit threshold, so turning auto-reload on bills nothing yet.
+    mockWalletBalance(1200);
   });
 
   it('shows included credits in place of the Seer add-ons', async () => {
@@ -145,8 +158,20 @@ describe('SeerCreditsCard', () => {
     expect(screen.getByLabelText('Daily usage limit')).toHaveValue('20');
   });
 
-  it('does not offer auto-reload when its saved settings fail to load', async () => {
-    MockApiClient.addMockResponse({url: autoTopUpUrl, method: 'GET', statusCode: 500});
+  it('keeps no daily usage limit from the saved settings', async () => {
+    mockAutoTopUp({enabled: true, topUpCredits: 5000, dailySpendCapCents: null});
+    renderCheckout();
+
+    expect(await screen.findByLabelText('Daily usage limit')).toHaveValue('');
+    expect(screen.getByPlaceholderText('No limit')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['saved settings', autoTopUpUrl],
+    ['balance', walletUrl],
+  ])('does not offer auto-reload when its %s fail to load', async (_, url) => {
+    mockAutoTopUp();
+    MockApiClient.addMockResponse({url, method: 'GET', statusCode: 500});
     renderCheckout();
 
     expect(
@@ -158,8 +183,8 @@ describe('SeerCreditsCard', () => {
     );
   });
 
-  it('blocks checkout until the auto-reload amounts are valid', async () => {
-    mockAutoTopUp();
+  it('blocks checkout until the reload amount meets the minimum', async () => {
+    mockAutoTopUp({minTopUpCredits: 2000});
     renderCheckout();
 
     await userEvent.click(await screen.findByRole('checkbox', {name: 'Auto-reload'}));
@@ -167,7 +192,7 @@ describe('SeerCreditsCard', () => {
     await userEvent.clear(reloadAmount);
     await userEvent.type(reloadAmount, '10');
 
-    expect(screen.getByText('Must be at least $15.')).toBeInTheDocument();
+    expect(screen.getByText('Must be at least $20.')).toBeInTheDocument();
     expect(reloadAmount).toHaveAttribute('aria-invalid', 'true');
     expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toHaveAttribute(
       'aria-disabled',
@@ -175,11 +200,29 @@ describe('SeerCreditsCard', () => {
     );
 
     await userEvent.type(reloadAmount, '0');
-    expect(screen.queryByText('Must be at least $15.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Must be at least $20.')).not.toBeInTheDocument();
+
+    // A $0 daily usage limit is allowed, with a warning.
+    const dailyLimit = screen.getByLabelText('Daily usage limit');
+    await userEvent.clear(dailyLimit);
+    await userEvent.type(dailyLimit, '0');
+    expect(screen.getByText('A $0 limit turns off all Seer usage.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Confirm and pay'})).not.toHaveAttribute(
       'aria-disabled',
       'true'
     );
+  });
+
+  it('shows the first reload charged today when the balance is at the threshold', async () => {
+    mockAutoTopUp();
+    mockWalletBalance(500);
+    renderCheckout();
+
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Auto-reload'}));
+
+    expect(
+      await screen.findByTestId('summary-item-seer-auto-reload-charge')
+    ).toHaveTextContent('Seer auto-reload, charged today$25 + tax');
   });
 
   it('saves auto-reload after the plan change goes through', async () => {
@@ -197,6 +240,8 @@ describe('SeerCreditsCard', () => {
     renderCheckout();
 
     await userEvent.click(await screen.findByRole('checkbox', {name: 'Auto-reload'}));
+    // An empty daily usage limit means no limit.
+    await userEvent.clear(screen.getByLabelText('Daily usage limit'));
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm and pay'}));
 
     await waitFor(() =>
@@ -204,7 +249,7 @@ describe('SeerCreditsCard', () => {
         autoTopUpUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {enabled: true, topUpCredits: 2500, dailySpendCapCents: 100_00},
+          data: {enabled: true, topUpCredits: 2500, dailySpendCapCents: null},
         })
       )
     );
@@ -219,6 +264,8 @@ describe('SeerCreditsCard', () => {
 
   it('leaves auto-reload alone when it was not changed', async () => {
     mockAutoTopUp({enabled: true, topUpCredits: 5000, dailySpendCapCents: 20_00});
+    // Auto-reload is already on, so a low balance isn't billed by checkout.
+    mockWalletBalance(0);
     const checkoutRequest = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/`,
       method: 'PUT',
@@ -232,6 +279,9 @@ describe('SeerCreditsCard', () => {
     renderCheckout();
 
     expect(await screen.findByRole('checkbox', {name: 'Auto-reload'})).toBeChecked();
+    expect(
+      screen.queryByTestId('summary-item-seer-auto-reload-charge')
+    ).not.toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm and pay'}));
 
     await waitFor(() => expect(checkoutRequest).toHaveBeenCalled());

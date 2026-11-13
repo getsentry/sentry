@@ -26,22 +26,14 @@ import {
 export const SEER_INCLUDED_CREDITS_CENTS = 500;
 
 /**
- * One Seer credit costs a cent. Checkout can't read this from the wallet,
- * which only exists once the organization is billed on credits.
+ * One Seer credit costs a cent, as getsentry's SEER_CREDIT_RATE_CPE sets.
  */
 export const SEER_CREDIT_PRICE_CENTS = 1;
 
-const DEFAULT_RELOAD_AMOUNT_CENTS = 2500;
-const DEFAULT_DAILY_LIMIT_CENTS = 10000;
-
-// The auto top-up endpoint rejects anything lower.
-const MIN_RELOAD_AMOUNT_CENTS = 1500;
-const MIN_DAILY_LIMIT_CENTS = 100;
-
 const DEFAULT_SEER_AUTO_RELOAD: SeerAutoReload = {
   enabled: false,
-  reloadAmountCents: DEFAULT_RELOAD_AMOUNT_CENTS,
-  dailyLimitCents: DEFAULT_DAILY_LIMIT_CENTS,
+  reloadAmountCents: 2500,
+  dailyLimitCents: 10000,
 };
 
 /**
@@ -56,25 +48,16 @@ export function seerCreditsFromCents(cents: number) {
   return Math.floor(cents / SEER_CREDIT_PRICE_CENTS);
 }
 
-function getSavedSeerAutoReload(
-  autoTopUp: SeerWalletAutoTopUp | undefined
-): SeerAutoReload {
+function getSavedSeerAutoReload(autoTopUp: SeerWalletAutoTopUp): SeerAutoReload {
   // Turning on starts from the defaults rather than amounts the customer never
   // picked.
-  if (!autoTopUp?.enabled) {
+  if (!autoTopUp.enabled) {
     return DEFAULT_SEER_AUTO_RELOAD;
   }
   return {
     enabled: true,
-    // Both can be null on a config that was never saved.
-    reloadAmountCents:
-      autoTopUp.topUpCredits > 0
-        ? autoTopUp.topUpCredits * SEER_CREDIT_PRICE_CENTS
-        : DEFAULT_RELOAD_AMOUNT_CENTS,
-    dailyLimitCents:
-      autoTopUp.dailySpendCapCents > 0
-        ? autoTopUp.dailySpendCapCents
-        : DEFAULT_DAILY_LIMIT_CENTS,
+    reloadAmountCents: autoTopUp.topUpCredits * SEER_CREDIT_PRICE_CENTS,
+    dailyLimitCents: autoTopUp.dailySpendCapCents,
   };
 }
 
@@ -94,69 +77,76 @@ export function useSeerAutoReload({
     ...seerWalletAutoTopUpOptions(organization),
     enabled: isTokenBilled,
   });
+  // The balance decides whether turning auto-reload on bills a reload right away.
+  const balanceQuery = useQuery({
+    ...seerWalletBalanceOptions(organization),
+    enabled: isTokenBilled,
+  });
+  const isError = autoTopUpQuery.isError || balanceQuery.isError;
+  const refetch = () => {
+    autoTopUpQuery.refetch();
+    balanceQuery.refetch();
+  };
 
-  if (!isTokenBilled || autoTopUpQuery.isError) {
-    // Without the saved settings, checkout can't tell what it would overwrite,
-    // so it offers no auto-reload.
+  const autoTopUp = autoTopUpQuery.data;
+  const wallet = balanceQuery.data;
+  if (!isTokenBilled || isError || !autoTopUp || !wallet) {
+    // Without the saved settings, checkout can't tell what it would overwrite, and
+    // without the balance, what turning auto-reload on charges. So it offers no
+    // auto-reload.
     return {
       isTokenBilled,
-      isPending: false,
-      isError: autoTopUpQuery.isError,
-      refetch: autoTopUpQuery.refetch,
+      isPending: isTokenBilled && !isError,
+      isError,
+      refetch,
       seerAutoReload: null,
       seerAutoReloadToSave: undefined,
+      reloadAmountError: null,
+      reloadChargedTodayCents: 0,
     };
   }
 
-  const savedSeerAutoReload = getSavedSeerAutoReload(autoTopUpQuery.data);
+  const savedSeerAutoReload = getSavedSeerAutoReload(autoTopUp);
   const pickedSeerAutoReload = formData.seerAutoReload;
+  const seerAutoReload = pickedSeerAutoReload ?? savedSeerAutoReload;
   const hasChanges =
     pickedSeerAutoReload !== undefined &&
     // Amounts edited while auto-reload is off aren't worth saving.
     (pickedSeerAutoReload.enabled || savedSeerAutoReload.enabled) &&
     !isEqual(pickedSeerAutoReload, savedSeerAutoReload);
+  const seerAutoReloadToSave = hasChanges ? pickedSeerAutoReload : undefined;
+
+  const minReloadAmountCents = autoTopUp.minTopUpCredits * SEER_CREDIT_PRICE_CENTS;
+  const reloadAmountError =
+    seerAutoReload.enabled && seerAutoReload.reloadAmountCents < minReloadAmountCents
+      ? tct('Must be at least [amount].', {
+          amount: displayPrice({cents: minReloadAmountCents}),
+        })
+      : null;
+
+  // Turning auto-reload on bills a reload at once, apart from the plan, when the
+  // balance is at or below the threshold. Without purchased credits it always is,
+  // since the included credits are the threshold.
+  const isReloadChargedToday =
+    seerAutoReloadToSave?.enabled === true &&
+    !autoTopUp.enabled &&
+    wallet.balance <= autoTopUp.thresholdCredits;
 
   return {
     isTokenBilled,
-    isPending: autoTopUpQuery.isPending,
+    isPending: false,
     isError: false,
-    refetch: autoTopUpQuery.refetch,
-    seerAutoReload: pickedSeerAutoReload ?? savedSeerAutoReload,
+    refetch,
+    seerAutoReload,
     /**
      * What checkout should save to the Seer wallet, if anything changed.
      */
-    seerAutoReloadToSave: hasChanges ? pickedSeerAutoReload : undefined,
+    seerAutoReloadToSave,
+    reloadAmountError,
+    reloadChargedTodayCents: isReloadChargedToday
+      ? seerAutoReloadToSave.reloadAmountCents
+      : 0,
   };
-}
-
-export function getSeerReloadAmountError(seerAutoReload: SeerAutoReload) {
-  if (
-    seerAutoReload.enabled &&
-    seerAutoReload.reloadAmountCents < MIN_RELOAD_AMOUNT_CENTS
-  ) {
-    return tct('Must be at least [amount].', {
-      amount: displayPrice({cents: MIN_RELOAD_AMOUNT_CENTS}),
-    });
-  }
-  return null;
-}
-
-export function getSeerDailyLimitError(seerAutoReload: SeerAutoReload) {
-  if (seerAutoReload.enabled && seerAutoReload.dailyLimitCents < MIN_DAILY_LIMIT_CENTS) {
-    return tct('Must be at least [amount].', {
-      amount: displayPrice({cents: MIN_DAILY_LIMIT_CENTS}),
-    });
-  }
-  return null;
-}
-
-export function getSeerAutoReloadError(seerAutoReload: SeerAutoReload | null) {
-  if (!seerAutoReload) {
-    return null;
-  }
-  const error =
-    getSeerReloadAmountError(seerAutoReload) ?? getSeerDailyLimitError(seerAutoReload);
-  return error ? t('Fix your Seer auto-reload settings to continue.') : null;
 }
 
 /**

@@ -44,7 +44,6 @@ import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/data
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import {CartDiff} from 'getsentry/views/amCheckout/components/cartDiff';
 import {
-  getSeerAutoReloadError,
   SEER_INCLUDED_CREDITS_CENTS,
   seerCreditsFromCents,
   useSeerAutoReload,
@@ -136,6 +135,10 @@ interface TotalSummaryProps extends BaseSummaryProps {
   previewDataLoading: boolean;
   renewalDate: Date | null;
   seerAutoReload: SeerAutoReload | null;
+  /**
+   * The first Seer auto-reload, billed separately as soon as checkout turns it on.
+   */
+  seerReloadChargedTodayCents: number;
   subscription: Subscription;
 }
 
@@ -548,6 +551,7 @@ function TotalSummary({
   formData,
   organization,
   seerAutoReload,
+  seerReloadChargedTodayCents,
   subscription,
 }: TotalSummaryProps) {
   const isMigratingPartner = hasPartnerMigrationFeature(organization);
@@ -640,7 +644,7 @@ function TotalSummary({
 
   const buttonText = isMigratingPartner
     ? t('Schedule changes')
-    : isDueToday && billedTotal > 0
+    : (isDueToday && billedTotal > 0) || seerReloadChargedTodayCents > 0
       ? t('Confirm and pay')
       : t('Confirm');
 
@@ -767,6 +771,23 @@ function TotalSummary({
             </Flex>
           )}
         </Flex>
+        {seerReloadChargedTodayCents > 0 && (
+          <Flex
+            justify="between"
+            align="center"
+            gap="xs"
+            data-test-id="summary-item-seer-auto-reload-charge"
+          >
+            <Text size="md" textWrap="pretty">
+              {t('Seer auto-reload, charged today')}
+            </Text>
+            <Text align="right">
+              {tct('[price] + tax', {
+                price: displayPrice({cents: seerReloadChargedTodayCents}),
+              })}
+            </Text>
+          </Flex>
+        )}
         {seerAutoReload?.enabled && (
           <Text size="sm" variant="muted">
             {tct('[planName] plan and Seer auto-reload are billed separately', {
@@ -833,11 +854,16 @@ export function Cart({
     () => utils.hasBillingInfo(billingDetails, subscription, true),
     [billingDetails, subscription]
   );
-  const {isTokenBilled, seerAutoReload, seerAutoReloadToSave} = useSeerAutoReload({
-    formData,
-    organization,
-  });
-  const seerAutoReloadError = getSeerAutoReloadError(seerAutoReload);
+  const {
+    isTokenBilled,
+    seerAutoReload,
+    seerAutoReloadToSave,
+    reloadAmountError,
+    reloadChargedTodayCents,
+  } = useSeerAutoReload({formData, organization});
+  const seerAutoReloadError = reloadAmountError
+    ? t('Fix your Seer auto-reload settings to continue.')
+    : null;
   const shouldDisableCheckout = useMemo(
     () => !hasCompleteBillingInfo || subscription.isSuspended,
     [hasCompleteBillingInfo, subscription.isSuspended]
@@ -1048,6 +1074,7 @@ export function Cart({
         onSubmit={handleConfirmAndPay}
         organization={organization}
         seerAutoReload={seerAutoReload}
+        seerReloadChargedTodayCents={reloadChargedTodayCents}
         subscription={subscription}
       />
     </Stack>

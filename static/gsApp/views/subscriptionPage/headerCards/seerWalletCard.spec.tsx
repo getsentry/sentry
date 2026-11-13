@@ -30,6 +30,7 @@ function AutoTopUpFixture(
     thresholdCredits: 500,
     topUpCredits: 1000,
     dailySpendCapCents: 7500,
+    minTopUpCredits: 1500,
     ...params,
   };
 }

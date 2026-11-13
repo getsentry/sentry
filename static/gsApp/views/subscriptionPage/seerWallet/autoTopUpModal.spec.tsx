@@ -13,8 +13,16 @@ function AutoTopUpFixture(
     thresholdCredits: 500,
     topUpCredits: 1000,
     dailySpendCapCents: 7500,
+    minTopUpCredits: 1500,
     ...params,
   };
+}
+
+function savedSettings({
+  minTopUpCredits: _minTopUpCredits,
+  ...settings
+}: SeerWalletAutoTopUp) {
+  return settings;
 }
 
 describe('openSeerAutoTopUpModal', () => {
@@ -123,7 +131,7 @@ describe('openSeerAutoTopUpModal', () => {
     expect(saveMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
-        data: AutoTopUpFixture({enabled: true, topUpCredits: 1500}),
+        data: savedSettings(AutoTopUpFixture({enabled: true, topUpCredits: 1500})),
       })
     );
   });

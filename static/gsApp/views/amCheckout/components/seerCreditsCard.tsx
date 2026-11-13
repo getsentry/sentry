@@ -12,8 +12,6 @@ import type {Organization} from 'sentry/types/organization';
 
 import {displayPrice} from 'getsentry/utils/billing';
 import {
-  getSeerDailyLimitError,
-  getSeerReloadAmountError,
   SEER_CREDIT_PRICE_CENTS,
   SEER_INCLUDED_CREDITS_CENTS,
   useSeerAutoReload,
@@ -43,10 +41,11 @@ export function SeerCreditsCard({
   onUpdate,
   organization,
 }: SeerCreditsCardProps) {
-  const {isPending, isError, refetch, seerAutoReload} = useSeerAutoReload({
-    formData,
-    organization,
-  });
+  const {isPending, isError, refetch, reloadAmountError, seerAutoReload} =
+    useSeerAutoReload({
+      formData,
+      organization,
+    });
 
   const updateAutoReload = (data: Partial<SeerAutoReload>) => {
     if (seerAutoReload) {
@@ -130,15 +129,27 @@ export function SeerCreditsCard({
               <AutoReloadRow
                 id="seer-auto-reload-amount"
                 label={t('Reload amount')}
-                error={getSeerReloadAmountError(seerAutoReload)}
+                message={
+                  reloadAmountError
+                    ? {text: reloadAmountError, variant: 'danger'}
+                    : undefined
+                }
                 cents={seerAutoReload.reloadAmountCents}
-                onChange={reloadAmountCents => updateAutoReload({reloadAmountCents})}
+                onChange={cents => updateAutoReload({reloadAmountCents: cents ?? 0})}
               />
               <Container borderTop="primary">
                 <AutoReloadRow
                   id="seer-auto-reload-daily-limit"
                   label={t('Daily usage limit')}
-                  error={getSeerDailyLimitError(seerAutoReload)}
+                  placeholder={t('No limit')}
+                  message={
+                    seerAutoReload.dailyLimitCents === 0
+                      ? {
+                          text: t('A $0 limit turns off all Seer usage.'),
+                          variant: 'warning',
+                        }
+                      : undefined
+                  }
                   cents={seerAutoReload.dailyLimitCents}
                   onChange={dailyLimitCents => updateAutoReload({dailyLimitCents})}
                 />
@@ -159,17 +170,22 @@ export function SeerCreditsCard({
 function AutoReloadRow({
   id,
   label,
-  error,
+  message,
+  placeholder,
   cents,
   onChange,
 }: {
-  cents: number;
-  error: ReactNode;
+  cents: number | null;
   id: string;
   label: string;
-  onChange: (cents: number) => void;
+  onChange: (cents: number | null) => void;
+  /**
+   * A danger message marks the input invalid; a warning doesn't.
+   */
+  message?: {text: ReactNode; variant: 'danger' | 'warning'};
+  placeholder?: string;
 }) {
-  const errorId = `${id}-error`;
+  const messageId = `${id}-message`;
   return (
     <Flex justify="between" align="start" gap="lg" padding="md lg">
       <Flex align="center" minHeight="36px">
@@ -183,12 +199,13 @@ function AutoReloadRow({
           cents={cents}
           creditPriceCents={SEER_CREDIT_PRICE_CENTS}
           onChange={onChange}
-          aria-invalid={!!error}
-          aria-describedby={error ? errorId : undefined}
+          placeholder={placeholder}
+          aria-invalid={message?.variant === 'danger'}
+          aria-describedby={message ? messageId : undefined}
         />
-        {error && (
-          <Text id={errorId} size="sm" variant="danger" align="right">
-            {error}
+        {message && (
+          <Text id={messageId} size="sm" variant={message.variant} align="right">
+            {message.text}
           </Text>
         )}
       </Stack>
