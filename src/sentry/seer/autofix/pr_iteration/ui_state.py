@@ -14,15 +14,13 @@ from typing import Any
 
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import get_current_step
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     get_blocked_pr_iteration_permissions,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits import OUT_OF_CREDITS_EXTRA
 from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA, pause_reason_from_marker
 from sentry.seer.autofix.pr_iteration.queue import peek_queued_autofix_feedback
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
-from sentry.seer.autofix.pr_iteration.stranded_action import STRANDED_ACTION_EXTRA
-from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import GithubAppPermissionsWarning
 from sentry.seer.models.run import SeerRun
 
@@ -57,17 +55,11 @@ def get_pr_iteration_state_fields(
     # Off the fetched row, not is_pr_iteration_paused: polled every second.
     paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
     pause_reason = pause_reason_from_marker(paused_marker)
-    # Seer ran out of credits mid-iteration, or Sentry still owes its push or retry turn.
-    has_stranded_action = run is not None and get_run_extra(run, STRANDED_ACTION_EXTRA) is not None
-    seer_ran_out_of_credits = (
-        state.status == "error"
-        and state.failure_reason == "out_of_credits"
-        and get_current_step(state)[0] == AutofixStep.PR_ITERATION
-    )
+    out_of_credits = run is not None and get_run_extra(run, OUT_OF_CREDITS_EXTRA) is not None
     return {
         "queued_feedback": queued_feedback,
         "pr_iteration_paused": paused_marker is not None,
         "pr_iteration_pause_reason": pause_reason.value if pause_reason else None,
-        "pr_iteration_out_of_credits": seer_ran_out_of_credits or has_stranded_action,
+        "pr_iteration_out_of_credits": out_of_credits,
         "warnings": warnings,
     }
