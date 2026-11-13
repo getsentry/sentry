@@ -569,8 +569,8 @@ export const OverviewCard = memo(function OverviewCardComponent({
   const inView = useIsInView(cardRef);
   useEffect(() => {
     if (inView && scmWindows) {
-      for (const window of scmWindows) {
-        requestScmWindow(window);
+      for (const scmWindow of scmWindows) {
+        requestScmWindow(scmWindow);
       }
     }
   }, [inView, scmWindows, requestScmWindow]);

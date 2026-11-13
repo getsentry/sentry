@@ -20,6 +20,7 @@ from sentry.apidocs.hooks import (
     _fix_nullable_enums,
     custom_postprocessing_hook,
     custom_preprocessing_hook,
+    relative_paths_hook,
 )
 from sentry.apidocs.utils import SentryApiBuildError
 from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
@@ -94,6 +95,35 @@ class EndpointServersTest(TestCase):
         ]
         # Servers should NOT be applied to non-matching endpoint
         assert "servers" not in processed["paths"]["/api/0/other/endpoint/"]["get"]
+
+
+class RelativePathsHookTest(TestCase):
+    def test_paths_are_relative_to_the_server_path(self) -> None:
+        endpoint_servers = [{"url": "https://{region}.sentry.io"}]
+        result = {
+            "servers": [{"url": "https://{region}.sentry.io/api/0"}],
+            "paths": {
+                "/api/0/seer/models/": {"get": {"servers": endpoint_servers}},
+                "/api/0/organizations/": {"get": {}},
+            },
+        }
+
+        processed = relative_paths_hook(result, None)
+
+        assert processed["paths"] == {
+            "/seer/models/": {"get": {"servers": [{"url": "https://{region}.sentry.io/api/0"}]}},
+            "/organizations/": {"get": {}},
+        }
+        assert endpoint_servers == [{"url": "https://{region}.sentry.io"}]
+
+    def test_rejects_a_path_outside_the_base_path(self) -> None:
+        result = {
+            "servers": [{"url": "https://{region}.sentry.io/api/0"}],
+            "paths": {"/oauth/token/": {}},
+        }
+
+        with pytest.raises(SentryApiBuildError, match="not under the API base path /api/0"):
+            relative_paths_hook(result, None)
 
 
 class PublishStatusFilterTest(TestCase):

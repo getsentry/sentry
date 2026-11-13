@@ -8,10 +8,13 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {AI_AGENTS_GETTING_STARTED_DOCS_LINK} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
 import {Referrer} from './utils/referrers';
 import ConversationsOverviewPage from './overview';
+
+jest.mock('sentry/utils/analytics');
 
 const organization = OrganizationFixture({
   features: ['gen-ai-conversations'],
@@ -109,7 +112,6 @@ describe('ConversationsOverviewPage', () => {
 
   afterEach(() => {
     localStorage.clear();
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -416,16 +418,70 @@ describe('ConversationsOverviewPage', () => {
       'true'
     );
 
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'conversations.onboarding.page-view',
+      expect.anything()
+    );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.table.page-view',
+      expect.objectContaining({tab: 'traces'})
+    );
+
     await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
 
     expect(
       await screen.findByRole('tab', {name: 'Conversations', selected: true})
     ).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.page-view',
+      expect.objectContaining({empty_state: 'no_conversations'})
+    );
     expect(
       screen.queryByRole('combobox', {name: 'Add a search term'})
     ).not.toBeInTheDocument();
     expect(screen.getByText('Agent Runs')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
+  });
+
+  it('tracks a table page view for each tab', async () => {
+    render(<ConversationsOverviewPage />, {organization});
+
+    await waitFor(() =>
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'conversations.table.page-view',
+        expect.objectContaining({tab: 'conversations'})
+      )
+    );
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Traces'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.table.page-view',
+      expect.objectContaining({tab: 'traces'})
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.table.page-view',
+      expect.objectContaining({tab: 'spans'})
+    );
+  });
+
+  it('tracks adding an agent chart to a dashboard', async () => {
+    render(<ConversationsOverviewPage />, {organization});
+
+    const [widgetActions] = await screen.findAllByRole('button', {
+      name: 'Widget actions',
+    });
+    await userEvent.click(widgetActions!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to Dashboard'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.save_as',
+      expect.objectContaining({
+        chart: 'explore-agents-estimated-cost',
+        save_type: 'dashboard',
+      })
+    );
   });
 
   it('does not open a pasted conversation ID on the Traces tab', async () => {
@@ -484,6 +540,10 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.queryByRole('tab', {name: 'Traces'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'LLM Calls'})).not.toBeInTheDocument();
     expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.page-view',
+      expect.objectContaining({empty_state: 'no_agent_spans'})
+    );
   });
 
   it('shows agent data without the project flag or conversation IDs', async () => {

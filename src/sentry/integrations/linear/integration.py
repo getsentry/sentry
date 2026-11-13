@@ -45,13 +45,14 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger(__name__)
 
 DESCRIPTION = """
-Connect your Linear workspace so Seer can read issues, projects, and comments while
-investigating issues — shared across everyone in your organization.
+Connect your Linear workspace so Seer can work with your issues, projects, and comments while
+investigating issues — shared across everyone in your organization. Sentry requests read and
+write access to your Linear workspace.
 """
 
 FEATURES = [
     FeatureDescription(
-        "Give Seer read-only access to your Linear issues, projects, and comments while investigating issues.",
+        "Give Seer read and write access to your Linear issues, projects, and comments while investigating issues.",
         IntegrationFeatures.SEER_CONTEXT,
     ),
 ]
@@ -100,7 +101,7 @@ class LinearIntegration(IntegrationInstallation):
             "configure_integration": {
                 "instructions": [
                     _(
-                        "Seer has read-only access to this Linear workspace. "
+                        "Seer has read and write access to this Linear workspace. "
                         "Reconnect Linear to update its authorization."
                     )
                 ]

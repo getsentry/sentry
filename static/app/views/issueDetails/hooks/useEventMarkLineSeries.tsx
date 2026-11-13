@@ -12,7 +12,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 
-import {useIssueDetailsEventView} from './useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventView} from './issueDetailsEventsQuery';
 
 function SeriesRow({
   color,

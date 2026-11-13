@@ -131,8 +131,8 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in ConditionType],
         help_text=(
-            "The field the condition matches against. Every `dataType` accepts `release` and "
-            "`ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
+            "The field the condition matches against. Every `dataType` accepts `release`, "
+            "`environment` and `ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
             "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
             "`metric_name`. `span` and `all` accept no other types."
         ),
@@ -309,6 +309,23 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
 
         if stored is not None and stored.legacy_filter:
             _validate_legacy_row_change(stored, data_type, conditions)
+
+        if "conditions" in attrs and any(
+            condition["type"] == ConditionType.ENVIRONMENT for condition in conditions
+        ):
+            organization = self.context["project"].organization
+            if not features.has(
+                "organizations:inbound-filters-environment-condition",
+                organization,
+                actor=self.context["request"].user,
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "conditions": (
+                            "The environment condition is not enabled for this organization."
+                        )
+                    }
+                )
 
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))

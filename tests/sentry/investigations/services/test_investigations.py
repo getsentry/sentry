@@ -24,8 +24,8 @@ from sentry.investigations.services.orchestration import (
 )
 from sentry.notebooks.models import Notebook, NotebookProject
 from sentry.notebooks.services.notebooks import (
-    InvestigationConflictError,
-    InvestigationSourceNotFound,
+    NotebookConflictError,
+    NotebookSourceNotFound,
 )
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -65,7 +65,7 @@ class BreachedMetricSourceRefTest(TestCase):
         assert result == resolved
 
     def test_out_of_range_ids_are_treated_as_a_missing_source(self) -> None:
-        with pytest.raises(InvestigationSourceNotFound):
+        with pytest.raises(NotebookSourceNotFound):
             resolve_investigation_source(
                 organization=self.organization,
                 source={
@@ -76,7 +76,7 @@ class BreachedMetricSourceRefTest(TestCase):
             )
 
     def test_non_positive_ids_are_treated_as_a_missing_source(self) -> None:
-        with pytest.raises(InvestigationSourceNotFound):
+        with pytest.raises(NotebookSourceNotFound):
             resolve_investigation_source(
                 organization=self.organization,
                 source={
@@ -228,7 +228,7 @@ class OrchestrationCommandConcurrencyTest(TransactionTestCase):
                     actor_id=self.user.id,
                 )
                 return "accepted"
-            except InvestigationConflictError:
+            except NotebookConflictError:
                 return "conflict"
             finally:
                 close_old_connections()

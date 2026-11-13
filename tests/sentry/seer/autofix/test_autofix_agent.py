@@ -11,6 +11,7 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
 from sentry.analytics.events.autofix_events import AiAutofixSolutionCompletedEvent
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.projectrepository import ProjectRepositorySource
 from sentry.seer.agent.client_models import (
     Artifact,
     MemoryBlock,
@@ -36,10 +37,13 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.autofix.utils import MAX_SEER_REPOS_PER_PROJECT
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -1110,6 +1114,63 @@ class TestBuildRepoPins(TestCase):
         }
 
 
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class TestBuildRepoPinsEventMatchedRepos(TestCase, SnubaTestCase):
+    @patch("sentry.scm.factory.new")
+    def test_pins_repo_matching_the_event_past_the_limit(self, mock_scm_new: MagicMock) -> None:
+        for name in [*(f"filler-{i}" for i in range(MAX_SEER_REPOS_PER_PROJECT + 2)), "billing"]:
+            repo = self.create_repo(
+                project=self.project,
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                external_id=name,
+                name=f"owner/{name}",
+            )
+            project_repo = self.create_project_repository(
+                project=self.project, repository=repo, source=ProjectRepositorySource.AUTO_EVENT
+            )
+        self.create_code_mapping(
+            project=self.project,
+            repo=repo,
+            project_repository=project_repo,
+            stack_root="billing/",
+            source_root="src/billing/",
+        )
+        event = self.store_event(
+            data={
+                "platform": "python",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "stacktrace": {
+                                "frames": [{"filename": "billing/charge.py", "in_app": True}]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+        mock_scm_new.return_value = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": "abc"}},
+        )
+
+        result = _build_repo_pins(event.group, AutofixReferrer.UNKNOWN)
+
+        assert result is not None
+        assert len(result) == MAX_SEER_REPOS_PER_PROJECT
+        assert "owner/billing" in result
+
+
 class TestTriggerCodingAgentHandoff(TestCase):
     """Tests for trigger_coding_agent_handoff function."""
 
@@ -1822,7 +1883,7 @@ class TestSingleRunStartedEvents(TestCase):
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    def test_single_run_skips_started_events(
+    def test_single_run_sends_root_cause_started(
         self,
         mock_feature: MagicMock,
         mock_process_autofix_updates: MagicMock,
@@ -1844,8 +1905,11 @@ class TestSingleRunStartedEvents(TestCase):
         )
 
         assert mock_feature.call_args.args[1].single_run is True
-        mock_broadcast.assert_not_called()
-        mock_process_autofix_updates.assert_not_called()
-        assert not Activity.objects.filter(
+        assert mock_broadcast.call_args.kwargs["event_name"] == "root_cause_started"
+        assert (
+            mock_process_autofix_updates.call_args.kwargs["kwargs"]["event_type"]
+            == SentryAppEventType.SEER_ROOT_CAUSE_STARTED
+        )
+        assert Activity.objects.filter(
             group=group, type=ActivityType.SEER_RCA_STARTED.value
         ).exists()

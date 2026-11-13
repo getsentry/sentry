@@ -3,8 +3,8 @@ import {Fragment, useMemo} from 'react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
@@ -45,6 +45,7 @@ import {
 } from 'sentry/views/explore/metrics/settings';
 import {
   createTraceMetricEventsFilter,
+  getAggregatesMetricsTotalFilter,
   getEquationMetricsTotalFilter,
 } from 'sentry/views/explore/metrics/utils';
 import {
@@ -177,7 +178,8 @@ function Graph({
       (isVisualizeEquation(visualize) && Boolean(visualize.expression.text)),
     query: isVisualizeEquation(visualize)
       ? getEquationMetricsTotalFilter(visualize.expression.text)
-      : createTraceMetricEventsFilter([traceMetric]),
+      : getAggregatesMetricsTotalFilter([aggregate]) ||
+        createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
   const [interval] = useChartInterval();
@@ -297,7 +299,7 @@ function Graph({
         Actions={
           <Fragment>
             {droppedData.layerControl ? (
-              <DroppedDataLayerControl {...droppedData.layerControl} />
+              <ChartLayersControl {...droppedData.layerControl} />
             ) : null}
             {actions}
           </Fragment>

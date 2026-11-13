@@ -14,6 +14,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
+import {getPaginationProps} from 'sentry/utils/pagination';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
@@ -119,7 +120,7 @@ export function BilledSeats({
       </Table>
       {billedSeats && billedSeats.length > 0 && (
         <Container padding="0 lg lg" borderTop="primary">
-          <Pagination pageLinks={data?.headers.Link ?? null} />
+          <Pagination {...getPaginationProps(data?.headers.Link ?? null)} />
         </Container>
       )}
     </Fragment>

@@ -1,124 +1,93 @@
-import {createStore} from 'reflux';
+import {createStore} from 'zustand/vanilla';
 
-import {Client} from 'sentry/api';
 import {clearQueryCache} from 'sentry/appQueryClient';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-import type {StrictStoreDefinition} from './types';
-
-type State = {
-  loading: boolean;
-  projects: Project[];
-};
-
-/**
- * Attributes that need typing but aren't part of the external interface,
- */
-type InternalDefinition = {
-  api: Client;
-  removeTeamFromProject(teamSlug: string, project: Project): void;
-};
-
-interface ProjectsStoreDefinition
-  extends InternalDefinition, StrictStoreDefinition<State> {
-  getById(id?: string): Project | undefined;
-  getBySlug(slug?: string): Project | undefined;
-  isLoading(): boolean;
-  loadInitialData(projects: Project[]): void;
-  onAddTeam(team: Team, projectSlug: string): void;
-  onChangeSlug(prevSlug: string, newSlug: string): void;
-  onCreateSuccess(project: Project): void;
-  onDeleteProject(projectSlug: string): void;
-  onDeleteTeam(slug: string): void;
-  onRemoveTeam(teamSlug: string, projectSlug: string): void;
-  onUpdateSuccess(data: Partial<Project>): void;
-  reset(): void;
+interface ProjectsState {
+  readonly loading: boolean;
+  readonly projects: Project[];
 }
 
-const storeConfig: ProjectsStoreDefinition = {
-  api: new Client(),
-  state: {
-    projects: [],
-    loading: true,
+const initialState: ProjectsState = {
+  projects: [],
+  loading: true,
+};
+
+const store = createStore<ProjectsState>()(() => initialState);
+
+function sortBySlug(projects: readonly Project[]): Project[] {
+  return projects.toSorted((a, b) => a.slug.localeCompare(b.slug));
+}
+
+function withoutTeam(project: Project, teamSlug: string): Project {
+  return {...project, teams: project.teams.filter(({slug}) => slug !== teamSlug)};
+}
+
+export const ProjectsStore = {
+  // State is only written through the methods below.
+  getState: store.getState,
+  getInitialState: store.getInitialState,
+  subscribe: store.subscribe,
+
+  /**
+   * Same as reset(). Kept for the tests that call it.
+   */
+  init(): void {
+    ProjectsStore.reset();
   },
 
-  init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
-    this.reset();
+  reset(): void {
+    store.setState(initialState, true);
   },
 
-  reset() {
-    this.state = {
-      projects: [],
-      loading: true,
-    };
+  loadInitialData(items: readonly Project[]): void {
+    store.setState({projects: sortBySlug(items), loading: false}, true);
   },
 
-  loadInitialData(items: Project[]) {
-    this.state = {
-      projects: items.toSorted((a: any, b: any) => a.slug.localeCompare(b.slug)),
-      loading: false,
-    };
-
-    this.trigger(new Set(items.map(x => x.id)));
-  },
-
-  onChangeSlug(prevSlug: string, newSlug: string) {
-    const prevProject = this.getBySlug(prevSlug);
+  onChangeSlug(prevSlug: string, newSlug: string): void {
+    const prevProject = ProjectsStore.getBySlug(prevSlug);
 
     if (!prevProject) {
       return;
     }
 
     const newProject = {...prevProject, slug: newSlug};
-    const newProjects = this.state.projects
-      .map(project => (project.slug === prevSlug ? newProject : project))
-      .toSorted((a: any, b: any) => a.slug.localeCompare(b.slug));
-    this.state = {...this.state, projects: newProjects};
-
-    this.trigger(new Set([prevProject.id]));
+    store.setState(state => ({
+      projects: sortBySlug(
+        state.projects.map(project => (project.slug === prevSlug ? newProject : project))
+      ),
+    }));
     clearQueryCache();
   },
 
-  onCreateSuccess(project: Project) {
-    const newProjects = this.state.projects
-      .concat([project])
-      .sort((a, b) => a.slug.localeCompare(b.slug));
-    this.state = {...this.state, projects: newProjects};
-
+  onCreateSuccess(project: Project): void {
+    store.setState(state => ({projects: sortBySlug([...state.projects, project])}));
     clearQueryCache();
-
-    this.trigger(new Set([project.id]));
   },
 
-  onUpdateSuccess(data: Partial<Project>) {
-    const project = this.getById(data.id);
+  onUpdateSuccess(data: Partial<Project> & Pick<Project, 'id'>): void {
+    const project = ProjectsStore.getById(data.id);
 
     if (!project) {
       return;
     }
 
     const newProject = {...project, ...data};
-    const newProjects = this.state.projects.map(p =>
-      p.id === project.id ? newProject : p
-    );
-    this.state = {...this.state, projects: newProjects};
-
-    this.trigger(new Set([data.id]));
+    store.setState(state => ({
+      projects: state.projects.map(p => (p.id === project.id ? newProject : p)),
+    }));
     clearQueryCache();
   },
 
-  onDeleteProject(projectSlug: string) {
-    const project = this.getBySlug(projectSlug);
+  onDeleteProject(projectSlug: string): void {
+    const project = ProjectsStore.getBySlug(projectSlug);
     if (!project) {
       return;
     }
-    const newProjects = this.state.projects.filter(p => p.id !== project.id);
-    this.state = {...this.state, projects: newProjects};
-    this.trigger(new Set([project.id]));
+    store.setState(state => ({
+      projects: state.projects.filter(p => p.id !== project.id),
+    }));
     clearQueryCache();
   },
 
@@ -127,33 +96,34 @@ const storeConfig: ProjectsStoreDefinition = {
    *
    * @param teamSlug Team Slug
    */
-  onDeleteTeam(teamSlug: string) {
-    // Look for team in all projects
-    const projects = this.state.projects.filter(({teams}) =>
-      teams.find(({slug}) => slug === teamSlug)
-    );
-
-    projects.forEach(project => this.removeTeamFromProject(teamSlug, project));
-
-    const affectedProjectIds = projects.map(project => project.id);
-    this.trigger(new Set(affectedProjectIds));
+  onDeleteTeam(teamSlug: string): void {
+    store.setState(state => ({
+      projects: state.projects.map(project =>
+        project.teams.some(({slug}) => slug === teamSlug)
+          ? withoutTeam(project, teamSlug)
+          : project
+      ),
+    }));
     clearQueryCache();
   },
 
-  onRemoveTeam(teamSlug: string, projectSlug: string) {
-    const project = this.getBySlug(projectSlug);
+  onRemoveTeam(teamSlug: string, projectSlug: string): void {
+    const project = ProjectsStore.getBySlug(projectSlug);
 
     if (!project) {
       return;
     }
 
-    this.removeTeamFromProject(teamSlug, project);
-    this.trigger(new Set([project.id]));
+    store.setState(state => ({
+      projects: state.projects.map(p =>
+        p.id === project.id ? withoutTeam(project, teamSlug) : p
+      ),
+    }));
     clearQueryCache();
   },
 
-  onAddTeam(team: Team, projectSlug: string) {
-    const project = this.getBySlug(projectSlug);
+  onAddTeam(team: Team, projectSlug: string): void {
+    const project = ProjectsStore.getBySlug(projectSlug);
 
     // Don't do anything if we can't find a project
     if (!project) {
@@ -161,41 +131,21 @@ const storeConfig: ProjectsStoreDefinition = {
     }
 
     const newProject = {...project, teams: [...project.teams, team]};
-    const newProjects = this.state.projects.map(p =>
-      p.id === project.id ? newProject : p
-    );
-    this.state = {...this.state, projects: newProjects};
-
-    this.trigger(new Set([project.id]));
+    store.setState(state => ({
+      projects: state.projects.map(p => (p.id === project.id ? newProject : p)),
+    }));
     clearQueryCache();
   },
 
-  // Internal method, does not trigger
-  removeTeamFromProject(teamSlug: string, project: Project) {
-    const newTeams = project.teams.filter(({slug}) => slug !== teamSlug);
-    const newProject = {...project, teams: newTeams};
-    const newProjects = this.state.projects.map(p =>
-      p.id === project.id ? newProject : p
-    );
-    this.state = {...this.state, projects: newProjects};
-    clearQueryCache();
+  isLoading(): boolean {
+    return store.getState().loading;
   },
 
-  isLoading() {
-    return this.state.loading;
+  getById(id: string): Project | undefined {
+    return store.getState().projects.find(project => project.id === id);
   },
 
-  getById(id) {
-    return this.state.projects.find(project => project.id === id);
-  },
-
-  getBySlug(slug) {
-    return this.state.projects.find(project => project.slug === slug);
-  },
-
-  getState() {
-    return this.state;
+  getBySlug(slug: string): Project | undefined {
+    return store.getState().projects.find(project => project.slug === slug);
   },
 };
-
-export const ProjectsStore = createStore(storeConfig);

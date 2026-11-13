@@ -31,7 +31,7 @@ describe('ProjectSelectStep', () => {
 
     expect(
       screen.getByText(
-        'Select a Sentry project to associate with your AWS Lambda functions.'
+        'Select a Sentry project to associate with your AWS Lambda Event Functions.'
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();

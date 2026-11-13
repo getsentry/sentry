@@ -18,6 +18,7 @@ import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.HIGHLIGHTS]: t('Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
+  [SectionKey.GPU_CRASH_REPORT]: t('GPU Crash'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),
   [SectionKey.THREADS]: t('Stack Trace'),
   [SectionKey.REPLAY]: t('Replay'),

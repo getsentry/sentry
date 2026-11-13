@@ -47,9 +47,9 @@ export function AnnotatedTextErrors({errors = []}: {errors: MetaError[] | undefi
         ) : (
           <Errors symbol="bullet">
             {errors.map((error, index) => (
-              <Error key={index}>
+              <ErrorItem key={index}>
                 <ErrorMessage error={error} />
-              </Error>
+              </ErrorItem>
             ))}
           </Errors>
         )
@@ -70,6 +70,6 @@ const StyledIconWarning = styled(IconWarning)`
 
 const Errors = styled(List)``;
 
-const Error = styled(ListItem)`
+const ErrorItem = styled(ListItem)`
   text-align: left;
 `;

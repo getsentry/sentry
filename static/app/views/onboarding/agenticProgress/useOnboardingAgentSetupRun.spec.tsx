@@ -13,7 +13,7 @@ describe('useOnboardingAgentSetupRun', () => {
   const endpoint = `/organizations/${organization.slug}/onboarding/agent/runs/`;
 
   beforeEach(() => {
-    const run = AgenticProgressRunFixture();
+    const run = AgenticProgressRunFixture({onboardingCode: undefined});
     MockApiClient.addMockResponse({url: `${endpoint}${run.runId}/`, body: run});
   });
 
@@ -36,8 +36,8 @@ describe('useOnboardingAgentSetupRun', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
-  it('initializes once and returns the onboarding code', async () => {
-    const run = AgenticProgressRunFixture();
+  it('initializes once without supplying an onboarding code', async () => {
+    const run = AgenticProgressRunFixture({onboardingCode: undefined});
     const request = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -50,15 +50,18 @@ describe('useOnboardingAgentSetupRun', () => {
     );
 
     await waitFor(() => expect(result.current.run).toEqual(run));
-    expect(result.current.onboardingCode).toBe('Lg1iSt2qeQ');
+    expect(result.current.onboardingCode).toBeUndefined();
     expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0]?.[1]?.data).toEqual({
+      clientRunId: expect.any(String),
+    });
 
     rerender();
     expect(request).toHaveBeenCalledTimes(1);
   });
 
-  it('resumes with the client run ID and onboarding code stored in the session', async () => {
-    const run = AgenticProgressRunFixture();
+  it('resumes with the client run ID stored in the session', async () => {
+    const run = AgenticProgressRunFixture({onboardingCode: undefined});
     const request = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -83,8 +86,7 @@ describe('useOnboardingAgentSetupRun', () => {
     );
     const storedSession = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
     const storedClientRunId = storedSession.agenticProgressClientRunId;
-    const storedOnboardingCode = storedSession.agenticProgressOnboardingCode;
-    expect(storedOnboardingCode).toMatch(/^[A-Za-z0-9]{10}$/);
+    expect(storedSession.agenticProgressOnboardingCode).toBeUndefined();
     firstRender.unmount();
 
     const secondRender = renderHookWithProviders(
@@ -96,42 +98,23 @@ describe('useOnboardingAgentSetupRun', () => {
     expect(request).toHaveBeenCalledTimes(2);
     expect(request.mock.calls[1]?.[1]?.data).toEqual({
       clientRunId: storedClientRunId,
-      onboardingCode: storedOnboardingCode,
     });
   });
 
-  it('generates a new onboarding code when it conflicts', async () => {
-    const staleClientRunId = 'stale-client-run-id';
-    const staleOnboardingCode = 'stale-code';
-    const replacementRequest = MockApiClient.addMockResponse({
-      url: endpoint,
-      method: 'POST',
-      match: [(_url, options) => options.data.onboardingCode !== staleOnboardingCode],
-      body: (_url: string, options: RequestOptions) =>
-        AgenticProgressRunFixture({
-          clientRunId: options.data.clientRunId,
-          onboardingCode: options.data.onboardingCode,
-        }),
-    });
-    const conflictRequest = MockApiClient.addMockResponse({
-      url: endpoint,
-      method: 'POST',
-      statusCode: 409,
-      match: [
-        MockApiClient.matchData({
-          clientRunId: staleClientRunId,
-          onboardingCode: staleOnboardingCode,
-        }),
-      ],
-      body: {detail: 'Onboarding code is unavailable'},
-    });
+  it('replaces sessions that already issued a client-generated onboarding code', async () => {
+    const staleClientRunId = '021902d5-2333-4823-81a9-5596b331e8af';
     window.sessionStorage.setItem(
       'onboarding',
       JSON.stringify({
         agenticProgressClientRunId: staleClientRunId,
-        agenticProgressOnboardingCode: staleOnboardingCode,
+        agenticProgressOnboardingCode: 'stale-code',
       })
     );
+    const request = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'POST',
+      body: AgenticProgressRunFixture({onboardingCode: undefined}),
+    });
 
     const {result} = renderHookWithProviders(
       () => useOnboardingAgentSetupRun({enabled: true}),
@@ -139,26 +122,13 @@ describe('useOnboardingAgentSetupRun', () => {
     );
 
     await waitFor(() => expect(result.current.run).toBeDefined());
-    expect(conflictRequest).toHaveBeenCalledWith(
-      endpoint,
-      expect.objectContaining({
-        data: {
-          clientRunId: staleClientRunId,
-          onboardingCode: staleOnboardingCode,
-        },
-      })
-    );
-    expect(replacementRequest).toHaveBeenCalledTimes(1);
-    const replacementData = replacementRequest.mock.calls[0]?.[1]?.data;
-    expect(replacementData.clientRunId).toBe(staleClientRunId);
-    expect(replacementData.onboardingCode).toMatch(/^[A-Za-z0-9]{10}$/);
+    const replacementSession = request.mock.calls[0]?.[1]?.data;
+    expect(replacementSession).toEqual({clientRunId: expect.any(String)});
+    expect(replacementSession.clientRunId).not.toBe(staleClientRunId);
     await waitFor(() =>
-      expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual(
-        expect.objectContaining({
-          agenticProgressClientRunId: replacementData.clientRunId,
-          agenticProgressOnboardingCode: replacementData.onboardingCode,
-        })
-      )
+      expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual({
+        agenticProgressClientRunId: replacementSession.clientRunId,
+      })
     );
   });
 
@@ -188,12 +158,9 @@ describe('useOnboardingAgentSetupRun', () => {
     expect(nextSession.agenticProgressClientRunId).not.toBe(
       originalSession.agenticProgressClientRunId
     );
-    expect(nextSession.agenticProgressOnboardingCode).not.toBe(
-      originalSession.agenticProgressOnboardingCode
-    );
+    expect(nextSession.agenticProgressOnboardingCode).toBeUndefined();
     expect(request.mock.calls[1]?.[1]?.data).toEqual({
       clientRunId: nextSession.agenticProgressClientRunId,
-      onboardingCode: nextSession.agenticProgressOnboardingCode,
     });
   });
 });

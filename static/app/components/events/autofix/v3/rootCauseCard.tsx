@@ -8,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   getAutofixArtifactFromSection,
+  getSingleRunStop,
   isRootCauseArtifact,
   isSingleRunAutofix,
   type AutofixSection,
@@ -26,7 +27,7 @@ import {AutofixResetPrompt} from './autofixResetPrompt';
 import {useAutofixSectionEvidence} from './useAutofixSectionEvidence';
 import {useResetAutofixStep} from './useResetAutofixStep';
 import {useRethinkInChat} from './useRethinkInChat';
-import {useOpenSingleRunChat} from './useToggleSingleRunChat';
+import {useRerunSingleRun} from './useToggleSingleRunChat';
 import {artifactToMarkdown} from './utils';
 
 interface RootCauseCardProps {
@@ -40,9 +41,21 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
+  const stop = getSingleRunStop(section);
+  const stopDetails = stop ? (
+    <ArtifactDetails>
+      <Text bold>{t('Why Seer stopped')}</Text>
+      <SeerMarkdown raw={stop.reason} />
+      <Text bold>{t('Suggestion')}</Text>
+      <SeerMarkdown raw={stop.suggestion} />
+    </ArtifactDetails>
+  ) : null;
 
   const {copy} = useCopyToClipboard();
-  const openSingleRunChat = useOpenSingleRunChat();
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
+  const singleRunRerun = useRerunSingleRun(autofix, {
+    enabled: isSingleRun && section.status !== 'processing' && !artifact?.data && !stop,
+  });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
@@ -137,7 +150,10 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
               </Flex>
             </ArtifactDetails>
           )}
+          {stopDetails}
         </Fragment>
+      ) : stopDetails ? (
+        stopDetails
       ) : (
         <ArtifactDetails>
           <Text>
@@ -149,16 +165,8 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
             <Button
               variant="primary"
               icon={<IconRefresh />}
-              onClick={async () => {
-                if (!isSingleRunAutofix(autofix.runState)) {
-                  handleReset();
-                  return;
-                }
-                const run = await autofix.startStep('root_cause');
-                if (run.isSingleRun) {
-                  openSingleRunChat(run.runId);
-                }
-              }}
+              disabled={isSingleRun && singleRunRerun.disabled}
+              onClick={isSingleRun ? singleRunRerun.rerun : () => handleReset()}
             >
               {t('Re-run')}
             </Button>

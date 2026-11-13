@@ -1,11 +1,8 @@
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
-from sentry.investigations.endpoints.serializers.action_request import (
-    InvestigationActionRequestSerializerResponse,
-)
-from sentry.investigations.endpoints.serializers.investigation import (
-    InvestigationOrchestrationSerializerResponse,
+from sentry.notebooks.endpoints.serializers.notebook import (
+    NotebookOrchestrationSerializerResponse,
 )
 
 # The orchestration projection's nested shapes mirror the contract serializers in
@@ -230,20 +227,8 @@ class InvestigationCommandResponse(TypedDict):
 class InvestigationCandidateResponse(TypedDict):
     status: str
     investigationId: NotRequired[str]
-    orchestration: NotRequired[InvestigationOrchestrationSerializerResponse]
+    orchestration: NotRequired[NotebookOrchestrationSerializerResponse]
 
 
 class InvestigationCandidatesResponse(TypedDict):
     items: list[InvestigationCandidateResponse]
-
-
-class InvestigationActionRequestApplyResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse
-
-
-class InvestigationActionRequestRecheckResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse
-
-
-class InvestigationActionRequestRetryFollowUpResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse

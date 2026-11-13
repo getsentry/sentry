@@ -409,6 +409,34 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             )
         assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
+    @override_options({"sourcemaps.source-map-debug.debug-id-check-max-bundles": 0})
+    def test_project_has_some_artifact_bundle_with_a_debug_id_unbounded(self) -> None:
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=True)
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=False)
+
+        event = self.store_event(
+            data=create_event(),
+            project_id=self.project.id,
+        )
+
+        with CaptureQueriesContext(
+            connections[router.db_for_read(DebugIdArtifactBundle)]
+        ) as queries:
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+        assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+        debug_id_queries = [
+            query["sql"]
+            for query in queries.captured_queries
+            if 'FROM "sentry_debugidartifactbundle"' in query["sql"]
+        ]
+        assert len(debug_id_queries) == 1
+        assert '"sentry_debugidartifactbundle"."organization_id"' in debug_id_queries[0]
+
     @override_options({"sourcemaps.source-map-debug.debug-id-check-max-bundles": 2})
     def test_project_has_some_artifact_bundle_with_a_debug_id_in_other_project(self) -> None:
         other_project = self.create_project(organization=self.organization)

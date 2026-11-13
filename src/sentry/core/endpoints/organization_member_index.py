@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import router, transaction
@@ -18,7 +18,13 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSerializer
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_TOO_MANY_REQUESTS,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import (
@@ -171,6 +177,14 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         valid_team_roles = [(team, team_role_map[team.slug]) for team in valid_teams]
 
         return valid_team_roles
+
+
+class _OrganizationErrorResponse(TypedDict):
+    organization: str
+
+
+class _EmailErrorResponse(TypedDict):
+    email: str
 
 
 @cell_silo_endpoint
@@ -338,9 +352,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         request=OrganizationMemberRequestSerializer,
         responses={
             201: OrganizationMemberSerializer,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            429: RESPONSE_TOO_MANY_REQUESTS,
         },
         examples=OrganizationMemberExamples.CREATE_ORG_MEMBER,
     )
@@ -349,6 +365,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     ) -> (
         Response[OrganizationMemberResponse]
         | Response[DetailResponse]
+        | Response[_OrganizationErrorResponse]
+        | Response[_EmailErrorResponse]
         | Response[ValidationErrorResponse]
     ):
         """

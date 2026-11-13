@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence, Set
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import Literal, NamedTuple, TypedDict
 
-from django.db.models import F, Prefetch, prefetch_related_objects
+from django.db.models import F, Prefetch, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from pydantic import ValidationError
 from rest_framework import serializers
@@ -19,16 +19,17 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import seer_workflow_examples as SeerWorkflowExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.bounded import I64_MAX
+from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
-from sentry.notebooks.access import has_investigations_access
+from sentry.notebooks.access import has_notebooks_access
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-    SEER_CRON_WORKFLOW_STRATEGIES,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -37,10 +38,12 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
-from sentry.seer.workflows.breached_metrics import MetricBreachTrigger
+from sentry.seer.workflows.breached_metrics import MetricBreachInputs
+from sentry.seer.workflows.definitions import is_scheduled
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.safe import get_path
+from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
 
@@ -110,8 +113,10 @@ SeerWorkflowExecutionResponse = (
 class MonitorTriggerResponse(TypedDict):
     type: Literal["monitor"]
     detectorId: str
+    detectorName: str | None  # queried separately (not in trigger input)
     environment: str | None
     eventId: str
+    groupExists: bool  # queried separately (not in trigger input)
     groupId: str
     groupShortId: str | None
     observedAt: datetime
@@ -132,6 +137,7 @@ TriggerResponse = MonitorTriggerResponse | CronTriggerResponse
 class SeerWorkflowRunResponseBase(TypedDict):
     id: str
     configId: str
+    configName: str | None
     strategy: str
     trigger: TriggerResponse | None
     dateAdded: datetime
@@ -161,6 +167,11 @@ SeerWorkflowRunResponse = SeerWorkflowRunStateResponse | SeerWorkflowRunErrorRes
 
 class SeerWorkflowRunsResponse(TypedDict):
     runs: list[SeerWorkflowRunResponse]
+
+
+class DetectorInfo(NamedTuple):
+    project_id: int | None
+    name: str
 
 
 class OrganizationSeerWorkflowRunsPermission(OrganizationPermission):
@@ -202,29 +213,12 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         """List automation runs with their executions, newest first.
 
-        ``config`` filters by one config ID; omit it for organization-wide history.
-        Invalid or repeated IDs return 400; no visible matches return ``{"runs": []}``.
-        Pagination links are in headers.
+        Limited-access members see a run started by a trigger in one project (such as a
+        monitor) when they can access that project. For other runs they must be able to
+        access every project in the saved run snapshot; runs without a saved scope are
+        hidden from them.
 
-        ``status`` distinguishes failed/rejected records, which include an ``error``
-        code and display-safe message, from other records, which omit ``error``.
-        A run fails or is rejected in one of two ways:
-
-        - Rejected (e.g. over quota) or failed before starting any execution: the
-          run's ``error`` says why and it has no executions.
-        - Failed because one or more executions failed: the run's ``error`` is null
-          and each failed execution carries its own ``error``.
-
-        Missing error details use code ``unknown``. Historical rows without lifecycle
-        tracking retain a null status. ``trigger`` describes what started the run, discriminated
-        by ``type``: ``monitor`` (detector, event, occurrence, issue, and project;
-        the detector may have since been deleted) or ``cron`` (scheduled run). It is
-        null for other runs. ``seerRunId`` is the linked Seer UUID or null.
-        Each execution's ``outputs`` lists linked investigations by type, ID, and title
-        when the viewer has investigation access, including archived investigations.
-        The same investigation can be linked to multiple executions.
-        Limited-access members must be able to access every project in the saved run
-        snapshot; runs without a saved scope are hidden from them.
+        Execution ``outputs`` are empty without investigation access.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -239,14 +233,28 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             organization=organization,
             workflow_config__organization=organization,
             workflow_config__strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-        ).annotate(strategy=F("workflow_config__strategy"))
+        ).annotate(
+            strategy=F("workflow_config__strategy"),
+            config_extras=F("workflow_config__extras"),
+        )
+
+        # Filter by a config
         config_id = serializer.validated_data.get("config")
         if config_id is not None:
             runs = runs.filter(workflow_config_id=config_id)
+
+        # Filter by accessible projects. A run started by a trigger in one project only needs
+        # access to that project; other runs need access to every project in their saved scope.
+        accessible_project_ids: set[int] | None = None
         if not request.access.has_global_access:
             projects = self.get_projects(request, organization, include_all_accessible=True)
+            accessible_project_ids = {project.id for project in projects}
             runs = runs.filter(
-                extras__snapshot__project_ids__contained_by=[project.id for project in projects]
+                Q(extras__snapshot__inputs__project_id__in=accessible_project_ids)
+                | Q(
+                    extras__snapshot__inputs__project_id__isnull=True,
+                    extras__snapshot__project_ids__contained_by=list(accessible_project_ids),
+                )
             )
 
         return self.paginate(
@@ -258,7 +266,8 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
                 runs,
                 # TODO(telkins): Align automation and investigation access checks instead of
                 # returning empty outputs for otherwise visible runs.
-                include_investigations=has_investigations_access(organization, actor=request.user),
+                include_investigations=has_notebooks_access(organization, actor=request.user),
+                accessible_project_ids=accessible_project_ids,
             ),
         )
 
@@ -269,6 +278,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             202: inline_sentry_response_serializer(
                 "SeerWorkflowRunCreate", WorkflowRunCreateResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
         },
     )
     def post(self, request: Request, organization: Organization) -> Response:
@@ -280,9 +290,15 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
 
 def serialize_workflow_runs(
-    runs: Sequence[SeerWorkflowRun], *, include_investigations: bool
+    runs: Sequence[SeerWorkflowRun],
+    *,
+    include_investigations: bool,
+    accessible_project_ids: set[int] | None = None,
 ) -> SeerWorkflowRunsResponse:
-    """Serialize runs loaded with a `workflow_config__strategy` annotation."""
+    """Serialize runs loaded with `strategy` and `config_extras` annotations.
+
+    `accessible_project_ids` limits detector names to those projects; None means all.
+    """
     output_links = SeerWorkflowOutputLink.objects.select_related("notebook").order_by("id")
     if not include_investigations:
         output_links = output_links.none()
@@ -294,16 +310,72 @@ def serialize_workflow_runs(
         ),
         Prefetch("executions__output_links", queryset=output_links),
     )
-    return {"runs": [serialize_workflow_run(run) for run in runs]}
+    organization_ids = {run.organization_id for run in runs}
+    detector_ids = {
+        detector_id
+        for run in runs
+        if isinstance(detector_id := get_path(run.extras, "snapshot", "inputs", "detector_id"), int)
+    }
+    group_ids = {
+        group_id
+        for run in runs
+        if isinstance(group_id := get_path(run.extras, "snapshot", "inputs", "group_id"), int)
+    }
+    # One query each for the whole page; skipped when no run was started by a monitor.
+    detectors = (
+        {
+            detector_id: DetectorInfo(project_id, name)
+            for detector_id, project_id, name in Detector.objects.filter(
+                id__in=detector_ids,
+                project__organization_id__in=organization_ids,
+            ).values_list("id", "project_id", "name")
+        }
+        if detector_ids
+        else {}
+    )
+    existing_group_ids = (
+        set(
+            Group.objects.filter(id__in=group_ids, project__organization_id__in=organization_ids)
+            .exclude(status__in=(GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS))
+            .values_list("id", flat=True)
+        )
+        if group_ids
+        else set()
+    )
+    return {
+        "runs": [
+            serialize_workflow_run(
+                run,
+                detectors=detectors,
+                existing_group_ids=existing_group_ids,
+                accessible_project_ids=accessible_project_ids,
+            )
+            for run in runs
+        ]
+    }
 
 
-def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
-    """Serialize a run loaded with a `workflow_config__strategy` annotation."""
+def serialize_workflow_run(
+    run: SeerWorkflowRun,
+    *,
+    detectors: Mapping[int, DetectorInfo],
+    existing_group_ids: Set[int],
+    accessible_project_ids: set[int] | None,
+) -> SeerWorkflowRunResponse:
+    """Serialize a run loaded with `strategy` and `config_extras` annotations."""
+    config_extras = getattr(run, "config_extras")
+    config_name = config_extras.get("name") if isinstance(config_extras, dict) else None
     result: SeerWorkflowRunResponseBase = {
         "id": str(run.id),
         "configId": str(run.workflow_config_id),
+        "configName": config_name if isinstance(config_name, str) else None,
         "strategy": getattr(run, "strategy"),
-        "trigger": serialize_trigger(run),
+        "trigger": serialize_trigger(
+            run,
+            detectors=detectors,
+            existing_group_ids=existing_group_ids,
+            accessible_project_ids=accessible_project_ids,
+        ),
         "dateAdded": run.date_added,
         "dateUpdated": run.date_updated,
         "dateCompleted": run.date_completed,
@@ -323,22 +395,45 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
     return {**result, "status": status}
 
 
-def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
-    """Serialize the trigger of a run loaded with a `workflow_config__strategy` annotation."""
+def serialize_trigger(
+    run: SeerWorkflowRun,
+    *,
+    detectors: Mapping[int, DetectorInfo],
+    existing_group_ids: Set[int],
+    accessible_project_ids: set[int] | None,
+) -> TriggerResponse | None:
+    """Serialize the trigger of a run loaded with a `workflow_config__strategy` annotation.
+
+    `detectors` maps each preloaded detector's ID to its current project and name. The
+    name is only returned when the detector still belongs to the trigger's project and
+    that project is in `accessible_project_ids` (None means all projects).
+    `existing_group_ids` holds the preloaded IDs of trigger groups that have not been deleted.
+    """
     strategy = getattr(run, "strategy")
-    if strategy in SEER_CRON_WORKFLOW_STRATEGIES:
+    if is_scheduled(strategy):
         return {"type": "cron"}
     if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(
         run.extras, "snapshot", "inputs"
     ):
         try:
             inputs = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot.inputs
-            trigger = MetricBreachTrigger.parse_obj(inputs)
+            trigger = MetricBreachInputs.parse_obj(inputs)
+            detector = detectors.get(trigger.detector_id)
+            if detector is not None and (
+                detector.project_id != trigger.project_id
+                or (
+                    accessible_project_ids is not None
+                    and trigger.project_id not in accessible_project_ids
+                )
+            ):
+                detector = None
             return {
                 "type": "monitor",
                 "detectorId": str(trigger.detector_id),
+                "detectorName": detector.name if detector is not None else None,
                 "environment": trigger.environment,
                 "eventId": trigger.event_id,
+                "groupExists": trigger.group_id in existing_group_ids,
                 "groupId": str(trigger.group_id),
                 "groupShortId": trigger.group_short_id,
                 "observedAt": trigger.observed_at,

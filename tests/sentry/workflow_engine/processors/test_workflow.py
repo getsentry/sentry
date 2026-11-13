@@ -1,6 +1,9 @@
+from dataclasses import replace
 from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
+from uuid import uuid4
 
+import pytest
 from django.utils import timezone
 
 from sentry.eventstream.base import GroupState
@@ -14,6 +17,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
@@ -21,6 +25,7 @@ from sentry.workflow_engine.defaults.detectors import ensure_default_all_project
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.processors.contexts.workflow_event_context import WorkflowEventContext
 from sentry.workflow_engine.processors.data_condition_group import (
     get_data_conditions_for_group,
 )
@@ -29,18 +34,26 @@ from sentry.workflow_engine.processors.evaluations import (
     ProcessWorkflowsResult,
     WorkflowEvaluationOutcome,
 )
+from sentry.workflow_engine.processors.evaluations.eap import EAPEmitter
+from sentry.workflow_engine.processors.evaluations.logging import LoggingEmitter
 from sentry.workflow_engine.processors.workflow import (
     EvaluationStats,
+    _evaluate_workflows,
     enqueue_workflows,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
     get_environment_by_event,
     process_workflows,
 )
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
-from sentry.workflow_engine.types import ConditionError, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ConditionError,
+    WorkflowEventData,
+    WorkflowTriggerDataConditionHandler,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, OrganizationEvent
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 ERR = ConditionError(msg="test")
@@ -135,11 +148,23 @@ class TestProcessWorkflows(BaseWorkflowTest):
             detector=self.error_detector,
             workflow=cross_org_workflow,
         )
+        self.create_workflow_action(cross_org_workflow)
+        _, action = self.create_workflow_action(self.error_workflow)
 
-        with self.options({"workflow_engine.filter_cross_org_workflows": True}):
+        with (
+            self.options({"workflow_engine.filter_cross_org_workflows": False}),
+            patch("sentry.workflow_engine.processors.action.fire_actions") as fire_actions,
+        ):
             result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert _triggered_workflow_ids(result) == {self.error_workflow.id}
         assert cross_org_workflow.id not in result.evaluations
+        history = WorkflowFireHistory.objects.get()
+        assert history.workflow_id == self.error_workflow.id
+        fire_actions.assert_called_once()
+        assert list(fire_actions.call_args.args[0]) == [action]
+        assert fire_actions.call_args.kwargs["workflow_uuid_map"] == {
+            self.error_workflow.id: str(history.notification_uuid)
+        }
 
     def test_error_event(self) -> None:
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
@@ -183,6 +208,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
             has_escalated=False,
         )
         mock_fire_actions.assert_called_once()
+        history = WorkflowFireHistory.objects.get(workflow=self.error_workflow)
+        assert mock_fire_actions.call_args.kwargs["workflow_uuid_map"] == {
+            self.error_workflow.id: str(history.notification_uuid)
+        }
 
     @with_feature("projects:servicehooks")
     @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
@@ -384,6 +413,44 @@ class TestProcessWorkflows(BaseWorkflowTest):
         GroupEnvironment.objects.create(group_id=self.group.id, environment_id=env.id)
 
         assert get_environment_by_event(self._activity_event_data()) == env
+
+    def test_activity_with_incomplete_trigger_skips_action_processing(self) -> None:
+        self.group.update(priority=PriorityLevel.HIGH)
+        trigger_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ALL)
+        self.create_data_condition(
+            condition_group=trigger_group,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            comparison=PriorityLevel.HIGH,
+            condition_result=True,
+        )
+        self.create_data_condition(
+            condition_group=trigger_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+        self.workflow.update(when_condition_group=trigger_group)
+        self.create_workflow_action(self.workflow)
+        event_data = self._activity_event_data()
+
+        with (
+            patch("sentry.workflow_engine.processors.workflow.enqueue_workflows") as enqueue,
+            patch(
+                "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
+                return_value=([], {}),
+            ) as suppress_actions,
+        ):
+            result = process_workflows(
+                self.batch_client, event_data, FROZEN_TIME, detector=self.detector
+            )
+
+        # The fast condition passed, but activities cannot complete slow conditions.
+        evaluation = result.evaluations[self.workflow.id]
+        assert evaluation.triggered
+        assert evaluation.data["filter_group_evals"] == []
+        assert evaluation.result == []
+        enqueue.assert_not_called()
+        suppress_actions.assert_not_called()
 
     # The unresolved cases all return None, so each also asserts its metric outcome to prove
     # which branch it took.
@@ -1370,3 +1437,238 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                 )
             },
         )
+
+
+class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
+    def setUp(self) -> None:
+        self.source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid4())
+        self.event_data = WorkflowEventData(event=self.source, organization=self.organization)
+        self.detector = self.create_all_projects_detector(self.organization)
+        self.workflow = self.create_workflow()
+        self.action_group, self.action = self.create_workflow_action(self.workflow)
+
+    def test_evaluates_without_issue_context(self) -> None:
+        trigger_group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=trigger_group,
+            type=Condition.EVERY_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.workflow.update(when_condition_group=trigger_group)
+        previous_context = WorkflowEventContext.get()
+        with (
+            patch(
+                "sentry.workflow_engine.processors.workflow.get_detectors_for_event_data"
+            ) as lookup,
+            patch(
+                "sentry.workflow_engine.processors.workflow._get_environment_by_group"
+            ) as environment,
+        ):
+            evaluation, action_groups, delayed_items = _evaluate_workflows(
+                {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+            )
+        lookup.assert_not_called()
+        environment.assert_not_called()
+        assert WorkflowEventContext.get() is previous_context
+        assert action_groups == {self.action_group}
+        assert delayed_items == {}
+        assert evaluation.outcome == WorkflowEvaluationOutcome.COMPLETED
+        result = evaluation.with_triggered_actions(
+            [self.action], {self.action.id: self.workflow.id}
+        )
+        artifact = result.evaluation_artifacts()[0]
+        assert artifact.event_id == self.source.event_id.hex
+        assert artifact.group_id is None
+        assert artifact.project_id is None
+        assert artifact.detector_id == self.detector.id
+        assert artifact.detector_type == self.detector.type
+        assert artifact.triggered_action_ids == [self.action.id]
+        assert artifact.error is None
+        # Logging must remain usable without a project; EAP requires a real project.
+        with (
+            self.options({"workflow_engine.evaluation_log_sample_rate": 1.0}),
+            patch("sentry.workflow_engine.processors.evaluations.logging.logger.info") as log,
+        ):
+            LoggingEmitter().send(self.organization, result)
+        assert log.call_args.kwargs["extra"]["organization_id"] == self.organization.id
+        assert log.call_args.kwargs["extra"]["event_id"] == self.source.event_id.hex
+        with patch(
+            "sentry.workflow_engine.processors.evaluations.eap._produce_trace_item"
+        ) as produce:
+            EAPEmitter().send(self.organization, result)
+        produce.assert_not_called()
+
+    def test_excludes_other_organizations_and_unknown_environments(self) -> None:
+        foreign = self.create_workflow(organization=self.create_organization())
+        environment_workflow = self.create_workflow(environment=self.create_environment())
+        disabled = self.create_workflow(enabled=False)
+        with self.options({"workflow_engine.filter_cross_org_workflows": False}):
+            evaluation, action_groups, _ = _evaluate_workflows(
+                {self.workflow, foreign, environment_workflow, disabled},
+                self.event_data,
+                FROZEN_TIME,
+                detector=self.detector,
+            )
+        assert evaluation.evaluated_workflow_ids() == {self.workflow.id}
+        assert action_groups == {self.action_group}
+
+    def test_evaluates_event_condition(self) -> None:
+        class OrganizationEventCondition(WorkflowTriggerDataConditionHandler):
+            comparison_json_schema = {"type": "string"}
+
+            @staticmethod
+            def evaluate_value(event_data: WorkflowEventData, comparison: object) -> bool:
+                return event_data.event_id == comparison
+
+        # Reuse an enum member because Condition cannot be extended in tests.
+        with patch.dict(
+            condition_handler_registry.registrations, {Condition.LEVEL: OrganizationEventCondition}
+        ):
+            trigger_group = self.create_data_condition_group()
+            condition = self.create_data_condition(
+                condition_group=trigger_group,
+                type=Condition.LEVEL,
+                comparison=self.source.event_id.hex,
+                condition_result=True,
+            )
+            self.workflow.update(when_condition_group=trigger_group)
+            matching, matching_action_groups, _ = _evaluate_workflows(
+                {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+            )
+            assert matching_action_groups == {self.action_group}
+            assert matching.evaluations[self.workflow.id].error is None
+
+            condition.update(comparison=uuid4().hex)
+            nonmatching, nonmatching_action_groups, _ = _evaluate_workflows(
+                {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+            )
+            assert nonmatching_action_groups == set()
+            assert not nonmatching.evaluations[self.workflow.id].triggered
+            assert nonmatching.evaluations[self.workflow.id].error is None
+
+    def test_issue_only_trigger_in_none_group_preserves_tainted_match(self) -> None:
+        condition_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.NONE)
+        self.create_data_condition(
+            condition_group=condition_group,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            comparison=PriorityLevel.HIGH,
+            condition_result=True,
+        )
+        self.workflow.update(when_condition_group=condition_group)
+        evaluation, action_groups, _ = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+        )
+        # NONE still matches when its condition fails to evaluate; the error is retained.
+        assert action_groups == {self.action_group}
+        workflow_evaluation = evaluation.evaluations[self.workflow.id]
+        assert workflow_evaluation.triggered
+        assert workflow_evaluation.error == ConditionError(
+            msg="This operation requires an issue group"
+        )
+        assert workflow_evaluation.outcome == WorkflowEvaluationOutcome.ERROR
+
+    def test_slow_trigger_requires_group_event_unless_fast_result_is_conclusive(self) -> None:
+        condition_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ANY)
+        self.create_data_condition(
+            condition_group=condition_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+        self.workflow.update(when_condition_group=condition_group)
+        evaluation, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+        )
+        assert action_groups == set()
+        assert delayed_items == {}
+        workflow_evaluation = evaluation.evaluations[self.workflow.id]
+        assert not workflow_evaluation.triggered
+        assert workflow_evaluation.error == ConditionError(
+            msg="Slow conditions require a GroupEvent"
+        )
+        assert workflow_evaluation.outcome == WorkflowEvaluationOutcome.ERROR
+
+        self.create_data_condition(
+            condition_group=condition_group,
+            type=Condition.EVERY_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        evaluation, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+        )
+        assert action_groups == {self.action_group}
+        assert delayed_items == {}
+        assert evaluation.evaluations[self.workflow.id].triggered
+        assert evaluation.evaluations[self.workflow.id].error is None
+
+    def test_issue_only_action_filter_records_missing_group_error(self) -> None:
+        self.action_group.update(logic_type=DataConditionGroup.Type.ANY)
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            comparison=PriorityLevel.HIGH,
+            condition_result=True,
+        )
+        evaluation, action_groups, _ = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+        )
+        assert action_groups == set()
+        workflow_evaluation = evaluation.evaluations[self.workflow.id]
+        filter_evaluation = workflow_evaluation.data["filter_group_evals"][0]
+        assert not filter_evaluation.triggered
+        assert filter_evaluation.error == ConditionError(
+            msg="This operation requires an issue group"
+        )
+        assert workflow_evaluation.outcome == WorkflowEvaluationOutcome.ERROR
+
+    def test_slow_filter_requires_group_event_unless_fast_result_is_conclusive(self) -> None:
+        self.action_group.update(logic_type=DataConditionGroup.Type.ANY)
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+        evaluation, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+        )
+        assert action_groups == set()
+        assert delayed_items == {}
+        workflow_evaluation = evaluation.evaluations[self.workflow.id]
+        filter_evaluation = workflow_evaluation.data["filter_group_evals"][0]
+        assert not filter_evaluation.triggered
+        assert filter_evaluation.error == ConditionError(msg="Slow conditions require a GroupEvent")
+        assert workflow_evaluation.outcome == WorkflowEvaluationOutcome.ERROR
+
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVERY_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        evaluation, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+        )
+        assert action_groups == {self.action_group}
+        assert delayed_items == {}
+        assert evaluation.evaluations[self.workflow.id].error is None
+
+    def test_requires_matching_explicit_organization(self) -> None:
+        previous_context = WorkflowEventContext.get()
+        with pytest.raises(ValueError, match="explicit organization"):
+            _evaluate_workflows(
+                {self.workflow},
+                replace(self.event_data, organization=None),
+                FROZEN_TIME,
+                detector=self.detector,
+            )
+        with pytest.raises(ValueError, match="same organization"):
+            _evaluate_workflows(
+                {self.workflow},
+                replace(self.event_data, organization=self.create_organization()),
+                FROZEN_TIME,
+                detector=self.detector,
+            )
+        assert WorkflowEventContext.get() is previous_context

@@ -22,7 +22,7 @@ interface RedirectProps extends Omit<NavigateProps, 'to'> {
 /**
  * Wraps a declarative `Navigate` component to interpolate the params of `to`
  */
-function Redirect({to, ...rest}: RedirectProps) {
+export function Redirect({to, ...rest}: RedirectProps) {
   const params = useParams();
   const routes = useRoutes();
 

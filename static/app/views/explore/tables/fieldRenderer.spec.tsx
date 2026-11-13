@@ -68,7 +68,6 @@ describe('FieldRenderer tests', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     resetMockDate();
-    ProjectsStore.reset();
   });
 
   it('renders span.op', () => {

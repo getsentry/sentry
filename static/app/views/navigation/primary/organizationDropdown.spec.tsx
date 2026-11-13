@@ -24,11 +24,8 @@ describe('OrganizationDropdown', () => {
   });
 
   beforeEach(() => {
-    ConfigStore.set('user', UserFixture());
-  });
-
-  afterEach(() => {
     ProjectsStore.reset();
+    ConfigStore.set('user', UserFixture());
   });
 
   it('displays org info and links', async () => {
@@ -142,7 +139,7 @@ describe('OrganizationDropdown', () => {
     );
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
 
-    const search = screen.getByRole('textbox', {name: 'Search'});
+    const search = screen.getByRole('searchbox', {name: 'Search'});
     expect(search).toHaveFocus();
     expect(within(search.parentElement!).getByRole('img')).toBeInTheDocument();
     await userEvent.type(search, 'python');
@@ -284,7 +281,7 @@ describe('OrganizationDropdown', () => {
     const getSubmenu = () =>
       within(
         screen
-          .getByRole('textbox', {name: 'Search'})
+          .getByRole('searchbox', {name: 'Search'})
           .closest<HTMLElement>('[data-overlay]')!
       );
     const getSubmenuOrder = () =>

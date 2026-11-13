@@ -136,7 +136,7 @@ export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
             <IconSearch size="xs" variant="muted" />
           </Flex>
         </InputGroup.LeadingItems>
-        <InputGroup.Input size="xs" {...props} />
+        <InputGroup.Input size="xs" type="search" {...props} />
       </InputGroup>
     </Container>
   );
