@@ -315,7 +315,8 @@ class PipelineAdvancerTest(IntegrationTestCase):
             self.options({"cursor-origin-app.id": APP_ID}),
             mock.patch(KEYS, return_value=[self.public]),
         ):
-            return self.client.get(f"{self.setup_path}?{urlencode(params)}")
+            response: HttpResponseBase = self.client.get(f"{self.setup_path}?{urlencode(params)}")
+            return response
 
     def _org_picker(self, receipt: str) -> str:
         return reverse(

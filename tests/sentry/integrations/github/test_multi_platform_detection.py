@@ -459,7 +459,7 @@ def _make_client(
     client = mock.MagicMock()
     client.get_languages.return_value = languages
 
-    def get_side_effect(path: str, params: dict | None = None) -> Any:
+    def get_side_effect(path: str, params: dict[str, Any] | None = None) -> Any:
         if "/git/trees/" in path:
             return {"tree": tree, "truncated": truncated}
         raise ApiError("Not Found", code=404)
@@ -679,7 +679,7 @@ class TestDetectPlatformsMultiConcurrency:
         client = mock.MagicMock()
         client.get_languages.return_value = {"Python": 80_000}
 
-        def get_side_effect(path: str, params: dict | None = None) -> Any:
+        def get_side_effect(path: str, params: dict[str, Any] | None = None) -> Any:
             if "/git/trees/" in path:
                 return {"tree": tree, "truncated": False}
             raise ApiError("Not Found", code=404)
@@ -1219,6 +1219,31 @@ class TestDetectPlatformsMultiFrameworks:
 
         platforms = [r["platform"] for r in result]
         assert "react-native" in platforms
+        assert "javascript-react" not in platforms
+
+    def test_expo_detected_ahead_of_react_native(self) -> None:
+        content = json.dumps(
+            {
+                "dependencies": {
+                    "expo": "~52.0.0",
+                    "react-native": "0.76.0",
+                    "react": "18.3.1",
+                }
+            }
+        )
+
+        client = _mock_client(
+            {"JavaScript": 50000},
+            tree_paths=["package.json"],
+            contents={
+                "package.json": content,
+            },
+        )
+
+        result = detect_platforms_multi(client, "owner/repo")["platforms"]
+
+        platforms = [r["platform"] for r in result]
+        assert platforms.index("expo") < platforms.index("react-native")
         assert "javascript-react" not in platforms
 
     def test_electron_detected(self) -> None:

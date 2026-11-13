@@ -6,9 +6,10 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldKind} from 'sentry/utils/fields';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {useLogsSearchQueryBuilderProps} from './useLogsSearchQueryBuilderProps';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (

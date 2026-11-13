@@ -2,8 +2,9 @@ import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
+import {DashboardsNavigationItems} from './dashboardsNavigationItems';
 
 describe('DashboardsNavigationItems', () => {
   it('renders a reorderable list of starred dashboards', () => {

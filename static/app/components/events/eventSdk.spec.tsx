@@ -4,7 +4,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {EventSdk} from 'sentry/components/events/eventSdk';
+import {EventSdk} from './eventSdk';
 
 describe('event sdk', () => {
   it('display redacted tags', async () => {

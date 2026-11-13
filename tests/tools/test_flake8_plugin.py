@@ -5,11 +5,26 @@ import os
 from datetime import datetime, timezone
 from unittest.mock import patch
 
+from tools.api_guidelines.rules import ApiRule
 from tools.flake8_plugin import (
     ApiInputViolation,
+    S021_msg,
+    S022_bare_msg,
+    S022_missing_msg,
+    S023_bad_path_msg,
+    S023_blank_reason_msg,
+    S023_ghost_msg,
+    S023_no_reason_msg,
+    S023_not_mapping_msg,
+    S025_body_msg,
+    S025_query_msg,
     S026_msg,
+    S027_msg,
+    S028_msg,
     S030_allowlist,
+    S034_msg,
     SentryCheck,
+    SentryVisitor,
     _s015_msg,
     get_api_violations,
 )
@@ -967,6 +982,173 @@ class F:
     )
 
 
+# --- S034: a 4xx returned inline must be a key in responses= ---
+
+
+def test_S034_undocumented_status_constant_fires() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        return Response({"detail": "x"}, status=status.HTTP_409_CONFLICT)
+""") == ["4:S034"]
+
+
+def test_S034_undocumented_literal_status_fires() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        return Response({"detail": "x"}, 402)
+""") == ["4:S034"]
+
+
+def test_S034_bare_status_name_fires() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        return Response(status=HTTP_404_NOT_FOUND)
+""") == ["4:S034"]
+
+
+def test_S034_documented_status_passes() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse, 409: RESPONSE_CONFLICT})
+    def post(self) -> Response[AResponse]:
+        if self.x:
+            return Response({"detail": "x"}, status=status.HTTP_409_CONFLICT)
+        return Response({"a": "a"}, status=200)
+""")
+        == []
+    )
+
+
+def test_S034_tuple_and_string_keys_count_as_documented() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={(400, "application/json"): RESPONSE_BAD_REQUEST, "404": X})
+    def post(self) -> Response[AResponse]:
+        if self.x:
+            return Response(status=400)
+        return Response(status=404)
+""")
+        == []
+    )
+
+
+def test_S034_non_4xx_statuses_skipped() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        if self.x:
+            return Response(status=status.HTTP_202_ACCEPTED)
+        return Response(status=500)
+""")
+        == []
+    )
+
+
+def test_S034_method_without_responses_skipped() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(operation_id="x")
+    def post(self) -> Response[AResponse]:
+        return Response(status=409)
+""")
+        == []
+    )
+
+
+def test_S034_unreadable_responses_skipped() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses=SHARED_RESPONSES)
+    def post(self) -> Response[AResponse]:
+        return Response(status=409)
+
+    @extend_schema(responses={200: AResponse, **SHARED_ERRORS})
+    def put(self) -> Response[AResponse]:
+        return Response(status=409)
+
+    @extend_schema(responses={OK: AResponse})
+    def delete(self) -> Response[AResponse]:
+        return Response(status=409)
+""")
+        == []
+    )
+
+
+def test_S034_helpers_variables_and_raises_not_followed() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        if self.a:
+            return self.helper()
+        if self.b:
+            raise Conflict()
+        response = Response(status=409)
+        return response
+""")
+        == []
+    )
+
+
+def test_S034_nested_function_return_not_attributed() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        def inner():
+            return Response(status=409)
+
+        return inner()
+""")
+        == []
+    )
+
+
+def test_S034_async_method_and_dotted_response_fire() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    async def post(self) -> Response[AResponse]:
+        return response.Response(status=status.HTTP_402_PAYMENT_REQUIRED)
+""") == ["4:S034"]
+
+
+def test_S034_module_level_function_skipped() -> None:
+    assert (
+        _resp("""\
+@extend_schema(responses={200: AResponse})
+def post(request) -> Response[AResponse]:
+    return Response(status=409)
+""")
+        == []
+    )
+
+
+def test_S034_message_names_the_status() -> None:
+    tree = ast.parse("""\
+class E:
+    @extend_schema(responses={200: AResponse})
+    def post(self) -> Response[AResponse]:
+        return Response(status=409)
+""")
+    ((_line, _col, msg, _cls),) = SentryCheck(tree=tree, filename="t.py").run()
+    assert msg == S034_msg.format(409)
+
+
 # --- S022: published methods must declare a response shape ---
 
 
@@ -1607,6 +1789,44 @@ class E(Endpoint):
     assert _run_input(src) == []
 
 
+def test_S025_body_serializer_declared_as_an_instance_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(request=BodySerializer(partial=True))
+    def put(self, request) -> Response[X]:
+        BodySerializer(data=request.data, partial=True)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_query_serializer_declared_as_an_instance_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[QuerySerializer(partial=True)])
+    def get(self, request) -> Response[X]:
+        QuerySerializer(data=request.GET)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_instance_of_another_serializer_is_still_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(request=OtherSerializer(partial=True))
+    def put(self, request) -> Response[X]:
+        BodySerializer(data=request.data)
+"""
+    errors = _run_input(src)
+    assert len(errors) == 1
+    assert "validates the request body" in errors[0]
+
+
 SHAPED = frozenset({"shaped"})
 
 
@@ -1620,9 +1840,10 @@ class E(Endpoint):
 """
     errors = _run_input(src, SHAPED)
     assert errors == [
-        "t.py:5:15: S026 'truncate' is read straight off the query string, so the schema has "
-        "nothing to document and the value is an unchecked string. Read it through a "
-        "serializer declared in @extend_schema."
+        "t.py:5:15: S026 'truncate' is read straight off the query string instead of "
+        "through a serializer declared in @extend_schema, so nothing ties the schema to "
+        "what this endpoint accepts. Read it through a declared serializer, or declare "
+        "this endpoint's input as an exception."
     ]
 
 
@@ -1691,6 +1912,191 @@ class E(Endpoint):
     )
 
 
+def test_S027_loop_over_literal_keys_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        for key in ("app_id", "branch"):
+            request.GET.get(key)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S027_loop_over_literal_keys_in_list_comprehension_format_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return [request.GET.get(key) for key in ("app_id", "branch")]
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S027_loop_over_literal_keys_in_dict_comprehension_format_is_silent() -> None:
+    src = """\
+REQUIRED_PARAMS = ["app_id", "branch"]
+
+
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return {key: request.GET.get(key) for key in REQUIRED_PARAMS}
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S027_loop_over_request_in_list_comprehension_format_is_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return [request.GET.get(key) for key in request.GET]
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "S027 the query string is read with the computed key key" in errors[0]
+
+
+def test_S027_list_comprehension_variable_read_after_it_is_still_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        values = [request.GET.get(key) for key in ("app_id", "branch")]
+        return request.GET.get(key)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "S027 the query string is read with the computed key key" in errors[0]
+
+
+def test_S027_loop_over_same_file_constant_list_is_silent() -> None:
+    src = """\
+REQUIRED_PARAMS = ["app_id", "branch"]
+
+
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        for param in REQUIRED_PARAMS:
+            request.GET.get(param)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S027_loop_over_annotated_constant_dict_items_is_silent() -> None:
+    src = """\
+QUERY_PARAMS: dict[str, Any] = {
+    "app_id": {"required": True},
+    "branch": {"required": False},
+}
+
+
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        for param, spec in QUERY_PARAMS.items():
+            if spec.get("required") and not request.GET.get(param):
+                return Response(status=400)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S027_loop_over_declared_serializer_fields_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(request=ProjectAdminSerializer)
+    def put(self, request) -> Response[X]:
+        for key in ProjectAdminSerializer().fields.keys():
+            request.data.get(key)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S027_loop_over_undeclared_serializer_fields_is_still_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    def put(self, request) -> Response[X]:
+        for key in ProjectAdminSerializer().fields.keys():
+            request.data.get(key)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "S027 the request body is read with the computed key key" in errors[0]
+
+
+def test_S027_loop_over_imported_constant_is_still_reported() -> None:
+    src = """\
+from sentry.somewhere import REQUIRED_PARAMS
+
+
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        for param in REQUIRED_PARAMS:
+            request.GET.get(param)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "S027 the query string is read with the computed key param" in errors[0]
+
+
+def test_S027_loop_over_request_keys_is_still_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        for key in request.GET:
+            request.GET.get(key)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "S027 the query string is read with the computed key key" in errors[0]
+
+
+def test_S027_loop_variable_outside_the_loop_is_still_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        for key in ("app_id", "branch"):
+            pass
+        return request.GET.get(key)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "S027 the query string is read with the computed key key" in errors[0]
+
+
+def test_S027_inner_loop_reusing_the_name_keeps_the_outer_key_safe() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        for key in ("app_id", "branch"):
+            for key in ("project", "environment"):
+                request.GET.get(key)
+            request.GET.get(key)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
 def test_S028_hand_off_is_reported() -> None:
     src = """\
 class E(Endpoint):
@@ -1725,6 +2131,41 @@ class E(Endpoint):
         return QuerySerializer(data=request.GET)
 """
     assert _run_input(src, SHAPED) == []
+
+
+def test_S028_runtime_chosen_serializer_class_is_not_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    def put(self, request) -> Response[X]:
+        return serializer_cls(data=request.data)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S028_serializer_class_attribute_is_not_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    def put(self, request) -> Response[X]:
+        return self.serializer_cls(data=request.data)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S028_class_variable_without_data_is_still_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    def put(self, request) -> Response[X]:
+        return serializer_cls(request.data)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "handed to serializer_cls" in errors[0]
 
 
 def test_shaped_rule_records_instead_of_gating_when_unenforced() -> None:
@@ -1829,6 +2270,73 @@ class E(Endpoint):
     assert _run_input(src, SHAPED) == []
 
 
+def test_S028_date_helper_with_documented_params_is_not_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(
+        parameters=[
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
+        ]
+    )
+    def get(self, request) -> Response[X]:
+        return get_date_range_from_params(request.GET)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S028_date_helper_without_documented_params_is_still_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return get_date_range_from_params(request.GET)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "handed to get_date_range_from_params" in errors[0]
+
+
+def test_S028_date_helper_with_some_documented_params_is_still_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[GlobalParams.START, GlobalParams.END, GlobalParams.STATS_PERIOD])
+    def get(self, request) -> Response[X]:
+        return get_date_range_from_params(request.GET)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "handed to get_date_range_from_params" in errors[0]
+
+
+def test_S028_stats_period_date_helper_with_documented_params_is_not_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(
+        parameters=[
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
+        ]
+    )
+    def get(self, request) -> Response[X]:
+        return get_date_range_from_stats_period(request.GET)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
 def _api_violations(
     src: str, enforced: frozenset[str] = frozenset(), all_rules: bool = True
 ) -> list[ApiInputViolation]:
@@ -1848,7 +2356,7 @@ class E(Endpoint):
 """
     assert _api_violations(src) == [
         ApiInputViolation(
-            rule="S026",
+            rule=ApiRule.S026,
             message=S026_msg.format(repr("truncate"), "query string"),
             line=5,
             column=15,
@@ -1892,6 +2400,48 @@ class E(Endpoint):
     assert violations[3].rule == "S028"
     assert violations[3].scope == "E.post"
     assert violations[3].key == "body:helper"
+
+
+def test_api_violations_rule_is_an_api_rule() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        QuerySerializer(data=request.GET)
+        request.GET.get("truncate")
+        return request.GET.get(some_name)
+
+    def post(self, request) -> Response[X]:
+        BodySerializer(data=request.data)
+        return helper(request.data)
+"""
+    violations = _api_violations(src)
+    assert len(violations) == 5
+    for violation in violations:
+        assert isinstance(violation.rule, ApiRule)
+        assert violation.message.startswith(f"{violation.rule} ")
+
+    rules = set()
+    for violation in violations:
+        rules.add(violation.rule)
+    assert rules == {ApiRule.S025, ApiRule.S026, ApiRule.S027, ApiRule.S028}
+
+
+def test_api_rule_messages_start_with_their_code() -> None:
+    assert S021_msg.startswith(f"{ApiRule.S021} ")
+    assert S022_missing_msg.startswith(f"{ApiRule.S022} ")
+    assert S022_bare_msg.startswith(f"{ApiRule.S022} ")
+    assert S023_no_reason_msg.startswith(f"{ApiRule.S023} ")
+    assert S023_not_mapping_msg.startswith(f"{ApiRule.S023} ")
+    assert S023_blank_reason_msg.startswith(f"{ApiRule.S023} ")
+    assert S023_ghost_msg.startswith(f"{ApiRule.S023} ")
+    assert S023_bad_path_msg.startswith(f"{ApiRule.S023} ")
+    assert S025_query_msg.startswith(f"{ApiRule.S025} ")
+    assert S025_body_msg.startswith(f"{ApiRule.S025} ")
+    assert S026_msg.startswith(f"{ApiRule.S026} ")
+    assert S027_msg.startswith(f"{ApiRule.S027} ")
+    assert S028_msg.startswith(f"{ApiRule.S028} ")
 
 
 def test_api_violations_keep_query_and_body_reads_apart() -> None:
@@ -1973,6 +2523,58 @@ class E(Endpoint):
     enforced_only = _api_violations(src, enforced=SHAPED, all_rules=False)
     assert len(enforced_only) == 1
     assert enforced_only[0].rule == "S026"
+
+
+def test_super_call_is_recorded_once() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return super().get(request)
+"""
+    visitor = SentryVisitor("src/sentry/api/endpoints/t.py", 2000, _s015_msg())
+    visitor.visit(ast.parse(src))
+    calls = visitor._functions["E.get"].calls
+    assert len(calls) == 1
+    assert calls[0].kind == "super"
+    assert calls[0].name == "get"
+
+
+def test_method_defined_twice_reports_both_definitions() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    if FLAG:
+        def get(self, request) -> Response[X]:
+            return Response({"a": request.GET.get("a")})
+    else:
+        def get(self, request) -> Response[X]:
+            return Response({"b": request.GET.get("b")})
+"""
+    reported = []
+    for violation in _api_violations(src):
+        reported.append((violation.line, violation.scope, violation.key))
+    assert reported == [(6, "E.get", "query:a"), (9, "E.get", "query:b")]
+
+
+def test_overload_stub_and_real_def_are_both_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @overload
+    def get(self, request) -> Response[X]:
+        return Response({"a": request.GET.get("a")})
+
+    def get(self, request) -> Response[X]:
+        return Response({"b": request.GET.get("b")})
+"""
+    reported = []
+    for violation in _api_violations(src):
+        reported.append((violation.line, violation.key))
+    assert reported == [(6, "query:a"), (9, "query:b")]
 
 
 def test_api_violations_skip_private_methods() -> None:

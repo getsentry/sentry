@@ -10,27 +10,22 @@ from sentry import analytics
 from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.related.similar_stacktrace import build_seer_request, get_seer_stacktrace
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.seer.similarity.config import get_grouping_model_version, should_skip_seer_fallback
+from sentry.seer.similarity.config import get_grouping_model_version
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
-from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
-from sentry.seer.similarity.utils import (
-    ReferrerOptions,
-    event_content_has_stacktrace,
-    get_stacktrace_string,
-    killswitch_enabled,
-    stacktrace_exceeds_limits,
-)
+from sentry.seer.similarity.types import SeerSimilarIssueData
+from sentry.seer.similarity.utils import ReferrerOptions, killswitch_enabled
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.users.models.user import User
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +38,7 @@ class FormattedSimilarIssuesEmbeddingsData(TypedDict):
 @cell_silo_endpoint
 class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -50,7 +46,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     def get_formatted_results(
         self,
         similar_issues_data: Sequence[SeerSimilarIssueData],
-        user: User | AnonymousUser,
+        user: User | AnonymousUser | ServiceAccountPrincipal,
         group: Group,
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """
@@ -96,38 +92,17 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             return Response([])
 
         latest_event = group.get_latest_event()
-        stacktrace_string = ""
+        if latest_event is None:
+            return Response([])
 
         model_version = get_grouping_model_version(group.project)
+        stacktrace_string = get_seer_stacktrace(latest_event, model_version)
+        if not stacktrace_string:
+            return Response([])  # No exception, stacktrace or in-app frames
 
-        if latest_event and event_content_has_stacktrace(latest_event):
-            variants = latest_event.get_grouping_variants(normalize_stacktraces=True)
-
-            if not stacktrace_exceeds_limits(
-                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB, model_version
-            ):
-                grouping_info = get_grouping_info_from_variants_legacy(variants)
-                try:
-                    stacktrace_string = get_stacktrace_string(grouping_info)
-                except Exception:
-                    logger.exception("Unexpected exception in stacktrace string formatting")
-
-        if not stacktrace_string or not latest_event:
-            return Response([])  # No exception, stacktrace or in-app frames, or event
-
-        similar_issues_params: SimilarIssuesEmbeddingsRequest = {
-            "event_id": latest_event.event_id,
-            "hash": latest_event.get_primary_hash(),
-            "project_id": group.project.id,
-            "stacktrace": stacktrace_string,
-            "exception_type": get_path(latest_event.data, "exception", "values", -1, "type"),
-            "read_only": True,
-            "referrer": "similar_issues",
-            "model": model_version,
-            "training_mode": False,
-            "platform": latest_event.platform or "unknown",
-            "skip_fallback": should_skip_seer_fallback(group.project),
-        }
+        similar_issues_params = build_seer_request(
+            latest_event, group.project, stacktrace_string, model_version
+        )
         # Add optional parameters
         if request.GET.get("k"):
             similar_issues_params["k"] = int(request.GET["k"])
@@ -137,7 +112,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
 
         viewer_context = SeerViewerContext(
-            organization_id=group.project.organization.id, user_id=request.user.id
+            organization_id=group.project.organization.id, user_id=acting_user_id(request.user)
         )
         results, _model_used = get_similarity_data_from_seer(
             similar_issues_params, viewer_context=viewer_context
@@ -156,7 +131,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
                         if result.stacktrace_distance <= 0.01
                     ]
                 ),
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
             )
         )
 

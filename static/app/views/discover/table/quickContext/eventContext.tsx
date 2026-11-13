@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {
@@ -10,13 +11,12 @@ import {t} from 'sentry/locale';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {NoContext} from 'sentry/views/discover/table/quickContext/noContext';
 
 import {ActionDropDown, ContextValueType} from './actionDropdown';
+import {NoContext} from './noContext';
 import {
   ContextBody,
   ContextContainer,
@@ -37,22 +37,18 @@ interface EventContextProps extends BaseContextProps {
 
 export function EventContext(props: EventContextProps) {
   const {organization, dataRow, eventView, location} = props;
-  const {isPending, isError, data} = useApiQuery<Event>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: dataRow['project.name'],
-            eventId: dataRow.id,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: tenSecondInMs,
-    }
+  const {isPending, isError, data} = useQuery(
+    apiOptions.as<Event>()(
+      '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: dataRow['project.name'],
+          eventId: dataRow.id,
+        },
+        staleTime: tenSecondInMs,
+      }
+    )
   );
 
   useEffect(() => {

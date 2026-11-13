@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from django.db.models import QuerySet
+from django.test import override_settings
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.dashboards.endpoints.organization_dashboards import PrebuiltDashboardId
@@ -15,6 +19,7 @@ from sentry.explore.translation.dashboards_translation import translate_dashboar
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardLastVisited,
     DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -34,11 +39,11 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
@@ -96,7 +101,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             order=0,
         )
 
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-details",
             kwargs={
@@ -105,7 +110,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             },
         )
 
-    def assert_serialized_dashboard(self, data, dashboard):
+    def assert_serialized_dashboard(self, data: Mapping[str, Any], dashboard: Dashboard) -> None:
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"]["id"] == str(dashboard.created_by_id)
@@ -145,15 +150,22 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
         assert response.data["createdBy"] is None
 
+    def test_get_with_widget_with_removed_display_type(self) -> None:
+        # 5 was the world_map display type. It was removed from
+        # DashboardWidgetDisplayTypes, but older widgets can still store it.
+        DashboardWidget.objects.filter(id=self.widget_1.id).update(display_type=5)
+
+        response = self.do_request("get", self.url(self.dashboard.id))
+
+        assert response.status_code == 200, response.content
+        widgets = {widget["id"]: widget for widget in response.data["widgets"]}
+        assert widgets[str(self.widget_1.id)]["displayType"] is None
+        assert widgets[str(self.widget_2.id)]["displayType"] is not None
+
     def test_dashboard_does_not_exist(self) -> None:
         response = self.do_request("get", self.url(1234567890))
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
-
-    def test_features_required(self) -> None:
-        with self.feature({"organizations:dashboards-basic": False}):
-            response = self.do_request("get", self.url(self.dashboard.id))
-            assert response.status_code == 404
 
     def test_dashboard_widget_returns_limit(self) -> None:
         response = self.do_request("get", self.url(self.dashboard.id))
@@ -800,11 +812,6 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204
         assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
 
-    def test_features_required(self) -> None:
-        with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request("delete", self.url(self.dashboard.id))
-            assert response.status_code == 404
-
     def test_delete_dashboard_with_edit_permissions_not_granted(self) -> None:
         creator = self.create_user()
         dashboard = Dashboard.objects.create(
@@ -820,6 +827,43 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
 
         response = self.do_request("delete", self.url(dashboard.id))
         assert response.status_code == 403
+
+    def test_api_key_cannot_delete_restricted_dashboard_without_creator(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=None,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+
+        response = self.client.delete(
+            self.url(dashboard.id), HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key)
+        )
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=dashboard.id).exists()
+
+    def test_api_key_cannot_delete_restricted_dashboard_via_pending_invite(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=self.create_user().id,
+            organization=self.organization,
+        )
+        team = self.create_team(organization=self.organization)
+        self.create_member(
+            organization=self.organization, email="invited@example.com", teams=[team]
+        )
+        permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=False, dashboard=dashboard
+        )
+        permissions.teams_with_edit_access.set([team])
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+
+        response = self.client.delete(
+            self.url(dashboard.id), HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key)
+        )
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=dashboard.id).exists()
 
     def test_delete_dashboard_with_edit_permissions_disabled(self) -> None:
         creator = self.create_user()
@@ -903,6 +947,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         super().setUp()
         self.project = self.create_project()
         self.create_user_member_role()
+        Dashboard.objects.filter(id=self.dashboard.id).update(created_by_id=self.user.id)
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=2,
@@ -919,18 +964,18 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
 
-    def get_widget_queries(self, widget):
+    def get_widget_queries(self, widget: DashboardWidget) -> QuerySet[DashboardWidgetQuery]:
         return DashboardWidgetQuery.objects.filter(widget=widget).order_by("order")
 
-    def assert_no_changes(self):
+    def assert_no_changes(self) -> None:
         self.assert_dashboard_and_widgets(self.widget_ids)
 
-    def assert_dashboard_and_widgets(self, widget_ids):
+    def assert_dashboard_and_widgets(self, widget_ids: Sequence[int]) -> None:
         assert Dashboard.objects.filter(
             organization=self.organization, id=self.dashboard.id
         ).exists()
 
-        widgets = self.get_widgets(self.dashboard)
+        widgets = self.get_widgets(self.dashboard.id)
         assert len(widgets) == len(list(widget_ids))
 
         for widget, id in zip(widgets, widget_ids):
@@ -940,13 +985,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(1234567890))
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
-
-    def test_feature_required(self) -> None:
-        with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
-            )
-            assert response.status_code == 404, response.data
 
     def test_change_dashboard_title(self) -> None:
         with outbox_runner():
@@ -1422,7 +1460,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
 
     def test_add_widget_with_limit(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -1795,7 +1833,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert translated_widget_query.orderby == ""
 
     def test_update_widget_title(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id), "title": "New title"},
@@ -1961,7 +1999,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_remove_widget_and_add_new(self) -> None:
         # Remove a widget from the middle of the set and put a new widget there
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id)},
@@ -2285,7 +2323,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert spans_widget.dataset_source == DashboardWidgetDatasetSourcesTypes.USER.value
 
     def test_remove_widgets(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id), "title": "New title"},
@@ -2843,7 +2881,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "False"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2860,7 +2898,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "false"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2880,7 +2918,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
 
         assert permission.is_editable_by_everyone is True
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3060,7 +3098,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3096,7 +3134,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3127,7 +3165,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3154,7 +3192,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         self.create_environment(project=mock_project, name="mock_env")
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3200,7 +3238,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3703,6 +3741,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         field_links = DashboardFieldLink.objects.filter(dashboard_widget_query=queries[0])
         assert len(field_links) == 0
+
+    def test_create_widget_with_query_priority(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Query Priority",
+            "queryPriority": "faster",
+            "widgets": [],
+        }
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["queryPriority"] == "faster"
+
+    def test_update_widget_with_query_priority(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links",
+            organization=self.organization,
+            query_priority=1,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [],
+            "queryPriority": "normal",
+        }
+
+        response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["queryPriority"] == "normal"
 
     def test_does_not_update_non_table_dashboard_links(self) -> None:
         dashboard = self.create_dashboard(
@@ -4874,7 +4939,7 @@ class OrganizationDashboardDetailsOnDemandTransactionLikeTest(
 
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-visit",
             kwargs={
@@ -4896,18 +4961,25 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         assert dashboard.last_visited is not None
         assert dashboard.last_visited > last_visited
 
-    def test_visit_dashboard_no_access(self) -> None:
-        last_visited = self.dashboard.last_visited
-        assert self.dashboard.visits == 1
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature(["organizations:service-accounts", "organizations:dashboards-user-last-visited"])
+    def test_visit_dashboard_as_service_account(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
 
-        with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request("post", self.url(self.dashboard.id))
+        response = self.client.post(
+            self.url(self.dashboard.id), HTTP_X_VIEWER_CONTEXT=viewer_context
+        )
 
-        assert response.status_code == 404
-
-        dashboard = Dashboard.objects.get(id=self.dashboard.id)
-        assert dashboard.visits == 1
-        assert dashboard.last_visited == last_visited
+        assert response.status_code == 204, response.content
+        assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
+        assert not DashboardLastVisited.objects.filter(dashboard=self.dashboard).exists()
 
 
 class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
@@ -4922,7 +4994,7 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
         # Both users have favorited the dashboard
         self.dashboard.favorited_by = [self.user_1.id, self.user_2.id]
 
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-favorite",
             kwargs={
@@ -4982,9 +5054,9 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
 
     features = ["organizations:dashboards-starred"]
 
-    def do_request(self, *args, **kwargs):
+    def do_request(self, method: str, url: str, data: dict[str, Any] | None = None) -> Response:
         with self.feature(self.features):
-            return super().do_request(*args, **kwargs)
+            return super().do_request(method, url, data)
 
     def setUp(self) -> None:
         super().setUp()
@@ -4997,7 +5069,7 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
             dashboard=self.dashboard,
         )
 
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-favorite",
             kwargs={
@@ -5056,9 +5128,8 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
 
 
 @with_feature("organizations:granular-permission-scopes")
-@granular_roles_granting("user_preference:read", "user_preference:write")
 class OrganizationDashboardFavoriteScopeTest(OrganizationDashboardDetailsTestCase):
-    def url(self, dashboard_id: int) -> str:
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-favorite",
             kwargs={

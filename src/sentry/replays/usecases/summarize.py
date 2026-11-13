@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -199,7 +199,7 @@ def fetch_trace_connected_errors(
 
 
 @traces.trace
-def fetch_feedback_details(feedback_id: str | None, project_id) -> EventDict | None:
+def fetch_feedback_details(feedback_id: str | None, project_id: int) -> EventDict | None:
     """
     Fetch user feedback associated with a specific feedback event ID.
     """
@@ -270,7 +270,7 @@ def _format_when(timestamp: float | None) -> str:
 def generate_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
-    project_id,
+    project_id: int,
     is_mobile_replay: bool = False,
     replay_start: str | None = None,
 ) -> Generator[str]:
@@ -581,7 +581,7 @@ def rpc_get_replay_summary_logs(
         request_user_id=None,  # This is for the viewed_by_me field which is unused for summaries.
     )
     processed_response = process_raw_response(
-        snuba_response,
+        cast("list[dict[str, Any]]", snuba_response),
         fields=[],  # Defaults to all fields.
     )
 

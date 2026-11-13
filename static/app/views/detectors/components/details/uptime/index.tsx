@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

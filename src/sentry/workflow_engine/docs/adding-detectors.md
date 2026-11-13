@@ -13,6 +13,7 @@ condition handling belong in `sentry.workflow_engine`.
 Before coding, identify:
 
 - The owning product module
+- The detector implementation type and output issue type
 - The packet payload type
 - The source of packet ordering
 - Whether one packet contains one value or grouped values
@@ -280,6 +281,25 @@ detector:<detector_id>:<group_key>
 
 Overriding `get_issue_fingerprint` replaces the whole fingerprint.
 
+For handlers that emit several issue types, use
+[`build_detector_issue_fingerprint`](../utils/fingerprinting.py) to separate detector
+instances, issue types, and recurring problems. Return its result from
+`get_issue_fingerprint` after identifying the issue type and problem key for that group:
+
+```python
+from sentry.workflow_engine.utils.fingerprinting import build_detector_issue_fingerprint
+
+fingerprint = build_detector_issue_fingerprint(detector.id, issue_type.type_id, problem_key)
+```
+
+The handler supplies a stable problem key. Repeated findings use the same key;
+different problems use different keys. The helper returns one fingerprint entry
+containing all three parts. Separate entries are alternative grouping hashes, not
+components combined into one identity.
+
+Custom fingerprints must separate distinct detector instances, issue types, and
+problems. Keep them stable across evaluations so recurring findings reach the same issue.
+
 #### Stateful evaluation
 
 The stateful implementation always includes its detector state key:
@@ -289,12 +309,16 @@ detector:<detector_id>
 detector:<detector_id>:<group_key>
 ```
 
-Override `build_issue_fingerprint` only when the product needs additional stable
-grouping components. The engine appends the detector state key to trigger and resolution
-fingerprints. Currently occurrence creation passes `group_key` to this override while
-resolution calls it without that argument. Do not make custom components depend on the
-argument unless resolution is updated and trigger/resolution tests cover the behavior.
-Fingerprint changes can split or merge production issues and can break recovery.
+For findings that need independent state and recovery, use separate evaluation group
+keys, including the issue type when the same problem key can occur in several types.
+Evaluation group keys determine both the state tracked for each finding and its
+default stateful fingerprint.
+
+`build_issue_fingerprint` adds alternative grouping hashes alongside the detector state
+key. It does not add components to a combined identity, so do not use it to separate
+issue types: the state key would still be a shared hash. Custom stateful fingerprints
+must match between triggers and resolutions. Fingerprint changes can split or merge
+production issues and can break recovery.
 
 Test the exact trigger and resolution fingerprints. For grouped detectors, explicitly
 test that one key cannot resolve another key's issue.
@@ -392,6 +416,17 @@ def thresholds(self) -> DetectorThresholds:
 
 ## Define the Issue and Detector Type
 
+Add a member to [`DetectorType`](../types.py) for the detector implementation:
+
+```python
+# In DetectorType:
+EXAMPLE_DETECTOR = "example_detector"
+```
+
+The string value is stored in `Detector.type` and used by APIs. Keep existing values
+unchanged when renaming an enum member. Settings registrations require an enum member;
+passing its string value to `register` is rejected.
+
 Create or extend a concrete [`GroupType`](../../issues/grouptype.py) in the owning
 product's `grouptype.py`:
 
@@ -399,7 +434,7 @@ product's `grouptype.py`:
 @dataclass(frozen=True)
 class ExampleGroupType(GroupType):
     type_id = 12345  # Allocate the real Issue Platform type ID.
-    slug = "example_detector"
+    slug = "example_issue"
     description = "Example detector issue"
     category = GroupCategory.ERROR.value  # Choose the applicable category.
     released = False
@@ -410,18 +445,28 @@ Use the Issue Platform documentation and existing group types to choose the type
 category, release controls, priority, auto-resolution, escalation behavior, and
 notification configuration.
 
+These are separate identities: `DetectorType` selects the implementation, and `GroupType`
+classifies its output. Their string values do not need to match. API validation and
+handler lookup use the detector settings registry; the handler chooses the occurrence's
+issue type.
+
 ### Register detector settings
 
 The group type describes the issue. The detector components live in a
 [`DetectorSettings`](../types.py) subclass registered in
-[`detector_settings_registry`](../registry.py) under the group type's slug:
+[`detector_settings_registry`](../registry.py) under the detector's enum member:
 
 ```python
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorSettings, FeatureGate
+from sentry.workflow_engine.types import (
+    DetectorAPIOperation,
+    DetectorSettings,
+    DetectorType,
+    FeatureGate,
+)
 
 
-@detector_settings_registry.register(ExampleGroupType.slug)
+@detector_settings_registry.register(DetectorType.EXAMPLE_DETECTOR)
 class ExampleDetectorSettings(DetectorSettings):
     handler = ExampleDetectorHandler
     validator = ExampleDetectorValidator
@@ -442,24 +487,48 @@ imported during application startup.
 
 [`DetectorSettings`](../types.py) fields are:
 
-| Field              | Purpose                                                                                |
-| ------------------ | -------------------------------------------------------------------------------------- |
-| `api_availability` | Optional operation-to-`bool`/`FeatureGate` overrides; inherits the all-enabled default |
-| `handler`          | Runtime `DetectorHandler` class                                                        |
-| `validator`        | Native detector API validator                                                          |
-| `config_schema`    | Save-time JSON schema for `Detector.config`                                            |
-| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type                |
+| Field              | Purpose                                                                       |
+| ------------------ | ----------------------------------------------------------------------------- |
+| `api_availability` | Operation-to-`bool`/`FeatureGate` overrides; all operations default to `True` |
+| `handler`          | Runtime `DetectorHandler` class                                               |
+| `validator`        | Native detector API validator                                                 |
+| `config_schema`    | Save-time JSON schema for `Detector.config`                                   |
+| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type       |
+
+New handlers should provide a configuration schema. Legacy implementations can set
+`config_schema=None` when validation belongs to their existing pipeline. The detector
+type must still belong to the enum and have registered settings. A settings registration
+can omit a handler or validator; it does not move execution into Workflow Engine or
+make the detector available for API creation.
+
+Types are advertised by default. Set `api_availability[DetectorAPIOperation.DISCOVER]`
+to `False` for internal types, or use a registered `FeatureGate` for a rollout. The
+discovery endpoint also requires a handler and `GET` availability. Validation error
+suggestions use the `DISCOVER` gate and require a validator. `DISCOVER` does not restrict
+requests explicitly naming a type, or access to detector rows; those operations have
+their own gates.
+
+Only implementations provisioned by the default-detector path need a label in
+`DEFAULT_DETECTOR_NAMES` in [`defaults/detectors.py`](../defaults/detectors.py).
 
 Settings classes inherit `DetectorSettings.DEFAULT_API_AVAILABILITY` unless they override
-`api_availability`. This shared mapping is immutable and sets each `DetectorAPIOperation`
-member to `True`, so ordinary detector implementations need no availability declaration.
-Missing entries in custom maps still default to `True`. The supported enum members are
-`LIST`, `GET`, `POST`, `PUT`, and `DELETE`.
+`api_availability`. This shared mapping is immutable. All operations, including `DISCOVER`,
+default to `True`. Missing entries in custom maps inherit these defaults. Listing rows
+requires both `GET` and `LIST`; discovering types requires both `GET` and `DISCOVER`.
 
 Each gate is either `True`, `False`, or `FeatureGate("organizations:feature-name")`.
 `FeatureGate` checks a registered organization-scoped feature at request time using the
-authorized organization and actor. Feature names remain strings, but raw strings are not
-valid gate values.
+authorized organization and actor. `DISCOVER` uses organization visibility without an
+actor. Feature names remain strings, but raw strings are not valid gate values.
+
+To advertise a type behind a feature flag while allowing access to its rows:
+
+```python
+api_availability = {
+    **DetectorSettings.DEFAULT_API_AVAILABILITY,
+    DetectorAPIOperation.DISCOVER: FeatureGate("organizations:example-detector-visible"),
+}
+```
 
 To hide a type from the list and its counts without disabling other operations:
 
@@ -512,7 +581,10 @@ registers itself when its decorator runs. Sentry startup imports the root
 [`import_grouptype`](../../issues/grouptype.py). Put both classes there, or import a
 nested implementation from that file, as
 [`sentry.preprod.grouptype`](../../preprod/grouptype.py) does. Add a test that checks
-both the group type and its settings resolve by slug after normal application startup.
+the issue type resolves through the GroupType registry and settings resolve through
+`detector_settings_registry.get(DetectorType.EXAMPLE_DETECTOR)` after normal application
+startup. Every `DetectorType` member must have registered settings; a startup test checks
+this contract.
 
 ## Implement API Validation
 
@@ -662,7 +734,8 @@ cause a producer to run.
 ### Issue type and handler
 
 - [ ] Add or update the product `GroupType`.
-- [ ] Register a `DetectorSettings` subclass in `detector_settings_registry` with
+- [ ] Add the implementation's `DetectorType` member with a stable stored value.
+- [ ] Register a `DetectorSettings` subclass with that enum member in `detector_settings_registry`, with
       handler, validator, and strict config schema.
 - [ ] Implement the selected detector handler abstraction.
 - [ ] Implement occurrence evidence and event data.

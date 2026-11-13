@@ -32,6 +32,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {toPercent} from 'sentry/utils/number/toPercent';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -260,7 +261,7 @@ export function SampledEventsTable({
         }}
       />
       <Pagination
-        pageLinks={pageLinks}
+        {...getPaginationProps(pageLinks)}
         onCursor={onCursor}
         size="md"
         caption={numEventsError ? undefined : paginationCaption}

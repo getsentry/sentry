@@ -3,8 +3,9 @@ import {Fragment, useCallback} from 'react';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
-import {TraceBackgroundPatterns} from 'sentry/views/performance/traceDetails/traceRow/traceBackgroundPatterns';
-import {TraceIssueIcons} from 'sentry/views/performance/traceDetails/traceRow/traceIcons';
+
+import {TraceBackgroundPatterns} from './traceBackgroundPatterns';
+import {TraceIssueIcons} from './traceIcons';
 
 interface InvisibleTraceBarProps {
   children: React.ReactNode;

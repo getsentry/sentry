@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.db import models
 from django.utils import timezone
@@ -19,6 +19,10 @@ from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.types.cell import find_cells_for_orgs
+
+if TYPE_CHECKING:
+    from sentry.auth.provider import Provider
+    from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -90,7 +94,7 @@ class AuthProvider(ReplicatedControlModel):
     def __str__(self) -> str:
         return self.provider
 
-    def get_provider(self):
+    def get_provider(self) -> Provider:
         from sentry.auth import manager
 
         return manager.get(self.provider, **self.config)
@@ -99,10 +103,10 @@ class AuthProvider(ReplicatedControlModel):
     def provider_name(self) -> str:
         return self.get_provider().name
 
-    def get_scim_token(self):
+    def get_scim_token(self) -> str | None:
         return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
 
-    def enable_scim(self, user):
+    def enable_scim(self, user: User) -> None:
         from sentry.sentry_apps.logic import SentryAppCreator
         from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
         from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
@@ -165,7 +169,7 @@ class AuthProvider(ReplicatedControlModel):
             for region_name in find_cells_for_orgs([self.organization_id])
         ]
 
-    def disable_scim(self):
+    def disable_scim(self) -> None:
         from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
             SentryAppInstallationForProvider,
         )
@@ -192,7 +196,7 @@ class AuthProvider(ReplicatedControlModel):
                 pass
             self.flags.scim_enabled = False
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         provider = self.provider
         # NOTE(isabella): for both standard fly SSO and fly-non-partner SSO, we should record the
         # provider as "fly" in the audit log entry data; the only difference between the two is

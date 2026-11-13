@@ -1,7 +1,7 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

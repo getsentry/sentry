@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SessionFieldWithOperation} from 'sentry/types/organization';
-import {ProjectStabilityScoreCard} from 'sentry/views/projectDetail/projectScoreCards/projectStabilityScoreCard';
+
+import {ProjectStabilityScoreCard} from './projectStabilityScoreCard';
 
 describe('ProjectDetail > ProjectStability', () => {
   const organization = OrganizationFixture();

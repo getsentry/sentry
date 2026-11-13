@@ -7,6 +7,7 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import type {FormSize, SpaceSize} from '@sentry/scraps/theme';
 
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
@@ -145,20 +146,24 @@ interface Props {
 }
 
 interface TransformationRowsProps extends Props {
+  gap?: SpaceSize;
   layout?: TransformationLayout;
+  size?: FormSize;
 }
 
 export function VisualizeTransformationRows({
   transformations,
   onChange,
   traceItemDataset,
+  gap = 'sm',
   layout = 'stacked',
+  size = 'md',
   analyticsSource = 'explore',
 }: TransformationRowsProps) {
   const organization = useOrganization();
 
   return transformations.length ? (
-    <Stack gap="sm">
+    <Stack gap={gap}>
       {transformations.map((raw, index) => {
         const transformation = parseTransformation(raw);
         return (
@@ -169,6 +174,7 @@ export function VisualizeTransformationRows({
             traceItemDataset={traceItemDataset}
             analyticsSource={analyticsSource}
             layout={layout}
+            size={size}
             onChange={value =>
               onChange(transformations.toSpliced(index, 1, formatTransformation(value)))
             }
@@ -226,6 +232,7 @@ export function VisualizeTransformationRows({
 
 interface AddTransformationButtonProps extends Props {
   iconOnly?: boolean;
+  variant?: 'transparent' | 'link';
 }
 
 export function AddTransformationButton({
@@ -234,6 +241,7 @@ export function AddTransformationButton({
   traceItemDataset,
   iconOnly = false,
   analyticsSource = 'explore',
+  variant = 'transparent',
 }: AddTransformationButtonProps) {
   const organization = useOrganization();
   const kindOptions = KIND_OPTIONS.map(option => ({
@@ -259,8 +267,8 @@ export function AddTransformationButton({
         ) : (
           <OverlayTrigger.Button
             {...props}
-            variant="transparent"
-            size="zero"
+            variant={variant}
+            size={variant === 'transparent' ? 'zero' : 'md'}
             icon={<IconAdd />}
           >
             {t('Add Transformation')}
@@ -293,6 +301,7 @@ interface TransformationRowProps {
   onChange: (value: Transformation) => void;
   onRemove: () => void;
   onTypeChange: (kind: Transformation['kind']) => void;
+  size: FormSize;
   traceItemDataset: Props['traceItemDataset'];
   transformation: Transformation | null;
 }
@@ -304,6 +313,7 @@ function TransformationRow({
   onChange,
   onRemove,
   onTypeChange,
+  size,
   traceItemDataset,
   transformation,
 }: TransformationRowProps) {
@@ -337,8 +347,9 @@ function TransformationRow({
         />
         <Flex align="center" gap="md" wrap="wrap" minWidth="0">
           {transformation ? (
-            <PageFilterBar condensed>
+            <PageFilterBar condensed size={size}>
               <CompactSelect
+                size={size}
                 options={KIND_OPTIONS}
                 value={transformation.kind}
                 trigger={props => (
@@ -351,6 +362,7 @@ function TransformationRow({
               />
               {transformation.kind === 'fill' ? (
                 <CompactSelect
+                  size={size}
                   options={FILL_OPTIONS}
                   menuWidth={320}
                   value={transformation.method}
@@ -371,6 +383,7 @@ function TransformationRow({
                 />
               ) : (
                 <CompactSelect
+                  size={size}
                   options={SMOOTH_OPTIONS}
                   menuWidth={320}
                   value={transformation.method}
@@ -408,6 +421,7 @@ function TransformationRow({
               index={index}
               traceItemDataset={traceItemDataset}
               layout={layout}
+              size={size}
               onChange={onChange}
             />
           ) : null}
@@ -420,6 +434,7 @@ function TransformationRow({
           index={index}
           traceItemDataset={traceItemDataset}
           layout={layout}
+          size={size}
           onChange={onChange}
         />
       ) : null}
@@ -432,6 +447,7 @@ interface SmoothingSettingsProps {
   index: number;
   layout: TransformationLayout;
   onChange: (value: SmoothTransformation) => void;
+  size: FormSize;
   traceItemDataset: Props['traceItemDataset'];
   transformation: SmoothTransformation;
 }
@@ -441,6 +457,7 @@ function SmoothingSettings({
   index,
   layout,
   onChange,
+  size,
   traceItemDataset,
   transformation,
 }: SmoothingSettingsProps) {
@@ -463,6 +480,7 @@ function SmoothingSettings({
           {windowLabel}
         </Text>
         <CompactSelect
+          size={size}
           options={WINDOW_OPTIONS}
           value={transformation.window}
           clearable={transformation.method === 'asap'}
@@ -503,6 +521,7 @@ function SmoothingSettings({
             {t('Smoothing Weight')}
           </Text>
           <CompactSelect
+            size={size}
             options={FACTOR_OPTIONS}
             value={transformation.factor}
             clearable

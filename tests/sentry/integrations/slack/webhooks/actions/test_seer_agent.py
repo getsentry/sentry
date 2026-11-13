@@ -1,4 +1,5 @@
-from unittest.mock import Mock, patch
+from typing import Any
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -39,7 +40,7 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
             user_id=self.user.id,
         )
 
-    def get_original_message(self):
+    def get_original_message(self) -> dict[str, Any]:
         return {
             "ts": self.message_ts,
             "blocks": [
@@ -50,7 +51,7 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
             ],
         }
 
-    def get_action(self, action: SlackAction):
+    def get_action(self, action: SlackAction) -> dict[str, Any]:
         return {
             "action_id": encode_action_id(
                 action=action,
@@ -99,7 +100,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_approve_grants_scopes_and_resumes_run(self, mock_fetch, mock_update):
+    def test_approve_grants_scopes_and_resumes_run(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         mock_fetch.return_value = self.pending_state()
         mock_update.return_value = Mock(status=202)
@@ -156,7 +159,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_approval_update_failure_returns_ephemeral_error(self, mock_fetch, mock_update):
+    def test_approval_update_failure_returns_ephemeral_error(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         mock_fetch.return_value = self.pending_state()
         mock_update.return_value = Mock(status=202)
@@ -174,7 +179,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_approval_update_timeout_returns_ephemeral_error(self, mock_fetch, mock_update):
+    def test_approval_update_timeout_returns_ephemeral_error(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         mock_fetch.return_value = self.pending_state()
         mock_update.return_value = Mock(status=202)
@@ -191,7 +198,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_reject_resumes_run_without_a_grant(self, mock_fetch, mock_update):
+    def test_reject_resumes_run_without_a_grant(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         mock_fetch.return_value = self.pending_state()
         mock_update.return_value = Mock(status=202)
@@ -209,7 +218,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_approve_requires_the_agent_token_feature(self, mock_fetch, mock_update):
+    def test_approve_requires_the_agent_token_feature(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
 
         response = self.post_webhook_block_kit(
@@ -225,7 +236,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_action_requires_slack_agent_access(self, mock_fetch, mock_update):
+    def test_action_requires_slack_agent_access(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         self.mock_agent_access.return_value = False
 
@@ -242,7 +255,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_another_user_cannot_approve_the_run(self, mock_fetch, mock_update):
+    def test_another_user_cannot_approve_the_run(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         other_user = self.create_user()
         self.create_member(user=other_user, organization=self.organization)
@@ -268,7 +283,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_unrecognized_message_cannot_approve(self, mock_fetch, mock_update):
+    def test_unrecognized_message_cannot_approve(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         with self.feature(agent_token.FEATURE_FLAG):
             response = self.post_webhook_block_kit(
                 action_data=[self.get_action(SlackAction.SEER_AGENT_WRITE_APPROVE)],
@@ -282,7 +299,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_invalid_seer_state_returns_ephemeral_error(self, mock_fetch, mock_update):
+    def test_invalid_seer_state_returns_ephemeral_error(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         mock_fetch.side_effect = ValueError("No session found")
 
@@ -298,7 +317,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_stale_message_cannot_approve_a_later_input(self, mock_fetch, mock_update):
+    def test_stale_message_cannot_approve_a_later_input(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message(input_id="approval-previous")
         mock_fetch.return_value = self.pending_state(input_id="approval-current")
 
@@ -315,7 +336,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_approve_cannot_exceed_the_slack_users_scopes(self, mock_fetch, mock_update):
+    def test_approve_cannot_exceed_the_slack_users_scopes(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         member_user = self.create_user()
         self.create_member(user=member_user, organization=self.organization, role="member")
@@ -348,7 +371,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_inactive_user_cannot_approve(self, mock_fetch, mock_update):
+    def test_inactive_user_cannot_approve(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user.is_active = False
@@ -367,7 +392,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_suspended_user_cannot_approve(self, mock_fetch, mock_update):
+    def test_suspended_user_cannot_approve(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user.is_suspended = True
@@ -386,7 +413,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_unapproved_member_cannot_approve(self, mock_fetch, mock_update):
+    def test_unapproved_member_cannot_approve(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         member = OrganizationMember.objects.get(
             user_id=self.user.id,
@@ -409,7 +438,9 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
 
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.make_agent_update_request")
     @patch("sentry.integrations.slack.webhooks.actions.seer_agent.fetch_run_status")
-    def test_disabled_organization_integration_cannot_approve(self, mock_fetch, mock_update):
+    def test_disabled_organization_integration_cannot_approve(
+        self, mock_fetch: MagicMock, mock_update: MagicMock
+    ) -> None:
         self.cache_message()
         organization_integration = integration_service.get_organization_integration(
             integration_id=self.integration.id,

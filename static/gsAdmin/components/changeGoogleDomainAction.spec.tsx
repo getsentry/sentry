@@ -1,13 +1,13 @@
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import {closeModal} from '@sentry/scraps/modal';
 
 import {triggerGoogleDomainModal} from 'admin/components/changeGoogleDomainAction';
 
 describe('ChangeGoogleDomainAction', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
   });
 
   it('runs a preview before changing the domain', async () => {

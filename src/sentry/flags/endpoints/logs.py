@@ -1,6 +1,7 @@
-from datetime import datetime
-from typing import Any, Literal, TypedDict
+from collections.abc import Mapping
+from typing import Annotated, Any, Literal, TypedDict, cast
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers as rest_serializers
@@ -23,6 +24,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.flag_examples import FlagExamples
 from sentry.apidocs.parameters import CursorQueryParam, FlagParams, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -35,39 +37,65 @@ from sentry.flags.models import (
     ProviderName,
 )
 from sentry.models.organization import Organization
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class FlagAuditLogModelSerializerResponse(TypedDict):
-    id: int
-    action: Literal["created", "deleted", "updated"]
-    createdAt: datetime
-    createdBy: str | None
-    createdByType: Literal["email", "id", "name"] | None
-    flag: str
-    provider: ProviderName | None
-    tags: dict[str, Any]
+    id: Annotated[int, ApiDescription("ID of the audit log entry")]
+    action: Annotated[
+        Literal["created", "deleted", "updated"],
+        ApiDescription("What happened to the flag: created, deleted or updated"),
+    ]
+    createdAt: Annotated[str, ApiDescription("When the change happened (ISO 8601)")]
+    createdBy: Annotated[
+        str | None, ApiDescription("Who made the change, such as an email address")
+    ]
+    createdByType: Annotated[
+        Literal["email", "id", "name"] | None,
+        ApiDescription("Kind of value in createdBy: email, id or name"),
+    ]
+    flag: Annotated[str, ApiDescription("Name of the flag")]
+    provider: Annotated[
+        ProviderName | None,
+        ApiDescription(
+            "Feature flag provider that sent the change: generic, flagpole, launchdarkly, unleash or statsig"
+        ),
+    ]
+    tags: Annotated[dict[str, Any], ApiDescription("Tags of the change, such as the environment")]
 
 
 class FlagLogIndexResponse(TypedDict):
-    data: list[FlagAuditLogModelSerializerResponse]
+    data: Annotated[list[FlagAuditLogModelSerializerResponse], ApiDescription("Audit log entries")]
 
 
 class FlagLogDetailsResponse(TypedDict):
-    data: FlagAuditLogModelSerializerResponse
+    data: Annotated[FlagAuditLogModelSerializerResponse, ApiDescription("The audit log entry")]
 
 
 @register(FlagAuditLogModel)
 class FlagAuditLogModelSerializer(Serializer[FlagAuditLogModelSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> FlagAuditLogModelSerializerResponse:
+    def serialize(
+        self,
+        obj: FlagAuditLogModel,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> FlagAuditLogModelSerializerResponse:
         return {
             "id": obj.id,
-            "action": ActionEnum.to_string(obj.action),
+            "action": cast(
+                Literal["created", "deleted", "updated"], ActionEnum.to_string(obj.action)
+            ),
             "createdAt": obj.created_at.isoformat(),
             "createdBy": obj.created_by,
             "createdByType": (
                 None
                 if obj.created_by_type is None
-                else CreatedByTypeEnum.to_string(obj.created_by_type)
+                else cast(
+                    Literal["email", "id", "name"],
+                    CreatedByTypeEnum.to_string(obj.created_by_type),
+                )
             ),
             "flag": obj.flag,
             "provider": (None if obj.provider is None else ProviderEnum.to_string(obj.provider)),
@@ -120,6 +148,8 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             FlagParams.FLAG,
             FlagParams.PROVIDER,
             FlagParams.SORT,

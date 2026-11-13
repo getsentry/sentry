@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, TypedDict
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -27,11 +27,13 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.auth.access import Access
+from sentry.auth.principal import acting_user_id, is_acting_user, require_user
 from sentry.auth.superuser import superuser_has_permission
 from sentry.core.endpoints.organization_member_utils import can_admin_team, can_set_team_role
 from sentry.models.groupassignee import GroupAssignee
@@ -50,10 +52,17 @@ ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membersh
 
 
 class OrganizationMemberTeamSerializerResponse(TypedDict):
-    isActive: bool
+    isActive: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the team membership is active. An inactive membership removes the team from the member's default list, but the member can rejoin without a request"
+        ),
+    ]
     # This must be manually kept up to date, because we cannot dynamically
     # unpack into static type annotations. See https://github.com/microsoft/pylance-release/issues/4084
-    teamRole: Literal["contributor", "admin"]
+    teamRole: Annotated[
+        Literal["contributor", "admin"], ApiDescription("ID of the member's team role")
+    ]
 
 
 @sentry_schema_serializer(
@@ -164,6 +173,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"POST", "DELETE"})
     owner = ApiOwner.FOUNDATIONS
     permission_classes = (OrganizationTeamMemberPermission,)
 
@@ -203,7 +213,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not request.user.is_authenticated:
             return False
 
-        if request.user.id == member.user_id:
+        if is_acting_user(request.user, member.user_id):
             return True
 
         # There is an edge case where org owners/managers cannot remove a member from a team they
@@ -222,8 +232,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not created:
             return
 
-        requester = request.user.id if request.user.id != member.user_id else None
-        if requester:
+        requester = acting_user_id(request.user)
+        if requester and requester != member.user_id:
             omt.update(requester_id=requester)
 
         omt.send_request_email()
@@ -338,6 +348,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
+        # Without a team grant, the fallback files an access request with the caller as
+        # requester, which needs a user.
+        require_user(request)
 
         if not organization_roles.get(member.role).is_team_roles_allowed:
             return Response(
@@ -581,6 +594,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Unsubscribe user from issues the team is subscribed to
         """
+        # A pending invite has no subscriptions, and user_id=None would match the team's own.
+        if member.user_id is None:
+            return
         team_assigned_groups = GroupAssignee.objects.filter(team_id=team.id).values_list(
             "group_id", flat=True
         )

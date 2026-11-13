@@ -5,6 +5,7 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.search.eap import constants
+from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,20 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {"fields": {"message": "string"}}
+
+    def test_timestamp_outside_retention(self) -> None:
+        self.create_project(organization=self.organization)
+        with patch("sentry.quotas.backend.get_event_retention", return_value=30):
+            response = self.client_get(
+                data={
+                    "traceId": uuid4().hex,
+                    "statsPeriod": "90d",
+                    "timestamp": before_now(days=60).timestamp(),
+                },
+                url=self.url,
+            )
+
+        assert response.status_code == 400, response.content
 
     def test_invalid_trace_id(self) -> None:
         trace_id_1 = "1" * 32

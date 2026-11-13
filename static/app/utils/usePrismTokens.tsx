@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import Prism from 'prismjs';
 
-import {getPrismLanguage, loadPrismLanguage} from '@sentry/scraps/code';
+import {getPrismLanguage, loadPrismLanguage} from '@sentry/scraps/codeBlock';
 
 type PrismHighlightParams = {
   code: string;
@@ -50,7 +50,7 @@ const getPrismGrammar = (language: string) => {
 
 const splitMultipleTokensByLine = (
   tokens: Array<string | Prism.Token>,
-  types: Set<string> = new Set(['token'])
+  types = new Set<string>(['token'])
 ) => {
   const lines: IntermediateToken[][] = [];
   let currentLine: IntermediateToken[] = [];
@@ -82,7 +82,7 @@ const splitMultipleTokensByLine = (
 // line, no newlines were found.
 const splitTokenContentByLine = (
   token: string | Prism.Token,
-  types: Set<string> = new Set(['token'])
+  types = new Set<string>(['token'])
 ): IntermediateToken[][] => {
   if (typeof token === 'string') {
     const lines: IntermediateToken[][] = [];

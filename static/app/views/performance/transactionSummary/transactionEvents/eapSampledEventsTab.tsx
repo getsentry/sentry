@@ -38,7 +38,6 @@ import {
   decodeFilterFromLocation,
   SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
-import {SampledEventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eapSampledEventsTable';
 import {
   ZOOM_END,
   ZOOM_START,
@@ -49,6 +48,7 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
+import {SampledEventsTable} from './eapSampledEventsTable';
 import {
   decodeEventsDisplayFilterFromLocation,
   EventsDisplayFilterName,
@@ -77,7 +77,8 @@ export function EAPSampledEventsTab() {
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
   const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR]);
-  const onCursor: CursorHandler = (newCursor, pathname, query) => {
+  const onCursor: CursorHandler = newCursor => {
+    const {pathname, query} = location;
     navigate({
       pathname,
       query: {...query, [SEGMENT_SPANS_CURSOR]: newCursor},

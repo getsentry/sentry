@@ -1,11 +1,12 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ExtractionTab} from 'sentry/views/explore/conversations/components/extractionSpanTab';
 import {
   parseExtractionInput,
   parseExtractionOutput,
   type Extraction,
 } from 'sentry/views/insights/pages/agents/utils/extraction';
+
+import {ExtractionTab} from './extractionSpanTab';
 
 const RAW_INPUT = JSON.stringify([
   {

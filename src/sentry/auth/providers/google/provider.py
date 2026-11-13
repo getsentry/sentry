@@ -65,10 +65,12 @@ class GoogleOAuth2Provider(OAuth2Provider):
         super().__init__(**config)
 
     def get_client_id(self) -> str:
-        return options.get("auth-google.client-id")
+        client_id = options.get("auth-google.client-id")
+        return client_id
 
     def get_client_secret(self) -> str:
-        return options.get("auth-google.client-secret")
+        client_secret = options.get("auth-google.client-secret")
+        return client_secret
 
     def get_configure_view(
         self,

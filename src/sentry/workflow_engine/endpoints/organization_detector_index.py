@@ -5,7 +5,7 @@ from typing import Any, assert_never
 from django.db import router, transaction
 from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
 from django.db.models.query import QuerySet
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
@@ -40,19 +40,16 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
-from sentry.incidents.grouptype import MetricIssue
-from sentry.issues import grouptype
 from sentry.issues.issue_search import convert_actor_or_none_value
 from sentry.models.group import GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import get_cron_monitor
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry
@@ -77,8 +74,8 @@ from sentry.workflow_engine.endpoints.validators.utils import (
 from sentry.workflow_engine.models import DataSourceDetector, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
-from sentry.workflow_engine.types import DetectorAPIOperation
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorType
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -90,13 +87,18 @@ detector_search_config = SearchConfig.create_from(
 parse_detector_query = partial(base_parse_search_query, config=detector_search_config)
 
 
-def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
+def convert_assignee_values(
+    value: Iterable[str], projects: Sequence[Project], user: RequestPrincipal
+) -> Q:
     """
     Convert an assignee search value to a Django Q object for filtering detectors.
     """
     actors_or_none: list[RpcUser | Team | None] = convert_actor_or_none_value(
         value, projects, user, None
     )
+    if not actors_or_none:
+        # my_teams for a caller with no teams; Q() would match every detector
+        return Q(pk__in=[])
     assignee_query = Q()
     for actor in actors_or_none:
         if isinstance(actor, (User, RpcUser)):
@@ -127,12 +129,12 @@ SORT_MAP = {
 }
 
 DETECTOR_TYPE_ALIASES = {
-    "metric": MetricIssue.slug,
-    "uptime": UptimeDomainCheckFailure.slug,
-    "cron": MonitorIncidentType.slug,
+    "metric": DetectorType.METRIC_ISSUE,
+    "uptime": DetectorType.UPTIME_DOMAIN_FAILURE,
+    "cron": DetectorType.MONITOR_CHECK_IN_FAILURE,
 }
 
-SEAT_DETECTOR_TYPES = (MonitorIncidentType.slug, UptimeDomainCheckFailure.slug)
+SEAT_DETECTOR_TYPES = (DetectorType.MONITOR_CHECK_IN_FAILURE, DetectorType.UPTIME_DOMAIN_FAILURE)
 
 
 def get_detector_validator(
@@ -143,12 +145,14 @@ def get_detector_validator(
     partial: bool = False,
     data: Mapping[str, Any] | None = None,
 ) -> BaseDetectorTypeValidator:
-    type = grouptype.registry.get_by_slug(detector_type_slug)
-    if type is None:
+    try:
+        detector_type = DetectorType(detector_type_slug)
+        settings = detector_settings_registry.get(detector_type)
+    except ValueError:
         error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
         raise ValidationError({"type": [error_message]})
 
-    if type.detector_settings is None or type.detector_settings.validator is None:
+    if settings.validator is None:
         raise ValidationError({"type": ["Detector type not compatible with detectors"]})
 
     if detector_type_slug in get_excluded_detector_types(
@@ -158,7 +162,7 @@ def get_detector_validator(
             {"type": [f"Detector type does not support {request.method} requests"]}
         )
 
-    return type.detector_settings.validator(
+    return settings.validator(
         instance=instance,
         context={
             "project": project,
@@ -172,6 +176,11 @@ def get_detector_validator(
     )
 
 
+class BulkUpdateMonitorsSerializer(DetectorWorkflowMutationValidator):
+    # Redeclared for this endpoint's wording.
+    enabled = serializers.BooleanField(help_text="Whether to enable or disable the monitors")
+
+
 @cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
@@ -180,6 +189,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
     owner = ApiOwner.ISSUES
 
     permission_classes = (OrganizationDetectorPermission,)
@@ -349,7 +359,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         # Cron and uptime detectors that lost their data source can't run and
         # can't be rendered, so hide them until they're cleaned up.
         queryset = queryset.exclude(
-            Q(type__in=[MonitorIncidentType.slug, UptimeDomainCheckFailure.slug])
+            Q(type__in=[DetectorType.MONITOR_CHECK_IN_FAILURE, DetectorType.UPTIME_DOMAIN_FAILURE])
             & ~Exists(DataSourceDetector.objects.filter(detector_id=OuterRef("pk")))
         )
 
@@ -397,14 +407,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.QUERY,
             DetectorParams.ID,
         ],
-        request=inline_serializer(
-            name="BulkUpdateMonitors",
-            fields={
-                "enabled": serializers.BooleanField(
-                    help_text="Whether to enable or disable the monitors"
-                )
-            },
-        ),
+        request=BulkUpdateMonitorsSerializer,
         responses={
             200: inline_sentry_response_serializer(
                 "ListDetectorSerializerResponse", list[DetectorSerializerResponse]
@@ -438,7 +441,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        validator = DetectorWorkflowMutationValidator(data=request.data)
+        validator = BulkUpdateMonitorsSerializer(data=request.data)
         validator.is_valid(raise_exception=True)
         enabled = validator.validated_data.get("enabled", True)
 
@@ -449,7 +452,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             )
         )
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
-        queryset = queryset.exclude(type=IssueStreamGroupType.slug)
+        queryset = queryset.exclude(type=DetectorType.ISSUE_STREAM)
 
         # If explicitly filtering by IDs and some were not found, return 400
         if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
@@ -479,12 +482,12 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             monitors = [
                 get_cron_monitor(detector)
                 for detector in seat_detectors
-                if detector.type == MonitorIncidentType.slug
+                if detector.type == DetectorType.MONITOR_CHECK_IN_FAILURE
             ]
             uptime_detectors = [
                 detector
                 for detector in seat_detectors
-                if detector.type == UptimeDomainCheckFailure.slug
+                if detector.type == DetectorType.UPTIME_DOMAIN_FAILURE
             ]
             for seat_objects in (monitors, uptime_detectors):
                 if not seat_objects:

@@ -441,6 +441,27 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
             assert not Authenticator.objects.filter(id=auth.id).exists()
             assert_security_email_sent("mfa-removed")
 
+    def test_superuser_removing_last_authenticator_logs_the_owner(self) -> None:
+        owner = self.create_user(email="owner@example.com")
+        interface = TotpInterface()
+        interface.enroll(owner)
+        assert interface.authenticator is not None
+        Authenticator.objects.auto_add_recovery_codes(owner)
+        superuser = self.create_user(email="admin@example.com", is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        with mock.patch("sentry.security.utils.logger") as logger:
+            self.get_success_response(owner.id, interface.authenticator.id, method="delete")
+
+        removed = [
+            call.kwargs["extra"]
+            for call in logger.info.call_args_list
+            if call.args == ("user.%s", "mfa-removed")
+        ]
+        # The TOTP device and its recovery codes, both the owner's
+        assert [extra["user_id"] for extra in removed] == [owner.id, owner.id]
+        assert {extra["actor_id"] for extra in removed} == {superuser.id}
+
     def test_delete_last_authenticator_removes_recovery_codes(self) -> None:
         interface = TotpInterface()
         interface.enroll(self.user)

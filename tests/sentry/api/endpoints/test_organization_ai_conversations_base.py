@@ -1,3 +1,7 @@
+from datetime import datetime
+from typing import Any
+
+from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SpanTestCase
 from sentry.utils import json
 
@@ -19,53 +23,53 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
 
     def store_ai_span(
         self,
-        conversation_id,
-        timestamp,
-        op="gen_ai.chat",
-        description=None,
-        status="ok",
-        operation_name=None,
-        operation_type=None,
-        tokens=None,
-        input_tokens=None,
-        output_tokens=None,
-        cache_read_tokens=None,
-        cache_write_tokens=None,
-        reasoning_tokens=None,
-        cost=None,
-        input_cost=None,
-        output_cost=None,
-        cache_read_cost=None,
-        cache_write_cost=None,
-        reasoning_cost=None,
-        request_model=None,
-        response_model=None,
-        trace_id=None,
-        agent_name=None,
-        messages=None,
-        response_text=None,
-        tool_name=None,
-        tool_result=None,
-        tool_result_size=None,
-        tool_output=None,
-        embeddings_input=None,
-        memory_store_id=None,
-        memory_query_text=None,
-        memory_record_id=None,
-        memory_record_count=None,
-        memory_records=None,
-        user_id=None,
-        user_email=None,
-        user_username=None,
-        user_ip=None,
-        origin=None,
-        input_messages=None,
-        output_messages=None,
-        system_instructions=None,
-        tool_definitions=None,
-        project=None,
-        store=True,
-    ):
+        conversation_id: str,
+        timestamp: datetime,
+        op: str = "gen_ai.chat",
+        description: str | None = None,
+        status: str = "ok",
+        operation_name: str | None = None,
+        operation_type: str | None = None,
+        tokens: int | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        cache_read_tokens: int | None = None,
+        cache_write_tokens: int | None = None,
+        reasoning_tokens: int | None = None,
+        cost: float | None = None,
+        input_cost: float | None = None,
+        output_cost: float | None = None,
+        cache_read_cost: float | None = None,
+        cache_write_cost: float | None = None,
+        reasoning_cost: float | None = None,
+        request_model: str | None = None,
+        response_model: str | None = None,
+        trace_id: str | None = None,
+        agent_name: str | None = None,
+        messages: object | None = None,
+        response_text: str | None = None,
+        tool_name: str | None = None,
+        tool_result: str | None = None,
+        tool_result_size: int | None = None,
+        tool_output: str | None = None,
+        embeddings_input: object | None = None,
+        memory_store_id: str | None = None,
+        memory_query_text: str | None = None,
+        memory_record_id: str | None = None,
+        memory_record_count: int | None = None,
+        memory_records: object | None = None,
+        user_id: str | None = None,
+        user_email: str | None = None,
+        user_username: str | None = None,
+        user_ip: str | None = None,
+        origin: str | None = None,
+        input_messages: object | None = None,
+        output_messages: object | None = None,
+        system_instructions: object | None = None,
+        tool_definitions: object | None = None,
+        project: Project | None = None,
+        store: bool = True,
+    ) -> dict[str, Any]:
         """Create and store an AI span with the given attributes.
 
         Args:
@@ -112,7 +116,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         Returns:
             The created span object
         """
-        span_data = {
+        span_data: dict[str, Any] = {
             # deprecated in favour of `ai_conversation_id` down below.
             "gen_ai.conversation.id": conversation_id,
         }

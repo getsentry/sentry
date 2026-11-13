@@ -7,7 +7,7 @@ import {
   IssueSelectionProvider,
   useIssueSelectionActions,
   useIssueSelectionSummary,
-} from 'sentry/views/issueList/issueSelectionContext';
+} from './issueSelectionContext';
 
 type SelectionState = ReturnType<typeof useIssueSelectionSummary> &
   ReturnType<typeof useIssueSelectionActions>;

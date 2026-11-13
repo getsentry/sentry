@@ -5,12 +5,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {
-  EmptySpanTab,
-  SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT,
-  SPAN_TAB_JSON_MAX_DEFAULT_DEPTH,
-  SpanTabContent,
-} from 'sentry/views/explore/conversations/components/spanTabContent';
-import {
   formatMemoryScore,
   getMemoryResultText,
   type Memory,
@@ -18,6 +12,13 @@ import {
   MemoryOperation,
 } from 'sentry/views/insights/pages/agents/utils/memory';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+
+import {
+  EmptySpanTab,
+  SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT,
+  SPAN_TAB_JSON_MAX_DEFAULT_DEPTH,
+  SpanTabContent,
+} from './spanTabContent';
 
 export function MemoryInputTab({memory}: {memory: Memory}) {
   switch (memory.operation) {
@@ -97,7 +98,7 @@ function MemoryRecordsSection({
 
   if (records && records.length > 0) {
     const ordered = showScore
-      ? [...records].sort((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity))
+      ? records.toSorted((a, b) => (b.score ?? -Infinity) - (a.score ?? -Infinity))
       : records;
 
     return (

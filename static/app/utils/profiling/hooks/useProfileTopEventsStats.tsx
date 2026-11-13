@@ -7,8 +7,9 @@ import type {PageFilters} from 'sentry/types/core';
 import type {EventsStatsSeries} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import {transformSingleSeries} from 'sentry/utils/profiling/hooks/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {transformSingleSeries} from './utils';
 
 interface UseProfileTopEventsStatsOptions<F> {
   dataset: 'profileFunctions';

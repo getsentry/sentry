@@ -14,10 +14,8 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {encodeSort} from 'sentry/utils/queryString';
-import {
-  isPreferredAgentProvider,
-  parseAgentOption,
-} from 'sentry/utils/seer/preferredAgent';
+
+import {isPreferredAgentProvider, parseAgentOption} from './preferredAgent';
 import type {
   PreferredAgentProvider,
   SeerProjectSettingResponse,
@@ -25,7 +23,7 @@ import type {
   SeerBulkProjectSettingUpdatePayload,
   AutofixAgentSelectOption,
   AgentIntegration,
-} from 'sentry/utils/seer/types';
+} from './types';
 
 export const seerProjectSettingsSchema = z.object({
   agentOption: z.custom<AutofixAgentSelectOption>(value => {

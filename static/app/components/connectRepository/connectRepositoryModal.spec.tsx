@@ -17,7 +17,7 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
-import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
+import {ConnectRepositoryModal} from './connectRepositoryModal';
 
 describe('ConnectRepositoryModal', () => {
   const organization = OrganizationFixture();

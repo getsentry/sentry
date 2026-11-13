@@ -1,14 +1,28 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+import pytest
+from scm.errors import ResourceServiceUnavailable
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
+from scm.providers.gitlab.provider import GitLabProvider
 from scm.types import Repository
 
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcRemoteException, RpcResponseException
 from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.private.helpers import fetch_repository, fetch_service_provider, make_fetchers
+from sentry.scm.private.helpers import (
+    fetch_access_token,
+    fetch_repository,
+    fetch_service_provider,
+    make_fetchers,
+)
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import cell_silo_test
+
+TOKEN = "ghs_installation_token"
+# Far enough ahead that the GitHub client never refreshes the token over the network.
+TOKEN_EXPIRES_AT = "3000-01-01T00:00:00"
 
 
 class TestFetchRepository(TestCase):
@@ -455,3 +469,111 @@ class TestMakeFetchers(TestCase):
 
         assert isinstance(provider, GitHubProvider)
         assert service.get_integration.call_count == 1
+
+    def test_fetchers_fetch_a_gitlab_integration_once(self) -> None:
+        identity = self.create_identity(
+            self.user,
+            self.create_identity_provider(type="gitlab", external_id="gitlab.com:acme"),
+            "gitlab-user",
+            data={"access_token": "gitlab_oauth_token"},
+        )
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            external_id="gitlab.com:acme",
+            metadata={
+                "instance": "gitlab.com",
+                "base_url": "https://gitlab.com",
+                "verify_ssl": True,
+            },
+            oi_params={"default_auth_id": identity.id},
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name="acme / widget",
+            provider="integrations:gitlab",
+            external_id="gitlab.com:42",
+            integration_id=integration.id,
+        )
+        fetchers = make_fetchers()
+
+        with patch(
+            "sentry.scm.private.helpers.integration_service", wraps=integration_service
+        ) as service:
+            repository = fetchers.fetch_repository(self.organization.id, repo.id)
+            assert repository is not None
+            provider = fetchers.fetch_provider(self.organization.id, repository)
+
+        assert isinstance(provider, GitLabProvider)
+        assert service.get_integration.call_count == 1
+
+
+@cell_silo_test
+class TestFetchAccessToken(TestCase):
+    def scm_repository(self, integration_id: int) -> Repository:
+        return Repository(
+            external_id="1",
+            id=1,
+            integration_id=integration_id,
+            is_active=True,
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider_name="github",
+            web_base_url=None,
+            installation_id=None,
+        )
+
+    def test_returns_the_installation_token(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="1",
+            metadata={"access_token": TOKEN, "expires_at": TOKEN_EXPIRES_AT},
+        )
+
+        token = fetch_access_token(self.scm_repository(integration.id), "fetch")
+
+        assert token is not None
+        assert token.reveal() == TOKEN
+
+    def test_returns_none_for_an_integration_the_organization_does_not_have(self) -> None:
+        integration = self.create_integration(
+            organization=self.create_organization(),
+            provider="github",
+            external_id="2",
+            metadata={"access_token": TOKEN, "expires_at": TOKEN_EXPIRES_AT},
+        )
+
+        token = fetch_access_token(self.scm_repository(integration.id), "fetch")
+
+        assert token is None
+
+    @patch("sentry.scm.private.helpers.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.scm.private.helpers.integration_service.get_access_token",
+        side_effect=RpcRemoteException("integration", "get_access_token", "timed out"),
+    )
+    def test_is_retryable_when_control_cannot_be_reached(
+        self, mock_get_access_token: MagicMock, mock_capture_exception: MagicMock
+    ) -> None:
+        with pytest.raises(ResourceServiceUnavailable) as e:
+            fetch_access_token(self.scm_repository(1), "fetch")
+
+        # Not chained: the RPC exception's frames are reported once, by capture_exception.
+        assert e.value.__suppress_context__
+        mock_capture_exception.assert_called_once_with()
+
+    @patch("sentry.scm.private.helpers.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.scm.private.helpers.integration_service.get_access_token",
+        side_effect=RpcResponseException("integration", "get_access_token", "not JSON"),
+    )
+    def test_is_retryable_when_control_answers_with_something_else(
+        self, mock_get_access_token: MagicMock, mock_capture_exception: MagicMock
+    ) -> None:
+        with pytest.raises(ResourceServiceUnavailable) as e:
+            fetch_access_token(self.scm_repository(1), "fetch")
+
+        # Not chained: the RPC exception's frames are reported once, by capture_exception.
+        assert e.value.__suppress_context__
+        mock_capture_exception.assert_called_once_with()

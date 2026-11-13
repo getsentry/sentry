@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -14,7 +16,12 @@ from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+)
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import (
@@ -25,7 +32,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import has_user
+from sentry.auth.principal import has_user, is_owned_by_acting_user
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
@@ -37,6 +44,11 @@ from sentry.signals import team_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
+
+
+class _ConflictingSlugResponse(TypedDict):
+    non_field_errors: list[str]
+    detail: str
 
 
 # OrganizationPermission + team:write
@@ -73,7 +85,7 @@ class TeamPostSerializer(serializers.Serializer):
     )
     idp_provisioned = serializers.BooleanField(required=False, default=False)
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         if not (attrs.get("name") or attrs.get("slug")):
             raise serializers.ValidationError("Name or slug is required")
         return attrs
@@ -86,9 +98,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationTeamsPermission,)
 
-    def team_serializer_for_post(self):
+    def team_serializer_for_post(self) -> TeamSerializer:
         # allow child routes to supply own serializer, used in SCIM teams route
         return TeamSerializer()
 
@@ -177,7 +190,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def should_add_creator_to_team(self, request: Request):
+    def should_add_creator_to_team(self, request: Request) -> bool:
         return has_user(request.user)
 
     @extend_schema(
@@ -192,12 +205,17 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="A team with this slug already exists."),
+            409: RESPONSE_CONFLICT,
         },
         examples=TeamExamples.CREATE_TEAM,
     )
     def post(
-        self, request: Request, organization, **kwargs
-    ) -> Response[TeamSerializerResponse] | Response[ValidationErrorResponse]:
+        self, request: Request, organization: Organization, **kwargs: object
+    ) -> (
+        Response[TeamSerializerResponse]
+        | Response[_ConflictingSlugResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Create a new team bound to an organization. Requires at least one of the `name`
         or `slug` body params to be set.
@@ -230,7 +248,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             if self.should_add_creator_to_team(request):
                 try:
                     member = OrganizationMember.objects.get(
-                        user_id=request.user.id, organization=organization
+                        is_owned_by_acting_user(request.user), organization=organization
                     )
                 except OrganizationMember.DoesNotExist:
                     pass

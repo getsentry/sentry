@@ -1,9 +1,11 @@
 import time
+from collections.abc import Sequence
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.cache import cache
+from django.db.models import QuerySet
 from django.test import override_settings
 
 from sentry.constants import ObjectStatus
@@ -43,7 +45,7 @@ TEST_SCHEDULES = {
 @control_silo_test
 @override_settings(TASKWORKER_SCHEDULES=TEST_SCHEDULES)
 class CursoredSchedulerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.mock_task = MagicMock()
         self.cache_key = f"{CURSOR_CACHE_KEY_PREFIX}:test_scheduler"
         self.batch_size_key = f"{BATCH_SIZE_CACHE_KEY_PREFIX}:test_scheduler"
@@ -59,7 +61,7 @@ class CursoredSchedulerTest(TestCase):
 
     _oi_counter = 0
 
-    def _create_org_integrations(self, count):
+    def _create_org_integrations(self, count: int) -> list[OrganizationIntegration]:
         """Create real OrganizationIntegration rows for testing."""
         integrations = []
         for _ in range(count):
@@ -76,15 +78,15 @@ class CursoredSchedulerTest(TestCase):
             integrations.append(oi)
         return integrations
 
-    def _make_next_cycle_due(self, scheduler):
+    def _make_next_cycle_due(self, scheduler: CursoredScheduler[OrganizationIntegration]) -> None:
         cache.set(self.next_cycle_start_key, time.time() - 1, scheduler.cache_ttl)
 
     def _make_scheduler(
         self,
-        queryset=None,
-        cycle_duration=timedelta(minutes=3),
-        schedule_key="test-scheduler-beat",
-    ):
+        queryset: QuerySet[OrganizationIntegration] | None = None,
+        cycle_duration: timedelta = timedelta(minutes=3),
+        schedule_key: str = "test-scheduler-beat",
+    ) -> CursoredScheduler[OrganizationIntegration]:
         """
         Default: 3-minute cycle with 1-minute tick interval (from schedule) = 3 ticks per cycle.
         Batch size = ceil(total_rows / 3).
@@ -102,7 +104,7 @@ class CursoredSchedulerTest(TestCase):
             cycle_duration=cycle_duration,
         )
 
-    def test_calculates_batch_size(self):
+    def test_calculates_batch_size(self) -> None:
         """With 30 items, 3-min cycle, 1-min tick → batch_size=10."""
         ois = self._create_org_integrations(30)
         scheduler = self._make_scheduler()
@@ -113,7 +115,7 @@ class CursoredSchedulerTest(TestCase):
         dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
         assert dispatched_pks == [oi.pk for oi in ois[:10]]
 
-    def test_advances_cursor_between_ticks(self):
+    def test_advances_cursor_between_ticks(self) -> None:
         ois = self._create_org_integrations(30)
         scheduler = self._make_scheduler()
 
@@ -127,7 +129,7 @@ class CursoredSchedulerTest(TestCase):
         dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
         assert dispatched_pks == [oi.pk for oi in ois[10:20]]
 
-    def test_completes_full_cycle(self):
+    def test_completes_full_cycle(self) -> None:
         ois = self._create_org_integrations(30)
         scheduler = self._make_scheduler()
 
@@ -139,7 +141,7 @@ class CursoredSchedulerTest(TestCase):
         dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
         assert dispatched_pks == [oi.pk for oi in ois]
 
-    def test_resets_after_cycle_completes(self):
+    def test_resets_after_cycle_completes(self) -> None:
         ois = self._create_org_integrations(30)
         scheduler = self._make_scheduler()
 
@@ -157,7 +159,7 @@ class CursoredSchedulerTest(TestCase):
         dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
         assert dispatched_pks == [oi.pk for oi in ois[:10]]
 
-    def test_empty_queryset(self):
+    def test_empty_queryset(self) -> None:
         scheduler = self._make_scheduler()
 
         has_more = scheduler.tick()
@@ -165,7 +167,7 @@ class CursoredSchedulerTest(TestCase):
         assert has_more is False
         self.mock_task.delay.assert_not_called()
 
-    def test_empty_cycle_is_not_reinitialized_every_tick(self):
+    def test_empty_cycle_is_not_reinitialized_every_tick(self) -> None:
         """An empty queryset runs the cycle-start query once, not on every tick."""
         scheduler = self._make_scheduler()
 
@@ -177,7 +179,7 @@ class CursoredSchedulerTest(TestCase):
 
             assert prevalidated_pks.call_count == 1
 
-    def test_empty_cycle_is_retried_after_the_cycle_duration(self):
+    def test_empty_cycle_is_retried_after_the_cycle_duration(self) -> None:
         scheduler = self._make_scheduler()
         scheduler.tick()
 
@@ -187,7 +189,7 @@ class CursoredSchedulerTest(TestCase):
         assert scheduler.tick() is True
         assert self.mock_task.delay.call_count == 1
 
-    def test_small_set_is_not_redispatched_before_the_cycle_elapses(self):
+    def test_small_set_is_not_redispatched_before_the_cycle_elapses(self) -> None:
         """
         One item over a 3-tick cycle has batch_size 1 and finishes on the first tick.
         The next cycle waits for the rest of cycle_duration, so the item is dispatched
@@ -206,7 +208,7 @@ class CursoredSchedulerTest(TestCase):
         assert scheduler.tick() is True
         assert self.mock_task.delay.call_count == 2
 
-    def test_next_cycle_start_is_measured_from_the_cycle_start(self):
+    def test_next_cycle_start_is_measured_from_the_cycle_start(self) -> None:
         """A cycle that finishes early does not push the next start out past cycle_duration."""
         self._create_org_integrations(1)
         scheduler = self._make_scheduler(cycle_duration=timedelta(minutes=3))
@@ -216,7 +218,7 @@ class CursoredSchedulerTest(TestCase):
         cycle_start = float(cache.get(f"{CYCLE_START_CACHE_KEY_PREFIX}:test_scheduler"))
         assert float(cache.get(self.next_cycle_start_key)) == cycle_start + 180
 
-    def test_batch_size_cached_across_ticks(self):
+    def test_batch_size_cached_across_ticks(self) -> None:
         """Batch size is calculated once at cycle start, not every tick."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
@@ -227,7 +229,7 @@ class CursoredSchedulerTest(TestCase):
         assert cached_size is not None
         assert int(cached_size) == 10
 
-    def test_batch_size_recalculated_on_new_cycle(self):
+    def test_batch_size_recalculated_on_new_cycle(self) -> None:
         """After cycle completes and resets, batch size is recalculated."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
@@ -247,7 +249,7 @@ class CursoredSchedulerTest(TestCase):
         scheduler.tick()
         assert self.mock_task.delay.call_count == 20
 
-    def test_reads_tick_interval_from_schedule(self):
+    def test_reads_tick_interval_from_schedule(self) -> None:
         """Tick interval is read from TASKWORKER_SCHEDULES, not passed directly."""
         self._create_org_integrations(30)
 
@@ -260,7 +262,7 @@ class CursoredSchedulerTest(TestCase):
         scheduler.tick()
         assert self.mock_task.delay.call_count == 30
 
-    def test_cursor_survives_across_instances(self):
+    def test_cursor_survives_across_instances(self) -> None:
         ois = self._create_org_integrations(30)
         qs = OrganizationIntegration.objects.filter(
             integration__provider="github",
@@ -289,7 +291,7 @@ class CursoredSchedulerTest(TestCase):
         dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
         assert dispatched_pks == [oi.pk for oi in ois[10:20]]
 
-    def test_different_names_are_independent(self):
+    def test_different_names_are_independent(self) -> None:
         self._create_org_integrations(30)
         qs = OrganizationIntegration.objects.filter(
             integration__provider="github",
@@ -321,7 +323,7 @@ class CursoredSchedulerTest(TestCase):
         assert task_a.delay.call_count == 30
         assert task_b.delay.call_count == 15
 
-    def test_dispatches_pks_not_objects(self):
+    def test_dispatches_pks_not_objects(self) -> None:
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
 
@@ -330,7 +332,7 @@ class CursoredSchedulerTest(TestCase):
         for c in self.mock_task.delay.call_args_list:
             assert isinstance(c.args[0], int)
 
-    def test_respects_queryset_filtering(self):
+    def test_respects_queryset_filtering(self) -> None:
         """Only items matching the queryset are processed."""
         ois = self._create_org_integrations(30)
 
@@ -343,7 +345,7 @@ class CursoredSchedulerTest(TestCase):
         dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
         assert ois[5].pk not in dispatched_pks
 
-    def test_lock_contention_skips_tick(self):
+    def test_lock_contention_skips_tick(self) -> None:
         """If lock is held by another tick, skip without processing."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
@@ -361,7 +363,7 @@ class CursoredSchedulerTest(TestCase):
         assert has_more is False
         self.mock_task.delay.assert_not_called()
 
-    def test_min_batch_size(self):
+    def test_min_batch_size(self) -> None:
         """Batch size is at least 1, even when math would produce < 1."""
         self._create_org_integrations(3)
         # 1-min tick, 100-min cycle, 3 items → ceil(3/100) = 1
@@ -377,7 +379,7 @@ class CursoredSchedulerTest(TestCase):
         scheduler.tick()
         assert self.mock_task.delay.call_count == 3
 
-    def test_pks_cached_at_cycle_start(self):
+    def test_pks_cached_at_cycle_start(self) -> None:
         """PKs are snapshotted into the Redis list at the start of each cycle."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
@@ -386,7 +388,7 @@ class CursoredSchedulerTest(TestCase):
 
         assert self.redis_client.llen(self.pk_list_key) == 30
 
-    def test_cached_pks_stable_mid_cycle(self):
+    def test_cached_pks_stable_mid_cycle(self) -> None:
         """Adding items mid-cycle doesn't affect the current cycle's batch size."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
@@ -404,7 +406,7 @@ class CursoredSchedulerTest(TestCase):
         # Still 10, not recalculated to 20
         assert len(second_batch) == 10
 
-    def test_cached_pks_cleared_after_cycle(self):
+    def test_cached_pks_cleared_after_cycle(self) -> None:
         """PK list is cleared when cycle completes."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
@@ -416,7 +418,7 @@ class CursoredSchedulerTest(TestCase):
 
         assert self.redis_client.exists(self.pk_list_key) == 0
 
-    def test_prevalidate_batch_filters_dispatches(self):
+    def test_prevalidate_batch_filters_dispatches(self) -> None:
         """When prevalidate_batch is provided, only items it keeps are dispatched."""
         ois = self._create_org_integrations(30)
         # Only dispatch even-indexed PKs
@@ -440,7 +442,7 @@ class CursoredSchedulerTest(TestCase):
         for pk in dispatched_pks:
             assert pk in even_pks
 
-    def test_validate_item_filters_dispatches(self):
+    def test_validate_item_filters_dispatches(self) -> None:
         """The per-item predicate keeps working alongside prevalidate_batch."""
         ois = self._create_org_integrations(30)
         even_pks = {oi.pk for oi in ois[::2]}
@@ -464,12 +466,12 @@ class CursoredSchedulerTest(TestCase):
         for pk in dispatched_pks:
             assert pk in even_pks
 
-    def test_prevalidate_batch_is_called_in_chunks(self):
+    def test_prevalidate_batch_is_called_in_chunks(self) -> None:
         """The rows are prevalidated a chunk at a time, so a huge queryset stays bounded."""
         ois = self._create_org_integrations(5)
         chunk_sizes = []
 
-        def record(rows):
+        def record(rows: Sequence[OrganizationIntegration]) -> list[int]:
             chunk_sizes.append(len(rows))
             return [oi.pk for oi in rows]
 
@@ -492,7 +494,7 @@ class CursoredSchedulerTest(TestCase):
         snapshot = [int(pk) for pk in self.redis_client.lrange(self.pk_list_key, 0, -1)]
         assert snapshot == sorted(oi.pk for oi in ois)
 
-    def test_validate_item_only_sees_prevalidated_items(self):
+    def test_validate_item_only_sees_prevalidated_items(self) -> None:
         """
         The batch check runs first, so the per-item one only ever sees what the snapshot
         kept and its cost is paid for as few items as possible.
@@ -502,7 +504,7 @@ class CursoredSchedulerTest(TestCase):
         kept_by_batch = set(all_pks[:4])
         seen_by_item: list[int] = []
 
-        def record(pk):
+        def record(pk: int) -> bool:
             seen_by_item.append(pk)
             return True
 
@@ -526,7 +528,7 @@ class CursoredSchedulerTest(TestCase):
         dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
         assert dispatched_pks == all_pks[:4]
 
-    def test_no_validators_dispatches_all(self):
+    def test_no_validators_dispatches_all(self) -> None:
         """When neither validator is provided (default), all items are dispatched."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
@@ -535,7 +537,7 @@ class CursoredSchedulerTest(TestCase):
 
         assert self.mock_task.delay.call_count == 10
 
-    def test_rejected_items_are_not_written_to_redis(self):
+    def test_rejected_items_are_not_written_to_redis(self) -> None:
         """
         Only the PKs the batch check kept are snapshotted, so a cycle of an all-rejecting
         check holds no PKs and dispatches nothing.
@@ -559,7 +561,7 @@ class CursoredSchedulerTest(TestCase):
         assert self.mock_task.delay.call_count == 0
         assert self.redis_client.llen(self.pk_list_key) == 0
 
-    def test_validate_item_cursor_advances_past_skipped(self):
+    def test_validate_item_cursor_advances_past_skipped(self) -> None:
         """Cursor advances based on all items in batch, not just dispatched ones."""
         self._create_org_integrations(30)
 
@@ -583,7 +585,7 @@ class CursoredSchedulerTest(TestCase):
         assert cursor is not None
         assert int(cursor) == 10
 
-    def test_batch_size_is_derived_from_the_prevalidated_pks(self):
+    def test_batch_size_is_derived_from_the_prevalidated_pks(self) -> None:
         """
         Batch size divides what survived the batch check, so rejected items do not consume
         the cycle's throughput.
@@ -608,7 +610,7 @@ class CursoredSchedulerTest(TestCase):
         # 15 kept over 3 ticks, not 10 of the unfiltered 30.
         assert self.mock_task.delay.call_count == 5
 
-    def test_recalculates_batch_size_on_interval_change(self):
+    def test_recalculates_batch_size_on_interval_change(self) -> None:
         """When tick interval changes mid-cycle, batch size adjusts for remaining items."""
         self._create_org_integrations(30)
         # Start with 1-min tick, 3-min cycle → 3 ticks → batch_size=10
@@ -632,7 +634,7 @@ class CursoredSchedulerTest(TestCase):
             scheduler.tick()
             assert self.mock_task.delay.call_count == 20
 
-    def test_no_recalculation_when_interval_unchanged(self):
+    def test_no_recalculation_when_interval_unchanged(self) -> None:
         """Batch size stays the same when tick interval hasn't changed."""
         self._create_org_integrations(30)
         scheduler = self._make_scheduler()
@@ -645,7 +647,7 @@ class CursoredSchedulerTest(TestCase):
         scheduler.tick()
         assert self.mock_task.delay.call_count == 10
 
-    def test_shuffle_randomizes_pk_order(self):
+    def test_shuffle_randomizes_pk_order(self) -> None:
         """When shuffle=True, PKs are not in ascending order."""
         ois = self._create_org_integrations(30)
         sorted_pks = [oi.pk for oi in ois]
@@ -672,7 +674,7 @@ class CursoredSchedulerTest(TestCase):
         assert set(all_dispatched) == set(sorted_pks)
         assert all_dispatched != sorted_pks
 
-    def test_shuffle_false_preserves_pk_order(self):
+    def test_shuffle_false_preserves_pk_order(self) -> None:
         """When shuffle=False (default), PKs are in ascending PK order."""
         ois = self._create_org_integrations(30)
         sorted_pks = [oi.pk for oi in ois]
@@ -687,7 +689,7 @@ class CursoredSchedulerTest(TestCase):
 
         assert all_dispatched == sorted_pks
 
-    def test_preserve_queryset_order(self):
+    def test_preserve_queryset_order(self) -> None:
         """When enabled, preserve the queryset's explicit ordering in the PK snapshot."""
         ois = self._create_org_integrations(30)
         queryset = OrganizationIntegration.objects.filter(
@@ -711,7 +713,7 @@ class CursoredSchedulerTest(TestCase):
 
         assert all_dispatched == [oi.pk for oi in reversed(ois)]
 
-    def test_preserve_queryset_order_with_prevalidate_batch(self):
+    def test_preserve_queryset_order_with_prevalidate_batch(self) -> None:
         """Prevalidation runs by PK range, but the snapshot still follows the queryset order."""
         ois = self._create_org_integrations(5)
         even_pks = {oi.pk for oi in ois if oi.pk % 2 == 0}
@@ -735,7 +737,7 @@ class CursoredSchedulerTest(TestCase):
         snapshot = [int(pk) for pk in self.redis_client.lrange(self.pk_list_key, 0, -1)]
         assert snapshot == sorted(even_pks, reverse=True)
 
-    def test_interval_decrease_halves_batch_size(self):
+    def test_interval_decrease_halves_batch_size(self) -> None:
         """When tick interval is halved, batch size is halved for remaining items."""
         self._create_org_integrations(30)
         # Start with 2-min tick, 6-min cycle → 3 ticks → batch_size=10
@@ -760,15 +762,15 @@ class CursoredSchedulerTest(TestCase):
 
 @override_settings(TASKWORKER_SCHEDULES=TEST_SCHEDULES)
 class GetTickIntervalTest(TestCase):
-    def test_reads_timedelta_schedule(self):
+    def test_reads_timedelta_schedule(self) -> None:
         interval = _get_tick_interval("test-scheduler-beat")
         assert interval == timedelta(minutes=1)
 
-    def test_reads_different_interval(self):
+    def test_reads_different_interval(self) -> None:
         interval = _get_tick_interval("test-scheduler-beat-5m")
         assert interval == timedelta(minutes=5)
 
-    def test_errors_on_missing_key(self):
+    def test_errors_on_missing_key(self) -> None:
         with pytest.raises(ValueError, match="not found"):
             _get_tick_interval("nonexistent-key")
 
@@ -780,6 +782,6 @@ class GetTickIntervalTest(TestCase):
             },
         }
     )
-    def test_errors_on_non_timedelta_schedule(self):
+    def test_errors_on_non_timedelta_schedule(self) -> None:
         with pytest.raises(TypeError, match="requires a timedelta"):
             _get_tick_interval("crontab-schedule")

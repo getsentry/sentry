@@ -2,6 +2,7 @@ import copy
 import time
 import uuid
 from datetime import datetime, timedelta
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -14,22 +15,27 @@ from sentry.utils import snuba
 
 
 class SnubaTest(TestCase, SnubaTestCase):
-    def _insert_event_for_time(self, ts, hash="a" * 32, group_id=None):
+    def _insert_event_for_time(
+        self, ts: datetime, hash: str = "a" * 32, group_id: int | None = None
+    ) -> None:
         self.snuba_insert(
-            (
-                2,
-                "insert",
-                {
-                    "event_id": uuid.uuid4().hex,
-                    "primary_hash": hash,
-                    "group_id": group_id if group_id else int(hash[:16], 16),
-                    "project_id": self.project.id,
-                    "message": "message",
-                    "platform": "python",
-                    "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "data": {"received": time.mktime(ts.timetuple())},
-                },
-                {},
+            cast(
+                "dict[str, Any]",
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": uuid.uuid4().hex,
+                        "primary_hash": hash,
+                        "group_id": group_id if group_id else int(hash[:16], 16),
+                        "project_id": self.project.id,
+                        "message": "message",
+                        "platform": "python",
+                        "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                        "data": {"received": time.mktime(ts.timetuple())},
+                    },
+                    {},
+                ),
             )
         )
 
@@ -39,30 +45,37 @@ class SnubaTest(TestCase, SnubaTestCase):
         now = datetime.now()
 
         self.snuba_insert(
-            (
-                2,
-                "insert",
-                {
-                    "event_id": "a" * 32,
-                    "primary_hash": "1" * 32,
-                    "group_id": 1,
-                    "project_id": self.project.id,
-                    "message": "message",
-                    "platform": "python",
-                    "datetime": now.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "data": {"received": time.mktime(now.timetuple())},
-                },
-                {},
+            cast(
+                "dict[str, Any]",
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": "a" * 32,
+                        "primary_hash": "1" * 32,
+                        "group_id": 1,
+                        "project_id": self.project.id,
+                        "message": "message",
+                        "platform": "python",
+                        "datetime": now.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                        "data": {"received": time.mktime(now.timetuple())},
+                    },
+                    {},
+                ),
             )
         )
-        assert snuba.query(
-            start=now - timedelta(days=1),
-            end=now + timedelta(days=1),
-            groupby=["project_id"],
-            filter_keys={"project_id": [self.project.id]},
-            referrer="testing.test",
-            tenant_ids={"referrer": "testing.test", "organization_id": 1},
-        ) == {self.project.id: 1}
+        result = cast(
+            "dict[int, int]",
+            snuba.query(
+                start=now - timedelta(days=1),
+                end=now + timedelta(days=1),
+                groupby=["project_id"],
+                filter_keys={"project_id": [self.project.id]},
+                referrer="testing.test",
+                tenant_ids={"referrer": "testing.test", "organization_id": 1},
+            ),
+        )
+        assert result == {self.project.id: 1}
 
     def test_fail(self) -> None:
         now = datetime.now()
@@ -81,7 +94,7 @@ class SnubaTest(TestCase, SnubaTestCase):
         self._insert_event_for_time(base_time - timedelta(minutes=1))
         self._insert_event_for_time(base_time - timedelta(days=2))
 
-        def _get_event_count():
+        def _get_event_count() -> object:
             # attempt to query back 90 days
             return snuba.query(
                 start=base_time - timedelta(days=90),
@@ -123,6 +136,8 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
             data={"fingerprint": ["group-2"], "message": "hello", "timestamp": one_min_ago},
             project_id=self.project.id,
         )
+        assert event_1.group is not None
+        assert event_2.group is not None
 
         results = snuba.bulk_raw_query(
             [
@@ -158,6 +173,8 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
             data={"fingerprint": ["group-2"], "message": "hello", "timestamp": one_min_ago},
             project_id=self.project.id,
         )
+        assert event_1.group is not None
+        assert event_2.group is not None
         params = [
             snuba.SnubaQueryParams(
                 start=timezone.now() - timedelta(days=1),
@@ -191,6 +208,8 @@ class BulkRawQueryTest(TestCase, SnubaTestCase):
             data={"fingerprint": ["group-2"], "message": "hello there", "timestamp": one_min_ago},
             project_id=self.project.id,
         )
+        assert event_1.group is not None
+        assert event_2.group is not None
 
         results = snuba.bulk_raw_query(
             copy.deepcopy(params),

@@ -2,16 +2,17 @@ import type {ReactNode} from 'react';
 import {useCallback, useReducer} from 'react';
 import type {Location} from 'history';
 
-import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {MEPDataProvider} from './metricsEnhancedPerformanceDataContext';
 import {
   MEPSettingContext,
   AutoSampleState,
   MEPState,
   canUseMetricsData,
-} from 'sentry/utils/performance/contexts/useMEPSettingContext';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './useMEPSettingContext';
 
 const METRIC_SETTING_PARAM = 'metricSetting';
 

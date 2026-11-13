@@ -1,9 +1,10 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
 from sentry.preprod.analytics import PreprodArtifactApiInstallDetailsEvent
-from sentry.preprod.models import InstallablePreprodArtifact
+from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 
@@ -17,15 +18,15 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         )
         self.login_as(user=self.user)
 
-    def _get_url(self, artifact_id=None):
+    def _get_url(self, artifact_id: int | None = None) -> str:
         artifact_id = artifact_id or self.preprod_artifact.id
         return f"/api/0/organizations/{self.organization.slug}/preprodartifacts/{artifact_id}/private-install-details/"
 
-    def _create_ios_artifact(self, **kwargs):
+    def _create_ios_artifact(self, **kwargs: Any) -> PreprodArtifact:
         """Helper to create an iOS artifact with default valid extras"""
         from sentry.preprod.models import PreprodArtifact
 
-        defaults = {
+        defaults: dict[str, Any] = {
             "project": self.project,
             "file_id": self.file.id,
             "state": PreprodArtifact.ArtifactState.PROCESSED,
@@ -42,11 +43,11 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         defaults.update(kwargs)
         return self.create_preprod_artifact(**defaults)
 
-    def _create_android_artifact(self, **kwargs):
+    def _create_android_artifact(self, **kwargs: Any) -> PreprodArtifact:
         """Helper to create an Android artifact with default valid extras"""
         from sentry.preprod.models import PreprodArtifact
 
-        defaults = {
+        defaults: dict[str, Any] = {
             "project": self.project,
             "file_id": self.file.id,
             "state": PreprodArtifact.ArtifactState.PROCESSED,

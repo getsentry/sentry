@@ -3,7 +3,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectToolbarSettings from 'sentry/views/settings/project/projectToolbar';
+import ProjectToolbarSettings from './projectToolbar';
 
 describe('ProjectToolbarSettings', () => {
   const organization = OrganizationFixture();

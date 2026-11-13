@@ -1,5 +1,6 @@
-import type {ApiAccessScope} from 'sentry/constants/apiAccessScopes';
 import {t} from 'sentry/locale';
+
+import type {ApiAccessScope} from './apiAccessScopes';
 
 export {API_ACCESS_SCOPES, type ApiAccessScope} from 'sentry/constants/apiAccessScopes';
 

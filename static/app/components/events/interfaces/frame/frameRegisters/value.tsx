@@ -1,7 +1,7 @@
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
 import type {Meta} from 'sentry/types/group';

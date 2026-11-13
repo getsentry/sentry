@@ -491,7 +491,8 @@ class TestExtractGithubInfo(TestCase):
             name="test-owner/test-repo",
             provider="integrations:github",
         )
-        self.repo.integration_id = 99999
+        self.integration_id = 99999
+        self.repo.integration_id = self.integration_id
         self.repo.save()
 
     def test_extract_from_pull_request_event(self) -> None:
@@ -501,7 +502,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="pull_request",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_owner"] == "baxterthehacker"
@@ -520,7 +521,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="check_run",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_owner"] == "getsentry"
@@ -539,7 +540,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="check_run",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_owner"] == "getsentry"
@@ -579,7 +580,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="issue_comment",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_owner"] == "comment-owner"
@@ -605,7 +606,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="issue_comment",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_event_url"] == "https://github.com/owner/repo/pull/1#issuecomment-999"
@@ -622,7 +623,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="check_run",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_event_url"] == "https://github.com/owner/repo/runs/123"
@@ -638,7 +639,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="pull_request",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_event_url"] == "https://github.com/owner/repo/pull/5"
@@ -655,7 +656,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="check_run",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_event_url"] == "https://github.com/owner/repo/runs/999"
@@ -667,7 +668,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="pull_request",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         # Event-derived keys are absent when event is empty
@@ -691,7 +692,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="pull_request",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert "scm_owner" not in result
@@ -713,7 +714,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="pull_request",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_owner"] == "test-owner"
@@ -731,7 +732,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="issue_comment",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_event_url"] == "https://github.com/owner/repo/issues/42#comment"
@@ -750,7 +751,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="pull_request",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_owner"] == "my-org"
@@ -769,7 +770,7 @@ class TestExtractGithubInfo(TestCase):
             github_event="pull_request",
             organization_id=self.organization.id,
             organization_slug=self.organization.slug,
-            integration_id=self.repo.integration_id,
+            integration_id=self.integration_id,
         )
 
         assert result["scm_owner"] == "solo-owner"

@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory, override_settings
@@ -12,7 +13,7 @@ from sentry.testutils.silo import all_silo_test
 class SuperuserMiddlewareTestCase(TestCase):
     middleware = cached_property(SuperuserMiddleware)
 
-    def _create_request(self, is_superuser: bool):
+    def _create_request(self, is_superuser: bool) -> Any:
         request = RequestFactory().get("/")
         request.user = self.user
         request.session = self.session

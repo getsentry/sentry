@@ -8,6 +8,7 @@ from typing import Any, Literal, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
+from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -17,12 +18,14 @@ from sentry import eventstore, features
 from sentry.api.client import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.activity import ActivitySerializer
-from sentry.api.serializers.models.commit import CommitSerializer
+from sentry.api.serializers.models.activity import ActivitySerializer, ActivitySerializerResponse
+from sentry.api.serializers.models.commit import CommitSerializer, CommitSerializerResponse
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
 from sentry.issues.formatting.mixin import FORMATTER_FEATURE, VALID_FORMATS
@@ -119,6 +122,7 @@ from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.action_log.activity_translator import ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE
 from sentry.utils.committers import (
     get_event_file_committers,
     get_frame_paths,
@@ -926,6 +930,25 @@ def rpc_get_profile_flamegraph(
     )
 
 
+def _find_repository(
+    organization_id: int, repo_full_name: str, providers: list[str]
+) -> Repository | None:
+    """Find a repository by its name or its URL path. They're the same except on GitLab, where the
+    name is a display name ("My Group / App") and the path is "my-group/app"."""
+    candidates = Repository.objects.filter(
+        Q(name=repo_full_name) | Q(url__iendswith=f"/{repo_full_name}"),
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+        provider__in=providers,
+    ).order_by("id")
+    # A URL can also end this way for a repository further down: ".../parent/my-group/app".
+    requested = repo_full_name.casefold()
+    for repo in candidates:
+        if requested in (repo.name.casefold(), get_repo_url_path(repo).casefold()):
+            return repo
+    return None
+
+
 def get_repository_definition(
     *,
     organization_id: int,
@@ -938,7 +961,7 @@ def get_repository_definition(
 
     Lookup priority:
     1. external_id (GitHub's repo ID - stable across renames)
-    2. Current name (exact match)
+    2. Current name or URL path
 
     Args:
         organization_id: The ID of the organization
@@ -975,12 +998,7 @@ def get_repository_definition(
             )
             return None
 
-        repo = Repository.objects.filter(
-            organization_id=organization_id,
-            name=repo_full_name,
-            status=ObjectStatus.ACTIVE,
-            provider__in=supported_providers,
-        ).first()
+        repo = _find_repository(organization_id, repo_full_name, supported_providers)
 
     if not repo:
         logger.info(
@@ -1260,6 +1278,32 @@ _SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES = [
     ActivityType.SEER_ITERATION_STARTED.value,
 ]
 
+# Keep the existing history plus external issue links, unassignment, and PR lifecycle.
+# Automated Seer progress remains excluded, even when visible in the web feed.
+_SEER_EXPLORER_ACTION_FILTER = models.Q(
+    type__in=[
+        *(
+            ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE[t].get_type()
+            for t in _SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
+        ),
+        GroupActionType.UNASSIGN,
+        GroupActionType.CREATE_ISSUE,
+        GroupActionType.UNLINK_EXTERNAL_ISSUE,
+        GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+        GroupActionType.PULL_REQUEST_CLOSED,
+        GroupActionType.PULL_REQUEST_REOPENED,
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.PULL_REQUEST_UNLINKED,
+    ]
+) | models.Q(
+    type__in=[
+        ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE[t].get_type()
+        for t in _SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES
+    ],
+    actor_type=GroupActorType.USER,
+    actor_id__gt=0,
+)
+
 
 class _EventTroubleshootingContext(TypedDict):
     # These fields are added to the serialized event, which uses camelCase keys.
@@ -1429,18 +1473,31 @@ def get_issue_details(
         timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
     try:
-        activity_filter = models.Q(
-            type__in=_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
-        ) | models.Q(
-            type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
-            user_id__isnull=False,
+        serialized_activities = get_serialized_activity_items(
+            group,
+            user=None,
+            endpoint="seer_get_issue_details",
+            limit=50,
+            action_filter=_SEER_EXPLORER_ACTION_FILTER,
+            include_first_seen=False,
+            resolve_mentions=True,
         )
-        activities = (
-            Activity.objects.filter(group=group).filter(activity_filter).order_by("-datetime")[:50]
-        )
-        serialized_activities = serialize(
-            list(activities), user=None, serializer=ActivitySerializer(resolve_mentions=True)
-        )
+        if serialized_activities is None:
+            activity_filter = models.Q(
+                type__in=_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
+            ) | models.Q(
+                type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
+                user_id__isnull=False,
+            )
+            activities: list[Activity] = list(
+                Activity.objects.filter(group=group)
+                .filter(activity_filter)
+                .order_by("-datetime", "-id")[:50]
+            )
+            legacy_activities: list[ActivitySerializerResponse] = serialize(
+                activities, user=None, serializer=ActivitySerializer(resolve_mentions=True)
+            )
+            serialized_activities = [dict(item) for item in legacy_activities]
     except Exception:
         logger.exception(
             "get_issue_details: Failed to get user activity",
@@ -1605,27 +1662,27 @@ class _IssueCommitters:
             # Batch-serialize every commit in one call: CommitSerializer.get_attrs runs
             # repository and pull request queries per invocation, so serializing one
             # commit at a time would be an N+1.
-            commits_by_id = {
+            commits_by_id: dict[int, Commit] = {
                 commit.id: commit
                 for entry in author_commits
-                for commit, _ in entry.get("commits", [])
+                for commit, _ in entry.get("commits", list[tuple[Commit, int]]())
             }
-            serialized_by_id = {
+            commit_list: list[Commit] = list(commits_by_id.values())
+            serialized_commits: list[CommitSerializerResponse] = serialize(
+                commit_list,
+                serializer=CommitSerializer(exclude=["author"]),
+            )
+
+            serialized_by_id: dict[int, CommitSerializerResponse] = {
                 commit_id: serialized
-                for commit_id, serialized in zip(
-                    commits_by_id,
-                    serialize(
-                        list(commits_by_id.values()),
-                        serializer=CommitSerializer(exclude=["author"]),
-                    ),
-                )
+                for commit_id, serialized in zip(commits_by_id, serialized_commits)
             }
             stack_commits = [
                 {
                     "author": entry.get("author"),
                     "commits": [
                         {**serialized_by_id[commit.id], "score": score}
-                        for commit, score in entry.get("commits", [])
+                        for commit, score in entry.get("commits", list[tuple[Commit, int]]())
                     ],
                 }
                 for entry in author_commits
@@ -2260,7 +2317,7 @@ def get_replay_metadata(
         request_user_id=None,
     )
     response = process_raw_response(
-        snuba_response,
+        cast("list[dict[str, Any]]", snuba_response),
         fields=[],
     )
     if not response:

@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getOperatingSystemContextData,
-  type OperatingSystemContext,
-} from 'sentry/components/events/contexts/knownContext/os';
+
+import {getOperatingSystemContextData, type OperatingSystemContext} from './os';
 
 const MOCK_OS_CONTEXT: OperatingSystemContext = {
   name: 'Linux',

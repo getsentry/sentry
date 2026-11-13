@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import MonitorDetails from 'sentry/views/alerts/rules/crons/details';
+import MonitorDetails from './details';
 
 describe('Monitor Details', () => {
   const organization = OrganizationFixture();

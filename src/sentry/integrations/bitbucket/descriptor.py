@@ -5,9 +5,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.integrations.bitbucket.integration import scopes
+from sentry.integrations.bitbucket.utils import get_bitbucket_key
 from sentry.utils.http import absolute_uri
-
-from .client import BITBUCKET_KEY
 
 
 @control_silo_endpoint
@@ -22,7 +21,7 @@ class BitbucketDescriptorEndpoint(Endpoint):
     def get(self, request: Request) -> Response:
         return self.respond(
             {
-                "key": BITBUCKET_KEY,
+                "key": get_bitbucket_key(),
                 "name": "Sentry for Bitbucket",
                 "description": "A Sentry integration",
                 "vendor": {"name": "Sentry.io", "url": "https://sentry.io/"},

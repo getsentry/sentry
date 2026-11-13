@@ -1,7 +1,8 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
+
+import {ActivityNoteInput} from './activityNoteInput';
 
 function getEditor() {
   const editor = screen.getByRole('combobox', {name: 'Add a comment'});

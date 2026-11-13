@@ -6,11 +6,12 @@ import {
 } from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+
 import type {
   InvestigationActionRequest,
   InvestigationActionRequestApplyResponse,
@@ -27,7 +28,7 @@ import type {
   InvestigationViewer,
   ManualInvestigationSource,
   MetricOpenPeriodInvestigationSource,
-} from 'sentry/views/investigations/types';
+} from './types';
 
 type ListOptions = {
   organizationSlug: string;
@@ -323,8 +324,8 @@ export function investigationOrchestrationQueryOptions(
 }
 
 /**
- * Send a viewer command — accept/reject a hypothesis, steer, retry, cancel — to
- * a running workflow.
+ * Send a viewer command to a running workflow. The only one sent today is
+ * `provide_input`, the question a run started without.
  *
  * The response carries the post-command projection, so it is written straight
  * into the orchestration cache instead of triggering another fetch.
@@ -459,7 +460,7 @@ export function useLaunchInvestigationMutation(
     organizationSlug,
     source =>
       fetchMutation<InvestigationDetail>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/notebooks/', {
+        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
           path: {organizationIdOrSlug: organizationSlug},
         }),
         method: 'POST',
@@ -483,7 +484,7 @@ export function useStartManualInvestigationMutation(
     organizationSlug,
     ({source, projectIds}) =>
       fetchMutation<InvestigationDetail>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/notebooks/', {
+        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
           path: {organizationIdOrSlug: organizationSlug},
         }),
         method: 'POST',
@@ -738,33 +739,38 @@ export function actionRequestDryRunQueryOptions(
   investigationId: string,
   actionRequest: InvestigationActionRequest
 ) {
-  const url = getActionRequestUrl(
-    organizationSlug,
-    investigationId,
-    actionRequest.id,
-    'apply'
+  const options = apiOptions.as<ActionRequestError | null>()(
+    '/organizations/$organizationIdOrSlug/notebooks/$investigationId/action-requests/$actionRequestId/apply/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        investigationId,
+        actionRequestId: actionRequest.id,
+      },
+      method: 'POST',
+      data: {dryRun: true, action: actionRequest.action},
+      staleTime: 0,
+    }
   );
-  const endpoint = {
-    method: 'POST',
-    data: {dryRun: true, action: actionRequest.action},
-  } as const;
+  const originalQueryFn = options.queryFn;
+
   return queryOptions({
-    queryKey: [url, endpoint] as const,
-    queryFn: async (): Promise<ActionRequestError | null> => {
-      try {
-        await apiFetch<InvestigationActionRequestApplyResponse>({
-          queryKey: [url, endpoint],
-        });
-        return null;
-      } catch (error) {
-        const applyError = parseApplyError(error);
-        if (applyError) {
-          return applyError;
-        }
-        throw error;
-      }
-    },
-    staleTime: 0,
+    ...options,
+    queryFn:
+      typeof originalQueryFn === 'function'
+        ? async context => {
+            try {
+              const response = await originalQueryFn(context);
+              return {...response, json: null};
+            } catch (error) {
+              const applyError = parseApplyError(error);
+              if (applyError) {
+                return {headers: {}, json: applyError};
+              }
+              throw error;
+            }
+          }
+        : originalQueryFn,
     retry: false,
   });
 }

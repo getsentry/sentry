@@ -37,7 +37,8 @@ from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
     is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
+    is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.agentic_triage import SeerAgenticTriageRunErrorType
@@ -86,6 +87,11 @@ PER_ORG_FEATURE_NAMES = [
     "organizations:seat-based-seer-enabled",
 ]
 
+# Token billing makes the Seer quota check pass for every pay-as-you-go org, so
+# scheduled runs stay with the orgs that already had them before the switch.
+TOKEN_BILLING_CUTOFF = datetime(2026, 12, 8, tzinfo=UTC)
+TOKEN_BILLING_PRIOR_RUN_WINDOW = timedelta(days=30)
+
 
 class SeerAgenticTriageRunOptions(TypedDict):
     """Fully-resolved options for an agentic triage run. Persisted directly onto
@@ -94,6 +100,7 @@ class SeerAgenticTriageRunOptions(TypedDict):
     source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
+    single_run: bool
     intelligence_level: IntelligenceLevel
     reasoning_effort: ReasoningEffort
     extra_triage_instructions: str
@@ -106,6 +113,7 @@ class SeerAgenticTriageRunOptionsPartial(TypedDict, total=False):
     source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
+    single_run: bool
     intelligence_level: IntelligenceLevel
     reasoning_effort: ReasoningEffort
     extra_triage_instructions: str
@@ -362,6 +370,17 @@ def run_agentic_triage_for_org(
             logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
             return None
 
+    if (
+        schedule_id is not None
+        and features.has("organizations:token-billed-seer-enabled", organization)
+        and not _had_scheduled_run_before_token_billing(organization)
+    ):
+        logger.info(
+            "night_shift.token_billed_without_prior_runs",
+            extra={"organization_id": organization.id},
+        )
+        return None
+
     # Manual project runs scope to a single project, whose tweaks feed the run
     # options; cron and org-wide manual runs have no single project.
     single_project_id = project_ids[0] if project_ids and len(project_ids) == 1 else None
@@ -413,6 +432,16 @@ def run_agentic_triage_for_org(
         execute_in_task=execute_in_task,
     )
     return run.id
+
+
+def _had_scheduled_run_before_token_billing(organization: Organization) -> bool:
+    return SeerWorkflowRun.objects.filter(
+        organization=organization,
+        workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+        trigger_key__isnull=False,
+        date_added__gte=TOKEN_BILLING_CUTOFF - TOKEN_BILLING_PRIOR_RUN_WINDOW,
+        date_added__lt=TOKEN_BILLING_CUTOFF,
+    ).exists()
 
 
 def _is_agentic_triage_enabled(organization: Organization) -> bool:
@@ -542,6 +571,7 @@ def _run_option_defaults(data: Mapping[str, Any]) -> SeerAgenticTriageRunOptions
         source=data.get("source", "cron"),
         max_candidates=default_max_candidates() if max_candidates is None else max_candidates,
         dry_run=data.get("dry_run", False),
+        single_run=data.get("single_run", False),
         intelligence_level=data.get("intelligence_level", DEFAULT_INTELLIGENCE_LEVEL),
         reasoning_effort=data.get("reasoning_effort", DEFAULT_REASONING_EFFORT),
         extra_triage_instructions=data.get(
@@ -635,11 +665,11 @@ def _get_eligible_orgs_from_batch(
     if options.get("seer.night_shift.enable_for_legacy_orgs"):
         return eligible
 
-    # seat-based-seer-enabled: required for paid path, bypassed by free cohort
     paid_eligible: list[Organization] = []
     free_cohort_eligible: list[Organization] = []
     for org in eligible:
-        if all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES):
+        has_seat_based_seer = all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES)
+        if has_seat_based_seer or is_seer_token_based_billing_onboarding_enabled(org):
             paid_eligible.append(org)
         elif is_free_cohort_org(org):
             free_cohort_eligible.append(org)
@@ -700,7 +730,7 @@ class EligibleProject:
     tweaks: AgenticTriageTweaks
     stopping_point: AutofixStoppingPoint
     connected_repos: list[str]
-    # None for seat-based orgs, regardless of the project's own setting.
+    # None for seat-based and token-billed orgs, regardless of the project's own setting.
     automation_tuning: AutofixAutomationTuningSettings | None
 
 
@@ -727,9 +757,11 @@ def _get_eligible_projects(
     if not project_map:
         return []
 
-    preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
+    preferences = bulk_read_preferences_from_sentry_db(
+        organization.id, list(project_map), limit_repos=True
+    )
 
-    is_legacy_org = not is_seer_seat_based_tier_enabled(organization)
+    is_legacy_org = not is_seer_seat_or_token_billed_enabled(organization)
 
     eligible: list[EligibleProject] = []
     for pid, project in project_map.items():
@@ -887,7 +919,7 @@ def _dispatch_pending_shards(
     for shard_index, planned_shard in enumerate(planned_shards):
         with transaction.atomic(using=using):
             shard = SeerWorkflowRunExecution.objects.select_for_update().get(id=planned_shard.id)
-            if shard.seer_run_id is not None:
+            if shard.seer_run_id:
                 dispatched += 1
                 continue
 

@@ -11,6 +11,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.agentic_onboarding import (
     AgenticOnboardingRunSerializer,
 )
+from sentry.apidocs.constants import RESPONSE_CONFLICT, RESPONSE_NOT_FOUND
+from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import OnboardingRunTerminal
 from sentry.onboarding.agentic_progress.service import (
@@ -25,10 +27,9 @@ class OrganizationAgenticOnboardingRunDetailsEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE, "DELETE": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.VALUE_DISCOVERY
 
-    @extend_schema(responses={200: AgenticOnboardingRunSerializer})
+    @extend_schema(responses={200: AgenticOnboardingRunSerializer, 404: RESPONSE_NOT_FOUND})
     def get(self, request: Request, organization: Organization, run_id: str) -> Response:
-        user_id = request.user.id
-        assert user_id is not None
+        user_id = require_user(request).id
         run = get_onboarding_progress_service().get(
             run_id=run_id, user_id=user_id, organization_id=organization.id
         )
@@ -37,10 +38,15 @@ class OrganizationAgenticOnboardingRunDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(run, request.user, AgenticOnboardingRunSerializer()))
 
-    @extend_schema(responses={200: AgenticOnboardingRunSerializer})
+    @extend_schema(
+        responses={
+            200: AgenticOnboardingRunSerializer,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+        }
+    )
     def delete(self, request: Request, organization: Organization, run_id: str) -> Response:
-        user_id = request.user.id
-        assert user_id is not None
+        user_id = require_user(request).id
         try:
             run = get_onboarding_progress_service().cancel(
                 run_id=run_id, user_id=user_id, organization_id=organization.id

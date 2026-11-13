@@ -11,6 +11,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service, get_services
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import control_silo_test
@@ -128,21 +129,21 @@ class PagerDutyApiPipelineTest(APITestCase):
         self.app_id = "app_1"
         options.set("pagerduty.app-id", self.app_id)
 
-    def _get_pipeline_url(self, organization=None) -> str:
+    def _get_pipeline_url(self, organization: Organization | None = None) -> str:
         organization = organization or self.organization
         return reverse(
             self.endpoint,
             args=[organization.slug, IntegrationPipeline.pipeline_name],
         )
 
-    def _initialize_pipeline(self, organization=None) -> Any:
+    def _initialize_pipeline(self, organization: Organization | None = None) -> Any:
         return self.client.post(
             self._get_pipeline_url(organization),
             data={"action": "initialize", "provider": "pagerduty"},
             format="json",
         )
 
-    def _advance_step(self, data: dict[str, Any], organization=None) -> Any:
+    def _advance_step(self, data: dict[str, Any], organization: Organization | None = None) -> Any:
         return self.client.post(self._get_pipeline_url(organization), data=data, format="json")
 
     def _make_config(
@@ -165,7 +166,7 @@ class PagerDutyApiPipelineTest(APITestCase):
         }
         return orjson.dumps(config).decode()
 
-    def _install(self, organization=None, **config: str) -> Any:
+    def _install(self, organization: Organization | None = None, **config: str) -> Any:
         self._initialize_pipeline(organization)
         return self._advance_step({"config": self._make_config(**config)}, organization)
 

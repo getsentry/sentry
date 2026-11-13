@@ -1,8 +1,5 @@
-import {
-  getIsAiGenerationNode,
-  getIsAiNode,
-} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {getIsAiGenerationNode, getIsAiNode} from './aiTraceNodes';
+import type {AITraceSpanNode} from './types';
 
 export function getDefaultSelectedNode(nodes: AITraceSpanNode[]) {
   const firstGenerationSpan = nodes.find(getIsAiGenerationNode);

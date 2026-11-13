@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestGenerateControlsiloUrls(TestCase):
-    def call_command(self, *args, **kwargs):
+    def call_command(self, *args: object, **kwargs: object) -> str:
         out = StringIO()
         call_command("generate_controlsilo_urls", *args, stdout=out, stderr=StringIO(), **kwargs)
         return out.getvalue()

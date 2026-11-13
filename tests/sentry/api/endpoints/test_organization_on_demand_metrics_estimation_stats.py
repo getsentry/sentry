@@ -1,6 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from random import choice
-from typing import cast
+from typing import Any, cast
 
 import pytest
 from django.utils import timezone
@@ -14,6 +14,7 @@ from sentry.api.endpoints.organization_on_demand_metrics_estimation_stats import
     estimate_stats_quality,
     estimate_volume,
 )
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.samples import load_data
@@ -39,17 +40,17 @@ class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMe
     method = "GET"
 
     @property
-    def now(self):
+    def now(self) -> datetime:
         return MOCK_DATETIME
 
-    def _get_id(self, length):
+    def _get_id(self, length: int) -> str:
         return "".join([choice("abcde") for i in range(length)])
 
     def create_transaction(
         self,
-        start_timestamp,
-        duration,
-    ):
+        start_timestamp: datetime,
+        duration: int,
+    ) -> Event:
         timestamp = start_timestamp + timedelta(milliseconds=duration)
 
         trace_id = self._get_id(32)
@@ -182,7 +183,7 @@ class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMe
 
         assert response.status_code == 200, response.content
 
-        def apdex(satisfactory, tolerable):
+        def apdex(satisfactory: int, tolerable: int) -> float:
             return (satisfactory + 0.5 * tolerable) / (satisfactory + tolerable)
 
         # --- check the results ---
@@ -212,7 +213,9 @@ class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMe
         [[0, 1, 7], [8, 8, 8], [120, 120, 120], [0, 1 * 120 / 8, 7 * 120 / 8]],
     ],
 )
-def test_estimate_volume(indexed, base_indexed, metrics, expected) -> None:
+def test_estimate_volume(
+    indexed: list[Any], base_indexed: list[Any], metrics: list[Any], expected: list[float]
+) -> None:
     """
     Tests volume estimation calculation
     """
@@ -256,7 +259,7 @@ def test_should_scale(metric: str, should_scale: bool) -> None:
         (100, StatsQualityEstimation.NO_INDEXED_DATA),
     ],
 )
-def test_estimate_stats_quality(zero_samples, expected_result) -> None:
+def test_estimate_stats_quality(zero_samples: int, expected_result: StatsQualityEstimation) -> None:
     num_samples = 100
 
     start_timestamp = 1_500_000_000
@@ -274,7 +277,7 @@ def test_estimate_stats_quality(zero_samples, expected_result) -> None:
 
 
 @pytest.mark.parametrize("zero_samples", [0, 1, 5, 9, 10])
-def test_count_non_zero_intervals(zero_samples) -> None:
+def test_count_non_zero_intervals(zero_samples: int) -> None:
     num_samples = 10
 
     start_timestamp = 1_500_000_000

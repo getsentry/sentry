@@ -1,4 +1,4 @@
-import {getSortedRegisters} from 'sentry/components/events/interfaces/frame/frameRegisters/utils';
+import {getSortedRegisters} from './utils';
 
 describe('getSortedRegisters', () => {
   it('naturally sorts register names without a device architecture', () => {

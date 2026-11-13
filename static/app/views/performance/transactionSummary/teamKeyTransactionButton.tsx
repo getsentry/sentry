@@ -11,8 +11,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
-import {withProjects} from 'sentry/utils/withProjects';
 
 type BaseProps = {
   organization: Organization;
@@ -24,7 +24,7 @@ type Props = BaseProps &
     project: Project;
   };
 
-function TeamKeyTransactionButton({
+function TeamKeyTransactionButtonContent({
   counts,
   getKeyedTeams,
   project,
@@ -82,15 +82,14 @@ function TeamKeyTransactionButton({
 
 type WrapperProps = BaseProps & {
   eventView: EventView;
-  projects: Project[];
 };
 
-function TeamKeyTransactionButtonWrapper({
+export function TeamKeyTransactionButton({
   eventView,
   organization,
-  projects,
   ...props
 }: WrapperProps) {
+  const {projects} = useProjects();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
 
   if (eventView.project.length !== 1) {
@@ -120,7 +119,7 @@ function TeamKeyTransactionButtonWrapper({
     >
       <TeamKeyTransactionManager.Consumer>
         {({isLoading, ...results}) => (
-          <TeamKeyTransactionButton
+          <TeamKeyTransactionButtonContent
             organization={organization}
             project={project}
             isLoading={isLoading || !initiallyLoaded}
@@ -132,5 +131,3 @@ function TeamKeyTransactionButtonWrapper({
     </TeamKeyTransactionManager.Provider>
   );
 }
-
-export default withProjects(TeamKeyTransactionButtonWrapper);

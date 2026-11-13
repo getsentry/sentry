@@ -1,6 +1,6 @@
 import abc
 from collections.abc import Callable, Collection, Sequence
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -10,6 +10,7 @@ from fixtures.sdk_crash_detection.crash_event_android import (
 )
 from fixtures.sdk_crash_detection.crash_event_cocoa import get_crash_event
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase, TestCase
@@ -123,7 +124,7 @@ class SDKCrashReporterTest(TestCase):
         )
         reported_event = MagicMock(spec=Event)
 
-        def save_event(*, project):
+        def save_event(*, project: Project) -> Any:
             assert get_viewer_context() == destination_context
             assert project == destination_project
             return reported_event
@@ -155,10 +156,17 @@ def test_react_native_native_sdks_have_hybrid_package_attribution() -> None:
 
 class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def create_event(self, data, project_id, assert_no_errors=True):
+    def create_event(
+        self, data: dict[str, Any], project_id: int, assert_no_errors: bool = True
+    ) -> Event:
         pass
 
-    def execute_test(self, event_data, should_be_reported, mock_sdk_crash_reporter):
+    def execute_test(
+        self,
+        event_data: dict[str, Any],
+        should_be_reported: bool,
+        mock_sdk_crash_reporter: MagicMock,
+    ) -> None:
         event = self.create_event(
             data=event_data,
             project_id=self.project.id,
@@ -248,7 +256,7 @@ class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
 )
 def test_sdks_detected(
     mock_sdk_crash_reporter: MagicMock,
-    store_event: Callable[[dict[str, Collection[str]]], Event],
+    store_event: Callable[..., Event],
     sdk_name: str,
     detected: bool,
 ) -> None:
@@ -271,7 +279,7 @@ def test_sdks_detected(
 def test_flutter_sdk_version_attributed_without_replacing_native_version(
     incr: MagicMock,
     mock_sdk_crash_reporter: MagicMock,
-    store_event: Callable[[dict[str, Collection[str]]], Event],
+    store_event: Callable[..., Event],
 ) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "name", value="sentry.cocoa.flutter")
@@ -334,7 +342,7 @@ def test_flutter_sdk_version_attributed_without_replacing_native_version(
 def test_react_native_sdk_version_attributed_without_replacing_native_version(
     incr: MagicMock,
     mock_sdk_crash_reporter: MagicMock,
-    store_event: Callable[[dict[str, Collection[str]]], Event],
+    store_event: Callable[..., Event],
     sdk_name: str,
     event_factory: Callable[[], dict[str, object]],
 ) -> None:
@@ -421,7 +429,9 @@ class SDKCrashDetectionTest(
     PerformanceEventTestMixin,
     SDKCrashReportTestMixin,
 ):
-    def create_event(self, data, project_id, assert_no_errors=True):
+    def create_event(
+        self, data: dict[str, Any], project_id: int, assert_no_errors: bool = True
+    ) -> Any:
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
 
@@ -445,7 +455,7 @@ class SDKCrashDetectionTest(
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 def test_sample_rate(
     mock_sdk_crash_reporter: MagicMock,
-    store_event: Callable[[dict[str, Collection[str]]], Event],
+    store_event: Callable[..., Event],
     sample_rate: float,
     random_value: float,
     sampled: bool,
@@ -467,7 +477,9 @@ def test_sample_rate(
 @django_db_all
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-def test_multiple_configs_first_one_picked(mock_sdk_crash_reporter, store_event) -> None:
+def test_multiple_configs_first_one_picked(
+    mock_sdk_crash_reporter: MagicMock, store_event: Any
+) -> None:
     event = store_event(data=get_crash_event())
 
     sdk_configs = build_sdk_configs()
@@ -484,7 +496,9 @@ def test_multiple_configs_first_one_picked(mock_sdk_crash_reporter, store_event)
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 @patch("sentry.utils.metrics.incr")
-def test_should_increment_counters_for_sdk_crash(incr, sdk_crash_reporter, store_event) -> None:
+def test_should_increment_counters_for_sdk_crash(
+    incr: Any, sdk_crash_reporter: Any, store_event: Any
+) -> None:
     event = store_event(data=get_crash_event())
 
     sdk_configs = build_sdk_configs()
@@ -527,7 +541,9 @@ def test_should_increment_counters_for_sdk_crash(incr, sdk_crash_reporter, store
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 @patch("sentry.utils.metrics.incr")
-def test_anr_event_tags_is_anr_or_apphang_true(incr, sdk_crash_reporter, store_event) -> None:
+def test_anr_event_tags_is_anr_or_apphang_true(
+    incr: Any, sdk_crash_reporter: Any, store_event: Any
+) -> None:
     event_data = get_crash_event()
     event_data["exception"]["values"][0]["mechanism"]["type"] = "ANR"  # type: ignore[index]
     event = store_event(data=event_data)
@@ -545,8 +561,8 @@ def test_anr_event_tags_is_anr_or_apphang_true(incr, sdk_crash_reporter, store_e
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 @patch("sentry.utils.metrics.incr")
 def test_should_only_increment_detecting_counter_for_non_crash_event(
-    incr, sdk_crash_reporter, store_event
-):
+    incr: Any, sdk_crash_reporter: Any, store_event: Any
+) -> None:
     non_crash_event = store_event(data=get_crash_event(function="+[SentrySDK crash]"))
 
     sdk_configs = build_sdk_configs()
@@ -586,7 +602,7 @@ def test_should_only_increment_detecting_counter_for_non_crash_event(
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 @patch("sentry.utils.metrics.incr")
 def test_should_not_increment_counters_for_not_supported_sdk(
-    incr, sdk_crash_reporter, store_event
+    incr: Any, sdk_crash_reporter: Any, store_event: Any
 ) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "name", value="sentry.coco")
@@ -609,7 +625,7 @@ def test_should_not_increment_counters_for_not_supported_sdk(
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 @patch("sentry.utils.metrics.incr")
 def test_should_increment_counter_for_non_crash_event(
-    incr, sdk_crash_reporter, store_event
+    incr: Any, sdk_crash_reporter: Any, store_event: Any
 ) -> None:
     event_data = get_crash_event(handled=True)
     crash_event = store_event(data=event_data)
@@ -635,8 +651,8 @@ def test_should_increment_counter_for_non_crash_event(
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 @patch("sentry.utils.metrics.incr")
 def test_should_not_increment_counters_already_reported_sdk_crash(
-    incr, sdk_crash_reporter, store_event
-):
+    incr: Any, sdk_crash_reporter: Any, store_event: Any
+) -> None:
     event_data = get_crash_event()
     set_path(
         event_data,

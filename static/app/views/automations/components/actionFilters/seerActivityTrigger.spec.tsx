@@ -3,13 +3,14 @@ import {DataConditionFixture} from 'sentry-fixture/automations';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import {DataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
 import {
   SeerActivityTriggerDetails,
   SeerActivityTriggerNode,
   validateSeerActivityTriggerCondition,
-} from 'sentry/views/automations/components/actionFilters/seerActivityTrigger';
-import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {DataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+} from './seerActivityTrigger';
 
 describe('SeerActivityTriggerDetails', () => {
   it('renders single-stage text', () => {

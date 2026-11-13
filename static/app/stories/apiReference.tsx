@@ -8,8 +8,9 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Section} from 'sentry/stories/layout';
 import {fzf} from 'sentry/utils/search/fzf';
+
+import {Section} from './layout';
 
 interface APIReferenceProps {
   componentProps: TypeLoader.ComponentDoc | undefined;

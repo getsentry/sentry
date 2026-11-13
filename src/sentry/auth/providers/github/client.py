@@ -42,7 +42,8 @@ class GitHubClient:
             raise GitHubApiError(f"{e}", status=getattr(e, "status_code", 0))
         if req.status_code < 200 or req.status_code >= 300:
             raise GitHubApiError(req.content, status=req.status_code)
-        return orjson.loads(req.content)
+        data = orjson.loads(req.content)
+        return data
 
     def get_org_list(self) -> list[dict[str, Any]]:
         res = self._request("/user/orgs")

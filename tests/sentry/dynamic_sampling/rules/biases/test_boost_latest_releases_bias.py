@@ -1,10 +1,11 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
 from sentry.dynamic_sampling import LATEST_RELEASE_TTAS, ExtendedBoostedRelease, Platform
 from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
+from sentry.models.project import Project
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -17,7 +18,7 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 @patch(
     "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.ProjectBoostedReleases.get_extended_boosted_releases"
 )
-def test_generate_bias_rules_v2(get_boosted_releases, default_project) -> None:
+def test_generate_bias_rules_v2(get_boosted_releases: MagicMock, default_project: Project) -> None:
     now = timezone.now()
     platform = "python"
     default_project.update(platform=platform)
@@ -89,7 +90,7 @@ def test_generate_bias_rules_v2(get_boosted_releases, default_project) -> None:
     "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.ProjectBoostedReleases.get_extended_boosted_releases"
 )
 def test_generate_bias_rules_with_no_boosted_releases(
-    get_boosted_releases, default_project
+    get_boosted_releases: MagicMock, default_project: Project
 ) -> None:
     default_project.update(platform="python")
     boosted_releases: list[ExtendedBoostedRelease] = []

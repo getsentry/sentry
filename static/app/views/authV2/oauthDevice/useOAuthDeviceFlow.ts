@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {useLocation} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -19,9 +20,8 @@ export function useOAuthDeviceFlow() {
 
   // The URL only seeds code entry. Keeping edits local avoids navigation and lets
   // the input stay mounted while context, authentication, and consent settle.
-  const [userCode, setUserCode] = useState(
-    () => new URLSearchParams(location.search).get('user_code') ?? ''
-  );
+  const [initialUserCode] = useQueryState('user_code', parseAsString.withDefault(''));
+  const [userCode, setUserCode] = useState(initialUserCode);
 
   // External authentication must return to the entered code, even if it was not
   // present in the initial URL.

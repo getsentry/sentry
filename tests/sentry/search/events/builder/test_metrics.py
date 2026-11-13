@@ -66,7 +66,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_granularity(self) -> None:
         # Need to pick granularity based on the period
-        def get_granularity(start, end):
+        def get_granularity(start: datetime.datetime, end: datetime.datetime) -> int:
             params = {
                 "organization_id": self.organization.id,
                 "project_id": self.projects,
@@ -74,7 +74,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "end": end,
             }
             query = MetricsQueryBuilder(params)
-            return query.granularity.granularity
+            return int(query.granularity.granularity)
 
         # If we're doing atleast day and its midnight we should use the daily bucket
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
@@ -129,7 +129,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_granularity_boundaries(self) -> None:
         # Need to pick granularity based on the period
-        def get_granularity(start, end):
+        def get_granularity(start: datetime.datetime, end: datetime.datetime) -> int:
             params = {
                 "organization_id": self.organization.id,
                 "project_id": self.projects,
@@ -137,7 +137,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "end": end,
             }
             query = MetricsQueryBuilder(params)
-            return query.granularity.granularity
+            return int(query.granularity.granularity)
 
         # See resolve_granularity on the MQB to see what these boundaries are
 
@@ -210,7 +210,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_granularity(self) -> None:
         # Need to pick granularity based on the period and interval for timeseries
-        def get_granularity(start, end, interval):
+        def get_granularity(start: datetime.datetime, end: datetime.datetime, interval: int) -> int:
             query = TimeseriesMetricQueryBuilder(
                 {
                     "organization_id": self.organization.id,
@@ -220,7 +220,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 },
                 interval=interval,
             )
-            return query.granularity.granularity
+            return int(query.granularity.granularity)
 
         # If we're doing atleast day and its midnight we should use the daily bucket
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)

@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconFilter} from '@sentry/icons/filter';
+import {useQueryState} from 'nuqs';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -10,10 +11,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -29,13 +28,16 @@ const LIMIT = 10;
 const ALLOWED_CATEGORIES = ['http', 'db', 'browser', 'resource', 'ui'];
 
 export function SpanCategoryFilter({segmentSpanName}: Props) {
-  const location = useLocation();
-  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
+  const [spanCategoryUrlParam, setSpanCategoryUrlParam] = useQueryState(
+    SpanFields.SPAN_CATEGORY,
+    parseAsScalar
+  );
 
-  const [selectedCategory, setSelectedCategory] = useState(spanCategoryUrlParam);
+  const [selectedCategory, setSelectedCategory] = useState(
+    spanCategoryUrlParam ?? undefined
+  );
 
   const {selection} = usePageFilters();
-  const navigate = useNavigate();
   const theme = useTheme();
 
   const query = new MutableSearch('');
@@ -71,13 +73,7 @@ export function SpanCategoryFilter({segmentSpanName}: Props) {
   const onChange = (selectedOption: SelectOption<string> | undefined) => {
     setSelectedCategory(selectedOption?.value);
 
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        [SpanFields.SPAN_CATEGORY]: selectedOption?.value,
-      },
-    });
+    setSpanCategoryUrlParam(selectedOption?.value ?? null, {history: 'push'});
   };
 
   if (isError) {

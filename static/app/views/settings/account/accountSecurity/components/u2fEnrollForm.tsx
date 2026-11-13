@@ -9,8 +9,8 @@ import {
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {handleEnroll} from 'sentry/components/webAuthn/handlers';
 import {t} from 'sentry/locale';
 import type {U2fAuthenticator} from 'sentry/types/auth';
@@ -112,7 +112,7 @@ export function U2fEnrollForm({
           }
         }
 
-        addErrorMessage(
+        toast.error(
           getRequestErrorUserMessage(
             caughtError,
             t('Could not add the %s authenticator. Try again.', authenticator.name)
@@ -131,7 +131,7 @@ export function U2fEnrollForm({
     try {
       const webAuthnResponse = await handleEnroll(authenticator.challenge);
       if (!webAuthnResponse) {
-        addErrorMessage(ENROLLMENT_FAILURE_MESSAGE);
+        toast.error(ENROLLMENT_FAILURE_MESSAGE);
         return;
       }
 
@@ -140,7 +140,7 @@ export function U2fEnrollForm({
         response: webAuthnResponse,
       });
     } catch {
-      addErrorMessage(ENROLLMENT_FAILURE_MESSAGE);
+      toast.error(ENROLLMENT_FAILURE_MESSAGE);
     }
   }
 

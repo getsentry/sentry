@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Literal, NamedTuple
 
+from tools.api_guidelines.helper_kinds import Kind
+from tools.api_guidelines.rules import ApiRule
+
 S001_fmt = (
     "S001 Avoid using the {} mock call as it is "
     "confusing and prone to causing invalid test "
@@ -113,35 +116,35 @@ S020_eap_base_classes = frozenset(
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
 S021_msg = (
-    "S021 Every T declared by inline_sentry_response_serializer(...) in "
+    f"{ApiRule.S021} Every T declared by inline_sentry_response_serializer(...) in "
     "@extend_schema must appear in the Response[T] return annotation. "
     "Missing from the annotation: {}."
 )
 S022_missing_msg = (
-    "S022 Published endpoint methods must declare their response shape. This "
+    f"{ApiRule.S022} Published endpoint methods must declare their response shape. This "
     "method has no return annotation; use Response[YourTypedDict], a union of "
     "Response[T] arms, Response[None], or a non-DRF response type."
 )
 S022_bare_msg = (
-    "S022 Published endpoint methods must declare their response shape. Bare "
+    f"{ApiRule.S022} Published endpoint methods must declare their response shape. Bare "
     "`Response` opts the body out of type checking; use Response[YourTypedDict], "
     "a union of Response[T] arms, or Response[None]."
 )
 S023_no_reason_msg = (
-    "S023 exclude_fields={!r} has no recorded reason. Add a help_text to the "
+    f"{ApiRule.S023} exclude_fields={{!r}} has no recorded reason. Add a help_text to the "
     "field, or withhold it deliberately with @sentry_schema_serializer("
     'omit_from_public_schema={{{!r}: "<why>"}}).'
 )
-S023_not_mapping_msg = "S023 omit_from_public_schema must be a {field: reason} mapping."
+S023_not_mapping_msg = (
+    f"{ApiRule.S023} omit_from_public_schema must be a {{field: reason}} mapping."
+)
 S023_blank_reason_msg = (
-    "S023 omit_from_public_schema[{!r}] needs a reason explaining why the field "
+    f"{ApiRule.S023} omit_from_public_schema[{{!r}}] needs a reason explaining why the field "
     "is not public surface."
 )
-S023_ghost_msg = (
-    "S023 {}={!r} names no field on this class; it omits nothing and should be deleted."
-)
+S023_ghost_msg = f"{ApiRule.S023} {{}}={{!r}} names no field on this class; it omits nothing and should be deleted."
 S023_bad_path_msg = (
-    "S023 {}={!r} is not a usable path. Write 'field' or 'field.choice', "
+    f"{ApiRule.S023} {{}}={{!r}} is not a usable path. Write 'field' or 'field.choice', "
     "with no leading, trailing or doubled dots."
 )
 
@@ -211,27 +214,34 @@ ENFORCED: frozenset[str] = frozenset()
 INPUT_LINT_ALL_ENV = "SENTRY_INPUT_LINT_ALL"
 
 S025_query_msg = (
-    "S025 {} validates the query string but is not declared in "
+    f"{ApiRule.S025} {{}} validates the query string but is not declared in "
     "@extend_schema(parameters=...), so the schema does not document what this "
     "endpoint accepts. Add it to parameters=."
 )
 S026_msg = (
-    "S026 {} is read straight off the {}, so the schema has nothing to document and "
-    "the value is an unchecked string. Read it through a serializer declared in "
-    "@extend_schema."
+    f"{ApiRule.S026} {{}} is read straight off the {{}} instead of through a serializer declared in "
+    "@extend_schema, so nothing ties the schema to what this endpoint accepts. Read it "
+    "through a declared serializer, or declare this endpoint's input as an exception."
 )
 S027_msg = (
-    "S027 the {} is read with the computed key {}, so no schema can document it. "
-    "Read a literal key, or declare this endpoint's input as an exception."
+    f"{ApiRule.S027} the {{}} is read with the computed key {{}}, so no schema can document it. "
+    "Read it through a serializer declared in @extend_schema, or declare this "
+    "endpoint's input as an exception."
 )
 S028_msg = (
-    "S028 the whole {} is handed to {}, so what this endpoint accepts cannot be "
-    "determined. Read the values here, or declare this endpoint's input as an exception."
+    f"{ApiRule.S028} the whole {{}} is handed to {{}}, so what this endpoint accepts cannot be "
+    "determined. Validate it with a serializer declared in @extend_schema, or declare "
+    "this endpoint's input as an exception."
 )
 S025_body_msg = (
-    "S025 {} validates the request body but is not declared in "
+    f"{ApiRule.S025} {{}} validates the request body but is not declared in "
     "@extend_schema(request=...), so the schema does not document what this "
     "endpoint accepts. Add it as request=."
+)
+S034_msg = (
+    f"{ApiRule.S034} This method returns a {{0}} Response, but {{0}} is not a key in "
+    "@extend_schema(responses=...), so the schema does not document it and generated "
+    "clients cannot type it. Add it to responses=."
 )
 
 
@@ -303,6 +313,95 @@ def _base_class_names(node: ast.ClassDef) -> list[str]:
         elif isinstance(base, ast.Attribute):
             names.append(base.attr)
     return names
+
+
+def _collect_literal_var_constants(tree: ast.AST) -> set[str]:
+    """Helper function for getting a file's top level constants that hold string literals.
+    This is used to check if top level constants are iterables when we iterate over request fields/params.
+    """
+    names: set[str] = set()
+
+    # check if the tree is an ast.Module
+    if not isinstance(tree, ast.Module):
+        return names
+
+    # loop over the tree.body
+    for node in tree.body:
+        # check for assign nodes
+        if isinstance(node, ast.Assign):
+            if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                if _is_literal_strings(node.value):
+                    names.add(node.targets[0].id)
+
+        # check for ann assign nodes
+        elif isinstance(node, ast.AnnAssign):
+            if isinstance(node.target, ast.Name):
+                if node.value and _is_literal_strings(node.value):
+                    names.add(node.target.id)
+
+    return names
+
+
+def _is_literal_strings(node: ast.expr) -> bool:
+    """Helper function for checking if a dict, list, or tuple are literal string constants.
+    This is used to check if the list of iterables in a for loop are constants
+    i.e, for key in ("a", "b") where "a" and "b" are literal strings"""
+
+    # check if its a dict
+    if isinstance(node, ast.Dict):
+        for key in node.keys:
+            # check if the keys in the dict are constants/strings
+            if key is None or not isinstance(key, ast.Constant) or not isinstance(key.value, str):
+                return False
+        return True
+
+    # check if its a tuple or list
+    if isinstance(node, (ast.Tuple, ast.List)):
+        # check if the elms are constant/strings
+        for elm in node.elts:
+            if not isinstance(elm, ast.Constant) or not isinstance(elm.value, str):
+                return False
+        return True
+
+    return False
+
+
+def _is_iterable_elms_literals(
+    node: ast.expr, file_lvl_constants: set[str], declared_serializers: set[str]
+) -> bool:
+    """Helper function for checking if the iterables in a for loop are a safe and known collection:
+    1. An inline literal list/tuple/dict of string literals
+    2. A file level constant variable name
+    3. A declared serializer's `.fields` attribute
+    """
+    if (
+        isinstance(node, ast.Call)
+        and not node.args
+        and not node.keywords
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in ("keys", "items")
+    ):
+        node = (
+            node.func.value
+        )  # the object the method was being called on so PARAMS.items() becomes PARAMS
+
+    # check if it's a file level constant
+    if isinstance(node, ast.Name) and node.id in file_lvl_constants:
+        return True
+
+    # check if it's a declared serializer's .fields attribute
+    if isinstance(node, ast.Attribute) and node.attr == "fields":
+        serializer = node.value
+        # check if its MySerializer().fields
+        if (
+            isinstance(serializer, ast.Call)
+            and isinstance(serializer.func, ast.Name)
+            and serializer.func.id in declared_serializers
+        ):
+            return True
+
+    # check if it's an inline literal dict/list/tuple of strings
+    return _is_literal_strings(node)
 
 
 def _collect_eap_suite_class_names(tree: ast.AST) -> set[str]:
@@ -407,10 +506,23 @@ _CONTAINER_OPS = frozenset(
 )
 _COPY_METHODS = frozenset(("copy", "dict"))
 
+# Date range helpers should not be flagged for handoffs if allk the params are documented fully
+_DATE_RANGE_HELPERS = frozenset(("get_date_range_from_params", "get_date_range_from_stats_period"))
+# The current date keys those helpers read, by their GlobalParams name. The
+# timeframe aliases are legacy and left out of the public spec on purpose
+_DATE_RANGE_PARAMS = frozenset(
+    ("START", "END", "STATS_PERIOD", "STATS_PERIOD_START", "STATS_PERIOD_END")
+)
+
 
 def _looks_like_a_class(func: ast.expr) -> bool:
     """Callee named like a class, which is how a serializer is spelled."""
     return _name_of(func).rsplit(".", 1)[-1][:1].isupper()
+
+
+def _looks_like_a_class_variable(func: ast.expr) -> bool:
+    """Callee is a class held in a variable, like serializer_cls which is another way how a serializer is defined."""
+    return _name_of(func).endswith("_cls")
 
 
 def _is_request(node: ast.expr) -> bool:
@@ -442,10 +554,13 @@ def _declared_elements(value: ast.expr) -> list[ast.expr]:
 
 
 def _declared_names(decorators: list[ast.expr], keyword: str) -> set[str]:
-    """Short names declared under `@extend_schema(<keyword>=...)`."""
+    """Short names declared under `@extend_schema(<keyword>=...)`. A serializer
+    written with arguments, like `MySerializer(partial=True)`, counts as `MySerializer`"""
     names: set[str] = set()
     for value in extend_schema_kwarg(decorators, keyword):
         for element in _declared_elements(value):
+            if isinstance(element, ast.Call):
+                element = element.func
             names.add(_name_of(element).rsplit(".", 1)[-1])
     return names
 
@@ -552,6 +667,74 @@ def _decorator_response_Ts(decorator: ast.expr) -> list[ast.expr]:
         if is_inline and len(val.args) >= 2:
             out.append(val.args[1])
     return out
+
+
+def _documented_statuses(decorators: list[ast.expr]) -> set[int] | None:
+    """Status codes keyed in every `@extend_schema(responses={...})` in `decorators`.
+
+    `None` when no decorator declares `responses=`, or when a key can't be read
+    statically (a name, a `**` spread, or `responses=` that isn't a dict literal):
+    S034 then has nothing reliable to compare against. A `(status, media_type)`
+    tuple key counts as its status."""
+    statuses: set[int] | None = None
+    for value in extend_schema_kwarg(decorators, "responses"):
+        if not isinstance(value, ast.Dict):
+            return None
+        statuses = statuses or set()
+        for key in value.keys:
+            if isinstance(key, ast.Tuple) and key.elts:
+                key = key.elts[0]
+            if not isinstance(key, ast.Constant):
+                return None
+            if isinstance(key.value, int):
+                statuses.add(key.value)
+            elif isinstance(key.value, str) and key.value.isdigit():
+                statuses.add(int(key.value))
+            else:
+                return None
+    return statuses
+
+
+def _status_code(node: ast.expr) -> int | None:
+    """`404` for `404`, `status.HTTP_404_NOT_FOUND`, or a bare `HTTP_404_NOT_FOUND`."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, int):
+        return node.value
+    if isinstance(node, ast.Attribute):
+        name = node.attr
+    elif isinstance(node, ast.Name):
+        name = node.id
+    else:
+        return None
+    parts = name.split("_")
+    if len(parts) >= 2 and parts[0] == "HTTP" and parts[1].isdigit():
+        return int(parts[1])
+    return None
+
+
+def _inline_response_statuses(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> Iterator[tuple[ast.Call, int]]:
+    """Each `return Response(..., status=N)` in `node`'s own body, with its status.
+
+    Nested functions, lambdas, and classes are not entered: their returns don't
+    leave this method."""
+    pending: list[ast.AST] = list(node.body)
+    while pending:
+        child = pending.pop()
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+            continue
+        pending.extend(ast.iter_child_nodes(child))
+        if not isinstance(child, ast.Return) or not isinstance(child.value, ast.Call):
+            continue
+        call = child.value
+        if _name_of(call.func).rsplit(".", 1)[-1] != "Response":
+            continue
+        status_expr = next((kw.value for kw in call.keywords if kw.arg == "status"), None)
+        if status_expr is None and len(call.args) >= 2:
+            status_expr = call.args[1]
+        code = _status_code(status_expr) if status_expr is not None else None
+        if code is not None:
+            yield call, code
 
 
 _UNION_NAMES = frozenset({"Union", "Optional"})
@@ -748,6 +931,19 @@ def _start_and_end(node: ast.expr) -> _StartEnd:
     )
 
 
+@dataclass(frozen=True)
+class _HelperCall:
+    """One call a function makes to a possible helper"""
+
+    kind: Kind
+    name: str
+    # (positional index or keyword name, what request input it carries: "request" / "query string" / "request body")
+    passes: list[tuple[int | str, str]]
+    # True when the call has *args or **kwargs, so what it forwards is unknown
+    starred: bool
+    at: _StartEnd
+
+
 # Short source names used in violation keys, so a query and a body read of the
 # same name stay separate violations.
 _SOURCE_PREFIX = {"query string": "query", "request body": "body"}
@@ -761,7 +957,7 @@ class ApiInputViolation:
     position (`line` is 1-based, while `column` is 0-based to match Python's AST and LSP).
     """
 
-    rule: str
+    rule: ApiRule
     message: str
     line: int
     column: int
@@ -774,9 +970,16 @@ class ApiInputViolation:
 
 
 class _InputCtx:
-    """One PUBLIC method's input sources, gathered during the single traversal."""
+    """One top-level function's or method's input sources, gathered during the single traversal."""
 
-    def __init__(self, scope: str, declared_params: set[str], declared_body: set[str]) -> None:
+    def __init__(
+        self,
+        scope: str,
+        declared_params: set[str],
+        declared_body: set[str],
+        is_public: bool = False,
+        class_name: str | None = None,
+    ) -> None:
         self.scope = scope
         self.declared_params = declared_params
         self.declared_body = declared_body
@@ -789,8 +992,16 @@ class _InputCtx:
         self.literal_reads: list[tuple[_StartEnd, str, str]] = []
         # (start_end, rendered key, source) reads whose key is computed
         self.computed_reads: list[tuple[_StartEnd, str, str]] = []
+        # loop variable names currently marked safe (i.e, keys that are known/fixed)
+        self.safe_loop_vars: set[str] = set()
         # (start_end, callee, source) the whole dict passed somewhere
         self.hand_offs: list[tuple[_StartEnd, str, str]] = []
+        # true only for an HTTP method that publish_status marks PUBLIC on a top-level endpoint class
+        self.is_public = is_public
+        # the class a method is defined in (None for a module-level function)
+        self.class_name = class_name
+        # the calls this function makes to possible helpers
+        self.calls: list[_HelperCall] = []
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -817,6 +1028,8 @@ class _InputCtx:
     def record_read(self, key: ast.expr, source: str, node: ast.expr) -> None:
         if isinstance(key, ast.Constant) and isinstance(key.value, str):
             self.literal_reads.append((_start_and_end(node), key.value, source))
+        elif isinstance(key, ast.Name) and key.id in self.safe_loop_vars:
+            return
         else:
             self.computed_reads.append((_start_and_end(node), ast.unparse(key), source))
 
@@ -856,9 +1069,17 @@ class SentryVisitor(ast.NodeVisitor):
         self._publish_status: dict[str, str] | None = None
         # Input rules: per-method accumulation, innermost last.
         self._input_stack: list[_InputCtx] = []
+        # names of top level constants holding literal string keys, these keys are collected in visit_Module()
+        self._literal_var_constants: set[str] = set()
         self._class_decorators: list[ast.expr] = []
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
+        # scope -> ctx for every top-level function and method in the file,
+        # i.e "Endpoint.get" or "function_name()", used to look a function up by name.
+        # A scope defined twice (an if/else def, or @overload then the real def) keeps the last one
+        self._functions: dict[str, _InputCtx] = {}
+        # every ctx in file order, duplicates included, so a scope defined twice is reported twice
+        self._function_ctxs: list[_InputCtx] = []
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module == _S030_LEGACY_MODULE and not node.level:
@@ -1001,6 +1222,102 @@ class SentryVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_Module(self, node: ast.Module) -> None:
+        """Visitor for tracking top level constant variables that hold request fields to iterate over."""
+        self._literal_var_constants = _collect_literal_var_constants(tree=node)
+        self.generic_visit(node)
+        self._report_public_inputs()
+
+    def _new_safe_loop_var(
+        self, target: ast.expr, iter_node: ast.expr, curr_method: _InputCtx
+    ) -> str | None:
+        """The loop variable to mark safe when a loop iterates over a fixed set of keys, else None."""
+        if not _is_iterable_elms_literals(
+            node=iter_node,
+            file_lvl_constants=self._literal_var_constants,
+            declared_serializers=curr_method.declared_params | curr_method.declared_body,
+        ):
+            return None
+
+        loop_var = None
+        # check if its a single looping variable
+        if isinstance(target, ast.Name):
+            loop_var = target.id
+
+        # check if its multi looping variables
+        elif isinstance(target, (ast.Tuple, ast.List)) and target.elts:
+            first_var = target.elts[0]
+            if isinstance(first_var, ast.Name):
+                loop_var = first_var.id
+
+        # an outer loop already marked this loop variable name, but we need to leave it to the outer loop so
+        # the inner loop reusing the name keeps the outer name safe
+        if loop_var in curr_method.safe_loop_vars:
+            return None
+
+        return loop_var
+
+    def visit_For(self, node: ast.For) -> None:
+        """Visitor for tracking looping variables declared within a for loop (i.e, `for X in (iterable collection)`, tracking X)"""
+
+        if not self._input_stack:
+            self.generic_visit(node)
+            return
+
+        curr_method = self._input_stack[-1]
+
+        self.visit(node.target)
+        self.visit(node.iter)
+
+        loop_var = self._new_safe_loop_var(node.target, node.iter, curr_method)
+        if loop_var is not None:
+            curr_method.safe_loop_vars.add(loop_var)
+
+        for statement in node.body:
+            self.visit(statement)
+
+        if loop_var is not None:
+            curr_method.safe_loop_vars.discard(loop_var)
+
+        for statement in node.orelse:
+            self.visit(statement)
+
+    def visit_comprehension_types(
+        self, node: ast.ListComp | ast.DictComp | ast.SetComp | ast.GeneratorExp
+    ) -> None:
+        """Visitor for tracking loop variables in list, set, dict and generator comprehensions."""
+
+        if not self._input_stack:
+            self.generic_visit(node)
+            return
+
+        curr_method = self._input_stack[-1]
+
+        valid_vars: list[str] = []
+
+        for comp_node in node.generators:
+            self.visit(comp_node.iter)
+            self.visit(comp_node.target)
+
+            loop_var = self._new_safe_loop_var(comp_node.target, comp_node.iter, curr_method)
+            if loop_var is not None:
+                curr_method.safe_loop_vars.add(loop_var)
+                valid_vars.append(loop_var)
+
+            for condition in comp_node.ifs:
+                self.visit(condition)
+
+        if isinstance(node, ast.DictComp):
+            self.visit(node.key)
+            self.visit(node.value)
+        else:
+            self.visit(node.elt)
+
+        for var in valid_vars:
+            curr_method.safe_loop_vars.discard(var)
+
+    visit_ListComp = visit_SetComp = visit_GeneratorExp = visit_DictComp = visit_comprehension_types
+
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         top_level = not self._class_stack
         if top_level:
@@ -1019,34 +1336,42 @@ class SentryVisitor(ast.NodeVisitor):
             self._class_decorators = outer_decorators
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        if len(self._class_stack) == 1 and self._function_depth == 0:
-            self._check_S021(node)
-            self._check_S022(node)
-        entered = self._enter_input(node)
-        self._function_depth += 1
-        self._function_stack.append(node.name)
-        try:
-            self.generic_visit(node)
-        finally:
-            self._function_stack.pop()
-            self._function_depth -= 1
-            if entered:
-                self._exit_input()
+        self._visit_function(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._visit_function(node)
+
+    def _visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         if len(self._class_stack) == 1 and self._function_depth == 0:
             self._check_S021(node)
             self._check_S022(node)
-        entered = self._enter_input(node)
+            self._check_S034(node)
+        ctx = self._new_input_ctx(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
+        pushed = False
         try:
-            self.generic_visit(node)
+            # decorators, defaults and annotations run outside the function body, so they're
+            # visited before its ctx is pushed, so reads and calls in @extend_schema(...) don't count as the function's
+            for decorator in node.decorator_list:
+                self.visit(decorator)
+            self.visit(node.args)
+            if node.returns is not None:
+                self.visit(node.returns)
+            for type_param in node.type_params:
+                self.visit(type_param)
+            if ctx is not None:
+                self._input_stack.append(ctx)
+                pushed = True
+            for statement in node.body:
+                self.visit(statement)
         finally:
             self._function_stack.pop()
             self._function_depth -= 1
-            if entered:
-                self._exit_input()
+            if pushed and ctx is not None:
+                self._input_stack.pop()
+                self._functions[ctx.scope] = ctx
+                self._function_ctxs.append(ctx)
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
         self._function_depth += 1
@@ -1143,6 +1468,21 @@ class SentryVisitor(ast.NodeVisitor):
             self.errors.append((node.lineno, node.col_offset, S022_missing_msg))
         elif _annotation_has_bare_response(node.returns):
             self.errors.append((node.lineno, node.col_offset, S022_bare_msg))
+
+    def _check_S034(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """A 4xx that the method returns inline must be a key in `responses=`.
+
+        Only `return Response(..., status=...)` written in the method itself, with a
+        literal or `status.HTTP_4xx_*` status, is checked. A 4xx that comes from a
+        helper's return value, a response built into a variable first, or a raised
+        exception (DRF renders `APIException`s) is not seen, so passing this rule
+        does not mean every 4xx is documented."""
+        documented = _documented_statuses(node.decorator_list)
+        if documented is None:
+            return
+        for call, code in _inline_response_statuses(node):
+            if 400 <= code < 500 and code not in documented:
+                self.errors.append((call.lineno, call.col_offset, S034_msg.format(code)))
 
     def _check_S023(self, node: ast.ClassDef) -> None:
         for dec in node.decorator_list:
@@ -1241,23 +1581,45 @@ class SentryVisitor(ast.NodeVisitor):
                 ctx.record_read(node.slice, source, node)
         self.generic_visit(node)
 
-    def _enter_input(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-        """Push an accumulator for a PUBLIC HTTP method on an endpoint class."""
-        if len(self._class_stack) != 1 or self._function_depth != 0:
-            return False
-        if not self._publish_status or node.name not in HTTP_METHODS:
-            return False
-        if self._publish_status.get(node.name.upper()) != "PUBLIC":
-            return False
-        decorators = self._class_decorators + node.decorator_list
-        self._input_stack.append(
-            _InputCtx(
-                f"{self._class_stack[-1]}.{node.name}",
-                _declared_names(decorators, "parameters"),
-                _declared_names(decorators, "request"),
-            )
+    def _new_input_ctx(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> _InputCtx | None:
+        """Build the accumulator for a top-level function or a method of a top-level class, else None.
+
+        Only PUBLIC HTTP methods are reported. The others are stored too, so calls into
+        them can be followed. The caller pushes it onto _input_stack once the decorators
+        and arguments have been visited.
+        """
+        if self._function_depth != 0:
+            return None
+
+        if not self._class_stack:
+            ctx = _InputCtx(node.name, set(), set(), is_public=False)
+            return ctx
+
+        if len(self._class_stack) != 1:
+            return None
+
+        is_public = bool(
+            self._publish_status
+            and node.name in HTTP_METHODS
+            and self._publish_status.get(node.name.upper()) == "PUBLIC"
         )
-        return True
+
+        declared_params: set[str] = set()
+        declared_body: set[str] = set()
+
+        if is_public:
+            decorators = self._class_decorators + node.decorator_list
+            declared_params = _declared_names(decorators, "parameters")
+            declared_body = _declared_names(decorators, "request")
+
+        ctx = _InputCtx(
+            f"{self._class_stack[-1]}.{node.name}",
+            declared_params,
+            declared_body,
+            is_public=is_public,
+            class_name=self._class_stack[-1],
+        )
+        return ctx
 
     def _record_input_call(self, node: ast.Call) -> None:
         """A `.get()` read, or the whole dict handed to something else."""
@@ -1270,9 +1632,20 @@ class SentryVisitor(ast.NodeVisitor):
             # On anything but the request this is an ordinary lookup, and
             # `options.get("k", request.GET)` passes a default, not the dict.
             return
-        # Only a serializer's data= is the target shape. `my_func(data=...)`
-        # hands the dict over exactly as a positional argument would.
-        if _looks_like_a_class(func) and any(kw.arg == "data" for kw in node.keywords):
+        # Only a serializer's data= is the target shape. This includes uppercase class
+        # names and dynamic variables ending in `_cls`. `my_func(data=...)` hands the
+        # dict over exactly as a positional argument would. The `_cls` check is kept
+        # separate from `_looks_like_a_class` because `_looks_like_a_class` has two
+        # callers and only this specific check should be expanded to allow `_cls`.
+        if (_looks_like_a_class(func) or _looks_like_a_class_variable(func)) and any(
+            kw.arg == "data" for kw in node.keywords
+        ):
+            return
+        # The date helpers read a fixed set of keys, so they are only a handoff
+        # when the endpoint does not document all of them.
+        if _name_of(func) in _DATE_RANGE_HELPERS and _DATE_RANGE_PARAMS.issubset(
+            ctx.declared_params
+        ):
             return
         for argument in [*node.args, *(keyword.value for keyword in node.keywords)]:
             source = ctx.source_of(argument)
@@ -1299,14 +1672,20 @@ class SentryVisitor(ast.NodeVisitor):
                 ctx.body_validators.append((_start_and_end(node), name))
 
     def _report_input(
-        self, ctx: _InputCtx, start_end: _StartEnd, msg: str, group: str, key: str, source: str
+        self,
+        ctx: _InputCtx,
+        start_end: _StartEnd,
+        msg: str,
+        group: str,
+        key: str,
+        source: str,
+        rule: ApiRule,
     ) -> None:
         """Always recorded as a structured violation; fatal only for an enforced group."""
         enforced = group in ENFORCED
         self.api_violations.append(
             ApiInputViolation(
-                # flake8 requires every message to start with its code
-                rule=msg.split(" ", 1)[0],
+                rule=rule,
                 message=msg,
                 line=start_end.line,
                 column=start_end.column,
@@ -1320,25 +1699,110 @@ class SentryVisitor(ast.NodeVisitor):
         if enforced or os.environ.get(INPUT_LINT_ALL_ENV):
             self.errors.append((start_end.line, start_end.column, msg))
 
-    def _exit_input(self) -> None:
-        ctx = self._input_stack.pop()
-        for start_end, name in ctx.query_validators:
-            if name not in ctx.declared_params:
-                msg = S025_query_msg.format(name)
-                self._report_input(ctx, start_end, msg, "declared", name, "query string")
-        for start_end, name in ctx.body_validators:
-            if name not in ctx.declared_body:
-                msg = S025_body_msg.format(name)
-                self._report_input(ctx, start_end, msg, "declared", name, "request body")
-        for start_end, key, source in ctx.literal_reads:
-            msg = S026_msg.format(repr(key), source)
-            self._report_input(ctx, start_end, msg, "shaped", key, source)
-        for start_end, key, source in ctx.computed_reads:
-            msg = S027_msg.format(source, key)
-            self._report_input(ctx, start_end, msg, "shaped", key, source)
-        for start_end, callee, source in ctx.hand_offs:
-            msg = S028_msg.format(source, callee)
-            self._report_input(ctx, start_end, msg, "shaped", callee, source)
+    def _report_public_inputs(self) -> None:
+        """Report input reads and hand-offs for each public endpoint method after traversing through the complete file"""
+        for ctx in self._function_ctxs:
+            if not ctx.is_public:
+                continue
+            for start_end, name in ctx.query_validators:
+                if name not in ctx.declared_params:
+                    msg = S025_query_msg.format(name)
+                    self._report_input(
+                        ctx, start_end, msg, "declared", name, "query string", ApiRule.S025
+                    )
+            for start_end, name in ctx.body_validators:
+                if name not in ctx.declared_body:
+                    msg = S025_body_msg.format(name)
+                    self._report_input(
+                        ctx, start_end, msg, "declared", name, "request body", ApiRule.S025
+                    )
+            for start_end, key, source in ctx.literal_reads:
+                msg = S026_msg.format(repr(key), source)
+                self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S026)
+            for start_end, key, source in ctx.computed_reads:
+                msg = S027_msg.format(source, key)
+                self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S027)
+            for start_end, callee, source in ctx.hand_offs:
+                msg = S028_msg.format(source, callee)
+                self._report_input(ctx, start_end, msg, "shaped", callee, source, ApiRule.S028)
+
+    def _request_payload_input(self, ctx: _InputCtx, argument: ast.expr) -> str | None:
+        """Returns what request input the argument carries: "request", "query string", "request body", or None"""
+        if _is_request(argument):
+            return "request"
+        return ctx.source_of(argument)
+
+    def _get_kind_of_helper(self, node: ast.Call) -> tuple[Kind | None, str | None]:
+        """Returns the "kind" of helper function and its name, or (None, None) if the call isn't a helper shape"""
+
+        func = node.func
+        kind = None
+        name = None
+
+        # a helper method, i.e. self.helper()
+        if (
+            isinstance(func, ast.Attribute)
+            and isinstance(func.value, ast.Name)
+            and func.value.id == "self"
+        ):
+            kind = Kind.CLASS_METHOD
+            name = func.attr
+
+        # a parent class method, i.e. super().helper()
+        elif (
+            isinstance(func, ast.Attribute)
+            and isinstance(func.value, ast.Call)
+            and isinstance(func.value.func, ast.Name)
+            and func.value.func.id == "super"
+        ):
+            kind = Kind.PARENT_CLASS_METHOD
+            name = func.attr
+
+        # a plain function, i.e. helper(). The inner super() of super().helper() isn't one
+        elif isinstance(func, ast.Name) and func.id != "super":
+            kind = Kind.NORMAL_FUNCTION
+            name = func.id
+
+        return (kind, name)
+
+    def _record_helper(self, node: ast.Call) -> None:
+        """Record a call to a possible helper and which arguments carry request input."""
+
+        # what kind of helper it is, and its name
+        kind, name = self._get_kind_of_helper(node)
+
+        if kind is None or name is None:
+            return
+
+        curr_ctx = self._input_stack[-1]
+
+        # [(arg index or keyword name, the request input it carries), ...]
+        request_params: list[tuple[int | str, str]] = []
+        # *args or **kwargs can forward anything so a call that has them is unresolved
+        starred = False
+
+        for index, argument in enumerate(node.args):
+            # *args can't be matched to a param and positions after it are unknown so we need to avoid this
+            if isinstance(argument, ast.Starred):
+                starred = True
+                break
+            request_payload = self._request_payload_input(curr_ctx, argument)
+            if request_payload is not None:
+                request_params.append((index, request_payload))
+
+        for keyword in node.keywords:
+            # **kwargs has no name to match
+            if keyword.arg is None:
+                starred = True
+                continue
+            request_payload = self._request_payload_input(curr_ctx, keyword.value)
+            if request_payload is not None:
+                request_params.append((keyword.arg, request_payload))
+
+        # recorded even when nothing is passed since the helper can still read self.request
+        curr_ctx.calls.append(
+            _HelperCall(kind, name, request_params, starred, _start_and_end(node))
+        )
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
@@ -1351,6 +1815,7 @@ class SentryVisitor(ast.NodeVisitor):
         if self._input_stack:
             self._record_validator(node)
             self._record_input_call(node)
+            self._record_helper(node)
         if _is_tests_path(self.filename):
             if (
                 isinstance(node.func, ast.Name)

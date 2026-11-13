@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -862,50 +862,6 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             return Or(conditions=env_conditions)
         else:
             return env_conditions[0]
-
-    def get_metrics_layer_snql_query(
-        self,
-        query_framework: QueryFramework | None = None,
-        extra_conditions: list[Condition] | None = None,
-    ) -> Query:
-        """
-        This method returns the metrics layer snql of the query being fed into the transformer and then into the metrics
-        layer.
-
-        The snql query returned by this method is a dialect of snql only understood by the "mqb_query_transformer".
-        This dialect has the same syntax as snql but has slightly different semantics and more operations.
-
-        This dialect should NEVER be used outside of the transformer as it will create problems if parsed by the
-        snuba SDK.
-        """
-        if not self.builder_config.on_demand_metrics_enabled:
-            raise Exception(
-                "Cannot get metrics layer snql query when on_demand_metrics is not enabled"
-            )
-
-        self.validate_having_clause()
-
-        prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
-        return Query(
-            match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
-            # Metrics doesn't support columns in the select, and instead expects them in the groupby
-            select=(self.aggregates if query_framework is None else query_framework.functions)
-            + [
-                # Team key transaction is a special case sigh
-                col
-                for col in self.columns
-                if isinstance(col, Function) and col.function == "team_key_transaction"
-            ],
-            array_join=self.array_join,
-            where=self.where + (extra_conditions if extra_conditions else []),
-            having=self.having if query_framework is None else query_framework.having,
-            groupby=self.groupby,
-            orderby=self.orderby if query_framework is None else query_framework.orderby,
-            limit=self.limit,
-            offset=self.offset,
-            limitby=self.limitby,
-            granularity=self.granularity,
-        )
 
     def get_snql_query(self) -> Request:
         """
@@ -1871,7 +1827,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                     if isinstance(value, list):
                         value = {project_map.get(val) for val in value}
                     else:
-                        value = project_map.get(value)
+                        value = project_map.get(cast(str, value))
                 # TODO: Handle potential None case
                 elif value is not None:
                     value = self.resolve_tag_value(str(value))

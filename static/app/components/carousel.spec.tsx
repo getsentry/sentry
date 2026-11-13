@@ -1,6 +1,6 @@
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Carousel} from 'sentry/components/carousel';
+import {Carousel} from './carousel';
 
 describe('Carousel', () => {
   let intersectionOnbserverCb: (

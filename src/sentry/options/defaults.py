@@ -203,6 +203,12 @@ register(
     type=Int,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "mail.send-dedupe.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # TOTP (Auth app)
 register(
@@ -265,6 +271,22 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# OAuth client IDs that may redeem one-time setup codes with the setup_code
+# grant. Empty disables setup codes.
+register(
+    "oauth.setup-code.allowed-client-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Public CLI application used for private onboarding handoffs. Empty disables minting.
+register(
+    "onboarding.agent-handoff.client-id",
+    default="",
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Auth
@@ -457,6 +479,18 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.inbox-events.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.inbox-events.sample-rate",
+    default=0.0,
+    type=Float,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
 # default so deletion volume can be measured before anything is removed.
@@ -759,6 +793,44 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Bound GitLab project webhook reconciliation independently in each cell region. Each
+# repository consumes three capacity tokens to leave room for repairs that make multiple
+# GitLab API requests.
+register(
+    "gitlab.webhook-reconcile.rate-limit.burst",
+    default=3,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.rate-limit.per-second",
+    default=1,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.rate-limit.retry-delay-seconds",
+    default=73,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
+    default=300,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
+    default=1801,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Reject Bitbucket Server webhooks without a valid signature. While off, signatures are still
 # checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
 register(
@@ -954,6 +1026,32 @@ register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIA
 register("vercel.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Jira Forge apps whose invocation tokens we accept, as app ARIs
+# (`ari:cloud:ecosystem::app/<uuid>`). Empty rejects every Forge request.
+register(
+    "jira.forge.app-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Forge apps with no Connect predecessor, such as the staging app. Their installs get a
+# Forge-only integration. Installs of any other trusted Forge app are linked to the
+# site's Connect integration, so a missing entry fails safely instead of creating one.
+register(
+    "jira.forge.native-app-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Jira integrations whose outbound API calls use their Forge system token instead
+# of the Connect JWT. Forge-only integrations have no Connect secret and always do.
+register(
+    "jira.forge.integration-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -984,6 +1082,7 @@ register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # GCP MCP Integration
 register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1170,13 +1269,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # When none of an event's debug IDs were uploaded, the source map debugger checks whether the
-# project has uploaded any file with a debug ID. With this set, it only checks the project's
-# newest bundles, up to this many, instead of reading the organization's debug-ID rows until one
-# is in a bundle of the project. 0 keeps the unbounded check. Capped at 10,000.
+# project has uploaded any file with a debug ID. It checks only the project's newest bundles, up
+# to this many. 0 reads the organization's debug-ID rows instead, until one is in a bundle of the
+# project, which for a project without any means all of them. Capped at 10,000.
 register(
     "sourcemaps.source-map-debug.debug-id-check-max-bundles",
     type=Int,
-    default=0,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1270,14 +1369,14 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When a bundle is uploaded again, update its debug-ID rows by bundle alone instead of by bundle
-# and organization, so that Postgres doesn't also read the organization's slice of that table's
+# When a bundle is uploaded again, update its debug-ID rows by bundle alone. False filters them by
+# organization as well, which lets Postgres also read the organization's slice of that table's
 # organization index. Has no effect with `sourcemaps.artifact-bundles.date-only-on-bundle`,
 # which skips the update.
 register(
     "sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1551,6 +1650,15 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Endpoint class names whose ConditionalGetResponseMixin cache_tier is applied.
+# Requires api.conditional_get.enabled. A browser keeps a cached response for up to
+# the tier's seconds after its endpoint is removed from this list.
+register(
+    "api.conditional_get.max_age_endpoints",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
 # on conversation id. 0.0 disables generation; 1.0 enables it for every
@@ -1560,6 +1668,22 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables telemetry classifier enrichment writes to snuba-items.
+register(
+    "telemetry-classifiers.eap-write.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Most entities one telemetry classifier selection enqueues, and its page size.
+register(
+    "telemetry-classifiers.select-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Conversation classifiers PoC.
@@ -1575,6 +1699,23 @@ register(
     type=Int,
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Kill switch for sentry.cadence: when False, no triggers are claimed or fired.
+register(
+    "cadence.tick.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When True, firings whose targets their trigger type reports missing are dropped and their
+# triggers deleted. When False, every firing is dispatched.
+register(
+    "cadence.missing_target_check.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -1669,6 +1810,13 @@ register(
 # Stops logging FIRST_SEEN when ingest creates a group.
 register(
     "issues.action_log.first_seen_on_create.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Stops rate-limiting VIEW actions from group details; every view is published.
+register(
+    "issues.action_log.view_rate_limit.killswitch",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2274,55 +2422,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# per-organization limits on the number of timeseries that can be observed in
-# each window.
-#
-# Format is a list of dictionaries of format {
-#   "window_seconds": ...,
-#   "granularity_seconds": ...,
-#   "limit": ...
-# }
-#
-# See sentry.ratelimiters.cardinality for an explanation of what each of
-# those terms mean.
-#
-# Note that changing either window or granularity_seconds of a limit will
-# effectively reset it, as the previous data can't/won't be converted.
-register(
-    "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.sessions.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.spans.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.custom.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.10s-granularity",
     default=False,
@@ -2756,6 +2855,16 @@ register("features.error.capture_rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFI
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "hybridcloud.integrationproxy.retry_max_sleep",
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.integrationproxy.respect_retry_after",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.rpc.method_retry_overrides",
     default={},
@@ -3865,6 +3974,14 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Use Seer embeddings similarity for every project. Off for self-hosted, which keeps the legacy
+# Redis index.
+register(
+    "similarity.seer_grouping.all_projects",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "delayed_processing.batch_size",
     default=10000,
@@ -4267,6 +4384,22 @@ register(
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Decompress chunk uploads into temporary files instead of memory, so a request
+# doesn't hold up to its full decompressed size in the web worker.
+register(
+    "chunk-upload.spool-decompressed-chunks",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# With spooling on, how many bytes of each decompressed chunk stay in memory
+# before the rest is written to a temporary file. 0 never writes to disk.
+register(
+    "chunk-upload.spool-max-memory-size",
+    type=Int,
+    default=1024 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "issues.client_error_sampling.project_allowlist",

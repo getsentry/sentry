@@ -3,7 +3,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectLogs from 'sentry/views/settings/project/projectLogs';
+import ProjectLogs from './projectLogs';
 
 describe('ProjectLogs', () => {
   const {organization} = initializeOrg({

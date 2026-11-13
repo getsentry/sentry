@@ -3,18 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import {TraceContextVitals} from 'sentry/views/performance/traceDetails/traceContextVitals';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import {
-  makeEAPSpan,
-  makeEAPTrace,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
-import {TraceTabsAndVitals} from 'sentry/views/performance/traceDetails/traceTabsAndVitals';
-import {
-  TraceLayoutTabKeys,
-  type TraceLayoutTabsConfig,
-} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
+import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
+import {TraceTree} from './traceModels/traceTree';
+import {makeEAPSpan, makeEAPTrace} from './traceModels/traceTreeTestUtils';
+import {TraceContextVitals} from './traceContextVitals';
+import {TraceTabsAndVitals} from './traceTabsAndVitals';
+import {TraceLayoutTabKeys, type TraceLayoutTabsConfig} from './useTraceLayoutTabs';
 
 describe('TraceTabsAndVitals', () => {
   afterEach(() => {
@@ -87,5 +81,6 @@ describe('TraceTabsAndVitals', () => {
       expect.objectContaining({existing: 'preserved', tab: 'waterfall'})
     );
     expect(router.location.query.browser).toBeUndefined();
+    expect(router.historyAction).toBe('REPLACE');
   });
 });

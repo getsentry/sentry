@@ -24,20 +24,15 @@ import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
 import {
-  getAppSizeCategoryInfo,
-  getOpaqueColorFromComposite,
-} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
-import {
-  TreemapControlButtons,
-  type TreemapControlButton,
-} from 'sentry/views/preprod/components/visualizations/treemapControlButtons';
-import {
   TreemapType,
   type FlaggedInsight,
   type TreemapElement,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import {getInsightConfig} from 'sentry/views/preprod/utils/insightProcessing';
 import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
+
+import {getAppSizeCategoryInfo, getOpaqueColorFromComposite} from './appSizeTreemapTheme';
+import {TreemapControlButtons, type TreemapControlButton} from './treemapControlButtons';
 
 interface AppSizeTreemapProps {
   highlightInsights: boolean;

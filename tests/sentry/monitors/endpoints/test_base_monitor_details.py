@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 from uuid import UUID
 
@@ -148,7 +149,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
     ) -> None:
         monitor = self._create_monitor()
 
-        def expand_alert_rule_calls() -> list:
+        def expand_alert_rule_calls() -> list[Any]:
             return [
                 c
                 for c in mock_incr.call_args_list
@@ -444,10 +445,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         mark_ok(check_in, check_in.date_added)
 
         monitor_environment.refresh_from_db()
-        assert (
-            monitor_environment.next_checkin + timedelta(minutes=1)
-            == monitor_environment.next_checkin_latest
-        )
+        next_checkin = monitor_environment.next_checkin
+        assert next_checkin is not None
+        assert next_checkin + timedelta(minutes=1) == monitor_environment.next_checkin_latest
 
         resp = self.get_error_response(
             self.organization.slug,
@@ -470,10 +470,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
         # check that next_checkin_latest was updated appropriately
         monitor_environment.refresh_from_db()
-        assert (
-            monitor_environment.next_checkin + timedelta(minutes=30)
-            == monitor_environment.next_checkin_latest
-        )
+        next_checkin = monitor_environment.next_checkin
+        assert next_checkin is not None
+        assert next_checkin + timedelta(minutes=30) == monitor_environment.next_checkin_latest
 
         # check that unsetting the parameter works
         resp = self.get_success_response(
@@ -488,10 +487,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert monitor.config["checkin_margin"] is None
 
         monitor_environment.refresh_from_db()
-        assert (
-            monitor_environment.next_checkin + timedelta(minutes=1)
-            == monitor_environment.next_checkin_latest
-        )
+        next_checkin = monitor_environment.next_checkin
+        assert next_checkin is not None
+        assert next_checkin + timedelta(minutes=1) == monitor_environment.next_checkin_latest
 
     def test_max_runtime(self) -> None:
         monitor = self._create_monitor()
@@ -808,11 +806,14 @@ class BaseUpdateMonitorTest(MonitorTestCase):
     @patch("sentry.quotas.backend.check_assign_seat")
     @patch("sentry.quotas.backend.assign_seat")
     def test_update_slug_sends_right_slug_to_assign(
-        self, assign_seat, check_seat, update_monitor_slug
-    ):
+        self,
+        assign_seat: MagicMock,
+        check_seat: MagicMock,
+        update_monitor_slug: MagicMock,
+    ) -> None:
         check_seat.return_value = SeatAssignmentResult(assignable=True)
 
-        def dummy_assign(data_category=None, seat_object=None):
+        def dummy_assign(data_category: Any = None, seat_object: Any = None) -> Outcome:
             assert seat_object.slug == old_slug
             return Outcome.ACCEPTED
 

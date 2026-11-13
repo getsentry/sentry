@@ -7,20 +7,16 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   fetchDashboard,
   fetchDashboards,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -272,7 +268,7 @@ function AddToDashboardModal({
   async function handleAddAndStayOnCurrentPage() {
     try {
       await handleAddWidgetsToExistingDashboard();
-      addSuccessMessage(
+      toast.success(
         tn(
           'Successfully added widget to dashboard',
           'Successfully added widgets to dashboard',
@@ -281,7 +277,7 @@ function AddToDashboardModal({
       );
       closeModal();
     } catch (error) {
-      addErrorMessage(
+      toast.error(
         tn(
           'Failed to add widget to dashboard',
           'Failed to add widgets to dashboard',
@@ -311,7 +307,7 @@ function AddToDashboardModal({
 
     // For existing dashboards, add widgets via API first, then navigate
     try {
-      addLoadingMessage(
+      toast.loading(
         tn(
           'Adding widget to dashboard...',
           'Adding widgets to dashboard...',
@@ -319,7 +315,7 @@ function AddToDashboardModal({
         )
       );
       await handleAddWidgetsToExistingDashboard();
-      addSuccessMessage(
+      toast.success(
         tn(
           'Successfully added widget to dashboard',
           'Successfully added widgets to dashboard',
@@ -330,7 +326,7 @@ function AddToDashboardModal({
       // Navigate to dashboard (widgets already saved, no location state needed)
       goToDashboard('preview');
     } catch (error) {
-      addErrorMessage(
+      toast.error(
         tn(
           'Failed to add widget to dashboard',
           'Failed to add widgets to dashboard',

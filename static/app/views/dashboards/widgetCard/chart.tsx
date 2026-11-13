@@ -524,7 +524,9 @@ function ServerTreeComponent({
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
-  return <WheelWidgetVisualization tableResults={props.tableResults} />;
+  return (
+    <WheelWidgetVisualization tableResults={props.tableResults} widget={props.widget} />
+  );
 }
 
 function TextComponent(props: TableComponentProps): React.ReactNode {
