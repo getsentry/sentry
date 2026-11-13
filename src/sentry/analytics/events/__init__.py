@@ -1,4 +1,5 @@
 from .advanced_search_feature_gated import *  # noqa: F401,F403
+from .agent_handoff import *  # noqa: F401,F403
 from .agentic_onboarding import *  # noqa: F401,F403
 from .alert_created import *  # noqa: F401,F403
 from .alert_edited import *  # noqa: F401,F403

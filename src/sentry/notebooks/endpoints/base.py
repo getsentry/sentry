@@ -122,7 +122,7 @@ class OrganizationNotebookEndpoint(OrganizationNotebooksBaseEndpoint):
         self,
         request: Request,
         organization_id_or_slug: str | int,
-        investigation_id: str,
+        notebook_id: str,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
@@ -130,7 +130,7 @@ class OrganizationNotebookEndpoint(OrganizationNotebooksBaseEndpoint):
         organization = kwargs["organization"]
         try:
             notebook = Notebook.objects.select_related("organization").get(
-                id=investigation_id, organization=organization
+                id=notebook_id, organization=organization
             )
         except (Notebook.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
@@ -145,13 +145,13 @@ class OrganizationNotebookBlockEndpoint(OrganizationNotebookEndpoint):
         self,
         request: Request,
         organization_id_or_slug: str | int,
-        investigation_id: str,
+        notebook_id: str,
         block_id: str,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(
-            request, organization_id_or_slug, investigation_id, *args, **kwargs
+            request, organization_id_or_slug, notebook_id, *args, **kwargs
         )
         try:
             kwargs["block"] = NotebookBlock.objects.select_related("notebook").get(
@@ -169,13 +169,13 @@ class OrganizationNotebookCommentEndpoint(OrganizationNotebookEndpoint):
         self,
         request: Request,
         organization_id_or_slug: str | int,
-        investigation_id: str,
+        notebook_id: str,
         comment_id: str,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(
-            request, organization_id_or_slug, investigation_id, *args, **kwargs
+            request, organization_id_or_slug, notebook_id, *args, **kwargs
         )
         try:
             kwargs["comment"] = NotebookComment.objects.get(

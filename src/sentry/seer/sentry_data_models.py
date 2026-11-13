@@ -275,6 +275,10 @@ class RepositoryDefinitionResponse(BaseModel):
     external_id: str | None
 
 
+class RepositoryDefinitionFailure(BaseModel):
+    failure_reason: Literal["no_scm_integration"]
+
+
 class EventFilterKeyEntry(BaseModel):
     type: str
 

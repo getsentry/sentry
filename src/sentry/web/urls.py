@@ -14,6 +14,7 @@ from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
+from sentry.conf.api_base_path import API_BASE_PATH
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.feedback.endpoints.error_page_embed import ErrorPageEmbedView
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
@@ -181,8 +182,10 @@ urlpatterns += [
         name="get_cli_download_url",
     ),
     # Versioned API
+    # A regex route, not path(): route strings such as "^api/0/users/$" feed analytics and
+    # generated silo URL lists.
     re_path(
-        r"^api/0/",
+        rf"^{re.escape(API_BASE_PATH.removeprefix('/'))}/",
         include("sentry.api.urls"),
     ),
     # Legacy unversioned endpoints

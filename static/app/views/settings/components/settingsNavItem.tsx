@@ -2,7 +2,7 @@ import {Fragment, type ReactElement} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
-import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {Badge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -61,11 +61,11 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
 
 function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement}) {
   if (badge === 'new' || badge === 'beta' || badge === 'alpha') {
-    return <FeatureBadge type={badge} />;
+    return <SecondaryNavigation.FeatureBadge type={badge} />;
   }
   if (badge === 'warning') {
     return (
-      <Tooltip title={t('This setting needs review')} position="right">
+      <Tooltip title={t('This setting needs review')} position="top">
         <StyledBadge variant="warning">{badge}</StyledBadge>
       </Tooltip>
     );

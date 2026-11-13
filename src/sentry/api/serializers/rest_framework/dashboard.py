@@ -1795,7 +1795,11 @@ class DashboardSerializer(DashboardDetailsSerializer):
 
 
 class DashboardStarredOrderSerializer(serializers.Serializer):
-    dashboard_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
+    dashboard_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        help_text="IDs of the requesting user's starred dashboards, in their new order.",
+    )
 
     def validate_dashboard_ids(self, dashboard_ids: list[int]) -> list[int]:
         if len(dashboard_ids) != len(set(dashboard_ids)):

@@ -4,10 +4,10 @@ from typing import Any, NotRequired, TypedDict
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
-from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
-from sentry.inbox.issue import record_issue_pr_ready_for_review
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
+from sentry.inbox.issue import ISSUE_PR_READY_FOR_REVIEW, IssuePRReadyForReviewData
 from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
-from sentry.inbox.types import InboxActor
+from sentry.inbox.types import InboxActor, InboxEventSummary
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
@@ -20,6 +20,8 @@ from sentry.models.organization import Organization
 from sentry.notebooks.access import has_notebooks_access
 from sentry.notebooks.models import Notebook
 from sentry.notebooks.telemetry import record_notebook_started
+from sentry.notifications.platform.inbox import create_inbox_items
+from sentry.notifications.platform.strategies.issue_owners import IssueOwnersActivityAlertStrategy
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
@@ -27,7 +29,14 @@ from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import check_autofix_billing
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_automation_handoff,
+    is_issue_category_eligible,
+)
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
@@ -51,7 +60,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
-from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -73,6 +82,7 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_PR_READY_FOR_REVIEW: ActivityType.SEER_PR_READY_FOR_REVIEW,
     SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
+    SentryAppEventType.SEER_STOPPED: ActivityType.SEER_STOPPED,
 }
 
 
@@ -161,22 +171,22 @@ class SeerAutofixOperator[CachePayloadT]:
     def can_trigger_autofix(cls, *, group: Group) -> bool:
         """
         Checks if a group is permitted to trigger autofix.
-        Validates Seer access for the organization, the issue category, and autofix quota.
+        Validates Seer access for the organization, the issue category, and that the
+        organization can pay for the root cause step.
         """
-        from sentry import quotas
-        from sentry.seer.autofix.utils import is_free_cohort_org, is_issue_category_eligible
-
-        return (
-            has_seer_access(group.organization)
-            and is_issue_category_eligible(group)
-            and (
-                is_free_cohort_org(group.organization)
-                or quotas.backend.check_seer_quota(
-                    org_id=group.organization.id,
-                    data_category=DataCategory.SEER_AUTOFIX,
-                )
+        if not has_seer_access(group.organization) or not is_issue_category_eligible(group):
+            return False
+        try:
+            check_autofix_billing(
+                group.organization,
+                SeerOperation.AUTOFIX_ROOT_CAUSE,
+                is_new_run=True,
+                # Free cohort orgs have no subscription, so the quota check always fails for them.
+                skip_quota_for_free_cohort=True,
             )
-        )
+        except (NoSeerQuotaException, SeerOutOfCreditsException):
+            return False
+        return True
 
     def trigger_autofix(
         self,
@@ -209,7 +219,6 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_autofix_agent,
             trigger_push_changes,
         )
-        from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
         from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
@@ -780,6 +789,8 @@ def _create_seer_activity(
         iteration_index = event_payload.get("iteration_index")
         if iteration_index is not None:
             activity_data["iteration_index"] = iteration_index
+    elif event_type == SentryAppEventType.SEER_STOPPED:
+        activity_data.update(event_payload.get("stop") or {})
 
     Activity.objects.create_group_activity(
         group,
@@ -795,15 +806,25 @@ def _create_seer_activity(
             if (pr_url := get_path(pr, "pull_request", "pr_url"))
         ]
         if pr_urls:
-            safe_execute(
-                record_issue_pr_ready_for_review,
-                group=group,
-                pr_urls=pr_urls,
-                seer_run_id=event_payload["run_id"],
-                actor=InboxActor.user(actor_user_id)
-                if actor_user_id is not None
-                else INBOX_SYSTEM_ACTOR,
-            )
+            owner_user_ids, owner_team_ids = IssueOwnersActivityAlertStrategy(
+                group=group
+            ).get_issue_owner_ids()
+            for pr_url in pr_urls:
+                safe_execute(
+                    create_inbox_items,
+                    event_type=ISSUE_PR_READY_FOR_REVIEW,
+                    subject=group,
+                    data=IssuePRReadyForReviewData(
+                        summary=InboxEventSummary.ISSUE_PR_READY_FOR_REVIEW,
+                        pr_url=pr_url,
+                        seer_run_id=event_payload["run_id"],
+                    ),
+                    user_ids=owner_user_ids,
+                    team_ids=owner_team_ids,
+                    actor=InboxActor.user(actor_user_id)
+                    if actor_user_id is not None
+                    else INBOX_SYSTEM_ACTOR,
+                )
 
 
 def record_seer_activity(
@@ -891,7 +912,7 @@ def process_autofix_updates(
 
         if (
             event_type not in SEER_EVENT_TO_ACTIVITY_TYPE
-            and event_type != SentryAppEventType.SEER_ERRORED
+            and event_type not in INTERNAL_SEER_EVENT_TYPES
         ):
             lifecycle.record_halt(halt_reason="skipped")
             return

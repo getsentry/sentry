@@ -631,7 +631,11 @@ describe('AutofixRef embed', () => {
       await expandAll(1);
 
       await waitFor(() =>
-        expect(reportOutOfCredits).toHaveBeenLastCalledWith(expect.any(String), true)
+        expect(reportOutOfCredits).toHaveBeenLastCalledWith(
+          expect.any(String),
+          true,
+          null
+        )
       );
       expect(getButtons('Continue: Plan')[0]).toBeDisabled();
       expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
@@ -639,7 +643,7 @@ describe('AutofixRef embed', () => {
       // A card that leaves the chat takes its report with it.
       const [embedId] = reportOutOfCredits.mock.lastCall!;
       unmount();
-      expect(reportOutOfCredits).toHaveBeenLastCalledWith(embedId, false);
+      expect(reportOutOfCredits).toHaveBeenLastCalledWith(embedId, false, null);
     });
 
     it('reports nothing to the Explorer chat when the org can afford the step', async () => {
@@ -662,7 +666,7 @@ describe('AutofixRef embed', () => {
       await expandAll(1);
 
       await waitFor(() => expect(getButtons('Continue: Plan')[0]).toBeEnabled());
-      expect(reportOutOfCredits).not.toHaveBeenCalledWith(expect.any(String), true);
+      expect(reportOutOfCredits).not.toHaveBeenCalledWith(expect.any(String), true, null);
     });
 
     it('offers no next step for a single run, so checks nothing', async () => {
@@ -706,7 +710,7 @@ describe('AutofixRef embed', () => {
       expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
       expect(getButtons('Continue: Plan')).toHaveLength(0);
       expect(creditCheck).not.toHaveBeenCalled();
-      expect(reportOutOfCredits).not.toHaveBeenCalledWith(expect.any(String), true);
+      expect(reportOutOfCredits).not.toHaveBeenCalledWith(expect.any(String), true, null);
     });
 
     it('does not check credits in a read-only conversation', async () => {

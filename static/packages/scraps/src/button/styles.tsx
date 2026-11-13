@@ -187,9 +187,6 @@ export function DO_NOT_USE_getButtonStyles(
 
     // Borderless buttons are not chonky
     ...((variant === 'transparent' || variant === 'link') && {
-      // Zero the lift instead of overriding `> span:last-child`, which would
-      // replace the base label layout (flex, overflow, nowrap) rather than merge.
-      '--button-lift': '0px',
       border: 'none',
       transform: 'translateY(0px)',
 
@@ -204,12 +201,23 @@ export function DO_NOT_USE_getButtonStyles(
         ...p.theme.focusRing(),
       },
 
+      '> span:last-child': {
+        transform: 'translateY(0px)',
+      },
+
       '&:hover': {
+        '> span:last-child': {
+          transform: 'translateY(0px)',
+        },
         backgroundColor:
           p.busy || disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray100,
       },
 
       '&:active': {
+        '> span:last-child': {
+          transform: 'translateY(0px)',
+        },
+
         backgroundColor:
           p.busy || disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray200,
       },

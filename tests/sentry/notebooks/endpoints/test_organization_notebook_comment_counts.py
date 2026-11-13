@@ -21,7 +21,7 @@ class OrganizationNotebookCommentCountsTest(APITestCase):
             "sentry-api-0-organization-notebook-comment-counts",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.notebook.id,
+                "notebook_id": self.notebook.id,
             },
         )
 
@@ -63,7 +63,7 @@ class OrganizationNotebookCommentCountsTest(APITestCase):
             "sentry-api-0-organization-notebook-comment-counts",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": foreign.id,
+                "notebook_id": foreign.id,
             },
         )
 

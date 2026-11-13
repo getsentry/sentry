@@ -8,6 +8,7 @@ import {
   type UseInfiniteQueryResult,
 } from '@tanstack/react-query';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -124,7 +125,9 @@ function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
           query={query}
           items={items}
           filters={filters}
-          onClearFilters={() => void setFilters({subjectType: null, eventType: null})}
+          onClearFilters={() =>
+            void setFilters({subjectType: null, eventType: null, recipient: null})
+          }
           selectedItemId={selectedItem?.id ?? null}
         />
       </Container>
@@ -246,7 +249,7 @@ function InboxContent() {
         </Container>
       </Stack>
       {/* Keyed so that selecting another item starts the preview scrolled to the top */}
-      <Container
+      <Stack
         key={
           selectedSubject
             ? `${selectedSubject.subjectType}:${selectedSubject.subjectId}`
@@ -256,7 +259,7 @@ function InboxContent() {
         minHeight={0}
       >
         <InboxItemPreview subject={selectedSubject} />
-      </Container>
+      </Stack>
     </Grid>
   );
 }
@@ -270,7 +273,17 @@ export default function Inbox() {
 
   return (
     <SentryDocumentTitle title={t('Inbox')} orgSlug={organization.slug}>
-      <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: t('Inbox')}} />
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: t('Inbox'),
+          trailingActions: {
+            type: 'badge',
+            element: <FeatureBadge type="alpha" />,
+          },
+        }}
+      />
       <Stack flex={1} minHeight={0} background="primary" overflow="hidden" contain="size">
         <InboxContent />
       </Stack>

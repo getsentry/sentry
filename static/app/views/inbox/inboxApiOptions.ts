@@ -45,6 +45,7 @@ export function inboxItemsApiOptions(organization: Organization, filters: InboxF
           per_page: INBOX_ITEMS_PER_PAGE,
           ...(filters.subjectType.length > 0 && {subject_type: filters.subjectType}),
           ...(filters.eventType.length > 0 && {event_type: filters.eventType}),
+          ...(filters.recipient.length > 0 && {recipient: filters.recipient}),
         },
         staleTime: 30_000,
       }
