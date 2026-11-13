@@ -10,6 +10,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {AI_TRACE_BASE_ATTRIBUTES} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {
   getGenAiOpType,
@@ -96,7 +97,7 @@ export function getEventAgentRun(
 }
 
 // TODO(aknaus): Split AI_TRACE_BASE_ATTRIBUTES into the attributes the timeline
-// needs and the ones only the span details need.
+// needs and the ones only the transcript needs.
 const AGENT_RUN_ATTRIBUTES = AI_TRACE_BASE_ATTRIBUTES.filter(
   attribute =>
     attribute !== SpanFields.GEN_AI_INPUT_MESSAGES &&
@@ -107,50 +108,44 @@ const HAS_AI_SPAN_TOLERANCE_S = 1;
 const DAY_IN_S = 24 * 60 * 60;
 
 /**
- * Checks whether an AI span was active when the error happened, so the much more
- * expensive trace request only runs when there can be an agent run.
+ * A one-row spans query for an AI span that was active when the error happened, so
+ * the much more expensive trace request only runs when there can be an agent run.
  */
-function useHasActiveAiSpan({
+function activeAiSpanOptions({
+  organizationSlug,
   timestamp,
   traceId,
 }: {
+  organizationSlug: string;
   timestamp: number | undefined;
   traceId: string | undefined;
 }) {
-  const organization = useOrganization();
   const canQuery = traceId !== undefined && timestamp !== undefined;
-
-  const query = useQuery(
-    apiOptions.as<{data: Array<{id: string}>}>()(
-      '/organizations/$organizationIdOrSlug/events/',
-      {
-        path: canQuery ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: canQuery
-          ? {
-              dataset: DiscoverDatasets.SPANS,
-              field: ['id'],
-              per_page: 1,
-              project: ALL_ACCESS_PROJECTS,
-              start: getUtcDateString((timestamp - DAY_IN_S) * 1000),
-              end: getUtcDateString((timestamp + DAY_IN_S) * 1000),
-              query: [
-                `trace:${traceId}`,
-                getHasAiSpansFilter(),
-                `precise.start_ts:<=${timestamp + HAS_AI_SPAN_TOLERANCE_S}`,
-                `precise.finish_ts:>=${timestamp - HAS_AI_SPAN_TOLERANCE_S}`,
-              ].join(' '),
-              referrer: 'api.issues.agent-run.has-active-ai-span',
-            }
-          : {},
-        staleTime: Infinity,
-      }
-    )
+  return apiOptions.as<{data: Array<{id: string}>}>()(
+    '/organizations/$organizationIdOrSlug/events/',
+    {
+      path: canQuery ? {organizationIdOrSlug: organizationSlug} : skipToken,
+      query: canQuery
+        ? {
+            dataset: DiscoverDatasets.SPANS,
+            field: ['id'],
+            per_page: 1,
+            project: ALL_ACCESS_PROJECTS,
+            start: getUtcDateString((timestamp - DAY_IN_S) * 1000),
+            end: getUtcDateString((timestamp + DAY_IN_S) * 1000),
+            query: [
+              `trace:${traceId}`,
+              getHasAiSpansFilter(),
+              `precise.start_ts:<=${timestamp + HAS_AI_SPAN_TOLERANCE_S}`,
+              `precise.finish_ts:>=${timestamp - HAS_AI_SPAN_TOLERANCE_S}`,
+            ].join(' '),
+            sampling: SAMPLING_MODE.HIGH_ACCURACY,
+            referrer: 'api.issues.agent-run.has-active-ai-span',
+          }
+        : {},
+      staleTime: Infinity,
+    }
   );
-
-  return {
-    hasActiveAiSpan: (query.data?.data.length ?? 0) > 0,
-    isLoading: query.isLoading,
-  };
 }
 
 /**
@@ -162,11 +157,14 @@ export function useEventAgentRun(event: Event, {enabled}: {enabled: boolean}) {
   const traceId = canHaveAgentRun ? event.contexts.trace?.trace_id : undefined;
   const timestamp = getEventTimestampInSeconds(event);
 
-  const activeAiSpan = useHasActiveAiSpan({traceId, timestamp});
+  const activeAiSpan = useQuery(
+    activeAiSpanOptions({organizationSlug: organization.slug, traceId, timestamp})
+  );
+  const hasActiveAiSpan = (activeAiSpan.data?.data.length ?? 0) > 0;
 
   const trace = useTrace({
     // useTrace only fetches when it has a trace slug.
-    traceSlug: activeAiSpan.hasActiveAiSpan ? traceId : undefined,
+    traceSlug: hasActiveAiSpan ? traceId : undefined,
     timestamp,
     targetEventId: event.eventID,
     additionalAttributes: AGENT_RUN_ATTRIBUTES,
