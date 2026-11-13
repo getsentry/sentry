@@ -431,7 +431,10 @@ def replace_investigation_buttons(
         for attachment in message.get("attachments", [])
     ]
 
-    return {**message, "attachments": attachments} if changed else None
+    if not changed:
+        return None
+
+    return SlackRenderable(blocks=message["blocks"], text=message["text"], attachments=attachments)
 
 
 def update_investigation_alert_message(
