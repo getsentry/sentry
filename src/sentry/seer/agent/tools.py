@@ -988,20 +988,32 @@ def _unique(matches: list[Repository]) -> tuple[Repository | None, RepoResolutio
     return None, "ambiguous" if matches else "not_found"
 
 
+def _is_named(repo: Repository, repo_full_name: str) -> bool:
+    """Whether ``repo_full_name`` is the repository's name or URL path, ignoring case."""
+    requested = repo_full_name.casefold()
+    return requested in (repo.name.casefold(), get_repo_url_path(repo).casefold())
+
+
 def _find_repository_by_external_id(
-    organization_id: int, external_id: str, providers: list[str]
+    organization_id: int, external_id: str, repo_full_name: str, providers: list[str]
 ) -> tuple[Repository | None, RepoResolution]:
-    # Two is enough: we only need to know whether there is exactly one.
-    return _unique(
-        list(
-            Repository.objects.filter(
-                organization_id=organization_id,
-                external_id=external_id,
-                status=ObjectStatus.ACTIVE,
-                provider__in=providers,
-            ).order_by("id")[:2]
-        )
+    """Find the one repository with this external id. Each provider numbers its repositories
+    separately, so one id can name a repository on two providers (``github`` and
+    ``github_enterprise``). The unique constraint allows at most one per provider."""
+    matches = list(
+        Repository.objects.filter(
+            organization_id=organization_id,
+            external_id=external_id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=providers,
+        ).order_by("id")
     )
+    if len(matches) > 1:
+        # The name picks among the repositories this id names, never outside them.
+        named = [repo for repo in matches if _is_named(repo, repo_full_name)]
+        if len(named) == 1:
+            return named[0], "resolved"
+    return _unique(matches)
 
 
 def _find_repository(
@@ -1018,11 +1030,10 @@ def _find_repository(
         status=ObjectStatus.ACTIVE,
         provider__in=providers,
     ).order_by("id")
-    # A URL can also end this way for a repository further down: ".../parent/my-group/app".
-    requested = repo_full_name.casefold()
     matches: list[Repository] = []
     for repo in candidates:
-        if requested in (repo.name.casefold(), get_repo_url_path(repo).casefold()):
+        # A URL can also end this way for a repository further down: ".../parent/my-group/app".
+        if _is_named(repo, repo_full_name):
             matches.append(repo)
             # Two is enough: we only need to know whether there is exactly one.
             if len(matches) == 2:
@@ -1105,11 +1116,11 @@ def get_repository_definition(
 
     if external_id:
         repo, resolution = _find_repository_by_external_id(
-            organization_id, external_id, supported_providers
+            organization_id, external_id, repo_full_name, supported_providers
         )
 
-    # Only a miss falls back to the name. An ambiguous external_id stops here: the name could
-    # quietly pick a different repository.
+    # Only a miss falls back to a name lookup. An external_id that stays ambiguous stops here: a
+    # name lookup could pick a repository the external_id doesn't name.
     if resolution == "not_found":
         parts = repo_full_name.split("/")
         if len(parts) < 2:
