@@ -8,7 +8,13 @@ from unittest import mock
 import pytest
 
 from tools.api_guidelines import report_card
-from tools.api_guidelines.report_card import format_table, main, rule_columns, team_findings
+from tools.api_guidelines.report_card import (
+    find_owners,
+    format_table,
+    main,
+    rule_columns,
+    team_findings,
+)
 from tools.api_guidelines.rules import ApiRule
 from tools.flake8_plugin import ApiInputViolation
 
@@ -62,7 +68,9 @@ def fake_repo(tmp_path: Path) -> Generator[Path]:
         yield tmp_path
 
 
-def _finding(rule: str, path: str = FEED, line: int = 1) -> tuple[str, ApiInputViolation]:
+def _finding(
+    rule: str, path: str = FEED, line: int = 1, scope: str = "FeedEndpoint.get"
+) -> tuple[str, ApiInputViolation]:
     """A (path, finding) pair made by hand, without scanning any code"""
     violation = ApiInputViolation(
         rule=ApiRule(rule),
@@ -72,35 +80,26 @@ def _finding(rule: str, path: str = FEED, line: int = 1) -> tuple[str, ApiInputV
         end_line=line,
         end_column=1,
         severity="warning",
-        scope="FeedEndpoint.get",
+        scope=scope,
         key="query:id",
         caller=None,
     )
     return (path, violation)
 
 
-def test_columns_always_have_the_baselined_rules_in_rule_order() -> None:
+def test_columns_are_the_rules_that_report_structured_output() -> None:
     # S027 has no findings but is still checked, so it keeps its column
-    assert rule_columns([_finding("S026")]) == ["S025", "S026", "S027", "S028"]
-
-
-def test_a_rule_with_findings_gets_a_column_on_its_own() -> None:
-    # i.e S034 once it reports structured output: no report card change needed
-    assert rule_columns([_finding("S034"), _finding("S026")]) == [
-        "S025",
-        "S026",
-        "S027",
-        "S028",
-        "S034",
-    ]
+    assert rule_columns() == ["S025", "S026", "S027", "S028"]
 
 
 def test_table_counts_each_team_with_unowned_last() -> None:
-    findings = [_finding("S026"), _finding("S026"), _finding("S026", INGEST)]
-    # the hand-made findings are all scoped to FeedEndpoint, so map it in both files
-    owner_map = {FEED: {"FeedEndpoint": "issues-feed"}, INGEST: {"FeedEndpoint": "ingest"}}
+    findings = [
+        _finding("S026"),
+        _finding("S026"),
+        _finding("S026", INGEST, scope="IngestEndpoint.get"),
+    ]
 
-    lines = format_table(findings, owner_map, markdown=True)
+    lines = format_table(find_owners(findings, OWNER_MAP), markdown=True)
 
     assert lines == [
         "| team | total | S025 | S026 | S027 | S028 | files |",
@@ -122,7 +121,7 @@ def test_main_prints_the_owner_map_date_and_the_table(
     assert "API report card: 5 findings" in out
     assert "owner map generated " in out
     assert ", 1 findings unowned" in out
-    assert "No structured findings: S021, S022, S023, S034" in out
+    assert "Not reporting structured output yet: S021, S022, S023, S034" in out
     assert out.endswith(
         "team         total   S025   S026   S027   S028  files\n"
         "issues-feed      3      0      3      0      0      1\n"
@@ -130,6 +129,14 @@ def test_main_prints_the_owner_map_date_and_the_table(
         "unowned          1      0      1      0      0      1\n"
         "total            5      0      5      0      0      3\n"
     )
+
+
+def test_main_prints_markdown(fake_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["--format", "markdown"]) == 0
+
+    out = capsys.readouterr().out
+    assert "| team | total | S025 | S026 | S027 | S028 | files |\n" in out
+    assert out.endswith("| total | 5 | 0 | 5 | 0 | 0 | 3 |\n")
 
 
 def test_main_lists_one_teams_findings(fake_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -140,18 +147,26 @@ def test_main_lists_one_teams_findings(fake_repo: Path, capsys: pytest.CaptureFi
     )
 
 
-def test_team_findings_are_sorted_by_file_and_line() -> None:
-    _path, first = _finding("S026", INGEST)
-    _path, second = _finding("S028", FEED, line=9)
-    _path, third = _finding("S026", FEED)
+def test_main_stops_on_a_team_that_isnt_in_the_owner_map(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # a typo would otherwise print "0 findings", which looks like a clean team
+    assert main(["--team", "issue-feed"]) == 1
 
-    lines = team_findings(
-        [(INGEST, first), (FEED, second), (FEED, third)],
-        {FEED: {"FeedEndpoint": "issues-feed"}, INGEST: {"FeedEndpoint": "issues-feed"}},
-        "issues-feed",
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "Unknown team 'issue-feed'. Teams in the owner map: ingest, issues-feed, unowned" in (
+        captured.err
     )
 
-    assert lines == [
+
+def test_team_findings_are_sorted_by_file_and_line() -> None:
+    owned = find_owners(
+        [_finding("S026", INGEST), _finding("S028", FEED, line=9), _finding("S026", FEED)],
+        {FEED: {"FeedEndpoint": "issues-feed"}, INGEST: {"FeedEndpoint": "issues-feed"}},
+    )
+
+    assert team_findings(owned, "issues-feed") == [
         f"{FEED}:1  S026  query:id  in FeedEndpoint.get",
         f"{FEED}:9  S028  query:id  in FeedEndpoint.get",
         f"{INGEST}:1  S026  query:id  in FeedEndpoint.get",
