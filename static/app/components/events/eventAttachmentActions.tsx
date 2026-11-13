@@ -9,6 +9,7 @@ import {Grid} from '@sentry/scraps/layout';
 import {useRole} from 'sentry/components/acl/useRole';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
@@ -67,7 +68,7 @@ export function EventAttachmentActions({
       <LinkButton
         size="xs"
         icon={<IconDownload />}
-        href={hasAttachmentRole ? `${url}?download=1` : ''}
+        href={hasAttachmentRole ? resolveHostname(`${url}?download=1`) : ''}
         disabled={!hasAttachmentRole}
         tooltipProps={{
           title: hasAttachmentRole
