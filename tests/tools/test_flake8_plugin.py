@@ -24,6 +24,7 @@ from tools.flake8_plugin import (
     S030_allowlist,
     S034_msg,
     SentryCheck,
+    SentryVisitor,
     _s015_msg,
     get_api_violations,
 )
@@ -2522,6 +2523,58 @@ class E(Endpoint):
     enforced_only = _api_violations(src, enforced=SHAPED, all_rules=False)
     assert len(enforced_only) == 1
     assert enforced_only[0].rule == "S026"
+
+
+def test_super_call_is_recorded_once() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return super().get(request)
+"""
+    visitor = SentryVisitor("src/sentry/api/endpoints/t.py", 2000, _s015_msg())
+    visitor.visit(ast.parse(src))
+    calls = visitor._functions["E.get"].calls
+    assert len(calls) == 1
+    assert calls[0].kind == "super"
+    assert calls[0].name == "get"
+
+
+def test_method_defined_twice_reports_both_definitions() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    if FLAG:
+        def get(self, request) -> Response[X]:
+            return Response({"a": request.GET.get("a")})
+    else:
+        def get(self, request) -> Response[X]:
+            return Response({"b": request.GET.get("b")})
+"""
+    reported = []
+    for violation in _api_violations(src):
+        reported.append((violation.line, violation.scope, violation.key))
+    assert reported == [(6, "E.get", "query:a"), (9, "E.get", "query:b")]
+
+
+def test_overload_stub_and_real_def_are_both_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @overload
+    def get(self, request) -> Response[X]:
+        return Response({"a": request.GET.get("a")})
+
+    def get(self, request) -> Response[X]:
+        return Response({"b": request.GET.get("b")})
+"""
+    reported = []
+    for violation in _api_violations(src):
+        reported.append((violation.line, violation.key))
+    assert reported == [(6, "query:a"), (9, "query:b")]
 
 
 def test_api_violations_skip_private_methods() -> None:

@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -42,6 +44,11 @@ from sentry.signals import team_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
+
+
+class _ConflictingSlugResponse(TypedDict):
+    non_field_errors: list[str]
+    detail: str
 
 
 # OrganizationPermission + team:write
@@ -204,7 +211,11 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     )
     def post(
         self, request: Request, organization: Organization, **kwargs: object
-    ) -> Response[TeamSerializerResponse] | Response[ValidationErrorResponse]:
+    ) -> (
+        Response[TeamSerializerResponse]
+        | Response[_ConflictingSlugResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Create a new team bound to an organization. Requires at least one of the `name`
         or `slug` body params to be set.

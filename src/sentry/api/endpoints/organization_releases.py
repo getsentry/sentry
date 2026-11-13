@@ -230,6 +230,14 @@ def _filter_releases_by_query(
     return queryset
 
 
+class _ProjectsErrorResponse(TypedDict):
+    projects: list[str]
+
+
+class _RefsErrorResponse(TypedDict):
+    refs: list[str]
+
+
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     projects = ListField(
         child=CharField(),
@@ -804,7 +812,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
     )
     def post(
         self, request: Request, organization: Organization
-    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
+    ) -> (
+        Response[ReleaseSerializerResponse]
+        | Response[_ProjectsErrorResponse]
+        | Response[_RefsErrorResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Create a new release for the given organization. Releases are used by Sentry to
         improve error reporting by correlating first-seen events with the release that may

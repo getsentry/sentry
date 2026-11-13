@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, TypedDict
 
 from django.db import router, transaction
 from django.db.models import Q
@@ -123,6 +123,10 @@ class UpdateOrgMemberRolesSerializer(OrganizationMemberRequestSerializer):
     )
 
 
+class _RoleErrorResponse(TypedDict):
+    role: str
+
+
 @extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
@@ -209,6 +213,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         Response[OrganizationMemberResponse]
         | Response[None]
         | Response[DetailResponse]
+        | Response[_RoleErrorResponse]
         | Response[ValidationErrorResponse]
     ):
         """
