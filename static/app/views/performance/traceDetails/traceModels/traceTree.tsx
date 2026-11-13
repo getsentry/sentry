@@ -576,9 +576,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     tree.indicators.sort((a, b) => a.start - b.start);
 
-    if (options.organization.features.includes('performance-trace-cache-lifecycle')) {
-      TraceTree.AddServerRenderPlaceholders(tree.root);
-    }
+    TraceTree.AddServerRenderPlaceholders(tree.root);
 
     TraceTree.ApplyPreferences(tree.root, options);
 

@@ -6,9 +6,7 @@ import {isServerRenderNode} from 'sentry/views/performance/traceDetails/traceGua
 import {TraceTree} from './traceTree';
 import {makeEAPSpan, makeEAPTrace} from './traceTreeTestUtils';
 
-const organization = OrganizationFixture({
-  features: ['performance-trace-cache-lifecycle'],
-});
+const organization = OrganizationFixture();
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
 
 function makeDocumentRequest() {
@@ -46,8 +44,8 @@ function makePageload(
   });
 }
 
-function buildTree(pageload: ReturnType<typeof makePageload>, org = organization) {
-  return TraceTree.FromTrace(makeEAPTrace([pageload]), {replay: null, organization: org});
+function buildTree(pageload: ReturnType<typeof makePageload>) {
+  return TraceTree.FromTrace(makeEAPTrace([pageload]), {replay: null, organization});
 }
 
 function getPageload(tree: TraceTree) {
@@ -158,12 +156,6 @@ eap trace root
     ['with a type that SDKs do not set', 'dynamic'],
   ])('adds no placeholder for a pageload %s', (_label, type) => {
     const tree = buildTree(makePageload(type));
-
-    expect(tree.root.findChild(isServerRenderNode)).toBeNull();
-  });
-
-  it('adds no placeholder without the feature', () => {
-    const tree = buildTree(makePageload('static'), OrganizationFixture());
 
     expect(tree.root.findChild(isServerRenderNode)).toBeNull();
   });

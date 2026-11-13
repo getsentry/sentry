@@ -1,7 +1,7 @@
 import {IconOpen} from '@sentry/icons/open';
 import type {Location} from 'history';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -121,6 +121,7 @@ function SectionTitle({type}: {type: ServerRenderingType | undefined}) {
           'Where the server spans of this page are. A reused part has its spans in the trace that rendered it.'
         )}
       />
+      <FeatureBadge type="new" />
       {type ? <Tag variant="muted">{TYPE_LABELS[type]}</Tag> : null}
     </Flex>
   );
