@@ -404,8 +404,10 @@ def schedule_orchestration_commands(run_id: int) -> None:
 
 
 def archive_investigation_with_orchestration(
-    *, investigation: Notebook, expected_version: int, actor_id: int | None
+    *, investigation: Notebook, expected_version: int, actor: ActorId
 ) -> Notebook:
+    user_id = actor.id if actor.type == ActorType.USER else None
+    service_account_id = actor.id if actor.type == ActorType.SERVICE_ACCOUNT else None
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         try:
@@ -417,7 +419,7 @@ def archive_investigation_with_orchestration(
             .filter(investigation=locked_investigation)
             .first()
         )
-        if run is not None and actor_id is None:
+        if run is not None and user_id is None and service_account_id is None:
             raise PermissionDenied
         archive_version = expected_version
         if run is None:
@@ -434,7 +436,6 @@ def archive_investigation_with_orchestration(
             InvestigationOrchestrationStatus.FAILED,
             InvestigationOrchestrationStatus.CANCELLED,
         }:
-            assert actor_id is not None
             accept_orchestration_command(
                 investigation=locked_investigation,
                 request_id=uuid5(
@@ -444,7 +445,8 @@ def archive_investigation_with_orchestration(
                 expected_workflow_version=run.workflow_version,
                 command_type="cancel",
                 payload={"reason": "investigation_archived"},
-                actor_id=actor_id,
+                actor_id=user_id,
+                service_account_id=service_account_id,
             )
         if run is not None:
             run.refresh_from_db(fields=["generation", "projection"])
@@ -809,6 +811,7 @@ def accept_orchestration_command(
     command_type: str,
     payload: dict[str, Any],
     actor_id: int | None,
+    service_account_id: int | None = None,
 ) -> AcceptedOrchestrationCommand:
     with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
         # Investigation-wide mutations lock the aggregate root before subordinate rows.
@@ -866,6 +869,7 @@ def accept_orchestration_command(
                 orchestration_run=run,
                 request_id=request_id,
                 actor_id=actor_id,
+                requested_by_service_account_id=service_account_id,
                 expected_workflow_version=expected_workflow_version,
                 resulting_workflow_version=run.workflow_version,
                 type=command_type,
@@ -891,6 +895,7 @@ def accept_orchestration_command(
             orchestration_run=run,
             request_id=request_id,
             actor_id=actor_id,
+            requested_by_service_account_id=service_account_id,
             expected_workflow_version=expected_workflow_version,
             resulting_workflow_version=resulting_version,
             type=command_type,

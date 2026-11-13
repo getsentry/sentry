@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import Any
 
 from rest_framework import status
@@ -11,11 +12,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.creator import get_creator_reference
+from sentry.auth.access import ServiceAccountAccess
 from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notebooks.access import has_notebooks_access
+from sentry.notebooks.access import has_notebooks_access, service_account_reaches
 from sentry.notebooks.endpoints.schema import NotebookSchema
 from sentry.notebooks.models import Notebook, NotebookBlock, NotebookComment
 from sentry.notebooks.services import (
@@ -23,6 +25,7 @@ from sentry.notebooks.services import (
     NotebookSourceNotFound,
     NotebookValidationError,
 )
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.viewer_context import ActorId, actor_id_from_references
 
 
@@ -64,6 +67,29 @@ def require_authenticated_user(request: Request) -> int:
     if not can_request_actor_create_notebook(request):
         raise PermissionDenied
     return user_id(request)
+
+
+def require_project_access(request: Request, project_ids: Collection[int]) -> None:
+    """Keep a service account to notebooks within its projects.
+
+    Investigation dispatch checks the same rule, so a write that passes here can always run.
+    """
+    if isinstance(request.access, ServiceAccountAccess) and not service_account_reaches(
+        request.access, project_ids
+    ):
+        raise PermissionDenied
+
+
+def require_notebook_writer(request: Request, notebook: Notebook | None = None) -> int | None:
+    """The user behind a notebook write, or None for a service account.
+
+    Users and agents acting for one can write; sentry apps and org auth tokens can't.
+    """
+    if not is_service_account_auth(request.auth):
+        return require_authenticated_user(request)
+    if notebook is not None:
+        require_project_access(request, list(notebook.projects.values_list("id", flat=True)))
+    return None
 
 
 def request_creator_actor(request: Request) -> ActorId:

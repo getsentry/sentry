@@ -266,7 +266,7 @@ def create_block(
     *,
     notebook: Notebook,
     expected_notebook_version: int,
-    user_id: int,
+    user_id: int | None,
     values: dict[str, Any],
 ) -> NotebookBlock:
     with transaction.atomic(using=router.db_for_write(Notebook)):
@@ -294,7 +294,7 @@ def update_block(
     block: NotebookBlock,
     expected_notebook_version: int,
     expected_block_version: int,
-    user_id: int,
+    user_id: int | None,
     values: dict[str, Any],
 ) -> NotebookBlock:
     with transaction.atomic(using=router.db_for_write(Notebook)):

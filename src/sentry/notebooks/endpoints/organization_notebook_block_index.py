@@ -15,7 +15,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookEndpoint,
-    require_authenticated_user,
+    require_notebook_writer,
     service_error,
 )
 from sentry.notebooks.endpoints.serializers import (
@@ -63,10 +63,10 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
         """
         Append a text or query block to an active investigation. Uses investigationVersion for
         concurrency. Returns the new block; fetch investigation details for the updated notebook
-        version. Requires an authenticated user. Requires the organizations:investigations
+        version. Requires a user or service account. Requires the organizations:investigations
         feature and open organization membership.
         """
-        actor_id = require_authenticated_user(request)
+        actor_id = require_notebook_writer(request, notebook)
         validator = BlockCreateValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
