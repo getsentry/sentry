@@ -15,7 +15,7 @@ const diffBase = process.env.DECISION_MODEL_LINT_BASE;
 const NO_DIFF = 'No diff available.';
 const execFileAsync = promisify(execFile);
 
-// renamed files have the same file path before the rename
+// the PR's renames (new path -> old path) which is loaded once per run and shared by every file
 let renames: Promise<Map<string, string>> | undefined;
 
 function renamedFrom(base: string): Promise<Map<string, string>> {
