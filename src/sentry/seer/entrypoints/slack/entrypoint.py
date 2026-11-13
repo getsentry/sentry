@@ -1206,11 +1206,14 @@ def _get_metric_open_period(investigation: Notebook) -> GroupOpenPeriod | None:
         open_period_id = int(source_ref["openPeriodId"])
     except (KeyError, TypeError, ValueError):
         return None
-    return GroupOpenPeriod.objects.filter(
-        id=open_period_id,
-        group_id=group_id,
-        project__organization_id=investigation.organization_id,
-    ).first()
+    try:
+        return GroupOpenPeriod.objects.get(
+            id=open_period_id,
+            group_id=group_id,
+            project__organization_id=investigation.organization_id,
+        )
+    except GroupOpenPeriod.DoesNotExist:
+        return None
 
 
 def _get_alert_threads(open_period: GroupOpenPeriod) -> list[NotificationThread]:
