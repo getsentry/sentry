@@ -3162,6 +3162,24 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         self._connect(self.organization, "bitbucket")
         assert self._lookup(self.organization, "acme-labs/app") == no_integration
 
+    def test_failure_when_the_only_integrations_are_inactive(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:disabled-for-org",
+            oi_params={"status": ObjectStatus.DISABLED},
+        )
+        self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            external_id="gitlab:pending-deletion",
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        assert self._lookup(self.organization, "acme-labs/app") == RepositoryDefinitionFailure(
+            failure_reason="no_scm_integration"
+        )
+
     def test_cursor_origin_does_not_count_without_seer_support(self) -> None:
         self._connect(self.organization, "cursor_origin")
 
@@ -3176,15 +3194,6 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             self._connect(organization, provider)
             with self.subTest(provider=provider):
                 assert self._lookup(organization, "acme-labs/app") is None
-
-    def test_get_repository_definition_only_reports_the_reason_when_asked(self) -> None:
-        assert (
-            get_repository_definition(
-                organization_id=self.organization.id,
-                repo_full_name="nonexistent/repo",
-            )
-            is None
-        )
 
     def test_get_repository_definition_not_found(self) -> None:
         """Test that nonexistent repository returns None"""
