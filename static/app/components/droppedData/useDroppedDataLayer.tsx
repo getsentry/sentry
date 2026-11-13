@@ -2,8 +2,11 @@ import {useState} from 'react';
 
 import type {ChartLayersControlProps} from 'sentry/components/charts/chartLayersControl';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useDroppedDataDrawer} from './drawer/useDroppedDataDrawer';
 import {hasDroppedData} from './buckets';
@@ -26,6 +29,7 @@ interface UseDroppedDataLayerParams extends UseDroppedDataParams {
 }
 
 interface UseDroppedDataLayerOptions {
+  source: DroppedDataAnalyticsSource;
   enabled?: boolean;
   hidden?: boolean;
 }
@@ -43,15 +47,19 @@ interface DroppedDataLayer {
  */
 export function useDroppedDataLayer(
   {environments, ...params}: UseDroppedDataLayerParams,
-  {enabled = true, hidden = false}: UseDroppedDataLayerOptions = {}
+  {source, enabled = true, hidden = false}: UseDroppedDataLayerOptions
 ): DroppedDataLayer {
+  const organization = useOrganization();
   const {dataset} = params;
   const isEnabled = enabled && SUPPORTED_DATASETS.has(dataset);
   const {droppedEvents, acceptedEvents, isLoading} = useDroppedData(params, {
     enabled: isEnabled,
   });
   const [isLayerOn, setIsLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(params, {enabled: isEnabled});
+  const openDroppedDataDrawer = useDroppedDataDrawer(params, {
+    source,
+    enabled: isEnabled,
+  });
 
   const isLoaded = isEnabled && defined(droppedEvents);
   const canShowDroppedData = isEnabled && hasDroppedData(droppedEvents, acceptedEvents);
@@ -79,7 +87,15 @@ export function useDroppedDataLayer(
                   ),
             },
           ],
-          onChange: (_value, selected) => setIsLayerOn(selected),
+          onChange: (_value, selected) => {
+            setIsLayerOn(selected);
+            trackAnalytics('explore.dropped_data.layer_toggled', {
+              organization,
+              dataset,
+              source,
+              selected,
+            });
+          },
         }
       : undefined,
   };

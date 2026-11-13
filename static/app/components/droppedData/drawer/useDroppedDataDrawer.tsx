@@ -8,6 +8,7 @@ import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
 import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {DiscoverDatasetToUrlParam} from 'sentry/utils/discover/types';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -22,12 +23,13 @@ const DROPPED_DATA_DRAWER_PARSERS = {droppedData: parseAsString};
 const loadDroppedDataQuery = createLoader(DROPPED_DATA_DRAWER_PARSERS);
 
 interface UseDroppedDataDrawerOptions {
+  source: DroppedDataAnalyticsSource;
   enabled?: boolean;
 }
 
 export function useDroppedDataDrawer(
   {dataset, interval, projects}: UseDroppedDataParams,
-  {enabled = true}: UseDroppedDataDrawerOptions = {}
+  {source, enabled = true}: UseDroppedDataDrawerOptions
 ) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
@@ -49,6 +51,7 @@ export function useDroppedDataDrawer(
       trackAnalytics('explore.dropped_data.ask_seer_clicked', {
         organization,
         dataset,
+        source,
         outcome: row.outcome,
         reason: row.reason,
       });
@@ -60,7 +63,7 @@ export function useDroppedDataDrawer(
         }),
       });
     },
-    [dataset, organization]
+    [dataset, organization, source]
   );
   const onAskSeer = isSeerExplorerEnabled(organization) ? handleAskSeer : undefined;
 
@@ -80,6 +83,7 @@ export function useDroppedDataDrawer(
           dataset={dataset}
           interval={interval}
           projects={projects}
+          source={source}
           onAskSeer={onAskSeer}
         />
       ),
@@ -104,13 +108,14 @@ export function useDroppedDataDrawer(
     paramValue,
     interval,
     projects,
+    source,
     onAskSeer,
     pathname,
     setDrawerQuery,
   ]);
 
   return useCallback(() => {
-    trackAnalytics('explore.dropped_data.drawer_opened', {organization, dataset});
+    trackAnalytics('explore.dropped_data.drawer_opened', {organization, dataset, source});
     void setDrawerQuery({droppedData: paramValue}, {history: 'push'});
-  }, [organization, dataset, paramValue, setDrawerQuery]);
+  }, [organization, dataset, source, paramValue, setDrawerQuery]);
 }
