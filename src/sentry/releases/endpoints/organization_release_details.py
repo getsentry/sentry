@@ -32,6 +32,7 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
@@ -379,6 +380,7 @@ class OrganizationReleaseDetailsEndpoint(
         ],
         responses={
             200: inline_sentry_response_serializer("OrgReleaseResponse", ReleaseSerializerResponse),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -513,6 +515,7 @@ class OrganizationReleaseDetailsEndpoint(
         request=OrganizationReleaseSerializer,
         responses={
             200: inline_sentry_response_serializer("OrgReleaseResponse", ReleaseSerializerResponse),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -644,6 +647,7 @@ class OrganizationReleaseDetailsEndpoint(
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

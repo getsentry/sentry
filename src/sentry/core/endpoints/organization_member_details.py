@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
+    RESPONSE_TOO_MANY_REQUESTS,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
@@ -195,6 +196,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
+            429: RESPONSE_TOO_MANY_REQUESTS,
         },
         examples=OrganizationExamples.UPDATE_ORG_MEMBER,
     )
@@ -489,6 +491,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
