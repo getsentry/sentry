@@ -14,7 +14,7 @@ export interface SeerCreditUsageMeterProps {
  * balance and how credits reload.
  *
  * getsentry supplies the implementation, since it owns the credit wallet and
- * the auto reload settings. Open source has no credits and renders nothing.
+ * the auto-reload settings. Open source has no credits and renders nothing.
  */
 export const SeerCreditUsageMeter = OverrideOrDefault({
   overrideName: 'component:seer-credit-usage-meter',

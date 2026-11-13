@@ -149,6 +149,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             200: inline_sentry_response_serializer(
                 "OrganizationProjectResponseDict", list[OrganizationProjectResponse]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

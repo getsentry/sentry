@@ -1678,6 +1678,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Most entities one telemetry classifier selection enqueues, and its page size.
+register(
+    "telemetry-classifiers.select-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Conversation classifiers PoC.
 register(
     "classifiers.conversations.project-ids",
@@ -1699,6 +1707,15 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How many sweep workers each cadence sweep enqueues. Raise it to catch up a large backlog of
+# triggers that came due before the tick's window.
+register(
+    "cadence.sweep.workers",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # When True, firings whose targets their trigger type reports missing are dropped and their

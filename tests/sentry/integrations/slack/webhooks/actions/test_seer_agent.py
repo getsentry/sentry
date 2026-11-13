@@ -153,6 +153,7 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
                 "thread_ts": "1702424381.221719",
             },
             "slack_user_id": self.external_id,
+            "user_id": self.user.id,
         }
         assert self.mock_post.call_args.kwargs["replace_original"] is True
         assert self.mock_post.call_args.kwargs["text"] == ":white_check_mark: Access granted."

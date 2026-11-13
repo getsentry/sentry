@@ -149,15 +149,18 @@ function AutomationCard({
         <CardStack
           gap="lg"
           height="100%"
+          minWidth="0"
           padding="xl"
           border="primary"
           radius="md"
           background="primary"
         >
           <Stack gap="lg" flex="1">
-            <Heading as="h3" size="md">
-              {title}
-            </Heading>
+            <Tooltip title={title} showOnlyOnOverflow skipWrapper>
+              <Heading as="h3" size="md" ellipsis>
+                {title}
+              </Heading>
+            </Tooltip>
             <Flex align="center" gap="sm">
               {enabled ? (
                 trigger ? (
@@ -296,6 +299,7 @@ const MonitorLink = styled(Link)`
 
 const CardLink = styled(Link)`
   display: grid;
+  min-width: 0;
   color: inherit;
 
   &:hover {

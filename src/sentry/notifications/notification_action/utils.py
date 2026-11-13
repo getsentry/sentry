@@ -59,7 +59,7 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
         # Else we can use the activity.send_notification() method to send the notification.
         if (
             invocation.event_data.event.type in BaseMetricAlertHandler.ACTIVITIES_TO_INVOKE_ON
-            and invocation.event_data.group.type == MetricIssue.type_id
+            and invocation.event_data.require_group().type == MetricIssue.type_id
         ):
             return execute_via_metric_alert_handler(invocation)
 
@@ -165,12 +165,12 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
     )
 
     return IssueNotificationData(
-        organization_id=event_data.group.project.organization_id,
+        organization_id=event_data.require_group().project.organization_id,
         tags=tag_list,
         notes=notes,
         event_id=event_id,
         occurrence_id=occurrence_id,
-        group_id=event_data.group.id,
+        group_id=event_data.require_group().id,
         integration_id=action.integration_id,
         notification_uuid=invocation.notification_uuid,
         rule=rule,

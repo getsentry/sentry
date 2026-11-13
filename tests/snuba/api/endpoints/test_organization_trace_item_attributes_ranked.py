@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 
 
 class OrganizationTraceItemsAttributesRankedEndpointTest(
@@ -509,3 +510,16 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert response_count.data["cohort2Total"] == 6, (
             f"Expected 6 spans in baseline for failure_count(), got {response_count.data['cohort2Total']}."
         )
+
+    @override_options({"explore.trace-items.keys.max": 3000})
+    @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
+    def test_many_attributes(self, mock_compare_distributions: MagicMock) -> None:
+        mock_compare_distributions.return_value = {"results": []}
+        tags = {f"attr_{i}": "value" for i in range(1200)}
+        self._store_span(tags=tags, duration=100)
+        self._store_span(tags=tags, duration=500)
+
+        response = self.do_request(query={"query_1": "span.duration:<=100", "query_2": ""})
+        assert response.status_code == 200, response.data
+        assert response.data["cohort1Total"] == 1
+        assert response.data["cohort2Total"] == 1

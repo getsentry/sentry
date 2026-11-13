@@ -80,6 +80,7 @@ class PrIterationOutcome(StrEnum):
     PR_CLOSED = "pr_closed"
     PR_CREATION_ERRORED = "pr_creation_errored"
     PUSH_FAILED = "push_failed"
+    NOT_PUSHED = "not_pushed"
     TIMEOUT = "timeout"
     STALLED = "stalled"
     ERRORED = "errored"

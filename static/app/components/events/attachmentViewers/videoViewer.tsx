@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 
 import {t} from 'sentry/locale';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 
 import type {ViewerProps} from './utils';
 import {getAttachmentUrl} from './utils';
@@ -31,7 +32,9 @@ export function VideoViewer({
       `}
     >
       <source
-        src={`/api/0${getAttachmentUrl({attachment, ...props})}?download`}
+        src={resolveHostname(
+          `/api/0${getAttachmentUrl({attachment, ...props})}?download`
+        )}
         type={attachment.mimetype}
       />
       {t('Your browser does not support the video tag.')}

@@ -1601,7 +1601,7 @@ class NotebookParams:
         description="The ID of an execution belonging to this block.",
     )
     NOTEBOOK_ID = OpenApiParameter(
-        name="investigation_id",
+        name="notebook_id",
         location="path",
         required=True,
         type=str,

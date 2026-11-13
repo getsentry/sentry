@@ -1,0 +1,70 @@
+/* stylelint-disable declaration-no-important */
+
+/*
+//
+// Utility classes
+// --------------------------------------------------
+
+// Floats
+// -------------------------
+*/
+
+/* .nav, .container, .row and .form-horizontal .form-group used Less's :extend(.clearfix all) */
+.clearfix:before,
+.clearfix:after,
+.nav:before,
+.nav:after,
+.container:before,
+.container:after,
+.row:before,
+.row:after,
+.form-horizontal .form-group:before,
+.form-horizontal .form-group:after {
+  display: table; /* 2 */
+  content: ' '; /* 1 */
+}
+.clearfix:after,
+.nav:after,
+.container:after,
+.row:after,
+.form-horizontal .form-group:after {
+  clear: both;
+}
+.pull-right {
+  float: right !important;
+}
+
+/*
+// Toggling content
+// -------------------------
+
+// Note: Deprecated .hide in favor of .hidden or .sr-only (as appropriate) in v3.0.1
+*/
+.hide {
+  display: none !important;
+}
+.show {
+  display: block !important;
+}
+.invisible {
+  visibility: hidden;
+}
+
+/*
+// Hide from screenreaders and browsers
+//
+// Credit: HTML5 Boilerplate
+*/
+
+.hidden {
+  display: none !important;
+}
+
+/*
+// For Affix plugin
+// -------------------------
+*/
+
+.affix {
+  position: fixed;
+}

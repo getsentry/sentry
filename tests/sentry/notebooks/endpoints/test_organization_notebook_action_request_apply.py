@@ -170,7 +170,7 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
             "sentry-api-0-organization-notebook-action-request-apply",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": notebook_id or self.notebook.id,
+                "notebook_id": notebook_id or self.notebook.id,
                 "action_request_id": action_request_id,
             },
         )
@@ -280,7 +280,7 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
                 "sentry-api-0-organization-notebook-details",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
-                    "investigation_id": self.notebook.id,
+                    "notebook_id": self.notebook.id,
                 },
             )
         )
@@ -840,7 +840,7 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
                 "sentry-api-0-organization-notebook-details",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
-                    "investigation_id": self.notebook.id,
+                    "notebook_id": self.notebook.id,
                 },
             )
         )
@@ -907,7 +907,7 @@ class SharedApplyPathTest(APITestCase):
             "sentry-api-0-organization-notebook-action-request-apply",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.notebook.id,
+                "notebook_id": self.notebook.id,
                 "action_request_id": self.action_request.id,
             },
         )
@@ -918,7 +918,7 @@ class SharedApplyPathTest(APITestCase):
             "sentry-api-0-organization-notebook-action-request-recheck",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.notebook.id,
+                "notebook_id": self.notebook.id,
                 "action_request_id": self.action_request.id,
             },
         )
@@ -1224,7 +1224,7 @@ class SharedApplyPathTest(APITestCase):
                 "sentry-api-0-organization-notebook-details",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
-                    "investigation_id": self.notebook.id,
+                    "notebook_id": self.notebook.id,
                 },
             )
         )
@@ -1258,7 +1258,7 @@ class SharedApplyPathTest(APITestCase):
                     "sentry-api-0-organization-notebook-details",
                     kwargs={
                         "organization_id_or_slug": self.organization.slug,
-                        "investigation_id": self.notebook.id,
+                        "notebook_id": self.notebook.id,
                     },
                 )
             )
@@ -1318,7 +1318,7 @@ class BreachedMetricRecheckTest(BreachedMetricInvestigationTestCase):
                 "sentry-api-0-organization-notebook-action-request-apply",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
-                    "investigation_id": self.investigation.id,
+                    "notebook_id": self.investigation.id,
                     "action_request_id": action_request.id,
                 },
             ),
@@ -1350,7 +1350,7 @@ class BreachedMetricRecheckTest(BreachedMetricInvestigationTestCase):
                 "sentry-api-0-organization-notebook-action-request-recheck",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
-                    "investigation_id": self.investigation.id,
+                    "notebook_id": self.investigation.id,
                     "action_request_id": action_request.id,
                 },
             ),
@@ -1366,7 +1366,7 @@ class BreachedMetricRecheckTest(BreachedMetricInvestigationTestCase):
                 "sentry-api-0-organization-notebook-details",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
-                    "investigation_id": self.investigation.id,
+                    "notebook_id": self.investigation.id,
                 },
             )
         )

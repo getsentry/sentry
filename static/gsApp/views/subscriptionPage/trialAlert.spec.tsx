@@ -74,12 +74,13 @@ describe('Subscription > TrialAlert', () => {
       isEnterpriseTrial: true,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
+      trialEnd: '2021-01-15T00:00:00Z',
     };
     render(<TrialAlert subscription={sub} organization={organization} />);
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        "With your trial you have access to Sentry's business plan features."
+        'Your Enterprise trial is separate from your plan and stays active until Jan 15, 2021.'
       )
     ).toBeInTheDocument();
   });
@@ -92,12 +93,13 @@ describe('Subscription > TrialAlert', () => {
       isEnterpriseTrial: true,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
+      trialEnd: '2021-01-15T00:00:00Z',
     };
     render(<TrialAlert subscription={sub} organization={organization} />);
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        "With your trial you have access to Sentry's business plan features."
+        'Your Enterprise trial is separate from your plan and stays active until Jan 15, 2021.'
       )
     ).toBeInTheDocument();
   });
@@ -109,12 +111,13 @@ describe('Subscription > TrialAlert', () => {
       isEnterpriseTrial: false,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
+      trialEnd: '2021-01-15T00:00:00Z',
     };
     render(<TrialAlert subscription={sub} organization={organization} />);
     expect(screen.getByText('Business Plan Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        "With your trial you have access to Sentry's business plan features."
+        'Your Business trial is separate from your plan and stays active until Jan 15, 2021.'
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/unlimited errors/)).not.toBeInTheDocument();

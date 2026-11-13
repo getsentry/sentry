@@ -231,7 +231,6 @@ describe('groupDetails', () => {
   });
 
   afterEach(() => {
-    act(() => ProjectsStore.reset());
     GroupStore.reset();
     PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
