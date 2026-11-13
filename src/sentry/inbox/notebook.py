@@ -73,7 +73,7 @@ NOTEBOOK_COMPLETED = InboxEventType(
 )
 NOTEBOOK_USER_MENTIONED = InboxEventType(
     event_type="notebook.user_mentioned",
-    summary=InboxEventSummary.NOTEBOOK_MENTIONED,
+    summary=InboxEventSummary.NOTEBOOK_USER_MENTIONED,
     item_type=NOTEBOOK,
     data_class=NotebookMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
