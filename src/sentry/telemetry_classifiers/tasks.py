@@ -47,7 +47,6 @@ SCAN_INTERVAL = timedelta(minutes=5)
 # Each selection covers three scan intervals, so windows overlap and an entity one selection
 # misses is picked up by the next. Longer gaps are skipped, so selection never falls behind.
 _SELECT_WINDOW = 3 * SCAN_INTERVAL
-_SELECT_PAGE_SIZE = 100
 # Long enough to outlive retries and overlapping selections.
 _SENT_TTL_SECONDS = 60 * 60
 _PROCESSING_FEATURE = "organizations:classifiers-ui"
@@ -100,7 +99,8 @@ def select_entities(classifier_id: int) -> None:
     limit = options.get("telemetry-classifiers.select-limit")
     sent = 0
     offset = 0
-    # Pages go newest first, until the window is exhausted or enough entities were sent.
+    # Pages go newest first, until the window is exhausted or the limit of entities was sent.
+    # Entities already sent are skipped, so later pages can still have entities to send.
     while sent < limit:
         with _system_viewer(classifier.project):
             try:
@@ -109,16 +109,16 @@ def select_entities(classifier_id: int) -> None:
                     classifier.filter_query,
                     end - _SELECT_WINDOW,
                     end,
-                    _SELECT_PAGE_SIZE,
+                    limit,
                     offset,
                 )
             except InvalidSearchQuery:
                 _record_selection("invalid_filter", classifier.dataset)
                 return
         sent += _send_unsent(classifier_id, page, limit - sent)
-        if len(page) < _SELECT_PAGE_SIZE:
+        if len(page) < limit:
             return
-        offset += _SELECT_PAGE_SIZE
+        offset += limit
     # Older entities in the window aren't classified.
     _record_selection("limit_reached", classifier.dataset)
 

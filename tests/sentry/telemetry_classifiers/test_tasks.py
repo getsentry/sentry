@@ -103,21 +103,24 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
             call(classifier_id=classifier.id, entity_id="two"),
         ]
 
-    @patch("sentry.telemetry_classifiers.tasks._SELECT_PAGE_SIZE", 2)
-    def test_pages_through_the_window(self) -> None:
+    @override_options({"telemetry-classifiers.select-limit": 2})
+    def test_pages_past_entities_already_sent(self) -> None:
         classifier = self.create_telemetry_classifier(project=self.project)
-        self.dataset.select.side_effect = [
-            [SelectedEntity("one", SEEN), SelectedEntity("two", SEEN)],
-            [SelectedEntity("three", SEEN)],
-        ]
+        one = SelectedEntity("one", SEEN)
+        two = SelectedEntity("two", SEEN)
+        self.dataset.select.side_effect = [[one, two], [one, two], [SelectedEntity("three", SEEN)]]
 
         select_entities(classifier.id)
+        select_entities(classifier.id)
 
-        assert [c.args[4:] for c in self.dataset.select.call_args_list] == [(2, 0), (2, 2)]
-        assert self.classify_entity.call_count == 3
+        assert [c.args[4:] for c in self.dataset.select.call_args_list] == [(2, 0), (2, 0), (2, 2)]
+        assert self.classify_entity.call_args_list == [
+            call(classifier_id=classifier.id, entity_id="one"),
+            call(classifier_id=classifier.id, entity_id="two"),
+            call(classifier_id=classifier.id, entity_id="three"),
+        ]
 
     @override_options({"telemetry-classifiers.select-limit": 2})
-    @patch("sentry.telemetry_classifiers.tasks._SELECT_PAGE_SIZE", 2)
     @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
     def test_entities_already_sent_dont_count_toward_the_limit(self, mock_incr: MagicMock) -> None:
         classifier = self.create_telemetry_classifier(project=self.project)
