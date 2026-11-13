@@ -375,7 +375,7 @@ describe('PathMappingList', () => {
       expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
     });
 
-    it('shows warning icon and expanded alert for two identical stack roots', async () => {
+    it('shows the warning icon and alert only on the later identical row', async () => {
       renderList({
         pathMappings: [
           {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
@@ -383,11 +383,13 @@ describe('PathMappingList', () => {
         ],
       });
 
-      // Both rows share the same stack root — each gets a warning icon.
-      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
+      // The first row is the original; only the later copy is flagged.
+      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(1);
 
-      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
-      await userEvent.click(firstExpand!);
+      const [, secondExpand] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(secondExpand!);
 
       expect(
         screen.getByText(
@@ -433,18 +435,18 @@ describe('PathMappingList', () => {
       );
     });
 
-    it('shows the exact-duplicate warning on a Code Owners row that duplicates another mapping', async () => {
+    it('shows the exact-duplicate warning on a Code Owners row that duplicates an earlier mapping', async () => {
       renderList({
         pathMappings: [
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
           {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
         ],
       });
 
       // Exact duplicate takes priority: warning icon visible on the Code Owners row.
-      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
+      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(1);
 
-      const [expandCodeOwner] = screen.getAllByRole('button', {
+      const [, expandCodeOwner] = screen.getAllByRole('button', {
         name: 'Expand path mapping',
       });
       await userEvent.click(expandCodeOwner!);

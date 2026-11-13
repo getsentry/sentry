@@ -29,9 +29,11 @@ function deriveWarning(
 ): PathMappingWarning | undefined {
   const {stackRoot, sourceRoot, hasCodeOwner, checkAcrossRepos} = row;
 
+  // Only flag the later copies, so the warning points at the row to remove
+  // and the first one reads as the original.
   const inFormDuplicate = rows.find(
     (other, i) =>
-      i !== index && other.stackRoot === stackRoot && other.sourceRoot === sourceRoot
+      i < index && other.stackRoot === stackRoot && other.sourceRoot === sourceRoot
   );
   if (inFormDuplicate) {
     return {sourceRoot: inFormDuplicate.sourceRoot, stackRoot, type: 'exactInForm'};
