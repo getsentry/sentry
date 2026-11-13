@@ -237,10 +237,10 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         if source is not None and not set(source.resolved.project_ids).issubset(
             accessible_project_ids
         ):
-            return Response(
-                {"source": ["One or more of the source's projects are inaccessible."]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            source_error: ValidationErrorResponse = {
+                "source": ["One or more of the source's projects are inaccessible."]
+            }
+            return Response(source_error, status=status.HTTP_400_BAD_REQUEST)
         if not set(values.get("project_ids", [])).issubset(accessible_project_ids):
             return Response(
                 {"detail": "One or more projects are inaccessible."},
