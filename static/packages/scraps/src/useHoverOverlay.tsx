@@ -402,12 +402,43 @@ function useHoverOverlay({
     onOverflowChangeRef.current?.(nextIsOverflowing);
   }, []);
 
+  // The element currently attached through the trigger ref, and the element last
+  // pushed into state. React detaches (null / cleanup) and re-attaches a ref
+  // whenever the ref callback passed to the node changes. Clearing state
+  // synchronously on detach makes every such swap bounce the trigger state
+  // through null and back inside the commit, scheduling another synchronous
+  // render each time, which can cascade into "Maximum update depth exceeded".
+  // Defer the clear so a re-attach to the same node in the same commit is a no-op.
+  const attachedTriggerRef = useRef<HTMLElement | null>(null);
+  const committedTriggerRef = useRef<HTMLElement | null>(null);
+
+  const scheduleTriggerClear = useCallback(() => {
+    queueMicrotask(() => {
+      if (attachedTriggerRef.current !== null || committedTriggerRef.current === null) {
+        return;
+      }
+      committedTriggerRef.current = null;
+      setTriggerElement(null);
+      updateOverflow(null);
+    });
+  }, [updateOverflow]);
+
   const setTriggerElementRef = useCallback(
     (element: HTMLElement | null) => {
-      setTriggerElement(element);
+      attachedTriggerRef.current = element;
+
+      if (!element) {
+        scheduleTriggerClear();
+        return;
+      }
+
+      if (committedTriggerRef.current !== element) {
+        committedTriggerRef.current = element;
+        setTriggerElement(element);
+      }
       updateOverflow(showOnlyOnOverflow ? element : null);
 
-      if (!showOnlyOnOverflow || !element) {
+      if (!showOnlyOnOverflow) {
         return;
       }
 
@@ -426,11 +457,13 @@ function useHoverOverlay({
       return () => {
         resizeObserver.disconnect();
         mutationObserver.disconnect();
-        setTriggerElement(null);
-        updateOverflow(null);
+        if (attachedTriggerRef.current === element) {
+          attachedTriggerRef.current = null;
+        }
+        scheduleTriggerClear();
       };
     },
-    [showOnlyOnOverflow, updateOverflow]
+    [showOnlyOnOverflow, updateOverflow, scheduleTriggerClear]
   );
 
   const mergeTriggerRef = useStableMergeRef(setTriggerElementRef);
