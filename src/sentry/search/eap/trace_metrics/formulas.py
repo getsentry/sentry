@@ -377,9 +377,7 @@ for combinator, apply_combinator in TRACE_METRICS_FORMULA_COMBINATORS.items():
 TRACE_METRICS_FORMULA_DEFINITIONS.update(combinator_formula_definitions)
 
 
-# Special case web vital score formulas, not compatible with combinators. They read the
-# web vital score metrics directly, so they take no arguments. An argument is still tolerated
-# for queries saved as `performance_score(measurements.score.total)` before that was dropped.
+# Special case web vital score formulas, not compatible with combinators.
 TRACE_METRICS_FORMULA_DEFINITIONS_WITHOUT_IF: dict[str, FormulaDefinition] = {
     "performance_score": MultiTraceMetricFormulaDefinition(
         default_search_type="percentage",
