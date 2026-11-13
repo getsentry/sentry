@@ -261,6 +261,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/missing-members/'
   | '/organizations/$organizationIdOrSlug/monitoring-providers/'
   | '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/'
+  | '/organizations/$organizationIdOrSlug/monitoring-providers/aws/verify-connection/'
   | '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/'
   | '/organizations/$organizationIdOrSlug/monitors-count/'
   | '/organizations/$organizationIdOrSlug/monitors-schedule-buckets/'

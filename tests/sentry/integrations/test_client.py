@@ -2,6 +2,7 @@ import errno
 import os
 from unittest import TestCase, mock
 
+import orjson
 import pytest
 import responses
 from requests import Response
@@ -10,12 +11,25 @@ from requests.sessions import Session
 from urllib3.exceptions import InvalidChunkLength
 from urllib3.response import HTTPResponse
 
+from sentry.integrations.aws.client import (
+    AWS_EXTERNAL_ID_MESSAGE,
+    AWS_ROLE_ACCESS_MESSAGE,
+    AWS_STATUS_CONNECTED,
+    AWS_STATUS_ERROR,
+    AWS_VERIFICATION_MESSAGE,
+    build_cloudformation_template,
+    get_mcp_url,
+    parse_role_arn,
+    verify_aws_connection,
+)
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import (
     ApiConnectionResetError,
     ApiError,
     ApiHostError,
     ApiTimeoutError,
+    IntegrationConfigurationError,
+    IntegrationError,
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.testutils.helpers.options import override_options
@@ -479,3 +493,140 @@ class ApiClientTest(TestCase):
                 verify=False,
                 cert=None,
             )
+
+
+AWS_TEST_ROLE_ARN = "arn:aws:iam::123456789012:role/sentry-seer/SentrySeer"
+AWS_TEST_PRINCIPAL_ARN = "arn:aws:iam::987654321098:role/SeerWorkload"
+AWS_TEST_EXTERNAL_ID = "11111111-1111-4111-8111-111111111111"
+
+
+@pytest.mark.parametrize(
+    "role_arn",
+    [
+        "arn:aws:iam::123456789012:user/service-account",
+        "arn:aws:iam::123456789012:root",
+        "arn:aws-cn:iam::123456789012:role/Seer",
+        "arn:aws:iam::123:role/Seer",
+        "arn:aws:iam::123456789012:role/Seer\ntrailing",
+        "https://example.com/role/Seer",
+        # Outside the path Seer's workload role may assume, including the AWS Lambda
+        # integration's role, which trusts Sentry's whole AWS account.
+        "arn:aws:iam::123456789012:role/Seer",
+        "arn:aws:iam::123456789012:role/SentryRole",
+        "arn:aws:iam::123456789012:role/service-role/Seer",
+        "arn:aws:iam::123456789012:role/sentry-seer",
+        "arn:aws:iam::123456789012:role/sentry-seer-other/Seer",
+        "arn:aws:iam::123456789012:role/other/sentry-seer/Seer",
+        None,
+    ],
+)
+def test_aws_role_arn_rejects_roles_seer_may_not_assume(role_arn: str | None) -> None:
+    with pytest.raises(IntegrationConfigurationError, match="IAM role"):
+        parse_role_arn(role_arn)
+
+
+@pytest.mark.parametrize(
+    "role_arn",
+    [
+        "arn:aws:iam::123456789012:role/sentry-seer/Seer",
+        "arn:aws:iam::123456789012:role/sentry-seer/nested/Seer",
+    ],
+)
+def test_aws_role_arn_requires_the_seer_path(role_arn: str) -> None:
+    assert parse_role_arn(f" {role_arn} ") == role_arn
+
+
+def test_aws_cloudformation_template_creates_the_role_under_the_seer_path() -> None:
+    template = build_cloudformation_template(AWS_TEST_PRINCIPAL_ARN, AWS_TEST_EXTERNAL_ID)
+    assert template["Resources"]["SeerRole"]["Properties"]["Path"] == "/sentry-seer/"
+
+
+@pytest.mark.parametrize("region", ["us-gov-west-1", "cn-north-1", "us-east-1.example.com", ""])
+def test_aws_mcp_url_rejects_unsupported_regions(region: str) -> None:
+    with pytest.raises(IntegrationConfigurationError, match="supported AWS MCP region"):
+        get_mcp_url(region)
+
+
+@override_options({"aws-seer.principal-arn": AWS_TEST_PRINCIPAL_ARN})
+def test_aws_connection_requires_correct_external_id() -> None:
+    with mock.patch("sentry.integrations.aws.client.make_signed_seer_api_request") as verify:
+        verify.return_value = mock.Mock(status=200, data=b'{"connection_status":"connected"}')
+        result = verify_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
+    assert result == {"connection_status": AWS_STATUS_CONNECTED, "error_detail": None}
+    assert verify.call_args.args[1] == "/v1/monitoring-providers/aws/verify-connection"
+    assert verify.call_args.kwargs["retries"] == 0
+    assert orjson.loads(verify.call_args.kwargs["body"]) == {
+        "role_arn": AWS_TEST_ROLE_ARN,
+        "external_id": AWS_TEST_EXTERNAL_ID,
+        "region": "us-east-1",
+        "principal_arn": AWS_TEST_PRINCIPAL_ARN,
+    }
+
+
+@pytest.mark.parametrize(
+    "payload,message",
+    [
+        (
+            {"connection_status": "error", "error_code": "external_id_not_enforced"},
+            AWS_EXTERNAL_ID_MESSAGE,
+        ),
+        (
+            {"connection_status": "error", "error_code": "role_access_denied"},
+            AWS_ROLE_ACCESS_MESSAGE,
+        ),
+        (
+            {"connection_status": "error", "error_code": "telemetry_access_denied"},
+            AWS_VERIFICATION_MESSAGE,
+        ),
+        (
+            {"connection_status": "error", "error_code": "private diagnostic"},
+            AWS_VERIFICATION_MESSAGE,
+        ),
+        # A reachable Seer answering nonsense is a failed verification with the
+        # generic fixed message; Seer's text never reaches the result.
+        ({}, AWS_VERIFICATION_MESSAGE),
+    ],
+)
+@override_options({"aws-seer.principal-arn": AWS_TEST_PRINCIPAL_ARN})
+def test_aws_connection_reports_failed_verification(payload: dict[str, str], message: str) -> None:
+    with mock.patch("sentry.integrations.aws.client.make_signed_seer_api_request") as verify:
+        verify.return_value = mock.Mock(status=200, data=orjson.dumps(payload))
+        result = verify_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
+    assert result == {"connection_status": AWS_STATUS_ERROR, "error_detail": message}
+
+
+@pytest.mark.parametrize("status,data", [(404, b""), (503, b""), (200, b"not json"), (200, b"[]")])
+@override_options({"aws-seer.principal-arn": AWS_TEST_PRINCIPAL_ARN})
+def test_aws_connection_fails_closed_for_unavailable_seer(status: int, data: bytes) -> None:
+    with mock.patch("sentry.integrations.aws.client.make_signed_seer_api_request") as verify:
+        verify.return_value = mock.Mock(status=status, data=data)
+        with pytest.raises(IntegrationError, match=AWS_VERIFICATION_MESSAGE):
+            verify_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
+
+
+@override_options({"aws-seer.principal-arn": ""})
+def test_aws_connection_requires_sentry_workload_configuration() -> None:
+    with mock.patch("sentry.integrations.aws.client.make_signed_seer_api_request") as verify:
+        with pytest.raises(IntegrationConfigurationError, match="not configured"):
+            verify_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
+        verify.assert_not_called()
+
+
+def test_aws_cloudformation_provisions_scoped_machine_identity() -> None:
+    template = build_cloudformation_template(AWS_TEST_PRINCIPAL_ARN, AWS_TEST_EXTERNAL_ID)
+    role = template["Resources"]["SeerRole"]
+    assert role["Type"] == "AWS::IAM::Role"
+    properties = role["Properties"]
+    assert properties["AssumeRolePolicyDocument"]["Statement"] == [
+        {
+            "Effect": "Allow",
+            "Principal": {"AWS": AWS_TEST_PRINCIPAL_ARN},
+            "Action": "sts:AssumeRole",
+            "Condition": {"StringEquals": {"sts:ExternalId": AWS_TEST_EXTERNAL_ID}},
+        }
+    ]
+    actions = properties["Policies"][0]["PolicyDocument"]["Statement"][0]["Action"]
+    assert "logs:StartQuery" in actions
+    assert "cloudwatch:GetMetricData" in actions
+    assert not set(actions) & {"iam:*", "secretsmanager:GetSecretValue", "ssm:GetParameter", "*"}
+    assert template["Outputs"]["RoleArn"]["Value"] == {"Fn::GetAtt": ["SeerRole", "Arn"]}
