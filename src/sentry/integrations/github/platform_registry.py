@@ -187,6 +187,16 @@ FRAMEWORKS: list[FrameworkDef] = [
     },
     # --- Mobile / cross-platform / routing meta-frameworks (sort=1) ---
     {
+        "platform": "expo",
+        "sort": 1,
+        "base_platform": "javascript",
+        "some": [{"match_package": "expo"}],
+        # Keep `react-native` alongside `expo` until the frontend that knows `expo` is
+        # deployed: older frontends drop unknown platforms and would otherwise fall back
+        # to the plain `javascript` result for Expo apps.
+        "supersedes": ["javascript-react"],
+    },
+    {
         "platform": "react-native",
         "sort": 1,
         "base_platform": "javascript",
