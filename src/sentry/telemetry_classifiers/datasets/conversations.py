@@ -57,9 +57,16 @@ class ConversationDataset:
         return query
 
     def select(
-        self, project: Project, filter_query: str, start: datetime, end: datetime, limit: int
+        self,
+        project: Project,
+        filter_query: str,
+        start: datetime,
+        end: datetime,
+        limit: int,
+        offset: int,
     ) -> list[SelectedEntity]:
-        """Return conversations whose cooldown ended in ``[start, end)`` and that match the filter.
+        """Return a page of conversations whose cooldown ended in ``[start, end)`` and that match
+        the filter.
 
         Any newer span keeps a conversation out until it goes quiet again.
         """
@@ -78,7 +85,7 @@ class ConversationDataset:
             ),
             selected_columns=[CONVERSATION_ID, "max(timestamp)"],
             orderby=["-max(timestamp)", CONVERSATION_ID],
-            offset=0,
+            offset=offset,
             limit=limit,
             referrer=Referrer.TELEMETRY_CLASSIFIERS_CONVERSATIONS_SELECT.value,
             config=CONVERSATION_RESOLVER_CONFIG,

@@ -30,7 +30,7 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
         )
 
     def select(self, filter_query: str = "", limit: int = 100) -> list[str]:
-        selected = DATASET.select(self.project, filter_query, self.start, self.end, limit)
+        selected = DATASET.select(self.project, filter_query, self.start, self.end, limit, 0)
         return [entity.entity_id for entity in selected]
 
     def test_selects_conversations_that_became_inactive_in_window(self) -> None:
@@ -49,7 +49,7 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
         self.store_conversation_span("conversation", last_seen - timedelta(minutes=1))
         self.store_conversation_span("conversation", last_seen)
 
-        assert DATASET.select(self.project, "", self.start, self.end, limit=100) == [
+        assert DATASET.select(self.project, "", self.start, self.end, 100, 0) == [
             SelectedEntity("conversation", last_seen)
         ]
 
@@ -70,6 +70,14 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
         self.store_conversation_span("newest", self.last_span_end - timedelta(minutes=2))
 
         assert self.select(limit=1) == ["newest"]
+
+    def test_pages_with_offset(self) -> None:
+        self.store_conversation_span("oldest", self.last_span_end - timedelta(minutes=3))
+        self.store_conversation_span("newest", self.last_span_end - timedelta(minutes=2))
+
+        selected = DATASET.select(self.project, "", self.start, self.end, 1, 1)
+
+        assert [entity.entity_id for entity in selected] == ["oldest"]
 
     def test_limit_applies_after_the_filter(self) -> None:
         self.store_conversation_span(

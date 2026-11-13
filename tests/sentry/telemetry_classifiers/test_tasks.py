@@ -95,13 +95,50 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
             select_entities(classifier.id)
 
         assert self.dataset.select.call_args_list == [
-            call(self.project, "a:b", NOW - timedelta(minutes=10), NOW, 100),
-            call(self.project, "a:b", LATER - timedelta(minutes=10), LATER, 100),
+            call(self.project, "a:b", NOW - timedelta(minutes=15), NOW, 100, 0),
+            call(self.project, "a:b", LATER - timedelta(minutes=15), LATER, 100, 0),
         ]
         assert self.classify_entity.call_args_list == [
             call(classifier_id=classifier.id, entity_id="one"),
             call(classifier_id=classifier.id, entity_id="two"),
         ]
+
+    @patch("sentry.telemetry_classifiers.tasks._SELECT_PAGE_SIZE", 2)
+    def test_pages_through_the_window(self) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project)
+        self.dataset.select.side_effect = [
+            [SelectedEntity("one", SEEN), SelectedEntity("two", SEEN)],
+            [SelectedEntity("three", SEEN)],
+        ]
+
+        select_entities(classifier.id)
+
+        assert [c.args[4:] for c in self.dataset.select.call_args_list] == [(2, 0), (2, 2)]
+        assert self.classify_entity.call_count == 3
+
+    @override_options({"telemetry-classifiers.select-limit": 2})
+    @patch("sentry.telemetry_classifiers.tasks._SELECT_PAGE_SIZE", 2)
+    @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
+    def test_entities_already_sent_dont_count_toward_the_limit(self, mock_incr: MagicMock) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project)
+        self.dataset.select.side_effect = [
+            [SelectedEntity("one", SEEN)],
+            [SelectedEntity("one", SEEN), SelectedEntity("two", SEEN)],
+            [SelectedEntity("three", SEEN), SelectedEntity("four", SEEN)],
+        ]
+
+        select_entities(classifier.id)
+        select_entities(classifier.id)
+
+        assert self.classify_entity.call_args_list == [
+            call(classifier_id=classifier.id, entity_id="one"),
+            call(classifier_id=classifier.id, entity_id="two"),
+            call(classifier_id=classifier.id, entity_id="three"),
+        ]
+        mock_incr.assert_any_call(
+            "telemetry_classifiers.select",
+            tags={"dataset": Dataset.CONVERSATION, "outcome": "limit_reached"},
+        )
 
     def test_sends_entities_again_after_new_activity(self) -> None:
         classifier = self.create_telemetry_classifier(project=self.project)
@@ -134,24 +171,6 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
             call(classifier_id=classifier.id, entity_id="two"),
             call(classifier_id=classifier.id, entity_id="two"),
         ]
-
-    @override_options({"telemetry-classifiers.select-limit": 2})
-    @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
-    def test_records_when_limit_is_reached(self, mock_incr: MagicMock) -> None:
-        classifier = self.create_telemetry_classifier(project=self.project)
-        self.dataset.select.return_value = [
-            SelectedEntity("one", SEEN),
-            SelectedEntity("two", SEEN),
-        ]
-
-        select_entities(classifier.id)
-
-        assert self.dataset.select.call_args.args[4] == 2
-        mock_incr.assert_any_call(
-            "telemetry_classifiers.select",
-            tags={"dataset": Dataset.CONVERSATION, "outcome": "limit_reached"},
-        )
-        assert self.classify_entity.call_count == 2
 
     def test_skips_disabled_classifiers(self) -> None:
         classifier = self.create_telemetry_classifier(

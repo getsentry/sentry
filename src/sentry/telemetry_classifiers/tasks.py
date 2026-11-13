@@ -44,9 +44,10 @@ logger = logging.getLogger(__name__)
 
 # How often each classifier selects entities.
 SCAN_INTERVAL = timedelta(minutes=5)
-# Each selection covers two scan intervals, so a classifier that runs late doesn't leave a gap.
-# Longer gaps are skipped, so selection never falls behind.
-_SELECT_WINDOW = 2 * SCAN_INTERVAL
+# Each selection covers three scan intervals, so windows overlap and an entity one selection
+# misses is picked up by the next. Longer gaps are skipped, so selection never falls behind.
+_SELECT_WINDOW = 3 * SCAN_INTERVAL
+_SELECT_PAGE_SIZE = 100
 # Long enough to outlive retries and overlapping selections.
 _SENT_TTL_SECONDS = 60 * 60
 _PROCESSING_FEATURE = "organizations:classifiers-ui"
@@ -97,29 +98,29 @@ def select_entities(classifier_id: int) -> None:
 
     end = timezone.now()
     limit = options.get("telemetry-classifiers.select-limit")
-    with _system_viewer(classifier.project):
-        try:
-            selected = dataset.select(
-                classifier.project, classifier.filter_query, end - _SELECT_WINDOW, end, limit
-            )
-        except InvalidSearchQuery:
-            _record_selection("invalid_filter", classifier.dataset)
+    sent = 0
+    offset = 0
+    # Pages go newest first, until the window is exhausted or enough entities were sent.
+    while sent < limit:
+        with _system_viewer(classifier.project):
+            try:
+                page = dataset.select(
+                    classifier.project,
+                    classifier.filter_query,
+                    end - _SELECT_WINDOW,
+                    end,
+                    _SELECT_PAGE_SIZE,
+                    offset,
+                )
+            except InvalidSearchQuery:
+                _record_selection("invalid_filter", classifier.dataset)
+                return
+        sent += _send_unsent(classifier_id, page, limit - sent)
+        if len(page) < _SELECT_PAGE_SIZE:
             return
-
-    # Entities beyond the limit aren't classified.
-    if len(selected) >= limit:
-        _record_selection("limit_reached", classifier.dataset)
-    if not selected:
-        return
-    client = redis_clusters.get("default")
-    sent_keys = [_sent_key(classifier_id, entity) for entity in selected]
-    for entity, sent_key, sent in zip(selected, sent_keys, client.mget(sent_keys)):
-        # Windows overlap and selections retry, so an entity can be selected again.
-        if sent:
-            continue
-        classify_entity.delay(classifier_id=classifier_id, entity_id=entity.entity_id)
-        # Marked after sending, so an entity is skipped only once it was sent.
-        client.set(sent_key, b"1", ex=_SENT_TTL_SECONDS)
+        offset += _SELECT_PAGE_SIZE
+    # Older entities in the window aren't classified.
+    _record_selection("limit_reached", classifier.dataset)
 
 
 @instrumented_task(
@@ -215,6 +216,26 @@ def _get_enabled_classifier(classifier_id: int) -> TelemetryClassifier | None:
         .select_related("project__organization")
         .first()
     )
+
+
+def _send_unsent(classifier_id: int, entities: Sequence[SelectedEntity], limit: int) -> int:
+    """Send up to ``limit`` entities that weren't sent yet, and return how many were sent."""
+    if not entities:
+        return 0
+    client = redis_clusters.get("default")
+    sent_keys = [_sent_key(classifier_id, entity) for entity in entities]
+    sent = 0
+    for entity, sent_key, already_sent in zip(entities, sent_keys, client.mget(sent_keys)):
+        if sent >= limit:
+            break
+        # Windows overlap and selections retry, so an entity can be selected again.
+        if already_sent:
+            continue
+        classify_entity.delay(classifier_id=classifier_id, entity_id=entity.entity_id)
+        # Marked after sending, so an entity is skipped only once it was sent.
+        client.set(sent_key, b"1", ex=_SENT_TTL_SECONDS)
+        sent += 1
+    return sent
 
 
 def _sent_key(classifier_id: int, entity: SelectedEntity) -> str:

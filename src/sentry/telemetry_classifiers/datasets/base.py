@@ -26,9 +26,16 @@ class ClassifierDataset(Protocol):
         ...
 
     def select(
-        self, project: Project, filter_query: str, start: datetime, end: datetime, limit: int
+        self,
+        project: Project,
+        filter_query: str,
+        start: datetime,
+        end: datetime,
+        limit: int,
+        offset: int,
     ) -> list[SelectedEntity]:
-        """Return entities whose cooldown ended in ``[start, end)`` and that match the filter.
+        """Return a page of entities whose cooldown ended in ``[start, end)`` and that match the
+        filter.
 
         That's entities whose last telemetry is in ``[start - cooldown, end - cooldown)``, with
         nothing newer. The newest entities come first.
