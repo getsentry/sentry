@@ -3,7 +3,6 @@ import {SimpleGroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
@@ -14,6 +13,7 @@ import {MetricAutomationForm} from './metricAutomationForm';
 import {
   AutomationSnapshotFrame,
   freezeSnapshotTime,
+  loadSnapshotProjects,
   makeSnapshotQueryClient,
   minutesAgo,
   SNAPSHOT_TAGS,
@@ -138,13 +138,11 @@ function renderEdit(
 describe('MetricAutomationForm', () => {
   freezeSnapshotTime();
 
-  beforeAll(() => {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '1', slug: 'frontend', platform: 'javascript-react'}),
-      ProjectFixture({id: '2', slug: 'backend', platform: 'python-django'}),
-      ProjectFixture({id: '3', slug: 'checkout-service', platform: 'go'}),
-    ]);
-  });
+  loadSnapshotProjects([
+    ProjectFixture({id: '1', slug: 'frontend', platform: 'javascript-react'}),
+    ProjectFixture({id: '2', slug: 'backend', platform: 'python-django'}),
+    ProjectFixture({id: '3', slug: 'checkout-service', platform: 'go'}),
+  ]);
 
   const wide = {viewport: 1024, tags: SNAPSHOT_TAGS};
 

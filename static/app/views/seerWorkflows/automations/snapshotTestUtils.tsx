@@ -8,7 +8,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {Container, ContainerQueryContext} from '@sentry/scraps/layout';
 import {lightTheme} from '@sentry/scraps/theme';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 /**
@@ -52,6 +54,19 @@ export function freezeSnapshotTime() {
 
   afterAll(() => {
     jest.useRealTimers();
+  });
+}
+
+/**
+ * Loads projects for the current test file. SSR reads a store's initial state, which
+ * has no projects, so it is pointed at the loaded state.
+ */
+export function loadSnapshotProjects(projects: Project[]) {
+  beforeAll(() => {
+    ProjectsStore.loadInitialData(projects);
+    jest
+      .spyOn(ProjectsStore, 'getInitialState')
+      .mockImplementation(ProjectsStore.getState);
   });
 }
 

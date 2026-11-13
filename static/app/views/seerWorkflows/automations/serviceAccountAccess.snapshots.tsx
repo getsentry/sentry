@@ -2,12 +2,12 @@ import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Scope} from 'sentry/types/core';
 
 import {ServiceAccountPermissions, ServiceAccountProjects} from './serviceAccountAccess';
 import {
   AutomationSnapshotFrame,
+  loadSnapshotProjects,
   SNAPSHOT_TAGS,
   snapshotOrganization,
 } from './snapshotTestUtils';
@@ -69,18 +69,16 @@ function renderPermissions(
 }
 
 describe('ServiceAccountAccess', () => {
-  beforeAll(() => {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '1', slug: 'frontend', platform: 'javascript-react'}),
-      ProjectFixture({id: '2', slug: 'backend', platform: 'python-django'}),
-      ProjectFixture({
-        id: '3',
-        slug: 'inventory-sync-worker-for-the-european-warehouses',
-        platform: 'go',
-      }),
-      ProjectFixture({id: '4', slug: 'mobile-ios', platform: 'apple-ios'}),
-    ]);
-  });
+  loadSnapshotProjects([
+    ProjectFixture({id: '1', slug: 'frontend', platform: 'javascript-react'}),
+    ProjectFixture({id: '2', slug: 'backend', platform: 'python-django'}),
+    ProjectFixture({
+      id: '3',
+      slug: 'inventory-sync-worker-for-the-european-warehouses',
+      platform: 'go',
+    }),
+    ProjectFixture({id: '4', slug: 'mobile-ios', platform: 'apple-ios'}),
+  ]);
 
   describe('ServiceAccountProjects', () => {
     it.snapshot('no-projects', () => renderProjects({}), options);

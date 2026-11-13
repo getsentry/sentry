@@ -1,10 +1,10 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
 import {
   AutomationSnapshotFrame,
   freezeSnapshotTime,
+  loadSnapshotProjects,
   minutesAgo,
   SNAPSHOT_TAGS,
 } from 'sentry/views/seerWorkflows/automations/snapshotTestUtils';
@@ -234,11 +234,9 @@ function renderRunsTable(
 describe('RunsTable', () => {
   freezeSnapshotTime();
 
-  beforeAll(() => {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '2', slug: 'storefront', platform: 'javascript-react'}),
-    ]);
-  });
+  loadSnapshotProjects([
+    ProjectFixture({id: '2', slug: 'storefront', platform: 'javascript-react'}),
+  ]);
 
   const wide = {viewport: 1200, tags: SNAPSHOT_TAGS};
 

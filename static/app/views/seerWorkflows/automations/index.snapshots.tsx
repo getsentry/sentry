@@ -3,7 +3,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import AutomationsList, {
@@ -15,6 +14,7 @@ import {useMonitorsById} from './hooks/useMonitorsById';
 import {
   AutomationSnapshotFrame,
   freezeSnapshotTime,
+  loadSnapshotProjects,
   makeSnapshotQueryClient,
   SNAPSHOT_TAGS,
   snapshotOrganization,
@@ -131,9 +131,7 @@ function renderList(width: number, result: Partial<ReturnType<typeof useFetchCon
 describe('AutomationsList', () => {
   freezeSnapshotTime();
 
-  beforeAll(() => {
-    ProjectsStore.loadInitialData(PROJECTS);
-  });
+  loadSnapshotProjects(PROJECTS);
 
   for (const [name, configs] of Object.entries(CONFIGS)) {
     it.snapshot(name, () => renderList(1280, {data: configs}), {
