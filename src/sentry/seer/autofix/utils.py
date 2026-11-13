@@ -597,7 +597,7 @@ def get_event_matched_project_repo_ids(group: Group) -> set[int]:
 
 
 def _match_event_frames_to_project_repos(
-    group: Group, project_repos: Iterable[ProjectRepository]
+    group: Group, project_repos: QuerySet[ProjectRepository]
 ) -> set[int]:
     event = group.get_recommended_event_for_environments() or group.get_latest_event()
     if event is None:
@@ -625,26 +625,18 @@ def _match_event_frames_to_project_repos(
         if paths:
             frames_by_paths.setdefault(paths, frame)
 
-    # Most specific mappings first, so the first match for a frame is its best one.
-    code_mappings = sorted(
-        (
-            (project_repo.id, code_mapping)
-            for project_repo in project_repos
-            for code_mapping in project_repo.repositoryprojectpathconfig_set.all()
-        ),
-        key=lambda item: -len(item[1].stack_root),
-    )
+    usable_project_repo_ids = set(project_repos.values_list("id", flat=True))
+    code_mappings = [
+        code_mapping
+        for code_mapping in get_sorted_code_mapping_configs(group.project)
+        if code_mapping.project_repository_id in usable_project_repo_ids
+    ]
 
     matched_ids: set[int] = set()
     for paths, frame in frames_by_paths.items():
-        best_root_len = -1
-        best_ids: set[int] = set()
-        for project_repo_id, code_mapping in code_mappings:
-            stack_root = code_mapping.stack_root
-            if len(stack_root) < best_root_len or len(best_ids) > 1:
-                break
+        for code_mapping in code_mappings:
             # A cheap prefix check keeps the full conversion off the mappings that can't match.
-            if not any(path.startswith(stack_root) for path in paths):
+            if not any(path.startswith(code_mapping.stack_root) for path in paths):
                 continue
             if (
                 convert_stacktrace_frame_path_to_source_path(
@@ -653,15 +645,10 @@ def _match_event_frames_to_project_repos(
                     platform=event.platform,
                     sdk_name=sdk_name,
                 )
-                is None
+                is not None
             ):
-                continue
-            best_root_len = len(stack_root)
-            best_ids.add(project_repo_id)
-        # If several repos tie (say, many with an empty stack_root), we can't tell which one
-        # the frame belongs to, so it counts for none.
-        if len(best_ids) == 1:
-            matched_ids |= best_ids
+                matched_ids.add(code_mapping.project_repository_id)
+                break
     return matched_ids
 
 

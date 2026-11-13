@@ -1711,10 +1711,10 @@ class TestGetEventMatchedProjectRepoIds(TestCase, SnubaTestCase):
         assert get_event_matched_project_repo_ids(self._store_group()) == set()
 
     @with_feature(TOKEN_BILLING_FEATURES)
-    def test_frame_matched_by_several_repos_matches_none(self) -> None:
-        self._link_filler_repos()
-        self._link_repo("catch-all-1", stack_root="")
-        self._link_repo("catch-all-2", stack_root="")
+    def test_ignores_mapping_of_a_repo_seer_cannot_use(self) -> None:
+        self._link_filler_repos(MAX_SEER_REPOS_PER_PROJECT + 1)
+        unusable = self._link_repo("billing", stack_root="billing/")
+        unusable.repository.update(status=ObjectStatus.DISABLED)
 
         assert get_event_matched_project_repo_ids(self._store_group()) == set()
 
