@@ -141,7 +141,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         return cursor
 
     def _savepoint(self, sid: str) -> None:
-        super()._savepoint(sid)
+        super()._savepoint(sid)  # type: ignore[misc]
         self.savepoints_opened += 1
         if self.savepoints_opened == FIRST_OVERFLOWING_SAVEPOINT:
             tags = _savepoint_metric_tags(self.alias)
@@ -149,13 +149,13 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
 
     def _commit(self) -> None:
         try:
-            super()._commit()
+            super()._commit()  # type: ignore[misc]
         finally:
             self._report_savepoints_opened()
 
     def _rollback(self) -> None:
         try:
-            super()._rollback()
+            super()._rollback()  # type: ignore[misc]
         finally:
             self._report_savepoints_opened()
 
