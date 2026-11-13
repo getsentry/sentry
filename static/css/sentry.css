@@ -10,7 +10,6 @@
 @import url('./bootstrap/scaffolding.css');
 @import url('./bootstrap/grid.css');
 @import url('./bootstrap/utilities.css');
-@import url('./bootstrap/responsive-utilities.css');
 
 /* Shared components */
 @import url('./shared/alerts.css');

@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 
@@ -27,17 +29,22 @@ export function TimesTag({lastSeen, firstSeen}: Props) {
           unitStyle="short"
         />
       )}
-      {firstSeen && lastSeen && (
-        <Separator className="hidden-xs hidden-sm">&nbsp;|&nbsp;</Separator>
-      )}
       {firstSeen && (
-        <TimeSince
-          tooltipPrefix={t('First Seen')}
-          date={firstSeen}
-          suffix={t('old')}
-          className="hidden-xs hidden-sm"
-          unitStyle="short"
-        />
+        <Flex
+          as="span"
+          align="center"
+          // Hide by viewport width; a container query would change where first seen appears.
+          // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
+          display={{zero: 'none', 'screen:md': 'flex'}}
+        >
+          {lastSeen && <Separator>&nbsp;|&nbsp;</Separator>}
+          <TimeSince
+            tooltipPrefix={t('First Seen')}
+            date={firstSeen}
+            suffix={t('old')}
+            unitStyle="short"
+          />
+        </Flex>
       )}
     </Wrapper>
   );
