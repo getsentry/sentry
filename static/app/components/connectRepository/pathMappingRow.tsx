@@ -138,6 +138,9 @@ export const PathMappingRow = withFieldGroup({
                     <PathPrefixCombobox
                       {...baseProps}
                       aria-label={t('Stack trace prefix')}
+                      emptyHint={t(
+                        'With no prefix, this mapping matches every file in your stack traces.'
+                      )}
                       value={field.state.value}
                       onChange={field.handleChange}
                       options={stackPrefixes.data?.prefixes ?? []}
@@ -164,6 +167,9 @@ export const PathMappingRow = withFieldGroup({
                     <PathPrefixCombobox
                       {...baseProps}
                       aria-label={t('Repository prefix')}
+                      emptyHint={t(
+                        'With no prefix, Sentry looks for each file from the root of your repo.'
+                      )}
                       value={field.state.value}
                       onChange={field.handleChange}
                       options={repoPrefixes.data?.prefixes ?? []}

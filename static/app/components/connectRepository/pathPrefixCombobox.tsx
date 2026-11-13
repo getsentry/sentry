@@ -1,6 +1,8 @@
-import {useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState, type ReactNode} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import type {FormSize} from '@sentry/scraps/theme';
@@ -54,6 +56,8 @@ export interface PathPrefixComboboxProps {
   'aria-invalid'?: boolean;
   'aria-label'?: string;
   disabled?: boolean;
+  /** Info tip shown in the field while it is set to "No prefix". */
+  emptyHint?: ReactNode;
   id?: string;
   isLoading?: boolean;
   maxMenuHeight?: number;
@@ -76,6 +80,7 @@ export function PathPrefixCombobox({
   'aria-describedby': ariaDescribedby,
   'aria-invalid': ariaInvalid,
   'aria-label': ariaLabel,
+  emptyHint,
   disabled,
   id,
   isLoading,
@@ -100,9 +105,9 @@ export function PathPrefixCombobox({
   const [debouncedInput] = useDebouncedValue(inputValue, {
     wait: DEFAULT_DEBOUNCE_DURATION,
   });
-  // Tracks whether the user explicitly picked the catch-all option, so we can
-  // show its label rather than the placeholder for an unset (empty string) value.
-  const [catchAllPicked, setCatchAllPicked] = useState(false);
+  // Whether the user has typed since focusing the field. Opening the menu on
+  // "No prefix" keeps that label; only clearing typed text shows the placeholder.
+  const [hasTyped, setHasTyped] = useState(false);
 
   const mappedOptions = useMemo(() => rawOptions.map(toPrefixSelectValue), [rawOptions]);
 
@@ -114,10 +119,10 @@ export function PathPrefixCombobox({
 
   function handleBlur() {
     if (typedTextRef.current) {
-      setCatchAllPicked(false);
       onChange(normalizeRoot(typedTextRef.current));
     }
     setTypedText('');
+    setHasTyped(false);
     onBlur?.();
   }
 
@@ -125,13 +130,14 @@ export function PathPrefixCombobox({
     if (!option) {
       return;
     }
-    setCatchAllPicked(option.value === CATCH_ALL_VALUE);
     onChange(normalizeRoot(option.value));
   }
 
-  // Show the placeholder for an empty value until the user explicitly picks the
-  // catch-all option; passing null defers to the placeholder prop instead.
-  const selectValue = value === CATCH_ALL_VALUE && !catchAllPicked ? null : value;
+  // An empty value means "no prefix", so show that option. Once the user has
+  // typed and cleared the text, show the placeholder instead (null defers to it)
+  // so the empty field gives an example of what to enter.
+  const selectValue = value === CATCH_ALL_VALUE && hasTyped ? null : value;
+  const showEmptyHint = Boolean(emptyHint) && selectValue === CATCH_ALL_VALUE;
 
   return (
     <Select
@@ -151,8 +157,22 @@ export function PathPrefixCombobox({
       value={selectValue}
       onChange={handleChange}
       inputValue={inputValue}
-      onInputChange={setTypedText}
+      onInputChange={(text, reason) => {
+        if (reason === 'input') {
+          setHasTyped(true);
+        }
+        setTypedText(text);
+      }}
       onBlur={handleBlur}
+      // Leading slot, not the dropdown indicator: the select hides its
+      // indicators from assistive tech, which would hide the tip too.
+      controlLeadingItems={
+        showEmptyHint ? (
+          <Flex align="center" paddingLeft="lg" flexShrink={0}>
+            <InfoTip title={emptyHint} size="xs" />
+          </Flex>
+        ) : undefined
+      }
       // Options are filtered on the debounced input above.
       filterOption={null}
       formatCreateLabel={(input: string) => tct('Use "[path]"', {path: input})}

@@ -5,7 +5,6 @@ import {isPendingWrite} from './queries';
 import type {PathMappingValue} from './type';
 
 export type PathMappingWarning =
-  | {sourceRoot: string; stackRoot: string; type: 'catchAll'}
   | {type: 'codeOwner'}
   | {sourceRoot: string; stackRoot: string; type: 'exactInForm'}
   | {repoName: string; sourceRoot: string; stackRoot: string; type: 'exactAcrossRepos'};
@@ -55,10 +54,6 @@ function deriveWarning(
 
   if (hasCodeOwner) {
     return {type: 'codeOwner'};
-  }
-
-  if (stackRoot === '' || sourceRoot === '') {
-    return {type: 'catchAll', stackRoot, sourceRoot};
   }
 
   return undefined;

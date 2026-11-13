@@ -279,34 +279,21 @@ describe('PathMappingList', () => {
   });
 
   describe('empty-prefix and exact-duplicate warnings', () => {
-    it('shows both-empty banner when both prefixes are blank', async () => {
+    it('shows an info tip on each prefix set to "No prefix"', async () => {
       renderList();
 
+      const tips = screen.getAllByRole('img', {name: 'More information'});
+      expect(tips).toHaveLength(2);
+
+      await userEvent.hover(tips[0]!);
       expect(
         await screen.findByText(
-          'Both prefixes are empty, so Sentry will look for each file at the same path in your repo.'
+          'With no prefix, this mapping matches every file in your stack traces.'
         )
       ).toBeInTheDocument();
     });
 
-    it('switches to stack-empty banner when only the repository prefix is filled', async () => {
-      renderList();
-
-      await userEvent.type(
-        screen.getByRole('textbox', {name: /repository prefix/i}),
-        'app/'
-      );
-      await userEvent.tab();
-
-      expect(
-        screen.getByText(
-          /The stack trace prefix is empty, so this mapping matches every file/
-        )
-      ).toBeInTheDocument();
-      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
-    });
-
-    it('switches to source-empty banner when only the stack prefix is filled', async () => {
+    it('drops the info tip from a prefix once it has a value', async () => {
       renderList();
 
       await userEvent.type(
@@ -314,28 +301,26 @@ describe('PathMappingList', () => {
         'src/'
       );
       // Combobox commits the typed value on blur, not on each keystroke.
-      await userEvent.tab();
+      await userEvent.click(document.body);
 
-      expect(screen.getByText(/The repository prefix is empty/)).toBeInTheDocument();
-      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
-    });
+      // Only the repository prefix is still empty.
+      const tips = screen.getAllByRole('img', {name: 'More information'});
+      expect(tips).toHaveLength(1);
+      await userEvent.hover(tips[0]!);
+      expect(
+        await screen.findByText(
+          'With no prefix, Sentry looks for each file from the root of your repo.'
+        )
+      ).toBeInTheDocument();
 
-    it('hides all empty-prefix banners once both prefixes are filled', async () => {
-      renderList();
-
-      await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
-        'src/'
-      );
       await userEvent.type(
         screen.getByRole('textbox', {name: /repository prefix/i}),
         'app/'
       );
-      await userEvent.tab();
-
-      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/stack trace prefix is empty/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/repository prefix is empty/)).not.toBeInTheDocument();
+      await userEvent.click(document.body);
+      expect(
+        screen.queryByRole('img', {name: 'More information'})
+      ).not.toBeInTheDocument();
     });
 
     it('does not warn when roots are unrelated', () => {
@@ -484,6 +469,32 @@ describe('PathMappingList', () => {
       expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
       await userEvent.hover(deleteButton);
       expect(await screen.findAllByRole('link', {name: 'Code Owners'})).toHaveLength(2);
+    });
+  });
+
+  describe('empty prefixes', () => {
+    it('keeps "No prefix" when opened, and shows the placeholder after clearing typed text', async () => {
+      renderList();
+
+      // Both prefixes start empty, which means no prefix.
+      expect(screen.getAllByText('No prefix (match all)')).toHaveLength(2);
+      expect(screen.queryByText('e.g src/')).not.toBeInTheDocument();
+
+      // Opening the field keeps the selected "No prefix" value.
+      await userEvent.click(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+      expect(screen.queryByText('e.g src/')).not.toBeInTheDocument();
+
+      // Typing, then clearing the text, keeps the placeholder.
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'lib'
+      );
+      await userEvent.clear(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+      expect(screen.getByText('e.g src/')).toBeInTheDocument();
+
+      // Leaving the field empty goes back to "No prefix".
+      await userEvent.tab();
+      expect(screen.queryByText('e.g src/')).not.toBeInTheDocument();
     });
   });
 
