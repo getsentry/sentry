@@ -433,6 +433,18 @@ function Chart({
   const heatMapYBounds = areHeatMapOutliersHidden ? heatMapOutlierBounds : undefined;
   const areHeatMapOutliersHideable =
     !heatMapOutlierBound.isPending && defined(heatMapOutlierBounds);
+  let outlierToggleTooltip: string;
+  if (!defined(heatMapOutlierBounds)) {
+    outlierToggleTooltip = t('There are no outliers far enough out to hide.');
+  } else if (areHeatMapOutliersHidden) {
+    outlierToggleTooltip = t(
+      'Spans outside %s - %s (fastest span to estimated p99.9 over the last hour) are hidden. Click to show them.',
+      getDuration(heatMapOutlierBounds.yMin / 1000, 2, true),
+      getDuration(heatMapOutlierBounds.yMax / 1000, 2, true)
+    );
+  } else {
+    outlierToggleTooltip = t('Click to hide outliers.');
+  }
   const TitleBadges =
     samplingWarnings.length || showOutlierToggle ? (
       <Fragment>
@@ -440,22 +452,7 @@ function Chart({
           <SamplingWarning key={`${yAxis}-${i}`} yAxis={yAxis} reason={reason} />
         ))}
         {showOutlierToggle && (
-          <Tooltip
-            title={
-              heatMapOutlierBound.isPending
-                ? null
-                : defined(heatMapOutlierBounds)
-                  ? areHeatMapOutliersHidden
-                    ? t(
-                        'Spans outside %s - %s (fastest span to estimated p99.9 over the last hour) are hidden. Click to show them.',
-                        getDuration(heatMapOutlierBounds.yMin / 1000, 2, true),
-                        getDuration(heatMapOutlierBounds.yMax / 1000, 2, true)
-                      )
-                    : t('Click to hide outliers.')
-                  : t('There are no outliers far enough out to hide.')
-            }
-            disabled={heatMapOutlierBound.isPending}
-          >
+          <Tooltip title={outlierToggleTooltip} disabled={heatMapOutlierBound.isPending}>
             <Chip.Root size="xs" readonly={!areHeatMapOutliersHideable}>
               <Chip.Value
                 onClick={
