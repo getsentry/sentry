@@ -17,6 +17,7 @@ from sentry.api.serializers.models.team import TeamSerializer as TeamRequestSeri
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
@@ -118,6 +119,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         request=TeamDetailsSerializer,
         responses={
             200: TeamRequestSerializer,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

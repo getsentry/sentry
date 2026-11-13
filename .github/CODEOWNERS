@@ -965,7 +965,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering
-/static/less/                                         @getsentry/design-engineering
+/static/css/                                          @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering

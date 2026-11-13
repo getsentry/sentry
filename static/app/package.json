@@ -104,7 +104,7 @@
     "prismjs": "^1.30.0",
     "qrcode.react": "^3.1.0",
     "query-string": "7.0.1",
-    "re2js": "^2.8.6",
+    "re2js": "^2.8.7",
     "react": "19.3.0",
     "react-date-range": "^1.4.0",
     "react-docgen-typescript": "2.4.0",

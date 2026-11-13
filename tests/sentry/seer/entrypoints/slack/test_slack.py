@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, patch
@@ -11,6 +12,7 @@ from sentry.integrations.slack.integration import SlackIntegration
 from sentry.integrations.slack.message_builder.routing import (
     SlackActionTracking,
     decode_action_id,
+    encode_action_id,
 )
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.utils.errors import TypedSlackApiError
@@ -72,6 +74,7 @@ from sentry.seer.entrypoints.slack.investigation_status import (
 from sentry.seer.entrypoints.slack.messaging import (
     edit_thread_message,
     process_thread_update,
+    replace_investigation_buttons,
     schedule_all_thread_updates,
     send_thread_update,
     update_existing_message,
@@ -1540,6 +1543,50 @@ def _hypothesis(**overrides: Any) -> dict[str, Any]:
         ],
         **overrides,
     }
+
+
+def test_replace_investigation_buttons_preserves_content() -> None:
+    start_button = {
+        "type": "button",
+        "action_id": encode_action_id(
+            action=SlackAction.SEER_INVESTIGATION_START,
+            organization_id=1,
+            project_id=2,
+            tracking=SlackActionTracking(notification_uuid="alert-uuid", source="metric-alert"),
+        ),
+        "text": {"type": "plain_text", "text": "Investigate with Seer"},
+    }
+    other_button = {**start_button, "action_id": "seer_investigation_start_other"}
+    message: SlackRenderable = {
+        "text": "Critical alert",
+        "blocks": [],
+        "attachments": [
+            {
+                "color": "E03E2F",
+                "blocks": [
+                    {"type": "section", "text": {"type": "mrkdwn", "text": "Alert details"}},
+                    {"type": "actions", "elements": [other_button, start_button]},
+                ],
+            },
+        ],
+    }
+    link_button = ButtonElement(
+        text="Open investigation",
+        url="https://example.sentry.io/seer/investigations/1/",
+        value="link_clicked",
+    )
+    original_message = deepcopy(message)
+    original_button = link_button.to_dict()
+    expected = deepcopy(message)
+    expected["attachments"][0]["blocks"][1]["elements"][1] = original_button
+
+    result = replace_investigation_buttons(message=message, link_button=link_button)
+
+    assert result == expected
+    assert message == original_message
+    assert link_button.to_dict() == original_button
+    assert result is not None
+    assert replace_investigation_buttons(message=result, link_button=link_button) is None
 
 
 class SlackInvestigationEntrypointTest(TestCase):

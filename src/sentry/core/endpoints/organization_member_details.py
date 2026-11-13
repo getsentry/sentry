@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, TypedDict
 
 from django.db import router, transaction
 from django.db.models import Q
@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
+    RESPONSE_TOO_MANY_REQUESTS,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
@@ -122,6 +123,10 @@ class UpdateOrgMemberRolesSerializer(OrganizationMemberRequestSerializer):
     )
 
 
+class _RoleErrorResponse(TypedDict):
+    role: str
+
+
 @extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
@@ -195,6 +200,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
+            429: RESPONSE_TOO_MANY_REQUESTS,
         },
         examples=OrganizationExamples.UPDATE_ORG_MEMBER,
     )
@@ -207,6 +213,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         Response[OrganizationMemberResponse]
         | Response[None]
         | Response[DetailResponse]
+        | Response[_RoleErrorResponse]
         | Response[ValidationErrorResponse]
     ):
         """
@@ -489,6 +496,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

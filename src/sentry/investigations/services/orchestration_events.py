@@ -13,7 +13,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import APIException
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
-from sentry.inbox.notebook import record_notebook_completed
+from sentry.inbox.notebook import NOTEBOOK_COMPLETED, NotebookCompletedData
+from sentry.inbox.types import SYSTEM_ACTOR, InboxEventSummary
 from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     OrchestrationProjectionSerializer,
@@ -62,6 +63,7 @@ from sentry.notebooks.services.producer_writes import (
     remove_blocks,
     upsert_block,
 )
+from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.utils import json
 
@@ -306,7 +308,19 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
     # Remember skipped completions too: enabling recording or restoring access must
     # not backfill old notifications when Seer replays a completed projection.
     control["inboxCompletedGeneration"] = run.generation
-    record_notebook_completed(notebook=run.investigation, seer_run_id=seer_run.seer_run_state_id)
+
+    notebook = run.investigation
+    if notebook.created_by_id is None:
+        return
+    create_inbox_items(
+        event_type=NOTEBOOK_COMPLETED,
+        subject=notebook,
+        data=NotebookCompletedData(
+            summary=InboxEventSummary.NOTEBOOK_COMPLETED, seer_run_id=seer_run.seer_run_state_id
+        ),
+        user_ids=[notebook.created_by_id],
+        actor=SYSTEM_ACTOR,
+    )
 
 
 def _schedule_issue_links(run: InvestigationOrchestrationRun) -> None:

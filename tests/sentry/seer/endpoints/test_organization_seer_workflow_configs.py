@@ -30,13 +30,14 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow, ConnectedMonitor
-from sentry.seer.workflows.workflow import (
+from sentry.seer.workflows.base import (
     ConfigUpdate,
     SeerServiceAccountGrant,
-    SeerWorkflow,
+    SelectedMonitors,
     WorkflowUpdateError,
 )
+from sentry.seer.workflows.breached_metrics import ConnectedMonitor
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
@@ -303,9 +304,10 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             self.create_detector(project=second_project, type=MetricIssue.slug),
         ]
         disabled = self.create_detector(project=self.create_project(), type=MetricIssue.slug)
-        metric = BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id,
-            monitor_ids=[*(m.id for m in monitors), disabled.id],
+        metric = SeerWorkflow.create(
+            organization_id=self.organization.id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            scope=SelectedMonitors((*(m.id for m in monitors), disabled.id)),
             service_account_grant=GRANT,
         )
         disabled.update(status=ObjectStatus.DISABLED)
@@ -333,9 +335,10 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             project=self.create_project(teams=[self.create_team(organization=self.organization)]),
             type=MetricIssue.slug,
         )
-        BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id,
-            monitor_ids=[accessible.id, hidden.id],
+        SeerWorkflow.create(
+            organization_id=self.organization.id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            scope=SelectedMonitors((accessible.id, hidden.id)),
             service_account_grant=GRANT,
         )
         self.login_as(member)
@@ -690,12 +693,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
     def test_put_enables_and_pauses_metric_investigations(self) -> None:
         monitor = self.create_metric_monitor(self.project)
         workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        backing_workflow = Workflow.objects.filter(id=workflow.get_config().backing_workflow_id)
+        assert not backing_workflow.get().enabled
 
         response = self.get_success_response(
             self.organization.slug, workflow.config_id, method="put", enabled=True
         )
         assert response.data["enabled"] is True
         assert workflow.matches_scope(self.project.id, None)
+        assert backing_workflow.get().enabled
         version = response.data["version"]
 
         repeated = self.get_success_response(
@@ -709,6 +715,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["enabled"] is False
         assert not workflow.matches_scope(self.project.id, None)
         assert response.data["monitorIds"] == [monitor.id]
+        assert not backing_workflow.get().enabled
 
     def test_member_cannot_enable_investigations_for_inaccessible_projects(self) -> None:
         monitor = self.create_metric_monitor(self.project)
@@ -917,7 +924,9 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             status_code=400,
         )
 
-        assert response.data == {"detail": "Only metric automations support monitor selection."}
+        assert response.data == {
+            "detail": "This automation type does not support monitor selection."
+        }
         config.refresh_from_db()
         assert config.version == 1
         assert config.backing_workflow_id is None
@@ -1131,14 +1140,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         self,
         monitor_ids: list[int] | None = None,
         service_account_grant: SeerServiceAccountGrant = GRANT,
-    ) -> BreachedMetricWorkflow:
-        return BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id,
-            monitor_ids=monitor_ids or [],
+    ) -> SeerWorkflow:
+        return SeerWorkflow.create(
+            organization_id=self.organization.id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            scope=SelectedMonitors(tuple(monitor_ids or ())),
             service_account_grant=service_account_grant,
         )
 
-    def connected_monitor_ids(self, workflow: BreachedMetricWorkflow) -> set[int]:
+    def connected_monitor_ids(self, workflow: SeerWorkflow) -> set[int]:
         backing_workflow = workflow.get_config().backing_workflow
         assert backing_workflow is not None
         return set(backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True))
@@ -1496,7 +1506,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         )
 
         assert response.data == {
-            "monitorIds": ["Only metric automations support monitor selection."]
+            "monitorIds": ["This automation type does not support monitor selection."]
         }
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
@@ -1533,7 +1543,8 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        assert config.backing_workflow_id is None
+        assert config.backing_workflow is not None
+        assert not config.backing_workflow.detectorworkflow_set.exists()
         assert response.data["monitorIds"] == []
         assert response.data["projects"] == []
 

@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
-import {IconFire} from '@sentry/icons/fire';
 import {IconIssues} from '@sentry/icons/issues';
-import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {IconSiren} from '@sentry/icons/siren';
 import upperFirst from 'lodash/upperFirst';
 import {useQueryState} from 'nuqs';
 
@@ -20,24 +19,19 @@ import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {getInvestigationPath} from 'sentry/views/investigations/utils';
-import {useFetchConfigs} from 'sentry/views/seerWorkflows/automations/hooks/configs';
 import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
 import {getStrategyLabel} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerAutomationRun,
-  SeerWorkflowConfigResponse,
   WorkflowDisplayStatus,
 } from 'sentry/views/seerWorkflows/types';
 import {
@@ -78,31 +72,11 @@ export function RunsTable({
   configId?: string;
   showStrategy?: boolean;
 }) {
-  const organization = useOrganization();
   const [cursor] = useQueryState('cursor');
   const {runs, pageLinks, isPending, isLoadingError, refetch} = useAutomationRuns(
     {configId, cursor: cursor || undefined},
     {refetchInterval: AUTO_REFRESH_INTERVAL}
   );
-
-  const configIds = [...new Set(runs.map(run => run.configId))].sort();
-  const configs = useFetchConfigs({
-    ids: showStrategy ? configIds : [],
-    keepPrevious: true,
-  });
-  const configsById = new Map(configs.data?.map(config => [config.id, config]));
-
-  const monitorIds = [
-    ...new Set(
-      runs.flatMap(run => (run.trigger?.type === 'monitor' ? run.trigger.detectorId : []))
-    ),
-  ].sort();
-  const monitors = useQuery({
-    ...detectorListApiOptions(organization, {ids: monitorIds, limit: 100}),
-    enabled: monitorIds.length > 0,
-    select: ({json}) => new Map(json.map(monitor => [monitor.id, monitor])),
-    placeholderData: keepPreviousData,
-  });
 
   if (isLoadingError) {
     return <LoadingError onRetry={refetch} />;
@@ -140,30 +114,7 @@ export function RunsTable({
             </Stack>
           </SimpleTable.Empty>
         ) : (
-          runs.map(run => {
-            const config = configsById.get(run.configId);
-            const monitor =
-              run.trigger?.type === 'monitor'
-                ? monitors.data?.get(run.trigger.detectorId)
-                : undefined;
-            // Names from the previous page or poll stay on screen while the next set
-            // loads, so only rows that set doesn't cover yet are pending.
-            return (
-              <RunRow
-                key={run.id}
-                run={run}
-                showAutomation={showStrategy}
-                isConfigPending={
-                  configs.isLoading || (configs.isPlaceholderData && !config)
-                }
-                isMonitorPending={
-                  monitors.isLoading || (monitors.isPlaceholderData && !monitor)
-                }
-                config={config}
-                monitor={monitor}
-              />
-            );
-          })
+          runs.map(run => <RunRow key={run.id} run={run} showAutomation={showStrategy} />)
         )}
       </SimpleTable>
       <Pagination {...getPaginationProps(pageLinks)} />
@@ -200,23 +151,15 @@ function getErrorMessage(run: SeerAutomationRun): string | null {
 function RunRow({
   run,
   showAutomation,
-  isConfigPending,
-  isMonitorPending,
-  config,
-  monitor,
 }: {
-  isConfigPending: boolean;
-  isMonitorPending: boolean;
   run: SeerAutomationRun;
   showAutomation: boolean;
-  config?: SeerWorkflowConfigResponse;
-  monitor?: Detector;
 }) {
   const organization = useOrganization();
   const status = getDisplayStatus(run);
   const outputs = run.executions.flatMap(execution => execution.outputs);
   const errorMessage = getErrorMessage(run);
-  const automationName = config?.name ?? getStrategyLabel(run.strategy);
+  const automationName = run.configName ?? getStrategyLabel(run.strategy);
 
   return (
     <RunTableRow>
@@ -257,26 +200,16 @@ function RunRow({
       </SimpleTable.RowCell>
       {showAutomation && (
         <SimpleTable.RowCell>
-          {isConfigPending ? (
-            <Placeholder height="20px" width="120px" />
-          ) : (
-            <InfoText title={automationName} mode="overflowOnly">
-              <UnderlineLink
-                to={getAutomationDetailPath(organization.slug, run.configId)}
-              >
-                {automationName}
-              </UnderlineLink>
-            </InfoText>
-          )}
+          <InfoText title={automationName} mode="overflowOnly">
+            <UnderlineLink to={getAutomationDetailPath(organization.slug, run.configId)}>
+              {automationName}
+            </UnderlineLink>
+          </InfoText>
         </SimpleTable.RowCell>
       )}
       <SimpleTable.RowCell>
         {run.trigger?.type === 'monitor' ? (
-          <MonitorTriggerCell
-            trigger={run.trigger}
-            monitor={monitor}
-            isMonitorPending={isMonitorPending}
-          />
+          <MonitorTriggerCell trigger={run.trigger} />
         ) : run.trigger?.type === 'cron' ? (
           <Flex gap="xs" align="center">
             <IconClock size="xs" variant="muted" />
@@ -353,37 +286,27 @@ function RunOutputs({outputs}: {outputs: RunOutput[]}) {
   );
 }
 
-function MonitorTriggerCell({
-  trigger,
-  monitor,
-  isMonitorPending,
-}: {
-  isMonitorPending: boolean;
-  trigger: MonitorTrigger;
-  monitor?: Detector;
-}) {
+function MonitorTriggerCell({trigger}: {trigger: MonitorTrigger}) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: trigger.projectId});
+  const monitorLabel = trigger.detectorName ?? t('Monitor %s', trigger.detectorId);
+  const issueLabel = trigger.groupShortId ?? `issue:${trigger.groupId}`;
 
   return (
     <Stack gap="xs" minWidth="0">
       <Flex gap="xs" align="center" minWidth="0">
-        <IconFire size="xs" variant="muted" />
-        {isMonitorPending ? (
-          <Placeholder height="20px" width="160px" />
-        ) : (
-          <InfoText title={monitor?.name} mode="overflowOnly">
-            {monitor ? (
-              <UnderlineLink
-                to={makeMonitorDetailsPathname(organization.slug, monitor.id)}
-              >
-                {monitor.name}
-              </UnderlineLink>
-            ) : (
-              t('Metric monitor breach')
-            )}
-          </InfoText>
-        )}
+        <IconSiren size="xs" variant="muted" />
+        <InfoText title={monitorLabel} mode="overflowOnly">
+          {trigger.detectorName ? (
+            <UnderlineLink
+              to={makeMonitorDetailsPathname(organization.slug, trigger.detectorId)}
+            >
+              {monitorLabel}
+            </UnderlineLink>
+          ) : (
+            <Text cursor="not-allowed">{monitorLabel}</Text>
+          )}
+        </InfoText>
       </Flex>
       <Flex gap="sm" align="center" wrap="wrap">
         {project && (
@@ -392,11 +315,15 @@ function MonitorTriggerCell({
         <Flex gap="xs" align="center">
           <IconIssues size="xs" variant="muted" />
           <Text>
-            <UnderlineLink
-              to={`/organizations/${organization.slug}/issues/${trigger.groupId}/`}
-            >
-              {trigger.groupShortId ?? `issue:${trigger.groupId}`}
-            </UnderlineLink>
+            {trigger.groupExists ? (
+              <UnderlineLink
+                to={`/organizations/${organization.slug}/issues/${trigger.groupId}/`}
+              >
+                {issueLabel}
+              </UnderlineLink>
+            ) : (
+              <Text cursor="not-allowed">{issueLabel}</Text>
+            )}
           </Text>
         </Flex>
         {trigger.environment && <Tag variant="muted">{trigger.environment}</Tag>}

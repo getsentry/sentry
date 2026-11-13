@@ -23,10 +23,6 @@ overrides:
   diff@>=4.0.0 <4.0.4: 4.0.4
   diff@>=5.0.0 <5.2.2: 5.2.2
 packageExtensions:
-  '@sentry/webpack-plugin@5.4.1':
-    peerDependenciesMeta:
-      webpack:
-        optional: true
   compression-webpack-plugin@12.0.0:
     peerDependenciesMeta:
       webpack:
@@ -38,7 +34,6 @@ patchedDependencies:
   jest-resolve@30.5.1: patches/jest-resolve@30.5.1.patch
 allowBuilds:
   '@sentry-internal/node-cpu-profiler': true
-  '@sentry/cli': true
   '@swc/core': true
   core-js: true
   esbuild: true

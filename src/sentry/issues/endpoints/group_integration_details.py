@@ -28,7 +28,11 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
-from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    NonFieldErrorsResponse,
+    ValidationErrorResponse,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
@@ -120,6 +124,10 @@ class ExternalIssueLinkResponse(TypedDict):
             "Name to show for the external issue, such as owner/repo#1. Empty when the integration doesn't set one"
         ),
     ]
+
+
+class _ExternalIssueErrorResponse(TypedDict):
+    externalIssue: list[str]
 
 
 class IntegrationIssueConfigSerializer(Serializer[IntegrationIssueConfigResponse]):
@@ -291,6 +299,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     ) -> (
         Response[ExternalIssueLinkResponse]
         | Response[DetailResponse]
+        | Response[NonFieldErrorsResponse]
         | Response[ValidationErrorResponse]
     ):
         """
@@ -463,6 +472,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     ) -> (
         Response[ExternalIssueLinkResponse]
         | Response[DetailResponse]
+        | Response[NonFieldErrorsResponse]
+        | Response[_ExternalIssueErrorResponse]
         | Response[ValidationErrorResponse]
     ):
         """

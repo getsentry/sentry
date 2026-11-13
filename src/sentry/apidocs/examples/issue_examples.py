@@ -10,7 +10,14 @@ from sentry.api.serializers.models.group import (
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
 from sentry.apidocs.examples.release_examples import RELEASE
 from sentry.apidocs.formats import absolute_url, hex_id, numeric_id, slug
-from sentry.issues.related.types import RelatedIssuesResponse, RelationType, RelationTypeStatus
+from sentry.issues.related.types import (
+    ContributingMeta,
+    RelatedIssuesResponse,
+    RelationType,
+    RelationTypeStatus,
+    SameTraceMeta,
+    SimilarStacktraceMeta,
+)
 
 SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "annotations": [],
@@ -331,16 +338,30 @@ RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
                 "type": "error",
                 "userCount": 7,
             },
-            "relations": [{"type": RelationType.SIMILAR_STACKTRACE, "score": 0.9787}],
+            "relations": [
+                {"type": RelationType.SIMILAR_STACKTRACE, "score": 0.9787},
+                {"type": RelationType.SAME_TRACE},
+            ],
         }
     ],
     "meta": {
         "types": [
-            {
-                "type": RelationType.SIMILAR_STACKTRACE,
-                "status": RelationTypeStatus.OK,
-                "eventId": "60fc17404bf4445c81675be939ef74d6",
-            }
+            SimilarStacktraceMeta(
+                type=RelationType.SIMILAR_STACKTRACE,
+                status=RelationTypeStatus.OK,
+                eventId="60fc17404bf4445c81675be939ef74d6",
+            ),
+            SameTraceMeta(
+                type=RelationType.SAME_TRACE,
+                status=RelationTypeStatus.OK,
+                eventId="60fc17404bf4445c81675be939ef74d6",
+                traceId="a7d67cf796774551a95be6543cacd459",
+            ),
+            ContributingMeta(
+                type=RelationType.CONTRIBUTING,
+                status=RelationTypeStatus.NOT_APPLICABLE,
+                detail="Only metric issues have contributing issues.",
+            ),
         ],
     },
 }

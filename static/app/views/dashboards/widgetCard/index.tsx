@@ -53,6 +53,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
+import {useWidgetChartLayers} from './useWidgetChartLayers';
 import {VisualizationWidget} from './visualizationWidget';
 import {WidgetCardChartContainer} from './widgetCardChartContainer';
 import {
@@ -253,6 +254,15 @@ function WidgetCard(props: Props) {
     dashboardFilters,
   });
 
+  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
+  const chartLayers = useWidgetChartLayers({
+    widget,
+    interval: widgetInterval,
+    enabled: canUseTimeseriesVisualization,
+    // disableFullscreen is true while creating or editing a widget.
+    hidden: disableFullscreen,
+  });
+
   const onDataFetchStart = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -379,7 +389,6 @@ function WidgetCard(props: Props) {
     );
   };
 
-  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
     // Legend state requires a stable widget ID to persist to the URL.
     // Unsaved widgets (no ID yet, e.g. in the widget builder preview) skip this.
@@ -428,7 +437,9 @@ function WidgetCard(props: Props) {
               showConfidenceWarning={showConfidenceWarning}
               legendSelection={legendSelectionForWidget}
               onLegendSelectionChange={handleLegendSelectionChange}
-              disableFullscreen={disableFullscreen}
+              showReleases={chartLayers.showReleases}
+              droppedData={chartLayers.droppedData.band}
+              isDroppedDataLoading={chartLayers.droppedData.isLoading}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>

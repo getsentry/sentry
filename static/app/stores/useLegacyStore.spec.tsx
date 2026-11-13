@@ -1,22 +1,22 @@
-import {TeamFixture} from 'sentry-fixture/team';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {TeamStore} from './teamStore';
+import {ProjectsStore} from './projectsStore';
 import {useLegacyStore} from './useLegacyStore';
 
 describe('useLegacyStore', () => {
-  const team = TeamFixture();
+  const project = ProjectFixture();
 
-  beforeEach(() => TeamStore.reset());
+  beforeEach(() => ProjectsStore.reset());
 
   it('should update on change to store', () => {
-    const {result} = renderHook(useLegacyStore, {initialProps: TeamStore});
+    const {result} = renderHook(useLegacyStore, {initialProps: ProjectsStore});
 
-    expect(result.current.teams).toEqual([]);
+    expect(result.current.projects).toEqual([]);
 
-    act(() => TeamStore.loadInitialData([team]));
+    act(() => ProjectsStore.loadInitialData([project]));
 
-    expect(result.current.teams).toEqual([team]);
+    expect(result.current.projects).toEqual([project]);
   });
 });

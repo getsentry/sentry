@@ -555,7 +555,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
-                "yAxis": "performance_score(measurements.score.total)",
+                "yAxis": "performance_score()",
                 "project": self.project.id,
                 "dataset": "tracemetrics",
             },
@@ -564,7 +564,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.status_code == 200, response.content
         assert len(response.data["timeSeries"]) == 1
         timeseries = response.data["timeSeries"][0]
-        assert timeseries["yAxis"] == "performance_score(measurements.score.total)"
+        assert timeseries["yAxis"] == "performance_score()"
         # only the vitals with data in each bucket contribute their weight (LCP 0.30, CLS 0.15)
         assert [bucket["value"] for bucket in timeseries["values"]] == pytest.approx(
             [(1.0 * 0.30 + 0.5 * 0.15) / 0.45, 0.5, 1.0]
@@ -593,9 +593,9 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
-                "yAxis": "opportunity_score(measurements.score.total)",
+                "yAxis": "opportunity_score()",
                 "groupBy": ["transaction"],
-                "orderby": "-opportunity_score(measurements.score.total)",
+                "orderby": "-opportunity_score()",
                 "project": self.project.id,
                 "dataset": "tracemetrics",
                 "excludeOther": 0,
