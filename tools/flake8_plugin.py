@@ -200,9 +200,44 @@ S033_msg = (
     "set_request_principal(request, user, auth)."
 )
 
+S034_msg = (
+    "S034 Loop opens a savepoint on every iteration inside a transaction ({} on line {}); "
+    "past 64 per transaction Postgres overflows its subtransaction cache. "
+    "Move the transaction inside the loop or write in bulk."
+)
+S034_stale_msg = (
+    "S034 stale savepoint-loop allowlist entry for {} in {}; remove it from S034_allowlist"
+)
+_S034_TRANSACTION_NAMES = frozenset(("atomic", "atomic_transaction"))
+_S034_GET_OR_CREATE_NAMES = frozenset(("get_or_create", "update_or_create"))
+_S034_MODULE_SCOPE = "<module>"
+
 # Existing callers are pinned to their exact function and occurrence count. This is a
 # shrink-only migration baseline: remove entries as callers move to named Seer one-shots.
 S030_allowlist: dict[str, dict[tuple[str, str], int]] = {}
+
+# Existing loops pinned per function; a shrink-only baseline, remove entries as loops are fixed.
+S034_allowlist: dict[str, dict[str, int]] = {
+    "src/sentry/data_export/tasks.py": {"store_export_chunk_as_blob": 1},
+    "src/sentry/demo_mode/tasks.py": {"_sync_artifact_bundle": 1},
+    "src/sentry/integrations/api/serializers/rest_framework/data_forwarder.py": {
+        "DataForwarderSerializer.update": 1
+    },
+    "src/sentry/integrations/models/integration.py": {"Integration.add_organization": 1},
+    "src/sentry/investigations/services/orchestration_events.py": {"_apply_available_events": 1},
+    "src/sentry/models/project.py": {"Project.transfer_to": 1},
+    "src/sentry/notifications/api/endpoints/user_notification_email.py": {
+        "UserNotificationEmailEndpoint.put": 1
+    },
+    "src/sentry/notifications/api/endpoints/user_notification_settings_providers.py": {
+        "UserNotificationSettingsProvidersEndpoint.put": 1
+    },
+    "src/sentry/notifications/services/impl.py": {
+        "DatabaseBackedNotificationsService.enable_all_settings_for_provider": 1
+    },
+    "src/sentry/preprod/tasks.py": {"_assemble_preprod_artifact_size_analysis": 1},
+    "src/sentry/tasks/assemble.py": {"ArtifactBundlePostAssembler._create_artifact_bundle": 1},
+}
 
 
 # Rules whose diagnostics are fatal. Empty ships every rule off; adding one
@@ -1679,6 +1714,206 @@ def get_api_violations(
     return violations
 
 
+def _callee_name(node: ast.expr) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    return None
+
+
+def _s034_atomic_calls(node: ast.AST) -> list[ast.Call]:
+    calls = []
+    for child in ast.walk(node):
+        if not isinstance(child, ast.Call):
+            continue
+        name = _callee_name(child.func)
+        if name in _S034_TRANSACTION_NAMES:
+            calls.append(child)
+    return calls
+
+
+def _s034_is_savepoint_free(call: ast.Call) -> bool:
+    for keyword in call.keywords:
+        if keyword.arg != "savepoint":
+            continue
+        value = keyword.value
+        if isinstance(value, ast.Constant) and value.value is False:
+            return True
+    return False
+
+
+def _s034_is_transaction_decorator(decorator: ast.expr) -> bool:
+    target = decorator
+    if isinstance(decorator, ast.Call):
+        target = decorator.func
+    name = _callee_name(target)
+    return name in _S034_TRANSACTION_NAMES
+
+
+_S034LoopNode = (
+    ast.For
+    | ast.AsyncFor
+    | ast.While
+    | ast.ListComp
+    | ast.SetComp
+    | ast.GeneratorExp
+    | ast.DictComp
+)
+
+
+@dataclass
+class _S034Loop:
+    node: _S034LoopNode
+    in_transaction: bool
+    opener: tuple[int, int, str] | None = None
+
+
+class _SavepointLoopVisitor(ast.NodeVisitor):
+    def __init__(self) -> None:
+        self.scope: list[str] = []
+        self.transaction_depth = 0
+        self.loops: list[_S034Loop] = []
+        self.findings: list[tuple[int, int, str, str, int]] = []
+
+    def _visit_all(self, nodes: list[Any]) -> None:
+        for node in nodes:
+            self.visit(node)
+
+    def _visit_scope(self, name: str, body: list[ast.stmt], transaction_depth: int) -> None:
+        saved_depth = self.transaction_depth
+        saved_loops = self.loops
+        self.scope.append(name)
+        self.transaction_depth = transaction_depth
+        self.loops = []
+        self._visit_all(body)
+        self.scope.pop()
+        self.transaction_depth = saved_depth
+        self.loops = saved_loops
+
+    def _push_loop(self, node: _S034LoopNode) -> None:
+        in_transaction = self.transaction_depth > 0
+        self.loops.append(_S034Loop(node, in_transaction))
+
+    def _pop_loop(self) -> None:
+        loop = self.loops.pop()
+        if loop.opener is None or not loop.in_transaction:
+            return
+        opener_line, _, opener_kind = loop.opener
+        qualname = ".".join(self.scope)
+        if not qualname:
+            qualname = _S034_MODULE_SCOPE
+        self.findings.append(
+            (loop.node.lineno, loop.node.col_offset, qualname, opener_kind, opener_line)
+        )
+
+    def _record_opener(self, node: ast.stmt | ast.expr, kind: str) -> None:
+        if not self.loops:
+            return
+        loop = self.loops[-1]
+        candidate = (node.lineno, node.col_offset, kind)
+        if loop.opener is None or candidate[:2] < loop.opener[:2]:
+            loop.opener = candidate
+
+    def _visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        depth = 0
+        for decorator in node.decorator_list:
+            if _s034_is_transaction_decorator(decorator):
+                depth = 1
+        self._visit_scope(node.name, node.body, depth)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._visit_function(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._visit_function(node)
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        self._visit_scope(node.name, node.body, 0)
+
+    def visit_Lambda(self, node: ast.Lambda) -> None:
+        return
+
+    def _visit_for(self, node: ast.For | ast.AsyncFor) -> None:
+        self.visit(node.iter)
+        self._push_loop(node)
+        self.visit(node.target)
+        self._visit_all(node.body)
+        self._pop_loop()
+        self._visit_all(node.orelse)
+
+    def visit_For(self, node: ast.For) -> None:
+        self._visit_for(node)
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+        self._visit_for(node)
+
+    def visit_While(self, node: ast.While) -> None:
+        self._push_loop(node)
+        self.visit(node.test)
+        self._visit_all(node.body)
+        self._pop_loop()
+        self._visit_all(node.orelse)
+
+    def _visit_comprehension(
+        self,
+        node: ast.ListComp | ast.SetComp | ast.GeneratorExp | ast.DictComp,
+        elements: list[ast.expr],
+    ) -> None:
+        first = node.generators[0]
+        self.visit(first.iter)
+        self._push_loop(node)
+        self.visit(first.target)
+        self._visit_all(first.ifs)
+        self._visit_all(node.generators[1:])
+        self._visit_all(elements)
+        self._pop_loop()
+
+    def visit_ListComp(self, node: ast.ListComp) -> None:
+        self._visit_comprehension(node, [node.elt])
+
+    def visit_SetComp(self, node: ast.SetComp) -> None:
+        self._visit_comprehension(node, [node.elt])
+
+    def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
+        self._visit_comprehension(node, [node.elt])
+
+    def visit_DictComp(self, node: ast.DictComp) -> None:
+        self._visit_comprehension(node, [node.key, node.value])
+
+    def _visit_with(self, node: ast.With | ast.AsyncWith) -> None:
+        atomic_calls: list[ast.Call] = []
+        for item in node.items:
+            self.visit(item.context_expr)
+            atomic_calls.extend(_s034_atomic_calls(item.context_expr))
+
+        opens_transaction = bool(atomic_calls)
+        opens_savepoint = False
+        for call in atomic_calls:
+            if not _s034_is_savepoint_free(call):
+                opens_savepoint = True
+
+        if opens_savepoint:
+            self._record_opener(node, "atomic block")
+        if opens_transaction:
+            self.transaction_depth += 1
+        self._visit_all(node.body)
+        if opens_transaction:
+            self.transaction_depth -= 1
+
+    def visit_With(self, node: ast.With) -> None:
+        self._visit_with(node)
+
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+        self._visit_with(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        func = node.func
+        if isinstance(func, ast.Attribute) and func.attr in _S034_GET_OR_CREATE_NAMES:
+            self._record_opener(node, func.attr)
+        self.generic_visit(node)
+
+
 class SentryCheck:
     def __init__(self, tree: ast.AST, filename: str) -> None:
         self.tree = tree
@@ -1697,6 +1932,7 @@ class SentryCheck:
         yield from self._s024(visitor)
         yield from self._s029(visitor)
         yield from self._s030(visitor)
+        yield from self._s034()
 
         for e in visitor.errors:
             yield (*e, type(self))
@@ -1735,3 +1971,22 @@ class SentryCheck:
             if seen[key] < expected_count:
                 function, kind = key
                 yield (1, 0, S030_stale_msg.format(kind, function), type(self))
+
+    def _s034(self) -> Generator[tuple[int, int, str, type[Any]]]:
+        if _is_tests_path(self.filename):
+            return
+
+        rel = _repo_relative(self.filename)
+        loop_visitor = _SavepointLoopVisitor()
+        loop_visitor.visit(self.tree)
+
+        allowed = S034_allowlist.get(rel, {})
+        seen: Counter[str] = Counter()
+        for line, col, qualname, opener, opener_line in sorted(loop_visitor.findings):
+            seen[qualname] += 1
+            if seen[qualname] > allowed.get(qualname, 0):
+                yield (line, col, S034_msg.format(opener, opener_line), type(self))
+
+        for qualname, expected_count in allowed.items():
+            if seen[qualname] < expected_count:
+                yield (1, 0, S034_stale_msg.format(qualname, rel), type(self))

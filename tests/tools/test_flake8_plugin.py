@@ -22,6 +22,9 @@ from tools.flake8_plugin import (
     S027_msg,
     S028_msg,
     S030_allowlist,
+    S034_allowlist,
+    S034_msg,
+    S034_stale_msg,
     SentryCheck,
     _s015_msg,
     get_api_violations,
@@ -2478,3 +2481,95 @@ def get(self, request, drf_request):
     ]
     assert _run(src, filename="src/sentry/auth/principal.py") == []
     assert _run(src, filename="tests/sentry/example.py") == []
+
+
+def test_S034_flags_savepoint_per_iteration() -> None:
+    src = """\
+def with_block(items):
+    with transaction.atomic(using="default"):
+        for item in items:
+            Model.objects.get_or_create(name=item)
+
+@transaction.atomic(using="default")
+def decorated(items):
+    while items:
+        with atomic(using="default"):
+            items.pop()
+
+def wrapped(items):
+    with outbox_context(transaction.atomic(using="default")):
+        return [Model.objects.update_or_create(name=i) for i in items]
+
+def nested_loops(groups):
+    with atomic_transaction(using="default"):
+        for group in groups:
+            for item in group:
+                Model.objects.get_or_create(name=item)
+"""
+    assert _run(src, filename="src/sentry/example.py") == [
+        f"t.py:3:8: {S034_msg.format('get_or_create', 4)}",
+        f"t.py:8:4: {S034_msg.format('atomic block', 9)}",
+        f"t.py:14:15: {S034_msg.format('update_or_create', 14)}",
+        f"t.py:19:12: {S034_msg.format('get_or_create', 20)}",
+    ]
+
+
+def test_S034_ignores_safe_shapes() -> None:
+    src = """\
+def no_outer_transaction(items):
+    for item in items:
+        Model.objects.get_or_create(name=item)
+
+def transaction_per_iteration(items):
+    for item in items:
+        with transaction.atomic(using="default"):
+            Model.objects.get_or_create(name=item)
+
+def savepoint_free(items):
+    with atomic(using="default"):
+        for item in items:
+            with atomic(using="default", savepoint=False):
+                item.save()
+
+def deferred_scopes(items):
+    with atomic(using="default"):
+        for item in items:
+            def create():
+                Model.objects.get_or_create(name=item)
+            lazy = lambda: Model.objects.get_or_create(name=item)
+
+def runs_once(items):
+    with atomic(using="default"):
+        for item in Model.objects.get_or_create(name="x"):
+            item.save()
+        else:
+            Model.objects.get_or_create(name="y")
+"""
+    assert _run(src, filename="src/sentry/example.py") == []
+
+    flagged = """\
+def with_block(items):
+    with transaction.atomic(using="default"):
+        for item in items:
+            Model.objects.get_or_create(name=item)
+"""
+    assert _run(flagged, filename="tests/sentry/test_example.py") == []
+    assert _run(flagged, filename="src/sentry/testutils/example.py") == []
+
+
+def test_S034_allowlist_pins_count_and_reports_stale() -> None:
+    filename = "src/sentry/example.py"
+    src = """\
+def pinned(items):
+    with atomic(using="default"):
+        for item in items:
+            Model.objects.get_or_create(name=item)
+        for item in items:
+            Model.objects.update_or_create(name=item)
+"""
+    allowlist = {filename: {"pinned": 1, "removed": 1}}
+    with patch.dict(S034_allowlist, allowlist, clear=True):
+        assert _run(src, filename=filename) == [
+            f"t.py:1:0: {S034_stale_msg.format('removed', filename)}",
+            f"t.py:5:8: {S034_msg.format('update_or_create', 6)}",
+        ]
