@@ -1,7 +1,5 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
-
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getClassifiersPath, useClassifiersEnabled} from 'sentry/views/classifiers/utils';
@@ -60,8 +58,12 @@ function SeerSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={automationsPath}
                   analyticsItemName="seer_automations"
-                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
-                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
+                  leadingItems={
+                    settingsV3 ? <SecondaryNavigation.FeatureBadge type="alpha" /> : null
+                  }
+                  trailingItems={
+                    settingsV3 ? null : <SecondaryNavigation.FeatureBadge type="alpha" />
+                  }
                 >
                   {t('Automations')}
                 </SecondaryNavigation.Link>
@@ -72,8 +74,12 @@ function SeerSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={investigationsPath}
                   analyticsItemName="seer_investigations"
-                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
-                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
+                  leadingItems={
+                    settingsV3 ? <SecondaryNavigation.FeatureBadge type="alpha" /> : null
+                  }
+                  trailingItems={
+                    settingsV3 ? null : <SecondaryNavigation.FeatureBadge type="alpha" />
+                  }
                 >
                   {t('Investigations')}
                 </SecondaryNavigation.Link>
@@ -84,8 +90,12 @@ function SeerSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={classifiersPath}
                   analyticsItemName="seer_classifiers"
-                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
-                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
+                  leadingItems={
+                    settingsV3 ? <SecondaryNavigation.FeatureBadge type="alpha" /> : null
+                  }
+                  trailingItems={
+                    settingsV3 ? null : <SecondaryNavigation.FeatureBadge type="alpha" />
+                  }
                 >
                   {t('Classifiers')}
                 </SecondaryNavigation.Link>

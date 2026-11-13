@@ -11,7 +11,7 @@ from sentry.notifications.platform.slack.provider import SlackNotificationProvid
 from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.templates.seer import SeerAutofixError
-from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.platform.tracking import NotificationLink, NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -240,3 +240,39 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
 
         blocks: list[Any] = result["attachments"][0]["blocks"]
         assert [block["type"] for block in blocks] == ["section"]
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.METRIC_ALERT]})
+    def test_render_existing_investigation_link_preserves_alert(self) -> None:
+        data = self.notification_data.copy(
+            update={
+                "notes": "Check the runbook",
+                "chart_url": MOCK_CHART_URL,
+                "workflow_name": "Page the on-call",
+                "workflow_link": "http://testserver/alerts/1/",
+                "investigation_url": "http://testserver/organizations/example/seer/investigations/42/",
+            }
+        )
+        original = _render(data, self.rendered_template)
+        data = data.copy(update={"show_investigation_button": True})
+        decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
+
+        result = SlackMetricAlertRenderer.render(
+            data=data, rendered_template=self.rendered_template, link_decorator=decorator
+        )
+
+        blocks = result["attachments"][0]["blocks"]
+        (button,) = blocks[-2]["elements"]
+        assert button == {
+            "type": "button",
+            "text": {"type": "plain_text", "text": "Open Investigation"},
+            "url": (
+                f"{data.investigation_url}?referrer=metric-alert-slack"
+                f"&notification_uuid={data.notification_uuid}"
+            ),
+            "action_id": "link_clicked",
+            "value": "link_clicked",
+        }
+        assert NotificationLink.INVESTIGATION in decorator.links
+        assert blocks[:-2] + blocks[-1:] == original["attachments"][0]["blocks"]
+        assert result["text"] == original["text"]
+        assert result["attachments"][0]["color"] == original["attachments"][0]["color"]

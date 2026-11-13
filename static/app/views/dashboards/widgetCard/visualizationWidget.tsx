@@ -452,7 +452,7 @@ function VisualizationWidgetContent({
     </WidgetFooterTable>
   ) : null;
 
-  if (loading) {
+  if (loading || (droppedData.isLoading && !errorMessage)) {
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
 

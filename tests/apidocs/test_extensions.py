@@ -55,7 +55,6 @@ def test_metric_detector_openapi_schema_documents_variants() -> None:
         86400,
         604800,
         2592000,
-        None,
     ]
 
     condition_schema = _metric_condition_schema()

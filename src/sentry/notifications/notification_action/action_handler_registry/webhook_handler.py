@@ -69,7 +69,7 @@ class WebhookActionHandler(ActionHandler):
                         "organization_id": organization.id,
                     },
                 )
-        else:
+        elif isinstance(invocation.event_data.event, GroupEvent):
             send_sentry_app_webhook(
                 group_event=invocation.event_data.event,
                 sentry_app_slug=target_identifier,

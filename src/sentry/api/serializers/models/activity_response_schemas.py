@@ -302,6 +302,36 @@ def _data_overrides(resolve: Callable[[Any], dict[str, Any]]) -> dict[str, dict[
             },
             required=("score", "level", "description", "citations", "sourceEventId"),
         ),
+        "investigation_linked": _object(
+            {
+                "investigation": _nullable(
+                    _object(
+                        {
+                            "id": {"type": "string", "description": "ID of the investigation"},
+                            "title": {"type": "string", "description": "Investigation title"},
+                            "status": {
+                                "type": "string",
+                                "enum": ["active", "archived"],
+                                "description": "Whether the investigation is archived",
+                            },
+                        },
+                        required=("id", "title", "status"),
+                    ),
+                    "The investigation that linked the issue, or null once it's deleted",
+                ),
+                "hypothesisId": {"type": "string", "description": "ID of the hypothesis"},
+                "hypothesisStatement": {
+                    "type": "string",
+                    "description": "The confirmed hypothesis whose evidence named the issue",
+                },
+                "reason": {
+                    "type": "string",
+                    "nullable": True,
+                    "description": "Why the evidence links the issue",
+                },
+            },
+            required=("investigation", "hypothesisId", "hypothesisStatement", "reason"),
+        ),
     }
 
 

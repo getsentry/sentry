@@ -321,6 +321,33 @@ class SlackAutofixEntrypointTest(TestCase):
         assert "couldn't finish working on this issue" in str(renderable["blocks"])
         mock_send_threaded_ephemeral_message.assert_not_called()
 
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_stopped_run_posts_the_reason_and_suggestion(
+        self, mock_send_threaded_message: MagicMock, _mock_has_access: MagicMock
+    ) -> None:
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=self._get_entrypoint().create_autofix_cache_payload(),
+        )
+        stop = {"reason": "The API key expired.", "suggestion": "Rotate the key."}
+
+        with self.tasks():
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_STOPPED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id, "stop": stop},
+                organization_id=self.organization.id,
+            )
+
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert renderable["text"] == "Seer stopped early"
+        assert "The API key expired." in str(renderable["blocks"])
+        assert "Rotate the key." in str(renderable["blocks"])
+
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",

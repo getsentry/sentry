@@ -6,7 +6,7 @@ import sentry_sdk
 from sentry import analytics, features, options
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.analytics.events.base_notification_sent import BaseNotificationSent
-from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT, METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
+from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT, METRIC_ALERTS_THREAD_DEFAULT
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus
@@ -135,8 +135,9 @@ def _build_target(
     integration = integration_context.integration
     org_integration = integration_context.organization_integration
 
-    if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
+    if integration_context.active() is None:
         integration_status = integration.status if integration is not None else None
+        org_integration_status = org_integration.status if org_integration is not None else None
         logger.warning(
             "notification_action.platform_dispatch.integration_inactive",
             extra={
@@ -147,6 +148,7 @@ def _build_target(
                 "has_integration": integration is not None,
                 "has_org_integration": org_integration is not None,
                 "integration_status": integration_status,
+                "org_integration_status": org_integration_status,
             },
         )
         return None
@@ -256,7 +258,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
 
 
 def send_issue_alert(invocation: ActionInvocation, provider: NotificationProviderKey) -> None:
-    group = invocation.event_data.group
+    group = invocation.event_data.require_group()
     organization = group.project.organization
 
     target = _build_target(
@@ -326,7 +328,7 @@ def _record_legacy_issue_alert_sent(
     the send succeeded like the legacy sends. Remove with the legacy path.
     """
     provider_name, sent_event_class, metric_instance = LEGACY_ISSUE_ALERT_ANALYTICS[provider]
-    group = invocation.event_data.group
+    group = invocation.event_data.require_group()
     metrics.incr(
         "notifications.sent",
         instance=metric_instance,

@@ -265,9 +265,14 @@ def _collapse_parts(parts: list[Any]) -> Any:
     if buckets["tool_calls"]:
         return buckets["tool_calls"]
     if buckets["tool_responses"]:
-        return "\n".join(str(response.get("result", "")) for response in buckets["tool_responses"])
+        return "\n".join(_tool_response_text(response) for response in buckets["tool_responses"])
 
     return None
+
+
+def _tool_response_text(part: dict[str, Any]) -> str:
+    # OTel names this field `response`; older Sentry SDKs send `result`.
+    return str(part.get("response", part.get("result", "")))
 
 
 def _bucket_parts(parts: list[Any]) -> PartBuckets:

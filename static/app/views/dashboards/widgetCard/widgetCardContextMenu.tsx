@@ -169,6 +169,20 @@ const StyledText = styled(Text)`
   padding-bottom: ${p => p.theme.space.xs};
 `;
 
+export function withMenuActionCallback(
+  options: MenuItemProps[],
+  callback: (key: string) => void
+): MenuItemProps[] {
+  return options.map(option => ({
+    ...option,
+    children: option.children && withMenuActionCallback(option.children, callback),
+    onAction: () => {
+      callback(option.key);
+      option.onAction?.();
+    },
+  }));
+}
+
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,
   organization: Organization,
