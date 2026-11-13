@@ -704,7 +704,6 @@ def _drain_queued_autofix_feedback(
         # drains the queue and runs it.
         return
 
-    # Wait for the previous iteration to push. Its completion hook drains the queue.
     if not all_changes_pushed and state.status != "error":
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
