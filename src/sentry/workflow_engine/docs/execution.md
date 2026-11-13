@@ -458,6 +458,9 @@ The sanitized `trigger_evaluation`, `filter_evaluations`, and `delayed` attribut
 JSON strings because EAP ingestion discards nested protobuf key/value lists. Scalar
 attributes and primitive arrays, such as `triggered_action_ids`, retain their native types.
 
+To inspect or investigate workflow engine issues, use the admin page at
+`/_admin/workflow-engine/`.
+
 When tracing a missing action, check the boundaries in order:
 
 1. Was the source mapped to an enabled detector?
