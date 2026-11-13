@@ -167,7 +167,7 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
             "sentry-api-0-organization-notebook-action-request-apply",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.investigation.id,
+                "notebook_id": self.investigation.id,
                 "action_request_id": self.action_request.id,
             },
         )
@@ -182,7 +182,7 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
             "sentry-api-0-organization-notebook-action-request-retry-follow-up",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.investigation.id,
+                "notebook_id": self.investigation.id,
                 "action_request_id": self.action_request.id,
             },
         )

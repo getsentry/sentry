@@ -46,7 +46,7 @@ class OrganizationInvestigationOrchestrationTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation_id,
+                "notebook_id": investigation_id,
             },
         )
 
@@ -204,7 +204,7 @@ class OrganizationInvestigationOrchestrationCommandsTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration-commands",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation_id,
+                "notebook_id": investigation_id,
             },
         )
 
