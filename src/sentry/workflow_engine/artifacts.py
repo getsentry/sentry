@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from enum import Enum
-from typing import Literal, TypedDict, cast
+from typing import Literal, TypedDict
 
-from django.db.models import Q
 from django.http import Http404
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
@@ -21,41 +17,18 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Attrib
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.models.group import Group
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.rpc_utils import anyvalue_to_python
 from sentry.services import eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import json
 from sentry.utils.snuba_rpc import table_rpc
-from sentry.workflow_engine.endpoints.serializers.action_serializer import ActionSerializer
-from sentry.workflow_engine.endpoints.serializers.data_condition_serializer import (
-    DataConditionSerializer,
-)
-from sentry.workflow_engine.models import (
-    DataCondition,
-    DataConditionGroup,
-    DataConditionGroupAction,
-    DataSourceDetector,
-    Detector,
-    DetectorGroup,
-    DetectorWorkflow,
-    Workflow,
-    WorkflowDataConditionGroup,
-)
+from sentry.workflow_engine.models import Detector, Workflow
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 type JSONValue = None | bool | int | float | str | list[JSONValue] | dict[str, JSONValue]
 type ArtifactItemType = Literal["workflow", "detector", "group", "event"]
-
-
-class ArtifactItem(TypedDict):
-    type: ArtifactItemType
-    id: str
-    organizationId: str
-    projectId: str | None
-    name: str
-    context: dict[str, JSONValue]
 
 
 class EvaluationArtifact(TypedDict):
@@ -66,11 +39,15 @@ class EvaluationArtifact(TypedDict):
     attributes: dict[str, JSONValue]
 
 
-@dataclass
-class ArtifactContext:
+@dataclass(frozen=True)
+class ArtifactTarget:
+    """A workflow-engine item and the tenant scope its artifacts are stored under."""
+
+    type: ArtifactItemType
+    id: str
     organization: Organization
     project_ids: list[int]
-    item: ArtifactItem
+    instance: Workflow | Detector | Group | Event | GroupEvent
 
 
 @dataclass
@@ -79,230 +56,52 @@ class ArtifactQueryResult:
     truncated: bool
 
 
-RELATED_ITEM_LIMIT = 50
-CONFIGURATION_ITEM_LIMIT = 100
 ARTIFACT_LIMIT = 100
 CORRELATION_LIMIT = 50
 
 
-def _context_value(value: object) -> JSONValue:
-    """Normalize explicit summaries while preserving stored JSON value types."""
-    if isinstance(value, Enum):
-        return _context_value(value.value)
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if value is None or isinstance(value, (bool, str)):
-        return value
-    if isinstance(value, (int, float)):
-        return value
-    if isinstance(value, Mapping):
-        return {str(name): _context_value(item) for name, item in value.items()}
-    if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
-        return [_context_value(item) for item in value]
-    raise TypeError(f"Unsupported artifact context value: {type(value).__name__}")
-
-
-def _workflow_summary(workflow: Workflow) -> dict[str, JSONValue]:
-    return {
-        "id": str(workflow.id),
-        "name": workflow.name,
-        "type": workflow.type,
-        "enabled": workflow.enabled,
-        "status": workflow.status,
-    }
-
-
-def _detector_summary(detector: Detector) -> dict[str, JSONValue]:
-    return {
-        "id": str(detector.id),
-        "projectId": str(detector.project_id) if detector.project_id is not None else None,
-        "name": detector.name,
-        "type": detector.type,
-        "enabled": detector.enabled,
-        "status": detector.status,
-    }
-
-
-def _group_summary(group: Group) -> dict[str, JSONValue]:
-    return {
-        "id": str(group.id),
-        "projectId": str(group.project_id),
-        "title": group.title,
-        "status": group.status,
-        "substatus": group.substatus,
-        "priority": group.priority,
-        "type": group.type,
-        "platform": group.platform,
-        "firstSeen": group.first_seen.isoformat(),
-        "lastSeen": group.last_seen.isoformat(),
-    }
-
-
-def _detector_scope(organization_id: int, prefix: str = "") -> Q:
-    return Q(**{f"{prefix}project__organization_id": organization_id}) | Q(
-        **{
-            f"{prefix}project__isnull": True,
-            f"{prefix}type": IssueStreamGroupType.slug,
-            f"{prefix}config__organization_id": organization_id,
-        }
+def _organization_project_ids(organization: Organization) -> list[int]:
+    return list(
+        Project.objects.filter(organization_id=organization.id)
+        .order_by("id")
+        .values_list("id", flat=True)
     )
 
 
-def _condition_groups(
-    organization_id: int, group_ids: Sequence[int]
-) -> tuple[dict[int, dict[str, JSONValue]], bool]:
-    groups = list(
-        DataConditionGroup.objects.filter(
-            organization_id=organization_id, id__in=group_ids
-        ).order_by("id")[: RELATED_ITEM_LIMIT + 1]
-    )
-    truncated = len(groups) > RELATED_ITEM_LIMIT
-    groups = groups[:RELATED_ITEM_LIMIT]
-    ids = [group.id for group in groups]
-    conditions = list(
-        DataCondition.objects.filter(condition_group_id__in=ids).order_by("id")[
-            : CONFIGURATION_ITEM_LIMIT + 1
-        ]
-    )
-    actions = list(
-        DataConditionGroupAction.objects.filter(condition_group_id__in=ids)
-        .select_related("action")
-        .order_by("id")[: CONFIGURATION_ITEM_LIMIT + 1]
-    )
-    truncated |= (
-        len(conditions) > CONFIGURATION_ITEM_LIMIT or len(actions) > CONFIGURATION_ITEM_LIMIT
-    )
-    condition_map: dict[int, list[JSONValue]] = defaultdict(list)
-    action_map: dict[int, list[JSONValue]] = defaultdict(list)
-    condition_serializer = DataConditionSerializer()
-    action_serializer = ActionSerializer()
-    for condition in conditions[:CONFIGURATION_ITEM_LIMIT]:
-        condition_map[condition.condition_group_id].append(
-            _context_value(condition_serializer.serialize(condition))
-        )
-    for link in actions[:CONFIGURATION_ITEM_LIMIT]:
-        action_map[link.condition_group_id].append(
-            _context_value(action_serializer.serialize(link.action))
-        )
-    return {
-        group.id: {
-            "id": str(group.id),
-            "organizationId": str(group.organization_id),
-            "logicType": group.logic_type,
-            "conditions": condition_map[group.id],
-            "actions": action_map[group.id],
-        }
-        for group in groups
-    }, truncated
+def _projectless_detector_organization(detector: Detector) -> Organization:
+    # Only issue stream detectors are project-less; they store their organization in config.
+    organization_id = detector.config.get("organization_id")
+    if (
+        detector.type != IssueStreamGroupType.slug
+        or not isinstance(organization_id, int)
+        or isinstance(organization_id, bool)
+    ):
+        raise Http404("Detector organization not found")
+    try:
+        return Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist as error:
+        raise Http404("Detector organization not found") from error
 
 
-def _group_relationships(
-    group: Group, organization_id: int
-) -> tuple[list[JSONValue], list[JSONValue], bool]:
-    links = list(
-        DetectorGroup.objects.filter(group_id=group.id)
-        .filter(_detector_scope(organization_id, "detector__"))
-        .select_related("detector")
-        .order_by("id")[: RELATED_ITEM_LIMIT + 1]
-    )
-    detectors = [link.detector for link in links[:RELATED_ITEM_LIMIT] if link.detector is not None]
-    workflows = list(
-        Workflow.objects_for_deletion.filter(
-            organization_id=organization_id,
-            detectorworkflow__detector_id__in=[detector.id for detector in detectors],
-        )
-        .distinct()
-        .order_by("id")[: RELATED_ITEM_LIMIT + 1]
-    )
-    return (
-        [_detector_summary(detector) for detector in detectors],
-        [_workflow_summary(workflow) for workflow in workflows[:RELATED_ITEM_LIMIT]],
-        len(links) > RELATED_ITEM_LIMIT or len(workflows) > RELATED_ITEM_LIMIT,
-    )
+def resolve_artifact_target(
+    item_type: ArtifactItemType, item_id: str, project: Project | None = None
+) -> ArtifactTarget:
+    """Look up a validated item and the organization that owns it.
 
-
-def resolve_artifact_context(
-    item_type: str, item_id: str, project_id: int | None = None
-) -> ArtifactContext:
-    """Resolve validated IDs after elevated-admin authorization, without an org context.
-
-    The caller must authorize the resolved organization before querying artifacts. Event
-    lookup additionally requires authorizing the requested project's organization first,
-    because scoped eventstore retrieval can itself issue a Snuba query.
+    The caller must authorize `target.organization` before serializing the item or
+    querying artifacts. Event lookups take an already-authorized `project`, because
+    the eventstore lookup itself can query Snuba.
     """
-    context: dict[str, JSONValue]
+    instance: Workflow | Detector | Group | Event | GroupEvent
     if item_type == "workflow":
         try:
-            workflow = Workflow.objects_for_deletion.select_related(
-                "organization", "environment"
-            ).get(id=item_id)
+            # Include hidden and pending-deletion workflows: they may still have artifacts.
+            workflow = Workflow.objects_for_deletion.select_related("organization").get(id=item_id)
         except Workflow.DoesNotExist as error:
             raise Http404("Workflow not found") from error
+        instance = workflow
         organization = workflow.organization
-        project_ids = list(
-            Project.objects.filter(organization_id=organization.id)
-            .order_by("id")
-            .values_list("id", flat=True)
-        )
-        detector_links = list(
-            DetectorWorkflow.objects.filter(workflow_id=workflow.id)
-            .filter(_detector_scope(organization.id, "detector__"))
-            .select_related("detector")
-            .order_by("id")[: RELATED_ITEM_LIMIT + 1]
-        )
-        filter_ids = list(
-            WorkflowDataConditionGroup.objects.filter(
-                workflow_id=workflow.id, condition_group__organization_id=organization.id
-            )
-            .order_by("id")
-            .values_list("condition_group_id", flat=True)[: RELATED_ITEM_LIMIT + 1]
-        )
-        filter_limit = RELATED_ITEM_LIMIT - int(workflow.when_condition_group_id is not None)
-        group_ids = filter_ids[:filter_limit]
-        if workflow.when_condition_group_id is not None:
-            group_ids = [workflow.when_condition_group_id, *group_ids]
-        groups, configuration_truncated = _condition_groups(organization.id, group_ids)
-        context = {
-            **_workflow_summary(workflow),
-            "dateAdded": workflow.date_added.isoformat(),
-            "dateUpdated": workflow.date_updated.isoformat(),
-            "createdById": (
-                str(workflow.created_by_id) if workflow.created_by_id is not None else None
-            ),
-            "ownerUserId": (
-                str(workflow.owner_user_id) if workflow.owner_user_id is not None else None
-            ),
-            "ownerTeamId": (
-                str(workflow.owner_team_id) if workflow.owner_team_id is not None else None
-            ),
-            "whenConditionGroupId": (
-                str(workflow.when_condition_group_id)
-                if workflow.when_condition_group_id is not None
-                else None
-            ),
-            "config": _context_value(workflow.config),
-            "environmentId": (
-                str(workflow.environment_id) if workflow.environment_id is not None else None
-            ),
-            "environment": workflow.environment.name if workflow.environment is not None else None,
-            "triggers": (
-                groups.get(workflow.when_condition_group_id)
-                if workflow.when_condition_group_id is not None
-                else None
-            ),
-            "actionFilters": [groups[group_id] for group_id in filter_ids if group_id in groups],
-            "detectors": [
-                _detector_summary(link.detector) for link in detector_links[:RELATED_ITEM_LIMIT]
-            ],
-            "projectCount": len(project_ids),
-            "contextTruncated": (
-                configuration_truncated
-                or len(detector_links) > RELATED_ITEM_LIMIT
-                or len(filter_ids) > filter_limit
-            ),
-        }
-        name = workflow.name
-        resolved_project_id = None
+        project_ids = _organization_project_ids(organization)
     elif item_type == "detector":
         try:
             detector = Detector.objects_for_deletion.select_related("project__organization").get(
@@ -310,180 +109,41 @@ def resolve_artifact_context(
             )
         except Detector.DoesNotExist as error:
             raise Http404("Detector not found") from error
+        instance = detector
         if detector.project is not None:
             organization = detector.project.organization
             project_ids = [detector.project.id]
         else:
-            organization_id = detector.config.get("organization_id")
-            if (
-                detector.type != IssueStreamGroupType.slug
-                or not isinstance(organization_id, int)
-                or isinstance(organization_id, bool)
-                or organization_id <= 0
-            ):
-                raise Http404("Detector organization not found")
-            try:
-                organization = Organization.objects.get(id=organization_id)
-            except Organization.DoesNotExist as error:
-                raise Http404("Detector organization not found") from error
-            project_ids = list(
-                Project.objects.filter(organization_id=organization.id)
-                .order_by("id")
-                .values_list("id", flat=True)
-            )
-        workflows = list(
-            Workflow.objects_for_deletion.filter(
-                organization_id=organization.id, detectorworkflow__detector_id=detector.id
-            ).order_by("id")[: RELATED_ITEM_LIMIT + 1]
-        )
-        group_ids = (
-            [detector.workflow_condition_group_id]
-            if detector.workflow_condition_group_id is not None
-            else []
-        )
-        groups, configuration_truncated = _condition_groups(organization.id, group_ids)
-        latest_links = list(
-            DetectorGroup.objects.filter(
-                detector_id=detector.id, group__project__organization_id=organization.id
-            )
-            .select_related("group")
-            .order_by("-date_added", "-id")[: RELATED_ITEM_LIMIT + 1]
-        )
-        sources = list(
-            DataSourceDetector.objects.filter(
-                detector_id=detector.id, data_source__organization_id=organization.id
-            )
-            .select_related("data_source")
-            .order_by("id")[: RELATED_ITEM_LIMIT + 1]
-        )
-        project_options: dict[str, JSONValue] = {}
-        project_option_sources: dict[str, JSONValue] = {}
-        if detector.project_id is not None and detector.type == "error":
-            # Match DetectorSerializer's allowlist and stored values, not effective defaults.
-            project_options = dict.fromkeys(Detector.error_detector_project_options.values())
-            project_option_sources = dict.fromkeys(project_options, "unset")
-            for option in ProjectOption.objects.filter(
-                project_id=detector.project_id,
-                key__in=project_options,
-            ):
-                project_options[option.key] = _context_value(option.value)
-                project_option_sources[option.key] = "project_option"
-        context = {
-            **_detector_summary(detector),
-            "dateAdded": detector.date_added.isoformat(),
-            "dateUpdated": detector.date_updated.isoformat(),
-            "createdById": (
-                str(detector.created_by_id) if detector.created_by_id is not None else None
-            ),
-            "ownerUserId": (
-                str(detector.owner_user_id) if detector.owner_user_id is not None else None
-            ),
-            "ownerTeamId": (
-                str(detector.owner_team_id) if detector.owner_team_id is not None else None
-            ),
-            "workflowConditionGroupId": (
-                str(detector.workflow_condition_group_id)
-                if detector.workflow_condition_group_id is not None
-                else None
-            ),
-            "description": detector.description,
-            "config": _context_value(detector.config),
-            "projectOptions": project_options,
-            "projectOptionSources": project_option_sources,
-            "conditionGroup": (
-                groups.get(detector.workflow_condition_group_id)
-                if detector.workflow_condition_group_id is not None
-                else None
-            ),
-            "workflows": [
-                _workflow_summary(workflow) for workflow in workflows[:RELATED_ITEM_LIMIT]
-            ],
-            "latestGroups": [
-                _group_summary(link.group) for link in latest_links[:RELATED_ITEM_LIMIT]
-            ],
-            "dataSources": [
-                {
-                    "id": str(link.data_source_id),
-                    "type": link.data_source.type,
-                    "sourceId": str(link.data_source.source_id),
-                }
-                for link in sources[:RELATED_ITEM_LIMIT]
-            ],
-            "projectCount": len(project_ids),
-            "contextTruncated": (
-                configuration_truncated
-                or len(workflows) > RELATED_ITEM_LIMIT
-                or len(latest_links) > RELATED_ITEM_LIMIT
-                or len(sources) > RELATED_ITEM_LIMIT
-            ),
-        }
-        name = detector.name
-        resolved_project_id = detector.project_id
+            organization = _projectless_detector_organization(detector)
+            project_ids = _organization_project_ids(organization)
     elif item_type == "group":
         try:
             group = Group.objects.select_related("project__organization").get(id=item_id)
         except Group.DoesNotExist as error:
             raise Http404("Group not found") from error
+        instance = group
         organization = group.project.organization
         project_ids = [group.project_id]
-        group_detectors, group_workflows, truncated = _group_relationships(group, organization.id)
-        context = {
-            **_group_summary(group),
-            "detectors": group_detectors,
-            "workflows": group_workflows,
-            "contextTruncated": truncated,
-        }
-        name = group.title
-        resolved_project_id = group.project_id
     elif item_type == "event":
-        if project_id is None:
-            raise ValueError("Event lookup requires a project ID")
-        try:
-            project = Project.objects.select_related("organization").get(id=project_id)
-        except Project.DoesNotExist as error:
-            raise Http404("Project not found") from error
+        if project is None:
+            raise ValueError("Event lookup requires a project")
         organization = project.organization
         event = eventstore.backend.get_event_by_id(
             project.id, item_id, tenant_ids={"organization_id": organization.id}
         )
         if event is None:
             raise Http404("Event not found")
+        instance = event
         project_ids = [project.id]
-        event_group = (
-            Group.objects.filter(id=event.group_id, project_id=project.id).first()
-            if event.group_id is not None
-            else None
-        )
-        event_detectors, event_workflows, truncated = (
-            _group_relationships(event_group, organization.id)
-            if event_group is not None
-            else ([], [], False)
-        )
-        context = {
-            "eventType": event.get_event_type(),
-            "platform": event.platform,
-            "timestamp": event.datetime.isoformat(),
-            "group": _group_summary(event_group) if event_group is not None else None,
-            "detectors": event_detectors,
-            "workflows": event_workflows,
-            "contextTruncated": truncated,
-        }
-        name = event.title
-        resolved_project_id = project.id
     else:
         raise ValueError("Unsupported artifact item type")
 
-    return ArtifactContext(
+    return ArtifactTarget(
+        type=item_type,
+        id=item_id,
         organization=organization,
         project_ids=project_ids,
-        item={
-            "type": cast(ArtifactItemType, item_type),
-            "id": item_id,
-            "organizationId": str(organization.id),
-            "projectId": str(resolved_project_id) if resolved_project_id is not None else None,
-            "name": name,
-            "context": context,
-        },
+        instance=instance,
     )
 
 
@@ -550,7 +210,7 @@ _JSON_ATTRIBUTES = frozenset({"trigger_evaluation", "filter_evaluations", "delay
 
 
 def _query_artifact_rows(
-    context: ArtifactContext,
+    target: ArtifactTarget,
     start: datetime,
     end: datetime,
     item_filter: TraceItemFilter,
@@ -561,8 +221,8 @@ def _query_artifact_rows(
     end_timestamp.FromDatetime(end)
     request = TraceItemTableRequest(
         meta=RequestMeta(
-            organization_id=context.organization.id,
-            project_ids=context.project_ids,
+            organization_id=target.organization.id,
+            project_ids=target.project_ids,
             start_timestamp=start_timestamp,
             end_timestamp=end_timestamp,
             trace_item_type=TraceItemType.TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION,
@@ -640,31 +300,30 @@ def _decode_rows(response: TraceItemTableResponse) -> list[dict[str, JSONValue]]
 
 
 def query_artifacts(
-    context: ArtifactContext, *, start: datetime, end: datetime
+    target: ArtifactTarget, *, start: datetime, end: datetime
 ) -> ArtifactQueryResult:
     """Read at most two scoped batches; synthetic traces are not execution IDs.
 
     Emission is best effort and may be sampled. Artifacts have seven-day retention;
     an empty result is not evidence that the item was never evaluated.
     """
-    if not context.project_ids:
+    if not target.project_ids:
         return ArtifactQueryResult(artifacts=[], truncated=False)
-    item_type = context.item["type"]
-    if item_type == "event":
+    if target.type == "event":
         key = AttributeKey(name="event_id", type=AttributeKey.TYPE_STRING)
-        value = AttributeValue(val_str=context.item["id"])
+        value = AttributeValue(val_str=target.id)
     else:
-        key = AttributeKey(name=f"{item_type}_id", type=AttributeKey.TYPE_INT)
-        value = AttributeValue(val_int=int(context.item["id"]))
+        key = AttributeKey(name=f"{target.type}_id", type=AttributeKey.TYPE_INT)
+        value = AttributeValue(val_int=int(target.id))
     artifacts, truncated = _query_artifact_rows(
-        context,
+        target,
         start,
         end,
         TraceItemFilter(
             comparison_filter=ComparisonFilter(key=key, op=ComparisonFilter.OP_EQUALS, value=value)
         ),
     )
-    if item_type != "event":
+    if target.type != "event":
         # Event searches already include all event-backed rows. Other lookups only
         # expand event-backed correlations: eventless traces can span the full period.
         trace_ids = list(
@@ -677,7 +336,7 @@ def query_artifacts(
         truncated |= len(trace_ids) > CORRELATION_LIMIT
         if trace_ids:
             related, related_truncated = _query_artifact_rows(
-                context,
+                target,
                 start,
                 end,
                 TraceItemFilter(

@@ -9,18 +9,34 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.exceptions import DataSecrecyError, SuperuserRequired
 from sentry.api.permissions import SuperuserPermission
+from sentry.api.serializers import Serializer, serialize
+from sentry.api.serializers.models.event import SimpleEventSerializer
+from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.auth.superuser import Superuser, is_active_superuser
 from sentry.data_secrecy.logic import should_allow_superuser_access
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.auth import is_user_from_viewer_context
 from sentry.utils.snuba import SnubaError
-from sentry.workflow_engine.artifacts import query_artifacts, resolve_artifact_context
+from sentry.workflow_engine.artifacts import (
+    ArtifactItemType,
+    query_artifacts,
+    resolve_artifact_target,
+)
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
 from sentry.workflow_engine.endpoints.validators.workflow_engine_artifacts import (
     STATS_PERIODS,
     WorkflowEngineArtifactsQueryValidator,
 )
 from sentry.workflow_engine.processors.evaluations.eap import EAP_RETENTION_DAYS
+
+ITEM_SERIALIZERS: dict[ArtifactItemType, type[Serializer]] = {
+    "workflow": WorkflowSerializer,
+    "detector": DetectorSerializer,
+    "group": SimpleGroupSerializer,
+    "event": SimpleEventSerializer,
+}
 
 
 class WorkflowEngineArtifactsPermission(SuperuserPermission):
@@ -71,6 +87,7 @@ class AdminWorkflowEngineArtifactsEndpoint(Endpoint):
         item_id = validator.validated_data["id"]
         project_id = validator.validated_data.get("projectId")
 
+        project = None
         if project_id is not None:
             # Event resolution itself can query Snuba. Authorize the owning
             # organization before accessing eventstore, not just artifacts.
@@ -81,11 +98,12 @@ class AdminWorkflowEngineArtifactsEndpoint(Endpoint):
             _authorize_organization(request, project.organization)
 
         try:
-            context = resolve_artifact_context(item_type, item_id, project_id)
-            _authorize_organization(request, context.organization)
+            target = resolve_artifact_target(item_type, item_id, project)
+            _authorize_organization(request, target.organization)
+            item = serialize(target.instance, request.user, ITEM_SERIALIZERS[target.type]())
             end = timezone.now()
             start = end - STATS_PERIODS[validator.validated_data["statsPeriod"]]
-            result = query_artifacts(context, start=start, end=end)
+            result = query_artifacts(target, start=start, end=end)
         except SnubaError:
             return Response(
                 {"detail": "Could not query workflow-engine evaluations. Try again later."},
@@ -94,7 +112,12 @@ class AdminWorkflowEngineArtifactsEndpoint(Endpoint):
 
         return Response(
             {
-                "item": context.item,
+                "item": {
+                    "type": target.type,
+                    "id": target.id,
+                    "organizationId": str(target.organization.id),
+                    "data": item,
+                },
                 "artifacts": result.artifacts,
                 "start": start.isoformat(),
                 "end": end.isoformat(),

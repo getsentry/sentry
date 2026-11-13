@@ -7,7 +7,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import cell_silo_test
-from sentry.workflow_engine.artifacts import ArtifactContext, query_artifacts
+from sentry.workflow_engine.artifacts import ArtifactTarget, query_artifacts
 from sentry.workflow_engine.processors.evaluations.eap import EAPAttributeValue, _build_trace_item
 
 NOW = before_now(minutes=1).replace(microsecond=0)
@@ -56,21 +56,16 @@ class WorkflowEngineArtifactsSnubaTest(TestCase, SnubaTestCase):
         self.store_eap_items(
             [matching, other_id, other_tenant, other_project_item, outside_window, other_type]
         )
-        context = ArtifactContext(
+        target = ArtifactTarget(
+            type=item_type,
+            id=item_id,
             organization=self.organization,
             project_ids=[self.project.id],
-            item={
-                "type": item_type,
-                "id": item_id,
-                "organizationId": str(self.organization.id),
-                "projectId": str(self.project.id),
-                "name": "artifact item",
-                "context": {},
-            },
+            instance=self.create_workflow(),
         )
 
         result = query_artifacts(
-            context, start=NOW - timedelta(hours=1), end=NOW + timedelta(seconds=1)
+            target, start=NOW - timedelta(hours=1), end=NOW + timedelta(seconds=1)
         )
 
         assert len(result.artifacts) == 1
@@ -103,21 +98,16 @@ class WorkflowEngineArtifactsSnubaTest(TestCase, SnubaTestCase):
             {"detector_id": 456, "event_id": "f" * 32, "outcome": "ok"}, **scope
         )
         self.store_eap_items([workflow_item, detector_item, unrelated])
-        context = ArtifactContext(
+        target = ArtifactTarget(
+            type="workflow",
+            id="123",
             organization=self.organization,
             project_ids=[self.project.id],
-            item={
-                "type": "workflow",
-                "id": "123",
-                "organizationId": str(self.organization.id),
-                "projectId": None,
-                "name": "artifact workflow",
-                "context": {},
-            },
+            instance=self.create_workflow(),
         )
 
         result = query_artifacts(
-            context, start=NOW - timedelta(hours=1), end=NOW + timedelta(seconds=1)
+            target, start=NOW - timedelta(hours=1), end=NOW + timedelta(seconds=1)
         )
 
         assert {row["itemId"] for row in result.artifacts} == {

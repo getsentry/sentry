@@ -13,20 +13,15 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Attrib
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
 from sentry.constants import ObjectStatus
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.artifacts import (
-    CONFIGURATION_ITEM_LIMIT,
-    RELATED_ITEM_LIMIT,
-    ArtifactContext,
-    _context_value,
+    ArtifactTarget,
     query_artifacts,
-    resolve_artifact_context,
+    resolve_artifact_target,
 )
-from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models import Workflow
 
 NOW = before_now(minutes=1).replace(microsecond=0)
 EVENT_ID = "1234567890abcdef1234567890abcdef"
@@ -63,367 +58,30 @@ def artifact_row(
 
 
 @cell_silo_test
-class ResolveArtifactContextTest(TestCase):
-    def test_hidden_pending_deletion_workflow_and_unlinked_project_are_included(self):
+class ResolveArtifactTargetTest(TestCase):
+    def test_hidden_pending_deletion_workflow_scopes_to_every_org_project(self):
+        project = self.project
         workflow = self.create_workflow(
             type=Workflow.Type.INBOX, status=ObjectStatus.PENDING_DELETION, enabled=False
         )
-        linked_project = self.create_project()
-        historical_project = self.create_project()
-        detector = self.create_detector(project=linked_project)
-        self.create_detector_workflow(detector=detector, workflow=workflow)
+        other_project = self.create_project()
         self.create_project(organization=self.create_organization())
 
-        context = resolve_artifact_context("workflow", str(workflow.id))
+        target = resolve_artifact_target("workflow", str(workflow.id))
 
-        assert context.organization.id == workflow.organization_id
-        assert set(context.project_ids) == {linked_project.id, historical_project.id}
-        assert context.item["id"] == str(workflow.id)
-        assert context.item["context"]["enabled"] is False
-        assert context.item["context"]["status"] == ObjectStatus.PENDING_DELETION
-        assert context.item["context"]["type"] == Workflow.Type.INBOX
-        assert context.item["context"]["detectors"][0]["id"] == str(detector.id)
+        assert target.instance == workflow
+        assert target.organization.id == workflow.organization_id
+        assert target.project_ids == [project.id, other_project.id]
 
-    def test_detector_resolves_own_project_and_workflow(self):
+    def test_detector_scopes_to_its_project(self):
         detector = self.create_detector(project=self.project)
-        workflow = self.create_workflow()
-        self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_project()
 
-        context = resolve_artifact_context("detector", str(detector.id))
+        target = resolve_artifact_target("detector", str(detector.id))
 
-        assert context.project_ids == [self.project.id]
-        assert context.item["organizationId"] == str(self.organization.id)
-        assert context.item["projectId"] == str(self.project.id)
-        assert context.item["context"]["workflows"][0]["id"] == str(workflow.id)
-
-    def test_workflow_operational_metadata(self):
-        triggers = self.create_data_condition_group()
-        workflow = self.create_workflow(
-            created_by_id=self.user.id,
-            owner_user_id=self.user.id,
-            when_condition_group=triggers,
-            environment=self.environment,
-            config={"frequency": 0},
-        )
-
-        context = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
-
-        assert context["dateAdded"] == workflow.date_added.isoformat()
-        assert context["dateUpdated"] == workflow.date_updated.isoformat()
-        assert context["createdById"] == str(self.user.id)
-        assert context["ownerUserId"] == str(self.user.id)
-        assert context["ownerTeamId"] is None
-        assert context["whenConditionGroupId"] == str(triggers.id)
-        assert context["environmentId"] == str(self.environment.id)
-        assert context["environment"] == self.environment.name
-        assert context["config"] == {"frequency": 0}
-
-    def test_context_value_preserves_nested_numeric_id_types(self):
-        raw_values = {
-            "id": 42,
-            "projectId": 43,
-            "detectorIds": [44, 45],
-            "nested": {"ownerId": 46, "ratioId": 1.5, "enabledId": False},
-        }
-        assert _context_value(raw_values) == raw_values
-
-    def test_detector_operational_metadata(self):
-        triggers = self.create_data_condition_group()
-        detector = self.create_detector(
-            created_by_id=self.user.id,
-            owner_team_id=self.team.id,
-            workflow_condition_group=triggers,
-            description="Investigate new errors",
-        )
-
-        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
-
-        assert context["dateAdded"] == detector.date_added.isoformat()
-        assert context["dateUpdated"] == detector.date_updated.isoformat()
-        assert context["createdById"] == str(self.user.id)
-        assert context["ownerUserId"] is None
-        assert context["ownerTeamId"] == str(self.team.id)
-        assert context["workflowConditionGroupId"] == str(triggers.id)
-        assert context["description"] == "Investigate new errors"
-        assert context["config"] == detector.config
-
-    def test_optional_operational_metadata_is_explicitly_null(self):
-        workflow = self.create_workflow()
-        detector = self.create_detector()
-
-        workflow_context = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
-        detector_context = resolve_artifact_context("detector", str(detector.id)).item["context"]
-
-        for context in (workflow_context, detector_context):
-            assert context["createdById"] is None
-            assert context["ownerUserId"] is None
-            assert context["ownerTeamId"] is None
-        assert workflow_context["whenConditionGroupId"] is None
-        assert detector_context["workflowConditionGroupId"] is None
-        assert workflow_context["triggers"] is None
-        assert detector_context["conditionGroup"] is None
-
-    def test_error_detector_options_include_unset_keys_without_effective_defaults(self):
-        detector = self.create_detector(project=self.project)
-        self.project.delete_option("sentry:fingerprinting_rules")
-        self.project.delete_option("sentry:resolve_age")
-        self.project.update_option("unrelated:secret", "must not be returned")
-        other_project = self.create_project()
-        other_project.update_option("sentry:resolve_age", 24)
-
-        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
-
-        assert set(context["projectOptions"]) == set(
-            Detector.error_detector_project_options.values()
-        )
-        assert context["projectOptions"] == {
-            "sentry:fingerprinting_rules": None,
-            "sentry:resolve_age": None,
-        }
-        assert context["projectOptionSources"] == {
-            "sentry:fingerprinting_rules": "unset",
-            "sentry:resolve_age": "unset",
-        }
-
-    def test_error_detector_options_preserve_stored_false_and_zero(self):
-        detector = self.create_detector(project=self.project)
-        self.project.update_option("sentry:fingerprinting_rules", False)
-        self.project.update_option("sentry:resolve_age", 0)
-
-        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
-
-        assert context["projectOptions"]["sentry:fingerprinting_rules"] is False
-        assert context["projectOptions"]["sentry:resolve_age"] == 0
-        assert context["projectOptions"]["sentry:resolve_age"] is not None
-        assert context["projectOptionSources"] == {
-            "sentry:fingerprinting_rules": "project_option",
-            "sentry:resolve_age": "project_option",
-        }
-
-    def test_error_detector_options_preserve_rule_text_and_age(self):
-        detector = self.create_detector(project=self.project)
-        self.project.update_option("sentry:fingerprinting_rules", "message:example -> custom-group")
-        self.project.update_option("sentry:resolve_age", 48)
-
-        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
-
-        assert context["projectOptions"] == {
-            "sentry:fingerprinting_rules": "message:example -> custom-group",
-            "sentry:resolve_age": 48,
-        }
-
-    def test_non_error_detector_does_not_include_error_project_options(self):
-        detector = self.create_all_projects_detector(self.organization)
-        self.project.update_option("sentry:resolve_age", 24)
-
-        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
-
-        assert context["projectOptions"] == {}
-        assert context["projectOptionSources"] == {}
-
-    def test_workflow_preserves_all_condition_records_and_action_fields(self):
-        triggers = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ALL)
-        filters = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ANY)
-        workflow = self.create_workflow(when_condition_group=triggers)
-        self.create_workflow_data_condition_group(workflow=workflow, condition_group=filters)
-        trigger_conditions = [
-            self.create_data_condition(
-                condition_group=triggers,
-                type=Condition.EQUAL,
-                comparison=value,
-                condition_result=False,
-            )
-            for value in (False, 0, "")
-        ]
-        filter_conditions = [
-            self.create_data_condition(
-                condition_group=filters,
-                type=Condition.GREATER,
-                comparison=value,
-                condition_result=0,
-            )
-            for value in (0, 10)
-        ]
-        action = self.create_action(
-            type=Action.Type.EMAIL,
-            data={},
-            config={"target_identifier": "123", "target_type": ActionTarget.USER.value},
-        )
-        self.create_data_condition_group_action(condition_group=filters, action=action)
-
-        context = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
-
-        assert context["triggers"] == {
-            "id": str(triggers.id),
-            "organizationId": str(self.organization.id),
-            "logicType": "all",
-            "conditions": [
-                {
-                    "id": str(condition.id),
-                    "type": "eq",
-                    "comparison": condition.comparison,
-                    "conditionResult": False,
-                }
-                for condition in trigger_conditions
-            ],
-            "actions": [],
-        }
-        assert context["actionFilters"] == [
-            {
-                "id": str(filters.id),
-                "organizationId": str(self.organization.id),
-                "logicType": "any",
-                "conditions": [
-                    {
-                        "id": str(condition.id),
-                        "type": "gt",
-                        "comparison": condition.comparison,
-                        "conditionResult": 0,
-                    }
-                    for condition in filter_conditions
-                ],
-                "actions": [
-                    {
-                        "id": str(action.id),
-                        "type": "email",
-                        "integrationId": None,
-                        "data": {},
-                        "config": {"targetIdentifier": "123", "targetType": "user"},
-                        "status": "active",
-                    }
-                ],
-            }
-        ]
-        assert context["contextTruncated"] is False
-
-    def test_detector_preserves_every_trigger_condition(self):
-        triggers = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ALL)
-        detector = self.create_detector(workflow_condition_group=triggers)
-        conditions = [
-            self.create_data_condition(
-                condition_group=triggers,
-                comparison={"some_key": value},
-                condition_result=value,
-            )
-            for value in (False, 0, "")
-        ]
-
-        context = resolve_artifact_context("detector", str(detector.id)).item["context"]
-
-        assert context["conditionGroup"]["conditions"] == [
-            {
-                "id": str(condition.id),
-                "type": "eq",
-                "comparison": {"someKey": condition.condition_result},
-                "conditionResult": condition.condition_result,
-            }
-            for condition in conditions
-        ]
-        assert context["contextTruncated"] is False
-
-    def test_condition_groups_and_related_items_remain_organization_scoped(self):
-        other_org = self.create_organization()
-        foreign_triggers = self.create_data_condition_group(organization=other_org)
-        self.create_data_condition(
-            condition_group=foreign_triggers, comparison=True, condition_result=True
-        )
-        workflow = self.create_workflow(when_condition_group=foreign_triggers)
-        detector = self.create_detector(workflow_condition_group=foreign_triggers)
-        foreign_detector = self.create_detector(project=self.create_project(organization=other_org))
-        foreign_workflow = self.create_workflow(organization=other_org)
-        self.create_detector_workflow(workflow=workflow, detector=foreign_detector)
-        self.create_detector_workflow(workflow=foreign_workflow, detector=detector)
-        self.create_workflow_data_condition_group(
-            workflow=workflow, condition_group=foreign_triggers
-        )
-
-        workflow_context = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
-        detector_context = resolve_artifact_context("detector", str(detector.id)).item["context"]
-
-        assert workflow_context["whenConditionGroupId"] == str(foreign_triggers.id)
-        assert workflow_context["triggers"] is None
-        assert workflow_context["actionFilters"] == []
-        assert workflow_context["detectors"] == []
-        assert detector_context["workflowConditionGroupId"] == str(foreign_triggers.id)
-        assert detector_context["conditionGroup"] is None
-        assert detector_context["workflows"] == []
-
-    def test_condition_cap_is_global_and_truncation_is_explicit(self):
-        triggers = self.create_data_condition_group()
-        filters = self.create_data_condition_group()
-        workflow = self.create_workflow(when_condition_group=triggers)
-        self.create_workflow_data_condition_group(workflow=workflow, condition_group=filters)
-        conditions = [
-            self.create_data_condition(
-                condition_group=triggers, comparison=value, condition_result=True
-            )
-            for value in range(CONFIGURATION_ITEM_LIMIT - 1)
-        ]
-        last_condition = self.create_data_condition(
-            condition_group=filters, comparison=0, condition_result=False
-        )
-
-        complete = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
-
-        assert len(complete["triggers"]["conditions"]) == len(conditions)
-        assert complete["actionFilters"][0]["conditions"][0]["id"] == str(last_condition.id)
-        assert complete["contextTruncated"] is False
-
-        self.create_data_condition(condition_group=filters, comparison=1, condition_result=True)
-
-        truncated = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
-
-        assert len(truncated["triggers"]["conditions"]) == CONFIGURATION_ITEM_LIMIT - 1
-        assert len(truncated["actionFilters"][0]["conditions"]) == 1
-        assert truncated["contextTruncated"] is True
-
-    def test_action_cap_preserves_all_actions_until_truncation(self):
-        filters = self.create_data_condition_group()
-        workflow = self.create_workflow()
-        self.create_workflow_data_condition_group(workflow=workflow, condition_group=filters)
-        actions = [self.create_action() for _ in range(CONFIGURATION_ITEM_LIMIT)]
-        for action in actions:
-            self.create_data_condition_group_action(condition_group=filters, action=action)
-
-        complete = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
-
-        assert [action["id"] for action in complete["actionFilters"][0]["actions"]] == [
-            str(action.id) for action in actions
-        ]
-        assert complete["contextTruncated"] is False
-
-        self.create_data_condition_group_action(condition_group=filters)
-
-        truncated = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
-
-        assert len(truncated["actionFilters"][0]["actions"]) == CONFIGURATION_ITEM_LIMIT
-        assert truncated["contextTruncated"] is True
-
-    def test_group_cap_reserves_space_for_workflow_triggers(self):
-        triggers = self.create_data_condition_group()
-        workflow = self.create_workflow(when_condition_group=triggers)
-        filters = [self.create_data_condition_group() for _ in range(RELATED_ITEM_LIMIT - 1)]
-        for group in filters:
-            self.create_workflow_data_condition_group(workflow=workflow, condition_group=group)
-
-        complete = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
-
-        assert complete["triggers"]["id"] == str(triggers.id)
-        assert [group["id"] for group in complete["actionFilters"]] == [
-            str(group.id) for group in filters
-        ]
-        assert complete["contextTruncated"] is False
-
-        self.create_workflow_data_condition_group(
-            workflow=workflow, condition_group=self.create_data_condition_group()
-        )
-
-        truncated = resolve_artifact_context("workflow", str(workflow.id)).item["context"]
-
-        assert truncated["triggers"]["id"] == str(triggers.id)
-        assert len(truncated["actionFilters"]) == RELATED_ITEM_LIMIT - 1
-        assert truncated["contextTruncated"] is True
+        assert target.instance == detector
+        assert target.organization.id == self.organization.id
+        assert target.project_ids == [self.project.id]
 
     def test_projectless_detector_uses_configured_organization(self):
         org = self.create_organization()
@@ -431,26 +89,20 @@ class ResolveArtifactContextTest(TestCase):
         detector = self.create_all_projects_detector(org)
         self.create_project()
 
-        context = resolve_artifact_context("detector", str(detector.id))
+        target = resolve_artifact_target("detector", str(detector.id))
 
-        assert context.organization.id == org.id
-        assert context.project_ids == [project.id]
-        assert context.item["projectId"] is None
-        assert context.item["organizationId"] == str(org.id)
-        assert context.item["context"]["config"]["organization_id"] == org.id
-        assert type(context.item["context"]["config"]["organization_id"]) is int
+        assert target.organization.id == org.id
+        assert target.project_ids == [project.id]
 
-    def test_group_resolves_project_and_related_detector(self):
-        group = self.create_group()
-        detector = self.create_detector(project=self.project)
-        self.create_detector_group(detector=detector, group=group)
+    def test_group_scopes_to_its_project(self):
+        group = self.create_group(project=self.project)
+        self.create_project()
 
-        context = resolve_artifact_context("group", str(group.id))
+        target = resolve_artifact_target("group", str(group.id))
 
-        assert context.project_ids == [self.project.id]
-        assert context.item["organizationId"] == str(self.organization.id)
-        assert context.item["projectId"] == str(self.project.id)
-        assert context.item["context"]["detectors"][0]["id"] == str(detector.id)
+        assert target.instance == group
+        assert target.organization.id == self.organization.id
+        assert target.project_ids == [self.project.id]
 
     def test_event_lookup_is_scoped_to_the_requested_project_and_tenant(self):
         event = self.store_event(
@@ -461,61 +113,48 @@ class ResolveArtifactContextTest(TestCase):
             "sentry.workflow_engine.artifacts.eventstore.backend.get_event_by_id",
             return_value=event,
         ) as get_event:
-            context = resolve_artifact_context("event", EVENT_ID, self.project.id)
+            target = resolve_artifact_target("event", EVENT_ID, self.project)
 
         get_event.assert_called_once_with(
             self.project.id, EVENT_ID, tenant_ids={"organization_id": self.organization.id}
         )
-        assert context.project_ids == [self.project.id]
-        assert context.item["id"] == EVENT_ID
+        assert target.instance == event
+        assert target.project_ids == [self.project.id]
 
     def test_event_missing_in_selected_project_is_not_found(self):
         with patch(
             "sentry.workflow_engine.artifacts.eventstore.backend.get_event_by_id", return_value=None
         ):
             with pytest.raises(Http404):
-                resolve_artifact_context("event", EVENT_ID, self.project.id)
+                resolve_artifact_target("event", EVENT_ID, self.project)
 
-    def assert_missing_database_object_is_not_found(self, item_type):
-        with pytest.raises(Http404):
-            resolve_artifact_context(item_type, str(2**63 - 1))
-
-    def test_missing_workflow_is_not_found(self):
-        self.assert_missing_database_object_is_not_found("workflow")
-
-    def test_missing_detector_is_not_found(self):
-        self.assert_missing_database_object_is_not_found("detector")
-
-    def test_missing_group_is_not_found(self):
-        self.assert_missing_database_object_is_not_found("group")
+    def test_missing_database_object_is_not_found(self):
+        for item_type in ("workflow", "detector", "group"):
+            with pytest.raises(Http404):
+                resolve_artifact_target(item_type, str(2**63 - 1))
 
 
 @cell_silo_test
 class QueryArtifactsTest(TestCase):
-    def context(self, item_type="workflow", item_id="123", project_ids=None):
-        return ArtifactContext(
+    def target(self, item_type="workflow", item_id="123", project_ids=None):
+        return ArtifactTarget(
+            type=item_type,
+            id=item_id,
             organization=self.organization,
             project_ids=[self.project.id] if project_ids is None else project_ids,
-            item={
-                "type": item_type,
-                "id": item_id,
-                "organizationId": str(self.organization.id),
-                "projectId": str(self.project.id),
-                "name": "artifact item",
-                "context": {},
-            },
+            instance=self.create_workflow(),
         )
 
     def assert_transport_request_enforces_item_tenant_project_time_and_storage(
         self, item_type, item_id, attribute, attribute_type, value
     ):
         project = self.create_project()
-        context = self.context(item_type, item_id, [self.project.id, project.id])
+        target = self.target(item_type, item_id, [self.project.id, project.id])
         start = NOW - timedelta(days=1)
         with patch(
             "sentry.workflow_engine.artifacts.table_rpc", return_value=[TraceItemTableResponse()]
         ) as rpc:
-            result = query_artifacts(context, start=start, end=NOW)
+            result = query_artifacts(target, start=start, end=NOW)
 
         assert result.artifacts == []
         assert result.truncated is False
@@ -547,7 +186,7 @@ class QueryArtifactsTest(TestCase):
     def test_no_projects_means_no_unscoped_query(self):
         with patch("sentry.workflow_engine.artifacts.table_rpc") as rpc:
             result = query_artifacts(
-                self.context(project_ids=[]), start=NOW - timedelta(days=1), end=NOW
+                self.target(project_ids=[]), start=NOW - timedelta(days=1), end=NOW
             )
         assert result.artifacts == []
         assert result.truncated is False
@@ -576,7 +215,7 @@ class QueryArtifactsTest(TestCase):
         with patch(
             "sentry.workflow_engine.artifacts.table_rpc", return_value=[table_response(rows)]
         ) as rpc:
-            result = query_artifacts(self.context(), start=NOW - timedelta(days=1), end=NOW)
+            result = query_artifacts(self.target(), start=NOW - timedelta(days=1), end=NOW)
 
         rpc.assert_called_once()
         by_id = {artifact["itemId"]: artifact for artifact in result.artifacts}
@@ -597,7 +236,7 @@ class QueryArtifactsTest(TestCase):
         with patch(
             "sentry.workflow_engine.artifacts.table_rpc", return_value=[table_response(rows)]
         ) as rpc:
-            result = query_artifacts(self.context(), start=NOW - timedelta(days=1), end=NOW)
+            result = query_artifacts(self.target(), start=NOW - timedelta(days=1), end=NOW)
         assert len(result.artifacts) == 100
         assert result.truncated is truncated
         assert result.artifacts[0]["itemId"] == f"{count:032x}"
@@ -617,7 +256,7 @@ class QueryArtifactsTest(TestCase):
             "sentry.workflow_engine.artifacts.table_rpc", return_value=[table_response(rows)]
         ) as rpc:
             result = query_artifacts(
-                self.context("event", EVENT_ID), start=NOW - timedelta(days=1), end=NOW
+                self.target("event", EVENT_ID), start=NOW - timedelta(days=1), end=NOW
             )
 
         rpc.assert_called_once()
@@ -638,7 +277,7 @@ class QueryArtifactsTest(TestCase):
             2, project_id=self.project.id, detector_id=AttributeValue(val_int=456)
         )
         related_other_project = artifact_row(1, project_id=self.project.id + 1)
-        context = self.context(project_ids=[self.project.id, self.project.id + 1])
+        target = self.target(project_ids=[self.project.id, self.project.id + 1])
         with patch(
             "sentry.workflow_engine.artifacts.table_rpc",
             side_effect=[
@@ -646,7 +285,7 @@ class QueryArtifactsTest(TestCase):
                 [table_response([related, primary, related_other_project])],
             ],
         ) as rpc:
-            result = query_artifacts(context, start=NOW - timedelta(days=1), end=NOW)
+            result = query_artifacts(target, start=NOW - timedelta(days=1), end=NOW)
 
         assert rpc.call_count == 2
         first = rpc.call_args_list[0].args[0][0]
@@ -670,7 +309,7 @@ class QueryArtifactsTest(TestCase):
         with patch(
             "sentry.workflow_engine.artifacts.table_rpc", return_value=[table_response([row])]
         ) as rpc:
-            query_artifacts(self.context("detector"), start=NOW - timedelta(days=1), end=NOW)
+            query_artifacts(self.target("detector"), start=NOW - timedelta(days=1), end=NOW)
         rpc.assert_called_once()
 
     def test_correlation_trace_cap_marks_truncation(self):
@@ -687,7 +326,7 @@ class QueryArtifactsTest(TestCase):
             "sentry.workflow_engine.artifacts.table_rpc",
             side_effect=[[table_response(rows)], [TraceItemTableResponse()]],
         ) as rpc:
-            result = query_artifacts(self.context(), start=NOW - timedelta(days=1), end=NOW)
+            result = query_artifacts(self.target(), start=NOW - timedelta(days=1), end=NOW)
         assert rpc.call_count == 2
         expansion = rpc.call_args_list[1].args[0][0]
         assert len(expansion.filter.comparison_filter.value.val_str_array.values) == 50
@@ -702,7 +341,7 @@ class QueryArtifactsTest(TestCase):
             "sentry.workflow_engine.artifacts.table_rpc",
             side_effect=[[table_response([primary])], [table_response(expansion)]],
         ) as rpc:
-            result = query_artifacts(self.context(), start=NOW - timedelta(days=1), end=NOW)
+            result = query_artifacts(self.target(), start=NOW - timedelta(days=1), end=NOW)
         assert rpc.call_count == 2
         assert len(result.artifacts) == 101
         assert result.truncated is True
