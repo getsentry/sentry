@@ -295,34 +295,14 @@ def fire_actions(
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 
-def filter_recently_fired_workflow_actions(
-    filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
-) -> tuple[BaseQuerySet[Action], dict[ActionId, WorkflowId]]:
-    """
-    Returns actions associated with the provided DataConditionGroups, excluding
-    those that have been recently fired, along with a mapping of action_id to
-    the workflow_id each action is firing for. Also updates associated
-    WorkflowActionGroupStatus objects.
-    """
-
-    data_condition_group_actions = DataConditionGroupAction.objects.filter(
-        condition_group__in=filtered_action_groups
-    ).values_list("action_id", "condition_group__workflowdataconditiongroup__workflow_id")
-
-    action_to_workflows_ids: dict[int, set[int]] = defaultdict(set)
-    workflow_ids: set[int] = set()
-
-    for action_id, workflow_id in data_condition_group_actions:
-        # If we are mid-deletion, the workflow_id can be none.
-        if workflow_id is not None:
-            action_to_workflows_ids[action_id].add(workflow_id)
-            workflow_ids.add(workflow_id)
-
+def _filter_recently_fired_alert_actions(
+    action_to_workflows_ids: dict[int, set[int]], group: Group
+) -> dict[int, set[int]]:
+    workflow_ids = {workflow_id for ids in action_to_workflows_ids.values() for workflow_id in ids}
     workflows = Workflow.objects.filter(id__in=workflow_ids)
-
     action_to_statuses = get_workflow_action_group_statuses(
         action_to_workflows_ids=action_to_workflows_ids,
-        group=event_data.require_group(),
+        group=group,
         workflow_ids=workflow_ids,
     )
     now = timezone.now()
@@ -331,7 +311,7 @@ def filter_recently_fired_workflow_actions(
             action_to_workflows_ids=action_to_workflows_ids,
             action_to_statuses=action_to_statuses,
             workflows=workflows,
-            group=event_data.require_group(),
+            group=group,
             now=now,
         )
     )
@@ -343,14 +323,48 @@ def filter_recently_fired_workflow_actions(
         if not action_to_workflows_ids[action_id]:
             action_to_workflows_ids.pop(action_id)
 
-    actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
+    return action_to_workflows_ids
 
-    # Build a mapping of action_id -> workflow_id (pick one arbitrarily but deterministically)
-    action_to_workflow_id: dict[ActionId, WorkflowId] = {
-        action_id: min(wf_ids) for action_id, wf_ids in action_to_workflows_ids.items()
+
+def filter_recently_fired_workflow_actions(
+    filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
+) -> tuple[BaseQuerySet[Action], dict[ActionId, WorkflowId], set[WorkflowId]]:
+    """Select actions and their eligible workflows before equivalent-action deduplication.
+
+    Inbox workflows bypass group-frequency state. Alert workflows retain their
+    existing per-group suppression. The complete eligible workflow set is returned
+    for history, while each action is attributed to one workflow for task dispatch.
+    """
+    organization = event_data.get_organization()
+    associations = DataConditionGroupAction.objects.filter(
+        condition_group__in=filtered_action_groups,
+        condition_group__workflowdataconditiongroup__workflow__organization_id=organization.id,
+    ).values_list(
+        "action_id",
+        "condition_group__workflowdataconditiongroup__workflow_id",
+        "condition_group__workflowdataconditiongroup__workflow__type",
+    )
+    inbox_actions: dict[int, set[int]] = defaultdict(set)
+    alert_actions: dict[int, set[int]] = defaultdict(set)
+    for action_id, workflow_id, workflow_type in associations:
+        if workflow_type == Workflow.Type.INBOX:
+            inbox_actions[action_id].add(workflow_id)
+        elif event_data.group is not None:
+            alert_actions[action_id].add(workflow_id)
+
+    eligible_actions = inbox_actions
+    if alert_actions and event_data.group is not None:
+        for action_id, workflow_ids in _filter_recently_fired_alert_actions(
+            alert_actions, event_data.group
+        ).items():
+            eligible_actions[action_id].update(workflow_ids)
+
+    actions = get_supported_actions(Action.objects.filter(id__in=eligible_actions), event_data)
+    action_to_workflow_id = {action.id: min(eligible_actions[action.id]) for action in actions}
+    eligible_workflow_ids = {
+        workflow_id for action in actions for workflow_id in eligible_actions[action.id]
     }
-
-    return actions_queryset, action_to_workflow_id
+    return actions, action_to_workflow_id, eligible_workflow_ids
 
 
 def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:
