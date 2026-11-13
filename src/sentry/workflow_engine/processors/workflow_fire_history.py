@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from datetime import datetime, timezone
 
 from django.db.models import OuterRef, Subquery
@@ -30,6 +30,8 @@ def create_workflow_fire_histories(
     event_data: WorkflowEventData,
     is_delayed: bool = False,
     start_timestamp: datetime | None = None,
+    *,
+    eligible_workflow_ids: Collection[int] | None = None,
 ) -> list[WorkflowFireHistory]:
     """
     Record that the workflows associated with these actions were fired for this
@@ -45,6 +47,9 @@ def create_workflow_fire_histories(
             workflow__organization_id=organization.id,
         ).values_list("workflow_id", flat=True)
     )
+
+    if eligible_workflow_ids is not None:
+        workflow_ids.intersection_update(eligible_workflow_ids)
 
     event_id = event_data.event_id
 
