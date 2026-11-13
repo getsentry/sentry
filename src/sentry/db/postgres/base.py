@@ -16,9 +16,11 @@ from .schema import DatabaseSchemaEditorProxy
 
 __all__ = ("DatabaseWrapper",)
 
+# Transactions opening fewer savepoints are not reported, to keep the distribution's volume down.
 SAVEPOINT_DISTRIBUTION_MIN = 10
 # Postgres caches 64 subtransaction ids per backend; past that, every snapshot falls back to pg_subtrans.
 SAVEPOINT_CACHE_SIZE = 64
+FIRST_OVERFLOWING_SAVEPOINT = SAVEPOINT_CACHE_SIZE + 1
 
 
 def remove_null(value: str) -> str:
@@ -123,7 +125,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
         self.execute_wrappers.extend((_execute__include_sql_in_error, _execute__clean_params))
-        self.savepoint_count = 0
+        self.savepoints_opened = 0
 
     @auto_reconnect_connection
     def _cursor(self, *args: Any, **kwargs: Any) -> Any:
@@ -140,8 +142,8 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
 
     def _savepoint(self, sid: str) -> None:
         super()._savepoint(sid)
-        self.savepoint_count += 1
-        if self.savepoint_count == SAVEPOINT_CACHE_SIZE + 1:
+        self.savepoints_opened += 1
+        if self.savepoints_opened == FIRST_OVERFLOWING_SAVEPOINT:
             tags = _savepoint_metric_tags(self.alias)
             metrics.incr("db.transaction.savepoint_overflow", tags=tags)
 
@@ -149,26 +151,26 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         try:
             super()._commit()
         finally:
-            self._end_savepoint_count()
+            self._report_savepoints_opened()
 
     def _rollback(self) -> None:
         try:
             super()._rollback()
         finally:
-            self._end_savepoint_count()
+            self._report_savepoints_opened()
 
-    def _end_savepoint_count(self) -> None:
-        savepoint_count = self.savepoint_count
-        self.savepoint_count = 0
-        if savepoint_count >= SAVEPOINT_DISTRIBUTION_MIN:
+    def _report_savepoints_opened(self) -> None:
+        savepoints_opened = self.savepoints_opened
+        self.savepoints_opened = 0
+        if savepoints_opened >= SAVEPOINT_DISTRIBUTION_MIN:
             tags = _savepoint_metric_tags(self.alias)
-            metrics.distribution("db.transaction.savepoints", savepoint_count, tags=tags)
+            metrics.distribution("db.transaction.savepoints", savepoints_opened, tags=tags)
 
     def close(self, reconnect: bool = False) -> None:
         """
         This ensures we don't error if the connection has already been closed.
         """
-        self._end_savepoint_count()
+        self._report_savepoints_opened()
         if self.connection is not None:
             if not self.connection.closed:
                 try:
