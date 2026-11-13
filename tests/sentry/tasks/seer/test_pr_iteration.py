@@ -1291,6 +1291,28 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger.assert_called_once()
         assert take_stranded_action(run_id=67890, organization_id=self.organization.id) is None
 
+    @patch(f"{TASK_PATH}.can_run_seer_operation", return_value=False)
+    @patch(f"{TASK_PATH}.trigger_pr_iteration_details")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_returns_and_keeps_queue_when_out_of_credits(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_claim: MagicMock,
+        _mock_can_run: MagicMock,
+    ) -> None:
+        # The feedback waits for a top-up instead of being taken off the queue and dropped.
+        mock_fetch.return_value = self._state()
+
+        self._call()
+
+        mock_claim.assert_not_called()
+        mock_pop.assert_not_called()
+        mock_trigger.assert_not_called()
+
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")

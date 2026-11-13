@@ -129,6 +129,7 @@ from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerUnavailableError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -706,6 +707,23 @@ def _drain_queued_autofix_feedback(
             left_queued_count=count_queued_autofix_feedback(run_id),
         )
         _record_drain_outcome("skipped_push_pending", trigger_source)
+        return
+
+    # Leave the feedback queued while the organization can't pay, so it runs after a top-up
+    # instead of being dropped. The queue still expires after a day.
+    if not can_run_seer_operation(
+        group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+    ):
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="out_of_credits",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            left_queued_count=count_queued_autofix_feedback(run_id),
+        )
+        _record_drain_outcome("skipped_out_of_credits", trigger_source)
         return
 
     # Claim before the pop, so feedback arriving mid-drain opens its own row.
