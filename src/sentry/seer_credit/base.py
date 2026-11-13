@@ -22,8 +22,11 @@ class SeerCredit(Service):
     def check_seer_credits(self, request: CheckSeerCreditsRequest) -> CheckSeerCreditsResponse:
         return CheckSeerCreditsResponse(has_enough_credits=True)
 
-    def request_top_up(self, organization: Organization, requester: RpcUser) -> None:
+    def request_top_up(self, organization: Organization, requester: RpcUser) -> bool:
         """
         Asks the people who manage the organization's billing to add Seer credits,
-        on behalf of a member who can't. Self-hosted never runs out, so nobody is asked.
+        on behalf of a member who can't. Returns whether they were asked: a member
+        who already asked this billing period doesn't ask again. Self-hosted never
+        runs out, so nobody is asked.
         """
+        return False
