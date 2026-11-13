@@ -504,16 +504,19 @@ function PayPendingInvoice({
 }) {
   // The payment form needs the amount up front. This shares its query, so the
   // intent is created once.
-  const {intentData, isLoading, isError, error} = usePaymentIntentData({
+  const {intentData, isLoading, isError, isFetching, error} = usePaymentIntentData({
     organizationSlug: organization.slug,
     invoiceId: invoiceGuid,
   });
+  // A failed refetch keeps the earlier error on the query until the next request
+  // settles, so only a finished request counts as a failure.
+  const failed = isError && !isFetching;
 
   useEffect(() => {
-    if (isError) {
+    if (failed) {
       onFailure(error ?? t('We could not start the payment. Please try again.'));
     }
-  }, [isError, error, onFailure]);
+  }, [failed, error, onFailure]);
 
   // The payment form reads the same query. Mounting it on a failed query
   // refetches it, which puts this component back to loading and unmounts the

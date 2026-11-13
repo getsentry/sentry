@@ -461,6 +461,75 @@ describe('openSeerAutoTopUpModal', () => {
     expect(intentMock).toHaveBeenCalledTimes(1);
   });
 
+  it('requests the payment again after a refetch failed', async () => {
+    const intentUrl = `/organizations/${organization.slug}/payments/pending-guid/new/`;
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        detail: 'Pay your last Seer credit purchase to turn on auto-load.',
+        invoiceId: 3,
+        invoiceGuid: 'pending-guid',
+      },
+    });
+    // The bank check fails, which makes the payment form refetch the intent.
+    MockApiClient.addMockResponse({
+      url: intentUrl,
+      body: {
+        amount: '1500',
+        clientSecret: 'ERROR',
+        currency: 'usd',
+        returnUrl: 'https://example.com/',
+        paymentIntentId: 'pi_1',
+        requiresAction: true,
+      },
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+    const conflictMock = MockApiClient.addMockResponse({
+      url: intentUrl,
+      statusCode: 409,
+      body: {detail: 'A payment attempt for this invoice is already in progress.'},
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(
+      await screen.findByText(
+        'A payment attempt for this invoice is already in progress.'
+      )
+    ).toBeInTheDocument();
+    expect(conflictMock).toHaveBeenCalledTimes(1);
+
+    const intentMock = MockApiClient.addMockResponse({
+      url: intentUrl,
+      body: {
+        amount: '1500',
+        clientSecret: 'pi_secret',
+        currency: 'usd',
+        returnUrl: 'https://example.com/',
+        paymentIntentId: 'pi_2',
+        requiresAction: true,
+      },
+    });
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    ).toBeInTheDocument();
+    expect(intentMock).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByText('A payment attempt for this invoice is already in progress.')
+    ).not.toBeInTheDocument();
+  });
+
   it('returns to the entered settings when bank verification fails', async () => {
     MockApiClient.addMockResponse({
       url,
