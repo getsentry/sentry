@@ -228,7 +228,7 @@ export function MonitorTable({
               <Hovercard
                 header={monitor.name}
                 body={<MetricDetectorDetailsDetect detector={monitor} />}
-                position="bottom-start"
+                position="right-start"
                 containerDisplayMode="block"
                 style={{minWidth: 0}}
               >
