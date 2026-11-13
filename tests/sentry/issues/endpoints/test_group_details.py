@@ -31,7 +31,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
-from sentry.models.grouphash import GroupHash
+from sentry.models.grouphash import GroupHash, GroupHashQuerySet
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsnooze import GroupSnooze
@@ -1199,11 +1199,16 @@ class GroupUpdateTest(APITestCase):
         with (
             self.tasks(),
             self.feature("projects:discard-groups"),
-            mock.patch("sentry.api.helpers.group_index.update.DISCARD_GROUP_HASH_BATCH_SIZE", 2),
+            mock.patch("sentry.deletions.tasks.groups.DISCARD_GROUP_HASH_BATCH_SIZE", 2),
+            mock.patch.object(
+                GroupHashQuerySet, "update", autospec=True, side_effect=GroupHashQuerySet.update
+            ) as update,
         ):
             resp = self.client.put(url, data={"discard": True})
 
         assert resp.status_code == 204
+        # 5 hashes in batches of 2
+        assert update.call_count == 3
         assert not Group.objects.filter(id=group.id).exists()
         tombstone = GroupTombstone.objects.get(previous_group_id=group.id)
         assert not GroupHash.objects.filter(id__in=hash_ids, group_id__isnull=False).exists()
@@ -1226,10 +1231,18 @@ class GroupUpdateTest(APITestCase):
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
 
-        with self.tasks(), self.feature("projects:discard-groups"):
+        with (
+            self.tasks(),
+            self.feature("projects:discard-groups"),
+            mock.patch(
+                "sentry.api.helpers.group_index.update.create_audit_entries"
+            ) as create_audit_entries,
+        ):
             resp = self.client.put(url, data={"discard": True})
 
         assert resp.status_code == 204
+        # The request that created the tombstone already recorded the discard.
+        create_audit_entries.assert_not_called()
         assert not Group.objects.filter(id=group.id).exists()
         assert GroupTombstone.objects.filter(previous_group_id=group.id).count() == 1
         for group_hash in (moved_hash, remaining_hash):

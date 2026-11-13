@@ -4,14 +4,16 @@ from uuid import uuid4
 import pytest
 
 from sentry import deletions, nodestore
-from sentry.deletions.tasks.groups import delete_groups_for_project
+from sentry.deletions.tasks.groups import delete_groups_for_project, discard_group
 from sentry.exceptions import DeleteAborted
+from sentry.locks import locks
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
+from sentry.models.grouptombstone import GroupTombstone
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -177,3 +179,47 @@ class DeleteGroupTest(TestCase):
             str(excinfo.value)
             == f"delete_groups.object_ids_too_large: {len(group_ids)} groups is greater than GROUP_CHUNK_SIZE"
         )
+
+
+class DiscardGroupTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+        self.tombstone = GroupTombstone.objects.create(
+            previous_group_id=self.group.id, project_id=self.project.id
+        )
+        self.group_hash = GroupHash.objects.create(
+            project=self.project, hash="a" * 32, group=self.group
+        )
+
+    def run_task(self) -> None:
+        discard_group(
+            group_id=self.group.id,
+            project_id=self.project.id,
+            tombstone_id=self.tombstone.id,
+            transaction_id=uuid4().hex,
+        )
+
+    def test_moves_hashes_before_marking_group_pending_deletion(self) -> None:
+        with patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task:
+            self.run_task()
+
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.group_id is None
+        assert self.group_hash.group_tombstone_id == self.tombstone.id
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.PENDING_DELETION
+        delete_task.apply_async.assert_called_once()
+        assert delete_task.apply_async.call_args.kwargs["kwargs"]["object_ids"] == [self.group.id]
+
+    def test_skips_when_another_copy_holds_the_lock(self) -> None:
+        lock = locks.get(f"discard-group:{self.group.id}", duration=60, name="discard_group")
+        with (
+            lock.acquire(),
+            patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task,
+        ):
+            self.run_task()
+
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.group_id == self.group.id
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
+        delete_task.apply_async.assert_not_called()

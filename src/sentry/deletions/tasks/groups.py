@@ -9,10 +9,17 @@ from sentry import deletions
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.exceptions import DeleteAborted
-from sentry.models.group import Group
+from sentry.locks import locks
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupinbox import GroupInbox
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import deletion_tasks
+from sentry.utils.locking import UnableToAcquireLock
+
+DISCARD_GROUP_HASH_BATCH_SIZE = 1000
+DISCARD_GROUP_TASK_DURATION_S = 15 * 60
 
 
 @instrumented_task(
@@ -79,3 +86,77 @@ def delete_groups_for_project(
     has_more = True
     while has_more:
         has_more = task.chunk()
+
+
+@instrumented_task(
+    name="sentry.deletions.tasks.groups.discard_group",
+    namespace=deletion_tasks,
+    processing_deadline_duration=DISCARD_GROUP_TASK_DURATION_S,
+    retry=Retry(
+        times=MAX_RETRIES,
+        delay=60 * 5,
+        on=(
+            Exception,
+            ProcessingDeadlineExceeded,
+        ),
+    ),
+    silo_mode=SiloMode.CELL,
+)
+def discard_group(
+    group_id: int,
+    project_id: int,
+    tombstone_id: int,
+    transaction_id: str,
+    **kwargs: Any,
+) -> None:
+    """
+    Move a discarded group's hashes to its tombstone, then schedule the group's deletion.
+
+    Safe to run again for the same group: it continues with the hashes that have not moved yet.
+    """
+    lock = locks.get(
+        f"discard-group:{group_id}",
+        duration=DISCARD_GROUP_TASK_DURATION_S,
+        name="discard_group",
+    )
+    try:
+        with lock.acquire():
+            _discard_group(group_id, project_id, tombstone_id, transaction_id)
+    except UnableToAcquireLock:
+        # Another copy of this task is already discarding the group.
+        pass
+
+
+def _discard_group(group_id: int, project_id: int, tombstone_id: int, transaction_id: str) -> None:
+    if not Group.objects.filter(id=group_id, project_id=project_id).exists():
+        return
+
+    # A group can have so many hashes that one UPDATE exceeds the statement timeout. Each batch
+    # commits on its own, so a retry continues instead of starting over.
+    while True:
+        hash_ids = list(
+            GroupHash.objects.filter(group_id=group_id).values_list("id", flat=True)[
+                :DISCARD_GROUP_HASH_BATCH_SIZE
+            ]
+        )
+        if not hash_ids:
+            break
+        GroupHash.objects.filter(id__in=hash_ids, group_id=group_id).update(
+            group=None, group_tombstone_id=tombstone_id
+        )
+
+    # Mark the group pending deletion only after every hash has moved. Deleting a group also
+    # deletes the hashes still attached to it, and `delete_pending_groups` deletes any group
+    # left pending, even if this task has stalled.
+    Group.objects.filter(id=group_id).exclude(
+        status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
+    ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
+    GroupInbox.objects.filter(project_id=project_id, group_id=group_id).delete()
+
+    delete_groups_for_project.apply_async(
+        kwargs={
+            "project_id": project_id,
+            "object_ids": [group_id],
+            "transaction_id": transaction_id,
+        }
+    )
