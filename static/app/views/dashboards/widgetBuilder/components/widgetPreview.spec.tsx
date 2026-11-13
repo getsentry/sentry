@@ -123,7 +123,7 @@ describe('WidgetPreview', () => {
         await screen.findByLabelText('Toggle p90(span.duration)')
       ).toBeInTheDocument();
       expect(
-        await screen.findByLabelText('Toggle p90(span.duration) · SMA(5)')
+        await screen.findByLabelText('Toggle p90(span.duration) · smooth(sma,5)')
       ).toBeInTheDocument();
     }
   );

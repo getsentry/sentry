@@ -13,7 +13,7 @@ describe('ChartLegend', () => {
             label: longLabel
               ? 'Average duration for database operations grouped by transaction'
               : 'avg(span.duration)',
-            suffix: 'fill(linear) → SMA(5)',
+            suffix: 'fill(linear) → smooth(sma,5)',
             color: '#069fba',
           },
         ]}

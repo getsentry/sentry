@@ -76,12 +76,14 @@ describe('TimeSeriesWidgetVisualization', () => {
     render(<TimeSeriesWidgetVisualization plottables={[original, transformed]} />);
 
     expect(
-      screen.getByRole('button', {name: 'Toggle Duration · fill(linear) → SMA(5)'})
+      screen.getByRole('button', {
+        name: 'Toggle Duration · fill(linear) → smooth(sma,5)',
+      })
     ).toBeInTheDocument();
     await userEvent.hover(screen.getByLabelText('Time series chart'));
 
     const tooltip = screen.getByRole('tooltip');
-    expect(tooltip).toHaveTextContent('Duration · fill(linear) → SMA(5)');
+    expect(tooltip).toHaveTextContent('Duration · fill(linear) → smooth(sma,5)');
     expect(within(tooltip).getAllByText('Duration')).toHaveLength(2);
     expect(tooltip).toHaveTextContent('7.46K/s');
   });

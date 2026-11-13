@@ -24,7 +24,7 @@ describe('ContinuousTimeSeries', () => {
       const plottable = new Dots(series, {alias: config.alias});
 
       expect(plottable.label).toBe(config.expectedLabel);
-      expect(plottable.labelSuffix).toBe('fill(linear) → SMA(5)');
+      expect(plottable.labelSuffix).toBe('fill(linear) → smooth(sma,5)');
     });
   });
 

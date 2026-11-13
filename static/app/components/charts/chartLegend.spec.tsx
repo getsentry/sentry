@@ -74,7 +74,7 @@ describe('ChartLegend', () => {
           {
             name: 'transformed-series',
             label: 'Duration',
-            suffix: 'fill(linear) → SMA(5)',
+            suffix: 'fill(linear) → smooth(sma,5)',
             color: '#ff0000',
           },
         ]}
@@ -84,12 +84,16 @@ describe('ChartLegend', () => {
     );
 
     await userEvent.click(
-      screen.getByRole('button', {name: 'Toggle Duration · fill(linear) → SMA(5)'})
+      screen.getByRole('button', {
+        name: 'Toggle Duration · fill(linear) → smooth(sma,5)',
+      })
     );
 
     expect(onSelectionChange).toHaveBeenCalledWith({'transformed-series': false});
     expect(
-      screen.getByRole('checkbox', {name: 'Duration · fill(linear) → SMA(5)'})
+      screen.getByRole('checkbox', {
+        name: 'Duration · fill(linear) → smooth(sma,5)',
+      })
     ).toBeChecked();
   });
 
@@ -104,7 +108,12 @@ describe('ChartLegend', () => {
         truncateMenuLabels
         items={[
           {name: 'original', label: 'Duration', color: '#ff0000'},
-          {name: 'smoothed', label: 'Duration', suffix: 'SMA(5)', color: '#0000ff'},
+          {
+            name: 'smoothed',
+            label: 'Duration',
+            suffix: 'smooth(sma,5)',
+            color: '#0000ff',
+          },
         ]}
         selected={{}}
         onSelectionChange={onSelectionChange}
@@ -112,7 +121,7 @@ describe('ChartLegend', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Duration · SMA(5)'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Duration · smooth(sma,5)'}));
 
     expect(onSelectionChange).toHaveBeenCalledWith({original: true, smoothed: false});
   });
