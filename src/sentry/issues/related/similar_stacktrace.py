@@ -47,6 +47,11 @@ from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
+# What this type finds, for the API docs
+SIMILAR_STACKTRACE_DESCRIPTION = (
+    "Issues in the same project whose stack traces Seer finds similar to this issue's latest "
+    "event. Only error issues have them."
+)
 SIMILARITY_UNAVAILABLE_DETAIL = "Similar stack traces are temporarily unavailable. Try again later."
 NOT_AN_ERROR_DETAIL = "Only error issues have similar stack traces."
 SIMILARITY_DISABLED_DETAIL = "Seer similarity isn't enabled for this project."

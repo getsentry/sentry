@@ -498,6 +498,33 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "tags[organization.id,string]" in org_id
         assert org_id["tags[organization.id,string]"]["attributeSource"] == {"source_type": "user"}
 
+    def test_expand_context_user_attribute_shadowing_sentry_attribute(self) -> None:
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={"severity": "user-severity"},
+            ),
+        ]
+        self.store_eap_items(logs)
+
+        response = self.do_request(query={"attributeType": "string", "expand": "context"})
+
+        assert response.status_code == 200, response.content
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["tags[severity,string]"]["attributeSource"] == {"source_type": "user"}
+        assert attributes["tags[severity,string]"]["context"] == {}
+        assert attributes["severity"]["attributeSource"] == {"source_type": "sentry"}
+        assert attributes["severity"]["context"] == {
+            "isConvention": False,
+            "brief": (
+                "The severity level assigned to the log, indicating its impact. "
+                "Higher severity indicates more critical issues that need attention."
+            ),
+            "examples": ["error", "warn", "info"],
+            "isDeprecated": False,
+        }
+
     def test_boolean_attributes(self) -> None:
         logs = [
             self.create_ourlog(
@@ -830,6 +857,57 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         message = attributes["tags[message,string]"]
         assert message["name"] == "message"
         assert message["context"] == {}
+
+    def _store_segment_with_user_span_description(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            tags={"span.description": "user-description"},
+        )
+
+    def test_expand_context_user_attribute_shadowing_sentry_attribute(self) -> None:
+        self._store_segment_with_user_span_description()
+
+        response = self.do_request(query={"attributeType": "string", "expand": "context"})
+
+        assert response.status_code == 200, response.data
+        attributes = {item["key"]: item for item in response.data}
+        user_description = attributes["tags[span.description,string]"]
+        assert user_description["attributeSource"] == {"source_type": "user"}
+        assert user_description["context"] == {}
+        assert attributes["span.description"]["attributeSource"] == {"source_type": "sentry"}
+        assert attributes["span.description"]["context"] == {
+            "isConvention": False,
+            "brief": "Description of the span's operation.",
+            "isDeprecated": False,
+        }
+
+    def test_expand_context_custom_attribute_shadowing_sentry_attribute(self) -> None:
+        self._store_segment_with_user_span_description()
+        self.create_context("span.description", brief="Our own description")
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+
+        assert response.status_code == 200, response.data
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["tags[span.description,string]"]["context"] == {
+            "isCustom": True,
+            "brief": "Our own description",
+        }
+        assert attributes["span.description"]["context"] == {
+            "isConvention": False,
+            "brief": "Description of the span's operation.",
+            "isDeprecated": False,
+        }
 
     def test_expand_context_units(self) -> None:
         self.store_segment(
