@@ -5,6 +5,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {toast} from '@sentry/scraps/toast';
 
+import {useSeerCreditCheck} from 'sentry/utils/seer/useSeerCreditCheck';
 import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {DiffFileType, DiffLineType} from './types';
@@ -1283,6 +1284,71 @@ describe('useExplorerAutofix - createPR', () => {
     );
   });
 
+  it('says a push was refused for credits and rechecks credits', async () => {
+    const errorSpy = jest.spyOn(toast, 'error');
+    const organization = OrganizationFixture({
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+    });
+    const creditCheck = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/credit-check/`,
+      body: {hasEnoughCredits: true},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {
+        autofix: {
+          run_id: 42,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {
+            'org/repo': {
+              repo_name: 'org/repo',
+              branch_name: 'seer/fix',
+              commit_sha: 'abc1234',
+              pr_creation_status: 'error',
+              pr_creation_error: null,
+              pr_id: 7,
+              pr_number: 7,
+              pr_url: 'https://github.com/org/repo/pull/7',
+              title: 'Fix',
+            },
+          },
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 402,
+      body: {
+        detail:
+          'Your organization does not have enough credits to continue your Autofix run.',
+        code: 'seer_out_of_credits',
+      },
+    });
+
+    const {result} = renderHookWithProviders(
+      () => ({
+        autofix: useExplorerAutofix(MOCK_GROUP),
+        credits: useSeerCreditCheck('autofix_open_pr'),
+      }),
+      {organization}
+    );
+    await waitFor(() => expect(result.current.autofix.runState?.run_id).toBe(42));
+    await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(1));
+
+    await expect(
+      act(() => result.current.autofix.createPR(42, 'org/repo'))
+    ).rejects.toThrow();
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Seer couldn't push changes to org/repo#7 because your organization is out of credits."
+    );
+    await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(2));
+  });
+
   it('shows an error toast and throws on API error', async () => {
     MockApiClient.addMockResponse({
       url: AUTOFIX_URL,
@@ -1746,6 +1812,51 @@ describe('useExplorerAutofix - startStep errors', () => {
     expect(toast.error).toHaveBeenCalledWith(
       'Cannot re-run a step after a pull request or coding agent has started'
     );
+  });
+
+  it('says a kickoff was refused for credits, rechecks credits, and paints no failed run', async () => {
+    const errorSpy = jest.spyOn(toast, 'error');
+    const organization = OrganizationFixture({
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+    });
+    const creditCheck = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/credit-check/`,
+      body: {hasEnoughCredits: true},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 402,
+      body: {
+        detail: 'Your organization does not have enough credits to start an Autofix run.',
+        code: 'seer_out_of_credits',
+      },
+    });
+
+    const {result} = renderHookWithProviders(
+      () => ({
+        autofix: useExplorerAutofix(MOCK_GROUP),
+        credits: useSeerCreditCheck('autofix_root_cause'),
+      }),
+      {organization}
+    );
+    await waitFor(() => expect(result.current.autofix.isLoading).toBe(false));
+    await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(1));
+
+    await expect(
+      act(() => result.current.autofix.startStep('root_cause'))
+    ).rejects.toThrow();
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Seer couldn't start on the root cause because your organization is out of credits."
+    );
+    expect(result.current.autofix.runState).toBeNull();
+    await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(2));
   });
 
   it('falls back to the error state when a kickoff fails with no existing run', async () => {

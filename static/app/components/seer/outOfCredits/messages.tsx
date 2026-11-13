@@ -22,6 +22,33 @@ export const OUT_OF_CREDITS_STEP_MESSAGE: Record<AutofixExplorerStep, string> = 
   ),
 };
 
+/**
+ * Toast for an autofix step the backend refused to start because the
+ * organization is out of credits.
+ */
+export const OUT_OF_CREDITS_START_STEP_MESSAGE: Record<AutofixExplorerStep, string> = {
+  root_cause: t(
+    "Seer couldn't start on the root cause because your organization is out of credits."
+  ),
+  solution: t(
+    "Seer couldn't start on the plan because your organization is out of credits."
+  ),
+  code_changes: t(
+    "Seer couldn't start on the code changes because your organization is out of credits."
+  ),
+  pr_iteration: t(
+    "Seer couldn't update the pull request because your organization is out of credits."
+  ),
+};
+
+/**
+ * Toast for pull requests the backend refused to open because the
+ * organization is out of credits, when the request named no repo.
+ */
+export const OUT_OF_CREDITS_OPEN_PRS_MESSAGE = t(
+  "Seer couldn't open a pull request because your organization is out of credits."
+);
+
 export const OUT_OF_CREDITS_CHAT_MESSAGE = t(
   'Seer stopped because your organization is out of credits.'
 );
@@ -37,7 +64,9 @@ export const OUT_OF_CREDITS_RETRY_TOOLTIP = t(
  * Stands in for the backend's `pr_creation_error` on a PR that failed for
  * credits. A PR number means the PR already exists, so the push failed.
  */
-export function getOutOfCreditsPRMessage(state: RepoPRState): string {
+export function getOutOfCreditsPRMessage(
+  state: Pick<RepoPRState, 'pr_number' | 'repo_name'>
+): string {
   return state.pr_number
     ? t(
         "Seer couldn't push changes to %s#%s because your organization is out of credits.",
