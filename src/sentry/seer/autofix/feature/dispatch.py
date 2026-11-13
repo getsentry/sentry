@@ -46,6 +46,7 @@ from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_automation_handoff,
+    get_event_matched_project_repo_ids,
     is_free_cohort_org,
 )
 from sentry.seer.credits import SeerFeature, SeerOperation, has_enough_seer_credits
@@ -304,7 +305,11 @@ def _continue_single_run(
         existing_agent_run=agent_run,
         payload=payload.dict(),
         referrer=referrer.value,
-        user_org_context=collect_user_org_context(user, group.organization),
+        user_org_context=collect_user_org_context(
+            user,
+            group.organization,
+            priority_project_repo_ids=get_event_matched_project_repo_ids(group),
+        ),
         proxy_headers=get_proxy_headers(),
         agent_run_options=agent_run_options,
     )
@@ -436,7 +441,11 @@ def trigger_autofix_feature(
     if stopping_point is not None:
         extras["stopping_point"] = stopping_point.value
 
-    user_org_context = collect_user_org_context(args.user, group.organization)
+    user_org_context = collect_user_org_context(
+        args.user,
+        group.organization,
+        priority_project_repo_ids=get_event_matched_project_repo_ids(group),
+    )
     if is_new_run:
         run = client.start_feature_run(
             feature_id=SINGLE_RUN_FEATURE_ID if single_run else FEATURE_ID,
