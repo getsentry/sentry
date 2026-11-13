@@ -21,6 +21,7 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
+from sentry.seer.autofix.pr_iteration import queue as feedback_queue
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
 from sentry.seer.autofix.pr_iteration.emit import (
@@ -60,9 +61,12 @@ from sentry.seer.autofix.pr_iteration.pause import (
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     enqueue_autofix_feedback,
+    peek_in_flight_autofix_feedback,
     peek_queued_autofix_feedback,
+    pop_queued_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
+from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import (
@@ -82,6 +86,7 @@ from sentry.tasks.seer.pr_iteration import (
     trigger_pr_iteration_from_comment,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils.redis import redis_clusters
 
 FEEDBACK_PATH = "sentry.seer.autofix.pr_iteration.feedback"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
@@ -1606,6 +1611,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         # The batch is dropped and the run stops iterating.
         assert peek_queued_autofix_feedback(67890) == []
+        assert peek_in_flight_autofix_feedback(67890) == []
         assert (
             get_pause_reason(run_id=67890, organization_id=self.organization.id)
             == PauseReason.DRAIN_FAILED
@@ -1634,6 +1640,125 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._call()
 
         assert peek_queued_autofix_feedback(67890) == []
+        # It never reaches Seer, so the UI must stop showing it as queued.
+        assert peek_in_flight_autofix_feedback(67890) == []
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_queued_feedback_stays_visible_until_seer_has_it(
+        self, mock_fetch: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        self._enqueue_ui_feedback("fix it")
+        feedback = peek_queued_autofix_feedback(67890)[0].feedback
+
+        def queued_texts(state: SeerRunState) -> list[str]:
+            fields = get_pr_iteration_state_fields(self.organization, state, None)
+            return [item["text"] for item in fields["queued_feedback"]]
+
+        seen_during_trigger: list[str] = []
+
+        def poll_during_trigger(**kwargs: Any) -> None:
+            seen_during_trigger.extend(queued_texts(self._state()))
+
+        mock_trigger.side_effect = poll_during_trigger
+
+        self._call()
+
+        assert seen_during_trigger == ["fix it"]
+        # Once Seer has it, it isn't shown a second time.
+        block = MemoryBlock(
+            id="iter0",
+            message=Message(
+                role="assistant", metadata={"feedback": serialize_feedback([feedback])}
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        assert queued_texts(self._state(blocks=[block])) == []
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_dropped_feedback_is_not_left_in_flight(
+        self, mock_fetch: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        # The run has no PR head, so the check suite is dropped as stale.
+        mock_fetch.return_value = self._state()
+        self._enqueue_check_suite("2024-01-01T00:00:00Z")
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        assert mock_trigger.call_count == 1
+        assert [item.feedback.source.type for item in peek_in_flight_autofix_feedback(67890)] == [
+            "user-ui"
+        ]
+
+    def _enqueue_check_suite(self, updated_at: str) -> None:
+        enqueue_autofix_feedback(
+            log_ctx=PrIterationLogContext.for_run(
+                MagicMock(),
+                self._state(),
+                self.organization.id,
+                None,
+                iteration=LogCtxIteration.TRIGGERED,
+            ),
+            run_id=67890,
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+            feedback=self._check_suite_feedback(updated_at=updated_at),
+            referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+            run_state=self._state(),
+        )
+
+    def _hold_check_suite_in_flight(self, updated_at: str) -> None:
+        self._enqueue_check_suite(updated_at)
+        pop_queued_autofix_feedback(67890)
+
+    def _check_suite_block(self, updated_at: str) -> MemoryBlock:
+        feedback = self._check_suite_feedback(updated_at=updated_at)
+        return MemoryBlock(
+            id="iter0",
+            message=Message(
+                role="assistant", metadata={"feedback": serialize_feedback([feedback])}
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+
+    def _queued_suite_updated_ats(self, state: SeerRunState) -> list[str]:
+        fields = get_pr_iteration_state_fields(self.organization, state, None)
+        return [
+            item["source"]["event"]["check_suite"]["updated_at"]
+            for item in fields["queued_feedback"]
+        ]
+
+    def test_a_check_suite_rerun_stays_visible_while_seer_has_the_earlier_attempt(
+        self,
+    ) -> None:
+        # A re-run keeps the suite id and bumps updated_at.
+        self._hold_check_suite_in_flight("2024-01-02T00:00:00Z")
+        state = self._state(blocks=[self._check_suite_block("2024-01-01T00:00:00Z")])
+
+        assert self._queued_suite_updated_ats(state) == ["2024-01-02T00:00:00Z"]
+
+    def test_a_check_suite_attempt_seer_has_is_not_shown_again(self) -> None:
+        self._hold_check_suite_in_flight("2024-01-01T00:00:00Z")
+        state = self._state(blocks=[self._check_suite_block("2024-01-01T00:00:00Z")])
+
+        assert self._queued_suite_updated_ats(state) == []
+
+    def test_a_later_drain_keeps_earlier_in_flight_items(self) -> None:
+        self._enqueue_ui_feedback("first")
+        pop_queued_autofix_feedback(67890)
+        self._enqueue_ui_feedback("second")
+        pop_queued_autofix_feedback(67890)
+
+        assert peek_queued_autofix_feedback(67890) == []
+        assert [item.feedback.text for item in peek_in_flight_autofix_feedback(67890)] == [
+            "first",
+            "second",
+        ]
+        in_flight_ttl = redis_clusters.get("default").ttl(feedback_queue._in_flight_key(67890))
+        assert 0 < in_flight_ttl <= 60
 
     @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
