@@ -9,6 +9,7 @@ from datetime import date
 from pathlib import Path
 
 from tools.api_guidelines.owners import owner_for
+from tools.api_guidelines.rules import BASELINED_RULES
 from tools.api_guidelines.signature import BaselineSignature
 from tools.flake8_plugin import ApiInputViolation, get_api_violations
 
@@ -76,7 +77,7 @@ def build_entries(
 
 
 def collect_findings(root: Path) -> list[tuple[str, ApiInputViolation]]:
-    """Collects every API violation finding under root/src as a list
+    """Collects every finding of a baselined rule (S025-S028) under root/src as a list
     `root` the repo's top folder, the one that contains /src
     Returns a list of (`path`, `ApiInputViolation`) pairs where path is repo-based (i.e, "src/sentry/etc")
     """
@@ -93,9 +94,11 @@ def collect_findings(root: Path) -> list[tuple[str, ApiInputViolation]]:
 
         violations = get_api_violations(tree=module_node, filename=root_path, all_rules=True)
 
-        # one pair per violation and all point at the same file
+        # one pair per violation and all point at the same file. Note that rules without a baseline are
+        # skipped here and not later so the count check in main() still adds up
         for violation in violations:
-            path_violation.append((root_path, violation))
+            if violation.rule in BASELINED_RULES:
+                path_violation.append((root_path, violation))
 
     return path_violation
 
