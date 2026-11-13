@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Literal, NamedTuple
 
+from tools.api_guidelines.helper_kinds import Kind
 from tools.api_guidelines.rules import ApiRule
 
 S001_fmt = (
@@ -857,6 +858,19 @@ def _start_and_end(node: ast.expr) -> _StartEnd:
     )
 
 
+@dataclass(frozen=True)
+class _HelperCall:
+    """One call a function makes to a possible helper"""
+
+    kind: Kind
+    name: str
+    # (positional index or keyword name, what request input it carries: "request" / "query string" / "request body")
+    passes: list[tuple[int | str, str]]
+    # True when the call has *args or **kwargs, so what it forwards is unknown
+    starred: bool
+    at: _StartEnd
+
+
 # Short source names used in violation keys, so a query and a body read of the
 # same name stay separate violations.
 _SOURCE_PREFIX = {"query string": "query", "request body": "body"}
@@ -883,9 +897,16 @@ class ApiInputViolation:
 
 
 class _InputCtx:
-    """One PUBLIC method's input sources, gathered during the single traversal."""
+    """One top-level function's or method's input sources, gathered during the single traversal."""
 
-    def __init__(self, scope: str, declared_params: set[str], declared_body: set[str]) -> None:
+    def __init__(
+        self,
+        scope: str,
+        declared_params: set[str],
+        declared_body: set[str],
+        is_public: bool = False,
+        class_name: str | None = None,
+    ) -> None:
         self.scope = scope
         self.declared_params = declared_params
         self.declared_body = declared_body
@@ -902,6 +923,12 @@ class _InputCtx:
         self.safe_loop_vars: set[str] = set()
         # (start_end, callee, source) the whole dict passed somewhere
         self.hand_offs: list[tuple[_StartEnd, str, str]] = []
+        # true only for an HTTP method that publish_status marks PUBLIC on a top-level endpoint class
+        self.is_public = is_public
+        # the class a method is defined in (None for a module-level function)
+        self.class_name = class_name
+        # the calls this function makes to possible helpers
+        self.calls: list[_HelperCall] = []
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -974,6 +1001,12 @@ class SentryVisitor(ast.NodeVisitor):
         self._class_decorators: list[ast.expr] = []
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
+        # scope -> ctx for every top-level function and method in the file,
+        # i.e "Endpoint.get" or "function_name()", used to look a function up by name.
+        # A scope defined twice (an if/else def, or @overload then the real def) keeps the last one
+        self._functions: dict[str, _InputCtx] = {}
+        # every ctx in file order, duplicates included, so a scope defined twice is reported twice
+        self._function_ctxs: list[_InputCtx] = []
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module == _S030_LEGACY_MODULE and not node.level:
@@ -1120,6 +1153,7 @@ class SentryVisitor(ast.NodeVisitor):
         """Visitor for tracking top level constant variables that hold request fields to iterate over."""
         self._literal_var_constants = _collect_literal_var_constants(tree=node)
         self.generic_visit(node)
+        self._report_public_inputs()
 
     def _new_safe_loop_var(
         self, target: ast.expr, iter_node: ast.expr, curr_method: _InputCtx
@@ -1229,34 +1263,41 @@ class SentryVisitor(ast.NodeVisitor):
             self._class_decorators = outer_decorators
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        if len(self._class_stack) == 1 and self._function_depth == 0:
-            self._check_S021(node)
-            self._check_S022(node)
-        entered = self._enter_input(node)
-        self._function_depth += 1
-        self._function_stack.append(node.name)
-        try:
-            self.generic_visit(node)
-        finally:
-            self._function_stack.pop()
-            self._function_depth -= 1
-            if entered:
-                self._exit_input()
+        self._visit_function(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._visit_function(node)
+
+    def _visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         if len(self._class_stack) == 1 and self._function_depth == 0:
             self._check_S021(node)
             self._check_S022(node)
-        entered = self._enter_input(node)
+        ctx = self._new_input_ctx(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
+        pushed = False
         try:
-            self.generic_visit(node)
+            # decorators, defaults and annotations run outside the function body, so they're
+            # visited before its ctx is pushed, so reads and calls in @extend_schema(...) don't count as the function's
+            for decorator in node.decorator_list:
+                self.visit(decorator)
+            self.visit(node.args)
+            if node.returns is not None:
+                self.visit(node.returns)
+            for type_param in node.type_params:
+                self.visit(type_param)
+            if ctx is not None:
+                self._input_stack.append(ctx)
+                pushed = True
+            for statement in node.body:
+                self.visit(statement)
         finally:
             self._function_stack.pop()
             self._function_depth -= 1
-            if entered:
-                self._exit_input()
+            if pushed and ctx is not None:
+                self._input_stack.pop()
+                self._functions[ctx.scope] = ctx
+                self._function_ctxs.append(ctx)
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
         self._function_depth += 1
@@ -1451,23 +1492,45 @@ class SentryVisitor(ast.NodeVisitor):
                 ctx.record_read(node.slice, source, node)
         self.generic_visit(node)
 
-    def _enter_input(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-        """Push an accumulator for a PUBLIC HTTP method on an endpoint class."""
-        if len(self._class_stack) != 1 or self._function_depth != 0:
-            return False
-        if not self._publish_status or node.name not in HTTP_METHODS:
-            return False
-        if self._publish_status.get(node.name.upper()) != "PUBLIC":
-            return False
-        decorators = self._class_decorators + node.decorator_list
-        self._input_stack.append(
-            _InputCtx(
-                f"{self._class_stack[-1]}.{node.name}",
-                _declared_names(decorators, "parameters"),
-                _declared_names(decorators, "request"),
-            )
+    def _new_input_ctx(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> _InputCtx | None:
+        """Build the accumulator for a top-level function or a method of a top-level class, else None.
+
+        Only PUBLIC HTTP methods are reported. The others are stored too, so calls into
+        them can be followed. The caller pushes it onto _input_stack once the decorators
+        and arguments have been visited.
+        """
+        if self._function_depth != 0:
+            return None
+
+        if not self._class_stack:
+            ctx = _InputCtx(node.name, set(), set(), is_public=False)
+            return ctx
+
+        if len(self._class_stack) != 1:
+            return None
+
+        is_public = bool(
+            self._publish_status
+            and node.name in HTTP_METHODS
+            and self._publish_status.get(node.name.upper()) == "PUBLIC"
         )
-        return True
+
+        declared_params: set[str] = set()
+        declared_body: set[str] = set()
+
+        if is_public:
+            decorators = self._class_decorators + node.decorator_list
+            declared_params = _declared_names(decorators, "parameters")
+            declared_body = _declared_names(decorators, "request")
+
+        ctx = _InputCtx(
+            f"{self._class_stack[-1]}.{node.name}",
+            declared_params,
+            declared_body,
+            is_public=is_public,
+            class_name=self._class_stack[-1],
+        )
+        return ctx
 
     def _record_input_call(self, node: ast.Call) -> None:
         """A `.get()` read, or the whole dict handed to something else."""
@@ -1547,29 +1610,110 @@ class SentryVisitor(ast.NodeVisitor):
         if enforced or os.environ.get(INPUT_LINT_ALL_ENV):
             self.errors.append((start_end.line, start_end.column, msg))
 
-    def _exit_input(self) -> None:
-        ctx = self._input_stack.pop()
-        for start_end, name in ctx.query_validators:
-            if name not in ctx.declared_params:
-                msg = S025_query_msg.format(name)
-                self._report_input(
-                    ctx, start_end, msg, "declared", name, "query string", ApiRule.S025
-                )
-        for start_end, name in ctx.body_validators:
-            if name not in ctx.declared_body:
-                msg = S025_body_msg.format(name)
-                self._report_input(
-                    ctx, start_end, msg, "declared", name, "request body", ApiRule.S025
-                )
-        for start_end, key, source in ctx.literal_reads:
-            msg = S026_msg.format(repr(key), source)
-            self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S026)
-        for start_end, key, source in ctx.computed_reads:
-            msg = S027_msg.format(source, key)
-            self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S027)
-        for start_end, callee, source in ctx.hand_offs:
-            msg = S028_msg.format(source, callee)
-            self._report_input(ctx, start_end, msg, "shaped", callee, source, ApiRule.S028)
+    def _report_public_inputs(self) -> None:
+        """Report input reads and hand-offs for each public endpoint method after traversing through the complete file"""
+        for ctx in self._function_ctxs:
+            if not ctx.is_public:
+                continue
+            for start_end, name in ctx.query_validators:
+                if name not in ctx.declared_params:
+                    msg = S025_query_msg.format(name)
+                    self._report_input(
+                        ctx, start_end, msg, "declared", name, "query string", ApiRule.S025
+                    )
+            for start_end, name in ctx.body_validators:
+                if name not in ctx.declared_body:
+                    msg = S025_body_msg.format(name)
+                    self._report_input(
+                        ctx, start_end, msg, "declared", name, "request body", ApiRule.S025
+                    )
+            for start_end, key, source in ctx.literal_reads:
+                msg = S026_msg.format(repr(key), source)
+                self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S026)
+            for start_end, key, source in ctx.computed_reads:
+                msg = S027_msg.format(source, key)
+                self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S027)
+            for start_end, callee, source in ctx.hand_offs:
+                msg = S028_msg.format(source, callee)
+                self._report_input(ctx, start_end, msg, "shaped", callee, source, ApiRule.S028)
+
+    def _request_payload_input(self, ctx: _InputCtx, argument: ast.expr) -> str | None:
+        """Returns what request input the argument carries: "request", "query string", "request body", or None"""
+        if _is_request(argument):
+            return "request"
+        return ctx.source_of(argument)
+
+    def _get_kind_of_helper(self, node: ast.Call) -> tuple[Kind | None, str | None]:
+        """Returns the "kind" of helper function and its name, or (None, None) if the call isn't a helper shape"""
+
+        func = node.func
+        kind = None
+        name = None
+
+        # a helper method, i.e. self.helper()
+        if (
+            isinstance(func, ast.Attribute)
+            and isinstance(func.value, ast.Name)
+            and func.value.id == "self"
+        ):
+            kind = Kind.CLASS_METHOD
+            name = func.attr
+
+        # a parent class method, i.e. super().helper()
+        elif (
+            isinstance(func, ast.Attribute)
+            and isinstance(func.value, ast.Call)
+            and isinstance(func.value.func, ast.Name)
+            and func.value.func.id == "super"
+        ):
+            kind = Kind.PARENT_CLASS_METHOD
+            name = func.attr
+
+        # a plain function, i.e. helper(). The inner super() of super().helper() isn't one
+        elif isinstance(func, ast.Name) and func.id != "super":
+            kind = Kind.NORMAL_FUNCTION
+            name = func.id
+
+        return (kind, name)
+
+    def _record_helper(self, node: ast.Call) -> None:
+        """Record a call to a possible helper and which arguments carry request input."""
+
+        # what kind of helper it is, and its name
+        kind, name = self._get_kind_of_helper(node)
+
+        if kind is None or name is None:
+            return
+
+        curr_ctx = self._input_stack[-1]
+
+        # [(arg index or keyword name, the request input it carries), ...]
+        request_params: list[tuple[int | str, str]] = []
+        # *args or **kwargs can forward anything so a call that has them is unresolved
+        starred = False
+
+        for index, argument in enumerate(node.args):
+            # *args can't be matched to a param and positions after it are unknown so we need to avoid this
+            if isinstance(argument, ast.Starred):
+                starred = True
+                break
+            request_payload = self._request_payload_input(curr_ctx, argument)
+            if request_payload is not None:
+                request_params.append((index, request_payload))
+
+        for keyword in node.keywords:
+            # **kwargs has no name to match
+            if keyword.arg is None:
+                starred = True
+                continue
+            request_payload = self._request_payload_input(curr_ctx, keyword.value)
+            if request_payload is not None:
+                request_params.append((keyword.arg, request_payload))
+
+        # recorded even when nothing is passed since the helper can still read self.request
+        curr_ctx.calls.append(
+            _HelperCall(kind, name, request_params, starred, _start_and_end(node))
+        )
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
@@ -1582,6 +1726,7 @@ class SentryVisitor(ast.NodeVisitor):
         if self._input_stack:
             self._record_validator(node)
             self._record_input_call(node)
+            self._record_helper(node)
         if _is_tests_path(self.filename):
             if (
                 isinstance(node.func, ast.Name)
