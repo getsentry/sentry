@@ -55,7 +55,6 @@ export function NavigationMenuHeader({
           width="32px"
           height="32px"
           flexShrink={0}
-          alignSelf="start"
           radius="full"
           overflow="hidden"
           border="muted"
@@ -76,7 +75,6 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
       width="32px"
       height="32px"
       flexShrink={0}
-      alignSelf="start"
       radius="md"
       overflow="hidden"
       border="muted"
