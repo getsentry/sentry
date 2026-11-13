@@ -6,8 +6,9 @@ import {sprintf} from 'sprintf-js';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {IgnoredStatusDetails} from 'sentry/types/group';
@@ -74,31 +75,49 @@ export function CustomIgnoreDurationModal(props: Props) {
         <h4>{t('Archive this issue until\u2026')}</h4>
       </Header>
       <Body>
-        <form className="form-horizontal">
-          <div className="control-group">
-            <h6 className="nav-header">{t('Date')}</h6>
-            <Input
-              className="form-control"
-              type="date"
-              id="snooze-until-date"
-              defaultValue={defaultDateVal}
-              ref={snoozeDateInputRef}
-              required
-              style={{padding: '0 10px'}}
-            />
-          </div>
-          <div className="control-group m-b-1">
-            <h6 className="nav-header">{t('Time (UTC)')}</h6>
-            <Input
-              className="form-control"
-              type="time"
-              id="snooze-until-time"
-              defaultValue={defaultTimeVal}
-              ref={snoozeTimeInputRef}
-              style={{padding: '0 10px'}}
-              required
-            />
-          </div>
+        <form>
+          <Stack gap="xl">
+            <Stack gap="md">
+              <Text
+                as="label"
+                htmlFor="snooze-until-date"
+                size="xs"
+                variant="muted"
+                bold
+                uppercase
+              >
+                {t('Date')}
+              </Text>
+              <Input
+                type="date"
+                id="snooze-until-date"
+                defaultValue={defaultDateVal}
+                ref={snoozeDateInputRef}
+                required
+                style={{padding: '0 10px'}}
+              />
+            </Stack>
+            <Stack gap="md">
+              <Text
+                as="label"
+                htmlFor="snooze-until-time"
+                size="xs"
+                variant="muted"
+                bold
+                uppercase
+              >
+                {t('Time (UTC)')}
+              </Text>
+              <Input
+                type="time"
+                id="snooze-until-time"
+                defaultValue={defaultTimeVal}
+                ref={snoozeTimeInputRef}
+                style={{padding: '0 10px'}}
+                required
+              />
+            </Stack>
+          </Stack>
         </form>
       </Body>
       {dateWarning && (

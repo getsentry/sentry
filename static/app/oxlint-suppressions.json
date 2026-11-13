@@ -225,7 +225,7 @@
   },
   "components/customIgnoreDurationModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 3
+      "count": 1
     }
   },
   "components/customResolutionModal.tsx": {
