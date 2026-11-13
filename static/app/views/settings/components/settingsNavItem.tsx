@@ -30,7 +30,11 @@ const LabelHook = OverrideOrDefault({
 export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   const settingsV3 = useSettingsV3();
   const {scope} = useSettingsScope();
-  const badgeElement = badge ? <SettingsNavBadge badge={badge} /> : null;
+  const badgeElement = badge ? (
+    // In settings v3 the badge sits before the label, so a tooltip on the
+    // right would cover the label of the hovered item.
+    <SettingsNavBadge badge={badge} tooltipPosition={settingsV3 ? 'top' : 'right'} />
+  ) : null;
 
   return (
     <SecondaryNavigation.ListItem>
@@ -59,13 +63,18 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
   );
 }
 
-function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement}) {
+interface SettingsNavBadgeProps {
+  badge: string | number | null | ReactElement;
+  tooltipPosition: 'top' | 'right';
+}
+
+function SettingsNavBadge({badge, tooltipPosition}: SettingsNavBadgeProps) {
   if (badge === 'new' || badge === 'beta' || badge === 'alpha') {
-    return <FeatureBadge type={badge} />;
+    return <FeatureBadge type={badge} tooltipProps={{position: tooltipPosition}} />;
   }
   if (badge === 'warning') {
     return (
-      <Tooltip title={t('This setting needs review')} position="right">
+      <Tooltip title={t('This setting needs review')} position={tooltipPosition}>
         <StyledBadge variant="warning">{badge}</StyledBadge>
       </Tooltip>
     );
