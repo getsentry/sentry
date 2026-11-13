@@ -355,7 +355,8 @@ class ResponseSchemaReporter:
 
     @pytest.hookimpl(optionalhook=True)
     def pytest_testnodedown(self, node: Any, error: object) -> None:
-        output = getattr(node, "workeroutput", {}).get(_WORKER_OUTPUT_KEY)
+        # A worker that crashed never sent its output.
+        output = (getattr(node, "workeroutput", None) or {}).get(_WORKER_OUTPUT_KEY)
         if output is not None:
             self.collector.merge(orjson.loads(output))
 
