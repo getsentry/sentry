@@ -877,6 +877,35 @@ describe('getOrderedAutofixSections', () => {
       );
     });
 
+    it.each([
+      ['before a root cause', [], [true]],
+      [
+        'after the root cause',
+        [makeBlock({artifacts: [rootCause('H', 'C')]})],
+        [false, true],
+      ],
+      [
+        'while editing',
+        [
+          makeBlock({artifacts: [rootCause('H', 'C')]}),
+          makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py')]}),
+        ],
+        [false, true],
+      ],
+    ])(
+      'marks the section a run stopped in %s as out of credits',
+      (_, blocks, expected) => {
+        const sections = getOrderedAutofixSections(
+          makeSingleRun(
+            [makeBlock({message: {metadata: {step: 'single_run'}}}), ...blocks],
+            {status: 'error', failure_reason: 'out_of_credits'}
+          )
+        );
+
+        expect(sections.map(isOutOfCreditsSection)).toEqual(expected);
+      }
+    );
+
     it('shows an error on code changes when the run failed after editing', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun(

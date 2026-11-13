@@ -195,6 +195,55 @@ function makeRun(
 }
 
 /**
+ * A single run that found the root cause and was one file into the fix when
+ * the organization ran out of credits.
+ */
+const SINGLE_RUN_STOPPED_FOR_CREDITS = makeRun(
+  [
+    {
+      id: 'single-run',
+      timestamp: TIMESTAMP,
+      loading: false,
+      message: {
+        role: 'assistant',
+        content:
+          'Seeding the reduction with `0` in `cartService.ts`. Next I was going to cover the empty cart in `cartService.test.ts`.',
+        metadata: {step: 'single_run'},
+      },
+      artifacts: [
+        {
+          key: 'single_run_root_cause',
+          reason: 'Found the root cause',
+          data: {
+            headline:
+              '`CartService.total()` reduces the line items without an initial accumulator, so an empty cart throws.',
+            cause:
+              '`items.reduce((sum, item) => sum + item.price)` is called without a second argument.',
+          },
+        },
+      ],
+      merged_file_patches: [PATCH],
+    },
+    // Seer appends this when it stops a run for credits.
+    {
+      id: 'error-1',
+      timestamp: TIMESTAMP,
+      loading: false,
+      message: {
+        role: 'assistant',
+        content:
+          "Your organization doesn't have enough Seer credits for this, so I stopped here.",
+      },
+    },
+  ],
+  {
+    feature_id: 'autofix_single_run',
+    status: 'error',
+    failure_reason: 'out_of_credits',
+  }
+);
+
+/**
  * Answers the credit check with the given balance, and the other requests the
  * drawer makes with empty results, so each story is the same on every load.
  */
@@ -326,6 +375,21 @@ export default Storybook.story('SeerDrawerContent', story => {
     <DrawerStory
       description="The plan step failed after the root cause. The autofix-continue alert covers the retry (autofix_solution); the card's own retry is left to the failure handling."
       runState={makeRun([ROOT_CAUSE, SOLUTION], {status: 'error'})}
+    />
+  ));
+
+  story('Out of credits: a single run that stopped', () => (
+    <DrawerStory
+      description="A single run found the root cause and stopped part way through the fix. The autofix-continue alert sits at the top. The code changes card keeps the partial diff and says why the run stopped; its Re-run would start a new single run, so it waits on autofix_root_cause and is disabled (hover it for why)."
+      runState={SINGLE_RUN_STOPPED_FOR_CREDITS}
+    />
+  ));
+
+  story('With credits: a single run that stopped', () => (
+    <DrawerStory
+      description="For comparison: the same run once the org can afford a new one. No alert, and Re-run is enabled."
+      runState={SINGLE_RUN_STOPPED_FOR_CREDITS}
+      hasEnoughCredits
     />
   ));
 

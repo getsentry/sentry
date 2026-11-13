@@ -552,6 +552,8 @@ function getSingleRunSections(
   const stops = patches.length
     ? []
     : collectArtifacts(blocks).filter(isSingleRunStopArtifact);
+  // Why the run stopped, on the section it stopped in, as `buildSection` does.
+  const failureReason = runState.status === 'error' ? runState.failure_reason : undefined;
 
   const sections: AutofixSection[] = [
     {
@@ -566,6 +568,7 @@ function getSingleRunSections(
           : runState.status === 'processing' || runState.status === 'awaiting_user_input'
             ? 'processing'
             : 'completed',
+      failureReason: rootCauses.length ? undefined : failureReason,
     },
   ];
 
@@ -582,6 +585,7 @@ function getSingleRunSections(
             !Object.keys(runState.repo_pr_states ?? {}).length
           ? 'processing'
           : 'completed',
+      failureReason,
     });
   } else if (failed && rootCauses.length) {
     sections.push({
@@ -590,6 +594,7 @@ function getSingleRunSections(
       blocks: [],
       artifacts: [],
       status: 'error',
+      failureReason,
     });
   }
   return sections;

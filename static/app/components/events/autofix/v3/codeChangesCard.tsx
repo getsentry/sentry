@@ -89,11 +89,18 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const {feedback, latestIterationIndex} = usePrIterationFeedback(section, autofix);
 
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
   const isOutOfCredits = isOutOfCreditsSection(section);
   const stoppedStep = isLatestStepPrIteration ? 'pr_iteration' : 'code_changes';
-  const outOfCreditsRetry = useOutOfCreditsRetry(stoppedStep, {
-    enabled: isOutOfCredits,
-  });
+  // Single runs take PR feedback in the chat, so the card offers no retry for a
+  // PR update that stopped for credits.
+  const hasOutOfCreditsRetry =
+    isOutOfCredits && !(isSingleRun && stoppedStep === 'pr_iteration');
+  // A single run is retried by starting a new one, which begins at the root cause.
+  const outOfCreditsRetry = useOutOfCreditsRetry(
+    isSingleRun ? 'root_cause' : stoppedStep,
+    {enabled: hasOutOfCreditsRetry}
+  );
 
   // The blocks of the step that is running, or that stopped for credits.
   const currentStepBlocks = useMemo(() => {
@@ -120,9 +127,11 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   );
 
   const {copy} = useCopyToClipboard();
-  const isSingleRun = isSingleRunAutofix(autofix.runState);
   const singleRunRerun = useRerunSingleRun(autofix, {
-    enabled: isSingleRun && section.status === 'error',
+    enabled:
+      isSingleRun &&
+      section.status === 'error' &&
+      (!isOutOfCredits || hasOutOfCreditsRetry),
   });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
@@ -322,7 +331,22 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     );
   } else if (isOutOfCredits) {
     let retry: React.ReactNode = null;
-    if (shouldShowReset) {
+    if (isSingleRun) {
+      // A single run is retried with a new run.
+      retry = hasOutOfCreditsRetry ? (
+        <Flex>
+          <Button
+            variant="primary"
+            icon={<IconRefresh />}
+            disabled={singleRunRerun.disabled}
+            tooltipProps={{title: outOfCreditsRetry.tooltip}}
+            onClick={singleRunRerun.rerun}
+          >
+            {t('Re-run')}
+          </Button>
+        </Flex>
+      ) : null;
+    } else if (shouldShowReset) {
       retry = resetPrompt(
         t('What additional context should Seer use?'),
         t('Add context that could unblock the change, e.g. the repo or files to edit.')

@@ -178,9 +178,9 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
                 <Button
                   variant="primary"
                   icon={<IconRefresh />}
-                  disabled={!canReset}
+                  disabled={isSingleRun ? singleRunRerun.disabled : !canReset}
                   tooltipProps={{title: outOfCreditsRetry.tooltip}}
-                  onClick={() => handleReset()}
+                  onClick={isSingleRun ? singleRunRerun.rerun : () => handleReset()}
                 >
                   {t('Re-run')}
                 </Button>
