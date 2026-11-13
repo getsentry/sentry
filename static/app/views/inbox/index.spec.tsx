@@ -805,6 +805,94 @@ describe('Inbox', () => {
   });
 
   describe('filters', () => {
+    it.each([
+      ['Team', 'team'],
+      ['User', 'user'],
+    ])('filters by %s recipient and removes the filter', async (label, recipient) => {
+      const filteredRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [MockApiClient.matchQuery({recipient: [recipient]})],
+        body: [notebookItem],
+      });
+
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Recipient'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: label}));
+      await userEvent.keyboard('{Escape}');
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        await screen.findByRole('link', {name: notebookItem.title!})
+      ).toBeInTheDocument();
+      expect(filteredRequest).toHaveBeenCalled();
+      expect(router.location.query).toEqual({recipient});
+      expect(
+        screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Remove Recipient filter'})
+      );
+
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+      expect(router.location.query).toEqual({});
+    });
+
+    it('selects multiple recipients and toggles a recipient off', async () => {
+      const bothRecipientsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [MockApiClient.matchQuery({recipient: ['team', 'user']})],
+        body: [notebookItem],
+      });
+      const userRecipientRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [MockApiClient.matchQuery({recipient: ['user']})],
+        body: [readNotebookItem],
+      });
+
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/inbox/',
+            query: {recipient: 'team'},
+          },
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      expect(screen.getByText('Team')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Recipient'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'User'}));
+
+      await waitFor(() => expect(bothRecipientsRequest).toHaveBeenCalled());
+      expect(router.location.query).toEqual({recipient: ['team', 'user']});
+      expect(screen.getByText('Team +1')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Team'}));
+
+      expect(
+        await screen.findByRole('link', {name: readNotebookItem.title!})
+      ).toBeInTheDocument();
+      expect(userRecipientRequest).toHaveBeenCalled();
+      expect(router.location.query).toEqual({recipient: 'user'});
+    });
+
     it('filters by subject', async () => {
       const filteredRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
@@ -968,10 +1056,17 @@ describe('Inbox', () => {
       expect(markReadRequest).toHaveBeenCalledTimes(1);
     });
 
-    it('shows an empty state when no items match the filters', async () => {
+    it.each([
+      {
+        filter: 'eventType',
+        apiFilter: 'event_type',
+        value: 'issue.user_assigned',
+      },
+      {filter: 'recipient', apiFilter: 'recipient', value: 'team'},
+    ])('clears $filter from an empty inbox', async ({filter, apiFilter, value}) => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
-        match: [MockApiClient.matchQuery({event_type: ['issue.user_assigned']})],
+        match: [MockApiClient.matchQuery({[apiFilter]: [value]})],
         body: [],
       });
 
@@ -980,7 +1075,7 @@ describe('Inbox', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/inbox/',
-            query: {eventType: 'issue.user_assigned'},
+            query: {[filter]: value},
           },
           routes: INBOX_ROUTES,
         },
@@ -999,7 +1094,9 @@ describe('Inbox', () => {
     it('keeps filters in item links', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
-        match: [MockApiClient.matchQuery({subject_type: ['notebook']})],
+        match: [
+          MockApiClient.matchQuery({subject_type: ['notebook'], recipient: ['team']}),
+        ],
         body: [notebookItem],
       });
 
@@ -1008,7 +1105,7 @@ describe('Inbox', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/inbox/',
-            query: {subjectType: 'notebook', project: '1'},
+            query: {subjectType: 'notebook', recipient: 'team', project: '1'},
           },
           routes: INBOX_ROUTES,
         },
@@ -1020,7 +1117,7 @@ describe('Inbox', () => {
         })
       ).toHaveAttribute(
         'href',
-        '/organizations/org-slug/inbox/notebook/1000210/?subjectType=notebook'
+        '/organizations/org-slug/inbox/notebook/1000210/?recipient=team&subjectType=notebook'
       );
     });
 
@@ -1028,7 +1125,11 @@ describe('Inbox', () => {
       const unfilteredRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
         match: [
-          MockApiClient.matchQuery({subject_type: undefined, event_type: undefined}),
+          MockApiClient.matchQuery({
+            subject_type: undefined,
+            event_type: undefined,
+            recipient: undefined,
+          }),
         ],
         body: [issueItem],
       });
@@ -1038,7 +1139,7 @@ describe('Inbox', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/inbox/',
-            query: {subjectType: 'bogus'},
+            query: {subjectType: 'bogus', recipient: 'bogus'},
           },
           routes: INBOX_ROUTES,
         },
@@ -1050,6 +1151,9 @@ describe('Inbox', () => {
       expect(unfilteredRequest).toHaveBeenCalled();
       expect(
         screen.queryByRole('button', {name: 'Remove Subject filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Remove Recipient filter'})
       ).not.toBeInTheDocument();
     });
   });
