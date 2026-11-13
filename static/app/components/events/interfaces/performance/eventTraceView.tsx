@@ -1,8 +1,10 @@
-import {useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
+import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {type Event} from 'sentry/types/event';
@@ -26,6 +28,11 @@ interface EventTraceViewProps {
   organization: Organization;
 }
 
+function OnVisible({onVisible}: {onVisible: () => void}) {
+  useEffect(onVisible, [onVisible]);
+  return null;
+}
+
 export function EventTraceView({group, event, organization}: EventTraceViewProps) {
   const traceId = event.contexts.trace?.trace_id;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
@@ -34,29 +41,44 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     !!traceId && !eventHasSyntheticTrace(event) && !issueTypeConfig.spanEvidence.enabled;
 
   const project = useProjectFromId({project_id: event.projectID});
-  const agentRun = useEventAgentRun(event, {
-    enabled:
-      hasTracePreview &&
-      organization.features.includes('issue-details-agent-run') &&
-      !!project?.hasInsightsAgentMonitoring,
-  });
+  const canHaveAgentRun =
+    hasTracePreview &&
+    organization.features.includes('issue-details-agent-run') &&
+    !!project?.hasInsightsAgentMonitoring;
+  // Like the waterfall, only look for the agent run once the section is near the viewport.
+  const [isInView, setIsInView] = useState(false);
+  const markInView = useCallback(() => setIsInView(true), []);
+  const agentRun = useEventAgentRun(event, {enabled: canHaveAgentRun && isInView});
   const [selectedView, setSelectedView] = useState<TraceView | null>(null);
 
   if (!hasTracePreview) {
     return null;
   }
 
-  const hasAgentActivity = agentRun.type === 'inside';
-  const view: TraceView = hasAgentActivity
-    ? (selectedView ?? 'agent-activity')
-    : 'waterfall';
+  const insideRun = agentRun.type === 'inside' ? agentRun : null;
+  const view: TraceView = insideRun ? (selectedView ?? 'agent-activity') : 'waterfall';
 
   let content: React.ReactNode;
-  if (agentRun.type === 'loading') {
+  if (canHaveAgentRun && !isInView) {
+    content = (
+      <LazyRender
+        observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
+        containerHeight={200}
+      >
+        <OnVisible onVisible={markInView} />
+      </LazyRender>
+    );
+  } else if (agentRun.type === 'loading') {
     // Wait for the agent run so the preview does not open on one view and then switch.
     content = <Placeholder height="200px" />;
-  } else if (view === 'agent-activity') {
-    content = <EventAgentActivity agentRun={agentRun} event={event} />;
+  } else if (insideRun && view === 'agent-activity') {
+    content = (
+      <EventAgentActivity
+        event={event}
+        failingNode={insideRun.failingNode}
+        nodes={insideRun.nodes}
+      />
+    );
   } else {
     content = <TracePreview event={event} organization={organization} source="issues" />;
   }
@@ -67,8 +89,11 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       title={t('Trace Preview')}
       actions={
         <Flex align="center" gap="md">
-          {view === 'agent-activity' ? (
-            <AgentActivityFullTraceButton agentRun={agentRun} event={event} />
+          {insideRun && view === 'agent-activity' ? (
+            <AgentActivityFullTraceButton
+              event={event}
+              failingNodeId={insideRun.failingNode.id}
+            />
           ) : (
             <TracePreviewFullTraceButton
               event={event}
@@ -76,7 +101,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
               source="issues"
             />
           )}
-          {hasAgentActivity && (
+          {insideRun && (
             <SegmentedControl<TraceView>
               aria-label={t('Trace view')}
               size="xs"

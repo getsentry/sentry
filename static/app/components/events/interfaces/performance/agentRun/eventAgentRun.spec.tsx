@@ -204,8 +204,18 @@ describe('EventAgentActivity', () => {
       errorEventId,
       organization
     );
+    if (agentRun.type !== 'inside') {
+      throw new Error('Expected the error to be inside an agent run');
+    }
 
-    render(<EventAgentActivity agentRun={agentRun} event={event} />, {organization});
+    render(
+      <EventAgentActivity
+        event={event}
+        failingNode={agentRun.failingNode}
+        nodes={agentRun.nodes}
+      />,
+      {organization}
+    );
 
     expect(screen.getByText('search_docs')).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: /more step/})).not.toBeInTheDocument();
@@ -241,10 +251,16 @@ describe('EventAgentActivity', () => {
       }),
     ];
 
+    const agentRun = getEventAgentRun(trace, errorEventId, organization);
+    if (agentRun.type !== 'inside') {
+      throw new Error('Expected the error to be inside an agent run');
+    }
+
     render(
       <EventAgentActivity
-        agentRun={getEventAgentRun(trace, errorEventId, organization)}
         event={event}
+        failingNode={agentRun.failingNode}
+        nodes={agentRun.nodes}
       />,
       {organization}
     );
@@ -273,9 +289,17 @@ describe('AgentActivityFullTraceButton', () => {
       organization
     );
 
-    render(<AgentActivityFullTraceButton agentRun={agentRun} event={event} />, {
-      organization,
-    });
+    if (agentRun.type !== 'inside') {
+      throw new Error('Expected the error to be inside an agent run');
+    }
+
+    render(
+      <AgentActivityFullTraceButton
+        event={event}
+        failingNodeId={agentRun.failingNode.id}
+      />,
+      {organization}
+    );
 
     const link = screen.getByRole('button', {name: 'View Full Trace'});
     expect(link).toHaveAttribute('href', expect.stringContaining(`/trace/${traceId}/`));

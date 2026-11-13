@@ -18,8 +18,6 @@ import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeade
 import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 
-import type {EventAgentRun} from './useEventAgentRun';
-
 /**
  * Returns a link to the Agent Activity tab of the event's trace, with `nodeId` selected.
  */
@@ -109,23 +107,22 @@ function HiddenStepsRow({
   );
 }
 
-interface AgentRunProps {
-  agentRun: EventAgentRun;
-  event: Event;
-}
-
 /**
  * Opens the trace's Agent Activity tab with the failing step selected.
  */
-export function AgentActivityFullTraceButton({agentRun, event}: AgentRunProps) {
+export function AgentActivityFullTraceButton({
+  event,
+  failingNodeId,
+}: {
+  event: Event;
+  failingNodeId: string;
+}) {
   const getAgentActivityLink = useAgentActivityLink(event);
 
   return (
     <LinkButton
       size="xs"
-      to={getAgentActivityLink(
-        agentRun.type === 'inside' ? agentRun.failingNode.id : undefined
-      )}
+      to={getAgentActivityLink(failingNodeId)}
       analyticsEventName="Issue Details: View Full Trace Agent Activity Clicked"
       analyticsEventKey="issue_details.agent_run.view_full_trace_clicked"
     >
@@ -137,16 +134,19 @@ export function AgentActivityFullTraceButton({agentRun, event}: AgentRunProps) {
 /**
  * The Agent Activity view of the trace preview: the steps around the failing one.
  */
-export function EventAgentActivity({agentRun, event}: AgentRunProps) {
+export function EventAgentActivity({
+  event,
+  failingNode,
+  nodes,
+}: {
+  event: Event;
+  failingNode: AITraceSpanNode;
+  nodes: AITraceSpanNode[];
+}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const getAgentActivityLink = useAgentActivityLink(event);
 
-  if (agentRun.type !== 'inside') {
-    return null;
-  }
-
-  const {failingNode, nodes} = agentRun;
   const {steps, hiddenBefore, hiddenAfter} = getVisibleSteps(nodes, failingNode);
   const fullActivityLink = getAgentActivityLink(failingNode.id);
 
