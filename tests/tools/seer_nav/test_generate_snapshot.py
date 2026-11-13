@@ -1,9 +1,10 @@
+# make test-tools runs without the sentry package, so sentry.utils.json can't be imported here.
+import json  # noqa: S003
 from pathlib import Path
 from unittest import mock
 
 import pytest
 
-from sentry.utils import json
 from tools.seer_nav import generate_snapshot
 from tools.seer_nav.entries import NavEntry
 from tools.seer_nav.generate_snapshot import refresh_snapshot
