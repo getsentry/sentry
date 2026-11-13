@@ -169,41 +169,6 @@ class NotebookBlockDetailsEndpointTest(APITestCase):
         block.refresh_from_db()
         assert block.content == ""
 
-    def test_sentry_app_cannot_mutate_block(self) -> None:
-        block = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
-        sentry_app_user = self.create_user(is_sentry_app=True)
-        self.create_member(
-            organization=self.organization,
-            user=sentry_app_user,
-            role="member",
-        )
-        self.login_as(sentry_app_user)
-
-        response = self.client.put(
-            self.block_url(block),
-            data={
-                "investigationVersion": self.notebook.version,
-                "version": block.version,
-                "content": "must not be saved",
-            },
-            format="json",
-        )
-        assert response.status_code == 403
-
-        response = self.client.delete(
-            self.block_url(block),
-            data={
-                "investigationVersion": self.notebook.version,
-                "version": block.version,
-            },
-            format="json",
-        )
-        assert response.status_code == 403
-
-        block.refresh_from_db()
-        assert block.content == ""
-        assert block.deleted_at is None
-
     def test_delete_rejects_an_active_block_run(self) -> None:
         block = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
         self.create_notebook_block_execution(

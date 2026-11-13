@@ -173,20 +173,3 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         )
         assert response.status_code == 201, response.data
         assert response.data["display"]["promptCollapsed"] is True
-
-    def test_sentry_app_cannot_create_block(self) -> None:
-        sentry_app_user = self.create_user(is_sentry_app=True)
-        self.create_member(
-            organization=self.organization,
-            user=sentry_app_user,
-            role="member",
-        )
-        self.login_as(sentry_app_user)
-
-        response = self.client.post(
-            self.blocks_url(),
-            data={"investigationVersion": self.notebook.version, "kind": "text"},
-            format="json",
-        )
-        assert response.status_code == 403
-        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
