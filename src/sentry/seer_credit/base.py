@@ -1,17 +1,11 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsRequest,
     CheckSeerCreditsResponse,
 )
 
+from sentry.models.organization import Organization
+from sentry.users.services.user import RpcUser
 from sentry.utils.services import Service
-
-if TYPE_CHECKING:
-    from sentry.models.organization import Organization
-    from sentry.users.services.user import RpcUser
 
 
 class SeerCredit(Service):
