@@ -101,7 +101,7 @@ class NotebookActionRequestSerializerResponse(TypedDict):
         str | None, ApiDescription("Why the request is in its state, if there's a reason")
     ]
     action: Annotated[
-        JsonValue,
+        dict[str, JsonValue] | None,
         ApiDescription("The agent's action payload, or null when the request is only advice"),
     ]
     canApply: Annotated[bool, ApiDescription("Whether the requesting user can apply it now")]
