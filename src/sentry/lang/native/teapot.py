@@ -56,13 +56,16 @@ class TeapotAttachment(Protocol):
 
 
 # Fallbacks for the `teapot.timeout-seconds` / `teapot.max-attempts` options.
-# The timeout is tight on purpose: decode is sub-second, so a slow teapot should
-# fail fast (the circuit breaker then takes over) rather than hold a worker.
-DEFAULT_TIMEOUT = 5
+# Most decodes take milliseconds, but a page fault dump can take a few seconds,
+# and the request also covers teapot's shader binary lookups. A teapot that is
+# down still fails well inside the task's deadline, and the breaker takes over.
+DEFAULT_TIMEOUT = 15
 DEFAULT_MAX_ATTEMPTS = 2
 
-# Teapot's budget ends before the timeout, so it answers with what it has
-# instead of being cut off. `MIN_DECODE_BUDGET_MS` is teapot's lower limit.
+# Teapot's budget for the decode and the shader binary lookups ends before the
+# timeout: it stops the lookups early and answers with what it has, instead of
+# being cut off. A decode that alone outlasts the budget gets a 504.
+# `MIN_DECODE_BUDGET_MS` is teapot's lower limit.
 DECODE_BUDGET_MARGIN_MS = 2000
 MIN_DECODE_BUDGET_MS = 1000
 
