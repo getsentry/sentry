@@ -9,6 +9,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
@@ -825,6 +826,112 @@ describe('Dashboards > Dashboard', () => {
           widgetCount: 0,
         })
       );
+    });
+  });
+
+  describe('dropped data in the LLM context', () => {
+    function timeseriesWidget(id: string, widgetType: WidgetType): Widget {
+      return {
+        id,
+        title: `${widgetType} widget ${id}`,
+        displayType: DisplayType.LINE,
+        widgetType,
+        interval: '',
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
+            orderby: '',
+          },
+        ],
+      };
+    }
+
+    const dashboardWithWidgets: DashboardDetails = {
+      ...mockDashboard,
+      widgets: [
+        timeseriesWidget('1', WidgetType.SPANS),
+        timeseriesWidget('2', WidgetType.SPANS),
+        timeseriesWidget('3', WidgetType.LOGS),
+        {...timeseriesWidget('4', WidgetType.ERRORS), displayType: DisplayType.TABLE},
+      ],
+    };
+
+    function renderWithSnapshot(features: string[]) {
+      const snapshotRef: {current: (() => LLMContextSnapshot) | null} = {current: null};
+
+      function SnapshotCapture() {
+        const {getLLMContext} = useLLMContext();
+        // oxlint-disable-next-line react/immutability
+        snapshotRef.current = getLLMContext;
+        return null;
+      }
+
+      render(
+        <div>
+          <Dashboard
+            dashboard={dashboardWithWidgets}
+            onUpdate={() => {}}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
+            widgetLimitReached={false}
+            isEditingDashboard={false}
+            widgetLegendState={widgetLegendState}
+            widgetInterval="1h"
+          />
+          <SnapshotCapture />
+        </div>,
+        {organization: OrganizationFixture({features})}
+      );
+
+      return () => snapshotRef.current!().nodes[0]!.children;
+    }
+
+    let droppedDataMock: jest.Mock;
+
+    beforeEach(() => {
+      droppedDataMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-dropped/',
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+          droppedEvents: [],
+          acceptedEvents: [],
+        },
+        match: [MockApiClient.matchQuery({interval: '1h'})],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {data: [], meta: {}},
+      });
+    });
+
+    it('adds one node per timeseries dataset under the dashboard', async () => {
+      const getChildren = renderWithSnapshot([
+        'explore-data-fidelity-annotations',
+        'dashboards-data-fidelity-annotations',
+      ]);
+
+      await waitFor(() =>
+        expect(
+          getChildren()
+            .filter(node => node.nodeType === 'dropped-data')
+            .map(node => (node.data as {dataset: DiscoverDatasets}).dataset)
+            .sort()
+        ).toEqual([DiscoverDatasets.OURLOGS, DiscoverDatasets.SPANS].sort())
+      );
+      expect(droppedDataMock).toHaveBeenCalled();
+    });
+
+    it('adds no nodes without the dashboards flag', async () => {
+      const getChildren = renderWithSnapshot(['explore-data-fidelity-annotations']);
+
+      await waitFor(() =>
+        expect(getChildren().some(node => node.nodeType === 'widget')).toBe(true)
+      );
+      expect(getChildren().some(node => node.nodeType === 'dropped-data')).toBe(false);
     });
   });
 });
