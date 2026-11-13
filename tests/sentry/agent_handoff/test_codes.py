@@ -1,3 +1,4 @@
+from datetime import timedelta
 from threading import Barrier
 from unittest.mock import patch
 
@@ -5,9 +6,10 @@ import pytest
 from pydantic import ValidationError
 
 from sentry.agent_handoff.codes import (
+    EXPIRED_HANDOFF_RETENTION,
     HANDOFF_LIFETIME,
     GuidedNextStepsHandoff,
-    HandoffAttribution,
+    HandoffExpired,
     HandoffFlow,
     HandoffIPMismatch,
     IssuedAgentHandoff,
@@ -16,11 +18,11 @@ from sentry.agent_handoff.codes import (
     _handoff_key,
     _StoredAgentHandoff,
     consume_handoff,
-    get_expired_handoff,
     issue_handoff,
     revoke_handoff,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -52,13 +54,16 @@ class AgentHandoffTest(TestCase):
         assert issued.code not in key
         assert issued.code.encode() not in raw
         assert issued.code not in repr(issued)
-        assert 0 < client.ttl(key) <= int(HANDOFF_LIFETIME.total_seconds())
+        retention = HANDOFF_LIFETIME + EXPIRED_HANDOFF_RETENTION
+        assert int(HANDOFF_LIFETIME.total_seconds()) < client.ttl(key)
+        assert client.ttl(key) <= int(retention.total_seconds())
         assert json.loads(raw) == {
             "user_id": 1,
             "organization_id": 2,
             "application_id": 3,
             "scope_list": ["org:read", "project:write"],
             "ip_address": "192.0.2.1",
+            "expires_at": issued.expires_at.isoformat(),
         }
 
     def test_consume_is_single_use(self) -> None:
@@ -69,25 +74,38 @@ class AgentHandoffTest(TestCase):
             application_id=3,
             scope_list=("org:read", "project:write"),
             ip_address="192.0.2.1",
+            expires_at=issued.expires_at,
         )
         assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
 
-    def test_expired_handoff_is_unavailable(self) -> None:
+    def test_evicted_handoff_is_unavailable(self) -> None:
         issued = self.issue()
         _get_redis_client().expire(_handoff_key(issued.code), 0)
         assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
 
-    def test_expired_handoff_remains_attributable(self) -> None:
+    def test_expired_handoff_is_retained_for_attribution(self) -> None:
         issued = self.issue()
-        _get_redis_client().expire(_handoff_key(issued.code), 0)
-        assert get_expired_handoff(issued.code) == HandoffAttribution(
-            flow=HandoffFlow.GUIDED_NEXT_STEPS, user_id=1, organization_id=2
-        )
+        with freeze_time(issued.expires_at + timedelta(seconds=1)):
+            for _ in range(2):
+                with pytest.raises(HandoffExpired) as error:
+                    consume_handoff(issued.code, ip_address="192.0.2.1")
+                assert error.value.handoff.user_id == 1
 
-    def test_claimed_handoff_is_not_attributed_as_expired(self) -> None:
+    def test_expiry_takes_precedence_over_ip_mismatch(self) -> None:
         issued = self.issue()
+        with freeze_time(issued.expires_at), pytest.raises(HandoffExpired):
+            consume_handoff(issued.code, ip_address="192.0.2.2")
+
+    def test_handoff_without_stored_expiry_remains_claimable(self) -> None:
+        issued = self.issue()
+        client = _get_redis_client()
+        key = _handoff_key(issued.code)
+        raw = client.get(key)
+        assert raw is not None
+        legacy = json.loads(raw)
+        del legacy["expires_at"]
+        client.set(key, json.dumps(legacy))
         assert consume_handoff(issued.code, ip_address="192.0.2.1") is not None
-        assert get_expired_handoff(issued.code) is None
 
     def test_ip_mismatch_carries_handoff(self) -> None:
         issued = self.issue()
@@ -100,7 +118,6 @@ class AgentHandoffTest(TestCase):
         revoke_handoff(issued.code)
         revoke_handoff(issued.code)
         assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
-        assert get_expired_handoff(issued.code) is None
 
     def test_unknown_handoff_is_unavailable(self) -> None:
         assert consume_handoff("unrecognized-code", ip_address="192.0.2.1") is None

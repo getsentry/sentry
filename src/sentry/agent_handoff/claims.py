@@ -6,10 +6,9 @@ from sentry import analytics, options
 from sentry.agent_handoff.applications import get_handoff_application
 from sentry.agent_handoff.codes import (
     AgentHandoff,
-    HandoffAttribution,
+    HandoffExpired,
     HandoffIPMismatch,
     consume_handoff,
-    get_expired_handoff,
 )
 from sentry.agent_handoff.flows import get_flow
 from sentry.agent_handoff.flows.base import InvalidHandoffContext
@@ -33,14 +32,14 @@ class ClaimOutcome(StrEnum):
     INVALID = "invalid"
 
 
-def _record_claim(outcome: ClaimOutcome, attribution: HandoffAttribution | None) -> None:
+def _record_claim(outcome: ClaimOutcome, handoff: AgentHandoff | None) -> None:
     analytics.record(
         AgentHandoffClaimedEvent(
             outcome=outcome.value,
-            user_id=attribution.user_id if attribution else None,
-            organization_id=attribution.organization_id if attribution else None,
-            flow=attribution.flow.value if attribution else None,
-            run_id=attribution.run_id if attribution else None,
+            user_id=handoff.user_id if handoff else None,
+            organization_id=handoff.organization_id if handoff else None,
+            flow=handoff.flow.value if handoff else None,
+            run_id=handoff.context.run_id if handoff and handoff.context else None,
         )
     )
 
@@ -50,20 +49,19 @@ def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
     """Consume a handoff and render credentials after revalidating its authorization."""
     try:
         handoff = consume_handoff(code, ip_address=ip_address)
+    except HandoffExpired as error:
+        _record_claim(ClaimOutcome.EXPIRED, error.handoff)
+        return None
     except HandoffIPMismatch as error:
-        _record_claim(ClaimOutcome.IP_MISMATCH, HandoffAttribution.from_handoff(error.handoff))
+        _record_claim(ClaimOutcome.IP_MISMATCH, error.handoff)
         raise
 
     if handoff is None:
-        expired = get_expired_handoff(code)
-        _record_claim(ClaimOutcome.EXPIRED if expired else ClaimOutcome.INVALID, expired)
+        _record_claim(ClaimOutcome.INVALID, None)
         return None
 
     guide = _render_guide(handoff)
-    _record_claim(
-        ClaimOutcome.ACCEPTED if guide is not None else ClaimOutcome.INVALID,
-        HandoffAttribution.from_handoff(handoff),
-    )
+    _record_claim(ClaimOutcome.ACCEPTED if guide is not None else ClaimOutcome.INVALID, handoff)
     return guide
 
 

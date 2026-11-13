@@ -3,9 +3,11 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 from django.http import HttpResponse
+from django.utils import timezone
 
 from sentry.agent_handoff.claims import ClaimOutcome
 from sentry.agent_handoff.codes import (
+    HANDOFF_LIFETIME,
     HandoffFlow,
     ProjectSetupContext,
     _get_redis_client,
@@ -23,6 +25,7 @@ from sentry.onboarding.agentic_progress.service import get_onboarding_progress_s
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -295,8 +298,9 @@ class AgentHandoffViewTest(TestCase):
     @patch("sentry.analytics.record")
     def test_records_expired_claim(self, record: MagicMock) -> None:
         code = self.issue()
-        _get_redis_client().expire(_handoff_key(code), 0)
-        assert self.claim(code).status_code == 410
+        with freeze_time(timezone.now() + HANDOFF_LIFETIME):
+            assert self.claim(code).status_code == 410
+        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
         self.assert_claim_recorded(record, ClaimOutcome.EXPIRED)
 
     @patch("sentry.analytics.record")
