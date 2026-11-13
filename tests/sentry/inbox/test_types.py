@@ -95,12 +95,14 @@ def test_register_types() -> None:
     reference_type = StubItemType[SubjectReference]("test.reference")
     issue_event = InboxEventType(
         event_type="test.issue.user_mentioned",
+        summary=InboxEventSummary.ISSUE_USER_MENTIONED,
         item_type=issue_type,
         data_class=MentionedData,
         notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
     )
     reference_event = InboxEventType(
         event_type="test.reference.mentioned",
+        summary=InboxEventSummary.NOTEBOOK_MENTIONED,
         item_type=reference_type,
         data_class=MentionedData,
         notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
@@ -473,6 +475,7 @@ class RecordTest(TestCase):
         item_type = ReferenceItemType("test.reference")
         event_type = InboxEventType(
             event_type="test.reference.updated",
+            summary=InboxEventSummary.ISSUE_USER_MENTIONED,
             item_type=item_type,
             data_class=InboxEventData,
             notification_setting=NotificationSettingEnum.INBOX_MENTIONS,

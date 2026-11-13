@@ -53,6 +53,7 @@ inbox_item_type_registry.register(ISSUE.subject_type)(ISSUE)
 
 ISSUE_USER_ASSIGNED = InboxEventType(
     event_type="issue.user_assigned",
+    summary=InboxEventSummary.ISSUE_USER_ASSIGNED,
     item_type=ISSUE,
     data_class=IssueAssignedData,
     notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
@@ -60,12 +61,14 @@ ISSUE_USER_ASSIGNED = InboxEventType(
 ISSUE_TEAM_ASSIGNED = InboxEventType(
     recipient="team",
     event_type="issue.team_assigned",
+    summary=InboxEventSummary.ISSUE_TEAM_ASSIGNED,
     item_type=ISSUE,
     data_class=IssueAssignedData,
     notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
 )
 ISSUE_USER_MENTIONED = InboxEventType(
     event_type="issue.user_mentioned",
+    summary=InboxEventSummary.ISSUE_USER_MENTIONED,
     item_type=ISSUE,
     data_class=IssueMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
@@ -73,12 +76,14 @@ ISSUE_USER_MENTIONED = InboxEventType(
 ISSUE_TEAM_MENTIONED = InboxEventType(
     recipient="team",
     event_type="issue.team_mentioned",
+    summary=InboxEventSummary.ISSUE_TEAM_MENTIONED,
     item_type=ISSUE,
     data_class=IssueMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 ISSUE_PR_READY_FOR_REVIEW = InboxEventType(
     event_type="issue.pr_ready_for_review",
+    summary=InboxEventSummary.ISSUE_PR_READY_FOR_REVIEW,
     item_type=ISSUE,
     data_class=IssuePRReadyForReviewData,
     notification_setting=NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,

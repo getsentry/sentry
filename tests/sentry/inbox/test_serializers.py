@@ -23,6 +23,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
+from sentry.utils.registry import NoRegistrationExistsError
 
 
 class InboxItemSerializerTest(TestCase):
@@ -97,7 +98,7 @@ class InboxItemSerializerTest(TestCase):
         previous.update(date_added=older)
         latest = self.create_inbox_item_event(
             inbox_item=item,
-            type="issue.mentioned",
+            type="issue.user_mentioned",
             data={"summary": "Mentioned you", "comment_id": 123},
         )
         self.create_inbox_item_event(inbox_item=other, data={"summary": "Assigned to you"})
@@ -106,25 +107,31 @@ class InboxItemSerializerTest(TestCase):
             results = serialize([item, other], self.user, InboxItemSerializer())
 
         assert results[0]["title"] == "First issue"
-        assert results[0]["subtitle"] == "Mentioned you"
+        assert results[0]["subtitle"] == "Mentioned you in a comment"
         assert results[0]["eventCount"] == 2
         assert results[0]["unreadEventCount"] == 1
-        assert results[0]["eventTypes"] == ["issue.mentioned", "issue.user_assigned"]
+        assert results[0]["eventTypes"] == ["issue.user_assigned", "issue.user_mentioned"]
         assert results[0]["latestEvent"]["id"] == str(latest.id)
         assert results[0]["latestEvent"]["data"] == {"commentId": "123"}
         assert results[1]["title"] == "Second issue"
 
-    def test_missing_subject_and_unregistered_types(self) -> None:
+    def test_unregistered_event_type(self) -> None:
         item = self.create_inbox_item(subject_type="removed.type", subject_id="missing")
         self.create_inbox_item_event(
             inbox_item=item, type="removed.event", data={"summary": "A retained event"}
         )
 
+        with pytest.raises(NoRegistrationExistsError, match="removed.event"):
+            serialize(item, self.user, InboxItemSerializer())
+
+    def test_unregistered_subject_type(self) -> None:
+        item = self.create_inbox_item(subject_type="removed.type", subject_id="missing")
+        self.create_inbox_item_event(inbox_item=item)
+
         result = serialize(item, self.user, InboxItemSerializer())
 
         assert result["title"] is None
-        assert result["subtitle"] == "A retained event"
-        assert result["latestEvent"]["type"] == "removed.event"
+        assert result["subtitle"] == "Assigned to you"
 
     def test_deleted_subject(self) -> None:
         group = self.create_group(project=self.project)
@@ -213,6 +220,18 @@ class TestNotebookEvents:
 
 
 class InboxItemEventSerializerTest(TestCase):
+    def test_summary_comes_from_event_definition(self) -> None:
+        item = self.create_inbox_item()
+        for payload in ({"comment_id": 123}, {"comment_id": 123, "summary": "Old wording"}):
+            event = self.create_inbox_item_event(
+                inbox_item=item, type="issue.user_mentioned", data=payload
+            )
+
+            result = serialize(event, self.user, InboxItemEventSerializer())
+
+            assert result["summary"] == "Mentioned you in a comment"
+            assert result["data"] == {"commentId": "123"}
+
     def test_bulk_parent_loading(self) -> None:
         read_at = before_now(minutes=1)
         read_item = self.create_inbox_item(subject_id="1", last_read_at=read_at)
