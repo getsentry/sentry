@@ -8631,8 +8631,8 @@ packages:
     engines: {node: '>=20.0'}
     hasBin: true
 
-  serialize-javascript@7.0.7:
-    resolution: {integrity: sha512-YAy8Od6KV+uuwUuU50np8fGB/Aues6Y0nAhA9y/hId74PlKUcme4pXcBD46NWKr1Q4osN/iseZ17YqO1XfmI8g==}
+  serialize-javascript@7.1.4:
+    resolution: {integrity: sha512-FqlEuoTq/zRmA4Lg6aOqyH3lCHbUtCB0bmHCeFniX2GBdDqMJM3FwdvEhlE5Pim1dlt2FfBdVPmUNNiGhhKqpw==}
     engines: {node: '>=20.0.0'}
 
   seroval-plugins@1.6.8:
@@ -13357,7 +13357,7 @@ snapshots:
   compression-webpack-plugin@12.0.0:
     dependencies:
       schema-utils: 4.3.3
-      serialize-javascript: 7.0.7
+      serialize-javascript: 7.1.4
 
   concat-map@0.0.1: {}
 
@@ -17224,7 +17224,7 @@ snapshots:
 
   sentry@0.49.0: {}
 
-  serialize-javascript@7.0.7: {}
+  serialize-javascript@7.1.4: {}
 
   seroval-plugins@1.6.8(seroval@1.6.12):
     dependencies:
