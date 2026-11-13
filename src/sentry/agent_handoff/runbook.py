@@ -5,6 +5,8 @@ from collections.abc import Mapping
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from sentry.agent_handoff.installer import installer_command, pinned_installer
+
 # Markdown labels and shell blocks are escaped for their respective contexts below.
 MARKDOWN_JINJA_ENV = Environment(
     loader=PackageLoader("sentry", "templates"),
@@ -95,9 +97,8 @@ def render_agent_runbook(
     unix_auth_status = _code_block(
         " ".join(filter(None, (instance_environment, "sentry auth status --fresh --json")))
     )
-    unix_installer = _code_block(
-        "curl -fsSL https://cli.sentry.dev/install | " + setup_environment + " bash"
-    )
+    pinned = pinned_installer()
+    unix_installer = _code_block(installer_command(setup_environment, pinned))
     unix_bootstrap = _code_block(
         f"{setup_environment} sentry auth bootstrap --url {shlex.quote(sentry_url)}"
     )
@@ -110,6 +111,7 @@ def render_agent_runbook(
             "organization_slug": _escape_label(organization_slug),
             "unix_auth_status": unix_auth_status,
             "unix_installer": unix_installer,
+            "installer_verified": pinned is not None,
             "unix_bootstrap": unix_bootstrap,
             "windows_auth_status": _powershell_command(
                 "sentry auth status --fresh --json", instance_variables

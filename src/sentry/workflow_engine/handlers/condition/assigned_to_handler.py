@@ -129,7 +129,7 @@ class AssignedToConditionHandler(ActionFilterDataConditionHandler[WorkflowEventD
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        group = event_data.group
+        group = event_data.require_group()
         target_type = AssigneeTargetType(comparison.get("target_type"))
 
         assignees = event_data._cache.get("group_assignees")

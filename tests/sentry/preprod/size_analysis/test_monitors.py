@@ -14,7 +14,7 @@ from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisGroupType,
     _artifact_to_tags,
 )
-from sentry.preprod.size_analysis.tasks import (
+from sentry.preprod.size_analysis.monitors import (
     _get_platform,
     maybe_emit_issues_from_absolute_size_results,
     maybe_emit_issues_from_diff_size_results,
@@ -120,7 +120,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
         )
         self._create_diff_detector()
 
-        with patch("sentry.preprod.size_analysis.tasks.process_detectors") as mock_process:
+        with patch("sentry.preprod.size_analysis.monitors.process_detectors") as mock_process:
             mock_process.return_value = {}
             maybe_emit_issues_from_diff_size_results(head, self.organization.id)
 
@@ -194,7 +194,7 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
         self._create_diff_detector(threshold_type="relative_diff")
 
         with patch(
-            "sentry.preprod.size_analysis.tasks.get_sequential_base_artifact"
+            "sentry.preprod.size_analysis.monitors.get_sequential_base_artifact"
         ) as mock_lookup:
             mock_lookup.return_value = None
             maybe_emit_issues_from_diff_size_results(head, self.organization.id)
@@ -323,7 +323,7 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
             workflow_condition_group=condition_group,
         )
 
-        with patch("sentry.preprod.size_analysis.tasks.process_detectors") as mock_process:
+        with patch("sentry.preprod.size_analysis.monitors.process_detectors") as mock_process:
             mock_process.return_value = {}
             maybe_emit_issues_from_absolute_size_results(head_metric=metric)
 
