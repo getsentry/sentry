@@ -13,12 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
-import {
-  hasPartnerMigrationFeature,
-  hasPerformance,
-  isBizPlanFamily,
-  isTrial,
-} from 'getsentry/utils/billing';
+import {hasPerformance, isBizPlanFamily, isTrial} from 'getsentry/utils/billing';
 import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
 const getSubscriptionBannerText = (
@@ -75,16 +70,10 @@ const getSubscriptionBannerText = (
       ];
 };
 
-function useIsSubscriptionUpsellHidden(
-  subscription: Subscription,
-  organization: Organization
-): boolean {
+function useIsSubscriptionUpsellHidden(subscription: Subscription): boolean {
   // hide upsell for mmx plans
   const isLegacyUpsell =
     !hasPerformance(subscription.planDetails) && !subscription.canTrial;
-
-  // hide upsell for customers on partner plans with flag
-  const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
 
   // exclude current tiers business, non-self serve, current trial orgs, legacy upsells, and orgs with pending business upgrade
   if (
@@ -93,7 +82,6 @@ function useIsSubscriptionUpsellHidden(
       isBizPlanFamily(subscription.planDetails)) ||
     isTrial(subscription) ||
     isLegacyUpsell ||
-    hasEndingPartnerPlan ||
     isBizPlanFamily(subscription.pendingChanges?.planDetails)
   ) {
     return true;
@@ -113,7 +101,7 @@ export function SubscriptionUpsellBanner({
   organization,
   subscription,
 }: SubscriptionUpsellBannerProps) {
-  const isHidden = useIsSubscriptionUpsellHidden(subscription, organization);
+  const isHidden = useIsSubscriptionUpsellHidden(subscription);
   const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompt({
     feature: BANNER_PROMPT_KEY,
     organization,

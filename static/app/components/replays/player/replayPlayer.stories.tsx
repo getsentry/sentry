@@ -6,11 +6,11 @@ import {useReplayPlayerState} from 'sentry/utils/replays/playback/providers/repl
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 
 import {JumpToOffsetButtonBar} from './__stories__/jumpToOffsetButtonBar';
+import {ReplayPlayPauseButton} from './__stories__/replayPlayPauseButton';
 import {ReplaySlugChooser} from './__stories__/replaySlugChooser';
 import {ReplayCurrentTime} from './replayCurrentTime';
 import {ReplayPlayer} from './replayPlayer';
 import {ReplayPlayerMeasurer} from './replayPlayerMeasurer';
-import {ReplayPlayPauseButton} from './replayPlayPauseButton';
 
 export default Storybook.story('ReplayPlayer', story => {
   story('Default', () => {

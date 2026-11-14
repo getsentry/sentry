@@ -373,14 +373,7 @@ function OnboardingContent({
   }
 
   // No platform, docs import failed, no DSN, ingestion is turned off, or the platform doesn't have onboarding yet
-  if (
-    !currentPlatform ||
-    !docs ||
-    !dsn ||
-    !hasDocs ||
-    !projectKeyId ||
-    organization.features.includes('session-replay-video-disabled')
-  ) {
+  if (!currentPlatform || !docs || !dsn || !hasDocs || !projectKeyId) {
     return (
       <Fragment>
         <div>

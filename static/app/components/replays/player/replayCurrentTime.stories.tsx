@@ -2,11 +2,11 @@ import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceC
 import * as Storybook from 'sentry/stories';
 
 import {JumpToOffsetButtonBar} from './__stories__/jumpToOffsetButtonBar';
+import {ReplayPlayPauseButton} from './__stories__/replayPlayPauseButton';
 import {ReplaySlugChooser} from './__stories__/replaySlugChooser';
 import {ReplayCurrentTime} from './replayCurrentTime';
 import {ReplayPlayer} from './replayPlayer';
 import {ReplayPlayerMeasurer} from './replayPlayerMeasurer';
-import {ReplayPlayPauseButton} from './replayPlayPauseButton';
 
 export default Storybook.story('ReplayCurrentTime', story => {
   story('Default', () => {

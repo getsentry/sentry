@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
-import {IconLightning} from '@sentry/icons/lightning';
 import {IconLock} from '@sentry/icons/lock';
 import {IconSentry} from '@sentry/icons/sentry';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -36,7 +35,6 @@ import {
   getFees,
   getOnDemandItems,
   getReservedBudgetCategoryForAddOn,
-  hasPartnerMigrationFeature,
   isBizPlanFamily,
   isDeveloperPlan,
 } from 'getsentry/utils/billing';
@@ -495,10 +493,8 @@ function TotalSummary({
   renewalDate,
   activePlan,
   formData,
-  organization,
   subscription,
 }: TotalSummaryProps) {
-  const isMigratingPartner = hasPartnerMigrationFeature(organization);
   const isDueToday = effectiveDate === null;
   const longInterval =
     activePlan.billingInterval === 'annual' ? 'yearly' : activePlan.billingInterval;
@@ -512,18 +508,6 @@ function TotalSummary({
         );
 
   const getSubtext = () => {
-    if (isMigratingPartner) {
-      return tct(
-        'These changes will take effect at the end of your current [partnerName] sponsored plan on [newPeriodStart]. If you want these changes to apply immediately, select Migrate Now.',
-        {
-          partnerName: subscription.partner?.partnership.displayName,
-          newPeriodStart: moment(subscription.billingPeriodEnd)
-            .add(1, 'days')
-            .format('ll'),
-        }
-      );
-    }
-
     if (subscription.isSelfServePartner) {
       return tct(
         'These changes will apply [applyDate], and you will be billed by [partnerName] monthly for any recurring subscription fees and incurred [budgetType] fees.',
@@ -586,11 +570,7 @@ function TotalSummary({
     invoiceItems: previewData?.invoiceItems ?? [],
   });
 
-  const buttonText = isMigratingPartner
-    ? t('Schedule changes')
-    : isDueToday && billedTotal > 0
-      ? t('Confirm and pay')
-      : t('Confirm');
+  const buttonText = isDueToday && billedTotal > 0 ? t('Confirm and pay') : t('Confirm');
 
   return (
     <Stack border="primary" radius="lg" background="secondary" overflow="hidden">
@@ -718,18 +698,6 @@ function TotalSummary({
       </Stack>
       <Stack padding="xl" gap="md">
         <Flex gap="sm" justify="between" align="center">
-          {isMigratingPartner && (
-            <StyledButton
-              aria-label={t('Migrate Now')}
-              variant="danger"
-              onClick={() => onSubmit(true)}
-              disabled={buttonDisabled || previewDataLoading || isSubmitting}
-              tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
-              icon={<IconLightning />}
-            >
-              {isSubmitting ? t('Checking out...') : t('Migrate Now')}
-            </StyledButton>
-          )}
           <StyledButton
             aria-label={buttonText}
             variant="primary"

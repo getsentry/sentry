@@ -383,10 +383,6 @@ export function getDefaultExploreRoute(organization: Organization) {
     return 'discover/homepage';
   }
 
-  if (organization.features.includes('performance-profiling')) {
-    return 'profiles';
-  }
-
   if (organization.features.includes('session-replay-ui')) {
     return 'replays';
   }
