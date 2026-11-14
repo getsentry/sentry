@@ -34,7 +34,10 @@ import type {
   SeerAutomationRun,
   WorkflowDisplayStatus,
 } from 'sentry/views/seerWorkflows/types';
-import {getAutomationDetailPath} from 'sentry/views/seerWorkflows/utils';
+import {
+  AUTO_REFRESH_INTERVAL,
+  getAutomationDetailPath,
+} from 'sentry/views/seerWorkflows/utils';
 
 import {getRunDisplayStatus, getStatusLabel, StatusIcon} from './statusIcon';
 
@@ -70,10 +73,10 @@ export function RunsTable({
   showStrategy?: boolean;
 }) {
   const [cursor] = useQueryState('cursor');
-  const {runs, pageLinks, isPending, isLoadingError, refetch} = useAutomationRuns({
-    configId,
-    cursor: cursor || undefined,
-  });
+  const {runs, pageLinks, isPending, isLoadingError, refetch} = useAutomationRuns(
+    {configId, cursor: cursor || undefined},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
 
   if (isLoadingError) {
     return <LoadingError onRetry={refetch} />;
@@ -226,8 +229,8 @@ function RunRow({
 }
 
 const RunTableRow = styled(SimpleTable.Row)`
-  > [role='cell']:hover {
-    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 
