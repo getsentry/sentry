@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode, useMemo} from 'react';
+import {Fragment, type ReactNode, useMemo, useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -64,15 +64,23 @@ function EditRepositoryFormBody({
   providerKey,
   integrationId,
   allMappings,
-  seededMappings,
   defaultBranch,
   invalidateQueries,
   leftLabel,
   leftField,
   rightLabel,
   rightField,
+  seededMappings: seededMappingsProp,
 }: EditRepositoryFormBodyProps) {
   const organization = useOrganization();
+
+  // Snapshot the seeded mappings on mount. The code-mappings query may refetch
+  // in the background (e.g. the modal opened from stale cache), and a new
+  // seededMappings array would otherwise reset the form's pathMappings to a
+  // different list. PathMappingList initializes its row state once from form
+  // state, so its rows would fall out of sync and crash. Saving against the same
+  // snapshot also keeps the delete/update diff consistent with what is shown.
+  const [seededMappings] = useState(seededMappingsProp);
 
   const seededPathMappings: PathMappingValue[] = seededMappings.map(m => ({
     id: m.id,
