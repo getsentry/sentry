@@ -794,11 +794,11 @@ register(
 )
 
 # Bound GitLab project webhook reconciliation independently in each cell region. Each
-# repository consumes three capacity tokens to leave room for repairs that make multiple
+# repository consumes five capacity tokens to leave room for repairs that make multiple
 # GitLab API requests.
 register(
     "gitlab.webhook-reconcile.rate-limit.burst",
-    default=3,
+    default=5,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -818,15 +818,8 @@ register(
 )
 
 register(
-    "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
-    default=300,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
-    default=1801,
+    default=601,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
