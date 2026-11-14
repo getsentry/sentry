@@ -776,28 +776,6 @@ header + .alert {
 }
 
 /**
-* Nav stacked
-* ============================================================================
-*/
-
-.nav-header {
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  font-size: 12px;
-  color: var(--legacy-gray-light);
-  letter-spacing: 0.1px;
-  /* clearfix */
-  &:before,
-  &:after {
-    display: table;
-    content: ' ';
-  }
-  &:after {
-    clear: both;
-  }
-}
-
-/**
 * Nav tabs
 * ============================================================================
 */
