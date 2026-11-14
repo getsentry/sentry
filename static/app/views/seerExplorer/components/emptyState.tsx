@@ -1,23 +1,41 @@
-import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
+import {Fragment, useEffect, useRef, useState} from 'react';
+import type {RefObject} from 'react';
+import {Global, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 
+import seerArmLeft from 'sentry-images/spot/seer-arm-left.svg';
+import seerArmRight from 'sentry-images/spot/seer-arm-right.svg';
+import seerBeamScan from 'sentry-images/spot/seer-beam-scan.svg';
+import seerBeam from 'sentry-images/spot/seer-beam.svg';
+import seerCharacter from 'sentry-images/spot/seer-character.svg';
+import seerEye from 'sentry-images/spot/seer-eye.svg';
+
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Image} from '@sentry/scraps/image';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {streamingAnimationStyles, useTextDecodeAnimation} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {ChatSuggestionsState} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
 import type {ChatSuggestion, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
-const SUGGESTION_PLACEHOLDER_COUNT = 3;
+const SUGGESTION_PLACEHOLDERS: readonly [string, string, string] = [
+  t('Finding suggested questions about this page…'),
+  t('Preparing useful questions for this page…'),
+  t('Finding useful questions about your application…'),
+];
+const DRAFT_STAGGER_MS = 35;
 
 interface EmptyStateProps {
+  composerRef?: RefObject<HTMLDivElement | null>;
   displaySlackAgentReminder?: boolean;
   errorStatusCode?: number | null;
+  hasDraft?: boolean;
   /** The conversation could not be loaded: the request failed, or it came back errored. */
   isError?: boolean;
   isLoading?: boolean;
@@ -37,112 +55,544 @@ export function EmptyState({
   onStartNewChat,
   onSuggestionClick,
   suggestions,
+  composerRef,
+  hasDraft = false,
 }: EmptyStateProps) {
-  const theme = useTheme();
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const characterRef = useRef<HTMLDivElement>(null);
+  const [hasDrafted, setHasDrafted] = useState(hasDraft);
+  if (hasDraft && !hasDrafted) {
+    setHasDrafted(true);
+  }
+  const sortedSuggestions =
+    suggestions && !suggestions.isLoading
+      ? suggestions.suggestions.toSorted((a, b) => a.text.length - b.text.length)
+      : [];
+  const [shortest, medium, ...longer] = sortedSuggestions;
+  const orderedSuggestions =
+    shortest && medium ? [medium, shortest, ...longer] : sortedSuggestions;
+  const suggestionCount = suggestions?.isLoading
+    ? SUGGESTION_PLACEHOLDERS.length
+    : orderedSuggestions.length;
   const runIdDisplay = runId?.toString() ?? 'null';
+
+  useEffect(() => {
+    if (isError || isLoading) {
+      return;
+    }
+    const characterElement = characterRef.current;
+    const sceneElement = sceneRef.current;
+    if (!characterElement || !sceneElement) {
+      return;
+    }
+    const ownerDocument = characterElement.ownerDocument;
+    const ownerWindow = ownerDocument.defaultView;
+    if (!ownerWindow) {
+      return;
+    }
+    const panelElement =
+      characterElement.closest('[data-seer-explorer-root]') ?? sceneElement;
+    const reducedMotion = ownerWindow.matchMedia('(prefers-reduced-motion: reduce)');
+    let pointer: Pick<PointerEvent, 'clientX' | 'clientY'> | null = null;
+
+    function handlePointerMove(event: PointerEvent) {
+      if (event.pointerType === 'touch') {
+        return;
+      }
+      pointer = {clientX: event.clientX, clientY: event.clientY};
+      updateGaze();
+    }
+
+    function updateGaze() {
+      const character = characterRef.current;
+      if (!character) {
+        return;
+      }
+      if (reducedMotion.matches) {
+        resetPupil();
+        return;
+      }
+      const target = getComposerCaretPoint(composerRef?.current ?? null) ?? pointer;
+      if (!target) {
+        resetPupil();
+        return;
+      }
+      const {x, y} = getPupilOffset(character.getBoundingClientRect(), target);
+      character.style.setProperty('--pupil-x', `${x}px`);
+      character.style.setProperty('--pupil-y', `${y}px`);
+    }
+
+    function resetPupil() {
+      characterRef.current?.style.setProperty('--pupil-x', '0px');
+      characterRef.current?.style.setProperty('--pupil-y', '0px');
+    }
+
+    function handlePointerLeave() {
+      pointer = null;
+      updateGaze();
+    }
+
+    function handleCharacterTransitionEnd(event: TransitionEvent) {
+      if (event.target === characterElement && event.propertyName === 'translate') {
+        updateGaze();
+      }
+    }
+
+    const updateLayout = () => {
+      const panelBounds = panelElement.getBoundingClientRect();
+      const sceneBounds = sceneElement.getBoundingClientRect();
+      // The visible character occupies the top 35% of the artwork; the rest is beam space.
+      const offset =
+        panelBounds.top +
+        panelBounds.height / 2 -
+        sceneBounds.top -
+        characterElement.clientHeight * 0.175;
+      characterElement.style.setProperty('--seer-focus-y', `${offset / 4}px`);
+      updateGaze();
+    };
+
+    const resizeObserver = new ownerWindow.ResizeObserver(updateLayout);
+    resizeObserver.observe(sceneElement);
+    resizeObserver.observe(characterElement);
+    resizeObserver.observe(panelElement);
+    ownerDocument.addEventListener('pointermove', handlePointerMove, {passive: true});
+    const caretEvents = [
+      'selectionchange',
+      'focusin',
+      'focusout',
+      'input',
+      'keyup',
+      'scroll',
+    ];
+    for (const event of caretEvents) {
+      ownerDocument.addEventListener(event, updateGaze, true);
+    }
+    ownerDocument.addEventListener('pointerleave', handlePointerLeave);
+    ownerWindow.addEventListener('blur', resetPupil);
+    ownerWindow.addEventListener('resize', updateLayout);
+    reducedMotion.addEventListener('change', updateGaze);
+    characterElement.addEventListener('transitionend', handleCharacterTransitionEnd);
+    updateLayout();
+    return () => {
+      resizeObserver.disconnect();
+      ownerDocument.removeEventListener('pointermove', handlePointerMove);
+      for (const event of caretEvents) {
+        ownerDocument.removeEventListener(event, updateGaze, true);
+      }
+      ownerDocument.removeEventListener('pointerleave', handlePointerLeave);
+      ownerWindow.removeEventListener('blur', resetPupil);
+      ownerWindow.removeEventListener('resize', updateLayout);
+      reducedMotion.removeEventListener('change', updateGaze);
+      characterElement.removeEventListener('transitionend', handleCharacterTransitionEnd);
+    };
+  }, [isError, isLoading, composerRef]);
+
   return (
-    <Stack flex="1" align="center" justify="center" padding={{zero: 'xl', '2xs': '3xl'}}>
-      {isError ? (
-        // Checked before `isLoading`: a failed load can still be polling with
-        // backoff, and a spinner there would sit next to a disabled composer
-        // with no way out.
-        <Fragment>
-          <IconSeer size="xl" />
-          <Container marginTop="xl" maxWidth="300px">
-            <Text as="div" align="center" variant="secondary" density="comfortable">
-              {errorStatusCode === 404
-                ? tct('Session not found (run_id=[runIdDisplay]).', {
-                    runIdDisplay,
-                  })
-                : t('There was a problem loading the conversation.')}
-            </Text>
-          </Container>
-          {onStartNewChat && (
-            // The composer is disabled on this screen: sending would post into the
-            // run that just failed rather than open a fresh one, so this is the way out.
+    <Stack flex="1" style={{overflow: isLoading || isError ? undefined : 'clip'}}>
+      <Global styles={streamingAnimationStyles} />
+      <Stack
+        flex="1"
+        align="center"
+        justify="center"
+        padding={{zero: 'xl', '2xs': '3xl'}}
+      >
+        {isError ? (
+          // Checked before `isLoading`: a failed load can still be polling with
+          // backoff, and a spinner there would sit next to a disabled composer
+          // with no way out.
+          <Fragment>
+            <IconSeer size="xl" />
             <Container marginTop="xl" maxWidth="300px">
               <Text as="div" align="center" variant="secondary" density="comfortable">
-                <Button variant="link" size="zero" onClick={onStartNewChat}>
-                  {t('Start a new chat')}
-                </Button>
+                {errorStatusCode === 404
+                  ? tct('Session not found (run_id=[runIdDisplay]).', {
+                      runIdDisplay,
+                    })
+                  : t('There was a problem loading the conversation.')}
               </Text>
             </Container>
-          )}
-        </Fragment>
-      ) : isLoading ? (
-        <Fragment>
-          <LoadingIndicator size={32} />
-          <Container marginTop="xl" maxWidth="300px">
-            <Text as="div" align="center" variant="secondary" density="comfortable">
-              {t('Ask Seer anything about your application.')}
-            </Text>
-          </Container>
-        </Fragment>
-      ) : (
-        <Fragment>
-          <IconSeer size="xl" animation="idle" />
-          <Container marginTop="xl" maxWidth="300px">
-            <Text as="div" align="center" variant="secondary" density="comfortable">
-              {t('Ask Seer anything about your application.')}
-            </Text>
-          </Container>
-          {onSuggestionClick && suggestions && (
-            <Stack
-              align="center"
-              gap="md"
-              paddingTop="2xl"
-              aria-hidden={suggestions.isLoading || undefined}
+            {onStartNewChat && (
+              // The composer is disabled on this screen: sending would post into the
+              // run that just failed rather than open a fresh one, so this is the way out.
+              <Container marginTop="xl" maxWidth="300px">
+                <Text as="div" align="center" variant="secondary" density="comfortable">
+                  <Button variant="link" size="zero" onClick={onStartNewChat}>
+                    {t('Start a new chat')}
+                  </Button>
+                </Text>
+              </Container>
+            )}
+          </Fragment>
+        ) : isLoading ? (
+          <Fragment>
+            <LoadingIndicator size={32} />
+            <Container marginTop="xl" maxWidth="300px">
+              <Text as="div" align="center" variant="secondary" density="comfortable">
+                {t('Ask Seer anything about your application.')}
+              </Text>
+            </Container>
+          </Fragment>
+        ) : (
+          <Grid
+            ref={sceneRef}
+            position="relative"
+            width="100%"
+            maxWidth="360px"
+            columns="1fr"
+          >
+            <FloatingCharacter
+              ref={characterRef}
+              $focused={hasDraft}
+              area="1 / 1"
+              alignSelf="start"
+              position="relative"
+              pointerEvents="none"
+              aria-hidden
             >
-              {suggestions.isLoading
-                ? Array.from({length: SUGGESTION_PLACEHOLDER_COUNT}, (_, index) => (
-                    <Placeholder
-                      key={index}
-                      width="240px"
-                      height={theme.form.sm.height}
-                      testId="suggestion-placeholder"
-                    />
-                  ))
-                : suggestions.suggestions.map((suggestion, index) => (
-                    <Container
-                      key={index}
-                      flexGrow={{zero: 1, sm: 0}}
-                      width={{zero: '100%', sm: 'auto'}}
-                    >
-                      <SuggestionButton
-                        size="sm"
-                        onClick={() => onSuggestionClick(suggestion, index)}
+              <Arm
+                position="absolute"
+                inset="0"
+                $side="left"
+                $focused={hasDraft}
+                $hasDrafted={hasDrafted}
+              >
+                <Image data-arm-reaction="" src={seerArmLeft} alt="" loading="eager" />
+              </Arm>
+              <Arm
+                position="absolute"
+                inset="0"
+                $side="right"
+                $focused={hasDraft}
+                $hasDrafted={hasDrafted}
+              >
+                <Image data-arm-reaction="" src={seerArmRight} alt="" loading="eager" />
+              </Arm>
+              <EyeSocket position="absolute" inset="0">
+                <Pupil
+                  position="absolute"
+                  left="44.03%"
+                  top="16.91%"
+                  width="13.17%"
+                  radius="full"
+                />
+              </EyeSocket>
+              <Face position="relative">
+                <Image src={seerCharacter} alt="" loading="eager" />
+              </Face>
+              <Beam position="absolute" inset="0">
+                <Image src={seerBeam} alt="" loading="eager" />
+              </Beam>
+              <BeamScan data-beam-scan="" position="absolute" inset="0" />
+            </FloatingCharacter>
+            <SuggestionContent
+              aria-hidden={hasDraft || undefined}
+              inert={hasDraft}
+              area="1 / 1"
+              position="relative"
+              alignSelf="start"
+              align="center"
+              gap="lg"
+              paddingBottom="lg"
+            >
+              <DraftExtras width="100%" $hidden={hasDraft}>
+                <BeamCaption
+                  as="div"
+                  align="center"
+                  variant="secondary"
+                  density="comfortable"
+                >
+                  {t('Ask Seer anything about your application.')}
+                </BeamCaption>
+              </DraftExtras>
+              {onSuggestionClick && suggestions && (
+                <Stack
+                  width="100%"
+                  gap="md"
+                  role="group"
+                  aria-label={t('Suggested questions')}
+                  aria-hidden={suggestions.isLoading || undefined}
+                >
+                  {Array.from({length: suggestionCount}, (_, index) => {
+                    const suggestion = suggestions.isLoading
+                      ? undefined
+                      : orderedSuggestions[index];
+                    return (
+                      <DraftExtras
+                        key={index}
+                        $hidden={hasDraft}
+                        $offset={-12}
+                        $delay={index * DRAFT_STAGGER_MS}
+                        $returnDelay={(suggestionCount - index) * DRAFT_STAGGER_MS}
                       >
-                        {suggestion.text}
-                      </SuggestionButton>
-                    </Container>
-                  ))}
-            </Stack>
-          )}
-          {displaySlackAgentReminder && (
-            <Container marginTop="xl" maxWidth="300px">
-              <Text as="div" align="center" variant="secondary" density="comfortable">
-                {t(
-                  'Want to chat in Slack? Just @ Sentry to debug and investigate issues.'
-                )}
-              </Text>
-            </Container>
-          )}
-        </Fragment>
+                        <SuggestionItem
+                          suggestion={suggestion}
+                          position={index}
+                          onClick={onSuggestionClick}
+                        />
+                      </DraftExtras>
+                    );
+                  })}
+                </Stack>
+              )}
+            </SuggestionContent>
+          </Grid>
+        )}
+      </Stack>
+      {!isLoading && !isError && displaySlackAgentReminder && (
+        <DraftExtras
+          padding="0 xl"
+          $hidden={hasDraft}
+          $offset={-12}
+          $delay={suggestionCount * DRAFT_STAGGER_MS}
+          aria-hidden={hasDraft || undefined}
+          inert={hasDraft}
+        >
+          <Alert variant="muted">
+            {tct('Want to chat in Slack? Just ask [mention] to debug issues.', {
+              mention: (
+                <Text monospace variant="promotion">
+                  @sentry
+                </Text>
+              ),
+            })}
+          </Alert>
+        </DraftExtras>
       )}
     </Stack>
   );
 }
 
-const SuggestionButton = styled(Button)`
-  width: 100%;
-  height: auto;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  line-height: 16px;
+export function getPupilOffset(
+  bounds: Pick<DOMRect, 'x' | 'y' | 'width' | 'height'>,
+  pointer: Pick<PointerEvent, 'clientX' | 'clientY'>
+) {
+  return {
+    x: Math.max(
+      -3,
+      Math.min(3, (pointer.clientX - bounds.x - bounds.width * 0.506) / 50)
+    ),
+    y: Math.max(
+      -2,
+      Math.min(2, (pointer.clientY - bounds.y - bounds.height * 0.184) / 75)
+    ),
+  };
+}
 
-  > span:last-child {
-    white-space: normal;
-    text-wrap: balance;
+function getComposerCaretPoint(editor: HTMLDivElement | null) {
+  if (!editor) {
+    return null;
+  }
+  if (editor.ownerDocument.activeElement !== editor) {
+    return null;
+  }
+  const selection = editor.ownerDocument.getSelection();
+  if (selection?.focusNode && editor.contains(selection.focusNode)) {
+    const range = editor.ownerDocument.createRange();
+    range.setStart(selection.focusNode, selection.focusOffset);
+    range.collapse(true);
+    const rect = range.getBoundingClientRect?.();
+    if (rect?.height) {
+      return {clientX: rect.left, clientY: rect.top + rect.height / 2};
+    }
+  }
+  const bounds = editor.getBoundingClientRect();
+  const style = editor.ownerDocument.defaultView?.getComputedStyle(editor);
+  if (!style) {
+    return null;
+  }
+  return {
+    clientX: bounds.left + (parseFloat(style.paddingLeft) || 0),
+    clientY:
+      bounds.top +
+      (parseFloat(style.paddingTop) || 0) +
+      (parseFloat(style.lineHeight) || parseFloat(style.fontSize) || 0) / 2,
+  };
+}
+
+function SuggestionItem({
+  suggestion,
+  position,
+  onClick,
+}: {
+  onClick: (suggestion: ChatSuggestion, position: number) => void;
+  position: number;
+  suggestion: ChatSuggestion | undefined;
+}) {
+  const textRef = useRef<HTMLDivElement>(null);
+  const text = suggestion?.text;
+  useTextDecodeAnimation(textRef, text, {
+    pending: text === undefined,
+    delay: position * 80,
+  });
+
+  return (
+    <ToggleCard
+      data-suggestion-card=""
+      variant="button"
+      padding="md lg"
+      disabled={!suggestion}
+      style={{opacity: 1}}
+      tabIndex={suggestion ? undefined : -1}
+      aria-label={text}
+      onClick={() => {
+        if (suggestion) {
+          onClick(suggestion, position);
+        }
+      }}
+    >
+      <Flex align="center" justify="center" minHeight="48px">
+        <Text
+          key={text ?? 'pending'}
+          ref={textRef}
+          as="div"
+          size="sm"
+          align="center"
+          density="comfortable"
+          wrap="normal"
+          textWrap="pretty"
+        >
+          {text ?? SUGGESTION_PLACEHOLDERS[position] ?? SUGGESTION_PLACEHOLDERS[0]}
+        </Text>
+      </Flex>
+    </ToggleCard>
+  );
+}
+
+const float = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+`;
+
+const armDrift = keyframes`
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(var(--arm-tilt)) translateY(1px); }
+`;
+
+const armKick = keyframes`
+  0%, 75%, 100% { transform: rotate(0); }
+  12% { transform: rotate(var(--arm-anticipation)); }
+  36% { transform: rotate(var(--arm-pull)); }
+  88% { transform: rotate(var(--arm-overshoot)); }
+`;
+
+const armReturn = keyframes`
+  0%, 100% { transform: rotate(0); }
+  12% { transform: rotate(calc(-1 * var(--arm-anticipation))); }
+  36% { transform: rotate(calc(-1 * var(--arm-pull))); }
+`;
+
+const scan = keyframes`
+  0% { transform: translateY(-50%) scale(0.2); opacity: 0; }
+  15% { opacity: 0.2; }
+  80% { opacity: 0.45; }
+  100% { transform: translateY(450%) scale(1); opacity: 0; }
+`;
+
+const DraftExtras = styled(Stack)<{
+  $hidden: boolean;
+  $delay?: number;
+  $offset?: number;
+  $returnDelay?: number;
+}>`
+  opacity: ${p => (p.$hidden ? 0 : 1)};
+  visibility: ${p => (p.$hidden ? 'hidden' : 'visible')};
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: ${p => (p.$hidden ? `translateY(${p.$offset ?? 0}px)` : 'none')};
+    transition:
+      opacity ${p => (p.$hidden ? 120 : 230)}ms ease-out
+        ${p => (p.$hidden ? (p.$delay ?? 0) : (p.$returnDelay ?? 0))}ms,
+      transform ${p => (p.$hidden ? 120 : 230)}ms cubic-bezier(0.2, 0.8, 0.2, 1)
+        ${p => (p.$hidden ? (p.$delay ?? 0) : (p.$returnDelay ?? 0))}ms,
+      visibility 0s linear ${p => (p.$hidden ? 120 + (p.$delay ?? 0) : 0)}ms;
+  }
+`;
+
+const SuggestionContent = styled(Stack)`
+  padding-top: calc(237.4 / 170.58 * 43%);
+`;
+
+const Arm = styled(Container)<{
+  $focused: boolean;
+  $hasDrafted: boolean;
+  $side: 'left' | 'right';
+}>`
+  z-index: 0;
+  transform-origin: ${p => (p.$side === 'left' ? '37.4% 27%' : '63.2% 27%')};
+  --arm-tilt: ${p => (p.$side === 'left' ? '1.5deg' : '-1.5deg')};
+  --arm-anticipation: ${p => (p.$side === 'left' ? '0.75deg' : '-0.75deg')};
+  --arm-pull: ${p => (p.$side === 'left' ? '3.5deg' : '-3.5deg')};
+  --arm-overshoot: ${p => (p.$side === 'left' ? '-0.5deg' : '0.5deg')};
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${armDrift} ${p => (p.$side === 'left' ? '5.2s' : '4.6s')} ease-in-out
+      infinite;
+    animation-delay: ${p => (p.$side === 'left' ? '-1s' : '-2.4s')};
+
+    [data-arm-reaction] {
+      transform-origin: inherit;
+      animation: ${p => (p.$focused ? armKick : p.$hasDrafted ? armReturn : 'none')}
+        ${p => (p.$side === 'left' ? '780ms' : '820ms')} ease-in-out both;
+    }
+  }
+`;
+
+const FloatingCharacter = styled(Container)<{$focused: boolean}>`
+  isolation: isolate;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${float} 6s ease-in-out infinite;
+    translate: 0 ${p => (p.$focused ? 'var(--seer-focus-y, 16px)' : '0')};
+    transition: translate 620ms cubic-bezier(0.2, 0.8, 0.2, 1)
+      ${p => (p.$focused ? '120ms' : '0ms')};
+  }
+`;
+
+const EyeSocket = styled(Container)`
+  z-index: 1;
+  background: #fff;
+  mask: url('${seerEye}') center / 100% 100% no-repeat;
+`;
+
+const Face = styled(Container)`
+  z-index: 2;
+`;
+
+const Beam = styled(Container)`
+  z-index: 3;
+`;
+
+const BeamCaption = styled(Text)`
+  mix-blend-mode: luminosity;
+`;
+
+const Pupil = styled(Container)`
+  aspect-ratio: 1;
+  background: #181225;
+  border: 1px solid #000;
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: translate(var(--pupil-x, 0px), var(--pupil-y, 0px));
+    transition: transform 150ms ease-out;
+  }
+`;
+
+const BeamScan = styled(Container)`
+  z-index: 4;
+  mask: url('${seerBeam}') center / 100% 100% no-repeat;
+
+  &::after {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 21%;
+    width: 100%;
+    height: 16%;
+    opacity: 0;
+    background: url('${seerBeamScan}') center / 100% 100% no-repeat;
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${scan} 6s ease-in-out infinite;
+    }
   }
 `;

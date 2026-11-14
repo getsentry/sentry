@@ -4338,11 +4338,6 @@
       "count": 3
     }
   },
-  "views/seerExplorer/components/emptyState.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    }
-  },
   "views/seerExplorer/components/explorerMenu.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2

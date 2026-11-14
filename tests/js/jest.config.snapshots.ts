@@ -117,12 +117,14 @@ const config: Config.InitialOptions = {
       '<rootDir>/static/app/components/core/$1',
     ],
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
+    '^sentry-images/(.*\\.svg)$': '<rootDir>/static/images/$1',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
   },
 
   transform: {
+    '\\.svg$': '<rootDir>/tests/js/sentry-test/snapshots/svgTransform.js',
     '^.+\\.[mc]?[jt]sx?$': [fileURLToPath(import.meta.resolve('@swc/jest')), swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
