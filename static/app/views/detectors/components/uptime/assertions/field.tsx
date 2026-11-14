@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import {FormField} from 'sentry/components/forms/formField';
 import {uniqueId} from 'sentry/utils/guid';
@@ -39,6 +41,67 @@ export function normalizeAssertion(op: UptimeOp): UptimeOp {
     default:
       return op;
   }
+}
+
+function sanitizeOp(op: UptimeOp, problems: string[], path: string): UptimeOp {
+  switch (op.op) {
+    case UptimeOpType.AND:
+    case UptimeOpType.OR: {
+      if (!Array.isArray(op.children)) {
+        problems.push(`${path}: ${op.op} group is missing children`);
+        return {...op, children: []};
+      }
+      return {
+        ...op,
+        children: op.children.map((child, index) =>
+          sanitizeOp(child, problems, `${path}.children[${index}]`)
+        ),
+      };
+    }
+    case UptimeOpType.NOT:
+      if (!op.operand) {
+        problems.push(`${path}: not op is missing operand`);
+        return {...op, operand: {op: UptimeOpType.AND, id: uniqueId(), children: []}};
+      }
+      return {...op, operand: sanitizeOp(op.operand, problems, `${path}.operand`)};
+    default:
+      return op;
+  }
+}
+
+/**
+ * Sanitizes an assertion loaded from the API so the assertion editor can
+ * render it. The API stores assertions as free-form JSON, so group ops may be
+ * missing their `children` array or the root may not be a group at all.
+ * Malformed assertions are reported to Sentry with the original value attached.
+ */
+export function sanitizeLoadedAssertion(
+  assertion: UptimeAssertion | null | undefined,
+  detectorId?: string
+): UptimeAssertion {
+  if (!assertion?.root) {
+    return {root: createEmptyAssertionRoot()};
+  }
+
+  const problems: string[] = [];
+  const rawRoot = assertion.root as UptimeOp;
+  let root = sanitizeOp(rawRoot, problems, 'root');
+
+  if (root.op !== UptimeOpType.AND) {
+    problems.push(`root: expected and group, got ${String(root.op)}`);
+    root = {op: UptimeOpType.AND, id: uniqueId(), children: [root]};
+  }
+
+  if (problems.length > 0) {
+    Sentry.withScope(scope => {
+      scope.setExtra('detectorId', detectorId);
+      scope.setExtra('problems', problems);
+      scope.setExtra('assertion', assertion);
+      Sentry.captureMessage('Malformed uptime assertion loaded for editing', 'warning');
+    });
+  }
+
+  return problems.length > 0 ? {root: root as UptimeAndOp} : assertion;
 }
 
 /**
@@ -122,7 +185,7 @@ export function UptimeAssertionsField(props: Omit<FormFieldProps, 'children'>) {
           return null;
         }
         // Empty children = user deleted all assertions or editing monitor with no assertions
-        if (value.root.children.length === 0) {
+        if (!value.root.children?.length) {
           return null;
         }
         return {root: normalizeAssertion(value.root)};
