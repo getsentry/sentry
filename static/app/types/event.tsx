@@ -180,6 +180,7 @@ export type Frame = {
   trust: any | null;
   vars: Record<string, any> | null;
   addrMode?: string;
+  fileRevision?: string | null;
   lock?: Lock | null;
   // map exists if the frame has a source map
   map?: string | null;
