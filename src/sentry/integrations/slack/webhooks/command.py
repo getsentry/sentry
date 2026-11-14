@@ -7,12 +7,14 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.identity.services.identity.service import identity_service
 from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
@@ -23,6 +25,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.users.services.user import RpcUser
 
 _logger = logging.getLogger("sentry.integration.slack.bot-commands")
 
@@ -69,6 +72,18 @@ def get_orgs_with_teams_linked_to_channel(
     )
 
 
+def has_link_team_role(integration: RpcIntegration, user: RpcUser) -> bool:
+    organization_memberships = OrganizationMember.objects.get_for_integration(integration, user)
+
+    # Batch check for team admin roles to avoid N+1 queries
+    team_admin_member_ids = get_team_admin_member_ids(organization_memberships)
+
+    return any(
+        is_valid_role(membership) or membership.id in team_admin_member_ids
+        for membership in organization_memberships
+    )
+
+
 def get_team_admin_member_ids(org_members: Iterable[OrganizationMember]) -> set[int]:
     return set(
         OrganizationMemberTeam.objects.filter(
@@ -109,23 +124,12 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
 
         integration = slack_request.integration
         logger_params["integration_id"] = integration.id
-        organization_memberships = OrganizationMember.objects.get_for_integration(
+
+        # This cell only sees its own memberships. The React page lists
+        # linkable teams from every cell, so leave the role check to it.
+        if not options.get("slack.link-team-react-enabled") and not has_link_team_role(
             integration, identity_user
-        )
-
-        # Batch check for team admin roles to avoid N+1 queries
-        team_admin_member_ids = get_team_admin_member_ids(organization_memberships)
-
-        has_valid_role = False
-        for organization_membership in organization_memberships:
-            if (
-                is_valid_role(organization_membership)
-                or organization_membership.id in team_admin_member_ids
-            ):
-                has_valid_role = True
-                break
-
-        if not has_valid_role:
+        ):
             return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         if not slack_request.user_id:

@@ -859,6 +859,8 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Send `/sentry link team` to the React team link page served from control
+register("slack.link-team-react-enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Frequency of slack nudge blocks on issue alerts (0.0 to 1.0, where 0.3 = 30%)
 register(
     "slack.nudge-frequency",

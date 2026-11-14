@@ -24,6 +24,7 @@ from sentry.integrations.slack.utils.auth import _encode_data
 from sentry.integrations.slack.views import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_cells
 from sentry.utils import json
@@ -173,6 +174,44 @@ class SlackRequestParserTest(TestCase):
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
+
+    def _team_link_request(self, method: str) -> HttpRequest:
+        path = reverse(
+            "sentry-integration-slack-link-team",
+            kwargs={"signed_params": sign(salt=SALT, integration_id=self.integration.id)},
+        )
+        return getattr(self.factory, method)(path)
+
+    @override_options({"slack.link-team-react-enabled": True})
+    @patch.object(SlackRequestParser, "get_response_from_first_cell")
+    def test_react_team_link_page_handled_on_control_silo(self, mock_cell: MagicMock) -> None:
+        parser = SlackRequestParser(self._team_link_request("get"), self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.content == b"passthrough"
+        mock_cell.assert_not_called()
+
+    @override_options({"slack.link-team-react-enabled": True})
+    @patch.object(
+        SlackRequestParser, "get_response_from_first_cell", return_value=HttpResponse(b"cell")
+    )
+    def test_team_link_submission_handled_on_cell_silo(self, mock_cell: MagicMock) -> None:
+        parser = SlackRequestParser(self._team_link_request("post"), self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.content == b"cell"
+
+    @patch.object(
+        SlackRequestParser, "get_response_from_first_cell", return_value=HttpResponse(b"cell")
+    )
+    def test_django_team_link_page_handled_on_cell_silo(self, mock_cell: MagicMock) -> None:
+        parser = SlackRequestParser(self._team_link_request("get"), self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.content == b"cell"
 
     @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
     def test_triggers_async_response(self, mock_slack_task: MagicMock) -> None:
