@@ -632,6 +632,53 @@ describe('ReleasesList', () => {
     );
   });
 
+  it('renders snapshots onboarding when the snapshots tab has no snapshots', async () => {
+    const webProject = ProjectFixture({
+      id: '14',
+      slug: 'web-project',
+      platform: 'javascript-react',
+      features: ['releases'],
+    });
+
+    ProjectsStore.loadInitialData([webProject]);
+    PageFiltersStore.updateProjects([Number(webProject.id)], null);
+
+    const buildsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/builds/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
+
+    render(<ReleasesList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/releases/`,
+          query: {tab: 'snapshots'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByRole('heading', {name: 'Catch visual changes before they ship'})
+    ).toBeInTheDocument();
+    expect(screen.getByText(/--project web-project/)).toBeInTheDocument();
+    expect(screen.queryByText(/Upload Mobile Builds to Sentry/)).not.toBeInTheDocument();
+    expect(buildsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/builds/`,
+      expect.objectContaining({
+        query: expect.objectContaining({display: PreprodBuildsDisplay.SNAPSHOT}),
+      })
+    );
+  });
+
   function renderMobileBuildsTab(queryOverrides: Record<string, string> = {}) {
     const mobileProject = ProjectFixture({
       id: '15',
