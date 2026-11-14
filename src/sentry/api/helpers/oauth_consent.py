@@ -168,6 +168,12 @@ _PERMISSION_RESOURCES = (
         },
     ),
     OAuthPermissionResource(
+        "event_attachments",
+        "Event attachments",
+        ("event_attachment:read",),
+        access_descriptions={"read": "Download event attachments."},
+    ),
+    OAuthPermissionResource(
         "alerts",
         "Alerts",
         ("alerts:read", "alerts:write"),
