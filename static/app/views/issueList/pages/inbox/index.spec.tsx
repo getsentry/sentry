@@ -1436,6 +1436,94 @@ describe('InboxPage', () => {
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
   });
 
+  describe('an Autofix pull request that failed for credits', () => {
+    const creditsOrganization = OrganizationFixture({
+      features: [
+        ...organization.features,
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+      ],
+    });
+
+    function mockOutOfCreditsPullRequest() {
+      mockSuccessfulSections();
+      mockIssuePreview();
+      mockAutofixResponse(
+        ExplorerAutofixResponseFixture({
+          autofix: ExplorerAutofixStateFixture({
+            repo_pr_states: {
+              'org/repository': AutofixRepoPRStateFixture({
+                pr_creation_error:
+                  "Your organization doesn't have enough Seer credits for this.",
+                pr_creation_error_code: 'out_of_credits',
+                pr_creation_status: 'error',
+                pr_id: null,
+                pr_number: null,
+                pr_url: null,
+              }),
+            },
+          }),
+        })
+      );
+    }
+
+    function mockCreditCheck(hasEnoughCredits: boolean) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'autofix_open_pr'})],
+        body: {hasEnoughCredits},
+      });
+    }
+
+    it('keeps its retry, disabled, while out of credits', async () => {
+      mockOutOfCreditsPullRequest();
+      mockCreditCheck(false);
+
+      render(<InboxPage />, {
+        organization: creditsOrganization,
+        initialRouterConfig,
+      });
+
+      const preview = await openFixProposedPreview();
+      const retryButton = await within(preview).findByRole('button', {
+        name: 'Retry PR in org/repository',
+      });
+      expect(retryButton).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(retryButton);
+      expect(
+        await screen.findByText(
+          'Your organization does not have enough Seer credits for this.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('enables its retry once the organization can afford it', async () => {
+      mockOutOfCreditsPullRequest();
+      mockCreditCheck(true);
+
+      render(<InboxPage />, {
+        organization: creditsOrganization,
+        initialRouterConfig,
+      });
+
+      const preview = await openFixProposedPreview();
+      const retryButton = await within(preview).findByRole('button', {
+        name: 'Retry PR in org/repository',
+      });
+      await waitFor(() =>
+        expect(retryButton).not.toHaveAttribute('aria-disabled', 'true')
+      );
+
+      await userEvent.hover(retryButton);
+      expect(
+        await screen.findByText(
+          "Seer couldn't open a pull request in org/repository because your organization is out of credits."
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
   it('retries a failed Autofix pull request', async () => {
     mockSuccessfulSections();
     mockIssuePreview();

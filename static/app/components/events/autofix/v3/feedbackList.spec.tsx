@@ -138,4 +138,82 @@ describe('FeedbackList', () => {
     expect(screen.getByText('rename it')).toBeInTheDocument();
     expect(screen.getByTestId('feedback-processed')).toBeInTheDocument();
   });
+
+  function iterationBlocks() {
+    return [
+      ExplorerAutofixBlockFixture({
+        id: 'iteration-0',
+        artifacts: [],
+        message: {
+          role: 'user',
+          content: 'Please add a null check',
+          metadata: {
+            step: 'pr_iteration',
+            iteration_index: '0',
+            feedback: JSON.stringify({
+              text: 'Please add a null check',
+              source: {type: 'user-ui'},
+            }),
+          },
+        },
+      }),
+    ];
+  }
+
+  it('says the iteration stopped for credits', async () => {
+    const state = ExplorerAutofixStateFixture({
+      status: 'error',
+      failure_reason: 'out_of_credits',
+      blocks: [
+        ...iterationBlocks(),
+        ExplorerAutofixBlockFixture({
+          id: 'error-1',
+          artifacts: [],
+          message: {
+            role: 'assistant',
+            content: "Your organization doesn't have enough Seer credits for this.",
+            metadata: null,
+          },
+        }),
+      ],
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
+    expect(
+      await screen.findByText(
+        "Seer couldn't finish this feedback because your organization is out of credits."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('says the iteration push failed for credits', async () => {
+    const state = ExplorerAutofixStateFixture({
+      status: 'completed',
+      blocks: [
+        ...iterationBlocks(),
+        ExplorerAutofixBlockFixture({
+          id: 'iteration-completed',
+          artifacts: [],
+          message: {role: 'assistant', content: 'Done', metadata: null},
+        }),
+      ],
+      repo_pr_states: {
+        'org/repo': AutofixRepoPRStateFixture({
+          pr_creation_status: 'error',
+          pr_creation_error_code: 'out_of_credits',
+        }),
+      },
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
+    expect(
+      await screen.findByText(
+        "Seer couldn't finish this feedback because your organization is out of credits."
+      )
+    ).toBeInTheDocument();
+  });
 });

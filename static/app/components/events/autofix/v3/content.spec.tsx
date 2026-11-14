@@ -339,6 +339,42 @@ describe('SeerDrawerContent', () => {
       ).toBeEnabled();
     });
 
+    it('shows the continue alert for a single run that stopped for credits', async () => {
+      mockCreditCheck('autofix_root_cause');
+
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              run_id: 776,
+              feature_id: 'autofix_single_run',
+              status: 'error',
+              failure_reason: 'out_of_credits',
+              updated_at: '2026-01-01T00:00:00Z',
+              blocks: [
+                {
+                  id: 'b1',
+                  timestamp: '2026-01-01T00:00:00Z',
+                  message: {
+                    role: 'assistant',
+                    content: 'Reading the handler.',
+                    metadata: {step: 'single_run'},
+                  },
+                },
+              ],
+            },
+          })}
+          group={GroupFixture()}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-continue'
+      );
+    });
+
     it('does not check credits while a step is running', () => {
       const creditCheck = MockApiClient.addMockResponse({
         url: creditCheckUrl,

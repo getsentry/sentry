@@ -11,13 +11,17 @@ import {
 import {getAutofixNextStep, type AutofixNextStep} from './getAutofixNextStep';
 import {
   getAutofixArtifactFromSection,
+  isOutOfCreditsSection,
   isPullRequestsSection,
   isSingleRunAutofix,
   type AutofixSection,
   type ExplorerAutofixState,
 } from './useExplorerAutofix';
 
-type AutofixAction = AutofixNextStep['action'];
+/**
+ * A billable autofix action: a step, opening a PR, or iterating on one.
+ */
+export type AutofixAction = AutofixNextStep['action'];
 
 const AUTOFIX_CREDIT_OPERATIONS: Record<AutofixAction, SeerCreditOperation> = {
   root_cause: 'autofix_root_cause',
@@ -73,9 +77,15 @@ export function getAutofixContinueAction({
   const section = sections.at(-1);
   const nextStep = getAutofixNextStep({sections, runState});
 
-  // A single run offers no next step; its only follow-up is opening the chat.
-  if (!defined(section) || isSingleRunAutofix(runState)) {
+  if (!defined(section)) {
     return null;
+  }
+
+  // A single run offers no next step; its only follow-up is opening the chat.
+  // One that stopped for credits is retried with a new run, which starts at
+  // the root cause.
+  if (isSingleRunAutofix(runState)) {
+    return isOutOfCreditsSection(section) ? 'root_cause' : null;
   }
 
   // An open PR takes feedback even while a run is going, and a failed create is

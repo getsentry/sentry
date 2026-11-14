@@ -42,6 +42,7 @@ interface Wallet {
 
 /**
  * Answers every query the chat window makes from fixtures, so the story never reaches the API.
+ * Without a wallet, the wallet's requests fail as they do for an org without token-billed Seer.
  * Per-query options outrank client defaults, which is why this replaces `queryFn` after
  * defaulting rather than setting a default. Sending a message is a mutation and is not stubbed.
  */
@@ -72,7 +73,10 @@ class FixtureQueryClient extends QueryClient {
         dailySpendCapCents: 5000,
       };
     }
-    if (this.wallet && url.includes('/seer-wallet/')) {
+    if (url.includes('/seer-wallet/')) {
+      if (!this.wallet) {
+        throw new Error('This story has no wallet');
+      }
       const {remaining, total} = this.wallet;
       return {
         balance: remaining,
@@ -88,7 +92,9 @@ class FixtureQueryClient extends QueryClient {
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
     const url = String(defaulted.queryKey[0]);
-    const queryFn = () => Promise.resolve({json: this.respond(url), headers: {}});
+    // `then` turns a fixture that throws into a failed query.
+    const queryFn = () =>
+      Promise.resolve().then(() => ({json: this.respond(url), headers: {}}));
     // Each fixture matches the response type of the query that asked for it.
     return {...defaulted, queryFn: queryFn as never};
   };
@@ -123,8 +129,11 @@ function ChatWindow({session, hasEnoughCredits, initialQuery, wallet}: ChatWindo
     <OrganizationContext.Provider
       value={{
         ...organization,
-        // The meter and the alert's copy are for billing members.
-        access: wallet ? [...organization.access, 'org:billing'] : organization.access,
+        // A story with a wallet is viewed by a billing member, and one without by a member
+        // without billing, whatever the viewer's own access, so it looks the same for everyone.
+        access: wallet
+          ? [...organization.access, 'org:billing']
+          : organization.access.filter(scope => scope !== 'org:billing'),
         openMembership: true,
         hideAiFeatures: false,
         features: [
@@ -416,6 +425,29 @@ const AWAITING_ANSWER_SESSION: Session = {
   blocks: [USER_QUESTION, SEARCH_SPANS],
 };
 
+// Seer ran out of credits after two tool calls. It keeps the blocks it wrote and appends a
+// plain-text error block, which the chat swaps for a line saying why it stopped.
+const OUT_OF_CREDITS_SESSION: Session = {
+  status: 'error',
+  failure_reason: 'out_of_credits',
+  updated_at: at(14),
+  blocks: [
+    USER_QUESTION,
+    SEARCH_SPANS,
+    INSPECT_ISSUE,
+    {
+      id: 'error-1',
+      message: {
+        role: 'assistant',
+        content:
+          "Your organization doesn't have enough Seer credits for this, so I stopped here. Add credits to continue.",
+      },
+      timestamp: at(14),
+      loading: false,
+    },
+  ],
+};
+
 export default Storybook.story('ChatWindow', story => {
   story('Completed conversation', () => (
     <Fragment>
@@ -539,6 +571,21 @@ export default Storybook.story('ChatWindow', story => {
         initialQuery="Open a pull request that prefetches product in the cart query."
         wallet={{autoReloadEnabled: true, remaining: 50, total: 1000}}
       />
+    </Fragment>
+  ));
+
+  story('Stopped for credits', () => (
+    <Fragment>
+      <p>
+        The organization ran out of Seer credits mid-response. The run ends with{' '}
+        <code>failure_reason: out_of_credits</code>. The reasoning and tool calls Seer
+        made before it stopped stay in the thinking block, and a muted line saying Seer
+        stopped for credits replaces Seer's plain-text error message. There is no CTA in
+        the transcript: the chat rechecks credits when a run stops for them, and the
+        out-of-credits alert above the composer covers it. Open source renders no CTA;
+        getsentry fills it in.
+      </p>
+      <ChatWindow session={OUT_OF_CREDITS_SESSION} hasEnoughCredits={false} />
     </Fragment>
   ));
 

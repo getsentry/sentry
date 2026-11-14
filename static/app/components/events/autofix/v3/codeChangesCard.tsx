@@ -14,6 +14,7 @@ import {
   collectPatches,
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
+  isOutOfCreditsSection,
   isPrIterationBlock,
   isPrIterationPaused,
   isSingleRunAutofix,
@@ -21,6 +22,8 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -30,9 +33,10 @@ import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewe
 
 import {ArtifactCard} from './artifactCard';
 import {ArtifactDetails} from './artifactDetails';
-import {ArtifactLoadingDetails} from './artifactLoadingDetails';
+import {ArtifactLoadingDetails, ArtifactPartialDetails} from './artifactLoadingDetails';
 import {AutofixResetPrompt} from './autofixResetPrompt';
 import {FeedbackList, usePrIterationFeedback} from './feedbackList';
+import {OutOfCreditsStatus} from './outOfCreditsStatus';
 import {
   PR_ITERATION_PAUSED_TOOLTIP,
   PrIterationFeedbackForm,
@@ -85,25 +89,49 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const {feedback, latestIterationIndex} = usePrIterationFeedback(section, autofix);
 
-  const loadingBlocks = useMemo(() => {
-    if (section.status !== 'processing') {
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
+  const isOutOfCredits = isOutOfCreditsSection(section);
+  const stoppedStep = isLatestStepPrIteration ? 'pr_iteration' : 'code_changes';
+  // Single runs take PR feedback in the chat, so the card offers no retry for a
+  // PR update that stopped for credits.
+  const hasOutOfCreditsRetry =
+    isOutOfCredits && !(isSingleRun && stoppedStep === 'pr_iteration');
+  // A single run is retried by starting a new one, which begins at the root cause.
+  const outOfCreditsRetry = useOutOfCreditsRetry(
+    isSingleRun ? 'root_cause' : stoppedStep,
+    {enabled: hasOutOfCreditsRetry}
+  );
+
+  // The blocks of the step that is running, or that stopped for credits.
+  const currentStepBlocks = useMemo(() => {
+    if (section.status !== 'processing' && !isOutOfCredits) {
       return [];
     }
     if (currentStepStart === -1) {
       return section.blocks;
     }
     return section.blocks.slice(currentStepStart);
-  }, [section.status, section.blocks, currentStepStart]);
+  }, [section.status, section.blocks, currentStepStart, isOutOfCredits]);
 
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  // A step that stopped for credits keeps the diff it got to, which is not
+  // the finished artifact, so it can't be copied or turned into a PR.
+  const partialArtifact = useMemo(
+    () =>
+      isOutOfCredits ? (section.artifacts.findLast(isCodeChangesArtifact) ?? null) : null,
+    [isOutOfCredits, section.artifacts]
+  );
+
   const {copy} = useCopyToClipboard();
-  const isSingleRun = isSingleRunAutofix(autofix.runState);
   const singleRunRerun = useRerunSingleRun(autofix, {
-    enabled: isSingleRun && section.status === 'error',
+    enabled:
+      isSingleRun &&
+      section.status === 'error' &&
+      (!isOutOfCredits || hasOutOfCreditsRetry),
   });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
@@ -120,11 +148,14 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   // Once a PR exists, reset opens the PR iteration form, so it stays available
   // while an iteration is processing.
-  const isResetEligible =
+  const isResetAvailable =
     !isPaused &&
     !hasFailedOnlyPRs &&
     noCodingAgents &&
     (hasPRs || autofix.runState?.status !== 'processing');
+  // A step that stopped for credits fails the same way until the organization
+  // can afford it again.
+  const isResetEligible = isResetAvailable && !outOfCreditsRetry.disabled;
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
@@ -149,7 +180,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     );
   }, [location, navigate, shouldShowReset]);
 
-  const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
+  const patchesByRepo = useMemo(
+    () => collectPatches(artifact ?? partialArtifact ?? []),
+    [artifact, partialArtifact]
+  );
 
   const shouldExpandDiffs = useMemo(() => {
     let lineCount = 0;
@@ -244,6 +278,32 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     );
   }
 
+  const diffDetails = (
+    <Fragment>
+      <ArtifactDetails>
+        <Text>{summary}</Text>
+      </ArtifactDetails>
+      {Array.from(patchesByRepo.entries(), ([repo, patches]) => (
+        <ArtifactDetails key={repo}>
+          <Flex gap="lg">
+            <Text bold>{t('Repository:')}</Text>
+            <Text>{repo}</Text>
+          </Flex>
+          {patches.map((patch, index) => (
+            <FileDiffViewer
+              key={index}
+              patch={patch.patch}
+              fileUrl={patch.code_url}
+              showBorder
+              collapsible
+              defaultExpanded={shouldExpandDiffs}
+            />
+          ))}
+        </ArtifactDetails>
+      ))}
+    </Fragment>
+  );
+
   let content: React.ReactNode;
   if (section.status === 'processing') {
     content = (
@@ -252,7 +312,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
             the form available even mid-run. */}
         {shouldShowReset && showPrIterationForm && prIterationForm}
         <ArtifactLoadingDetails
-          blocks={loadingBlocks}
+          blocks={currentStepBlocks}
           loadingMessage={
             isIterating ? t('Iterating on PR…') : t('Implementing changes…')
           }
@@ -266,27 +326,56 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
           t('How can this code change be improved?'),
           t('Give Seer additional context to improve this code change.')
         )}
-        <ArtifactDetails>
-          <Text>{summary}</Text>
-        </ArtifactDetails>
-        {Array.from(patchesByRepo.entries(), ([repo, patches]) => (
-          <ArtifactDetails key={repo}>
-            <Flex gap="lg">
-              <Text bold>{t('Repository:')}</Text>
-              <Text>{repo}</Text>
-            </Flex>
-            {patches.map((patch, index) => (
-              <FileDiffViewer
-                key={index}
-                patch={patch.patch}
-                fileUrl={patch.code_url}
-                showBorder
-                collapsible
-                defaultExpanded={shouldExpandDiffs}
-              />
-            ))}
-          </ArtifactDetails>
-        ))}
+        {diffDetails}
+      </Fragment>
+    );
+  } else if (isOutOfCredits) {
+    let retry: React.ReactNode = null;
+    if (isSingleRun) {
+      // A single run is retried with a new run.
+      retry = hasOutOfCreditsRetry ? (
+        <Flex>
+          <Button
+            variant="primary"
+            icon={<IconRefresh />}
+            disabled={singleRunRerun.disabled}
+            tooltipProps={{title: outOfCreditsRetry.tooltip}}
+            onClick={singleRunRerun.rerun}
+          >
+            {t('Re-run')}
+          </Button>
+        </Flex>
+      ) : null;
+    } else if (shouldShowReset) {
+      retry = resetPrompt(
+        t('What additional context should Seer use?'),
+        t('Add context that could unblock the change, e.g. the repo or files to edit.')
+      );
+    } else if (isResetAvailable) {
+      // An iteration is retried with feedback, through the PR iteration form.
+      retry = (
+        <Flex>
+          <Button
+            variant="primary"
+            icon={<IconRefresh />}
+            disabled={!canReset}
+            tooltipProps={{title: outOfCreditsRetry.tooltip}}
+            onClick={() =>
+              stoppedStep === 'pr_iteration' ? setShouldShowReset(true) : handleReset()
+            }
+          >
+            {stoppedStep === 'pr_iteration' ? t('Add context & retry') : t('Re-run')}
+          </Button>
+        </Flex>
+      );
+    }
+    content = (
+      <Fragment>
+        <ArtifactPartialDetails blocks={currentStepBlocks} />
+        {patchesByRepo.size > 0 && diffDetails}
+        <OutOfCreditsStatus message={OUT_OF_CREDITS_STEP_MESSAGE[stoppedStep]}>
+          {retry}
+        </OutOfCreditsStatus>
       </Fragment>
     );
   } else if (explanation && isLatestStepPrIteration) {
@@ -373,7 +462,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       allowReset={!isSingleRun}
       onReset={canReset ? (resetInChat ?? (() => setShouldShowReset(true))) : undefined}
       resetInChat={defined(resetInChat)}
-      resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : undefined}
+      resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : outOfCreditsRetry.tooltip}
     >
       <FeedbackList items={feedback} />
       {content}

@@ -1282,6 +1282,95 @@ describe('SeerExplorerContent', () => {
     });
   });
 
+  describe('Run stopped for credits', () => {
+    const stoppedBlocks = [
+      {
+        id: 'user-1',
+        message: {role: 'user' as const, content: 'Why is checkout slow?'},
+        timestamp: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'tool-1',
+        message: {
+          role: 'tool_use' as const,
+          content: 'Looking at the slowest checkout spans.',
+        },
+        timestamp: '2024-01-01T00:00:10Z',
+      },
+      {
+        id: 'error-1',
+        message: {
+          role: 'assistant' as const,
+          content:
+            "Your organization doesn't have enough Seer credits for this, so I stopped here.",
+        },
+        timestamp: '2024-01-01T00:00:20Z',
+      },
+    ];
+
+    function renderContent() {
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+    }
+
+    it("replaces Seer's error block with why it stopped and keeps the partial response", async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        sessionData: {
+          blocks: stoppedBlocks,
+          status: 'error',
+          updated_at: '2024-01-01T00:00:20Z',
+          failure_reason: 'out_of_credits',
+        },
+      });
+
+      renderContent();
+
+      expect(
+        await screen.findByText(
+          'Seer stopped because your organization is out of credits.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/so I stopped here/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Response timed out.')).not.toBeInTheDocument();
+      // The reasoning before it stopped stays in the thinking block.
+      await userEvent.click(
+        screen.getByRole('button', {name: /See thinking and tool calls/})
+      );
+      expect(screen.getByText('Looking at the slowest checkout spans.')).toBeVisible();
+    });
+
+    it("leaves Seer's error block alone for other failures", async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        sessionData: {
+          blocks: stoppedBlocks,
+          status: 'error',
+          updated_at: '2024-01-01T00:00:20Z',
+          failure_reason: null,
+        },
+      });
+
+      renderContent();
+
+      expect(await screen.findByText(/so I stopped here/)).toBeInTheDocument();
+      expect(
+        screen.queryByText('Seer stopped because your organization is out of credits.')
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('Input Persistence', () => {
     it.each([
       ['legacy string', 'Ask @Alice #team'],

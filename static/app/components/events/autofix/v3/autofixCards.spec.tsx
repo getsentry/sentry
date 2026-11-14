@@ -2702,3 +2702,421 @@ describe('ArtifactCard', () => {
     });
   });
 });
+
+describe('out of credits', () => {
+  const organization = OrganizationFixture({
+    features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+  });
+  const manualPrIterationCreditsOrganization = OrganizationFixture({
+    features: [
+      'seer-credit-checks',
+      'token-billed-seer-enabled',
+      'autofix-pr-iteration-manual',
+    ],
+  });
+  const retryTooltip = 'Your organization does not have enough Seer credits for this.';
+
+  function mockCreditCheck(operation: string, hasEnoughCredits: boolean) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/credit-check/`,
+      match: [MockApiClient.matchQuery({operation})],
+      body: {hasEnoughCredits},
+    });
+  }
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  // While the check is in flight the button is natively disabled. Once it
+  // settles it is only aria-disabled, so it stays focusable and its tooltip can
+  // say why.
+  async function expectDisabledForCredits(button: HTMLElement) {
+    await waitFor(() => expect(button).toBeEnabled());
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(button);
+    expect(await screen.findByText(retryTooltip)).toBeInTheDocument();
+  }
+
+  function makeOutOfCreditsSection(
+    step: string,
+    blocks: AutofixSection['blocks'],
+    artifacts: AutofixArtifact[] = []
+  ): AutofixSection {
+    return {
+      ...makeSection(step, 'error', artifacts, blocks),
+      failureReason: 'out_of_credits',
+    };
+  }
+
+  function makeBlock(
+    id: string,
+    content: string,
+    metadata?: Record<string, string>
+  ): AutofixSection['blocks'][number] {
+    return {
+      id,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {role: 'assistant', content, metadata},
+    };
+  }
+
+  // Seer appends this when it stops a run for credits.
+  const seerErrorBlock = makeBlock(
+    'error-1',
+    "Your organization doesn't have enough Seer credits for this, so I stopped here."
+  );
+
+  const stoppedRunState = {
+    run_id: 123,
+    blocks: [],
+    status: 'error' as const,
+    failure_reason: 'out_of_credits' as const,
+    updated_at: '2026-01-01T00:00:00Z',
+  };
+
+  const rootCauseSection = makeOutOfCreditsSection('root_cause', [
+    makeBlock('block-1', 'The cache key omits the org slug.', {step: 'root_cause'}),
+    seerErrorBlock,
+  ]);
+
+  const codeChangesSection = makeOutOfCreditsSection(
+    'code_changes',
+    [
+      makeBlock('block-1', 'Editing the cart service.', {step: 'code_changes'}),
+      seerErrorBlock,
+    ],
+    [[makePatch('org/repo', 'src/cart.py')]]
+  );
+
+  it('keeps what the root cause step wrote and disables Re-run while out of credits', async () => {
+    mockCreditCheck('autofix_root_cause', false);
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={rootCauseSection}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('The cache key omits the org slug.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer stopped before finishing the root cause because your organization is out of credits.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/so I stopped here/)).not.toBeInTheDocument();
+
+    await expectDisabledForCredits(screen.getByRole('button', {name: 'Re-run'}));
+    expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+  });
+
+  it('re-runs a root cause that stopped for credits once the organization can afford it', async () => {
+    mockCreditCheck('autofix_root_cause', true);
+    const startStep = jest.fn();
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, startStep, runState: stoppedRunState}}
+        groupId="1"
+        section={rootCauseSection}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-run'})).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      )
+    );
+    expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+    expect(startStep).toHaveBeenCalledWith('root_cause', {
+      runId: 123,
+      userContext: undefined,
+      insertIndex: undefined,
+    });
+  });
+
+  it('keeps what the plan step wrote and disables Re-run while out of credits', async () => {
+    mockCreditCheck('autofix_solution', false);
+    render(
+      <SolutionCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        section={makeOutOfCreditsSection('solution', [
+          makeBlock('block-1', 'Seed the reduction with zero.', {step: 'solution'}),
+          seerErrorBlock,
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('Seed the reduction with zero.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer stopped before finishing the plan because your organization is out of credits.'
+      )
+    ).toBeInTheDocument();
+
+    await expectDisabledForCredits(screen.getByRole('button', {name: 'Re-run'}));
+  });
+
+  it('keeps the partial diff of code changes that stopped for credits and disables Re-run', async () => {
+    mockCreditCheck('autofix_code_changes', false);
+    render(
+      <CodeChangesCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={codeChangesSection}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('Editing the cart service.')).toBeInTheDocument();
+    expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer stopped before finishing the code changes because your organization is out of credits.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
+    ).not.toBeInTheDocument();
+    // Partial changes are not the finished artifact.
+    expect(screen.getByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+
+    await expectDisabledForCredits(screen.getByRole('button', {name: 'Re-run'}));
+    expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+  });
+
+  it('re-runs code changes that stopped for credits once the organization can afford it', async () => {
+    mockCreditCheck('autofix_code_changes', true);
+    const startStep = jest.fn();
+    render(
+      <CodeChangesCard
+        autofix={{...mockAutofix, startStep, runState: stoppedRunState}}
+        groupId="1"
+        section={codeChangesSection}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-run'})).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      )
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+    expect(startStep).toHaveBeenCalledWith('code_changes', {
+      runId: 123,
+      userContext: undefined,
+      insertIndex: undefined,
+    });
+  });
+
+  describe('a single run', () => {
+    const stoppedSingleRun = {...stoppedRunState, feature_id: 'autofix_single_run'};
+
+    it('starts a new run from a root cause that stopped for credits', async () => {
+      mockCreditCheck('autofix_root_cause', true);
+      const startStep = jest.fn().mockResolvedValue({runId: 124, isSingleRun: true});
+      render(
+        <RootCauseCard
+          autofix={{...mockAutofix, startStep, runState: stoppedSingleRun}}
+          groupId="1"
+          section={rootCauseSection}
+        />,
+        {organization}
+      );
+
+      const rerun = screen.getByRole('button', {name: 'Re-run'});
+      await waitFor(() => expect(rerun).toHaveAttribute('aria-disabled', 'false'));
+      await userEvent.click(rerun);
+      expect(startStep).toHaveBeenCalledWith('root_cause');
+    });
+
+    it('starts a new run, checked as a root cause, from code changes that stopped for credits', async () => {
+      mockCreditCheck('autofix_root_cause', true);
+      const startStep = jest.fn().mockResolvedValue({runId: 124, isSingleRun: true});
+      render(
+        <CodeChangesCard
+          autofix={{...mockAutofix, startStep, runState: stoppedSingleRun}}
+          groupId="1"
+          section={codeChangesSection}
+        />,
+        {organization}
+      );
+
+      const rerun = screen.getByRole('button', {name: 'Re-run'});
+      await waitFor(() => expect(rerun).toHaveAttribute('aria-disabled', 'false'));
+      await userEvent.click(rerun);
+      expect(startStep).toHaveBeenCalledWith('root_cause');
+    });
+
+    it('offers no retry for a PR update that stopped, since single runs take feedback in the chat', () => {
+      render(
+        <CodeChangesCard
+          autofix={{...mockAutofix, runState: stoppedSingleRun}}
+          groupId="1"
+          section={makeOutOfCreditsSection(
+            'code_changes',
+            [
+              makeBlock('block-1', 'Guarded the handler.', {step: 'single_run'}),
+              makePrIterationBlock(0, {text: 'Add a regression test'}),
+              seerErrorBlock,
+            ],
+            [[makePatch('org/repo', 'src/cart.py')]]
+          )}
+        />,
+        {organization}
+      );
+
+      expect(
+        screen.getByText(
+          'Seer stopped before updating the pull request because your organization is out of credits.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Re-run'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add context & retry'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('leaves the retry to the backend without seer-credit-checks', () => {
+    const creditCheck = mockCreditCheck('autofix_code_changes', false);
+    render(
+      <CodeChangesCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={codeChangesSection}
+      />,
+      {organization: OrganizationFixture({features: []})}
+    );
+
+    expect(screen.getByRole('button', {name: 'Re-run'})).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
+    expect(creditCheck).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [false, 'true'],
+    [true, 'false'],
+  ])(
+    'says a PR iteration stopped for credits and gates its retry (enough credits: %s)',
+    async (hasEnoughCredits, ariaDisabled) => {
+      const creditCheck = mockCreditCheck('autofix_pr_iteration', hasEnoughCredits);
+      render(
+        <CodeChangesCard
+          autofix={{
+            ...mockAutofix,
+            runState: {...stoppedRunState, repo_pr_states: {'org/repo': makePR()}},
+          }}
+          groupId="1"
+          section={makeOutOfCreditsSection(
+            'code_changes',
+            [
+              makeBlock('block-1', 'Applied the fix.', {step: 'code_changes'}),
+              makePrIterationBlock(0, {text: 'Please add a test'}),
+              seerErrorBlock,
+            ],
+            [[makePatch('org/repo', 'src/cart.py')]]
+          )}
+        />,
+        {organization: manualPrIterationCreditsOrganization}
+      );
+
+      expect(
+        screen.getByText(
+          'Seer stopped before updating the pull request because your organization is out of credits.'
+        )
+      ).toBeInTheDocument();
+      // Only the iteration that stopped is replayed, not the original step.
+      expect(screen.queryByText('Applied the fix.')).not.toBeInTheDocument();
+
+      await waitFor(() => expect(creditCheck).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Add context & retry'})).toHaveAttribute(
+          'aria-disabled',
+          ariaDisabled
+        )
+      );
+    }
+  );
+
+  describe('a PR that failed for credits', () => {
+    const section = makeSection('pull_request', 'completed', [
+      [
+        makePR({
+          repo_name: 'org/api',
+          pr_creation_status: 'error',
+          pr_creation_error: "Your organization doesn't have enough Seer credits.",
+          pr_creation_error_code: 'out_of_credits',
+          pr_number: null,
+          pr_url: null,
+        }),
+        makePR({
+          repo_name: 'org/web',
+          pr_creation_status: 'error',
+          pr_creation_error: 'Push rejected',
+          pr_number: null,
+          pr_url: null,
+        }),
+      ],
+    ]);
+
+    it('says why and disables its retry while out of credits', async () => {
+      mockCreditCheck('autofix_open_pr', false);
+      render(<PullRequestsCard autofix={mockAutofixWithRunState} section={section} />, {
+        organization,
+      });
+
+      expect(
+        screen.getByText(
+          "Seer couldn't open a pull request in org/api because your organization is out of credits."
+        )
+      ).toBeInTheDocument();
+
+      await expectDisabledForCredits(
+        screen.getByRole('button', {name: 'Retry PR in org/api'})
+      );
+      // Other failures stay retryable.
+      expect(screen.getByRole('button', {name: 'Retry PR in org/web'})).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
+    });
+
+    it('retries it once the organization can afford it', async () => {
+      mockCreditCheck('autofix_open_pr', true);
+      const createPR = jest.fn();
+      render(
+        <PullRequestsCard
+          autofix={{...mockAutofixWithRunState, createPR}}
+          section={section}
+        />,
+        {organization}
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Retry PR in org/api'})).toHaveAttribute(
+          'aria-disabled',
+          'false'
+        )
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry PR in org/api'}));
+      expect(createPR).toHaveBeenCalledWith(123, 'org/api');
+    });
+  });
+});
