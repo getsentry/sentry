@@ -38,6 +38,13 @@ export const PLATFORM_PRODUCT_INFO: Partial<
     ProductSolution.PROFILING,
     ProductSolution.METRICS,
   ],
+  expo: [
+    ProductSolution.LOGS,
+    ProductSolution.SESSION_REPLAY,
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.METRICS,
+  ],
   flutter: [
     ProductSolution.LOGS,
     ProductSolution.SESSION_REPLAY,

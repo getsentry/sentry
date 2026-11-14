@@ -68,6 +68,14 @@ export function isMobilePlatform(platform: string | undefined) {
   return (mobile as string[]).includes(platform);
 }
 
+/**
+ * Expo projects use the React Native SDK, so anything that applies to React
+ * Native projects applies to Expo projects as well.
+ */
+export function isReactNativePlatform(platform: string | null | undefined) {
+  return platform === 'react-native' || platform === 'expo';
+}
+
 function startsWithPunctuation(name: string) {
   return /^\p{P}/u.test(name);
 }

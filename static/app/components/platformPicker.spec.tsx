@@ -20,6 +20,7 @@ describe('PlatformPicker', () => {
     expect(screen.queryByTestId('platform-java')).not.toBeInTheDocument();
     expect(screen.getByTestId('platform-apple-ios')).toBeInTheDocument();
     expect(screen.getByTestId('platform-react-native')).toBeInTheDocument();
+    expect(screen.getByTestId('platform-expo')).toBeInTheDocument();
   });
 
   it('should render renderPlatformList with Python when filtered with py', () => {

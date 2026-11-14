@@ -110,6 +110,7 @@ function getTermDescriptions(platform: PlatformKey | null) {
     case 'android':
     case 'cordova':
     case 'react-native':
+    case 'expo':
     case 'flutter':
       return {
         ...commonTermsDescription,
