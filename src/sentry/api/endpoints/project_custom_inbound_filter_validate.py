@@ -11,7 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.endpoints.project_custom_inbound_filters import (
     CustomInboundFilterCondition,
-    CustomInboundFilterSerializer,
+    CustomInboundFilterRequestSerializer,
     ProjectCustomInboundFilterEndpoint,
 )
 from sentry.apidocs.response_types import DetailResponse, as_validation_errors
@@ -91,7 +91,7 @@ class CustomInboundFilterValidateEndpoint(ProjectCustomInboundFilterEndpoint):
         stored = (
             self.get_custom_inbound_filter(project, filter_id) if filter_id is not None else None
         )
-        serializer = CustomInboundFilterSerializer(
+        serializer = CustomInboundFilterRequestSerializer(
             stored,
             data=request.data,
             context={"project": project, "request": request},
