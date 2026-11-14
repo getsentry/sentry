@@ -18,7 +18,7 @@ interface UseAITraceResult {
 /**
  * Base attributes needed for AI trace display
  */
-const AI_TRACE_BASE_ATTRIBUTES = [
+export const AI_TRACE_BASE_ATTRIBUTES = [
   SpanFields.GEN_AI_AGENT_NAME,
   SpanFields.GEN_AI_EMBEDDINGS_INPUT,
   SpanFields.GEN_AI_FUNCTION_ID,

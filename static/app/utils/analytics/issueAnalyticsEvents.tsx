@@ -103,6 +103,7 @@ export type IssueEventParameters = {
   'issue_details.activity_drawer.filter_changed': {
     filter: string;
   };
+  'issue_details.agent_run.step_clicked': {source: 'timeline' | 'hidden_steps'};
   'issue_details.comment_created': Record<string, unknown>;
   'issue_details.comment_deleted': Record<string, unknown>;
   'issue_details.comment_updated': Record<string, unknown>;
@@ -399,6 +400,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
   'issue_details.view_full_trace_waterfall_clicked':
     ' Issue Details: View Full Trace Waterfall Clicked',
+  'issue_details.agent_run.step_clicked': 'Issue Details: Agent Run Step Clicked',
 
   'actionable_items.expand_clicked': 'Actionable Item: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',

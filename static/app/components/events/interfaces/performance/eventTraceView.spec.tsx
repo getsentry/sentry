@@ -1,9 +1,11 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {
   makeEAPError,
@@ -153,6 +155,86 @@ describe('EventTraceView', () => {
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
     expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
+  });
+
+  it('opens on Agent Activity when the error was raised inside an agent run', async () => {
+    const agentOrganization = {
+      ...organization,
+      features: [...organization.features, 'issue-details-agent-run'],
+    };
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: group.project.id, hasInsightsAgentMonitoring: true}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [MockApiClient.matchQuery({dataset: 'spans'})],
+      body: {data: [{id: 'agent-span'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/customers/org-slug/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
+      body: {
+        errorsCount: 1,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 2,
+        spansCountMap: {},
+        uptimeCount: 0,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
+      body: [
+        makeEAPSpan({
+          event_id: 'agent-span',
+          op: 'gen_ai.invoke_agent',
+          name: 'gen_ai.invoke_agent',
+          description: 'invoke_agent support-agent',
+          is_transaction: true,
+          additional_attributes: {
+            'gen_ai.operation.type': 'agent',
+            'gen_ai.agent.name': 'support-agent',
+          },
+          children: [
+            makeEAPSpan({
+              event_id: 'tool-span',
+              op: 'gen_ai.execute_tool',
+              name: 'gen_ai.execute_tool',
+              description: 'execute_tool search_docs',
+              additional_attributes: {
+                'gen_ai.operation.type': 'tool',
+                'gen_ai.tool.name': 'search_docs',
+              },
+              errors: [makeEAPError({event_id: 'issue-5'})],
+            }),
+          ],
+        }),
+      ],
+    });
+
+    render(
+      <EventTraceView group={group} event={event} organization={agentOrganization} />,
+      {organization: agentOrganization}
+    );
+
+    expect(await screen.findByText('search_docs')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Agent Activity'})).toBeChecked();
+    expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('tab=ai-spans')
+    );
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Waterfall'}));
+    expect(screen.getByRole('button', {name: 'View Full Trace'})).not.toHaveAttribute(
+      'href',
+      expect.stringContaining('tab=ai-spans')
+    );
   });
 
   it('does not render the trace section when the trace_id is synthetic', () => {
