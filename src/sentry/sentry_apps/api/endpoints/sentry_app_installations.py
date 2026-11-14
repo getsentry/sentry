@@ -62,6 +62,9 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         Return a list of an organization's installations of custom integrations (Sentry Apps).
         """
         queryset = SentryAppInstallation.objects.filter(organization_id=organization.id)
+        # The serializer adds each installation's OAuth grant code for callers with
+        # org:integrations. An integration token must not read other apps' grant codes.
+        access = None if request.user.is_sentry_app else request.access
 
         return self.paginate(
             request=request,
@@ -69,7 +72,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
-                x, request.user, access=request.access, serializer=SentryAppInstallationSerializer()
+                x, request.user, access=access, serializer=SentryAppInstallationSerializer()
             ),
         )
 
