@@ -8,7 +8,8 @@ from typing import Annotated, Any, TypedDict, cast, override
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
-from sentry.apidocs.descriptions import ApiSchema
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
+from sentry.apidocs.formats import JsonValue
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.auth.access import Access
 from sentry.notebooks.models import (
@@ -45,9 +46,11 @@ class NotebookActionRequestAnchorResponse(TypedDict):
     it points to, if there is one.
     """
 
-    type: str
-    id: str
-    blockId: str | None
+    type: Annotated[str, ApiDescription("block or hypothesis")]
+    id: Annotated[str, ApiDescription("The agent's ID for the block or hypothesis")]
+    blockId: Annotated[
+        str | None, ApiDescription("The ID of the block the request is under, if it still exists")
+    ]
 
 
 class NotebookActionRequestFollowUpResponse(TypedDict):
@@ -56,10 +59,20 @@ class NotebookActionRequestFollowUpResponse(TypedDict):
     re-check. `retryable` says whether the user can try it again.
     """
 
-    status: Annotated[str, _schema_from(follow_up_status_hint)]
-    reason: Annotated[str | None, _schema_from(follow_up_reason_hint)]
-    rerun: Annotated[str | None, _schema_from(follow_up_rerun_hint)]
-    retryable: bool
+    status: Annotated[
+        str, _schema_from(follow_up_status_hint), ApiDescription("Where the follow-up is")
+    ]
+    reason: Annotated[
+        str | None,
+        _schema_from(follow_up_reason_hint),
+        ApiDescription("Why the agent turned down or dropped the follow-up, if it did"),
+    ]
+    rerun: Annotated[
+        str | None,
+        _schema_from(follow_up_rerun_hint),
+        ApiDescription("What the agent did with a re-run. Null for a re-check"),
+    ]
+    retryable: Annotated[bool, ApiDescription("Whether the requesting user can send it again")]
 
 
 class NotebookActionRequestSerializerResponse(TypedDict):
@@ -72,25 +85,48 @@ class NotebookActionRequestSerializerResponse(TypedDict):
     Sentry sent for this request.
     """
 
-    id: str
-    key: str
-    reportRevision: int
-    primary: bool
-    anchor: NotebookActionRequestAnchorResponse | None
-    title: str
-    rationale: str
-    impact: str | None
-    state: str
-    reason: str | None
-    action: dict[str, Any] | None
-    canApply: bool
-    cannotApplyReason: CannotApplyReason | None
-    appliedBy: UserSerializerResponse | None
-    appliedDetails: Annotated[Mapping[str, object] | None, _schema_from(applied_details_hint)]
-    dateApplied: datetime | None
-    error: ActionRequestError | None
-    followUp: NotebookActionRequestFollowUpResponse | None
-    dateCreated: datetime
+    id: Annotated[str, ApiDescription("The action request ID")]
+    key: Annotated[str, ApiDescription("The agent's key for the request")]
+    reportRevision: Annotated[int, ApiDescription("The report revision that suggested it")]
+    primary: Annotated[bool, ApiDescription("Whether it's the recommended next step")]
+    anchor: Annotated[
+        NotebookActionRequestAnchorResponse | None,
+        ApiDescription("The block or hypothesis the request is under, if any"),
+    ]
+    title: Annotated[str, ApiDescription("A short title for the step")]
+    rationale: Annotated[str, ApiDescription("Why the agent suggests it")]
+    impact: Annotated[str | None, ApiDescription("What the step would change, if the agent said")]
+    state: Annotated[str, ApiDescription("suggested, applied, failed, superseded, or withdrawn")]
+    reason: Annotated[
+        str | None, ApiDescription("Why the request is in its state, if there's a reason")
+    ]
+    action: Annotated[
+        dict[str, JsonValue] | None,
+        ApiDescription("The agent's action payload, or null when the request is only advice"),
+    ]
+    canApply: Annotated[bool, ApiDescription("Whether the requesting user can apply it now")]
+    cannotApplyReason: Annotated[
+        CannotApplyReason | None,
+        ApiDescription("Why the requesting user can't apply it, if they can't"),
+    ]
+    appliedBy: Annotated[
+        UserSerializerResponse | None,
+        ApiDescription("The user who applied it. Null when Sentry applied it"),
+    ]
+    appliedDetails: Annotated[
+        Mapping[str, object] | None,
+        _schema_from(applied_details_hint),
+        ApiDescription("What applying it changed. The fields depend on the action"),
+    ]
+    dateApplied: Annotated[datetime | None, ApiDescription("When it was applied")]
+    error: Annotated[
+        ActionRequestError | None, ApiDescription("What went wrong, if applying it failed")
+    ]
+    followUp: Annotated[
+        NotebookActionRequestFollowUpResponse | None,
+        ApiDescription("The re-check or re-run Sentry sent the agent, if any"),
+    ]
+    dateCreated: Annotated[datetime, ApiDescription("When the agent suggested it")]
 
 
 @register(NotebookActionRequest)

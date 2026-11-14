@@ -10,7 +10,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
@@ -32,18 +38,20 @@ from sentry.service_accounts.auth import is_service_account_auth
 @cell_silo_endpoint
 class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+    publish_status = {"POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
+    idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="Create an Investigation Block",
+        operation_id="Create a Notebook Block",
+        tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=BlockCreateValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "InvestigationBlockResponse", NotebookBlockSerializerResponse
+                "NotebookBlockResponse", NotebookBlockSerializerResponse
             ),
             201: inline_sentry_response_serializer(
-                "InvestigationBlockResponse", NotebookBlockSerializerResponse
+                "NotebookBlockResponse", NotebookBlockSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,
@@ -71,9 +79,16 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
                 },
                 request_only=True,
             ),
-        ],
+        ]
+        + NotebookExamples.CREATE_BLOCK,
     )
-    def post(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
+    def post(
+        self, request: Request, organization: Organization, notebook: Notebook
+    ) -> (
+        Response[NotebookBlockSerializerResponse]
+        | Response[ValidationErrorResponse]
+        | Response[DetailResponse]
+    ):
         """
         Append a text or query block to an active investigation, using notebookVersion for
         concurrency. A producer sends key and revision instead to write its text block: the
@@ -95,7 +110,7 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
             },
         )
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
         try:
             block, created = validator.save()
         except Exception as error:

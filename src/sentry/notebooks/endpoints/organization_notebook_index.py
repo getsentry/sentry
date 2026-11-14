@@ -13,7 +13,13 @@ from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
@@ -79,7 +85,8 @@ def filter_by_trigger(
 @cell_silo_endpoint
 class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="List an Organization's Investigations",
@@ -179,15 +186,16 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create an Investigation",
+        operation_id="Create a Notebook",
+        tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=NotebookCreateValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
+                "NotebookDetailsResponse", NotebookDetailsSerializerResponse
             ),
             201: inline_sentry_response_serializer(
-                "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
+                "NotebookDetailsResponse", NotebookDetailsSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,
@@ -200,9 +208,16 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
                 value={"title": "Checkout latency", "projectIds": [1]},
                 request_only=True,
             )
-        ],
+        ]
+        + NotebookExamples.CREATE_NOTEBOOK,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[NotebookDetailsSerializerResponse]
+        | Response[ValidationErrorResponse]
+        | Response[DetailResponse]
+    ):
         """
         Create a blank notebook, or a notebook for a producer's source. Returns 201 with
         notebook details, blocks, parameters, and orchestration summary, or 200 when an active
@@ -215,17 +230,17 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
             context={"organization": organization, "creator": get_creator_reference(request)},
         )
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
         values = validator.validated_data
         accessible_project_ids = organization_project_ids(organization)
         source: ProducerSource | None = values.get("source")
         if source is not None and not set(source.resolved.project_ids).issubset(
             accessible_project_ids
         ):
-            return Response(
-                {"source": ["One or more of the source's projects are inaccessible."]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            source_error: ValidationErrorResponse = {
+                "source": ["One or more of the source's projects are inaccessible."]
+            }
+            return Response(source_error, status=status.HTTP_400_BAD_REQUEST)
         if not set(values.get("project_ids", [])).issubset(accessible_project_ids):
             return Response(
                 {"detail": "One or more projects are inaccessible."},
@@ -244,11 +259,9 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
             raise
         if created:
             record_notebook_started(notebook)
-        return Response(
-            serialize(
-                notebook,
-                request.user,
-                NotebookDetailsSerializer(access=request.access),
-            ),
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        body: NotebookDetailsSerializerResponse = serialize(
+            notebook,
+            request.user,
+            NotebookDetailsSerializer(access=request.access),
         )
+        return Response(body, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)

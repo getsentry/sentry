@@ -52,7 +52,7 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         response = self.client.post(
             self.blocks_url(),
             data={
-                "investigationVersion": 1,
+                "notebookVersion": 1,
                 "kind": "query",
                 "content": "find slow transactions",
                 "generationPrompt": "Generate the query",
@@ -75,7 +75,7 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         response = self.client.post(
             self.blocks_url(),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "kind": "query",
                 "display": {"type": "line", "xAxis": "time", "yAxes": []},
             },
@@ -86,7 +86,7 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         response = self.client.post(
             self.blocks_url(),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "kind": "text",
                 "display": {"type": "table"},
             },
@@ -97,7 +97,7 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         response = self.client.post(
             self.blocks_url(),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "kind": "query",
                 "content": "Show error volume",
                 "display": {
@@ -115,7 +115,7 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         response = self.client.post(
             self.blocks_url(),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "kind": "query",
                 "display": {"version": 1.0, "type": "table"},
             },
@@ -126,7 +126,7 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         response = self.client.post(
             self.blocks_url(),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "kind": "text",
                 "display": {"version": True, "type": "markdown"},
             },
@@ -137,7 +137,7 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         response = self.client.post(
             self.blocks_url(),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "kind": "query",
                 "display": {"version": 1, "type": []},
             },
@@ -148,7 +148,7 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         response = self.client.post(
             self.blocks_url(),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "kind": "query",
                 "display": {
                     "version": 1,
@@ -163,7 +163,7 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         response = self.client.post(
             self.blocks_url(),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "kind": "query",
                 "display": {
                     "version": 1,
@@ -179,7 +179,7 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         response = self.client.post(
             self.blocks_url(),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "kind": "text",
                 "generationPrompt": "Summarize the context",
                 "display": {
@@ -422,7 +422,7 @@ class NotebookProducerBlockTest(APITestCase):
                 },
             ),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "version": block.version,
                 "content": "Edited by a person",
             },
@@ -448,7 +448,7 @@ class NotebookProducerBlockTest(APITestCase):
                     "block_id": block.id,
                 },
             ),
-            data={"investigationVersion": self.notebook.version, "version": block.version},
+            data={"notebookVersion": self.notebook.version, "version": block.version},
             format="json",
         )
         assert deleted.status_code == 204
@@ -492,8 +492,8 @@ class NotebookProducerBlockTest(APITestCase):
             {"kind": "text"},
             {"kind": "text", "key": "summary"},
             {"kind": "text", "revision": 1},
-            {"kind": "text", "investigationVersion": 1, "key": "summary", "revision": 1},
-            {"kind": "text", "investigationVersion": 1, "position": 0},
+            {"kind": "text", "notebookVersion": 1, "key": "summary", "revision": 1},
+            {"kind": "text", "notebookVersion": 1, "position": 0},
             {"kind": "query", "key": "summary", "revision": 1, "content": "Text"},
             {"kind": "text", "key": "summary", "revision": 1},
             {"kind": "text", "key": "summary", "revision": 1, "content": ""},
@@ -505,7 +505,7 @@ class NotebookProducerBlockTest(APITestCase):
 
     def test_user_blocks_have_no_producer_fields(self) -> None:
         response = self.client.post(
-            self.url, data={"investigationVersion": 1, "kind": "text"}, format="json"
+            self.url, data={"notebookVersion": 1, "kind": "text"}, format="json"
         )
 
         assert response.status_code == 201, response.data

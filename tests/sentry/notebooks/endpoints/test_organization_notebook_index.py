@@ -17,6 +17,7 @@ from sentry.investigations.apidocs import PRIVATE_SCHEMA_SETTINGS
 from sentry.investigations.models import InvestigationOrchestrationStatus
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.notebooks.endpoints.base import OrganizationNotebooksBaseEndpoint
 from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notebooks.services.notebooks import NotebookSourceNotFound, NotebookValidationError
 from sentry.notebooks.services.producer import PRODUCERS
@@ -39,6 +40,15 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 FEATURE = "organizations:investigations"
+
+
+def published_notebook_endpoints(endpoints: Any) -> Any:
+    return [
+        (path, path_regex, method, callback)
+        for path, path_regex, method, callback in endpoints
+        if issubclass(callback.view_class, OrganizationNotebooksBaseEndpoint)
+        and callback.view_class.publish_status[method].is_published
+    ]
 
 
 @with_feature(FEATURE)
@@ -355,7 +365,7 @@ class OrganizationNotebookIndexTest(APITestCase):
         assert (
             self.client.delete(
                 second_url,
-                data={"investigationVersion": second.version},
+                data={"notebookVersion": second.version},
                 format="json",
             ).status_code
             == 204
@@ -563,9 +573,16 @@ class OrganizationNotebookIndexTest(APITestCase):
 
         assert response.status_code == 400, response.data
 
-    def test_private_schema_matches_frontend_responses(self) -> None:
+    def test_schemas_match_frontend_responses(self) -> None:
         with patched_settings(PRIVATE_SCHEMA_SETTINGS):
-            schema = CustomGenerator().get_schema(public=True)
+            private_schema = CustomGenerator().get_schema(public=True)
+        with patched_settings(
+            {
+                **PRIVATE_SCHEMA_SETTINGS,
+                "PREPROCESSING_HOOKS": [f"{__name__}.published_notebook_endpoints"],
+            }
+        ):
+            public_schema = CustomGenerator().get_schema(public=True)
         base = "/api/0/organizations/{organization_id_or_slug}/notebooks/"
         detail_path = base + "{notebook_id}/"
         orchestration_path = (
@@ -575,6 +592,9 @@ class OrganizationNotebookIndexTest(APITestCase):
 
         def validate_response(response: Response, method: str, path: str) -> None:
             assert 200 <= response.status_code < 300, response.data
+            schema = (
+                private_schema if method in private_schema["paths"].get(path, {}) else public_schema
+            )
             response_schema = schema["paths"][path][method]["responses"][str(response.status_code)][
                 "content"
             ]["application/json"]["schema"]
@@ -593,7 +613,7 @@ class OrganizationNotebookIndexTest(APITestCase):
         block = self.client.post(
             detail_url + "blocks/",
             data={
-                "investigationVersion": created.data["version"],
+                "notebookVersion": created.data["version"],
                 "kind": "text",
                 "content": "Initial observations",
             },
