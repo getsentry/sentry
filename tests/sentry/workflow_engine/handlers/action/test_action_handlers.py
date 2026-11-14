@@ -34,7 +34,10 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
 
         notification_uuid = str(uuid.uuid4())
         self.action.trigger(
-            self.event_data, notification_uuid=notification_uuid, workflow_id=self.workflow.id
+            self.event_data,
+            notification_uuid=notification_uuid,
+            workflow_id=self.workflow.id,
+            detector=self.detector,
         )
 
         mock_registry_get.assert_called_once_with(ErrorGroupType.slug)
@@ -73,7 +76,10 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         mock_registry_get.return_value = mock_handler
 
         self.action.trigger(
-            self.event_data, notification_uuid=str(uuid.uuid4()), workflow_id=self.workflow.id
+            self.event_data,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+            detector=self.detector,
         )
 
         mock_registry_get.assert_called_once_with(MetricIssue.slug)
@@ -99,7 +105,10 @@ class TestNotificationActionHandler(MetricAlertHandlerBase):
         """Test that execute does nothing when we can't find the detector"""
 
         self.action.trigger(
-            self.event_data, notification_uuid=str(uuid.uuid4()), workflow_id=self.workflow.id
+            self.event_data,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+            detector=self.detector,
         )
 
         mock_logger.warning.assert_called_once_with(

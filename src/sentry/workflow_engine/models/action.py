@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from enum import StrEnum
-from typing import ClassVar, TypedDict
+from typing import TYPE_CHECKING, ClassVar, TypedDict
 
 from django.db import models
 from django.db.models import Q
@@ -26,6 +26,9 @@ from sentry.workflow_engine.types import (
 )
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.workflow_engine.models.detector import Detector
 
 
 class ActionSnapshot(TypedDict):
@@ -131,11 +134,9 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         event_data: WorkflowEventData,
         notification_uuid: str,
         workflow_id: WorkflowId,
+        *,
+        detector: Detector,
     ) -> None:
-        from sentry.workflow_engine.processors.detector import get_preferred_detector
-
-        detector = get_preferred_detector(event_data)
-
         with metrics.timer(
             "workflow_engine.action.trigger.execution_time",
             tags={"action_type": self.type, "detector_type": detector.type},
