@@ -840,7 +840,6 @@ def trigger_push_changes(
         raise PermissionDenied("Code generation is disabled for this organization")
 
     check_autofix_billing(group.organization, SeerOperation.AUTOFIX_OPEN_PR, is_new_run=False)
-    # The push is the next step, so the run is no longer stopped on credits.
     take_out_of_credits(run_id=run_id, organization_id=group.organization.id)
 
     client = get_autofix_agent_client(group, user=user)
