@@ -188,6 +188,82 @@ describe('FeedbackList', () => {
     ).toBeInTheDocument();
   });
 
+  it('says a branch-moved retry refused for credits stopped for credits', async () => {
+    const state = ExplorerAutofixStateFixture({
+      status: 'completed',
+      blocks: [
+        ...iterationBlocks(),
+        ExplorerAutofixBlockFixture({
+          id: 'iteration-completed',
+          artifacts: [],
+          message: {role: 'assistant', content: 'Done', metadata: null},
+        }),
+      ],
+      repo_pr_states: {
+        'org/repo': AutofixRepoPRStateFixture({
+          pr_creation_status: 'error',
+          pr_creation_error_code: 'branch_moved',
+        }),
+      },
+      warnings: [{warning_type: 'pr_iteration_out_of_credits'}],
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
+    expect(
+      await screen.findByText(
+        "Seer couldn't finish this feedback because your organization is out of credits."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('marks the iteration failed when Sentry refused its push for credits', async () => {
+    const state = ExplorerAutofixStateFixture({
+      status: 'completed',
+      blocks: [
+        ...iterationBlocks(),
+        ExplorerAutofixBlockFixture({
+          id: 'iteration-completed',
+          artifacts: [],
+          message: {role: 'assistant', content: 'Done', metadata: null},
+        }),
+      ],
+      repo_pr_states: {'org/repo': AutofixRepoPRStateFixture()},
+      warnings: [{warning_type: 'pr_iteration_out_of_credits', stranded_action: 'push'}],
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
+    expect(
+      await screen.findByText(
+        "Seer couldn't finish this feedback because your organization is out of credits."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('keeps a pushed iteration processed when Sentry refused the next one', () => {
+    const state = ExplorerAutofixStateFixture({
+      status: 'completed',
+      blocks: [
+        ...iterationBlocks(),
+        ExplorerAutofixBlockFixture({
+          id: 'iteration-completed',
+          artifacts: [],
+          message: {role: 'assistant', content: 'Done', metadata: null},
+        }),
+      ],
+      repo_pr_states: {'org/repo': AutofixRepoPRStateFixture()},
+      warnings: [{warning_type: 'pr_iteration_out_of_credits', stranded_action: null}],
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    expect(screen.getByTestId('feedback-processed')).toBeInTheDocument();
+  });
+
   it('says the iteration push failed for credits', async () => {
     const state = ExplorerAutofixStateFixture({
       status: 'completed',

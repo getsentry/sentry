@@ -20,6 +20,8 @@ import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   isOutOfCreditsSection,
   isPrIterationBlock,
+  isPrIterationOutOfCredits,
+  isPrIterationPushStrandedForCredits,
   type AutofixSection,
   type RawFeedback,
   type useExplorerAutofix,
@@ -200,9 +202,12 @@ export function usePrIterationFeedback(
   const blockFeedback = useMemo<IterationFeedback[]>(() => {
     const repoStates = Object.values(autofix.runState?.repo_pr_states ?? {});
     const pushErrors = repoStates.filter(repo => repo.pr_creation_status === 'error');
-    // Running out of credits stops either the iteration itself or its push.
+    // Running out of credits stops the iteration itself, its push, or the
+    // retry of a push the branch moved under.
     const errorCode =
-      isOutOfCreditsSection(section) || pushErrors.some(isOutOfCreditsPRState)
+      isOutOfCreditsSection(section) ||
+      pushErrors.some(isOutOfCreditsPRState) ||
+      isPrIterationOutOfCredits(autofix.runState)
         ? 'out_of_credits'
         : pushErrors.find(repo => repo.pr_creation_error_code === 'branch_moved')
             ?.pr_creation_error_code;
@@ -244,7 +249,12 @@ export function usePrIterationFeedback(
       ) {
         if (inProgress) {
           status = 'in_progress';
-        } else if (section.status === 'error' || pushErrors.length > 0) {
+        } else if (
+          section.status === 'error' ||
+          pushErrors.length > 0 ||
+          // Sentry refused the push, so Seer never tried it and no repo errored.
+          isPrIterationPushStrandedForCredits(autofix.runState)
+        ) {
           status = 'error';
         }
       }

@@ -2985,6 +2985,84 @@ describe('out of credits', () => {
     }
   );
 
+  describe('a PR iteration Sentry stopped for credits', () => {
+    const outOfCreditsWarning = {warning_type: 'pr_iteration_out_of_credits'};
+    const stoppedMessage =
+      "Seer couldn't update the pull request because your organization is out of credits.";
+    const iterationSection = makeSection(
+      'code_changes',
+      'completed',
+      [[makePatch('org/repo', 'src/cart.py')]],
+      [
+        makeBlock('block-1', 'Applied the fix.', {step: 'code_changes'}),
+        makePrIterationBlock(0, {text: 'Please add a test'}),
+        makeBlock('block-2', 'Added the test.'),
+      ]
+    );
+    const markedRunState = {
+      ...stoppedRunState,
+      status: 'completed' as const,
+      failure_reason: null,
+      repo_pr_states: {'org/repo': makePR()},
+      warnings: [outOfCreditsWarning],
+    };
+
+    it('says the iteration stopped for credits under the finished step', () => {
+      render(
+        <CodeChangesCard
+          autofix={{...mockAutofix, runState: markedRunState}}
+          groupId="1"
+          section={iterationSection}
+        />,
+        {organization: manualPrIterationCreditsOrganization}
+      );
+
+      expect(screen.getByText(stoppedMessage)).toBeInTheDocument();
+      // The finished diff stays as it is.
+      expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
+    });
+
+    it('shows the pause instead while the run is paused', () => {
+      render(
+        <CodeChangesCard
+          autofix={{
+            ...mockAutofix,
+            runState: {...markedRunState, pr_iteration_paused: true},
+          }}
+          groupId="1"
+          section={iterationSection}
+        />,
+        {organization: manualPrIterationCreditsOrganization}
+      );
+
+      expect(screen.queryByText(stoppedMessage)).not.toBeInTheDocument();
+    });
+
+    it('leaves a push Seer refused to the pull request', () => {
+      render(
+        <CodeChangesCard
+          autofix={{
+            ...mockAutofix,
+            runState: {
+              ...markedRunState,
+              repo_pr_states: {
+                'org/repo': makePR({
+                  pr_creation_status: 'error',
+                  pr_creation_error_code: 'out_of_credits',
+                }),
+              },
+            },
+          }}
+          groupId="1"
+          section={iterationSection}
+        />,
+        {organization: manualPrIterationCreditsOrganization}
+      );
+
+      expect(screen.queryByText(stoppedMessage)).not.toBeInTheDocument();
+    });
+  });
+
   describe('a PR that failed for credits', () => {
     const section = makeSection('pull_request', 'completed', [
       [
