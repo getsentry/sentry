@@ -540,10 +540,8 @@ function useTrackView({
     // Will be updated in SuspectCommits if there are suspect commits
     num_suspect_commits: 0,
     suspect_commit_calculation: 'no suspect commit',
-    // Not updated by any component
+    // Will be updated in AutofixContent if there is an autofix run
     autofix_status: 'none',
-    // Not updated by any component
-    has_summary: null,
     // Will be updated in AutofixPreviews if autofix root cause is available
     has_root_cause: null,
     // Will be updated in AutofixPreviews if autofix solution is available

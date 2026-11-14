@@ -204,6 +204,7 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
   useLLMContext(autofixContextData);
 
   useRouteAnalyticsParams({
+    autofix_status: autofix.runState?.status ?? 'none',
     seerNeedOrgSetup: isPending ? undefined : needOrgSetup,
     seerNeedProjSetup:
       isPending || aiConfig.isAutofixSetupLoading ? undefined : needProjSetup,

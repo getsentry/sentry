@@ -124,7 +124,6 @@ export type TeamInsightsEventParameters = {
     has_root_cause: boolean;
     has_solution: boolean;
     has_streamlined_ui: boolean;
-    has_summary: boolean;
   };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
