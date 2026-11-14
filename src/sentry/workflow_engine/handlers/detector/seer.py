@@ -21,6 +21,7 @@ import abc
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any, ClassVar, Generic, TypedDict, final
 from uuid import UUID
 
@@ -47,6 +48,37 @@ from sentry.workflow_engine.processors.detector import complete_detector_evaluat
 from sentry.workflow_engine.types import DetectorGroupKey
 
 logger = logging.getLogger(__name__)
+
+
+class SeerDetectorStage(StrEnum):
+    """
+    The step of a Seer detector evaluation; each emits `workflow_engine.seer_detector.<stage>`.
+    """
+
+    # `SeerDetectorHandler.evaluate` starting a Seer feature run
+    DISPATCH = "dispatch"
+    # `deliver_seer_detector_result` handling the run's result pushed back by Seer
+    DELIVERY = "delivery"
+
+
+class SeerDetectorOutcome(StrEnum):
+    """
+    Why a stage stopped early; the `outcome` tag on the stage's metric.
+    """
+
+    # Dispatch outcomes
+    # The organization doesn't have access to Seer
+    NO_SEER_ACCESS = "no_seer_access"
+
+    # Delivery outcomes
+    # No run mirror (`SeerAgentRun`) matches the delivered run
+    MISSING_RUN = "missing_run"
+    # Seer's run failed or returned no result
+    ERROR = "error"
+    # The run mirror's extras weren't written by a Seer detector dispatch
+    INVALID_RUN = "invalid_run"
+    # The detector was deleted or disabled before delivery
+    MISSING_DETECTOR = "missing_detector"
 
 
 class SeerDetectorRunExtras(TypedDict):
@@ -150,7 +182,9 @@ class SeerDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluati
         try:
             client = SeerAgentClient(organization, project=project)
         except SeerPermissionError:
-            _incr("dispatch", "no_seer_access", self.detector.type)
+            _incr(
+                SeerDetectorStage.DISPATCH, SeerDetectorOutcome.NO_SEER_ACCESS, self.detector.type
+            )
             return no_evaluations
 
         for group_key, value in values.items():
@@ -234,11 +268,7 @@ def deliver_seer_detector_result(
     `SeerDetectorHandler` dispatched, and hands it to the handler's `on_complete`.
 
     Delivery happens outside `process_detectors`, so the cases where it stops early emit
-    `workflow_engine.seer_detector.delivery`, tagged with the outcome:
-      - `missing_run`      -- no run mirror matches the delivery
-      - `error`            -- Seer's run failed or returned no result
-      - `invalid_run`      -- the run mirror wasn't dispatched by a Seer detector
-      - `missing_detector` -- the detector was deleted or disabled before delivery
+    `workflow_engine.seer_detector.delivery`, tagged with the delivery `SeerDetectorOutcome`.
 
     Completed evaluations are reported by `complete_detector_evaluations`.
     """
@@ -249,11 +279,11 @@ def deliver_seer_detector_result(
     )
 
     if agent_run is None:
-        _incr("delivery", "missing_run")
+        _incr(SeerDetectorStage.DELIVERY, SeerDetectorOutcome.MISSING_RUN)
         return
 
     if status != "completed" or result is None:
-        _incr("delivery", "error")
+        _incr(SeerDetectorStage.DELIVERY, SeerDetectorOutcome.ERROR)
         logger.warning(
             "seer_detector.delivery.no_result",
             extra={
@@ -274,7 +304,7 @@ def deliver_seer_detector_result(
             value=agent_run.extras["value"],
         )
     except KeyError:
-        _incr("delivery", "invalid_run")
+        _incr(SeerDetectorStage.DELIVERY, SeerDetectorOutcome.INVALID_RUN)
         return
 
     detector = (
@@ -289,7 +319,7 @@ def deliver_seer_detector_result(
     )
 
     if detector is None:
-        _incr("delivery", "missing_detector")
+        _incr(SeerDetectorStage.DELIVERY, SeerDetectorOutcome.MISSING_DETECTOR)
         return
 
     handler = detector.detector_handler
@@ -317,7 +347,9 @@ def deliver_seer_detector_result(
     complete_detector_evaluations(detector, handler, evaluations)
 
 
-def _incr(stage: str, outcome: str, detector_type: str | None = None) -> None:
+def _incr(
+    stage: SeerDetectorStage, outcome: SeerDetectorOutcome, detector_type: str | None = None
+) -> None:
     metrics.incr(
         f"workflow_engine.seer_detector.{stage}",
         tags={"detector_type": detector_type, "outcome": outcome},
