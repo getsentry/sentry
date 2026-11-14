@@ -1,3 +1,5 @@
+import {useTheme, type Theme} from '@emotion/react';
+
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -5,6 +7,8 @@ import {
   defineSeerEmbed,
   type EmbedOutput,
 } from 'sentry/components/seer/markdown/embeds/utils';
+import {t} from 'sentry/locale';
+import {escape} from 'sentry/utils';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
@@ -50,12 +54,77 @@ function getInterval(timestamps: number[]): number {
   return intervals.length > 0 ? Math.min(...intervals) : 0;
 }
 
-function normalizeValue(value: number, unit: ChartUnit): number {
+function normalizeValue(value: number | null, unit: ChartUnit): number | null {
+  if (value === null) {
+    return null;
+  }
   return unit === 'percentage' ? value / 100 : value;
 }
 
 function getSeriesLabel(series: {label: string} | {name: string}): string {
   return 'label' in series ? series.label : series.name;
+}
+
+type ChartPoint = EmbedOutput<'chart'>['series'][number]['data'][number];
+
+function describeTransformation(point: ChartPoint): string | null {
+  if (point.filled && point.smoothed) {
+    return t('filled and smoothed');
+  }
+  if (point.filled) {
+    return t('filled');
+  }
+  if (point.smoothed) {
+    return t('smoothed');
+  }
+  return null;
+}
+
+/**
+ * The chart draws filled and smoothed values like any other, as charts do
+ * elsewhere in Sentry. The tooltip says which values a transformation produced,
+ * the same way it flags incomplete buckets.
+ */
+function getTransformationTooltipDetails(
+  series: EmbedOutput<'chart'>['series'],
+  theme: Theme
+): ((seriesNames: string[], timestamp: number) => string) | undefined {
+  const notesBySeries = new Map(
+    series.map((item, index) => [
+      `seer-chart-series-${index}`,
+      new Map(
+        item.data.flatMap(point => {
+          const transformation = describeTransformation(point);
+          return transformation === null
+            ? []
+            : [
+                [
+                  parseTimestamp(point.x),
+                  t('%s: %s value', getSeriesLabel(item), transformation),
+                ] as const,
+              ];
+        })
+      ),
+    ])
+  );
+  if ([...notesBySeries.values()].every(notes => notes.size === 0)) {
+    return undefined;
+  }
+
+  const style = [
+    `border-top: solid 1px ${theme.tokens.border.secondary}`,
+    `margin: ${theme.space.md} calc(-1 * ${theme.space.xl}) 0`,
+    `padding: ${theme.space.md} ${theme.space.xl} 0`,
+    `color: ${theme.tokens.content.secondary}`,
+  ].join('; ');
+
+  return (seriesNames, timestamp) => {
+    const lines = seriesNames.flatMap(name => {
+      const note = notesBySeries.get(name)?.get(timestamp);
+      return note ? [`<div>${escape(note)}</div>`] : [];
+    });
+    return lines.length > 0 ? `<div style="${style}">${lines.join('')}</div>` : '';
+  };
 }
 
 export function ChartContent({
@@ -65,11 +134,16 @@ export function ChartContent({
   data: EmbedOutput<'chart'>;
   showHeader?: boolean;
 }) {
+  const theme = useTheme();
   const metadata = UNIT_METADATA[yAxisUnit];
+
+  // Both visualizations throw when nothing is plottable, so a chart of only
+  // missing values shows the same empty state as a dashboard widget.
+  const hasValues = series.some(item => item.data.some(point => point.y !== null));
 
   // The categorical visualization only draws bars, so a category line or area
   // chart falls back to bars rather than dropping the agent's data.
-  const visualizationComponent =
+  const visualizationComponent = hasValues ? (
     xAxis === 'category' ? (
       <CategoricalSeriesWidgetVisualization
         plottables={series.map((item, index) => {
@@ -133,13 +207,17 @@ export function ChartContent({
             );
           })
           .filter((plottable): plottable is Plottable => plottable !== null)}
+        renderTooltipSeriesDetails={getTransformationTooltipDetails(series, theme)}
         showReleaseAs="none"
         // An embed's chart is as wide as the card it sits in, which is narrow
         // and clips. Left to size itself to a model-written series name, the
         // legend's "+n more" menu grows past the card and is cut off.
         truncateLegendMenuLabels
       />
-    );
+    )
+  ) : (
+    <TimeSeriesWidgetVisualization.NoData />
+  );
 
   return (
     <Stack gap="0" width="100%">

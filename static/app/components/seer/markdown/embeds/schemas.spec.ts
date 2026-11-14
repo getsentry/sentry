@@ -148,6 +148,60 @@ describe('SEER_EMBED_SCHEMAS charts', () => {
   );
 });
 
+describe('SEER_EMBED_SCHEMAS chart gaps and provenance', () => {
+  it('accepts null values and transformation provenance', () => {
+    expect(
+      SEER_EMBED_SCHEMAS.chart.schema.parse({
+        title: 'Events',
+        series: [
+          {
+            label: 'Count',
+            data: [
+              {x: '2025-07-15T14:30:00Z', y: null},
+              {x: '2025-07-15T14:31:00Z', y: 2, filled: true},
+              {x: '2025-07-15T14:32:00Z', y: 3, smoothed: true},
+            ],
+          },
+        ],
+      }).series[0]!.data
+    ).toEqual([
+      {x: '2025-07-15T14:30:00Z', y: null},
+      {x: '2025-07-15T14:31:00Z', y: 2, filled: true},
+      {x: '2025-07-15T14:32:00Z', y: 3, smoothed: true},
+    ]);
+  });
+
+  it.each([{y: undefined}, {y: 1, filled: 'yes'}, {y: 1, smoothed: 1}])(
+    'rejects malformed point %o',
+    point => {
+      expect(
+        SEER_EMBED_SCHEMAS.chart.schema.safeParse({
+          title: 'Events',
+          series: [{label: 'Count', data: [{x: '2025-07-15T14:30:00Z', ...point}]}],
+        }).success
+      ).toBe(false);
+    }
+  );
+
+  it('keeps the agent contract on observed numeric points until readers ship', () => {
+    const chart = seerEmbedsToJsonSchemas().find(widget => widget.name === 'chart');
+    const series = chart?.body.properties as {
+      series: {items: {anyOf: Array<{properties: {data: {items: unknown}}}>}};
+    };
+
+    for (const variant of series.series.items.anyOf) {
+      expect(variant.properties.data.items).toEqual(
+        expect.objectContaining({
+          properties: {
+            x: expect.anything(),
+            y: {type: 'number'},
+          },
+        })
+      );
+    }
+  });
+});
+
 describe('SEER_EMBED_SCHEMAS page filters', () => {
   it('accepts numeric project IDs for spansQuery', () => {
     const parsed = SEER_EMBED_SCHEMAS.spansQuery.schema.safeParse({
