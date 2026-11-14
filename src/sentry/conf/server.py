@@ -2627,6 +2627,10 @@ SENTRY_USE_TASKBROKER = False
 # This flag activates the objectstore in devservices
 SENTRY_USE_OBJECTSTORE = False
 
+# This flag starts a fake Slack workspace with the devserver; see `sentry django fake_slack_setup`
+SENTRY_USE_FAKE_SLACK = False
+SENTRY_FAKE_SLACK_PORT = 8099
+
 # Max file size for serialized file uploads in API
 SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000
 
@@ -2835,6 +2839,7 @@ SENTRY_GITHUB_APP_CLIENT_ID: str = ""
 SENTRY_GITHUB_CONSOLE_SDK_APP_ID: int = 0
 SENTRY_SLACK_CLIENT_ID: str = ""
 SENTRY_SLACK_STAGING_CLIENT_ID: str = ""
+SENTRY_SLACK_API_BASE_URL: str | None = None
 SENTRY_MSTEAMS_CLIENT_ID: str = ""
 SENTRY_MSTEAMS_TENANT_ID: str = ""
 SENTRY_VERCEL_CLIENT_ID: str = ""

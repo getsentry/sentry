@@ -3,6 +3,7 @@ from collections.abc import Callable
 from functools import wraps
 from types import FunctionType
 
+from django.conf import settings
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
@@ -41,6 +42,10 @@ def track_response_data(response: SlackResponse, method: str, error: str | None 
         "ok": is_ok,
     }
     logger.info("integration.http_response", extra=extra)
+
+
+def slack_api_base_url() -> str:
+    return settings.SENTRY_SLACK_API_BASE_URL or WebClient.BASE_URL
 
 
 def is_response_fatal(response: SlackResponse) -> bool:
@@ -120,4 +125,4 @@ class SlackSdkClient(WebClient, metaclass=MetaClass):
             raise ValueError(f"Missing token for integration with id {integration_id}")
 
         # TODO: missing from old SlackClient: verify_ssl, logging_context
-        super().__init__(token=access_token)
+        super().__init__(token=access_token, base_url=slack_api_base_url())

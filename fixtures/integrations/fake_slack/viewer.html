@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fake Slack</title>
+<style>
+  :root {
+    --sidebar: #3f0e40; --sidebar-text: #cfc3cf; --sidebar-active: #1164a3;
+    --bg: #ffffff; --text: #1d1c1d; --muted: #616061; --border: #e2e2e2;
+    --hover: #f8f8f8; --link: #1264a3; --mention-bg: #fff3c4; --mention-text: #6b4c00;
+    --code-bg: #f6f6f6; --code-text: #c0254b; --banner: #fff8e6; --banner-border: #f2c94c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.47 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text); background: var(--bg); height: 100vh; display: flex; flex-direction: column; }
+  .banner { background: var(--banner); border-bottom: 1px solid var(--banner-border); padding: 6px 16px; font-size: 13px; display: flex; gap: 12px; align-items: center; }
+  .banner b { font-weight: 600; }
+  .banner button { margin-left: auto; font: inherit; font-size: 12px; border: 1px solid var(--border); background: #fff; border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+  .app { flex: 1; display: flex; min-height: 0; }
+  .sidebar { width: 240px; background: var(--sidebar); color: var(--sidebar-text); padding: 12px 0; flex-shrink: 0; overflow-y: auto; }
+  .workspace { color: #fff; font-weight: 700; font-size: 17px; padding: 4px 16px 14px; border-bottom: 1px solid rgba(255,255,255,.12); margin-bottom: 10px; }
+  .section-title { font-size: 13px; padding: 6px 16px; opacity: .8; }
+  .channel { display: flex; justify-content: space-between; padding: 3px 16px; cursor: pointer; font-size: 15px; }
+  .channel:hover { background: rgba(255,255,255,.08); }
+  .channel.active { background: var(--sidebar-active); color: #fff; }
+  .channel .count { background: #cd2553; color: #fff; border-radius: 9px; font-size: 11px; padding: 0 6px; font-weight: 700; line-height: 18px; }
+  .main, .thread { display: flex; flex-direction: column; min-width: 0; }
+  .main { flex: 1; }
+  .thread { width: 44%; max-width: 640px; border-left: 1px solid var(--border); }
+  .thread[hidden] { display: none; }
+  .header { height: 49px; border-bottom: 1px solid var(--border); padding: 0 20px; display: flex; align-items: center; font-weight: 700; font-size: 17px; gap: 8px; flex-shrink: 0; }
+  .header .sub { font-weight: 400; color: var(--muted); font-size: 13px; }
+  .header .close { margin-left: auto; cursor: pointer; color: var(--muted); font-size: 20px; border: 0; background: none; }
+  .feed { flex: 1; overflow-y: auto; padding: 8px 0 24px; }
+  .empty { color: var(--muted); padding: 40px 20px; text-align: center; }
+  .msg { display: flex; gap: 8px; padding: 8px 20px; }
+  .msg:hover { background: var(--hover); }
+  .msg.flash { animation: flash 2s ease-out; }
+  @keyframes flash { from { background: #fdf3d0; } to { background: transparent; } }
+  .avatar { width: 36px; height: 36px; border-radius: 6px; background: #362d59; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-size: 14px; }
+  .body { min-width: 0; flex: 1; }
+  .meta { display: flex; gap: 8px; align-items: baseline; }
+  .meta .name { font-weight: 900; }
+  .meta .app-tag { font-size: 10px; background: #e8e8e8; color: var(--muted); border-radius: 2px; padding: 0 3px; font-weight: 700; }
+  .meta .time, .meta .edited { color: var(--muted); font-size: 12px; }
+  .ephemeral { color: var(--muted); font-size: 12px; font-style: italic; }
+  .replies { margin-top: 4px; display: inline-flex; gap: 6px; align-items: center; color: var(--link); font-weight: 700; font-size: 13px; cursor: pointer; border: 1px solid transparent; border-radius: 6px; padding: 2px 6px; margin-left: -6px; }
+  .replies:hover { border-color: var(--border); background: #fff; }
+  .replies .last { color: var(--muted); font-weight: 400; }
+  .thread-root { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px; }
+  .reply-count { padding: 4px 20px; color: var(--muted); font-size: 13px; display: flex; gap: 8px; align-items: center; }
+  .reply-count::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
+  .block { margin: 4px 0; }
+  .section { display: flex; gap: 12px; justify-content: space-between; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-top: 4px; }
+  .context { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 13px; }
+  .context img { width: 16px; height: 16px; border-radius: 3px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { display: inline-block; border: 1px solid #c8c8c8; border-radius: 4px; padding: 3px 12px; font-size: 13px; font-weight: 700; color: var(--text); text-decoration: none; background: #fff; }
+  .btn.primary { background: #007a5a; border-color: #007a5a; color: #fff; }
+  .btn.danger { background: #e01e5a; border-color: #e01e5a; color: #fff; }
+  .divider { border-top: 1px solid var(--border); margin: 8px 0; }
+  .header-block { font-weight: 900; font-size: 18px; }
+  .img-block { max-width: 360px; max-height: 240px; border-radius: 6px; border: 1px solid var(--border); }
+  .attachment { display: flex; margin: 4px 0; }
+  .attachment .bar { width: 4px; border-radius: 4px; background: #ddd; flex-shrink: 0; }
+  .attachment .content { padding: 2px 12px; min-width: 0; flex: 1; }
+  .attachment .title { font-weight: 700; color: var(--link); }
+  .task-card { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; display: flex; gap: 10px; align-items: flex-start; }
+  .task-card .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; background: #1264a3; }
+  .task-card .dot.complete { background: #2bac76; }
+  .task-card .dot.error { background: #e01e5a; }
+  .task-card .dot.in_progress { animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .task-card .t { font-weight: 700; }
+  .task-card .d { color: var(--muted); font-size: 13px; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .mention { background: var(--mention-bg); color: var(--mention-text); border-radius: 3px; padding: 0 2px; font-weight: 600; }
+  code { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-radius: 3px; padding: 0 3px; font-size: 12px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 8px; white-space: pre-wrap; font-size: 12px; margin: 4px 0; }
+  blockquote { border-left: 4px solid #ddd; margin: 4px 0; padding-left: 10px; color: var(--muted); }
+  .mrkdwn { white-space: normal; overflow-wrap: anywhere; }
+  .raw { font-family: monospace; font-size: 11px; color: var(--muted); }
+  .unsupported { background: #fdecec; border-bottom: 1px solid #f3b3b3; padding: 6px 16px; font-size: 13px; }
+  .unsupported[hidden], .toast[hidden] { display: none; }
+  .unsupported code { font-size: 12px; }
+  [data-unsupported] { cursor: pointer; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #1d1c1d; color: #fff; padding: 10px 16px; border-radius: 6px; font-size: 13px; max-width: 90vw; box-shadow: 0 4px 12px rgba(0,0,0,.25); z-index: 20; }
+  @media (max-width: 800px) {
+    .sidebar { display: none; }
+    .thread { position: fixed; inset: 0; width: auto; max-width: none; background: var(--bg); z-index: 10; top: 33px; }
+  }
+</style>
+</head>
+<body>
+<div class="banner">
+  <span>🧪 <b>Fake Slack.</b> Every message this Sentry devserver sends to Slack lands here instead of a real workspace.</span>
+  <button id="reset" title="Delete all messages">Clear messages</button>
+</div>
+<div class="unsupported" id="unsupported" hidden></div>
+<div class="app">
+  <nav class="sidebar">
+    <div class="workspace" id="workspace">Slack</div>
+    <div class="section-title">Channels</div>
+    <div id="channels"></div>
+  </nav>
+  <main class="main">
+    <div class="header" id="channel-header"></div>
+    <div class="feed" id="feed"></div>
+  </main>
+  <aside class="thread" id="thread" hidden>
+    <div class="header"><span>Thread</span><span class="sub" id="thread-sub"></span><button class="close" id="close-thread" aria-label="Close thread">×</button></div>
+    <div class="feed" id="thread-feed"></div>
+  </aside>
+</div>
+<script>
+let state = {channels: {}, messages: []};
+let current = null, openThread = null, focusTs = null, lastSignature = '';
+const seen = new Set(); let initialized = false;
+
+function linkAttrs(url) {
+  url = String(url ?? '');
+  const internal = url.startsWith(location.origin + '/#') || url.startsWith('#');
+  if (internal) return `href="${esc(url)}"`;
+  if (!/^https?:\/\//i.test(url)) return '';
+  return `href="${esc(url)}" target="_blank" rel="noopener"`;
+}
+
+function unescapeSlack(s) { return String(s ?? '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'); }
+
+function esc(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+function mrkdwn(text) {
+  if (!text) return '';
+  // Slack escapes &, <, > in text; pull out <...> entities before escaping the rest.
+  const tokens = [];
+  let s = String(text).replace(/<([^<>]+)>/g, (_, inner) => {
+    let html;
+    if (inner.startsWith('!date^')) {
+      const [spec, fallback] = inner.split('|');
+      const [, epoch, format] = spec.split('^');
+      const d = new Date(parseInt(epoch, 10) * 1000);
+      html = esc((format ?? fallback ?? '')
+        .replace('{date_pretty}', d.toLocaleDateString([], {month: 'short', day: 'numeric'}))
+        .replace('{date_short_pretty}', d.toLocaleDateString([], {month: 'short', day: 'numeric'}))
+        .replace('{date}', d.toLocaleDateString())
+        .replace('{time}', d.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})));
+    } else if (inner.startsWith('!')) {
+      const name = inner.slice(1).split('|')[0].replace(/^subteam\^[A-Z0-9]+/, 'team');
+      html = `<span class="mention">@${esc(inner.includes('|') ? inner.split('|')[1].replace(/^@/, '') : name)}</span>`;
+    } else if (inner.startsWith('@')) {
+      html = `<span class="mention">@${esc(inner.slice(1).split('|')[1] ?? inner.slice(1))}</span>`;
+    } else if (inner.startsWith('#')) {
+      const [id, name] = inner.slice(1).split('|');
+      html = `<a href="#${esc(id)}">#${esc(name ?? state.channels[id] ?? id)}</a>`;
+    } else {
+      const [url, label] = inner.split('|');
+      const text = esc(unescapeSlack(label ?? url)).replace(/^\*(.+)\*$/, '<b>$1</b>').replace(/^_(.+)_$/, '<i>$1</i>');
+      html = `<a ${linkAttrs(unescapeSlack(url))}>${text}</a>`;
+    }
+    tokens.push(html); return `\u0000${tokens.length - 1}\u0000`;
+  });
+  s = esc(unescapeSlack(s));
+  s = s.replace(/```([\s\S]*?)```/g, (_, c) => `<pre>${c}</pre>`);
+  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  s = s.replace(/(^|[\s(])\*([^*\n]+)\*(?=$|[\s).,:!?])/g, '$1<b>$2</b>');
+  s = s.replace(/(^|[\s(])_([^_\n]+)_(?=$|[\s).,:!?])/g, '$1<i>$2</i>');
+  s = s.replace(/(^|[\s(])~([^~\n]+)~(?=$|[\s).,:!?])/g, '$1<s>$2</s>');
+  s = s.split('\n').map(line => line.startsWith('&gt; ') ? `<blockquote>${line.slice(5)}</blockquote>` : line).join('\n');
+  s = s.replace(/\n/g, '<br>');
+  s = s.replace(/@(here|channel|everyone)\b/g, '<span class="mention">@$1</span>');
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => tokens[+i]);
+}
+
+function markdown(text) {
+  const links = [];
+  let s = String(text ?? '').replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => {
+    links.push(`<a ${linkAttrs(url)}>${esc(label)}</a>`); return `\u0000${links.length - 1}\u0000`;
+  });
+  s = esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  return s.replace(/\n/g, '<br>').replace(/\u0000(\d+)\u0000/g, (_, i) => links[+i]);
+}
+
+function textObj(obj) {
+  if (!obj) return '';
+  if (typeof obj === 'string') return mrkdwn(obj);
+  return obj.type === 'plain_text' ? esc(obj.text) : mrkdwn(obj.text);
+}
+
+function element(el) {
+  if (!el) return '';
+  if (el.type === 'button') {
+    const cls = `btn ${esc(el.style)}`;
+    return el.url ? `<a class="${cls}" ${linkAttrs(el.url)}>${esc(el.text?.text)}</a>`
+      : `<span class="${cls}" data-unsupported="button">${esc(el.text?.text)}</span>`;
+  }
+  if (el.type === 'image') return `<img src="${esc(el.image_url)}" alt="${esc(el.alt_text)}">`;
+  if (el.type === 'mrkdwn' || el.type === 'plain_text') return `<span class="mrkdwn">${textObj(el)}</span>`;
+  if (el.type === 'static_select' || el.type === 'overflow' || el.type === 'external_select') return `<span class="btn" data-unsupported="menu">${esc(el.placeholder?.text ?? 'Select…')} ▾</span>`;
+  return '';
+}
+
+function richText(el) {
+  if (!el) return '';
+  if (Array.isArray(el)) return el.map(richText).join('');
+  switch (el.type) {
+    case 'rich_text': return el.elements.map(richText).join('');
+    case 'rich_text_section': return `<div>${(el.elements ?? []).map(richText).join('')}</div>`;
+    case 'rich_text_list': return `<ul>${(el.elements ?? []).map(e => `<li>${richText(e)}</li>`).join('')}</ul>`;
+    case 'rich_text_quote': return `<blockquote>${(el.elements ?? []).map(richText).join('')}</blockquote>`;
+    case 'rich_text_preformatted': return `<pre>${(el.elements ?? []).map(richText).join('')}</pre>`;
+    case 'text': {
+      let t = esc(el.text).replace(/\n/g, '<br>');
+      if (el.style?.bold) t = `<b>${t}</b>`;
+      if (el.style?.italic) t = `<i>${t}</i>`;
+      if (el.style?.code) t = `<code>${t}</code>`;
+      return t;
+    }
+    case 'link': return `<a ${linkAttrs(el.url)}>${esc(el.text ?? el.url)}</a>`;
+    case 'user': return `<span class="mention">@${esc(el.user_id)}</span>`;
+    case 'usergroup': return `<span class="mention">@team</span>`;
+    case 'broadcast': return `<span class="mention">@${esc(el.range)}</span>`;
+    case 'emoji': return el.unicode ? String.fromCodePoint(...el.unicode.split('-').map(h => parseInt(h, 16))) : `:${esc(el.name)}:`;
+    default: return '';
+  }
+}
+
+function block(b) {
+  switch (b.type) {
+    case 'section': return `<div class="block section"><div class="mrkdwn" style="flex:1">${textObj(b.text)}${b.fields ? `<div class="fields">${b.fields.map(f => `<div>${textObj(f)}</div>`).join('')}</div>` : ''}</div>${b.accessory ? `<div>${element(b.accessory)}</div>` : ''}</div>`;
+    case 'context': return `<div class="block context">${(b.elements ?? []).map(element).join('')}</div>`;
+    case 'actions': return `<div class="block actions">${(b.elements ?? []).map(element).join('')}</div>`;
+    case 'divider': return '<div class="divider"></div>';
+    case 'header': return `<div class="block header-block">${esc(b.text?.text)}</div>`;
+    case 'image': return `<div class="block">${b.title ? `<div>${esc(b.title.text)}</div>` : ''}<img class="img-block" src="${esc(b.image_url)}" alt="${esc(b.alt_text)}"></div>`;
+    case 'markdown': return `<div class="block mrkdwn">${markdown(b.text)}</div>`;
+    case 'rich_text': return `<div class="block">${richText(b)}</div>`;
+    case 'task_card': return `<div class="block task-card"><span class="dot ${esc(b.status)}"></span><div><div class="t">${esc(b.title)}</div><div class="d">${b.details ? richText(b.details) : ''}</div></div></div>`;
+    default: return `<div class="block raw">[${esc(b.type)} block]</div>`;
+  }
+}
+
+function attachment(a) {
+  const color = a.color ? (a.color.startsWith('#') ? a.color : `#${a.color}`) : '#ddd';
+  let inner = '';
+  if (a.blocks?.length) inner = a.blocks.map(block).join('');
+  else {
+    if (a.title) inner += `<div class="title">${a.title_link ? `<a ${linkAttrs(a.title_link)}>${esc(a.title)}</a>` : esc(a.title)}</div>`;
+    if (a.text) inner += `<div class="mrkdwn">${mrkdwn(a.text)}</div>`;
+    if (a.fields?.length) inner += `<div class="fields">${a.fields.map(f => `<div><b>${esc(f.title)}</b><br>${mrkdwn(f.value)}</div>`).join('')}</div>`;
+    if (a.footer) inner += `<div class="context">${esc(a.footer)}</div>`;
+  }
+  return `<div class="attachment"><div class="bar" style="background:${esc(color)}"></div><div class="content">${inner}</div></div>`;
+}
+
+function fmtTime(ts) { return new Date(parseFloat(ts) * 1000).toLocaleTimeString([], {hour: 'numeric', minute: '2-digit', second: '2-digit'}); }
+
+function renderMessage(m, {inThread}) {
+  const replies = state.messages.filter(r => r.thread_ts === m.ts && r.ts !== m.ts && r.channel === m.channel);
+  const blocks = (m.blocks ?? []).map(block).join('');
+  const body = blocks || (m.text ? `<div class="mrkdwn">${mrkdwn(m.text)}</div>` : '');
+  const isNew = initialized && !seen.has(m.ts);
+  return `<div class="msg${isNew || m.ts === focusTs ? ' flash' : ''}" id="${inThread ? 't' : 'm'}-${esc(m.ts).replace('.', '-')}">
+    <div class="avatar">S</div>
+    <div class="body">
+      <div class="meta"><span class="name">Sentry</span><span class="app-tag">APP</span><span class="time">${fmtTime(m.ts)}</span>${m.edited ? '<span class="edited">(edited)</span>' : ''}</div>
+      ${m.ephemeral_user ? `<div class="ephemeral">Only visible to ${esc(m.ephemeral_user)}</div>` : ''}
+      ${m.reply_broadcast && inThread !== 'root' ? '<div class="ephemeral">Also sent to the channel</div>' : ''}
+      ${body}
+      ${(m.attachments ?? []).map(attachment).join('')}
+      ${!inThread && replies.length ? `<div class="replies" data-thread="${esc(m.ts)}">💬 ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'} <span class="last">Last reply ${fmtTime(replies[replies.length - 1].ts)}</span></div>` : ''}
+    </div>
+  </div>`;
+}
+
+function route() {
+  const [channel, thread, ts] = location.hash.slice(1).split('/');
+  current = channel && state.channels[channel] ? channel : current ?? Object.keys(state.channels)[0];
+  openThread = thread || null; focusTs = ts || thread || null;
+}
+
+const UNSUPPORTED_CLICKS = {
+  button: "Fake Slack doesn't support button clicks yet. In Slack, this would send Sentry a block_actions request.",
+  menu: "Fake Slack doesn't support menus yet.",
+};
+
+function renderUnsupportedCalls() {
+  const byMethod = new Map();
+  for (const call of state.unsupported ?? []) {
+    const entry = byMethod.get(call.method) ?? {count: 0, link: null};
+    entry.count += 1;
+    if (call.channel) {
+      const message = state.messages.find(m => m.channel === call.channel && m.ts === call.ts);
+      entry.link = `#${call.channel}/${message?.thread_ts || call.ts}/${call.ts}`;
+    }
+    byMethod.set(call.method, entry);
+  }
+  const banner = document.getElementById('unsupported');
+  banner.hidden = byMethod.size === 0;
+  banner.innerHTML = `⚠️ Sentry called Slack methods that Fake Slack doesn't simulate, so Slack may behave differently: ` +
+    [...byMethod].map(([method, {count, link}]) => {
+      const name = `<code>${esc(method)}</code> ×${count}`;
+      return link ? `<a href="${esc(link)}">${name}</a>` : name;
+    }).join(', ');
+}
+
+function showToast(text) {
+  const toast = document.getElementById('toast');
+  toast.textContent = text;
+  toast.hidden = false;
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => { toast.hidden = true; }, 4000);
+}
+
+function render() {
+  route();
+  renderUnsupportedCalls();
+  document.getElementById('workspace').textContent = state.team?.name ?? 'Slack';
+  const roots = id => state.messages.filter(m => m.channel === id && (!m.thread_ts || m.thread_ts === m.ts || m.reply_broadcast));
+  document.getElementById('channels').innerHTML = Object.entries(state.channels).map(([id, name]) => {
+    const count = state.messages.filter(m => m.channel === id).length;
+    return `<div class="channel${id === current ? ' active' : ''}" data-channel="${esc(id)}"><span># ${esc(name)}</span>${count ? `<span class="count">${count}</span>` : ''}</div>`;
+  }).join('');
+  document.getElementById('channel-header').innerHTML = `# ${esc(state.channels[current] ?? '')}<span class="sub">${state.messages.filter(m => m.channel === current).length} messages from Sentry</span>`;
+  const feed = document.getElementById('feed');
+  const channelRoots = roots(current);
+  feed.innerHTML = channelRoots.length ? channelRoots.map(m => renderMessage(m, {inThread: false})).join('') : '<div class="empty">No messages yet. When Sentry posts to this channel, it shows up here.</div>';
+  const threadPane = document.getElementById('thread');
+  const root = openThread && state.messages.find(m => m.ts === openThread && m.channel === current);
+  if (root) {
+    const replies = state.messages.filter(m => m.thread_ts === root.ts && m.ts !== root.ts && m.channel === current);
+    threadPane.hidden = false;
+    document.getElementById('thread-sub').textContent = `# ${state.channels[current]}`;
+    document.getElementById('thread-feed').innerHTML = `<div class="thread-root">${renderMessage(root, {inThread: 'root'})}</div>
+      <div class="reply-count">${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}</div>
+      ${replies.map(m => renderMessage(m, {inThread: true})).join('')}`;
+  } else threadPane.hidden = true;
+  state.messages.forEach(m => seen.add(m.ts));
+  initialized = true;
+  if (focusTs) {
+    const focusId = focusTs.replace('.', '-');
+    const focused = (openThread && document.getElementById(`t-${focusId}`)) || document.getElementById(`m-${focusId}`);
+    focused?.scrollIntoView({block: 'center'});
+  } else feed.scrollTop = feed.scrollHeight;
+}
+
+async function poll() {
+  try {
+    const next = await (await fetch('state.json', {cache: 'no-store'})).json();
+    const signature = JSON.stringify(next);
+    if (signature !== lastSignature) {
+      const hadFocus = focusTs; lastSignature = signature; state = next; render();
+      if (hadFocus) focusTs = null;
+    }
+  } catch (e) { /* the server may be restarting */ }
+  setTimeout(poll, 2000);
+}
+
+document.addEventListener('click', e => {
+  const unsupported = e.target.closest('[data-unsupported]');
+  if (unsupported) { showToast(UNSUPPORTED_CLICKS[unsupported.dataset.unsupported]); return; }
+  const ch = e.target.closest('[data-channel]');
+  if (ch) { location.hash = ch.dataset.channel; return; }
+  const th = e.target.closest('[data-thread]');
+  if (th) { location.hash = `${current}/${th.dataset.thread}`; }
+});
+document.getElementById('close-thread').onclick = () => { location.hash = current; };
+document.getElementById('reset').onclick = async () => {
+  if (confirm('Delete every message in Fake Slack?')) { await fetch('reset', {method: 'POST'}); lastSignature = ''; }
+};
+window.addEventListener('hashchange', () => { render(); focusTs = null; });
+poll();
+</script>
+<div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>

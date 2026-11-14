@@ -435,6 +435,11 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     if settings.SENTRY_SINGLE_ORGANIZATION:
         settings.SENTRY_FEATURES["organizations:create"] = False
 
+    if settings.SENTRY_USE_FAKE_SLACK and not settings.SENTRY_SLACK_API_BASE_URL:
+        settings.SENTRY_SLACK_API_BASE_URL = (
+            f"http://127.0.0.1:{settings.SENTRY_FAKE_SLACK_PORT}/api/"
+        )
+
     if not hasattr(settings, "SUDO_COOKIE_SECURE"):
         settings.SUDO_COOKIE_SECURE = getattr(settings, "SESSION_COOKIE_SECURE", False)
     if not hasattr(settings, "SUDO_COOKIE_DOMAIN"):
