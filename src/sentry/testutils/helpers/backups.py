@@ -677,6 +677,16 @@ class ExhaustiveFixtures(Fixtures):
             filters={"environments": ["production"]},
         )
         Factories.create_seer_workflow_config_project(seer_workflow_config, project)
+        Factories.create_seer_workflow_config_version(
+            seer_workflow_config,
+            created_by_id=owner_id,
+            snapshot={
+                "trigger_settings": {"cron": "0 9 * * 1", "timezone": "America/New_York"},
+                "action_settings": {"prompt": "Summarize new issues"},
+                "filters": {"environments": ["production"]},
+                "output_policy": {},
+            },
+        )
 
         CodeReviewEvent.objects.create(
             organization=org,

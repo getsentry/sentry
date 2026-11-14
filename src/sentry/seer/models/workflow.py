@@ -154,6 +154,45 @@ class SeerWorkflowConfigProject(DefaultFieldsModel):
     __repr__ = sane_repr("config_id", "project_id")
 
 
+class WorkflowConfigVersionSnapshot(BaseModel):
+    """The parts of a config that change what its runs do, as of one version."""
+
+    trigger_settings: dict[str, Any]
+    action_settings: dict[str, Any]
+    filters: dict[str, Any]
+    output_policy: dict[str, Any]
+
+    class Config:
+        allow_mutation = False
+
+
+@cell_silo_model
+class SeerWorkflowConfigVersion(DefaultFieldsModel):
+    """One saved version of a config's trigger and action settings, filters and outputs."""
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    config = FlexibleForeignKey(
+        "seer.SeerWorkflowConfig", on_delete=models.CASCADE, related_name="versions"
+    )
+    version = BoundedPositiveIntegerField()
+    # Shape: WorkflowConfigVersionSnapshot.
+    snapshot = models.JSONField()
+    # The user who saved this version; null for seeded defaults and non-user callers.
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_workflowconfigversion"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["config", "version"], name="seer_workflowconfigversion_config_version_uniq"
+            ),
+        ]
+
+    __repr__ = sane_repr("config_id", "version")
+
+
 @cell_silo_model
 class SeerWorkflowTriggerBinding(DefaultFieldsModel):
     """Connect a WFE Action to an automation; a config may have multiple bindings."""
@@ -178,6 +217,17 @@ class SeerWorkflowRunStatus(models.TextChoices):
     COMPLETE = "complete"
     FAILED = "failed"
     REJECTED = "rejected"
+
+
+class SeerWorkflowRunSource(models.TextChoices):
+    CRON = "cron"
+    MANUAL = "manual"
+    EVENT = "event"
+
+
+# Sources limited to one queued or running run per config at a time.
+EXCLUSIVE_WORKFLOW_RUN_SOURCES = (SeerWorkflowRunSource.CRON, SeerWorkflowRunSource.MANUAL)
+ACTIVE_WORKFLOW_RUN_STATUSES = (SeerWorkflowRunStatus.QUEUED, SeerWorkflowRunStatus.RUNNING)
 
 
 class SeerWorkflowExecutionStatus(models.TextChoices):
@@ -245,6 +295,10 @@ class SeerWorkflowRun(DefaultFieldsModel):
     trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
     # Null for historical runs that have not adopted the shared lifecycle.
     status = models.CharField(max_length=256, choices=SeerWorkflowRunStatus.choices, null=True)
+    # Null for historical runs recorded before sources were tracked.
+    source = models.CharField(max_length=32, choices=SeerWorkflowRunSource.choices, null=True)
+    # The SeerWorkflowConfigVersion.version the run used. Null for historical runs.
+    config_version = BoundedPositiveIntegerField(null=True)
     date_completed = models.DateTimeField(null=True)
     # Shape: SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)
@@ -256,12 +310,25 @@ class SeerWorkflowRun(DefaultFieldsModel):
             models.Index(fields=["organization", "date_added"]),
             models.Index(fields=["date_added"]),
             models.Index(fields=["workflow_config", "date_added"]),
+            models.Index(
+                fields=["date_added"],
+                condition=models.Q(status__in=ACTIVE_WORKFLOW_RUN_STATUSES),
+                name="seer_run_active_added_idx",
+            ),
         ]
         constraints = [
             models.UniqueConstraint(
                 fields=["organization", "workflow_config", "trigger_key"],
                 condition=models.Q(trigger_key__isnull=False),
                 name="seer_nightshiftrun_unique_org_config_schedule",
+            ),
+            models.UniqueConstraint(
+                fields=["workflow_config"],
+                condition=models.Q(
+                    source__in=EXCLUSIVE_WORKFLOW_RUN_SOURCES,
+                    status__in=ACTIVE_WORKFLOW_RUN_STATUSES,
+                ),
+                name="seer_nightshiftrun_one_active_exclusive_run",
             ),
         ]
 

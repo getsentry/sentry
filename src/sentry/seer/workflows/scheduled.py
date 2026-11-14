@@ -14,6 +14,7 @@ from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, assert_never
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.db.models import QuerySet
 from pydantic import BaseModel, validator
@@ -67,16 +68,26 @@ SCHEDULED_EXECUTION_FEATURE = "organizations:seer-scheduled-automations"
 
 
 class ScheduleSettings(BaseModel):
-    # Cron expression in UTC. Unset runs on the config's ``schedule``.
+    # IANA timezone name, e.g. "America/New_York".
+    timezone: str = "UTC"
+    # Cron expression evaluated in ``timezone``. Unset runs on the config's ``schedule``.
     cron: str | None = None
 
     class Config:
         extra = "forbid"
 
     @validator("cron")
-    def cron_is_valid(cls, value: str | None) -> str | None:
-        if value is not None:
-            cron(value)
+    def cron_is_valid(cls, value: str | None, values: dict[str, Any]) -> str | None:
+        if value is not None and "timezone" in values:
+            cron(value, values["timezone"])
+        return value
+
+    @validator("timezone")
+    def timezone_is_valid(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError(f"Unknown timezone: {value}")
         return value
 
 
@@ -108,7 +119,7 @@ def schedule_for(config: SeerWorkflowConfig) -> Schedule | None:
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     settings = ScheduleSettings.parse_obj(extras.trigger_settings or {})
     if settings.cron is not None:
-        return cron(settings.cron)
+        return cron(settings.cron, settings.timezone)
     schedule = SeerWorkflowSchedule(config.schedule)
     match schedule:
         case SeerWorkflowSchedule.DAILY:

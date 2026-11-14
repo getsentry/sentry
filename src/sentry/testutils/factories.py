@@ -202,6 +202,7 @@ from sentry.seer.models.run import (
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
+    SeerWorkflowConfigVersion,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowTriggerBinding,
@@ -3654,6 +3655,15 @@ class Factories:
         config: SeerWorkflowConfig, project: Project
     ) -> SeerWorkflowConfigProject:
         return SeerWorkflowConfigProject.objects.create(config=config, project=project)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_config_version(
+        config: SeerWorkflowConfig, **kwargs: Any
+    ) -> SeerWorkflowConfigVersion:
+        kwargs.setdefault("version", config.version)
+        kwargs.setdefault("snapshot", {})
+        return SeerWorkflowConfigVersion.objects.create(config=config, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
