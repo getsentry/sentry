@@ -32,7 +32,11 @@ export function ToastProvider({children}: {children?: ReactNode}) {
       {children}
       <StyledToaster
         position="bottom-right"
-        offset={{bottom: '30px', right: 'calc(30px + var(--scrollbar-size, 0px))'}}
+        offset={{
+          bottom: 'max(30px, env(safe-area-inset-bottom))',
+          right:
+            'calc(max(30px, env(safe-area-inset-right)) + var(--scrollbar-size, 0px))',
+        }}
         duration={DEFAULT_TOAST_DURATION}
         gap={12}
         visibleToasts={3}

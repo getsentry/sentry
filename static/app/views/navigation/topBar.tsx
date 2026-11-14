@@ -18,6 +18,7 @@ import {
   PRIMARY_HEADER_TITLE_MIN_WIDTH,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
+import {usePrimaryNavigation} from './primaryNavigationContext';
 import {
   TopBarFeedbackButton,
   type TopBarFeedbackButtonProps,
@@ -76,6 +77,7 @@ function TopBarSlot(props: TopBarSlotProps) {
 function TopBarContent() {
   const theme = useTheme();
   const {topBarTop, pageContentTop} = useTopOffset();
+  const {layout} = usePrimaryNavigation();
 
   const organization = useOrganization({allowNull: true});
 
@@ -100,6 +102,12 @@ function TopBarContent() {
       top={topBarTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
+        // The mobile layout spans the full viewport width under
+        // viewport-fit=cover, so keep actions out of the iOS notch.
+        ...(layout === 'mobile' && {
+          paddingLeft: `max(${theme.space.lg}, env(safe-area-inset-left))`,
+          paddingRight: `max(${theme.space.lg}, env(safe-area-inset-right))`,
+        }),
       }}
     >
       <SizeProvider size="sm">
