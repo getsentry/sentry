@@ -13,6 +13,7 @@ from django.core.cache import cache
 from jsonschema import ValidationError
 
 from sentry import options
+from sentry.issues import json_schemas
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
@@ -417,6 +418,52 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             "Error validating event payload, falling back to legacy validation" in cm.records[0].msg
         )
         assert cm.records[0].exc_info is not None
+        # The event schema's error, as `jsonschema.validate` reports it.
+        error = cm.records[0].exc_info[1]
+        assert isinstance(error, ValidationError)
+        assert error.message == "nan is not of type 'string', 'null'"
+        assert list(error.absolute_path) == ["tags", "nan-tag"]
+
+    def test_valid_payload_emits_no_invalid_metrics(self) -> None:
+        with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
+            self.run_test(get_test_message(self.project.id))
+            metrics.incr.assert_not_called()
+
+    def test_invalid_payload_raises_legacy_schema_error(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["event"].pop("timestamp")
+        with (
+            self.assertLogs("sentry.issues.occurrence_consumer", logging.ERROR) as cm,
+            pytest.raises(ValidationError) as excinfo,
+        ):
+            self.run_test(message)
+
+        # The consumer sets a missing timestamp to None. Logged: the event schema's error.
+        # Raised: the legacy schema's.
+        logged = cm.records[0].exc_info[1] if cm.records[0].exc_info else None
+        assert isinstance(logged, ValidationError)
+        assert logged.message == "None is not valid under any of the given schemas"
+        assert list(logged.absolute_path) == ["timestamp"]
+        assert excinfo.value.message == "None is not of type 'string'"
+        assert list(excinfo.value.absolute_path) == ["timestamp"]
+
+    def test_schemas_not_rechecked_per_message(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        # Invalid under the event schema and valid under the legacy one, so both are used.
+        message["event"]["tags"]["nan-tag"] = float("nan")
+        self.run_test(deepcopy(message))
+
+        event_validator_cls = type(json_schemas._event_payload_validator())
+        legacy_validator_cls = type(json_schemas._legacy_event_payload_validator())
+        with (
+            mock.patch.object(event_validator_cls, "check_schema") as check_event_schema,
+            mock.patch.object(legacy_validator_cls, "check_schema") as check_legacy_schema,
+        ):
+            for _ in range(3):
+                self.run_test(deepcopy(message))
+
+        check_event_schema.assert_not_called()
+        check_legacy_schema.assert_not_called()
 
     def test_invalid_payload_emits_both_metrics(self) -> None:
         with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:

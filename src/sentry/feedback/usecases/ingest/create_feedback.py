@@ -7,8 +7,6 @@ from datetime import UTC, datetime
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
-import jsonschema
-
 from sentry import options
 from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
@@ -22,7 +20,7 @@ from sentry.feedback.usecases.spam_detection import is_spam_seer, spam_detection
 from sentry.feedback.usecases.title_generation import get_feedback_title, truncate_feedback_title
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
+from sentry.issues.json_schemas import validate_event_payload
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -185,7 +183,7 @@ def validate_issue_platform_event_schema(event_data: Mapping[str, object]) -> No
     The issue platform schema validation does not run in dev atm so we have to do the validation
     ourselves, or else our tests are not representative of what happens in prod.
     """
-    jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
+    validate_event_payload(event_data)
 
 
 def should_filter_feedback(
