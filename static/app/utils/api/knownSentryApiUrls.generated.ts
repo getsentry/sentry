@@ -508,6 +508,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/environments/$environment/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/processing-errors/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/stats/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/native-tools/$eventId/metadata/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/'
