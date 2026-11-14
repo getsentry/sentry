@@ -213,6 +213,7 @@ const accentSelection = (p: {theme: Theme}) => css`
 
 const PromptText = styled(Text)`
   ${accentSelection}
+  user-select: all;
 
   /* Focus is only set programmatically to select the prompt; it is not tabbable. */
   &:focus {
