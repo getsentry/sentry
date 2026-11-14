@@ -39,7 +39,7 @@ class MockSeerDetectorHandler(SeerDetectorHandler[dict[str, Any], dict[str, Any]
     ) -> DetectorGroupValues[dict[str, Any]]:
         return DetectorGroupValues(data_packet.packet["groups"])
 
-    def evaluate_result(
+    def evaluate_seer_result(
         self, result: SeerDetectorResult[dict[str, Any]]
     ) -> DetectorEvaluation | None:
         if result.result.get("anomalous"):
@@ -47,7 +47,7 @@ class MockSeerDetectorHandler(SeerDetectorHandler[dict[str, Any], dict[str, Any]
 
         return None
 
-    def create_result_occurrence(
+    def create_seer_occurrence(
         self,
         evaluation: DetectorEvaluation,
         result: SeerDetectorResult[dict[str, Any]],
@@ -65,7 +65,7 @@ class MockSeerDetectorHandler(SeerDetectorHandler[dict[str, Any], dict[str, Any]
 
 
 class MockWrongGroupKeyHandler(MockSeerDetectorHandler):
-    def evaluate_result(
+    def evaluate_seer_result(
         self, result: SeerDetectorResult[dict[str, Any]]
     ) -> DetectorEvaluation | None:
         return DetectorEvaluation.create_issue("other-group", DetectorPriorityLevel.HIGH)

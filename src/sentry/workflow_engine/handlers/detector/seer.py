@@ -11,7 +11,7 @@ Evaluation is split across two processes:
 
 To add a Seer detector:
 - Subclass `SeerDetectorHandler`, set `seer_feature_id` to the Seer feature that evaluates it,
-  and implement `extract_value`, `evaluate_result`, and `create_result_occurrence`.
+  and implement `extract_value`, `evaluate_seer_result`, and `create_seer_occurrence`.
 - Register `deliver_seer_detector_result` for that feature id in `DELIVERY_HANDLERS`.
 """
 
@@ -77,14 +77,21 @@ class SeerDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluati
     """
     Base class for detectors that Seer evaluates.
 
-    Subclasses implement:
-    - `extract_value`: the value Seer evaluates. It is sent to Seer and stored on the run, so it
-      MUST be JSON serializable. Return `DetectorGroupValues` to start one run per group.
-    - `evaluate_result`: decides the outcome from Seer's result.
-    - `create_result_occurrence`: builds the occurrence for a triggered result.
+    Seer decides the outcome, so the base `evaluate` and `create_occurrence` hooks are owned
+    by the platform: `evaluate` starts the Seer runs, and `create_occurrence` is never called.
+    Subclasses implement the Seer equivalents, which receive Seer's result once it is delivered:
 
-    The platform owns `evaluate`, which starts the Seer runs, and `complete_evaluation`, which
-    turns a delivered result into the evaluation passed to `on_complete`.
+    | Base hook           | Seer hook                | Input                            |
+    | ------------------- | ------------------------ | -------------------------------- |
+    | `extract_value`     | `extract_value`          | the data packet                  |
+    | `evaluate`          | `evaluate_seer_result`   | Seer's result for one group      |
+    | `create_occurrence` | `create_seer_occurrence` | the evaluation and Seer's result |
+
+    `extract_value` returns the value Seer evaluates. It is sent to Seer and stored on the run,
+    so it MUST be JSON serializable. Return `DetectorGroupValues` to start one run per group.
+
+    `complete_evaluation` turns a delivered result into the evaluation passed to `on_complete`,
+    like `_evaluate` does for a data packet.
 
     Seer detectors MUST be project-scoped.
     """
@@ -93,7 +100,7 @@ class SeerDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluati
     seer_feature_id: ClassVar[str]
 
     @abc.abstractmethod
-    def evaluate_result(
+    def evaluate_seer_result(
         self, result: SeerDetectorResult[DataPacketEvaluationType]
     ) -> DetectorEvaluation | None:
         """
@@ -101,20 +108,20 @@ class SeerDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluati
         an extracted value:
 
         1. Triggered: `DetectorEvaluation.create_issue(result.group_key, priority)`. The platform
-           calls `create_result_occurrence` and sets the built `IssueOccurrence` as the result.
+           calls `create_seer_occurrence` and sets the built `IssueOccurrence` as the result.
         2. Already built: `evaluation.with_result(result)`, e.g. a `StatusChangeMessage`.
         3. Nothing to do: return None, or `DetectorEvaluation.ok(result.group_key)`.
         """
         pass
 
     @abc.abstractmethod
-    def create_result_occurrence(
+    def create_seer_occurrence(
         self,
         evaluation: DetectorEvaluation,
         result: SeerDetectorResult[DataPacketEvaluationType],
     ) -> tuple[DetectorOccurrence, EventData]:
         """
-        Builds the occurrence for an evaluation `evaluate_result` triggered, like
+        Builds the occurrence for an evaluation `evaluate_seer_result` triggered, like
         `create_occurrence` does for a data packet.
 
         The event id defaults to the run's UUID, so a redelivered result produces the same
@@ -166,7 +173,6 @@ class SeerDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluati
                 flush=False,
                 extras=dict(extras),
             )
-            _incr("dispatch", "dispatched", self.detector.type)
 
         return no_evaluations
 
@@ -178,7 +184,7 @@ class SeerDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluati
     ) -> tuple[DetectorOccurrence, EventData]:
         # `evaluate` never triggers, so the platform never builds an occurrence from a packet.
         raise NotImplementedError(
-            "Seer detectors build occurrences from Seer's result in `create_result_occurrence`"
+            "Seer detectors build occurrences from Seer's result in `create_seer_occurrence`"
         )
 
     @final
@@ -189,19 +195,19 @@ class SeerDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluati
         Turns Seer's result into the evaluation passed to `on_complete`, like `_evaluate` does for
         a data packet. Returns nothing when the result has no outcome.
         """
-        evaluation = self.evaluate_result(result)
+        evaluation = self.evaluate_seer_result(result)
 
         if evaluation is None:
             return {}
 
         if evaluation.data["group_key"] != result.group_key:
             raise ValueError(
-                f"Detector {self.detector.id} `evaluate_result` returned group key "
+                f"Detector {self.detector.id} `evaluate_seer_result` returned group key "
                 f"{evaluation.data['group_key']!r} for a run of group key {result.group_key!r}"
             )
 
         if evaluation.needs_occurrence:
-            detector_occurrence, event_data = self.create_result_occurrence(evaluation, result)
+            detector_occurrence, event_data = self.create_seer_occurrence(evaluation, result)
             evaluation = self._with_occurrence(
                 evaluation,
                 detector_occurrence,
@@ -227,20 +233,15 @@ def deliver_seer_detector_result(
     The `FeatureDeliveryFn` for Seer detectors: completes the evaluation a
     `SeerDetectorHandler` dispatched, and hands it to the handler's `on_complete`.
 
-    Emits `workflow_engine.seer_detector.delivery`, tagged with the outcome:
+    Delivery happens outside `process_detectors`, so the cases where it stops early emit
+    `workflow_engine.seer_detector.delivery`, tagged with the outcome:
       - `missing_run`      -- no run mirror matches the delivery
       - `error`            -- Seer's run failed or returned no result
       - `invalid_run`      -- the run mirror wasn't dispatched by a Seer detector
       - `missing_detector` -- the detector was deleted or disabled before delivery
-      - `invalid_handler`  -- the detector isn't evaluated by the run's Seer feature
-      - `completed`        -- the evaluation completed; it may have no outcome
-    """
-    log_extra: dict[str, Any] = {
-        "organization_id": organization_id,
-        "run_uuid": str(run_uuid),
-        "status": status,
-    }
 
+    Completed evaluations are reported by `complete_detector_evaluations`.
+    """
     agent_run = (
         SeerAgentRun.objects.filter(run__organization_id=organization_id, run__uuid=run_uuid)
         .select_related("run")
@@ -249,14 +250,20 @@ def deliver_seer_detector_result(
 
     if agent_run is None:
         _incr("delivery", "missing_run")
-        logger.warning("seer_detector.delivery.missing_run", extra=log_extra)
         return
-
-    log_extra["feature_id"] = agent_run.source
 
     if status != "completed" or result is None:
         _incr("delivery", "error")
-        logger.warning("seer_detector.delivery.no_result", extra={**log_extra, "error": error})
+        logger.warning(
+            "seer_detector.delivery.no_result",
+            extra={
+                "organization_id": organization_id,
+                "run_uuid": str(run_uuid),
+                "feature_id": agent_run.source,
+                "status": status,
+                "error": error,
+            },
+        )
         return
 
     try:
@@ -268,10 +275,7 @@ def deliver_seer_detector_result(
         )
     except KeyError:
         _incr("delivery", "invalid_run")
-        logger.warning("seer_detector.delivery.invalid_run", extra=log_extra)
         return
-
-    log_extra["detector_id"] = extras["detector_id"]
 
     detector = (
         Detector.objects.filter(
@@ -286,14 +290,19 @@ def deliver_seer_detector_result(
 
     if detector is None:
         _incr("delivery", "missing_detector")
-        logger.info("seer_detector.delivery.missing_detector", extra=log_extra)
         return
 
     handler = detector.detector_handler
 
     if not isinstance(handler, SeerDetectorHandler) or handler.seer_feature_id != agent_run.source:
-        _incr("delivery", "invalid_handler", detector.type)
-        logger.error("seer_detector.delivery.invalid_handler", extra=log_extra)
+        logger.error(
+            "seer_detector.delivery.invalid_handler",
+            extra={
+                "detector_id": detector.id,
+                "detector_type": detector.type,
+                "feature_id": agent_run.source,
+            },
+        )
         return
 
     evaluations = handler.complete_evaluation(
@@ -306,7 +315,6 @@ def deliver_seer_detector_result(
         )
     )
     complete_detector_evaluations(detector, handler, evaluations)
-    _incr("delivery", "completed", detector.type)
 
 
 def _incr(stage: str, outcome: str, detector_type: str | None = None) -> None:
