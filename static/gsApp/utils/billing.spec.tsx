@@ -42,6 +42,8 @@ import {
   isNewPayingCustomer,
   isTeamPlanFamily,
   productIsEnabled,
+  shouldShowBillingInformation,
+  supportsPayg,
   trialPromptIsDismissed,
   UsageAction,
 } from 'getsentry/utils/billing';
@@ -1582,5 +1584,29 @@ describe('getSeerTrialCategory', () => {
       },
     ];
     expect(getSeerTrialCategory(trials)).toBe(DataCategory.SEER_AUTOFIX);
+  });
+});
+
+describe('supportsPayg', () => {
+  it('returns false when the subscription has no planDetails', () => {
+    const organization = OrganizationFixture();
+    const subscription = {
+      ...SubscriptionFixture({organization, supportsOnDemand: true}),
+      planDetails: undefined,
+    } as unknown as Subscription;
+
+    expect(supportsPayg(subscription)).toBe(false);
+  });
+});
+
+describe('shouldShowBillingInformation', () => {
+  it('returns false when the subscription has no planDetails', () => {
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const subscription = {
+      ...SubscriptionFixture({organization, canSelfServe: true, supportsOnDemand: true}),
+      planDetails: undefined,
+    } as unknown as Subscription;
+
+    expect(shouldShowBillingInformation(subscription, organization)).toBe(false);
   });
 });
