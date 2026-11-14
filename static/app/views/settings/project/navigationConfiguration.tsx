@@ -163,6 +163,20 @@ export function getNavigationConfiguration({
           ],
         },
         {
+          id: 'project_symbolication_errors',
+          path: `${pathPrefix}/symbolication-errors/`,
+          title: t('Symbolication Errors'),
+          keywords: [
+            t('symbolication'),
+            t('processing errors'),
+            t('missing dsym'),
+            t('missing source map'),
+          ],
+          description: t('Which uploads are missing, by event count'),
+          show: () => !!organization?.features?.includes('symbolication-errors-page'),
+          badge: () => 'new',
+        },
+        {
           id: 'project_performance',
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),

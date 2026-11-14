@@ -798,6 +798,20 @@ function buildRoutes(): RouteObject[] {
           to: '/settings/:orgId/projects/:projectId/',
         },
         settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/symbolication-errors/',
+        },
+      },
+      path: 'symbolication-errors/',
+      name: t('Symbolication Errors'),
+      component: make(() => import('sentry/views/settings/projectSymbolicationErrors')),
+    },
+    {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/proguard/',
         },
       },
