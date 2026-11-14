@@ -7,14 +7,16 @@ They are excluded from the public schema and its downstream publishing workflow.
 
 from typing import Any
 
-from sentry.notebooks.endpoints.base import OrganizationInvestigationsBaseEndpoint
+from sentry.notebooks.endpoints.base import OrganizationNotebooksBaseEndpoint
 
 
 def investigation_endpoints(endpoints: Any) -> Any:
+    # Published operations are in the public schema.
     return [
-        endpoint
-        for endpoint in endpoints
-        if issubclass(endpoint[3].view_class, OrganizationInvestigationsBaseEndpoint)
+        (path, path_regex, method, callback)
+        for path, path_regex, method, callback in endpoints
+        if issubclass(callback.view_class, OrganizationNotebooksBaseEndpoint)
+        and not callback.view_class.publish_status[method].is_published
     ]
 
 

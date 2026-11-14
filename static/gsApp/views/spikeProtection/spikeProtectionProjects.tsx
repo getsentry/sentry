@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -11,7 +12,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {Confirm} from 'sentry/components/confirm';
 import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -24,6 +24,7 @@ import type {
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ProjectBadge} from 'sentry/views/organizationStats/teamInsights/styles';
@@ -343,7 +344,9 @@ function SpikeProtectionProjects({subscription}: Props) {
           );
         })}
       </StyledSimpleTable>
-      {pageLinks && <Pagination pageLinks={pageLinks} onCursor={setCurrentCursor} />}
+      {pageLinks && (
+        <Pagination {...getPaginationProps(pageLinks)} onCursor={setCurrentCursor} />
+      )}
     </Fragment>
   );
 }

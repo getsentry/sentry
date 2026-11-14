@@ -34,14 +34,16 @@ jest.mock('echarts-for-react/lib/core', () => {
       (event: Record<string, unknown>, instance: Record<string, unknown>) => void
     >;
     option: {
-      series: Array<{data?: Array<[number, number]>}>;
+      series: Array<{data?: Array<{value: [number, number]}>}>;
       brush?: unknown;
     };
   }) {
     return (
       <div>
         <output aria-label="Chart values">
-          {JSON.stringify(option.series.map(series => series.data))}
+          {JSON.stringify(
+            option.series.map(series => series.data?.map(point => point.value))
+          )}
         </output>
         <button
           onClick={() => {
@@ -636,6 +638,91 @@ describe('ExploreCharts', () => {
       expect(single).toBeEnabled();
     });
 
+    it('hides the heatmap chart type without explore-dev-features', async () => {
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['count(span.duration)']}]}
+        />,
+        {
+          organization: OrganizationFixture(),
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
+      expect(screen.getByRole('option', {name: 'Line'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Heatmap'})).not.toBeInTheDocument();
+    });
+
+    it('defaults count to a heatmap', async () => {
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['count(span.duration)']}]}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
+      expect(screen.getByRole('option', {name: 'Heatmap'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
+    it('switches count back to a heatmap', async () => {
+      const onSetVisualizes = jest.fn();
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['count(span.duration)'], chartType: ChartType.BAR},
+          ]}
+          onSetVisualizes={onSetVisualizes}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Heatmap'}));
+
+      expect(onSetVisualizes).toHaveBeenLastCalledWith([
+        {yAxes: ['count(span.duration)'], chartType: ChartType.HEATMAP},
+      ]);
+    });
+
+    it('disables the heatmap chart type for percentiles', async () => {
+      render(
+        <ControlledExploreCharts initialVisualizes={[{yAxes: ['p75(span.duration)']}]} />,
+        {
+          organization: OrganizationFixture({features: ['explore-dev-features']}),
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
+      expect(screen.getByRole('option', {name: 'Heatmap'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('draws unsupported heatmaps as line charts', async () => {
+      const useChartInfosPlottables = jest.spyOn(
+        chartVisualization,
+        'useChartInfosPlottables'
+      );
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['p75(span.duration)'], chartType: ChartType.HEATMAP},
+          ]}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
+      const chartInfos = useChartInfosPlottables.mock.lastCall![0];
+      expect(chartInfos.map(info => info.chartType)).toEqual([ChartType.LINE]);
+      useChartInfosPlottables.mockRestore();
+    });
+
     it('keeps the aggregates together when the chart is collapsed', async () => {
       const onSetVisualizes = jest.fn();
       render(
@@ -671,14 +758,18 @@ describe('ExploreCharts', () => {
 
     function renderCharts({
       acceptedEvents = [],
+      asyncDelay,
       droppedEvents = [],
       organizationFeatures = features,
       query = '',
+      timeseriesResult = timeseriesResultFixture(),
     }: {
       acceptedEvents?: OutcomeRow[];
+      asyncDelay?: Promise<void>;
       droppedEvents?: OutcomeRow[];
       organizationFeatures?: string[];
       query?: string;
+      timeseriesResult?: SortedTimeSeries;
     }) {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-dropped/',
@@ -687,6 +778,7 @@ describe('ExploreCharts', () => {
           droppedEvents,
           acceptedEvents,
         },
+        asyncDelay,
       });
 
       render(
@@ -695,7 +787,7 @@ describe('ExploreCharts', () => {
             <ExploreCharts
               extrapolate
               query={query}
-              timeseriesResult={timeseriesResultFixture()}
+              timeseriesResult={timeseriesResult}
               visualizes={defaultVisualizes()}
               setVisualizes={() => {}}
               rawSpanCounts={{
@@ -710,6 +802,39 @@ describe('ExploreCharts', () => {
 
       return request;
     }
+
+    it('waits for the dropped data before drawing the chart', async () => {
+      let resolveDroppedData!: () => void;
+      const asyncDelay = new Promise<void>(resolve => {
+        resolveDroppedData = resolve;
+      });
+      renderCharts({
+        asyncDelay,
+        droppedEvents: [OutcomeRowFixture()],
+        timeseriesResult: timeseriesResultFixture({
+          data: {
+            'count(span.duration)': [
+              TimeSeriesFixture({
+                yAxis: 'count(span.duration)',
+                values: [{timestamp: 1729796400000, value: 10}],
+              }),
+            ],
+          },
+        }),
+      });
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Chart values')).not.toBeInTheDocument();
+
+      await act(async () => {
+        resolveDroppedData();
+        await asyncDelay;
+      });
+
+      expect(await screen.findByLabelText('Chart values')).toHaveTextContent(
+        '[[[1729796400000,10]],[[0,0]]]'
+      );
+    });
 
     it('notes that dropped spans ignore the search while the layer is on', async () => {
       renderCharts({droppedEvents: [OutcomeRowFixture()], query: 'span.op:db'});

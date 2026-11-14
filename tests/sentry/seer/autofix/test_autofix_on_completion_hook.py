@@ -1,6 +1,10 @@
 from typing import Any, Literal, TypedDict
 from unittest.mock import MagicMock, patch
 
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsResponse,
+)
+
 from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationFeedbackBatchCompletedEvent,
 )
@@ -18,6 +22,7 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.autofix.autofix_agent import _group_and_referrer_from_run, get_current_step
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import FEATURE_ID, LEGACY_FEATURE_ID, SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
@@ -34,6 +39,7 @@ from sentry.seer.autofix.pr_iteration.completion import (
     iteration_completed_webhook_fields,
     iteration_log_context,
     pr_iteration_push_outcome,
+    redo_stranded_action,
 )
 from sentry.seer.autofix.pr_iteration.completion_reactions import (
     PrCommentSource,
@@ -54,6 +60,13 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
+)
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    OutOfCredits,
+    StrandedAction,
+    get_out_of_credits,
+    mark_out_of_credits,
 )
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
@@ -98,6 +111,7 @@ def single_run_memory_block(
     root_cause: dict[str, Any] | None = None,
     block_id: str = "single-run",
     with_code: bool = False,
+    stop: dict[str, Any] | None = None,
 ) -> MemoryBlock:
     return MemoryBlock(
         id=block_id,
@@ -111,7 +125,8 @@ def single_run_memory_block(
             [Artifact(key="single_run_root_cause", data=root_cause, reason="explorer")]
             if root_cause is not None
             else []
-        ),
+        )
+        + ([Artifact(key="stop", data=stop, reason="explorer")] if stop else []),
         merged_file_patches=(
             [
                 AgentFilePatch(
@@ -515,6 +530,43 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             verify_content=True,
         )
 
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pipeline_and_iteration_send_distinct_push_sources(
+        self, mock_post: MagicMock, _mock_access: MagicMock
+    ) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run, group=self.group, project=self.project, source="autofix"
+        )
+        mock_post.return_value = MagicMock(status=200)
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+            },
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_post.assert_called_once()
+        assert mock_post.call_args[0][0]["payload"]["source"] == "autofix"
+        mock_post.reset_mock()
+        state.blocks.append(pr_iteration_memory_block())
+        state.repo_pr_states = {"test-repo": RepoPRState(repo_name="test-repo")}
+
+        continue_pr_iteration(
+            self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+        )
+
+        mock_post.assert_called_once()
+        assert mock_post.call_args[0][0]["payload"]["source"] == "pr_iteration"
+
     @patch("sentry.seer.autofix.pr_iteration.completion.consume_queued_feedback")
     @patch("sentry.seer.autofix.pr_iteration.completion.trigger_push_changes")
     def test_pr_iteration_does_not_consume_feedback_when_just_pushed(
@@ -782,6 +834,44 @@ class TestPrIterationCompletionHook(TestCase):
         self._webhook(state)
 
         mock_broadcast.assert_called_once()
+
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_seer_push_that_ran_out_of_credits_does_not_emit_webhook(
+        self, mock_broadcast: MagicMock
+    ) -> None:
+        # The redo's push emits it once the changes land.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mark_out_of_credits(
+            run_id=123, organization_id=self.organization.id, stranded_action=StrandedAction.PUSH
+        )
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        repo_state.pr_creation_error_code = "out_of_credits"
+
+        self._webhook(state)
+
+        mock_broadcast.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_branch_moved_retry_refused_for_credits_does_not_emit_webhook(
+        self, mock_broadcast: MagicMock
+    ) -> None:
+        # The redone retry's push emits it once the changes land.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mark_out_of_credits(
+            run_id=123,
+            organization_id=self.organization.id,
+            stranded_action=StrandedAction.BRANCH_MOVED_RETRY,
+        )
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        repo_state.pr_creation_error_code = "branch_moved"
+
+        self._webhook(state)
+
+        mock_broadcast.assert_not_called()
 
     @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
     def test_an_iteration_without_pr_states_does_not_take_down_the_hook(
@@ -1246,6 +1336,24 @@ class TestPrIterationCompletionHook(TestCase):
 
         assert outcome == PrIterationOutcome.PR_CREATION_ERRORED
 
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    def test_a_branch_moved_retry_refused_for_credits_marks_the_run(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        with self.feature(
+            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
+        ):
+            outcome, retried = self._branch_moved_push(self._branch_moved())
+
+        assert outcome == PrIterationOutcome.SENTRY_OUT_OF_CREDITS
+        assert retried is False
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=StrandedAction.BRANCH_MOVED_RETRY
+        )
+
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
@@ -1315,6 +1423,105 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         assert mock_complete.call_args.kwargs["outcome"] == PrIterationOutcome.PUSH_FAILED.value
+
+    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+    @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=SeerOutOfCreditsException())
+    def test_a_push_refused_for_credits_marks_the_run(
+        self, mock_push: MagicMock, mock_consume: MagicMock, mock_complete: MagicMock
+    ) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+
+        continue_pr_iteration(
+            self.organization, self.group, 123, self._unsynced(), AutofixReferrer.ON_COMPLETION_HOOK
+        )
+
+        assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=StrandedAction.PUSH
+        )
+        assert (
+            mock_complete.call_args.kwargs["outcome"]
+            == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
+        )
+        mock_consume.assert_not_called()
+
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=SeerOutOfCreditsException())
+    def test_a_redone_push_refused_for_credits_marks_the_run_again(
+        self, mock_push: MagicMock
+    ) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._unsynced()
+
+        redo_stranded_action(
+            iteration_log_context(self.organization, self.group, state),
+            self.group,
+            123,
+            state,
+            StrandedAction.PUSH,
+        )
+
+        mock_push.assert_called_once()
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=StrandedAction.PUSH
+        )
+
+    def test_a_redone_branch_moved_retry_past_the_retry_cap_pauses_as_an_error(self) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES + 1)
+
+        redo_stranded_action(
+            iteration_log_context(self.organization, self.group, state),
+            self.group,
+            123,
+            state,
+            StrandedAction.BRANCH_MOVED_RETRY,
+        )
+
+        assert (
+            get_pause_reason(run_id=123, organization_id=self.organization.id)
+            == PauseReason.RUN_ERRORED
+        )
+
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    def test_a_seer_push_that_ran_out_of_credits_marks_the_run(self, mock_push: MagicMock) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        repo_state.pr_creation_error_code = "out_of_credits"
+
+        continue_pr_iteration(
+            self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+        )
+
+        assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=StrandedAction.PUSH
+        )
+        mock_push.assert_not_called()
+
+    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    def test_a_single_run_seer_push_that_ran_out_of_credits_marks_the_run_without_a_push(
+        self, mock_push: MagicMock, mock_complete: MagicMock
+    ) -> None:
+        # The agent pushes a single run's PR itself, so Sentry has no push to redo.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._unsynced()
+        state.metadata = {**(state.metadata or {}), "feature_id": SINGLE_RUN_FEATURE_ID}
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        repo_state.pr_creation_error_code = "out_of_credits"
+
+        continue_pr_iteration(
+            self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+        )
+
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=None
+        )
+        mock_push.assert_not_called()
 
 
 class TestFailedRunCompletionHook(TestCase):
@@ -1415,6 +1622,25 @@ class TestFailedRunCompletionHook(TestCase):
             ),
         )
 
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_seer_iteration_that_ran_out_of_credits_marks_the_run_instead_of_pausing(
+        self, mock_fetch: MagicMock
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        mock_fetch.return_value = self._errored(
+            [pr_iteration_memory_block()], failure_reason="out_of_credits"
+        )
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
+        # Nothing was refused in Sentry: the next iteration pushes the partial changes.
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=None
+        )
+
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
     @patch(f"{HOOK_PATH}.fetch_run_status")
@@ -1507,6 +1733,7 @@ class TestFailedRunCompletionHook(TestCase):
         for failure_reason, expected in (
             ("timeout", PrIterationOutcome.TIMEOUT.value),
             ("stalled", PrIterationOutcome.STALLED.value),
+            ("out_of_credits", PrIterationOutcome.SEER_OUT_OF_CREDITS.value),
             (None, PrIterationOutcome.ERRORED.value),
         ):
             with self.subTest(failure_reason=failure_reason):
@@ -1905,6 +2132,39 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                     "run_id": 123,
                     "group_id": self.group.id,
                     "failure_reason": PR_CREATION_FAILED_REASON,
+                },
+                "organization_id": self.organization.id,
+            }
+        )
+
+    @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_pr_creation_out_of_credits_notifies_entrypoints(
+        self, mock_broadcast: MagicMock, mock_process: MagicMock
+    ) -> None:
+        state = run_state(blocks=[code_changes_memory_block()])
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_creation_status="error",
+                pr_creation_error_code="out_of_credits",
+            )
+        }
+
+        with patch(
+            "sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access",
+            return_value=True,
+        ):
+            AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_not_called()
+        mock_process.assert_called_once_with(
+            kwargs={
+                "event_type": SentryAppEventType.SEER_ERRORED,
+                "event_payload": {
+                    "run_id": 123,
+                    "group_id": self.group.id,
+                    "failure_reason": "out_of_credits",
                 },
                 "organization_id": self.organization.id,
             }
@@ -2885,6 +3145,7 @@ class TestSingleRunCompletion(TestCase):
         mocks = self._execute(state)
 
         assert self._events(mocks) == []
+        mocks["updates"].assert_not_called()
 
     def test_pr_after_first_completion_announces_only_pr(self) -> None:
         state = self._state(single_run_memory_block(_ROOT_CAUSE, with_code=True))
@@ -2919,6 +3180,41 @@ class TestSingleRunCompletion(TestCase):
         assert self._events(mocks) == []
         assert not Activity.objects.filter(group=self.group).exists()
 
+    def test_awaiting_user_input_announces_reached_stages(self) -> None:
+        mocks = self._execute(
+            self._state(single_run_memory_block(_ROOT_CAUSE), status="awaiting_user_input")
+        )
+
+        assert self._events(mocks) == ["root_cause_completed"]
+
+    def test_awaiting_user_input_with_nothing_saved_announces_nothing(self) -> None:
+        mocks = self._execute(self._state(single_run_memory_block(), status="awaiting_user_input"))
+
+        assert self._events(mocks) == []
+        mocks["updates"].assert_not_called()
+
+    def test_stop_is_sent_to_entrypoints_once_without_a_webhook(self) -> None:
+        stop = {"reason": "The API key expired.", "suggestion": "Rotate the key."}
+        state = self._state(single_run_memory_block(stop=stop))
+
+        mocks = self._execute(state)
+        again = self._execute(state)
+
+        assert self._events(mocks) == []
+        (call,) = mocks["updates"].call_args_list
+        assert call.kwargs["kwargs"]["event_type"] == SentryAppEventType.SEER_STOPPED
+        assert call.kwargs["kwargs"]["event_payload"]["stop"] == stop
+        again["updates"].assert_not_called()
+
+    def test_stop_is_not_sent_once_the_run_has_code_changes(self) -> None:
+        stop = {"reason": "R", "suggestion": "N"}
+        state = self._state(single_run_memory_block(_ROOT_CAUSE, with_code=True, stop=stop))
+
+        mocks = self._execute(state)
+
+        sent = [c.kwargs["kwargs"]["event_type"] for c in mocks["updates"].call_args_list]
+        assert SentryAppEventType.SEER_STOPPED not in sent
+
     def test_errored_run_announces_nothing_but_the_failure(self) -> None:
         mocks = self._execute(self._state(single_run_memory_block(_ROOT_CAUSE), status="error"))
 
@@ -2935,3 +3231,114 @@ class TestSingleRunCompletion(TestCase):
             if c.args[0] == "autofix.explorer.complete"
         ]
         assert complete_tags and all(tags["mode"] == "single_run" for tags in complete_tags)
+
+    def _pr_feedback_turn(self) -> MemoryBlock:
+        return MemoryBlock(
+            id="pr-feedback",
+            message=Message(
+                role="user",
+                content="rename it",
+                metadata={
+                    "step": "pr_iteration",
+                    "iteration_index": "1",
+                    "feedback": serialize_feedback(
+                        [Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="x"))]
+                    ),
+                },
+            ),
+            timestamp="2026-02-10T00:00:00Z",
+        )
+
+    def _execute_pr_feedback(self, state: SeerRunState) -> dict[str, MagicMock]:
+        state.repo_pr_states = _created_pr()
+        with (
+            patch(f"{COMPLETION_PATH}.consume_queued_feedback") as consume,
+            patch(f"{COMPLETION_PATH}.complete_pr_iteration_details") as complete,
+            patch(f"{HOOK_PATH}.react_to_completed_iteration") as react,
+            patch(f"{HOOK_PATH}.fail_pr_iteration") as fail,
+        ):
+            mocks = self._execute(state)
+        return {**mocks, "consume": consume, "complete": complete, "react": react, "fail": fail}
+
+    def test_pr_feedback_turn_drains_queue_closes_iteration_and_reacts(self) -> None:
+        state = run_state(
+            blocks=[single_run_memory_block(_ROOT_CAUSE), self._pr_feedback_turn()],
+            metadata={"group_id": self.group.id, "feature_id": SINGLE_RUN_FEATURE_ID},
+        )
+
+        mocks = self._execute_pr_feedback(state)
+
+        mocks["consume"].assert_called_once()
+        assert mocks["complete"].call_args.kwargs["outcome"] == "no_code_changes"
+        mocks["react"].assert_called_once()
+        mocks["fail"].assert_not_called()
+        mocks["trigger"].assert_not_called()
+        mocks["push"].assert_not_called()
+
+    def test_pr_feedback_turn_that_errors_fails_the_iteration(self) -> None:
+        state = run_state(
+            blocks=[single_run_memory_block(_ROOT_CAUSE), self._pr_feedback_turn()],
+            metadata={"group_id": self.group.id, "feature_id": SINGLE_RUN_FEATURE_ID},
+            status="error",
+        )
+
+        mocks = self._execute_pr_feedback(state)
+
+        mocks["fail"].assert_called_once()
+        mocks["consume"].assert_not_called()
+        mocks["react"].assert_not_called()
+
+    def test_pr_feedback_turn_without_a_group_finalizes_the_iteration(self) -> None:
+        state = run_state(
+            blocks=[single_run_memory_block(_ROOT_CAUSE), self._pr_feedback_turn()],
+            metadata={"group_id": 999999999, "feature_id": SINGLE_RUN_FEATURE_ID},
+        )
+
+        mocks = self._execute_pr_feedback(state)
+
+        complete_mock = mocks["complete"]
+        assert complete_mock.call_args.kwargs["outcome"] == "missing_group_id"
+        mocks["consume"].assert_not_called()
+
+    def _unpushed_edits_state(self) -> SeerRunState:
+        edits = MemoryBlock(
+            id="edits",
+            message=Message(role="assistant", content="Renamed"),
+            timestamp="2026-02-10T00:00:00Z",
+            merged_file_patches=[
+                AgentFilePatch(
+                    repo_name="test-repo",
+                    patch=FilePatch(path="test.py", type="M", added=1, removed=1),
+                )
+            ],
+        )
+        return run_state(
+            blocks=[single_run_memory_block(_ROOT_CAUSE), self._pr_feedback_turn(), edits],
+            metadata={"group_id": self.group.id, "feature_id": SINGLE_RUN_FEATURE_ID},
+        )
+
+    def test_pr_feedback_edits_the_agent_left_unpushed_are_recorded_not_pushed(self) -> None:
+        mocks = self._execute_pr_feedback(self._unpushed_edits_state())
+
+        mocks["push"].assert_not_called()
+        assert mocks["complete"].call_args.kwargs["outcome"] == "not_pushed"
+        mocks["consume"].assert_called_once()
+        checkpoints = [
+            c.kwargs.get("tags", {}).get("checkpoint") for c in mocks["metrics"].call_args_list
+        ]
+        assert "single_run_unpushed_edits" in checkpoints
+
+    def test_plain_reply_drains_feedback_queued_while_it_ran(self) -> None:
+        with patch(f"{COMPLETION_PATH}.count_queued_autofix_feedback", return_value=1):
+            mocks = self._execute_pr_feedback(self._state(single_run_memory_block(_ROOT_CAUSE)))
+
+        mocks["consume"].assert_called_once()
+        mocks["complete"].assert_not_called()
+
+    def test_plain_reply_does_not_touch_pr_iteration(self) -> None:
+        mocks = self._execute_pr_feedback(self._state(single_run_memory_block(_ROOT_CAUSE)))
+
+        mocks["consume"].assert_not_called()
+        mocks["complete"].assert_not_called()
+        mocks["react"].assert_not_called()
+        mocks["fail"].assert_not_called()

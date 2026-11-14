@@ -1,3 +1,4 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -7,7 +8,6 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -259,9 +259,7 @@ describe('GroupEventAttachments', () => {
   });
 
   it('filters by date/query on issue details', () => {
-    ConfigStore.init();
-    const user = UserFixture();
-    act(() => ConfigStore.set('user', user));
+    ConfigStore.loadInitialData(ConfigFixture({user: UserFixture()}));
 
     render(<GroupEventAttachments project={project} group={group} />, {
       initialRouterConfig: {
@@ -287,5 +285,58 @@ describe('GroupEventAttachments', () => {
         },
       })
     );
+  });
+
+  describe('attachments quota exceeded', () => {
+    const quotaOrganization = OrganizationFixture({
+      ...organization,
+      features: [...organization.features, 'attachments-quota-exceeded-notice'],
+    });
+    const quotaExceededGroup = GroupFixture({
+      id: groupId,
+      metadata: {attachments_quota_exceeded: true},
+    });
+    const quotaExceededMessage =
+      'Some attachments may be missing from this list because your attachment quota was exceeded at the time the event was ingested.';
+
+    it('warns that attachments may be missing', async () => {
+      render(<GroupEventAttachments project={project} group={quotaExceededGroup} />, {
+        organization: quotaOrganization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('12345678')).toBeInTheDocument();
+      expect(screen.getByText(quotaExceededMessage, {exact: false})).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'View your attachment usage'})
+      ).toHaveAttribute(
+        'href',
+        `/settings/org-slug/stats/?dataCategory=attachments&project=${project.id}`
+      );
+    });
+
+    it('does not warn on the screenshots tab', async () => {
+      render(<GroupEventAttachments project={project} group={quotaExceededGroup} />, {
+        organization: quotaOrganization,
+        initialRouterConfig: screenshotRouterConfig,
+      });
+
+      expect(await screen.findByRole('img')).toBeInTheDocument();
+      expect(
+        screen.queryByText(quotaExceededMessage, {exact: false})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not warn without the feature flag', async () => {
+      render(<GroupEventAttachments project={project} group={quotaExceededGroup} />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('12345678')).toBeInTheDocument();
+      expect(
+        screen.queryByText(quotaExceededMessage, {exact: false})
+      ).not.toBeInTheDocument();
+    });
   });
 });

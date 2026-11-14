@@ -1,4 +1,5 @@
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 
 /**
  * What the organization can't afford, which picks the copy:
@@ -11,7 +12,17 @@ import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 export type SeerOutOfCreditsReason = 'agent-chat' | 'autofix-start' | 'autofix-continue';
 
 export interface SeerOutOfCreditsCtaProps {
+  /**
+   * Why the surface's credit check denied credit, which also picks the copy:
+   * hitting the daily usage limit reads differently from running out.
+   */
+  denialReason: SeerCreditDenialReason | null;
   reason: SeerOutOfCreditsReason;
+  /**
+   * The action button's size. Defaults to `md` for `agent-chat`, which sits
+   * above the chat's composer, and `sm` for Autofix's tighter spots.
+   */
+  size?: 'sm' | 'md';
   /**
    * `muted` is for tight spots where the gated button stays on screen,
    * disabled, under the notice, like the issue sidebar.

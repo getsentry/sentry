@@ -1,7 +1,7 @@
 import logging
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -25,11 +25,13 @@ from sentry.api.serializers.models.team import (
     TeamSCIMSerializer,
 )
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
@@ -185,7 +187,10 @@ def _team_expand(excluded_attributes: list[str]) -> list[str] | None:
 
 
 class SCIMListTeamsResponse(SCIMListBaseResponse):
-    Resources: list[OrganizationTeamSCIMSerializerResponse]
+    Resources: Annotated[
+        list[OrganizationTeamSCIMSerializerResponse],
+        ApiDescription("Teams in this page, as SCIM groups"),
+    ]
 
 
 @extend_schema(tags=["SCIM"])
@@ -255,6 +260,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         request=SCIMTeamRequestBodySerializer,
         responses={
             201: TeamSCIMSerializer,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -573,6 +579,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         request=SCIMTeamPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

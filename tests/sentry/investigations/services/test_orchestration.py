@@ -22,7 +22,7 @@ from sentry.investigations.services.orchestration import (
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookStatus
-from sentry.notebooks.services.notebooks import InvestigationValidationError
+from sentry.notebooks.services.notebooks import NotebookValidationError
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -235,7 +235,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
         )
         with self.feature("organizations:investigations"):
             for creator, error in (
-                (ActorId(ActorType.USER, self.user.id), InvestigationValidationError),
+                (ActorId(ActorType.USER, self.user.id), NotebookValidationError),
                 (self.creator, PermissionDenied),
             ):
                 with self.subTest(creator=creator), pytest.raises(error):
@@ -296,20 +296,20 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             filters={},
         )
         cases: list[tuple[dict[str, Any], type[Exception]]] = [
-            ({"creator": ActorId(ActorType.SYSTEM, None)}, InvestigationValidationError),
-            ({"creator": ActorId(ActorType.USER, True)}, InvestigationValidationError),
+            ({"creator": ActorId(ActorType.SYSTEM, None)}, NotebookValidationError),
+            ({"creator": ActorId(ActorType.USER, True)}, NotebookValidationError),
             ({"creator": foreign_creator}, PermissionDenied),
             ({"creator": unprivileged_creator}, PermissionDenied),
             ({"project_ids": [unlinked_project.id]}, PermissionDenied),
             ({"creator": ActorId(ActorType.USER, self.create_user().id)}, PermissionDenied),
             ({"creator": ActorId(ActorType.USER, inactive_user.id)}, PermissionDenied),
-            ({"project_ids": [inactive_project.id]}, InvestigationValidationError),
+            ({"project_ids": [inactive_project.id]}, NotebookValidationError),
             (
                 {
                     "creator": ActorId(ActorType.USER, self.user.id),
                     "project_ids": [inactive_project.id],
                 },
-                InvestigationValidationError,
+                NotebookValidationError,
             ),
         ]
         before = (Notebook.objects.count(), InvestigationOrchestrationRun.objects.count())

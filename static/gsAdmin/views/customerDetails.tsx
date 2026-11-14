@@ -61,6 +61,7 @@ import {refundVercelRequest} from 'admin/components/refundVercelRequestModal';
 import {SelectableContainer} from 'admin/components/selectableContainer';
 import {SendWeeklyEmailAction} from 'admin/components/sendWeeklyEmailAction';
 import {SetContractPackageAction} from 'admin/components/setContractPackageAction';
+import {triggerSimulateLlmUsageModal} from 'admin/components/simulateLlmUsageAction';
 import {SponsorshipAction} from 'admin/components/sponsorshipAction';
 import {SuspendAccountAction} from 'admin/components/suspendAccountAction';
 import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
@@ -205,6 +206,25 @@ export function CustomerDetails() {
     },
     onError: () => {
       toast.error('Could not update the test organization flag. Try again.');
+    },
+  });
+
+  const onEnableRestrictedMembersMutation = useMutation({
+    mutationFn: (params: {notes?: string; ticketURL?: string}) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/members/enable-restricted/',
+          {path: {organizationIdOrSlug: orgId}}
+        ),
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => toast.loading('Enabling restricted members\u2026'),
+    onSuccess: () => {
+      toast.success('Enabled all members restricted by the member limit.');
+    },
+    onError: () => {
+      toast.error('Could not enable restricted members. Try again.');
     },
   });
 
@@ -495,8 +515,12 @@ export function CustomerDetails() {
           },
           {
             key: 'convertToSponsored',
-            name: 'Convert to Sponsored',
-            help: 'Convert this account to a sponsored plan (e.g. education, open source).',
+            name: subscription.isSponsored
+              ? 'Change Sponsorship'
+              : 'Convert to Sponsored',
+            help: subscription.isSponsored
+              ? "Change or remove this account's sponsorship."
+              : 'Convert this account to a sponsored plan (e.g. education, open source).',
             disabled: subscription.isPartner,
             disabledReason: 'Partner accounts cannot be put on sponsored plans',
             confirmModalOpts: {
@@ -710,6 +734,16 @@ export function CustomerDetails() {
             onAction: params => onUpdateMutation.mutate({...params}),
           },
           {
+            key: 'enableRestrictedMembers',
+            name: 'Enable Restricted Members',
+            help: 'Remove the member-limit restriction from every member of this organization.',
+            confirmModalOpts: {
+              confirmText: 'Enable Members',
+            },
+            onAction: params => onEnableRestrictedMembersMutation.mutate(params),
+            ...actionRequiresBillingAdmin,
+          },
+          {
             key: 'changeDates',
             name: 'Change Dates',
             // TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods?
@@ -911,6 +945,18 @@ export function CustomerDetails() {
                 subscription,
               });
             },
+          },
+          {
+            key: 'simulateLlmUsage',
+            name: 'Simulate LLM usage',
+            help: 'Record LLM usage without calling an LLM. test_paid usage is billed, so refund it afterwards.',
+            skipConfirmModal: true,
+            onAction: () =>
+              triggerSimulateLlmUsageModal({
+                orgId,
+                onSuccess: reloadData,
+              }),
+            ...actionRequiresBillingAdmin,
           },
           {
             key: 'deleteBillingMetricHistory',

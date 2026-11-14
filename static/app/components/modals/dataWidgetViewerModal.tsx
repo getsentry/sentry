@@ -43,6 +43,7 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {
   decodeInteger,
@@ -97,6 +98,7 @@ import type {
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {useWidgetChartLayers} from 'sentry/views/dashboards/widgetCard/useWidgetChartLayers';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -374,6 +376,14 @@ function DataWidgetViewerModal(props: Props) {
     ? {...resolvedWidget, queries: sortedQueries}
     : resolvedWidget;
 
+  const canUseTimeseriesVisualization =
+    widgetCanUseTimeSeriesVisualization(primaryWidget);
+  const chartLayers = useWidgetChartLayers({
+    widget: primaryWidget,
+    interval: widgetInterval,
+    enabled: canUseTimeseriesVisualization,
+  });
+
   // Create Table widget
   const tableWidget = {
     ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]!]}),
@@ -627,7 +637,7 @@ function DataWidgetViewerModal(props: Props) {
               : HALF_CONTAINER_HEIGHT
           }
         >
-          {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
+          {canUseTimeseriesVisualization ? (
             <VisualizationWidget
               selection={modalSelection}
               dashboardFilters={dashboardFilters}
@@ -641,6 +651,9 @@ function DataWidgetViewerModal(props: Props) {
                 widget.widgetType === WidgetType.LOGS
               }
               widgetInterval={widgetInterval}
+              showReleases={chartLayers.showReleases}
+              droppedData={chartLayers.droppedData.band}
+              isDroppedDataLoading={chartLayers.droppedData.isLoading}
             />
           ) : (
             <MemoizedWidgetCardChartContainer
@@ -1110,8 +1123,8 @@ function ViewerTableV2({
       ) &&
         (links?.previous?.results || links?.next?.results) && (
           <Pagination
-            pageLinks={pageLinks}
-            onCursor={(nextCursor, _path, _query, delta) => {
+            {...getPaginationProps(pageLinks)}
+            onCursor={(nextCursor, delta) => {
               let nextPage = isNaN(page) ? delta : page + delta;
               let newCursor = nextCursor;
               // unset cursor and page when we navigate back to the first page

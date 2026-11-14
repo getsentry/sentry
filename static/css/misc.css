@@ -1,0 +1,41 @@
+.icon-arrow-right,
+.icon-arrow-left {
+  font-size: 16px !important;
+  position: relative;
+  top: 2px;
+}
+
+.page-header {
+  padding-bottom: calc(var(--legacy-line-height-computed) / 2 - 1px);
+  margin: 0 0 20px;
+  border-bottom: 1px solid var(--legacy-trim);
+}
+
+.align-center {
+  text-align: center;
+  justify-content: center;
+}
+
+.align-right {
+  text-align: right;
+  justify-content: flex-end;
+}
+
+/* Margin */
+
+.m-t-1 {
+  margin-top: var(--legacy-spacer-y) !important;
+}
+.m-b-1 {
+  margin-bottom: var(--legacy-spacer-y) !important;
+}
+
+/* Padding */
+
+.p-b-1 {
+  padding-bottom: var(--legacy-spacer-y) !important;
+}
+.p-y-2 {
+  padding-top: calc(var(--legacy-spacer-y) * 1.5) !important;
+  padding-bottom: calc(var(--legacy-spacer-y) * 1.5) !important;
+}

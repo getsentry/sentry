@@ -730,6 +730,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=1176,
+        name="SEER_PROJECT_REPOSITORIES_UPDATE",
+        api_name="seer-project-repositories.update",
+        template="updated Seer repository configurations for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=219,
         name="DASHBOARD_ADD",
         api_name="dashboard.create",
@@ -782,5 +790,21 @@ default_manager.add(
         name="SERVICE_ACCOUNT_REMOVE",
         api_name="service-account.remove",
         template="removed service account {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=226,
+        name="SERVICE_ACCOUNT_TOKEN_ADD",
+        api_name="service-account-token.create",
+        template="added token {name} to service account {service_account_name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=227,
+        name="SERVICE_ACCOUNT_TOKEN_REMOVE",
+        api_name="service-account-token.remove",
+        template="revoked token {name} of service account {service_account_name}",
     )
 )

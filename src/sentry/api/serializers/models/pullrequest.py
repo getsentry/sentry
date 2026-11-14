@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Literal, TypedDict, cast
+from typing import Annotated, Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Prefetch, prefetch_related_objects
@@ -8,7 +8,8 @@ from django.db.models import Prefetch, prefetch_related_objects
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
-from sentry.api.serializers.release_details_types import Author
+from sentry.api.serializers.release_details_types import Author, EmptyAuthor
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
     AggregateReviewStatus,
@@ -44,15 +45,35 @@ def get_stored_pull_request_status(pull_request: PullRequest) -> PullRequestStat
 
 
 class PullRequestSerializerResponse(TypedDict):
-    id: str
-    title: str | None
-    message: str | None
-    dateCreated: datetime
-    mergedAt: datetime | None
-    status: PullRequestStatus | None
-    repository: RepositorySerializerResponse
-    author: Author
-    externalUrl: str
+    id: Annotated[str, ApiDescription("Number or key of the pull request in the provider")]
+    title: Annotated[str | None, ApiDescription("Title of the pull request")]
+    message: Annotated[str | None, ApiDescription("Description of the pull request")]
+    dateCreated: Annotated[
+        datetime, ApiDescription("When Sentry recorded the pull request (ISO 8601)")
+    ]
+    mergedAt: Annotated[
+        datetime | None,
+        ApiDescription("When the pull request was merged (ISO 8601). Null when it isn't merged"),
+    ]
+    status: Annotated[
+        PullRequestStatus | None,
+        ApiDescription(
+            "State of the pull request: merged, open, closed, draft or unknown. Null when not known"
+        ),
+    ]
+    repository: Annotated[
+        RepositorySerializerResponse, ApiDescription("Repository of the pull request")
+    ]
+    author: Annotated[
+        Author | EmptyAuthor,
+        ApiDescription("Author of the pull request, or an empty object when it has none"),
+    ]
+    externalUrl: Annotated[
+        str | None,
+        ApiDescription(
+            "URL of the pull request in the provider, or null when the provider can't build one"
+        ),
+    ]
 
 
 LinkedPullRequestAttributionAgent = Literal["cursor", "github_copilot", "claude_code", "unknown"]
@@ -138,8 +159,8 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
             "mergedAt": obj.merged_at,
             "status": get_stored_pull_request_status(obj),
             "repository": cast(RepositorySerializerResponse, attrs["repository"]),
-            "author": cast(Author, attrs["user"]),
-            "externalUrl": cast(str, attrs["external_url"]),
+            "author": cast(Author | EmptyAuthor, attrs["user"]),
+            "externalUrl": cast(str | None, attrs["external_url"]),
         }
 
 

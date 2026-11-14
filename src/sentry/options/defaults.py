@@ -486,6 +486,12 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "cleanup.inbox-events.sample-rate",
+    default=0.0,
+    type=Float,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
 # default so deletion volume can be measured before anything is removed.
 register(
@@ -1028,6 +1034,23 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Forge apps with no Connect predecessor, such as the staging app. Their installs get a
+# Forge-only integration. Installs of any other trusted Forge app are linked to the
+# site's Connect integration, so a missing entry fails safely instead of creating one.
+register(
+    "jira.forge.native-app-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Jira integrations whose outbound API calls use their Forge system token instead
+# of the Connect JWT. Forge-only integrations have no Connect secret and always do.
+register(
+    "jira.forge.integration-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1059,6 +1082,7 @@ register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # GCP MCP Integration
 register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1245,13 +1269,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # When none of an event's debug IDs were uploaded, the source map debugger checks whether the
-# project has uploaded any file with a debug ID. With this set, it only checks the project's
-# newest bundles, up to this many, instead of reading the organization's debug-ID rows until one
-# is in a bundle of the project. 0 keeps the unbounded check. Capped at 10,000.
+# project has uploaded any file with a debug ID. It checks only the project's newest bundles, up
+# to this many. 0 reads the organization's debug-ID rows instead, until one is in a bundle of the
+# project, which for a project without any means all of them. Capped at 10,000.
 register(
     "sourcemaps.source-map-debug.debug-id-check-max-bundles",
     type=Int,
-    default=0,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1345,14 +1369,14 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When a bundle is uploaded again, update its debug-ID rows by bundle alone instead of by bundle
-# and organization, so that Postgres doesn't also read the organization's slice of that table's
+# When a bundle is uploaded again, update its debug-ID rows by bundle alone. False filters them by
+# organization as well, which lets Postgres also read the organization's slice of that table's
 # organization index. Has no effect with `sourcemaps.artifact-bundles.date-only-on-bundle`,
 # which skips the update.
 register(
     "sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1646,6 +1670,22 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables telemetry classifier enrichment writes to snuba-items.
+register(
+    "telemetry-classifiers.eap-write.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Most entities one telemetry classifier selection enqueues, and its page size.
+register(
+    "telemetry-classifiers.select-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Conversation classifiers PoC.
 register(
     "classifiers.conversations.project-ids",
@@ -1666,6 +1706,24 @@ register(
     "cadence.tick.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# How many sweep workers each cadence sweep enqueues. Raise it to catch up a large backlog of
+# triggers that came due before the tick's window.
+register(
+    "cadence.sweep.workers",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When True, firings whose targets their trigger type reports missing are dropped and their
+# triggers deleted. When False, every firing is dispatched.
+register(
+    "cadence.missing_target_check.enabled",
+    type=Bool,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1761,6 +1819,13 @@ register(
 # Stops logging FIRST_SEEN when ingest creates a group.
 register(
     "issues.action_log.first_seen_on_create.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Stops rate-limiting VIEW actions from group details; every view is published.
+register(
+    "issues.action_log.view_rate_limit.killswitch",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

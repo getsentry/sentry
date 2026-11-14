@@ -140,6 +140,7 @@ describe('InboxPage', () => {
   beforeEach(() => {
     Element.prototype.scrollIntoView = jest.fn();
     ProjectsStore.reset();
+    TeamStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -164,7 +165,6 @@ describe('InboxPage', () => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     localStorage.removeItem('inbox-split-size');
-    TeamStore.reset();
   });
 
   function mockSection(
@@ -342,7 +342,6 @@ describe('InboxPage', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });

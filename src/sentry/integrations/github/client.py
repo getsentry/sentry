@@ -182,6 +182,7 @@ class GitHubApiRequestType(StrEnum):
     CREATE_CHECK_RUN = "create_check_run"
     CREATE_COMMENT = "create_comment"
     CREATE_COMMENT_REACTION = "create_comment_reaction"
+    CREATE_INSTALLATION_TOKEN = "create_installation_token"
     CREATE_ISSUE = "create_issue"
     CREATE_ISSUE_REACTION = "create_issue_reaction"
     DELETE_ISSUE_REACTION = "delete_issue_reaction"
@@ -199,6 +200,7 @@ class GitHubApiRequestType(StrEnum):
     GET_ISSUE_REACTIONS = "get_issue_reactions"
     GET_LANGUAGES = "get_languages"
     GET_LABELS = "get_labels"
+    GET_ORGANIZATION_MEMBERSHIP = "get_organization_membership"
     GET_ORGANIZATION_MEMBERSHIPS_FOR_USER = "get_organization_memberships_for_user"
     GET_PULL_REQUEST = "get_pull_request"
     GET_PULL_REQUEST_COMMENTS = "get_pull_request_comments"
@@ -244,6 +246,11 @@ class GithubUserOrganization(TypedDict):
 
 class GithubUserOrganizationMembership(TypedDict):
     organization: GithubUserOrganization
+    role: str
+    state: str
+
+
+class GithubOrganizationMembership(TypedDict):
     role: str
     state: str
 
@@ -314,6 +321,36 @@ class GithubSetupApiClient(IntegrationProxyClient):
             self.get(
                 "/user/memberships/orgs",
                 api_request_type=GitHubApiRequestType.GET_ORGANIZATION_MEMBERSHIPS_FOR_USER,
+            ),
+        )
+
+    def create_installation_token(
+        self, installation_id: int | str, permissions: Mapping[str, str]
+    ) -> str:
+        """
+        Creates a short-lived token for an installation, limited to `permissions`.
+        Used before an Integration exists, so the token isn't cached anywhere.
+
+        Authentication: JWT
+        Docs: https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#create-an-installation-access-token-for-an-app
+        """
+        response = self.post_mapping(
+            f"/app/installations/{installation_id}/access_tokens",
+            data={"permissions": dict(permissions)},
+            api_request_type=GitHubApiRequestType.CREATE_INSTALLATION_TOKEN,
+        )
+        return response["token"]
+
+    def get_organization_membership(self, org: str, username: str) -> GithubOrganizationMembership:
+        """
+        Authentication: Installation access token with organization members read
+        Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-organization-membership-for-a-user
+        """
+        return cast(
+            GithubOrganizationMembership,
+            self.get(
+                f"/orgs/{org}/memberships/{username}",
+                api_request_type=GitHubApiRequestType.GET_ORGANIZATION_MEMBERSHIP,
             ),
         )
 

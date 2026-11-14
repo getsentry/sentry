@@ -14,7 +14,6 @@ import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -30,8 +29,8 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {useTraceStateDispatch} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
+
+import {useLinkedSpanTarget} from './useLinkedSpanTarget';
 
 const CACHE_ORIGIN_LINK_TYPE = 'cache_origin';
 
@@ -110,57 +109,6 @@ function findCacheOriginLink(
     links.find(link => getSpanLinkType(link) === CACHE_ORIGIN_LINK_TYPE) ??
     (links.length === 1 ? links[0] : undefined)
   );
-}
-
-/**
- * Link target and click handler for the origin span. The real href lets users
- * open the origin trace in a new tab. A plain left click is intercepted when
- * the fill span is in the tree already on screen: the replay trace view merges
- * several traces into one tree, so search it even when the link points to
- * another trace.
- */
-function useOriginSpanLink({
-  tree,
-  link,
-  timestamp,
-  organization,
-  location,
-  onTabScrollToNode,
-}: Pick<
-  CacheLifecycleSectionProps,
-  'tree' | 'organization' | 'location' | 'onTabScrollToNode'
-> & {
-  link: TraceItemResponseLink;
-  timestamp: number;
-}) {
-  const traceDispatch = useTraceStateDispatch();
-
-  const to = generateLinkToEventInTraceView({
-    organization,
-    location,
-    traceSlug: link.traceId,
-    spanId: link.itemId,
-    timestamp,
-    tab: TraceLayoutTabKeys.WATERFALL,
-  });
-
-  function onClick(event: React.MouseEvent<HTMLAnchorElement>) {
-    // Modified clicks (new tab, new window) go through the href.
-    if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
-      return;
-    }
-
-    const spanNode = tree?.root.findChild(c => c.matchById(link.itemId));
-    if (spanNode) {
-      event.preventDefault();
-      onTabScrollToNode(spanNode);
-      return;
-    }
-
-    traceDispatch({type: 'minimize drawer', payload: true});
-  }
-
-  return {to, onClick};
 }
 
 function useTimelineColors() {
@@ -360,7 +308,7 @@ function SourceFact({path}: {path: string}) {
 /**
  * The end of an entry's TTL, which starts at the fill. Without `cache.ttl`
  * there is no expiry to show. The conventions list when SDKs omit it:
- * https://getsentry.github.io/sentry-conventions/attributes/cache/#cache-ttl
+ * https://conventions.sentry.dev/attributes/cache/#cache-ttl
  */
 interface CacheExpiry {
   /** Seconds between this span and the expiry. */
@@ -447,7 +395,7 @@ function CacheOriginContent({
     timestamp: fillTimestamp,
     enabled: isSampled && !isPastRetention,
   });
-  const originSpanLink = useOriginSpanLink({
+  const originSpanLink = useLinkedSpanTarget({
     ...props,
     link,
     timestamp: fillTimestamp,

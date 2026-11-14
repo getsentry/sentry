@@ -1,7 +1,26 @@
 from __future__ import annotations
 
+from sentry.constants import ObjectStatus
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
+
+
+def get_integrated_repository(
+    organization_id: int, name: str, provider: str | None
+) -> Repository | None:
+    if provider is None:
+        return None
+    return (
+        Repository.objects.filter(
+            organization_id=organization_id,
+            name=name,
+            provider=f"integrations:{provider}",
+            status=ObjectStatus.ACTIVE,
+            integration_id__isnull=False,
+        )
+        .order_by("-id")
+        .first()
+    )
 
 
 def resolve_base_repo_url(

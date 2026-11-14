@@ -41,6 +41,7 @@ describe('Onboarding', () => {
     TeamStore.loadInitialData([TeamFixture()]);
   });
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
       body: {providers: [GitHubIntegrationProviderFixture()]},
@@ -56,7 +57,6 @@ describe('Onboarding', () => {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
     sessionStorage.clear();
     jest.clearAllMocks();
   });
@@ -542,54 +542,36 @@ describe('Onboarding', () => {
     it('opens on the agent setup rather than the product interstitial', async () => {
       const {router} = renderOnboarding('welcome');
 
-      expect(
-        await screen.findByText(/^npx @sentry\/agent-plugin install /)
-      ).toBeInTheDocument();
+      expect(await screen.findByText('sntryh_****')).toBeInTheDocument();
       expect(screen.getByText('Recommended')).toBeInTheDocument();
-      expect(screen.getByText('Claude Code, Codex, Cursor, & Grok')).toBeInTheDocument();
-      const prompt = screen.getByText(/org slug: org-slug/);
-      const onboardingCode = prompt.textContent?.match(
-        /run code: ([A-Za-z0-9]{10})/
-      )?.[1];
-
-      expect(onboardingCode).toBeDefined();
       expect(
-        screen.getByText(
-          `npx @sentry/agent-plugin install ${scmOrganization.slug}#${onboardingCode}`
-        )
+        screen.getByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();
+      expect(
+        screen.getByText('Detects your stack and installs the Sentry CLI')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Advanced options'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'See the full instructions'})
+      ).toHaveAttribute(
+        'href',
+        'https://sentry.io/agent-handoff/?preview=1&flow=onboarding'
+      );
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
-      expect(
-        screen.queryByText('Detect your framework and language')
-      ).not.toBeInTheDocument();
       expect(router.location.pathname).toBe(
         `/onboarding/${scmOrganization.slug}/welcome/`
       );
     });
 
-    it('selects agent setup snippets on click and tracks their source', async () => {
+    it('selects the agent prompt on click and tracks its source', async () => {
       renderOnboarding('welcome');
 
-      const installCommand = await screen.findByText(
-        /^npx @sentry\/agent-plugin install /
-      );
-      await userEvent.click(installCommand);
-
-      expect(window.getSelection()?.toString()).toBe(installCommand.textContent);
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'onboarding.scm_welcome_agent_snippet_selected',
-        expect.objectContaining({
-          organization: scmOrganization,
-          source: 'install_command',
-        })
-      );
-
-      const prompt = screen.getByText(/Please help me get started with sentry/);
+      const prompt = await screen.findByText('sntryh_****');
       await userEvent.click(prompt);
 
-      expect(window.getSelection()?.toString()).toBe(prompt.textContent);
+      expect(window.getSelection()?.toString()).toContain('sntryh_****');
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_agent_snippet_selected',
         expect.objectContaining({
@@ -608,9 +590,7 @@ describe('Onboarding', () => {
     it('replaces setup instructions with agent progress', async () => {
       renderOnboarding('welcome');
 
-      expect(
-        await screen.findByText(/^npx @sentry\/agent-plugin install /)
-      ).toBeInTheDocument();
+      expect(await screen.findByText('sntryh_****')).toBeInTheDocument();
 
       act(resolveAgenticRunRequest);
 
@@ -619,9 +599,7 @@ describe('Onboarding', () => {
         screen.queryByRole('button', {name: /Set up manually/})
       ).not.toBeInTheDocument();
       expect(screen.queryByText('or')).not.toBeInTheDocument();
-      expect(
-        screen.queryByText(/^npx @sentry\/agent-plugin install /)
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('sntryh_****')).not.toBeInTheDocument();
     });
 
     it.each([
@@ -660,17 +638,17 @@ describe('Onboarding', () => {
         });
 
         renderOnboarding('welcome');
-        expect(screen.getByRole('heading', {name: /Code breaks/})).toBeInTheDocument();
+        expect(
+          screen.getByRole('heading', {name: 'Code breaks. Fix it faster'})
+        ).toBeInTheDocument();
 
         act(resolveAgenticRunRequest);
 
         expect(await screen.findByRole('heading', {name: heading})).toBeInTheDocument();
         expect(
-          screen.queryByRole('heading', {name: /Code breaks/})
+          screen.queryByRole('heading', {name: 'Code breaks. Fix it faster'})
         ).not.toBeInTheDocument();
-        expect(
-          screen.queryByText(/^npx @sentry\/agent-plugin install /)
-        ).not.toBeInTheDocument();
+        expect(screen.queryByText('sntryh_****')).not.toBeInTheDocument();
       }
     );
 
@@ -716,7 +694,6 @@ describe('Onboarding', () => {
       await waitFor(() => {
         expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual({
           agenticProgressClientRunId: expect.any(String),
-          agenticProgressOnboardingCode: expect.any(String),
         });
       });
     });

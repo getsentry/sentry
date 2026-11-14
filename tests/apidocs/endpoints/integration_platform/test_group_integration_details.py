@@ -66,7 +66,7 @@ class GroupIntegrationDetailsDocs(APIDocsTestCase):
 
         self.validate_schema(request, response)
         schema = self.cached_schema.content()["paths"][
-            "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/integrations/{integration_id}/"
+            "/organizations/{organization_id_or_slug}/issues/{issue_id}/integrations/{integration_id}/"
         ]["put"]["requestBody"]["content"]["application/json"]["schema"]
         assert {"externalIssue", "repo", "comment"} <= schema["properties"].keys()
         assert schema["required"] == ["externalIssue"]

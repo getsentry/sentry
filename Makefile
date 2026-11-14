@@ -11,15 +11,41 @@ bootstrap:
 	@echo "you probably want to run devenv sync to bring the"
 	@echo "sentry dev environment up to date!"
 
-build-platform-assets \
-clean \
-init-config \
-run-dependent-services \
-drop-db \
-create-db \
-apply-migrations \
-reset-db :
-	@./scripts/do.sh $@
+.PHONY: init-config run-dependent-services build-platform-assets clean create-db drop-db apply-migrations reset-db
+init-config:
+	sentry init --dev --no-clobber
+
+run-dependent-services:
+	devservices up
+
+build-platform-assets:
+	@echo "--> Building platform assets"
+	python3 -m sentry.build._integration_docs
+	@# make sure this didn't silently do nothing
+	@test -f src/sentry/integration-docs/android.json
+
+clean:
+	@echo "--> Cleaning static cache"
+	rm -rf dist/* src/sentry/static/sentry/dist/*
+	@echo "--> Cleaning integration docs cache"
+	rm -rf src/sentry/integration-docs
+	@echo "--> Cleaning pyc files"
+	find . -name "*.pyc" -delete
+	@echo "--> Cleaning python build artifacts"
+	rm -rf build/ dist/ src/sentry/assets.json
+
+create-db:
+	@python3 -m tools.dev_db create
+
+drop-db:
+	@python3 -m tools.dev_db drop
+
+apply-migrations:
+	@python3 -m tools.dev_db migrate
+
+# One invocation keeps drop, migrate and createuser ordered under `make -j`.
+reset-db:
+	@python3 -m tools.dev_db reset
 
 develop \
 install-js-dev \
@@ -48,6 +74,11 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	pnpm run deref-api-docs
 
+# The internal RPC method schema, which CI's openapi-diff checks for breaking changes.
+build-rpc-schema:
+	@mkdir -p .artifacts
+	sentry rpcschema --loglevel=WARNING > .artifacts/rpc_method_schema.json
+
 # Opt-in private schema for local review; never included in the public docs build.
 build-investigation-api-docs: build-deprecated-docs
 	@mkdir -p .artifacts/investigation-api-docs
@@ -63,9 +94,13 @@ api-owner-map:
 watch-api-docs:
 	@cd api-docs/ && node ./watch.ts
 
+# Compares tests/apidocs/openapi-derefed.json (from build-api-docs) with the
+# master spec where this branch started, the same way CI's openapi-diff does.
+# Needs gh (logged in) and docker.
 diff-api-docs:
-	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
-	pnpm run diff-docs
+	@echo "--> diffing local api docs against the merge-base's spec"
+	.github/workflows/scripts/openapi-diff.sh baseline .artifacts/openapi-baseline
+	.github/workflows/scripts/openapi-diff.sh changelog .artifacts/openapi-baseline/openapi-derefed.json tests/apidocs/openapi-derefed.json
 
 build: locale
 
