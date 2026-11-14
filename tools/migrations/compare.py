@@ -24,6 +24,17 @@ SET_COMPRESSION = re.compile(
     re.M,
 )
 
+# Table storage parameters are set with RunSQL and can't be expressed on
+# models, so the squashed state never has them. Only ignore the ones we've opted
+# into, so any new storage parameter still shows up as drift.
+TABLE_STORAGE_PARAMS = re.compile(
+    r"^(CREATE TABLE (\S+) \(\n(?:[ \t].*\n)*)\)\nWITH \(([^;]*)\);$",
+    re.M,
+)
+IGNORED_TABLE_STORAGE_PARAMS = frozenset(
+    ("autovacuum_analyze_scale_factor", "autovacuum_analyze_threshold")
+)
+
 
 def _remove_migrations_tables(s: str) -> str:
     return DJANGO_TABLES.sub("", s)
@@ -31,6 +42,25 @@ def _remove_migrations_tables(s: str) -> str:
 
 def _remove_set_compression(s: str) -> str:
     return SET_COMPRESSION.sub("", s)
+
+
+def _table_storage_params_replacement(m: re.Match[str]) -> str:
+    create_table, table, params = m[1], m[2], m[3]
+    # norm() only ends a CREATE TABLE block on a `);` line, so always close it
+    # and report the remaining params as their own statement.
+    ret = f"{create_table});"
+    kept = [
+        param
+        for param in params.split(", ")
+        if param.split("=", 1)[0] not in IGNORED_TABLE_STORAGE_PARAMS
+    ]
+    if kept:
+        ret += f"\n\nALTER TABLE {table} SET ({', '.join(kept)});"
+    return ret
+
+
+def _remove_table_storage_params(s: str) -> str:
+    return TABLE_STORAGE_PARAMS.sub(_table_storage_params_replacement, s)
 
 
 def norm(s: str) -> dict[str, str]:
@@ -43,6 +73,7 @@ def norm(s: str) -> dict[str, str]:
 
     s = _remove_migrations_tables(s)
     s = _remove_set_compression(s)
+    s = _remove_table_storage_params(s)
 
     for line in s.splitlines(True):
         if line.startswith(r"\connect "):
