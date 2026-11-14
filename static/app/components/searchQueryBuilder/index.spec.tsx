@@ -842,6 +842,40 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: /browser\.name/})).not.toBeInTheDocument();
     });
 
+    it('keeps a removed filter when the initial query changes in the same render', async () => {
+      const mockOnSearch = jest.fn();
+      function UrlBackedSearch() {
+        const [query, setQuery] = useState('is:unresolved browser.name:firefox');
+        return (
+          <Fragment>
+            <button onClick={() => setQuery('is:unresolved browser.name:""')}>
+              Navigate
+            </button>
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery={query}
+              onSearch={newQuery => {
+                mockOnSearch(newQuery);
+                setQuery(newQuery);
+              }}
+            />
+          </Fragment>
+        );
+      }
+      render(<UrlBackedSearch />);
+      const removeButton = await screen.findByRole('button', {
+        name: 'Remove filter: browser.name',
+      });
+
+      act(() => {
+        fireEvent.click(screen.getByRole('button', {name: 'Navigate'}));
+        fireEvent.click(removeButton);
+      });
+
+      expect(mockOnSearch.mock.calls).toEqual([['is:unresolved']]);
+      expect(screen.queryByRole('row', {name: /browser\.name/})).not.toBeInTheDocument();
+    });
+
     it('searches once when clearing a filter that was never committed', async () => {
       const mockOnChange = jest.fn();
       const mockOnSearch = jest.fn();
