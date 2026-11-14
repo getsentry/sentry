@@ -766,6 +766,7 @@ class OauthAuthorizationServerTest(TestCase):
         assert data["issuer"] == "https://sentry.io"
         assert data["authorization_endpoint"] == "https://sentry.io/oauth/authorize/"
         assert data["token_endpoint"] == "https://sentry.io/oauth/token/"
+        assert data["prompt_values_supported"] == ["none", "login", "consent", "select_account"]
         assert isinstance(data["scopes_supported"], list)
         assert "org:read" in data["scopes_supported"]
 

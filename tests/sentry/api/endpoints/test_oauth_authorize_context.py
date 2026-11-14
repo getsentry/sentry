@@ -68,6 +68,56 @@ class OAuthAuthorizeContextTest(APITestCase):
         assert not ApiToken.objects.filter(application=self.application).exists()
         assert not any(key.startswith("oa2:") for key in self.client.session.keys())
 
+    def test_prompt_none_signed_out_returns_login_required(self) -> None:
+        response = self.get_success_response(**{**self.query, "prompt": "none"})
+
+        assert response.data["stage"] == "redirect"
+        callback = urlsplit(response.data["redirectUrl"])
+        assert callback.netloc == "example.com"
+        assert parse_qs(callback.query) == {
+            "error": ["login_required"],
+            "state": [self.query["state"]],
+        }
+
+    def test_prompt_none_rejects_bearer_token_even_with_session(self) -> None:
+        self.login_as(self.user)
+        token = self.create_user_auth_token(user=self.user)
+
+        response = self.get_success_response(
+            **{**self.query, "prompt": "none"},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+
+        assert parse_qs(urlsplit(response.data["redirectUrl"]).query)["error"] == ["login_required"]
+
+    def test_prompt_none_signed_in_returns_context(self) -> None:
+        self.login_as(self.user)
+
+        response = self.get_success_response(**{**self.query, "prompt": "none"})
+
+        assert response.data["stage"] == "context"
+
+    def test_prompt_none_combined_with_other_values_is_invalid(self) -> None:
+        response = self.get_success_response(**{**self.query, "prompt": "login none"})
+
+        assert parse_qs(urlsplit(response.data["redirectUrl"]).query) == {
+            "error": ["invalid_request"],
+            "state": [self.query["state"]],
+        }
+
+    def test_prompt_none_unregistered_callback_is_not_redirected(self) -> None:
+        response = self.get_error_response(
+            **{**self.query, "prompt": "none", "redirect_uri": "https://other.example/callback"},
+            status_code=400,
+        )
+
+        assert response.data == {"detail": "Missing or invalid redirect_uri parameter."}
+
+    def test_unknown_prompt_values_are_ignored(self) -> None:
+        response = self.get_success_response(**{**self.query, "prompt": "unknown"})
+
+        assert response.data["stage"] == "context"
+
     def test_organization_app_context_before_membership(self) -> None:
         self.application.update(requires_org_level_access=True, scopes=["project:read"])
 
