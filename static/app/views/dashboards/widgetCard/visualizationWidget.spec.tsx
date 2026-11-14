@@ -130,18 +130,9 @@ afterEach(() => {
 });
 
 describe('VisualizationWidget breakdown series labels', () => {
-  it('renders series labels as plain text without visibility-explore-view', () => {
+  it('renders series labels as Explore links', () => {
     render(<VisualizationWidget widget={spansBreakdownWidget} selection={selection} />, {
-      organization: OrganizationFixture({features: []}),
-    });
-
-    expect(screen.queryByRole('link', {name: 'my_transaction'})).not.toBeInTheDocument();
-    expect(screen.getByText('my_transaction')).toBeInTheDocument();
-  });
-
-  it('renders series labels as explore links with visibility-explore-view', () => {
-    render(<VisualizationWidget widget={spansBreakdownWidget} selection={selection} />, {
-      organization: OrganizationFixture({features: ['visibility-explore-view']}),
+      organization: OrganizationFixture(),
     });
 
     expect(screen.getByRole('link', {name: 'my_transaction'})).toBeInTheDocument();
@@ -201,7 +192,7 @@ describe('VisualizationWidget breakdown series labels', () => {
     );
 
     render(<VisualizationWidget widget={modelWidget} selection={selection} />, {
-      organization: OrganizationFixture({features: ['visibility-explore-view']}),
+      organization: OrganizationFixture(),
     });
 
     expect(screen.getAllByText('gemini-3.7-flash')).toHaveLength(2);

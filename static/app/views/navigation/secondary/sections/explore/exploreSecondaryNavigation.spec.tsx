@@ -8,7 +8,7 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 describe('ExploreSecondaryNavigation', () => {
   const {organization} = initializeOrg({
     organization: {
-      features: ['performance-view', 'visibility-explore-view'],
+      features: ['performance-view'],
     },
   });
 
@@ -63,7 +63,7 @@ describe('ExploreSecondaryNavigation', () => {
   function renderExploreNavigation(features: string[]) {
     const {organization: seerOrganization} = initializeOrg({
       organization: {
-        features: ['performance-view', 'visibility-explore-view', ...features],
+        features: ['performance-view', ...features],
         openMembership: true,
       },
     });
@@ -145,12 +145,7 @@ describe('ExploreSecondaryNavigation', () => {
   it('links Errors to the errors page when discover-basic is enabled', () => {
     const {organization: orgWithQuery} = initializeOrg({
       organization: {
-        features: [
-          'performance-view',
-          'visibility-explore-view',
-          'discover-basic',
-          'discover-query',
-        ],
+        features: ['performance-view', 'discover-basic', 'discover-query'],
       },
     });
 

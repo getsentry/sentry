@@ -13,9 +13,7 @@ import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/cont
 import {NewMetricDetectorForm} from './metric';
 
 describe('NewMetricDetectorForm', () => {
-  const organization = OrganizationFixture({
-    features: ['visibility-explore-view'],
-  });
+  const organization = OrganizationFixture();
   const project = ProjectFixture({id: '1', slug: 'proj-1'});
   const user = UserFixture();
 

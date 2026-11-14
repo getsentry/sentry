@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -69,7 +69,7 @@ describe('OurLogFilters', () => {
   });
 
   it('renders with replay-specific placeholder text', async () => {
-    const organization = OrganizationFixture({features: ['visibility-explore-view']});
+    const organization = OrganizationFixture();
 
     render(
       <Wrapper>
@@ -83,20 +83,7 @@ describe('OurLogFilters', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the Open in Logs button when explore feature is enabled', async () => {
-    const organization = OrganizationFixture({features: ['visibility-explore-view']});
-
-    render(
-      <Wrapper>
-        <TestOurLogFilters />
-      </Wrapper>,
-      {organization}
-    );
-
-    expect(await screen.findByRole('button', {name: 'Open in Logs'})).toBeInTheDocument();
-  });
-
-  it('does not render the Open in Logs button when explore feature is disabled', async () => {
+  it('renders the Open in Logs button', async () => {
     const organization = OrganizationFixture({features: []});
 
     render(
@@ -106,8 +93,6 @@ describe('OurLogFilters', () => {
       {organization}
     );
 
-    await waitFor(() =>
-      expect(screen.queryByRole('button', {name: 'Open in Logs'})).not.toBeInTheDocument()
-    );
+    expect(await screen.findByRole('button', {name: 'Open in Logs'})).toBeInTheDocument();
   });
 });

@@ -267,10 +267,7 @@ export function getMenuOptions(
     }
   }
 
-  if (
-    organization.features.includes('visibility-explore-view') &&
-    (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS)
-  ) {
+  if (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS) {
     const multiQueryUnsupported = widget.queries.length > 1;
 
     menuOptions.push({

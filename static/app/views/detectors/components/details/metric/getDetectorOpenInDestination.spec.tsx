@@ -10,7 +10,7 @@ import {getDetectorOpenInDestination} from './getDetectorOpenInDestination';
 
 describe('getDetectorOpenInDestination', () => {
   const organization = OrganizationFixture({
-    features: ['discover-basic', 'visibility-explore-view'],
+    features: ['discover-basic'],
   });
 
   describe('Errors dataset', () => {

@@ -12,7 +12,7 @@ import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 
 const project = ProjectFixture({id: '123', slug: 'project-slug'});
 const organization = OrganizationFixture({
-  features: ['issue-details-slow-query-span-data', 'visibility-explore-view'],
+  features: ['issue-details-slow-query-span-data'],
 });
 const traceId = '8cbbc19c0f54447ab702f00263262726';
 const spanId = '1234567890abcdef';

@@ -570,8 +570,6 @@ function SlowDBQueryEvidence({
   projectSlug,
   location,
 }: SlowDBQueryEvidenceProps & {span: SlowDBQuerySpan | undefined}) {
-  const hasExplore = organization.features.includes('visibility-explore-view');
-
   if (!span) {
     return <Text variant="muted">{t('Span evidence is unavailable.')}</Text>;
   }
@@ -607,7 +605,7 @@ function SlowDBQueryEvidence({
           group={span.group}
           organization={organization}
         />
-        {hasExplore && span.description && (
+        {span.description && (
           <Link
             to={getSearchInExploreTarget(
               organization,

@@ -113,7 +113,7 @@ async function renderModal({
 
 describe('Modals -> DataWidgetViewerModal', () => {
   let initialData: InitialData;
-  let initialDataWithFlag: InitialData;
+  let initialDataForExplore: InitialData;
   beforeEach(() => {
     ProjectsStore.reset();
     const projects = [ProjectFixture()];
@@ -130,7 +130,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
       },
     };
 
-    initialDataWithFlag = {
+    initialDataForExplore = {
       organization: OrganizationFixture({
         features: [...organization.features],
       }),
@@ -559,7 +559,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           },
         ];
         await renderModal({
-          initialData: initialDataWithFlag,
+          initialData: initialDataForExplore,
           widget: mockWidget,
         });
 
@@ -1235,8 +1235,8 @@ describe('Modals -> DataWidgetViewerModal', () => {
           location: {...defaultInitialRouterConfig.location},
         },
       };
-      initialDataWithFlag = {
-        organization: OrganizationFixture({features: ['visibility-explore-view']}),
+      initialDataForExplore = {
+        organization: OrganizationFixture(),
         projects,
         initialRouterConfig: {
           ...defaultInitialRouterConfig,
@@ -1279,7 +1279,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         },
       });
       await renderModal({
-        initialData: initialDataWithFlag,
+        initialData: initialDataForExplore,
         widget: {
           title: 'Custom Widget',
           displayType: 'table',
@@ -1443,7 +1443,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
       });
 
       const {router} = await renderModal({
-        initialData: initialDataWithFlag,
+        initialData: initialDataForExplore,
         widget: mockSpanWidget,
       });
 
@@ -1465,47 +1465,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
           '/organizations/org-slug/explore/traces/'
         )
       );
-    });
-
-    it('does not show "View span samples" without visibility-explore-view', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/',
-        body: {
-          data: [{transaction: 'test-transaction', 'count()': 10}],
-          meta: {
-            fields: {transaction: 'string', 'count()': 'integer'},
-          },
-        },
-      });
-      const mockSpanWidget = WidgetFixture({
-        widgetType: WidgetType.SPANS,
-        title: 'Span Transactions Widget',
-        displayType: DisplayType.TABLE,
-        queries: [
-          {
-            fields: ['transaction', 'count()'],
-            aggregates: ['count()'],
-            columns: ['transaction'],
-            name: '',
-            conditions: '',
-            orderby: '',
-          },
-        ],
-      });
-
-      await renderModal({initialData, widget: mockSpanWidget});
-
-      const transactionCell = await screen.findByRole('cell', {
-        name: /test-transaction/,
-      });
-      await userEvent.click(
-        within(transactionCell).getByRole('button', {name: 'Actions'})
-      );
-
-      expect(screen.getByRole('menu')).toBeInTheDocument();
-      expect(
-        screen.queryByRole('menuitemradio', {name: 'View span samples'})
-      ).not.toBeInTheDocument();
     });
   });
 });

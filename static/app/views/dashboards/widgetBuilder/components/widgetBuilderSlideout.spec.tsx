@@ -297,7 +297,7 @@ describe('WidgetBuilderSlideout', () => {
         />
       </WidgetBuilderProvider>,
       {
-        organization: OrganizationFixture({features: ['visibility-explore-view']}),
+        organization: OrganizationFixture(),
         initialRouterConfig: {
           location: {
             pathname: '/dashboards/',

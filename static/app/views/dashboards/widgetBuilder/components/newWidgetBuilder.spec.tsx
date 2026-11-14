@@ -18,7 +18,7 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 import {WidgetBuilderV2} from './newWidgetBuilder';
 
 const organization = OrganizationFixture({
-  features: ['open-membership', 'visibility-explore-view'],
+  features: ['open-membership'],
 });
 
 const projects = [

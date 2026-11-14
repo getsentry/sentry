@@ -581,9 +581,7 @@ describe('SpanEvidenceKeyValueList', () => {
           projectSlug={projectSlug}
         />,
         {
-          organization: OrganizationFixture({
-            features: ['visibility-explore-view'],
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
@@ -644,9 +642,7 @@ describe('SpanEvidenceKeyValueList', () => {
           projectSlug={projectSlug}
         />,
         {
-          organization: OrganizationFixture({
-            features: ['visibility-explore-view'],
-          }),
+          organization: OrganizationFixture(),
         }
       );
 
