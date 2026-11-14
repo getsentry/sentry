@@ -55,8 +55,14 @@ def get_pr_iteration_state_fields(
     # Off the fetched row, not is_pr_iteration_paused: polled every second.
     paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
     pause_reason = pause_reason_from_marker(paused_marker)
-    if run is not None and out_of_credits_for_run(run) is not None:
-        warnings.append(PrIterationOutOfCreditsWarning().dict())
+    out_of_credits = out_of_credits_for_run(run) if run is not None else None
+    if out_of_credits is not None:
+        stranded_action = out_of_credits.stranded_action
+        warnings.append(
+            PrIterationOutOfCreditsWarning(
+                stranded_action=stranded_action.value if stranded_action else None
+            ).dict()
+        )
     return {
         "queued_feedback": queued_feedback,
         "pr_iteration_paused": paused_marker is not None,

@@ -69,7 +69,7 @@ def out_of_credits_for_run(seer_run: SeerRun) -> OutOfCredits | None:
 
 
 def take_out_of_credits(*, run_id: int, organization_id: int) -> OutOfCredits | None:
-    """Clear the marker as the next step starts, so only one drain redoes a stranded action."""
+    """Clear the out-of-credits marker as the run's next step starts."""
     seer_run = _get_seer_run(run_id, organization_id)
     if seer_run is None or get_run_extra(seer_run, OUT_OF_CREDITS_EXTRA) is None:
         return None

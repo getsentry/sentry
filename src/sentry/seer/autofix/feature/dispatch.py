@@ -42,6 +42,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     feedback_text,
     serialize_feedback,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits import take_out_of_credits
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -204,6 +205,9 @@ def continue_single_run(
         group.organization,
         SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
         is_new_run=False,
+    )
+    take_out_of_credits(
+        run_id=agent_run.run.seer_run_state_id, organization_id=group.organization.id
     )
     enable_coding = _org_allows_coding(group)
     open_pr = enable_coding and can_publish
