@@ -1,12 +1,13 @@
 import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {NewTraceView} from './trace';
 
-const features = ['organizations:performance-view'];
+const features: FeatureName[] = ['organizations:performance-view'];
 
 function PerfDisabled() {
   return (

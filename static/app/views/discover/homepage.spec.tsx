@@ -13,13 +13,14 @@ import {
 
 import * as pageFilterUtils from 'sentry/components/pageFilters/persistence';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {EventView} from 'sentry/utils/discover/eventView';
 
 import {DEFAULT_EVENT_VIEW} from './results/data';
 import Homepage from './homepage';
 
 describe('Discover > Homepage', () => {
-  const features = ['discover-query'];
+  const features = ['discover-query'] satisfies FeatureName[];
   let organization: ReturnType<typeof OrganizationFixture>;
   let mockHomepage: jest.Mock;
 

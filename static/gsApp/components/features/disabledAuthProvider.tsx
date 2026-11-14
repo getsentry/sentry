@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -20,7 +21,7 @@ type ChildRenderFunction = (options: ChildRenderProps) => React.ReactNode;
 
 type Props = {
   children: React.ReactNode | ChildRenderFunction;
-  features: string[];
+  features: FeatureName[];
   hasFeature: boolean;
   organization: Organization;
 };

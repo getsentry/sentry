@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 export const MODULE_TITLE = t('Outbound API Requests');
 export const FRONTEND_MODULE_TITLE = t('Network Requests');
@@ -14,4 +15,4 @@ export const SPAN_ID_DISPLAY_LENGTH = 16;
 export const MODULE_DOC_LINK =
   'https://docs.sentry.io/product/insights/backend/requests/';
 
-export const MODULE_FEATURES = ['insight-modules'];
+export const MODULE_FEATURES: OrganizationFeature[] = ['insight-modules'];

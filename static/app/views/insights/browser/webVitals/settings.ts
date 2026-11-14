@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanProperty} from 'sentry/views/insights/types';
 
@@ -13,7 +14,7 @@ export const MODULE_DOC_LINK =
 export const DEFAULT_QUERY_FILTER =
   'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""]';
 
-export const MODULE_FEATURES = ['insight-modules'];
+export const MODULE_FEATURES: OrganizationFeature[] = ['insight-modules'];
 
 export const FIELD_ALIASES = {
   [`p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`]: 'LCP',

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
 
 import {Feature} from 'sentry/components/acl/feature';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {withSubscription} from 'getsentry/components/withSubscription';
@@ -28,7 +29,11 @@ const TABLE_ITEMS = [TEAM_ROLES];
  *     features: [...]
  *   }
  */
-const POWER_FEATURE_CONFIG = [
+const POWER_FEATURE_CONFIG: Array<{
+  features: FeatureName[];
+  id: string;
+  partial: boolean;
+}> = [
   {
     id: SSO,
     features: ['sso-saml2'],

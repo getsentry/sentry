@@ -13,7 +13,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import SentryAppDetailedView from './sentryAppDetailedView';
 
 describe('SentryAppDetailedView', () => {
-  const organization = OrganizationFixture({features: ['events']});
+  const organization = OrganizationFixture({features: []});
 
   afterEach(() => {
     MockApiClient.clearMockResponses();

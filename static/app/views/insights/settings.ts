@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 import {
   DATA_TYPE as AGENT_MODELS_DATA_TYPE,
@@ -215,7 +216,7 @@ export const MODULE_PRODUCT_DOC_LINKS = {
 /**
  * Features that control gating of modules, falling back to upsell style hooks.
  */
-export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
+export const MODULE_FEATURE_MAP: Record<ModuleName, OrganizationFeature[]> = {
   [ModuleName.DB]: DB_MODULE_FEATURES,
   [ModuleName.APP_START]: APP_STARTS_MODULE_FEATURES,
   [ModuleName.HTTP]: HTTP_MODULE_FEATURES,
@@ -238,7 +239,7 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
 /**
  * Features that control the visibility of modules.
  */
-export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
+export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, OrganizationFeature[]> = {
   [ModuleName.DB]: ['insight-modules'],
   [ModuleName.APP_START]: ['insight-modules'],
   [ModuleName.HTTP]: ['insight-modules'],

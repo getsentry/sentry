@@ -88,7 +88,7 @@ describe('showNewSeer', () => {
 
     it('returns false with unrelated features', () => {
       const organization = OrganizationFixture({
-        features: ['some-other-feature', 'another-feature'],
+        features: ['discover-query', 'dashboards-import'],
       });
 
       expect(showNewSeer(organization)).toBe(false);

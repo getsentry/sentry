@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 
@@ -144,7 +145,10 @@ describe('SeerSecondaryNavigation', () => {
 
   it.each([
     ['investigations is disabled', {features: [], openMembership: true}],
-    ['membership is closed', {features: ['investigations'], openMembership: false}],
+    [
+      'membership is closed',
+      {features: ['investigations'] satisfies FeatureName[], openMembership: false},
+    ],
   ])('renders no Seer sidebar content when %s', (_, orgProps) => {
     renderNavigation(
       '/organizations/org-slug/seer/investigations/',

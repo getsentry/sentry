@@ -6,6 +6,7 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
@@ -50,10 +51,10 @@ mockUseReplayOnboardingSidebarPanel.mockReturnValue({activateSidebar: jest.fn()}
 const mockUseAllMobileProj = jest.mocked(useAllMobileProj);
 mockUseAllMobileProj.mockReturnValue({allMobileProj: false});
 
-const AM1_FEATURES: string[] = [];
-const AM2_FEATURES: string[] = ['session-replay'];
+const AM1_FEATURES: OrganizationFeature[] = [];
+const AM2_FEATURES: OrganizationFeature[] = ['session-replay'] satisfies FeatureName[];
 
-function getMockOrganizationFixture({features}: {features: string[]}) {
+function getMockOrganizationFixture({features}: {features: OrganizationFeature[]}) {
   const mockOrg = OrganizationFixture({
     features,
     access: [],

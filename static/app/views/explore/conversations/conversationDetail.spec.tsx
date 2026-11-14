@@ -11,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -111,7 +112,10 @@ function mockApis(
   return request;
 }
 
-function renderPage(features: string[] = [], query?: Record<string, string>) {
+function renderPage(
+  features: OrganizationFeature[] = [],
+  query?: Record<string, string>
+) {
   return render(
     <TopBar.Slot.Provider>
       <TopBar />

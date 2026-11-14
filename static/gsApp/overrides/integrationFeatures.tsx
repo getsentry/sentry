@@ -159,13 +159,14 @@ function mapFeatureGroups({
   // including the plan. For each feature group it is determined if all
   // features also have associated organization feature flags, indicating that
   // the features are enabled.
+  const organizationFeatures: readonly string[] = organization.features;
   const gatedFeatureGroups = plans
     .filter(plan => groupedPlanFeatures[plan.id] !== undefined)
     .map<GatedFeatureGroup>(plan => ({
       plan,
       features: groupedPlanFeatures[plan.id]!,
       hasFeatures: !groupedPlanFeatures[plan.id]!.map(f => f.featureGate)
-        .map(f => organization.features.includes(f))
+        .map(f => organizationFeatures.includes(f))
         .some(v => !v),
     }));
 

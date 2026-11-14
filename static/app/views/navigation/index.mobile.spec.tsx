@@ -14,13 +14,13 @@ import {
 import {mockMatchMedia} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {Navigation} from 'sentry/views/navigation';
 
 import {PrimaryNavigationContextProvider} from './primaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
-  'discover',
   'discover-basic',
   'discover-query',
   'session-replay-ui',
@@ -28,7 +28,7 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'profiling',
   'visibility-explore-view',
-];
+] satisfies FeatureName[];
 
 function navigationContext({
   organization,
@@ -99,7 +99,9 @@ describe('mobile navigation', () => {
   });
 
   describe('settings v3', () => {
-    const settingsV3 = {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']};
+    const settingsV3 = {
+      features: [...ALL_AVAILABLE_FEATURES, 'settings-v3'] satisfies FeatureName[],
+    };
 
     it('uses the settings scope rail', async () => {
       const {router} = render(

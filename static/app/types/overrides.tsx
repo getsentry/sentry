@@ -25,6 +25,7 @@ import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types'
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
+import type {FeatureName} from './featureFlags.generated';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {Member, Organization, OrgRole} from './organization';
 import type {DetailedProject, Project} from './project';
@@ -384,7 +385,7 @@ type FeatureDisabledOverride = (opts: {
   /**
    * The list of features that are controlled by this override.
    */
-  features: string[];
+  features: FeatureName[];
   /**
    * Weather the feature is or is not enabled.
    */

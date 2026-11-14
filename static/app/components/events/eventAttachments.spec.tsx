@@ -2,6 +2,7 @@ import fetchMock from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -72,10 +73,10 @@ describe('EventAttachments', () => {
   });
 
   describe('attachments quota exceeded', () => {
-    const quotaOrganization = {
+    const quotaOrganization = OrganizationFixture({
       ...organization,
       features: [...organization.features, 'attachments-quota-exceeded-notice'],
-    };
+    });
     const quotaExceededEvent = {...event, metadata: {attachments_quota_exceeded: true}};
 
     it('explains that no attachments were stored', async () => {

@@ -141,7 +141,7 @@ export function InvestigationFixtureApi({
     })
   );
   const [ready, setReady] = useState(false);
-  const organization = {
+  const organization: typeof outerOrganization = {
     ...outerOrganization,
     slug: organizationSlug,
     features: featureEnabled

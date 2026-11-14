@@ -4,13 +4,14 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
 import {SeerExplorerHeader} from './seerExplorerHeader';
 
-const BASE_FEATURES = ['seer-explorer'];
+const BASE_FEATURES = ['seer-explorer'] satisfies FeatureName[];
 
-function orgWith(...extraFeatures: string[]) {
+function orgWith(...extraFeatures: OrganizationFeature[]) {
   return OrganizationFixture({
     openMembership: true,
     hideAiFeatures: false,

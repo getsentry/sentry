@@ -65,6 +65,12 @@ The cell host is cross-origin. A bare `fetch()` needs `credentials: 'include'`, 
 
 ## General Frontend Rules
 
+After public feature registration changes, run `make build-feature-flag-types`.
+`static/app/types/featureFlags.getsentry.ts` manually lists only private names already
+used in public frontend code; do not duplicate public names there. Remove frontend
+consumers before deleting registrations, and manually remove retired private names.
+The committed snapshot may lag changes deployed in a backend-only PR.
+
 1. NO new Reflux stores
 2. NO class components
 3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)

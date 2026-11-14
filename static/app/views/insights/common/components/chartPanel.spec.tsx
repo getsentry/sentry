@@ -1,11 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
+
 import {ChartPanel} from './chartPanel';
 
 describe('chartPanel', () => {
   const {organization} = initializeOrg({
-    organization: {features: ['insights-alerts', 'insight-modules']},
+    organization: {features: ['insight-modules'] satisfies FeatureName[]},
   });
   it('should render', () => {
     render(

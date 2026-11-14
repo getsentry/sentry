@@ -3,6 +3,7 @@ import {useStore} from 'zustand';
 
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 import type {FeatureDisabledOverrides} from 'sentry/types/overrides';
 import type {Project} from 'sentry/types/project';
@@ -28,7 +29,7 @@ type Props = {
    *
    * Use `organizations:` or `projects:` prefix strings to specify a feature with context.
    */
-  features: string | string[];
+  features: FeatureName | FeatureName[];
   organization?: Organization;
   /**
    * Specify the key to use for override registry functionality.
@@ -66,7 +67,7 @@ type Props = {
  * Common props passed to children and disabled render handlers.
  */
 type FeatureRenderProps = {
-  features: string[];
+  features: FeatureName[];
   hasFeature: boolean;
   organization: Organization;
   project?: Project;

@@ -17,6 +17,7 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
@@ -928,7 +929,7 @@ describe('logsTableRow', () => {
     );
   });
 
-  it.each([
+  it.each<{expectedKey: string; features: OrganizationFeature[]}>([
     {features: ['ourlogs-enabled'], expectedKey: 'custom'},
     {
       features: ['ourlogs-enabled', 'trace-item-details-raw-attribute-names'],

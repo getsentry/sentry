@@ -7,6 +7,7 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t, tct} from 'sentry/locale';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -15,7 +16,7 @@ import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
 type Props = {
-  features: Organization['features'];
+  features: FeatureName[];
   organization: Organization;
 };
 

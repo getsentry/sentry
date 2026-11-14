@@ -13,6 +13,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {SavedSearchType} from 'sentry/types/group';
 import {EventView} from 'sentry/utils/discover/eventView';
 
@@ -235,7 +236,7 @@ describe('Results', () => {
     MockApiClient.clearMockResponses();
   });
   describe('Events', () => {
-    const features = ['discover-basic'];
+    const features = ['discover-basic'] satisfies FeatureName[];
     it('loads data when moving from an invalid to valid EventView', async () => {
       const organization = OrganizationFixture({
         features,
@@ -1850,7 +1851,7 @@ describe('Results', () => {
   });
 
   describe('transactions deprecation', () => {
-    const features = ['discover-basic'];
+    const features = ['discover-basic'] satisfies FeatureName[];
 
     it('blocks the transactions dataset and points users to Explore', async () => {
       const organization = OrganizationFixture({features});

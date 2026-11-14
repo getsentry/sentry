@@ -6,6 +6,7 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {PageOverlay} from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -18,7 +19,7 @@ import PlanFeature from './planFeature';
 
 type Props = Omit<React.ComponentProps<typeof PageOverlay>, 'text'> & {
   description: React.ReactNode;
-  features: string[];
+  features: FeatureName[];
   name: string;
   organization: Organization;
   requiredPlan: React.ReactNode;

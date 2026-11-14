@@ -78,20 +78,46 @@ describe('FeatureFlagCommandPaletteActions', () => {
   });
 
   it('persists an override and updates the active organization immediately', () => {
-    const organization = OrganizationFixture({features: ['enabled-feature']});
+    const organization = OrganizationFixture({features: ['discover-query']});
+
+    localStorageWrapper.setItem(
+      LOCALSTORAGE_KEY,
+      '{"discover-query":false,"other-local-feature":true}'
+    );
 
     setLocalFeatureFlagOverride(organization, 'new-feature', true);
 
-    expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe('{"new-feature":true}');
+    expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
+      '{"discover-query":false,"other-local-feature":true,"new-feature":true}'
+    );
     const updatedFeatures = OrganizationStore.getState().organization?.features;
     expect(updatedFeatures).toHaveLength(2);
-    expect(updatedFeatures).toContain('enabled-feature');
+    expect(updatedFeatures).not.toContain('discover-query');
+    expect(updatedFeatures).toContain('other-local-feature');
     expect(updatedFeatures).toContain('new-feature');
-    expect(organization.features).toEqual(['enabled-feature']);
+    expect(organization.features).toEqual(['discover-query']);
+  });
+
+  it('applies an override when local storage cannot persist it', () => {
+    const organization = OrganizationFixture({features: []});
+    const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+
+    try {
+      setLocalFeatureFlagOverride(organization, 'new-feature', true);
+
+      expect(OrganizationStore.getState().organization?.features).toContain(
+        'new-feature'
+      );
+      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBeNull();
+    } finally {
+      setItem.mockRestore();
+    }
   });
 
   it('toggles an existing feature flag without reloading', async () => {
-    const organization = OrganizationFixture({features: ['enabled-feature']});
+    const organization = OrganizationFixture({features: ['discover-query']});
     render(<ExampleFeatureFlagActions />, {organization});
 
     await openCommandPalette();
@@ -102,18 +128,18 @@ describe('FeatureFlagCommandPaletteActions', () => {
     await userEvent.click(
       await screen.findByRole('option', {name: /Toggle Org Feature Flag/})
     );
-    await userEvent.click(await screen.findByRole('option', {name: /enabled-feature/}));
+    await userEvent.click(await screen.findByRole('option', {name: /discover-query/}));
 
     expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
-      '{"enabled-feature":false}'
+      '{"discover-query":false}'
     );
     expect(OrganizationStore.getState().organization?.features).not.toContain(
-      'enabled-feature'
+      'discover-query'
     );
   });
 
   it('keeps a disabled feature flag in the list after returning to it', async () => {
-    const organization = OrganizationFixture({features: ['enabled-feature']});
+    const organization = OrganizationFixture({features: ['discover-query']});
     render(<ExampleFeatureFlagActions />, {organization});
 
     await openCommandPalette();
@@ -124,7 +150,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     await userEvent.click(
       await screen.findByRole('option', {name: /Toggle Org Feature Flag/})
     );
-    await userEvent.click(await screen.findByRole('option', {name: /enabled-feature/}));
+    await userEvent.click(await screen.findByRole('option', {name: /discover-query/}));
 
     await waitFor(() =>
       expect(
@@ -142,7 +168,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     );
 
     const disabledFlag = await screen.findByRole('option', {
-      name: 'enabled-feature',
+      name: 'discover-query',
     });
     expect(disabledFlag).toHaveTextContent('Disabled');
   });
@@ -184,9 +210,9 @@ describe('FeatureFlagCommandPaletteActions', () => {
   });
 
   it('clears stored overrides from the command palette', async () => {
-    localStorageWrapper.setItem(LOCALSTORAGE_KEY, '{"enabled-feature":false}');
+    localStorageWrapper.setItem(LOCALSTORAGE_KEY, '{"discover-query":false}');
     render(<ExampleFeatureFlagActions />, {
-      organization: OrganizationFixture({features: ['enabled-feature']}),
+      organization: OrganizationFixture({features: ['discover-query']}),
     });
     const reloadError = jest.spyOn(console, 'error').mockImplementation();
 

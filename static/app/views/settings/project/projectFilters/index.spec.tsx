@@ -17,6 +17,7 @@ import {
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
 // The custom filter modal saves through the query client of the tree it renders
@@ -384,7 +385,12 @@ describe('ProjectFilters', () => {
   it('can cancel custom filter changes', async () => {
     render(<ProjectFilters />, {
       organization,
-      outletContext: {project: {...project, features: ['custom-inbound-filters']}},
+      outletContext: {
+        project: {
+          ...project,
+          features: ['custom-inbound-filters'] satisfies FeatureName[],
+        },
+      },
       initialRouterConfig,
     });
 
@@ -417,7 +423,7 @@ describe('ProjectFilters', () => {
       outletContext: {
         project: {
           ...project,
-          features: ['custom-inbound-filters'],
+          features: ['custom-inbound-filters'] satisfies FeatureName[],
         },
       },
       initialRouterConfig,
@@ -1733,7 +1739,7 @@ describe('ProjectFilters', () => {
       outletContext: {
         project: {
           ...project,
-          features: ['custom-inbound-filters'],
+          features: ['custom-inbound-filters'] satisfies FeatureName[],
           options: {
             'filters:error_messages': 'test',
           },
@@ -1754,7 +1760,7 @@ describe('ProjectFilters', () => {
       ...project,
       features: ['discard-groups'],
     });
-    const discardOrg = OrganizationFixture({access: [], features: ['discard-groups']});
+    const discardOrg = OrganizationFixture({access: [], features: []});
 
     render(<ProjectFilters />, {
       organization: discardOrg,

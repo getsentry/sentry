@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import {useMedia} from '@sentry/scraps/useMedia';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -56,7 +57,7 @@ const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
   group: NavigationGroup;
   pattern: RegExp;
   /** Only apply the override when the organization lacks this feature */
-  unlessFeature?: string;
+  unlessFeature?: OrganizationFeature;
 }> = [
   // Seer pages linked from Explore until the Seer primary nav ships.
   {

@@ -2,6 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
+
 import {useSeerCreditCheck} from './useSeerCreditCheck';
 
 describe('useSeerCreditCheck', () => {
@@ -77,7 +79,7 @@ describe('useSeerCreditCheck', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
   });
 
-  it.each([
+  it.each<[string, OrganizationFeature[]]>([
     ['seer-credit-checks', ['token-billed-seer-enabled']],
     ['token-billed-seer-enabled', ['seer-credit-checks']],
   ])('does not call the endpoint without %s', (_missingFeature, features) => {

@@ -5,6 +5,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {makeEAPSpan} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
@@ -51,7 +52,7 @@ describe('AttributesContent', () => {
     }
   );
 
-  it.each([
+  it.each<{features: OrganizationFeature[]; search: string}>([
     {features: [], search: 'span.op'},
     {features: ['trace-item-details-raw-attribute-names'], search: 'sentry.op'},
     {features: ['trace-item-details-raw-attribute-names'], search: 'span.op'},

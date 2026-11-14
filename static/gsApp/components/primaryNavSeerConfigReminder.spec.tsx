@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -66,7 +67,7 @@ describe('PrimaryNavSeerConfigReminder', () => {
     expect(await screen.findByText('Start using Autofix')).toBeInTheDocument();
   });
 
-  it.each([
+  it.each<[string, OrganizationFeature[]]>([
     ['neither billing model', []],
     ['only the token billing onboarding flag', ['seer-token-based-billing-onboarding']],
     ['only the token-billed flag', ['token-billed-seer-enabled']],

@@ -35,6 +35,7 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -140,7 +141,7 @@ type DataTypeSpec = {
   // Ingestion feature the org needs before the API accepts a filter on this data
   // type. Offering a data type without it lets the user build a filter the API
   // rejects on save, so mirror the gating here.
-  feature?: string;
+  feature?: OrganizationFeature;
   // Shown in the filter table, whose data type column already says "Data Type".
   tableLabel?: string;
 };

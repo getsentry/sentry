@@ -1,6 +1,7 @@
 import type {Field} from 'sentry/components/forms/types';
 
 import type {ControlSiloOrganization} from './controlSiloOrganization';
+import type {OrganizationFeature} from './featureFlags.generated';
 
 export type AuthenticatorDevice = {
   authId: string;
@@ -162,7 +163,7 @@ export type AuthConfigResponse = AuthConfig | {nextUri: string};
 export type AuthProvider = {
   key: string;
   name: string;
-  requiredFeature: string;
+  requiredFeature: `organizations:${OrganizationFeature}`;
 };
 
 export type OrganizationAuthProvider = {

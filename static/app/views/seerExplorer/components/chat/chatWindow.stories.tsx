@@ -5,6 +5,7 @@ import {Container} from '@sentry/scraps/layout';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import * as Storybook from 'sentry/stories';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
@@ -134,7 +135,10 @@ function ChatWindow({session, hasEnoughCredits, initialQuery, wallet}: ChatWindo
           'seer-explorer',
           ...(hasEnoughCredits === undefined
             ? []
-            : ['seer-credit-checks', 'token-billed-seer-enabled']),
+            : ([
+                'seer-credit-checks',
+                'token-billed-seer-enabled',
+              ] satisfies OrganizationFeature[])),
         ],
       }}
     >

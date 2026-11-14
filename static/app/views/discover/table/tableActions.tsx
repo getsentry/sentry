@@ -11,6 +11,7 @@ import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -119,7 +120,7 @@ type FeatureWrapperProps = Props & {
 
 function FeatureWrapper(props: FeatureWrapperProps) {
   const noEditMessage = t('Requires discover query feature.');
-  const editFeatures = ['organizations:discover-query'];
+  const editFeatures: FeatureName[] = ['organizations:discover-query'];
 
   const renderDisabled = (p: any) => (
     <Hovercard
