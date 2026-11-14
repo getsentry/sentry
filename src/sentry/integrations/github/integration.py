@@ -237,6 +237,15 @@ class GitHubIntegration(
         return False
 
     def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        # The app was uninstalled on GitHub's side, so the installation token
+        # can't be minted anymore.
+        if (
+            isinstance(exc, ApiError)
+            and exc.code == 404
+            and exc.url
+            and exc.url.endswith("/access_tokens")
+        ):
+            return "installation_not_found"
         if isinstance(exc, ApiForbiddenError):
             if self.is_rate_limited_error(exc):
                 return "rate_limited"
