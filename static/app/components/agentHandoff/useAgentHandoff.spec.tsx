@@ -9,7 +9,7 @@ describe('useAgentHandoff', () => {
   const url = `/organizations/${organization.slug}/agent-handoff/prompts/`;
   const code = 'sntryh_example';
   const prompt =
-    'Follow the instructions verbatim at https://sentry-jest-tests.example.com/agent-handoff/. Your handoff code is `sntryh_example`.';
+    'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
   const options = {disableIpPinning: false};
   const context = {runId: 'a'.repeat(32)};
