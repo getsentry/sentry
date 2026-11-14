@@ -906,7 +906,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      // PREPROD_APP_SIZE only supports LINE, so TABLE should be reset to LINE
+      // PREPROD_APP_SIZE does not support TABLE, so it resets to the first supported type
       expect(result.current.state.displayType).toBe(DisplayType.LINE);
     });
 
