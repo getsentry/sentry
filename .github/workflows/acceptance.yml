@@ -69,7 +69,8 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '3'
+      # Experiment: 4 workers on Arm pull requests.
+      XDIST_WORKERS: ${{ github.event_name == 'pull_request' && '4' || '3' }}
       # Arm pull requests and x64 master test against the same Chrome build.
       # 156.0.8078.47 is what the x64 image shipped when this was pinned.
       CHROME_FOR_TESTING_VERSION: '156.0.8078.47'
