@@ -31,25 +31,26 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
     conditions = serializers.ListField(required=False)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        # Check persisted contents too: callers can reference a group without sending
-        # its conditions, or replace an internal condition with a public type.
         group_id = attrs.get("id")
         organization = self.context.get("organization")
+        if group_id is not None and organization is not None:
+            self._validate_no_internal_conditions(group_id, organization.id)
+        return attrs
+
+    def _validate_no_internal_conditions(self, group_id: int, organization_id: int) -> None:
+        # Check stored conditions: the request may omit or replace internal ones.
         internal_types = get_internal_condition_types()
         if (
-            group_id is not None
-            and organization is not None
-            and internal_types
+            internal_types
             and DataConditionGroup.objects.filter(
                 id=group_id,
-                organization_id=organization.id,
+                organization_id=organization_id,
                 conditions__type__in=internal_types,
             ).exists()
         ):
             raise serializers.ValidationError(
                 "Internal condition groups cannot be configured through the API."
             )
-        return attrs
 
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         conditions = []
@@ -127,6 +128,9 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
             raise serializers.ValidationError("Organization context is required.")
         if instance.organization_id != context_org.id:
             raise serializers.ValidationError(f"Condition group with id {instance.id} not found.")
+
+        # Detector updates call update() directly and may omit the group ID from validation.
+        self._validate_no_internal_conditions(instance.id, context_org.id)
 
         remove_items_by_api_input(validated_data.get("conditions", []), instance.conditions, "id")
         conditions = validated_data.pop("conditions", None)
