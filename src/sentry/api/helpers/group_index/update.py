@@ -7,6 +7,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from http import HTTPStatus
 from typing import Any, NotRequired, TypedDict, cast
 from urllib.parse import urlparse
+from uuid import uuid4
 
 import rest_framework
 from django.contrib.auth.models import AnonymousUser
@@ -24,6 +25,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.auth.principal import has_user
+from sentry.deletions.tasks.groups import discard_group
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
@@ -46,7 +48,6 @@ from sentry.models.commit import Commit
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
-from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
@@ -73,7 +74,8 @@ from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
-from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
+from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction
+from .delete import create_audit_entries, project_viewer_context
 from .lookup import get_group_list
 from .validators import GroupValidator, ValidationError
 
@@ -106,32 +108,45 @@ def handle_discard(
         raise rest_framework.exceptions.ValidationError(
             detail="Only error issues can be discarded."
         )
+    transaction_id = uuid4().hex
+    discards: list[tuple[Group, GroupTombstone]] = []
     # grouped by project_id
-    groups_to_delete = defaultdict(list)
+    newly_discarded = defaultdict(list)
 
     for group in group_list:
-        with transaction.atomic(router.db_for_write(GroupTombstone)):
-            try:
+        try:
+            with transaction.atomic(router.db_for_write(GroupTombstone)):
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
                     actor_id=coerce_id_from(acting_user),
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
-            except IntegrityError:
-                # in this case, a tombstone has already been created
-                # for a group, so no hash updates are necessary
-                pass
-            else:
-                groups_to_delete[group.project_id].append(group)
+        except IntegrityError:
+            # An earlier request already discarded this group, and its task may have stopped
+            # before it finished. Run the task again; it continues where it left off.
+            try:
+                tombstone = GroupTombstone.objects.get(previous_group_id=group.id)
+            except GroupTombstone.DoesNotExist:
+                # An undiscard removed that tombstone after the conflict, so leave the group be.
+                continue
+        else:
+            newly_discarded[group.project_id].append(group)
+        discards.append((group, tombstone))
 
-                GroupHash.objects.filter(group=group).update(
-                    group=None, group_tombstone_id=tombstone.id
-                )
+    projects_by_id = {project.id: project for project in projects}
+    for project_id, groups in newly_discarded.items():
+        create_audit_entries(request, projects_by_id[project_id], groups, "discard", transaction_id)
 
-    for project in projects:
-        delete_group_list(
-            request, project, groups_to_delete.get(project.id, []), delete_type="discard"
-        )
+    for group, tombstone in discards:
+        with project_viewer_context(projects_by_id[group.project_id]):
+            discard_group.apply_async(
+                kwargs={
+                    "group_id": group.id,
+                    "project_id": group.project_id,
+                    "tombstone_id": tombstone.id,
+                    "transaction_id": transaction_id,
+                }
+            )
 
     return Response(status=204)
 

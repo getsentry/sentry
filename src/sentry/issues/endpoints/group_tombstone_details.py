@@ -1,3 +1,4 @@
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -35,16 +36,23 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
         """
 
         tombstone_id_int = to_valid_int_id("tombstone_id", tombstone_id, raise_404=True)
-        try:
-            tombstone = GroupTombstone.objects.get(project_id=project.id, id=tombstone_id_int)
-        except GroupTombstone.DoesNotExist:
-            raise ResourceDoesNotExist
+        with transaction.atomic(router.db_for_write(GroupTombstone)):
+            # Locking the tombstone waits for an in-flight `discard_group` batch, so this update
+            # also clears the hashes that batch moved.
+            try:
+                tombstone = GroupTombstone.objects.select_for_update().get(
+                    project_id=project.id, id=tombstone_id_int
+                )
+            except GroupTombstone.DoesNotExist:
+                raise ResourceDoesNotExist
 
-        GroupHash.objects.filter(project_id=project.id, group_tombstone_id=tombstone_id_int).update(
-            # will allow new events to be captured
-            group_tombstone_id=None
-        )
+            GroupHash.objects.filter(
+                project_id=project.id, group_tombstone_id=tombstone_id_int
+            ).update(
+                # will allow new events to be captured
+                group_tombstone_id=None
+            )
 
-        tombstone.delete()
+            tombstone.delete()
 
         return Response(status=204)
