@@ -17,7 +17,9 @@ from sentry.utils.cache import cache
 if TYPE_CHECKING:
     from sentry.models.project import Project
 
-OPTION_KEYS = frozenset(
+# Explicitly allow options that are safe to return in project-list responses.
+# Internal options, including credentials, belong only in OPTION_KEYS below.
+EXPOSED_OPTION_KEYS = frozenset(
     [
         # we need the epoch to fill in the defaults correctly
         "sentry:option-epoch",
@@ -29,7 +31,6 @@ OPTION_KEYS = frozenset(
         "sentry:store_crash_reports",
         "sentry:builtin_symbol_sources",
         "sentry:enable_native_source_server_mapping",
-        "sentry:symbol_sources",
         "sentry:sensitive_fields",
         "sentry:highlight_tags",
         "sentry:highlight_context",
@@ -49,7 +50,6 @@ OPTION_KEYS = frozenset(
         "sentry:enable_auto_release_creation",
         "sentry:toolbar_allowed_origins",
         "sentry:relay_automatic_json_expansion",
-        "sentry:token",
         "sentry:token_header",
         "sentry:verify_ssl",
         "sentry:scrub_ip_address",
@@ -103,6 +103,8 @@ OPTION_KEYS = frozenset(
         "filters:chunk-load-error",
     ]
 )
+
+OPTION_KEYS = EXPOSED_OPTION_KEYS | {"sentry:symbol_sources", "sentry:token"}
 
 
 class ProjectOptionManager(OptionManager["ProjectOption"]):

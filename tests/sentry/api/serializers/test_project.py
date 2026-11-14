@@ -822,6 +822,15 @@ class DetailedProjectSerializerTest(TestCase):
 
         self.release = self.create_release(self.project)
 
+    def test_security_token_requires_access_context(self) -> None:
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["securityToken"] == ""
+        assert self.project.get_option("sentry:token") is None
+
+        self.project.update_option("sentry:token", "source-token")
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["securityToken"] == ""
+
     def test_truncated_latest_release(self) -> None:
         result = serialize(self.project, self.user, DetailedProjectSerializer())
 

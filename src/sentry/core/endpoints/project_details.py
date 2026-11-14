@@ -685,7 +685,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         collapse = request.GET.getlist("collapse", [])
         data: _ProjectDetailsResponse = serialize(
-            project, request.user, DetailedProjectSerializer(collapse=collapse)
+            project,
+            request.user,
+            DetailedProjectSerializer(collapse=collapse),
+            access=request.access,
         )
 
         # TODO: should switch to expand and move logic into the serializer
@@ -850,7 +853,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:fingerprinting_rules"] = result["fingerprintingRules"]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
-                changed_proj_settings["sentry:token"] = result["securityToken"]
+                changed_proj_settings["sentry:token"] = "[Filtered]"
         if result.get("securityTokenHeader") is not None:
             if project.update_option("sentry:token_header", result["securityTokenHeader"]):
                 changed_proj_settings["sentry:token_header"] = result["securityTokenHeader"]
@@ -1324,7 +1327,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
                 if len(changed_proj_settings) == 1:
                     body_partial: _ProjectDetailsResponse = serialize(
-                        project, request.user, DetailedProjectSerializer()
+                        project, request.user, DetailedProjectSerializer(), access=request.access
                     )
                     return Response(body_partial)
 
@@ -1342,7 +1345,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         body: _ProjectDetailsResponse = serialize(
-            project, request.user, DetailedProjectSerializer()
+            project, request.user, DetailedProjectSerializer(), access=request.access
         )
         if not has_dynamic_sampling(project.organization):
             body["dynamicSamplingBiases"] = None

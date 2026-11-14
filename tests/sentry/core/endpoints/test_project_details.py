@@ -60,6 +60,30 @@ class ProjectDetailsTest(APITestCase):
     def test_simple(self) -> None:
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         assert response.data["id"] == str(self.project.id)
+        assert response.data["securityToken"]
+        assert response.data["securityToken"] == self.project.get_option("sentry:token")
+
+    def test_security_token_hidden_from_member(self) -> None:
+        self.project.update_option("sentry:token", "source-token")
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, teams=[self.team])
+        self.login_as(user=member)
+
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+
+        assert response.data["securityToken"] == ""
+
+    def test_security_token_hidden_from_read_only_owner_token(self) -> None:
+        self.project.update_option("sentry:token", "source-token")
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+
+        assert response.data["securityToken"] == ""
 
     def test_superuser_simple(self) -> None:
         superuser = self.create_user(is_superuser=True)
@@ -290,6 +314,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         self.platforms = ["rust", "java"]
 
     def test_member_can_update_limited_project_details(self) -> None:
+        self.project.update_option("sentry:token", "source-token")
         self.create_member(
             user=self.user,
             organization=self.project.organization,
@@ -306,6 +331,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["isBookmarked"] is True
+        assert response.data["securityToken"] == ""
 
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
     @with_feature("organizations:service-accounts")
@@ -355,6 +381,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             )
             assert response.status_code == 200
             assert response.data["platform"] == platform
+            assert response.data["securityToken"] == self.project.get_security_token()
 
     @with_feature("organizations:team-roles")
     def test_team_admin_update_allowed_with_correct_token_scope(self) -> None:
@@ -377,6 +404,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             )
             assert response.status_code == 200
             assert response.data["platform"] == platform
+            assert response.data["securityToken"] == self.project.get_security_token()
 
     def test_manager_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(
@@ -932,14 +960,27 @@ class ProjectUpdateTest(APITestCase):
         ).exists()
 
     def test_security_token(self) -> None:
-        resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, securityToken="fizzbuzz"
+            )
         assert self.project.get_security_token() == "fizzbuzz"
         assert resp.data["securityToken"] == "fizzbuzz"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            )
+            assert entry.data["sentry:token"] == "[Filtered]"
 
         # can delete
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="")
         assert self.project.get_security_token() == ""
         assert resp.data["securityToken"] == ""
+        resp = self.client.get(reverse(self.endpoint, args=[self.org_slug, self.proj_slug]))
+        assert resp.status_code == 200
+        assert resp.data["securityToken"] == ""
+        assert self.project.get_option("sentry:token") == ""
 
     def test_security_token_header(self) -> None:
         value = "X-Hello-World"

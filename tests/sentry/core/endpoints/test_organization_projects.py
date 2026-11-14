@@ -402,6 +402,9 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         self.project2 = self.create_project(slug="project-2", name="project 2", teams=[self.team])
         self.project1.update_option("quotas:spike-protection-disabled", True)
         self.project1.update_option("sentry:token", 1)
+        self.project1.update_option(
+            "sentry:symbol_sources", '[{"type":"s3","secret_key":"source-secret"}]'
+        )
         self.project1.update_option("sentry:random", "hi")
 
         response = self.get_success_response(self.organization.slug, qs_params={"options": "true"})
@@ -411,13 +414,17 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(
             self.organization.slug,
             qs_params={
-                "options": ["quotas:spike-protection-disabled", "sentry:token", "sentry:random"]
+                "options": [
+                    "quotas:spike-protection-disabled",
+                    "sentry:token",
+                    "sentry:symbol_sources",
+                    "sentry:random",
+                ]
             },
         )
 
         assert response.data[0]["options"] == {
             "quotas:spike-protection-disabled": True,
-            "sentry:token": 1,
         }
         assert not response.data[1].get("options")
 
