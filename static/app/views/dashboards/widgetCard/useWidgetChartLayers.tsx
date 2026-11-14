@@ -41,6 +41,7 @@ export function useWidgetChartLayers({
       interval: interval ?? '',
     },
     {
+      source: 'dashboards',
       enabled:
         enabled &&
         defined(droppedDataDataset) &&

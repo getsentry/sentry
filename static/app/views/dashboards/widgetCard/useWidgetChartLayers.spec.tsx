@@ -3,12 +3,15 @@ import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 import {useWidgetChartLayers} from './useWidgetChartLayers';
+
+jest.mock('sentry/utils/analytics');
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations', 'dashboards-data-fidelity-annotations'],
@@ -41,6 +44,22 @@ describe('useWidgetChartLayers', () => {
     );
 
     await waitFor(() => expect(result.current.droppedData.band).toBeDefined());
+  });
+
+  it('tracks opening the drawer from the band as a dashboards event', async () => {
+    const {result} = renderHookWithProviders(
+      () => useWidgetChartLayers({widget: spansWidget, interval: '5m'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.droppedData.band).toBeDefined());
+    act(() => result.current.droppedData.band!.onClick!());
+
+    expect(trackAnalytics).toHaveBeenCalledWith('explore.dropped_data.drawer_opened', {
+      organization,
+      dataset: 'spans',
+      source: 'dashboards',
+    });
   });
 
   it.each([

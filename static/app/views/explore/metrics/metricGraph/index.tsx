@@ -273,7 +273,7 @@ function Graph({
     : null;
   const droppedData = useDroppedDataLayer(
     {dataset: DiscoverDatasets.TRACEMETRICS, interval},
-    {enabled: showChart}
+    {source: 'explore', enabled: showChart}
   );
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 

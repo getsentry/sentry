@@ -24,6 +24,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
@@ -36,6 +37,7 @@ import {
 } from './outcomeColors';
 
 interface DroppedDataDrawerProps extends UseDroppedDataParams {
+  source: DroppedDataAnalyticsSource;
   onAskSeer?: AskSeerHandler;
 }
 
@@ -43,6 +45,7 @@ export function DroppedDataDrawer({
   dataset,
   interval,
   projects,
+  source,
   onAskSeer,
 }: DroppedDataDrawerProps) {
   const theme = useTheme();
@@ -89,6 +92,7 @@ export function DroppedDataDrawer({
               trackAnalytics('explore.dropped_data.scope_toggled', {
                 organization,
                 dataset,
+                source,
                 scope: nextScope,
               });
             }}
@@ -150,6 +154,7 @@ export function DroppedDataDrawer({
                           trackAnalytics('explore.dropped_data.legend_outcome_toggled', {
                             organization,
                             dataset,
+                            source,
                             outcome,
                             selected,
                           });
