@@ -39,7 +39,6 @@ describe('useValidateMetricsTab', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

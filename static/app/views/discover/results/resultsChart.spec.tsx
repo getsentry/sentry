@@ -27,6 +27,7 @@ describe('Discover > ResultsChart', () => {
   const eventView = EventView.fromSavedQueryOrLocation(undefined, location);
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
       body: [],
@@ -171,10 +172,6 @@ describe('Discover > ResultsChart', () => {
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
-      PageFiltersStore.reset();
     });
 
     function mockDroppedData({

@@ -18,10 +18,6 @@ describe('useMetricAggregatesTable', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     const mockNormalRequestUrl = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',

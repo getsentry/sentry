@@ -9,11 +9,11 @@ import type {ConversationTrace} from './conversationTraceLink';
 import {ConversationTraceLink} from './conversationTraceLink';
 
 describe('ConversationTraceLink', () => {
-  const organization = OrganizationFixture();
-
-  afterEach(() => {
+  beforeEach(() => {
     PageFiltersStore.reset();
   });
+
+  const organization = OrganizationFixture();
 
   function makeTraces(count: number): ConversationTrace[] {
     return Array.from({length: count}, (_, index) => ({

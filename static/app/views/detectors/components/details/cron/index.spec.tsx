@@ -169,7 +169,6 @@ describe('CronDetectorDetails - check-ins', () => {
 
     afterEach(() => {
       localStorageWrapper.removeItem('global-selection:org-slug');
-      PageFiltersStore.reset();
       jest.restoreAllMocks();
     });
 

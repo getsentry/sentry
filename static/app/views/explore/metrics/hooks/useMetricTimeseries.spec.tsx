@@ -64,10 +64,6 @@ describe('useMetricTimeseries', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it.each([true, false])(
     'forwards metric transformations with the feature enabled=%s',
     async featureEnabled => {

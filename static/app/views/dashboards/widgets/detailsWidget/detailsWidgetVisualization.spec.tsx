@@ -55,7 +55,6 @@ describe('DetailsWidgetVisualization', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 

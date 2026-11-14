@@ -108,10 +108,6 @@ describe('MetricsAggregateExportModalButton', () => {
     );
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('downloads locally without a server export when all rows are loaded', async () => {
     const exportRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/`,

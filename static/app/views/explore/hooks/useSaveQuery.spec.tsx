@@ -32,7 +32,6 @@ describe('useSpansSaveQuery', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 
