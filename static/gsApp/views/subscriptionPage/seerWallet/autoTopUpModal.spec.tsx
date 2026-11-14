@@ -318,6 +318,277 @@ describe('openSeerAutoTopUpModal', () => {
     ).toBeInTheDocument();
   });
 
+  it('verifies the first auto-reload charge with the bank', async () => {
+    const walletMock = MockApiClient.addMockResponse({
+      url: walletUrl,
+      body: {
+        balance: 0,
+        creditPriceCents: 1,
+        percentUsed: 1,
+        included: {total: 500, remaining: 0, resetsAt: null},
+        purchased: {total: 0, remaining: 0, expiresAt: null},
+      },
+    });
+    const autoTopUpMock = MockApiClient.addMockResponse({url, body: AutoTopUpFixture()});
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        invoiceGuid: 'invoice-guid',
+        verification: {
+          required: true,
+          paymentIntentId: 'pi_123',
+          clientSecret: 'pi_secret',
+        },
+      },
+    });
+    const confirmMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/invoice-guid/confirm/`,
+      method: 'POST',
+      body: {paid: true},
+    });
+    renderGlobalModal({organization});
+    act(() => openSeerAutoTopUpModal({organization}));
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+    // Auto-reload stays off until the refill is paid, so the settings go again.
+    const resendMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 1500}),
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(confirmMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/payments/invoice-guid/confirm/`,
+      expect.objectContaining({data: {paymentIntentId: 'test-payment'}})
+    );
+    expect(await screen.findByText('Auto-reload turned on')).toBeInTheDocument();
+    expect(resendMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: expect.objectContaining({enabled: true, topUpCredits: 1500}),
+      })
+    );
+    expect(walletMock).toHaveBeenCalledTimes(3);
+    expect(autoTopUpMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('pays an earlier unpaid refill before turning auto-reload on', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        detail: 'Pay your last Seer credit purchase to turn on auto-load.',
+        invoiceId: 3,
+        invoiceGuid: 'pending-guid',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/pending-guid/new/`,
+      body: {
+        amount: '1500',
+        clientSecret: 'pi_secret',
+        currency: 'usd',
+        returnUrl: 'https://example.com/',
+        paymentIntentId: 'pi_123',
+        requiresAction: true,
+      },
+    });
+    const confirmMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/pending-guid/confirm/`,
+      method: 'POST',
+      body: {paid: true},
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+
+    expect(
+      await screen.findByText('Pay your last Seer credit purchase to turn on auto-load.')
+    ).toBeInTheDocument();
+
+    const resendMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 1500}),
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(confirmMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/payments/pending-guid/confirm/`,
+      expect.objectContaining({data: {paymentIntentId: 'test-payment'}})
+    );
+    expect(await screen.findByText('Auto-reload turned on')).toBeInTheDocument();
+    expect(resendMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns to the entered settings when the earlier refill cannot be paid', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        detail: 'Pay your last Seer credit purchase to turn on auto-load.',
+        invoiceId: 3,
+        invoiceGuid: 'pending-guid',
+      },
+    });
+    const intentMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/pending-guid/new/`,
+      statusCode: 400,
+      body: {detail: 'No payment method on file.'},
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    );
+
+    expect(await screen.findByText('No payment method on file.')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(intentMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('requests the payment again after a refetch failed', async () => {
+    const intentUrl = `/organizations/${organization.slug}/payments/pending-guid/new/`;
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        detail: 'Pay your last Seer credit purchase to turn on auto-load.',
+        invoiceId: 3,
+        invoiceGuid: 'pending-guid',
+      },
+    });
+    // The bank check fails, which makes the payment form refetch the intent.
+    MockApiClient.addMockResponse({
+      url: intentUrl,
+      body: {
+        amount: '1500',
+        clientSecret: 'ERROR',
+        currency: 'usd',
+        returnUrl: 'https://example.com/',
+        paymentIntentId: 'pi_1',
+        requiresAction: true,
+      },
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+    const conflictMock = MockApiClient.addMockResponse({
+      url: intentUrl,
+      statusCode: 409,
+      body: {detail: 'A payment attempt for this invoice is already in progress.'},
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(
+      await screen.findByText(
+        'A payment attempt for this invoice is already in progress.'
+      )
+    ).toBeInTheDocument();
+    expect(conflictMock).toHaveBeenCalledTimes(1);
+
+    const intentMock = MockApiClient.addMockResponse({
+      url: intentUrl,
+      body: {
+        amount: '1500',
+        clientSecret: 'pi_secret',
+        currency: 'usd',
+        returnUrl: 'https://example.com/',
+        paymentIntentId: 'pi_2',
+        requiresAction: true,
+      },
+    });
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    ).toBeInTheDocument();
+    expect(intentMock).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByText('A payment attempt for this invoice is already in progress.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('returns to the entered settings when bank verification fails', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        invoiceGuid: 'invoice-guid',
+        verification: {
+          required: true,
+          paymentIntentId: 'pi_123',
+          clientSecret: 'ERROR',
+        },
+      },
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    );
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(await screen.findByText(/authentication failed/)).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    ).toBeInTheDocument();
+  });
+
+  it('returns to the entered settings when bank verification is cancelled', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        invoiceGuid: 'invoice-guid',
+        verification: {
+          required: true,
+          paymentIntentId: 'pi_123',
+          clientSecret: 'pi_secret',
+        },
+      },
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+
+    expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    ).toBeInTheDocument();
+  });
+
   it('offers a retry when the wallet fails to load', async () => {
     MockApiClient.addMockResponse({url: walletUrl, statusCode: 500, body: {}});
     MockApiClient.addMockResponse({url, body: AutoTopUpFixture()});
