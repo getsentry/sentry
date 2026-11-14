@@ -73,6 +73,10 @@ section.org-login {
     background-image: url(sentry-logos/logo-saml2.svg);
   }
 
+  &.openid-connect {
+    background-image: url(sentry-logos/logo-default.svg);
+  }
+
   &.slack {
     background-image: url(sentry-logos/logo-slack.svg);
   }

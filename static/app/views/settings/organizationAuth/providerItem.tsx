@@ -72,6 +72,12 @@ export function ProviderItem({provider, active}: Props) {
       );
     }
 
+    if (providerName === 'OpenID Connect') {
+      return t(
+        'your preferred OpenID Connect provider like Keycloak, Authentik, or Zitadel'
+      );
+    }
+
     if (providerName === 'Google') {
       return t('Google (OAuth)');
     }
