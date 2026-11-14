@@ -40,26 +40,12 @@ import {
 const CPE_DECIMAL_PRECISION = 8;
 
 /**
- * A billing platform plan id is a package uuid with the billing interval in
- * months appended, e.g. `<uuid>-1` (monthly) or `<uuid>-12` (annual).
+ * The plan id without its billing interval, so the monthly and annual variants
+ * of a plan match: the package uid for billing platform plans (`<uuid>-12`),
+ * the base plan for legacy plans (`am3_business_ent_auf`).
  */
-const PLATFORM_PACKAGE_ID_PATTERN =
-  /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-\d+$/i;
-
-/**
- * Only monthly plans are offered for provisioning, so map a subscription's plan
- * id to the id of its monthly variant: strip the legacy `_auf`/`_ac` suffixes,
- * and point billing platform package ids at their 1-month interval.
- */
-function getMonthlyPlanId(planId: string): string {
-  if (planId.endsWith('_auf')) {
-    return planId.slice(0, -4);
-  }
-  if (planId.endsWith('_ac')) {
-    return planId.slice(0, -3);
-  }
-  const packageUid = PLATFORM_PACKAGE_ID_PATTERN.exec(planId)?.[1];
-  return packageUid ? `${packageUid}-1` : planId;
+function getIntervalAgnosticPlanId(planId: string): string {
+  return planId.replace(/(-\d+|_auf|_ac)$/, '');
 }
 
 type Props = {
@@ -265,10 +251,11 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       provisionablePlans,
     }));
 
-    const existingPlanWithoutSuffix = getMonthlyPlanId(subscription.plan);
-    const existingPlanIsEnterprise = Object.keys(provisionablePlans).includes(
-      existingPlanWithoutSuffix
+    const existingPlanId = Object.keys(provisionablePlans).find(
+      planId =>
+        getIntervalAgnosticPlanId(planId) === getIntervalAgnosticPlanId(subscription.plan)
     );
+    const existingPlanIsEnterprise = existingPlanId !== undefined;
 
     const reservedBudgets = subscription.reservedBudgets;
     const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> = {};
@@ -303,7 +290,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     });
     const enterpriseData = existingPlanIsEnterprise
       ? {
-          plan: existingPlanWithoutSuffix,
+          plan: existingPlanId,
           billingInterval: subscription.billingInterval,
           retainOnDemandBudget: false,
           type: subscription.type,
