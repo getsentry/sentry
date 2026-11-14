@@ -792,7 +792,7 @@ def _create_seer_activity(
     elif event_type == SentryAppEventType.SEER_STOPPED:
         activity_data.update(event_payload.get("stop") or {})
 
-    Activity.objects.create_group_activity(
+    activity = Activity.objects.create_group_activity(
         group,
         activity_type,
         user_id=actor_user_id,
@@ -809,21 +809,21 @@ def _create_seer_activity(
             owner_user_ids, owner_team_ids = IssueOwnersActivityAlertStrategy(
                 group=group
             ).get_issue_owner_ids()
-            for pr_url in pr_urls:
-                safe_execute(
-                    create_inbox_items,
-                    event_type=ISSUE_PR_READY_FOR_REVIEW,
-                    subject=group,
-                    data=IssuePRReadyForReviewData(
-                        pr_url=pr_url,
-                        seer_run_id=event_payload["run_id"],
-                    ),
-                    user_ids=owner_user_ids,
-                    team_ids=owner_team_ids,
-                    actor=InboxActor.user(actor_user_id)
-                    if actor_user_id is not None
-                    else INBOX_SYSTEM_ACTOR,
-                )
+            safe_execute(
+                create_inbox_items,
+                event_type=ISSUE_PR_READY_FOR_REVIEW,
+                subject=group,
+                data=IssuePRReadyForReviewData(
+                    activity_id=activity.id,
+                    pr_urls=pr_urls,
+                    seer_run_id=event_payload["run_id"],
+                ),
+                user_ids=owner_user_ids,
+                team_ids=owner_team_ids,
+                actor=InboxActor.user(actor_user_id)
+                if actor_user_id is not None
+                else INBOX_SYSTEM_ACTOR,
+            )
 
 
 def record_seer_activity(

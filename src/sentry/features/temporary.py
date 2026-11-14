@@ -438,6 +438,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:universal-inbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Collect inbox events independently of the inbox UI.
     manager.add("organizations:universal-inbox-recording", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Send inbox events as personal notifications, in place of the issue workflow notifications
+    # for the same activity.
+    manager.add("organizations:universal-inbox-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Serve Autofix on its own /issues/<id>/autofix/ page instead of the issue details drawer.
     # Not for self-hosted yet. Roll this out to specific organizations; do not change the
     # default here and do not add it to SENTRY_FEATURES, either of which would turn it on

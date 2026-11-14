@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from urllib.parse import urlencode
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -54,3 +57,9 @@ class InboxItem(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("id", "organization_id", "user_id", "subject_type", "subject_id")
+
+    def get_absolute_url(self, params: Mapping[str, str] | None = None) -> str:
+        return self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/inbox/{self.subject_type}/{self.subject_id}/",
+            query=urlencode(params) if params else None,
+        )

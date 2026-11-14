@@ -13,6 +13,7 @@ from sentry.db.models import Model
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.platform.inbox import get_inbox_notified_user_ids
 from sentry.notifications.types import NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils import get_suspect_commits_by_group_id, send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
@@ -105,7 +106,12 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         """This is overridden by the activity subclasses."""
-        return get_participants_for_group(self.group, self.activity.user_id)
+        return get_participants_for_group(
+            self.group,
+            self.activity.user_id,
+            # TODO(ISWF-3771): Temporary, until inbox notifications replace this notification.
+            exclude_user_ids=get_inbox_notified_user_ids(self.activity),
+        )
 
     def get_unsubscribe_key(self) -> UnsubscribeContext | None:
         return UnsubscribeContext(
