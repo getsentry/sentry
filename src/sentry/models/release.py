@@ -18,6 +18,7 @@ from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 from sentry_sdk import traces
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
@@ -36,6 +37,8 @@ from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
+from sentry.models.options.project_option import get_option
+from sentry.models.organization import Organization
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
     ERR_RELEASE_HEALTH_DATA,
@@ -1005,9 +1008,8 @@ def follows_semver_versioning_scheme(
     org_id: int, project_id: int, release_version: str | None = None
 ) -> bool:
     """
-    Checks if we should follow semantic versioning scheme for ordering based on
-    1. Latest ten releases of the project_id passed in all follow semver
-    2. provided release version argument is a valid semver version
+    Check the project's semver preference, or infer it from recent releases.
+    A supplied release version must also be semver-compliant.
 
     Inputs:
         * org_id
@@ -1018,6 +1020,12 @@ def follows_semver_versioning_scheme(
     """
     # TODO(ahmed): Move this function else where to be easily accessible for re-use
     # TODO: this method could be moved to the Release model manager
+    # Read the preference before the heuristic cache so setting changes take effect immediately.
+    if get_option(project_id, "sentry:semver") and features.has(
+        "organizations:project-semver-ordering", Organization.objects.get_from_cache(id=org_id)
+    ):
+        return not release_version or Release.is_semver_version(release_version)
+
     cache_key = "follows_semver:1:%s" % hash_values([org_id, project_id])
     follows_semver = cache.get(cache_key)
 
@@ -1035,7 +1043,6 @@ def follows_semver_versioning_scheme(
             cache.set(cache_key, False, 3600)
             return False
 
-        # TODO(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
         # A project is said to be following semver versioning schemes if it satisfies the following
         # conditions:-
         # 1: At least one semver compliant in the most recent 3 releases

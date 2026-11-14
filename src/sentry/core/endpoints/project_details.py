@@ -392,6 +392,10 @@ E.g. `['release', 'environment']`""",
         required=False,
         help_text="Automatically create releases from ingested events. When disabled, releases must be created manually (e.g. via the Sentry CLI).",
     )
+    semver = serializers.BooleanField(
+        required=False,
+        help_text="Use semantic release ordering regardless of recent release names. Non-semver versions still use release order. When disabled, ordering is detected automatically. Requires the project-semver-ordering feature.",
+    )
     allowedDomains = EmptyListField(
         child=OriginField(allow_blank=True),
         required=False,
@@ -597,6 +601,15 @@ E.g. `['release', 'environment']`""",
 
     def validate_safeFields(self, value: list[str]) -> list[str]:
         return validate_pii_selectors(value)
+
+    def validate_semver(self, value: bool) -> bool:
+        if value and not features.has(
+            "organizations:project-semver-ordering", self.context["project"].organization
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the project-semver-ordering feature enabled."
+            )
+        return value
 
     def validate_tempestFetchScreenshots(self, value: bool) -> bool:
         organization = self.context["project"].organization
@@ -926,6 +939,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:enable_auto_release_creation"] = result[
                     "enableAutoReleaseCreation"
                 ]
+        if "semver" in result:
+            if project.update_option("sentry:semver", result["semver"]):
+                changed_proj_settings["sentry:semver"] = result["semver"]
         if result.get("allowedDomains"):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
