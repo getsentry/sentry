@@ -38,7 +38,6 @@ from sentry.types.cell import (
     find_all_multitenant_locality_names,
     find_all_signup_locality_names,
     get_cell_by_name,
-    get_global_directory,
     get_locality_by_name,
     get_locality_name_for_cell,
 )
@@ -163,12 +162,11 @@ def _resolve_last_org(
             return None
 
         if user_is_authenticated and user is not None:
-            org_context = organization_service.get_organization_by_slug(
+            org_context = organization_service.get_access_context_by_slug(
                 slug=last_org_slug,
                 only_visible=False,
                 user_id=user.id,
-                include_projects=False,
-                include_teams=False,
+                include_resource_ids=False,
             )
 
     has_org_access = bool(org_context and org_context.member)
@@ -290,8 +288,8 @@ class _ClientConfig:
         region_url = None
         if self.last_org:
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                organization_mapping = OrganizationMapping.objects.get(
-                    organization_id=self.last_org.id
+                organization_mapping = OrganizationMapping.objects.get_from_cache(
+                    organization_id=self.last_org.id, use_replica=True
                 )
                 region_url = generate_locality_url(
                     get_locality_name_for_cell(organization_mapping.cell_name)
@@ -304,14 +302,9 @@ class _ClientConfig:
         yield "sentryUrl", options.get("system.url-prefix")
 
         if self._is_superuser() and superuser.SUPERUSER_ORG_ID is not None:
-            org_context = organization_service.get_organization_by_id(
-                id=superuser.SUPERUSER_ORG_ID,
-                user_id=None,
-                include_projects=False,
-                include_teams=False,
-            )
-            if org_context and org_context.organization:
-                yield "superuserUrl", generate_organization_url(org_context.organization.slug)
+            organization = organization_service.get_org_by_id(id=superuser.SUPERUSER_ORG_ID)
+            if organization:
+                yield "superuserUrl", generate_organization_url(organization.slug)
 
     @cached_property
     def user_details(self) -> Mapping[str, Any] | None:
@@ -335,20 +328,6 @@ class _ClientConfig:
         if self._is_superuser():
             user_details["isSuperuser"] = self.user.is_superuser
         return user_details
-
-    @cached_property
-    def _member_locality_names(self) -> frozenset[str]:
-        # If the user is not authenticated they have no region membership
-        if not self.user or not self.user.id:
-            return frozenset()
-
-        cell_names = user_service.get_member_cell_names(user_id=self.user.id)
-        directory = get_global_directory()
-        return frozenset(
-            loc.name
-            for name in cell_names
-            if (loc := directory.get_locality_for_cell(name)) is not None
-        )
 
     @property
     def localities(self) -> list[Mapping[str, Any]]:
