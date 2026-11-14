@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from sentry.auth.access import from_user
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -45,22 +46,29 @@ def unfurl_issues(
         MessagingInteractionType.UNFURL_ISSUES, SlackMessagingSpec(), user=user
     ).capture() as lifecycle:
         lifecycle.add_extras({"integration_id": integration.id})
-        return _unfurl_issues(integration, links)
+        if user is None:
+            return {}
+        return _unfurl_issues(integration, links, user)
 
 
 def _unfurl_issues(
-    integration: Integration | RpcIntegration, links: list[UnfurlableUrl]
+    integration: Integration | RpcIntegration,
+    links: list[UnfurlableUrl],
+    user: User | RpcUser,
 ) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id
     )
     group_by_id = {
         g.id: g
-        for g in Group.objects.filter(
+        for g in Group.objects.select_related("project__organization").filter(
             id__in={link.args["issue_id"] for link in links},
             project__in=Project.objects.filter(
                 organization_id__in=[oi.organization_id for oi in org_integrations]
             ),
+        )
+        if from_user(user, g.organization).has_any_project_scope(
+            g.project, ("event:read", "event:write", "event:admin")
         )
     }
     if not group_by_id:
