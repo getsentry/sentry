@@ -603,6 +603,72 @@ describe('AutomationNewSettings', () => {
     });
   });
 
+  describe('actions that do not fire when an issue is resolved', () => {
+    const incompatibleMessage =
+      'This action is incompatible with the current configuration.';
+    const partialSupportMessage =
+      'This action will fire for your other triggers, but not when an issue is resolved.';
+
+    it('shows a note instead of a warning on the default triggers', async () => {
+      render(<AutomationNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/', query: {connectedIds: '123'}},
+        },
+      });
+
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Add action'}),
+        'Slack'
+      );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Jira');
+
+      expect(await screen.findAllByText(partialSupportMessage)).toHaveLength(1);
+      expect(screen.queryByText(incompatibleMessage)).not.toBeInTheDocument();
+    });
+
+    it('warns once the resolved trigger is the only one left', async () => {
+      render(<AutomationNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/', query: {connectedIds: '123'}},
+        },
+      });
+
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Jira');
+      expect(await screen.findByText(partialSupportMessage)).toBeInTheDocument();
+
+      await userEvent.click(screen.getAllByRole('button', {name: 'Delete row'})[0]!);
+      await userEvent.click(screen.getAllByRole('button', {name: 'Delete row'})[1]!);
+      expect(screen.getByText('A resolved issue regresses')).toBeInTheDocument();
+      expect(screen.getByText(partialSupportMessage)).toBeInTheDocument();
+
+      await userEvent.click(screen.getAllByRole('button', {name: 'Delete row'})[1]!);
+      expect(screen.getByText('An issue is resolved')).toBeInTheDocument();
+      expect(screen.queryByText('A resolved issue regresses')).not.toBeInTheDocument();
+      expect(screen.getByText(incompatibleMessage)).toBeInTheDocument();
+      expect(screen.queryByText(partialSupportMessage)).not.toBeInTheDocument();
+    });
+
+    it('drops the note once the resolved trigger is removed', async () => {
+      render(<AutomationNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/', query: {connectedIds: '123'}},
+        },
+      });
+
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Jira');
+      expect(await screen.findByText(partialSupportMessage)).toBeInTheDocument();
+
+      await userEvent.click(screen.getAllByRole('button', {name: 'Delete row'})[1]!);
+
+      expect(screen.queryByText('An issue is resolved')).not.toBeInTheDocument();
+      expect(screen.queryByText(partialSupportMessage)).not.toBeInTheDocument();
+      expect(screen.queryByText(incompatibleMessage)).not.toBeInTheDocument();
+    });
+  });
+
   it('shows validation error when submitting with no projects or monitors selected', async () => {
     ProjectsStore.loadInitialData([]);
 

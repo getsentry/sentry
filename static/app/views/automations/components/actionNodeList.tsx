@@ -14,11 +14,14 @@ import {
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
-import {getIncompatibleActionWarnings} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
+import {
+  getIncompatibleActionWarnings,
+  getPartialTriggerSupportMessage,
+} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
 
 import {ActionNodeContext, useActionNodeContext} from './actionNodeContext';
 import {actionNodesMap} from './actionNodes';
@@ -70,7 +73,6 @@ export function ActionNodeList({
     useAvailableActionsQuery();
   const {errors} = useAutomationBuilderErrorContext();
   const {state} = useAutomationBuilderContext();
-  const triggerConditions = state.triggers.conditions;
 
   const options = useMemo(() => {
     const notificationActions: Option[] = [];
@@ -147,7 +149,7 @@ export function ActionNodeList({
             conditionGroupId={conditionGroupId}
             handler={handler}
             error={errors?.[action.id]}
-            triggerConditions={triggerConditions}
+            triggers={state.triggers}
             onDeleteRow={onDeleteRow}
             updateAction={updateAction}
           />
@@ -171,7 +173,7 @@ interface ActionNodeRowProps {
   conditionGroupId: string;
   handler: ActionHandler;
   onDeleteRow: (id: string) => void;
-  triggerConditions: DataCondition[];
+  triggers: DataConditionGroup;
   updateAction: (id: string, params: Record<string, any>) => void;
   error?: string;
 }
@@ -182,14 +184,14 @@ const ActionNodeRow = memo(function ActionNodeRow({
   conditionGroupId,
   handler,
   error,
-  triggerConditions,
+  triggers,
   onDeleteRow,
   updateAction,
 }: ActionNodeRowProps) {
   const {connectedDetectors} = useConnectedDetectors();
   const warningMessages = getIncompatibleActionWarnings(action, {
     connectedDetectors,
-    triggerConditions,
+    triggers,
   });
   const actionId = `actionFilters.${conditionGroupId}.action.${action.id}`;
   const onUpdate = useCallback(
@@ -209,6 +211,7 @@ const ActionNodeRow = memo(function ActionNodeRow({
       hasError={!!error}
       errorMessage={error}
       warningMessages={warningMessages}
+      infoMessage={getPartialTriggerSupportMessage(action, triggers)}
     >
       <ActionNodeContext.Provider value={contextValue}>
         <Node />
