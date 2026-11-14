@@ -254,6 +254,9 @@ jobs:
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '4'
+      # Record tests that reach hosts outside the runner, without failing them. Only on
+      # master and manual runs, so pull requests pay nothing. See network_guard.py.
+      SENTRY_NETWORK_GUARD: ${{ github.event_name == 'pull_request' && 'off' || 'report' }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -402,6 +405,16 @@ jobs:
           path: |
             .artifacts/resource-usage.jsonl
             .artifacts/resource-usage-summary.json
+          retention-days: 30
+
+      - name: Upload network guard report
+        if: ${{ !cancelled() && env.SENTRY_NETWORK_GUARD != 'off' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: network-guard-${{ github.run_id }}-${{ matrix.instance }}
+          path: .artifacts/network-guard.json
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Report failures
