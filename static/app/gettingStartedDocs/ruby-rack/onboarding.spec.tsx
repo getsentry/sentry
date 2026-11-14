@@ -47,14 +47,14 @@ describe('getting started with rack', () => {
     ).toBeInTheDocument();
   });
 
-  it('enables logs by setting enable_logs to true', () => {
+  it('does not suggest the removed enable_logs option', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/config.enable_logs = true/))
-    ).toBeInTheDocument();
+      screen.queryByText(textWithMarkupMatcher(/config.enable_logs/))
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/config.enabled_patches = \[:logger\]/))
     ).toBeInTheDocument();
