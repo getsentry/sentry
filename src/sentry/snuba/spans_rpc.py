@@ -143,7 +143,7 @@ class Spans(rpc_dataset_common.RPCBase):
             "app.vitals.ttfd.value",
             *additional_attributes,
         ]
-        resolver = cls.get_resolver(params=params, config=SearchResolverConfig())
+        resolver = cls.get_resolver(params=params, config=config)
         columns, _ = resolver.resolve_attributes(trace_attributes)
         meta = resolver.resolve_meta(referrer=referrer)
         request = GetTraceRequest(

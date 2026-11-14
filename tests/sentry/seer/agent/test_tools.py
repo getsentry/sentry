@@ -32,6 +32,7 @@ from sentry.seer.agent.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     _get_issue_event_timeseries,
     _get_recommended_event,
+    _parse_span_links,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
@@ -873,6 +874,55 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
 
     def test_get_trace_waterfall_full_id(self) -> None:
         self._test_get_trace_waterfall(use_short_id=False)
+
+    def test_get_trace_waterfall_span_links(self) -> None:
+        trace_id = uuid.uuid4().hex
+        root = self.create_span(
+            {
+                "description": "GET /pricing",
+                "trace_id": trace_id,
+                "parent_span_id": None,
+                "is_segment": True,
+                "sentry_tags": {
+                    "links": '[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":{"type":"string","value":"cache_origin"}}}]',
+                },
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        child = self.create_span(
+            {
+                "description": "no links",
+                "trace_id": trace_id,
+                "parent_span_id": root["span_id"],
+                "is_segment": False,
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([root, child])
+
+        with patch(
+            "sentry.api.endpoints.project_trace_item_details.sentry_sdk.capture_exception"
+        ) as mock_capture:
+            result = get_trace_waterfall(trace_id, self.organization.id)
+        # EAP returns "" for the link-less child, which must not count as a bad payload.
+        mock_capture.assert_not_called()
+
+        assert isinstance(result, EAPTrace)
+        spans = [result.trace[0], *result.trace[0]["children"]]
+        by_id = {span["event_id"]: span for span in spans}
+        assert by_id[root["span_id"]]["links"] == [
+            {
+                "traceId": "d099bf9ad5a143cf8f83a98081d0ed3b",
+                "itemId": "8873a98879faf06d",
+                "sampled": True,
+                "attributes": [
+                    {"name": "sentry.link.type", "value": "cache_origin", "type": "str"}
+                ],
+            }
+        ]
+        assert "sentry.links" not in by_id[root["span_id"]]["additional_attributes"]
+        assert "links" not in by_id[child["span_id"]]
+        assert "sentry.links" not in by_id[child["span_id"]]["additional_attributes"]
 
     def test_get_trace_waterfall_wrong_project(self) -> None:
         transaction_name = "api/users/profile"
@@ -4631,3 +4681,51 @@ class TestSeerActivityFeed(TestCase):
             assert self._activity() == []
             with self.feature({"projects:issue-action-log-activity": False}):
                 assert [item["type"] for item in self._activity()] == ["set_resolved"]
+
+
+@pytest.mark.parametrize(
+    "raw_links",
+    [
+        "not json",
+        '{"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b"}',
+        '[{"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b"}]',
+        '[{"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b", "span_id": "8873a98879faf06d", "attributes": ["x"]}]',
+    ],
+)
+def test_parse_span_links_skips_malformed_links(raw_links: str) -> None:
+    linked_child: dict[str, Any] = {
+        "event_id": "8873a98879faf06d",
+        "additional_attributes": {
+            "sentry.links": '[{"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b", "span_id": "8873a98879faf06d"}]'
+        },
+        "children": [],
+    }
+    span: dict[str, Any] = {
+        "event_id": "a1b2c3d4e5f60718",
+        "additional_attributes": {"sentry.links": raw_links, "span.status_code": "200"},
+        "children": [linked_child],
+    }
+
+    _parse_span_links([span])
+
+    assert "links" not in span
+    assert span["additional_attributes"] == {"span.status_code": "200"}
+    assert linked_child["links"] == [
+        {"traceId": "d099bf9ad5a143cf8f83a98081d0ed3b", "itemId": "8873a98879faf06d"}
+    ]
+
+
+def test_parse_span_links_keeps_valid_links_next_to_malformed_ones() -> None:
+    span: dict[str, Any] = {
+        "event_id": "a1b2c3d4e5f60718",
+        "additional_attributes": {
+            "sentry.links": '[{"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b"}, {"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b", "span_id": "8873a98879faf06d"}]'
+        },
+        "children": [],
+    }
+
+    _parse_span_links([span])
+
+    assert span["links"] == [
+        {"traceId": "d099bf9ad5a143cf8f83a98081d0ed3b", "itemId": "8873a98879faf06d"}
+    ]

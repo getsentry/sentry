@@ -610,6 +610,14 @@ class OrganizationEventsTraceEndpointTest(
         assert data[0]["children"][0]["additional_attributes"]["gen_ai.request.model"] == "gpt-4o"
         assert data[0]["children"][0]["additional_attributes"]["gen_ai.usage.total_tokens"] == 100
 
+    def test_private_span_links_attribute_rejected(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago, "additional_attributes": ["sentry.links"]},
+            )
+        assert response.status_code == 400, response.content
+
     def test_with_span_description_in_additional_attrs(self) -> None:
         self.load_trace()
         with self.feature(self.FEATURES):
