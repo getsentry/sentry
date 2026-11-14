@@ -238,6 +238,7 @@ export interface ExplorerAutofixState {
     warning_type: string;
     installation_id?: string;
     repo_name?: string;
+    stranded_action?: 'push' | 'branch_moved_retry' | null;
   }>;
 }
 
@@ -711,6 +712,12 @@ export function isPrIterationPaused(runState: ExplorerAutofixState | null): bool
   return runState?.pr_iteration_paused === true;
 }
 
+function getPrIterationOutOfCreditsWarning(runState: ExplorerAutofixState | null) {
+  return runState?.warnings?.find(
+    warning => warning.warning_type === 'pr_iteration_out_of_credits'
+  );
+}
+
 /**
  * PR iteration stopped because the organization ran out of Seer credits, and
  * nothing has run since.
@@ -718,11 +725,17 @@ export function isPrIterationPaused(runState: ExplorerAutofixState | null): bool
 export function isPrIterationOutOfCredits(
   runState: ExplorerAutofixState | null
 ): boolean {
-  return (
-    runState?.warnings?.some(
-      warning => warning.warning_type === 'pr_iteration_out_of_credits'
-    ) ?? false
-  );
+  return defined(getPrIterationOutOfCreditsWarning(runState));
+}
+
+/**
+ * Sentry's credit check refused the push of the latest iteration's changes, so
+ * they aren't on the PR yet.
+ */
+export function isPrIterationPushStrandedForCredits(
+  runState: ExplorerAutofixState | null
+): boolean {
+  return getPrIterationOutOfCreditsWarning(runState)?.stranded_action === 'push';
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {

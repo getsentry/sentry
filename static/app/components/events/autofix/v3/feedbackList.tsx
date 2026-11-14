@@ -21,6 +21,7 @@ import {
   isOutOfCreditsSection,
   isPrIterationBlock,
   isPrIterationOutOfCredits,
+  isPrIterationPushStrandedForCredits,
   type AutofixSection,
   type RawFeedback,
   type useExplorerAutofix,
@@ -248,7 +249,12 @@ export function usePrIterationFeedback(
       ) {
         if (inProgress) {
           status = 'in_progress';
-        } else if (section.status === 'error' || pushErrors.length > 0) {
+        } else if (
+          section.status === 'error' ||
+          pushErrors.length > 0 ||
+          // Sentry refused the push, so Seer never tried it and no repo errored.
+          isPrIterationPushStrandedForCredits(autofix.runState)
+        ) {
           status = 'error';
         }
       }

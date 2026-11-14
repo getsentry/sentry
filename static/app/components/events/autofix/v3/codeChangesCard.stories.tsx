@@ -528,9 +528,8 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
     return (
       <Fragment>
         <Text size="sm" variant="muted">
-          Sentry's credit check refused the next PR iteration, so the run only has the{' '}
-          <code>pr_iteration_out_of_credits</code> warning. The finished step stays, the
-          refused feedback waits in the queue, and a line says the PR update stopped.
+          Sentry's credit check refused the next PR iteration. The finished step stays,
+          the refused feedback waits in the queue, and a line says the PR update stopped.
         </Text>
         <CodeChangesCard
           groupId="1"
@@ -543,9 +542,36 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
             ],
             {
               repo_pr_states: {'org/repo': makePR()},
-              warnings: [{warning_type: 'pr_iteration_out_of_credits'}],
+              warnings: [
+                {warning_type: 'pr_iteration_out_of_credits', stranded_action: null},
+              ],
             }
           )}
+          section={makeSection('completed', [
+            makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+          ])}
+        />
+      </Fragment>
+    );
+  });
+
+  story('PR iteration push Sentry stopped for credits', () => {
+    const user = useUser();
+    return (
+      <Fragment>
+        <Text size="sm" variant="muted">
+          Sentry's credit check refused the push of the latest PR iteration, so its
+          changes aren't on the PR. The feedback item is marked failed (hover the red
+          icon), and a line says the PR update stopped.
+        </Text>
+        <CodeChangesCard
+          groupId="1"
+          autofix={makeAutofix([], {
+            repo_pr_states: {'org/repo': makePR()},
+            warnings: [
+              {warning_type: 'pr_iteration_out_of_credits', stranded_action: 'push'},
+            ],
+          })}
           section={makeSection('completed', [
             makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
           ])}
@@ -559,14 +585,20 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
     return (
       <Fragment>
         <Text size="sm" variant="muted">
-          The PR branch moved, and Sentry's credit check refused the retry. The failed
-          feedback item uses the out-of-credits copy (hover the red icon).
+          Sentry's credit check refused the retry of a push the PR branch moved under. The
+          feedback item is marked failed with out-of-credits copy (hover the red icon),
+          and a line says the PR update stopped.
         </Text>
         <CodeChangesCard
           groupId="1"
           autofix={makeAutofix([], {
             repo_pr_states: {'org/repo': BRANCH_MOVED_PR},
-            warnings: [{warning_type: 'pr_iteration_out_of_credits'}],
+            warnings: [
+              {
+                warning_type: 'pr_iteration_out_of_credits',
+                stranded_action: 'branch_moved_retry',
+              },
+            ],
           })}
           section={makeSection('completed', [
             makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
