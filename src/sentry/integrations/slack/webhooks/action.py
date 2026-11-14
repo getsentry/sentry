@@ -410,6 +410,13 @@ class SlackActionEndpoint(Endpoint):
         if not identity or not identity_user:
             return self._respond_link_identity(slack_request)
 
+        # Non-members get each action's own reply, such as the Seer invite prompt.
+        access = from_user(identity_user, group.organization)
+        if group.organization.has_access(identity_user) and not access.has_any_project_scope(
+            group.project, ("event:write", "event:admin")
+        ):
+            return self.respond_ephemeral(NO_PROJECT_ACCESS_MESSAGE)
+
         original_tags_from_request = slack_request.get_tags()
 
         if slack_request.type == "view_submission":

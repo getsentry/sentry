@@ -83,6 +83,48 @@ class SeerAutofixActionTest(BaseEventTest):
         assert mock_not_member_message.called
         assert mock_not_member_message.call_args.kwargs["org_name"] == self.organization.name
 
+    def no_project_access_slack_user(self) -> dict[str, Any]:
+        """A Slack user linked to an org member who can't access the issue's project"""
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization)
+        external_id = "slack:3"
+        self.create_identity(member, self.idp, external_id)
+        return {
+            "id": external_id,
+            "name": "member",
+            "username": "member",
+            "team_id": "TXXXXXXX1",
+        }
+
+    @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_autofix")
+    def test_autofix_start_without_project_access_is_blocked(self, mock_trigger: MagicMock) -> None:
+        response = self.post_webhook_block_kit(
+            action_data=[self.get_autofix_start_action()],
+            original_message=self.get_original_message(),
+            slack_user=self.no_project_access_slack_user(),
+        )
+
+        assert response.status_code == 200
+        assert response.data["text"] == "You do not have access to this project."
+        assert not mock_trigger.called
+
+    @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_handoff")
+    def test_autofix_handoff_without_project_access_is_blocked(
+        self, mock_trigger: MagicMock
+    ) -> None:
+        response = self.post_webhook_block_kit(
+            action_data=[self.get_autofix_handoff_action()],
+            original_message=self.get_original_message(),
+            slack_user=self.no_project_access_slack_user(),
+            callback_id=orjson.dumps({"issue": self.group.id, "run_id": 123}).decode(),
+        )
+
+        assert response.status_code == 200
+        assert response.data["text"] == "You do not have access to this project."
+        assert not mock_trigger.called
+
     @patch("sentry.integrations.slack.webhooks.action.send_not_org_member_message")
     @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_autofix")
     def test_autofix_start_member_is_allowed(
