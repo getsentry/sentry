@@ -179,4 +179,43 @@ describe('useChartZoom', () => {
     expect(router.location.query.start).toBeUndefined();
     expect(router.location.query.end).toBeUndefined();
   });
+
+  it('resets the brushed range when the page moves to another range', () => {
+    const dispatchAction = jest.fn();
+    const chart = {
+      dispatchAction,
+      getDom: () => document.createElement('div'),
+    } as any;
+
+    const {result, router} = renderHookWithProviders<
+      ReturnType<typeof useChartZoom>,
+      UseChartZoomProps
+    >((props: UseChartZoomProps) => useChartZoom(props), {
+      initialProps: {usePageDate: true},
+      initialRouterConfig: {
+        location: {pathname: '/dashboard/1/', query: {statsPeriod: '24h'}},
+      },
+    });
+
+    act(() => {
+      result.current.onChartReady(chart);
+    });
+
+    act(() => {
+      result.current.onDataZoom(dataZoomPayload(), chart);
+    });
+
+    expect(router.location.query.start).toBe('2026-07-03T11:01:00');
+    // The chart already shows the brushed range, so keep it.
+    expect(dispatchAction).not.toHaveBeenCalled();
+
+    act(() => {
+      router.navigate('/dashboard/1/?statsPeriod=7d');
+    });
+
+    expect(dispatchAction).toHaveBeenCalledWith(
+      {type: 'dataZoom', start: 0, end: 100},
+      {silent: true}
+    );
+  });
 });
