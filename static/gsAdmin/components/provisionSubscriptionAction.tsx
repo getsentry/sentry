@@ -39,6 +39,15 @@ import {
 
 const CPE_DECIMAL_PRECISION = 8;
 
+/**
+ * The plan id without its billing interval, so the monthly and annual variants
+ * of a plan match: the package uid for billing platform plans (`<uuid>-12`),
+ * the base plan for legacy plans (`am3_business_ent_auf`).
+ */
+function getIntervalAgnosticPlanId(planId: string): string {
+  return planId.replace(/(-\d+|_auf|_ac)$/, '');
+}
+
 type Props = {
   billingConfig: BillingConfig | null;
   onSuccess: () => void;
@@ -242,14 +251,11 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       provisionablePlans,
     }));
 
-    const existingPlanWithoutSuffix = subscription.plan.endsWith('_auf')
-      ? subscription.plan.slice(0, -4)
-      : subscription.plan.endsWith('_ac')
-        ? subscription.plan.slice(0, -3)
-        : subscription.plan;
-    const existingPlanIsEnterprise = Object.keys(provisionablePlans).includes(
-      existingPlanWithoutSuffix
+    const existingPlanId = Object.keys(provisionablePlans).find(
+      planId =>
+        getIntervalAgnosticPlanId(planId) === getIntervalAgnosticPlanId(subscription.plan)
     );
+    const existingPlanIsEnterprise = existingPlanId !== undefined;
 
     const reservedBudgets = subscription.reservedBudgets;
     const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> = {};
@@ -284,7 +290,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     });
     const enterpriseData = existingPlanIsEnterprise
       ? {
-          plan: existingPlanWithoutSuffix,
+          plan: existingPlanId,
           billingInterval: subscription.billingInterval,
           retainOnDemandBudget: false,
           type: subscription.type,
