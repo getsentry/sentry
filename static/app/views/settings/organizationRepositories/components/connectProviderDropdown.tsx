@@ -7,12 +7,14 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useRequestIntegration} from 'sentry/views/settings/organizationIntegrations/integrationRequest/useRequestIntegration';
 
 interface Props {
   onAddIntegration: (data: IntegrationWithConfig) => void;
@@ -21,7 +23,9 @@ interface Props {
 
 export function ConnectProviderDropdown({providers, onAddIntegration}: Props) {
   const organization = useOrganization();
+  const canInstall = hasEveryAccess(['org:integrations'], {organization});
   const {startFlow} = useAddIntegration();
+  const {isOpen, isSent, openRequestModal} = useRequestIntegration();
   const isSeerSupported = useIsSeerSupportedProvider();
 
   const hasSeerCompatible = providers.some(p =>
@@ -29,35 +33,51 @@ export function ConnectProviderDropdown({providers, onAddIntegration}: Props) {
   );
 
   const items: MenuItemProps[] = providers.map(provider => {
+    const request = {
+      name: provider.name,
+      slug: provider.slug,
+      type: 'first_party' as const,
+    };
+    const requestSent = !canInstall && isSent(request);
+    const label = requestSent
+      ? t('%s (installation requested)', provider.name)
+      : provider.name;
     const isSeerCompatible = isSeerSupported({id: provider.key, name: provider.name});
     return {
       key: provider.key,
       label: isSeerCompatible ? (
         <Flex align="center" gap="sm">
-          {provider.name}
+          {label}
           <Tooltip title={t('Compatible with Seer.')}>
             <Tag variant="promotion" icon={<IconSeer />} />
           </Tooltip>
         </Flex>
       ) : (
-        provider.name
+        label
       ),
       textValue: provider.name,
       leadingItems: getIntegrationIcon(provider.key, 'sm'),
-      disabled: !provider.canAdd,
-      onAction: () =>
+      disabled: !provider.canAdd || (!canInstall && (isOpen || requestSent)),
+      onAction: () => {
+        if (!canInstall) {
+          openRequestModal(request);
+          return;
+        }
         startFlow({
           provider,
           organization,
           onInstall: onAddIntegration,
-        }),
+        });
+      },
     };
   });
 
   return (
     <DropdownMenu
       items={items}
-      triggerLabel={t('Connect new provider')}
+      triggerLabel={
+        canInstall ? t('Connect new provider') : t('Request provider installation')
+      }
       menuFooter={
         hasSeerCompatible ? (
           <Flex align="center" gap="sm" padding="md lg">
