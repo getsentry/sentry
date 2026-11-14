@@ -165,7 +165,17 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             },
             report_fatal_errors=False,
             ignore_mechanism_type=set(),
-            allow_mechanism_type=set(),
+            # The Cocoa SDK reports the MetricKit diagnostics that don't terminate the app as
+            # handled, so they are neither unhandled nor fatal. Allow them explicitly to find
+            # hangs, excessive CPU usage, excessive disk writes, and slow app launches caused
+            # by the SDK. MetricKit crashes and memory exceptions are unhandled and therefore
+            # already detected.
+            allow_mechanism_type={
+                "mx_hang_diagnostic",
+                "mx_cpu_exception",
+                "mx_disk_write_exception",
+                "mx_app_launch_diagnostic",
+            },
             system_library_path_patterns={r"/System/Library/**", r"/usr/lib/**"},
             sdk_frame_config=SDKFrameConfig(
                 function_patterns={
