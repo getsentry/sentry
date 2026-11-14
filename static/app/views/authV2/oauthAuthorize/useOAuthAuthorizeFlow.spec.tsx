@@ -199,6 +199,138 @@ describe('useOAuthAuthorizeFlow', () => {
     }
   );
 
+  it('forwards the OIDC prompt to context and consent preparation', async () => {
+    const context = MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/context/',
+      body: OAuthContextFixture(),
+      match: [MockApiClient.matchQuery({prompt: 'select_account consent'})],
+    });
+    const consent = MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      body: OAuthConsentFixture(),
+      match: [MockApiClient.matchQuery({prompt: 'select_account consent'})],
+    });
+    const {result} = renderHookWithProviders(useOAuthAuthorizeFlow, {
+      initialRouterConfig: {
+        location: {
+          ...location,
+          query: {...location.query, prompt: 'select_account consent'},
+        },
+      },
+    });
+
+    await waitFor(() => expect(result.current.state.status).toBe('consent'));
+    expect(context).toHaveBeenCalledTimes(1);
+    expect(consent).toHaveBeenCalledTimes(1);
+  });
+
+  it('signs out and prepares consent again after prompt=login reauthentication', async () => {
+    const logout = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      body: {},
+    });
+    MockApiClient.addMockResponse({url: '/auth-v2/csrf/', body: {}});
+    MockApiClient.addMockResponse({url: '/auth/config/', body: loginConfig});
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      body: {stage: 'reauthenticate'},
+    });
+    const decide = MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      method: 'POST',
+      body: {},
+    });
+    const {result} = renderHookWithProviders(useOAuthAuthorizeFlow, {
+      initialRouterConfig: {
+        location: {...location, query: {...location.query, prompt: 'login'}},
+      },
+    });
+
+    await waitFor(() =>
+      expect(result.current.state).toMatchObject({
+        status: 'authentication',
+        authConfig: loginConfig,
+      })
+    );
+    expect(logout).toHaveBeenCalledTimes(1);
+    expect(decide).not.toHaveBeenCalled();
+
+    const consent = OAuthConsentFixture({
+      transactionId: 'reauthenticated-transaction',
+      hasExistingConsent: true,
+    });
+    MockApiClient.addMockResponse({url: '/auth/oauth/authorize/', body: consent});
+    const user = UserFixture({id: '2'});
+
+    act(() => {
+      result.current.actions.onAuthenticated({user, nextUri: '/home/'}, loginConfig);
+    });
+
+    await waitFor(() =>
+      expect(decide).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {transactionId: 'reauthenticated-transaction', op: 'approve'},
+        })
+      )
+    );
+    expect(logout).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers a retry when prompt=login cannot sign out', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      statusCode: 503,
+      body: {detail: 'Sign out unavailable.'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      body: {stage: 'reauthenticate'},
+    });
+    const {result} = renderHookWithProviders(useOAuthAuthorizeFlow, {
+      initialRouterConfig: {
+        location: {...location, query: {...location.query, prompt: 'login'}},
+      },
+    });
+
+    await waitFor(() =>
+      expect(result.current.state).toMatchObject({
+        status: 'error',
+        message: 'Sign out unavailable.',
+        canRetry: true,
+        switchError: null,
+      })
+    );
+
+    const consentDelay = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      body: {stage: 'reauthenticate'},
+      asyncDelay: consentDelay.promise,
+    });
+    const logout = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      body: {},
+    });
+    MockApiClient.addMockResponse({url: '/auth-v2/csrf/', body: {}});
+    MockApiClient.addMockResponse({url: '/auth/config/', body: loginConfig});
+
+    act(() => result.current.actions.retry());
+
+    expect(result.current.state).toMatchObject({status: 'loading', switchError: null});
+
+    await act(() => {
+      consentDelay.resolve();
+      return consentDelay.promise;
+    });
+
+    await waitFor(() => expect(result.current.state.status).toBe('authentication'));
+    expect(logout).toHaveBeenCalledTimes(1);
+  });
+
   it('blocks decisions for the previous account while switching and after logout', async () => {
     const delay = Promise.withResolvers<void>();
     MockApiClient.addMockResponse({

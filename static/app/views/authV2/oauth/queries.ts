@@ -8,6 +8,7 @@ import type {
   DeviceConsent,
   DeviceContext,
   OAuthContext,
+  OAuthReauthentication,
   OAuthRedirect,
 } from './types';
 
@@ -60,10 +61,9 @@ export function authorizationConsentQueryOptions(
   query: AuthorizationParameters,
   sessionKey: string
 ) {
-  const options = apiOptions.as<AuthorizationConsent | OAuthRedirect>()(
-    '/auth/oauth/authorize/',
-    {query, staleTime: 0, allowAuthError: true}
-  );
+  const options = apiOptions.as<
+    AuthorizationConsent | OAuthReauthentication | OAuthRedirect
+  >()('/auth/oauth/authorize/', {query, staleTime: 0, allowAuthError: true});
   const queryKey: ApiQueryKey = options.queryKey;
   return {
     ...options,

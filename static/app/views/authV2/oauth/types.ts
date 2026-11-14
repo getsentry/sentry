@@ -27,6 +27,11 @@ export interface OAuthRedirect {
   stage: 'redirect';
 }
 
+/** prompt=login: the session must sign in again before consent is prepared. */
+export interface OAuthReauthentication {
+  stage: 'reauthenticate';
+}
+
 export interface OAuthOrganization {
   id: string;
   name: string;
