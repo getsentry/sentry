@@ -994,6 +994,21 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(group=[group.id])
         assert response.status_code == 403
 
+    def test_lookup_by_group_id_does_not_query_projects_per_group(self) -> None:
+        self.login_as(user=self.user)
+        groups = [
+            self.create_group(project=self.create_project(organization=self.organization))
+            for _ in range(3)
+        ]
+        per_project_lookup = 'FROM "sentry_project" WHERE "sentry_project"."id" = '
+
+        with CaptureQueriesContext(connection) as queries:
+            response = self.get_success_response(group=[g.id for g in groups])
+
+        assert {r["id"] for r in response.data} == {str(g.id) for g in groups}
+        project_lookups = [q["sql"] for q in queries if per_project_lookup in q["sql"]]
+        assert len(project_lookups) < len(groups)
+
     def test_lookup_by_first_release(self) -> None:
         self.login_as(self.user)
         project = self.project

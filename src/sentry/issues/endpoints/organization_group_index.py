@@ -458,7 +458,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         group_ids = set(to_valid_int_id_list("group", request.GET.getlist("group")))
 
         if group_ids:
-            groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
+            groups = list(
+                Group.objects.filter(id__in=group_ids, project_id__in=project_ids).select_related(
+                    "project"
+                )
+            )
             if any(g for g in groups if not request.access.has_project_access(g.project)):
                 raise PermissionDenied
             by_group_id: list[StreamGroupSerializerSnubaResponse] = serialize(
