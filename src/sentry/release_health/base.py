@@ -90,8 +90,8 @@ class SessionsQueryGroup(TypedDict):
 
 
 class SessionsQueryResult(TypedDict):
-    start: Annotated[datetime, ApiDescription("Start of the queried time range (ISO 8601)")]
-    end: Annotated[datetime, ApiDescription("End of the queried time range (ISO 8601)")]
+    start: Annotated[datetime | str, ApiDescription("Start of the queried time range (ISO 8601)")]
+    end: Annotated[datetime | str, ApiDescription("End of the queried time range (ISO 8601)")]
     intervals: Annotated[
         list[DateString], ApiDescription("Start of each interval in the series (ISO 8601)")
     ]
