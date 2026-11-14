@@ -254,7 +254,6 @@ export function DebugImageDetails({
 
   const {code_file, status} = image ?? {};
   const candidates = getCandidates({debugFiles, image, isLoading: isPending});
-  const baseUrl = api.baseUrl;
   const fileName = getFileName(code_file);
   const haveCandidatesUnappliedDebugFile = candidates.some(
     candidate => candidate.download.status === CandidateDownloadStatus.UNAPPLIED
@@ -325,7 +324,6 @@ export function DebugImageDetails({
                 candidates={candidates}
                 organization={organization}
                 projSlug={projSlug}
-                baseUrl={baseUrl}
                 isLoading={shouldShowLoadingIndicator}
                 eventDateReceived={event.dateReceived}
                 onDelete={handleDelete}

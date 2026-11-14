@@ -13,6 +13,7 @@ import type {ImageCandidate} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 
 const noPermissionToDownloadDebugFilesInfo = t(
   'You do not have permission to download debug files'
@@ -25,7 +26,6 @@ const noPermissionToDeleteDebugFilesInfo = t(
 const debugFileDeleteConfirmationInfo = t('Are you sure you wish to delete this file?');
 
 type Props = {
-  baseUrl: string;
   candidate: ImageCandidate;
   isInternalSource: boolean;
   onDelete: (debugFileId: string) => void;
@@ -37,7 +37,6 @@ export function Actions({
   candidate,
   organization,
   isInternalSource,
-  baseUrl,
   projSlug,
   onDelete,
 }: Props) {
@@ -50,7 +49,9 @@ export function Actions({
   }
 
   const deleted = status === CandidateDownloadStatus.DELETED;
-  const downloadUrl = `${baseUrl}/projects/${organization.slug}/${projSlug}/files/dsyms/?id=${debugFileId}`;
+  const downloadUrl = resolveHostname(
+    `/api/0/projects/${organization.slug}/${projSlug}/files/dsyms/?id=${debugFileId}`
+  );
 
   const actions = (
     <Access access={['project:write']}>

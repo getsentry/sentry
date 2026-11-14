@@ -32,7 +32,6 @@ const filterOptionCategories = {
 type ImageCandidates = NonNullable<Image['candidates']>;
 
 type Props = {
-  baseUrl: string;
   candidates: ImageCandidates;
   hasReprocessWarning: boolean;
   isLoading: boolean;
@@ -293,7 +292,6 @@ export class Candidates extends Component<Props, State> {
     const {
       organization,
       projSlug,
-      baseUrl,
       onDelete,
       isLoading,
       candidates,
@@ -386,7 +384,6 @@ export class Candidates extends Component<Props, State> {
                 key={index}
                 candidate={candidate}
                 organization={organization}
-                baseUrl={baseUrl}
                 projSlug={projSlug}
                 eventDateReceived={eventDateReceived}
                 hasReprocessWarning={hasReprocessWarning}

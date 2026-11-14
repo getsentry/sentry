@@ -29,6 +29,7 @@ import {t} from 'sentry/locale';
 import type {Event, EventTag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -144,7 +145,9 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
                 icon={<IconAttachment variant="muted" />}
                 tooltipProps={{title: t('View Screenshot')}}
                 onClick={() => {
-                  const downloadUrl = `/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/attachments/${screenshot.id}/`;
+                  const downloadUrl = resolveHostname(
+                    `/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/attachments/${screenshot.id}/`
+                  );
                   openModal(
                     modalProps => (
                       <ScreenshotModal
