@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import traces
 
@@ -31,6 +32,9 @@ from sentry.workflow_engine.types import (
     WorkflowEventData,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+if TYPE_CHECKING:
+    from sentry.workflow_engine.handlers.detector import BaseDetectorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -305,6 +309,42 @@ def _emit_detector_evaluations(
         )
 
 
+def complete_detector_evaluations(
+    detector: Detector,
+    handler: BaseDetectorHandler[Any, Any],
+    detector_results: dict[DetectorGroupKey, DetectorEvaluation],
+) -> None:
+    """
+    Stores the detector's evaluations in EAP, then passes each one to the handler's `on_complete`.
+
+    `detector` should be loaded with the `project_organization_id` annotation (or be an
+    org-level detector with `organization_id` in its config) so the evaluations can be stored.
+    """
+    _emit_detector_evaluations(
+        detector=detector,
+        result=ProcessDetectorsResult(
+            detector_id=detector.id,
+            detector_type=detector.type,
+            project_id=detector.project_id,
+            evaluations=detector_results,
+        ),
+    )
+
+    for result in detector_results.values():
+        if result.result is not None:
+            metric_label = "triggered" if isinstance(result.result, IssueOccurrence) else "resolved"
+            metrics.incr(
+                f"workflow_engine.process_detector.{metric_label}",
+                tags={"detector_type": detector.type},
+            )
+
+        with metrics.timer(
+            "workflow_engine.process_detectors.on_complete",
+            tags={"detector_type": detector.type},
+        ):
+            handler.on_complete(detector, result)
+
+
 @traces.trace
 def process_detectors[T](
     data_packet: DataPacket[T],
@@ -336,31 +376,7 @@ def process_detectors[T](
         ):
             detector_results = handler._evaluate(data_packet)
 
-        _emit_detector_evaluations(
-            detector=detector,
-            result=ProcessDetectorsResult(
-                detector_id=detector.id,
-                detector_type=detector.type,
-                project_id=detector.project_id,
-                evaluations=detector_results,
-            ),
-        )
-
-        for result in detector_results.values():
-            if result.result is not None:
-                metric_label = (
-                    "triggered" if isinstance(result.result, IssueOccurrence) else "resolved"
-                )
-                metrics.incr(
-                    f"workflow_engine.process_detector.{metric_label}",
-                    tags={"detector_type": detector.type},
-                )
-
-            with metrics.timer(
-                "workflow_engine.process_detectors.on_complete",
-                tags={"detector_type": detector.type},
-            ):
-                handler.on_complete(detector, result)
+        complete_detector_evaluations(detector, handler, detector_results)
 
         if detector_results:
             results.append((detector, detector_results))

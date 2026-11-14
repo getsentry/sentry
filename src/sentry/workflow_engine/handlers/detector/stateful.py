@@ -538,7 +538,7 @@ class StatefulDetectorHandler(
     ) -> StatusChangeMessage:
         workflow_engine_evidence_data = self._build_workflow_engine_evidence_data(
             evaluation,
-            data_packet,
+            data_packet.source_id,
             evaluation_value,
         )
 
