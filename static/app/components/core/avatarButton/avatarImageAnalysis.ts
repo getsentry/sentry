@@ -1,11 +1,6 @@
 import type {Theme} from '@emotion/react';
-import color from 'color';
 
 export const SAMPLE_SIZE = 12;
-
-// WCAG 1.4.11 (non-text contrast) recommends a 3:1 minimum for UI components
-// like borders against their adjacent content.
-export const MIN_EDGE_CONTRAST = 3;
 
 // TS can't prove typed-array index access is defined; this centralizes the
 // single suppression so callers stay clean.
@@ -80,7 +75,7 @@ function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
 }
 
 // Finds the dominant vibrant color by bucketing pixels into coarse RGB
-// buckets, preferring chromatic buckets (saturation ≥ 0.15) over grayscale.
+// buckets, preferring chromatic buckets (saturation ≥ MIN_SATURATION) over grayscale.
 // Among tied-for-largest buckets, picks the most saturated one.
 const DOMINANT_BUCKET_SIZE = 24;
 const DOMINANT_TIE_THRESHOLD = 0.8;
@@ -93,6 +88,37 @@ function saturationOf(r: number, g: number, b: number): number {
   return (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
 }
 
+// Below this saturation a pixel counts as gray rather than colored.
+const MIN_SATURATION = 0.15;
+
+/**
+ * Black, white and gray colors say nothing about the avatar's brand, so they
+ * keep the default styling instead of tinting the UI.
+ */
+export function isNeutralColor(hex: string): boolean {
+  const n = parseInt(hex.slice(1), 16);
+  return saturationOf((n >> 16) & 255, (n >> 8) & 255, n & 255) < MIN_SATURATION;
+}
+
+/**
+ * The chonk for an avatar's color, built the way the theme builds the chonks of
+ * the accent, danger and warning buttons (compare them in OKLCH): the same hue,
+ * one fixed step darker in light mode, and a fixed deep shade in dark mode so
+ * the chonk never glows brighter than the button surface. Gray colors return
+ * undefined and keep the default button chonk.
+ */
+export function getAvatarChonk(
+  dominant: string,
+  themeType: Theme['type']
+): string | undefined {
+  if (isNeutralColor(dominant)) {
+    return undefined;
+  }
+  return themeType === 'dark'
+    ? `oklch(from ${dominant} 0.19 min(c, 0.09) h)`
+    : `oklch(from ${dominant} calc(l - 0.13) c h)`;
+}
+
 export function dominantColor(data: Uint8ClampedArray): string | null {
   let hasChromatic = false;
   for (let i = 0; i < data.length; i += 4) {
@@ -102,7 +128,7 @@ export function dominantColor(data: Uint8ClampedArray): string | null {
     const r = px(data, i),
       g = px(data, i + 1),
       b = px(data, i + 2);
-    if (saturationOf(r, g, b) >= 0.15) {
+    if (saturationOf(r, g, b) >= MIN_SATURATION) {
       hasChromatic = true;
       break;
     }
@@ -118,7 +144,7 @@ export function dominantColor(data: Uint8ClampedArray): string | null {
       g = px(data, i + 1),
       b = px(data, i + 2);
 
-    const chromatic = saturationOf(r, g, b) >= 0.15;
+    const chromatic = saturationOf(r, g, b) >= MIN_SATURATION;
     if (hasChromatic && !chromatic) {
       continue;
     }
@@ -176,16 +202,18 @@ export function dominantColor(data: Uint8ClampedArray): string | null {
 
 function sampleAvatarColor(
   img: HTMLImageElement
-): {chonk: string | null; style: 'fill' | 'padded'} | null {
+): {dominant: string; style: 'fill' | 'padded'} | null {
   const data = readPixels(img);
   if (!data) {
     return null;
   }
 
-  return {
-    style: shouldPadImage(data),
-    chonk: dominantColor(data),
-  };
+  const dominant = dominantColor(data);
+  if (!dominant) {
+    return null;
+  }
+
+  return {dominant, style: shouldPadImage(data)};
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement | null> {
@@ -219,58 +247,13 @@ export function toPageOriginIfSameHost(url: string): string {
   }
 }
 
-async function fetchAvatarColor(
+export async function resolveImageAvatarColors(
   url: string
-): Promise<ReturnType<typeof sampleAvatarColor> | null> {
+): Promise<ReturnType<typeof sampleAvatarColor>> {
   try {
     const img = await loadImageElement(toPageOriginIfSameHost(url));
     return img ? sampleAvatarColor(img) : null;
   } catch {
     return null;
   }
-}
-
-// Shifts `hex` away from itself until it clears MIN_EDGE_CONTRAST. Tries
-// darkening first; if the color is too close to black to reach 3:1 that way,
-// falls back to lightening.
-export function darkenUntilContrasts(hex: string, theme: Theme['type']): string {
-  const reference = color(hex);
-  let candidate = color(hex);
-  const step = theme === 'dark' ? 0.2 : 0.12;
-
-  for (let i = 0; i < 12 && candidate.contrast(reference) < MIN_EDGE_CONTRAST; i++) {
-    candidate = candidate.darken(step);
-  }
-
-  if (candidate.contrast(reference) >= MIN_EDGE_CONTRAST) {
-    return candidate.hex();
-  }
-
-  // Near-black: darkening bottoms out, use absolute lightness steps instead.
-  candidate = color(hex);
-  for (let i = 0; i < 12 && candidate.contrast(reference) < MIN_EDGE_CONTRAST; i++) {
-    candidate = candidate.lightness(candidate.lightness() + 5);
-  }
-
-  return candidate.hex();
-}
-
-export async function resolveImageAvatarColors(
-  url: string,
-  theme: Theme['type']
-): Promise<{chonk: string; dominant: string; style: 'fill' | 'padded'} | null> {
-  const sampled = await fetchAvatarColor(url);
-  if (!sampled?.chonk) {
-    return null;
-  }
-
-  // Padded logos sit on their own background — use the dominant color as-is.
-  // Full-bleed images need the chonk to contrast against the image's own
-  // dominant color so the border reads clearly.
-  const chonk =
-    sampled.style === 'padded'
-      ? sampled.chonk
-      : darkenUntilContrasts(sampled.chonk, theme);
-
-  return {chonk, dominant: sampled.chonk, style: sampled.style};
 }

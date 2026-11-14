@@ -2,6 +2,7 @@ import color from 'color';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 
+import {isNeutralColor} from './avatarImageAnalysis';
 import {useAvatarColors} from './useAvatarColors';
 
 interface Gradient {
@@ -87,22 +88,12 @@ function capLightness(avatarColor: string, ceiling: string): string {
   return color.rgb(channels).hex();
 }
 
-// Matches the threshold `dominantColor` uses to tell colored pixels from gray.
-const MIN_SATURATION = 0.15;
-
-// Black, white and gray logos sample as a gray, which says nothing about the
-// brand and would turn the header black.
-function isNeutral(hex: string): boolean {
-  const channels = color(hex).rgb().array();
-  return (Math.max(...channels) - Math.min(...channels)) / 255 < MIN_SATURATION;
-}
-
 /**
  * A gradient in `avatarColor`, each stop no lighter than the matching stop of
  * `defaultGradient`. Neutral (gray) colors keep `defaultGradient`.
  */
 function getAvatarGradient(avatarColor: string, defaultGradient: Gradient): Gradient {
-  if (isNeutral(avatarColor)) {
+  if (isNeutralColor(avatarColor)) {
     return defaultGradient;
   }
   return {

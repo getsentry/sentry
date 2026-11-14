@@ -1,10 +1,7 @@
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
-
 import {
-  darkenUntilContrasts,
   dominantColor,
-  MIN_EDGE_CONTRAST,
+  getAvatarChonk,
+  isNeutralColor,
   resolveImageAvatarColors,
   SAMPLE_SIZE,
   shouldPadImage,
@@ -28,14 +25,13 @@ describe('resolveImageAvatarColors', () => {
     } as ImageData);
     jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context);
 
-    const result = resolveImageAvatarColors('https://example.com/avatar/logo/', 'light');
+    const result = resolveImageAvatarColors('https://example.com/avatar/logo/');
 
     expect(image.crossOrigin).toBe('anonymous');
     expect(image.src).toBe('https://example.com/avatar/logo/');
     image.dispatchEvent(new Event('load'));
 
     await expect(result).resolves.toEqual({
-      chonk: '#649632',
       dominant: '#649632',
       style: 'padded',
     });
@@ -46,10 +42,7 @@ describe('resolveImageAvatarColors', () => {
     const image = document.createElement('img');
     jest.spyOn(window, 'Image').mockImplementation(() => image);
 
-    const result = resolveImageAvatarColors(
-      'https://example.com/avatar/missing/',
-      'light'
-    );
+    const result = resolveImageAvatarColors('https://example.com/avatar/missing/');
     image.dispatchEvent(new Event('error'));
 
     await expect(result).resolves.toBeNull();
@@ -137,18 +130,34 @@ describe('dominantColor', () => {
   });
 });
 
-describe('darkenUntilContrasts', () => {
-  it('returns a color with sufficient contrast against the original', () => {
-    const result = darkenUntilContrasts('#888888', 'light');
-    const contrast = color(result).contrast(color('#888888'));
-    expect(contrast).toBeGreaterThanOrEqual(MIN_EDGE_CONTRAST);
+describe('isNeutralColor', () => {
+  it('treats grays, black and white as neutral', () => {
+    expect(isNeutralColor('#000000')).toBe(true);
+    expect(isNeutralColor('#ffffff')).toBe(true);
+    expect(isNeutralColor('#808080')).toBe(true);
   });
 
-  it('lightens near-black colors to reach contrast', () => {
-    const result = darkenUntilContrasts('#0A0A0A', 'light');
-    const contrast = color(result).contrast(color('#0A0A0A'));
-    expect(contrast).toBeGreaterThanOrEqual(MIN_EDGE_CONTRAST);
-    expect(color(result).luminosity()).toBeGreaterThan(color('#0A0A0A').luminosity());
+  it('treats saturated colors as colored', () => {
+    expect(isNeutralColor('#635bff')).toBe(false);
+  });
+});
+
+describe('getAvatarChonk', () => {
+  it('steps the color darker in light mode, keeping hue and chroma', () => {
+    expect(getAvatarChonk('#635bff', 'light')).toBe(
+      'oklch(from #635bff calc(l - 0.13) c h)'
+    );
+  });
+
+  it('uses a deep shade of the same hue in dark mode', () => {
+    expect(getAvatarChonk('#635bff', 'dark')).toBe(
+      'oklch(from #635bff 0.19 min(c, 0.09) h)'
+    );
+  });
+
+  it('keeps the default chonk for neutral colors', () => {
+    expect(getAvatarChonk('#000000', 'light')).toBeUndefined();
+    expect(getAvatarChonk('#ffffff', 'dark')).toBeUndefined();
   });
 });
 
