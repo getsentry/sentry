@@ -307,7 +307,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         return response
 
     def search_projects(
-        self, group: str | None = None, query: str | None = None, simple: bool = True
+        self, group: str | int | None = None, query: str | None = None, simple: bool = True
     ) -> list[Mapping[str, Any]]:
         """Get projects
 
