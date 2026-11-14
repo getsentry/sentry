@@ -517,6 +517,18 @@ export type InvoiceBase = StructuredAddress & {
   } | null;
 };
 
+/**
+ * Accepted usage per category for the period a receipt bills usage for.
+ */
+export type InvoiceUsage = {
+  categories: Array<{
+    accepted: number;
+    name: string;
+    // Display unit for non-count categories, e.g. "GB"
+    unit: string | null;
+  }>;
+};
+
 export type Invoice = InvoiceBase & {
   charges: Charge[];
   customer:
