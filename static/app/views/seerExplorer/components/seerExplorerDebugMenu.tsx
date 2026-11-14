@@ -1,12 +1,11 @@
-import {IconBug} from '@sentry/icons/bug';
 import {IconOpen} from '@sentry/icons/open';
+import {IconSliders} from '@sentry/icons/sliders';
 
 import {
   CompactSelect,
   type SelectOption,
   type SelectSection,
 } from '@sentry/scraps/compactSelect';
-import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
@@ -95,20 +94,17 @@ export function SeerExplorerDebugMenu({
       closeOnSelect={selectedOptions =>
         selectedOptions.some(option => option.value === 'agent-trace')
       }
-      position="bottom-end"
+      position="top-start"
       preventOverflowOptions={{boundary: document.body}}
       trigger={triggerProps => (
-        <OverlayTrigger.Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
-          aria-label={t('Debug')}
-          icon={<IconBug />}
+          aria-label={t('Seer settings')}
+          tooltipProps={{title: t('Seer settings')}}
+          icon={<IconSliders />}
           variant="transparent"
-          size="xs"
-        >
-          <Container as="span" display={{zero: 'none', sm: 'inline'}}>
-            {t('Debug')}
-          </Container>
-        </OverlayTrigger.Button>
+          size="zero"
+        />
       )}
     />
   );

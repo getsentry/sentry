@@ -1583,7 +1583,7 @@ describe('SeerExplorerContent', () => {
       );
     });
 
-    it('shows the debug menu to employees', async () => {
+    it('shows settings in the composer toolbar to employees', async () => {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -1597,7 +1597,8 @@ describe('SeerExplorerContent', () => {
           organization,
         }
       );
-      expect(await screen.findByRole('button', {name: 'Debug'})).toBeInTheDocument();
+      const settings = await screen.findByRole('button', {name: 'Seer settings'});
+      expect(screen.getByTestId('seer-composer-toolbar')).toContainElement(settings);
     });
   });
 

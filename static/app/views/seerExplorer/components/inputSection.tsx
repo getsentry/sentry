@@ -49,6 +49,7 @@ interface InputSectionProps {
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   isSingleRun?: boolean;
+  leadingToolbarItems?: React.ReactNode;
   /** Shown right above the composer, for example to say why sending is blocked. */
   notice?: React.ReactNode;
   questionActions?: QuestionActions;
@@ -79,6 +80,7 @@ export function InputSection({
   runId,
   isSingleRun,
   toolbarItems,
+  leadingToolbarItems,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
   // Autofix single runs and ask-seer-create-pr runs open PRs, so show links to them.
@@ -298,12 +300,20 @@ export function InputSection({
           <Flex
             justify="end"
             align="center"
-            gap="md"
+            gap="xs"
             padding="xs"
             borderTop="primary"
             background="primary"
             radius="0 0 lg lg"
+            data-test-id="seer-composer-toolbar"
+            onClick={event => {
+              if (event.target === event.currentTarget) {
+                onInputClick();
+              }
+            }}
           >
+            {leadingToolbarItems}
+            <Container flex="1" pointerEvents="none" />
             {toolbarItems}
             {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
               <Button
@@ -349,8 +359,10 @@ const StyledComposer = styled(Composer, {
   shouldForwardProp: prop => prop !== 'isWarningPlaceholder',
 })<{isWarningPlaceholder: boolean}>`
   max-height: 120px;
-  /* The frame draws the border and the focus ring around the editor and toolbar. */
-  border: none;
+  /* Overlap the frame's border so the editor keeps its native inset corners. */
+  margin: -1px -1px 0;
+  width: calc(100% + 2px);
+  border-bottom: 0;
   border-radius: ${p => p.theme.radius.lg} ${p => p.theme.radius.lg} 0 0;
 
   &:focus,

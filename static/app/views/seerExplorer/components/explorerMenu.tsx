@@ -1,6 +1,13 @@
 import {Activity, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSlashForward} from '@sentry/icons/slashForward';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 interface SlashCommandHandlers {
@@ -51,6 +58,7 @@ export function useExplorerMenu({
   slashCommandHandlers,
   inputAnchorRef,
 }: ExplorerMenuProps) {
+  const [isToolbarMenuOpen, setIsToolbarMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{
     bottom?: string | number;
     left?: string | number;
@@ -69,19 +77,19 @@ export function useExplorerMenu({
   }, [allSlashCommands, inputValue]);
 
   const menuItems = filteredSlashCommands;
-  const isVisible = menuItems.length > 0;
+  const isVisible = menuItems.length > 0 && !isToolbarMenuOpen;
 
   // The menu only shows while the input is a partial slash command, so
   // clearing the input is what closes it.
   const close = useCallback(() => {
-    if (!isVisible) {
+    if (menuItems.length === 0) {
       return;
     }
     clearInput();
     if (composerRef.current) {
       composerRef.current.style.height = 'auto';
     }
-  }, [isVisible, clearInput, composerRef]);
+  }, [menuItems.length, clearInput, composerRef]);
 
   const closeAndFocusInput = useCallback(() => {
     close();
@@ -219,6 +227,42 @@ export function useExplorerMenu({
 
   return {
     menu,
+    toolbarMenu: (
+      <DropdownMenu
+        items={[
+          {
+            key: 'commands',
+            label: t('Commands'),
+            leadingItems: <IconSlashForward />,
+            submenu: true,
+            children: allSlashCommands.map(item => ({
+              key: item.key,
+              label: item.title,
+              details: (
+                <Container width="320px" maxWidth="calc(100vw - 64px)">
+                  {item.description}
+                </Container>
+              ),
+              onAction: () => onSelect(item),
+            })),
+          },
+        ]}
+        position="top-start"
+        strategy="fixed"
+        onOpenChange={setIsToolbarMenuOpen}
+        size="sm"
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            icon={<IconAdd />}
+            aria-label={t('Add to conversation')}
+            tooltipProps={{title: t('Add to conversation')}}
+            variant="transparent"
+            size="zero"
+          />
+        )}
+      />
+    ),
     isMenuOpen: isVisible,
     closeMenu: close,
   };

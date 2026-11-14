@@ -2,7 +2,7 @@ import {createRef} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -41,6 +41,33 @@ function makeProps(
 }
 
 describe('InputSection', () => {
+  it('focuses the composer when clicking empty toolbar space', async () => {
+    const composerRef = createRef<HTMLDivElement>();
+    render(
+      <InputSection
+        {...makeProps({
+          composerRef,
+          onInputClick: () => composerRef.current?.focus(),
+        })}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('seer-composer-toolbar'));
+
+    expect(screen.getByRole('combobox', {name: 'Ask Seer a question'})).toHaveFocus();
+  });
+
+  it('does not focus the composer when clicking a toolbar control', async () => {
+    const onInputClick = jest.fn();
+    const onSend = jest.fn();
+    render(<InputSection {...makeProps({onInputClick, onSend, canSendMessage: true})} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Send message'}));
+
+    expect(onSend).toHaveBeenCalledTimes(1);
+    expect(onInputClick).not.toHaveBeenCalled();
+  });
+
   it('styles the interrupted placeholder with the warning color', () => {
     render(
       <InputSection
