@@ -319,4 +319,46 @@ describe('AggregatesTab', () => {
     expect(screen.getByText('Add to filter')).toBeInTheDocument();
     expect(screen.getByText('Exclude from filter')).toBeInTheDocument();
   });
+  it('does not render trace links for span_id group bys', async () => {
+    const traceMetric: TraceMetric = {name: 'test-metric', type: 'distribution'};
+    const groupBy: GroupBy = {groupBy: 'span_id'};
+    const visualize = new VisualizeFunction('avg(value)');
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.AGGREGATE,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [groupBy, visualize],
+      aggregateSortBys: [{field: 'avg(value)', kind: 'desc'}],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [{span_id: 'abcdef0123456789', 'avg(value)': 5}],
+        meta: {fields: {span_id: 'string', 'avg(value)': 'number'}, dataScanned: 'full'},
+      },
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'tracemetrics',
+          referrer: 'api.explore.metric-aggregates-table',
+        }),
+      ],
+    });
+
+    render(<AggregatesTab traceMetric={traceMetric} />, {
+      organization,
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
+    });
+
+    const spanIdCell = await screen.findByRole('cell', {name: /abcdef01/});
+
+    // Aggregate rows have no trace id, so no trace link should be built
+    expect(within(spanIdCell).queryByRole('link')).not.toBeInTheDocument();
+  });
 });
