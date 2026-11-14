@@ -56,6 +56,11 @@ from sentry.seer.autofix.pr_iteration.iterations import (
     PrIterationNoPullRequestException,
     get_open_iteration_index,
 )
+from sentry.seer.autofix.single_run import (
+    SINGLE_RUN_ROOT_CAUSE_KEY,
+    is_single_run,
+    single_run_relevant_repos,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
@@ -624,6 +629,13 @@ def generate_autofix_handoff_prompt(
 
     artifacts = state.get_artifacts()
 
+    single_run_root_cause = artifacts.get(SINGLE_RUN_ROOT_CAUSE_KEY)
+    if single_run_root_cause and single_run_root_cause.data:
+        parts.append("## Root Cause Analysis")
+        for field in ("headline", "cause"):
+            if single_run_root_cause.data.get(field):
+                parts.append(single_run_root_cause.data[field])
+
     # Add root cause if present
     root_cause = artifacts.get("root_cause")
     if root_cause and root_cause.data:
@@ -659,22 +671,30 @@ def _get_relevant_repo(
     run_id: int,
     group: Group,
 ) -> SeerRepoDefinition:
-    root_cause_artifact = state.get_artifacts().get("root_cause")
-    relevant_repo: str | None = (
-        (root_cause_artifact.data or {}).get("relevant_repo") if root_cause_artifact else None
-    )
+    # Most relevant first. Coding agents launch against one repo, so take the first the project
+    # has configured.
+    relevant_repos: list[str]
+    if is_single_run(state):
+        relevant_repos = single_run_relevant_repos(state)
+    else:
+        root_cause_artifact = state.get_artifacts().get("root_cause")
+        relevant_repo = (
+            (root_cause_artifact.data or {}).get("relevant_repo") if root_cause_artifact else None
+        )
+        relevant_repos = [relevant_repo] if relevant_repo else []
     warning_extras = {
         "organization_id": group.organization.id,
         "run_id": run_id,
         "project_id": group.project_id,
     }
-    if relevant_repo:
-        match = next((r for r in repo_definitions if f"{r.owner}/{r.name}" == relevant_repo), None)
+    if relevant_repos:
+        repos_by_name = {f"{r.owner}/{r.name}": r for r in repo_definitions}
+        match = next((repos_by_name[n] for n in relevant_repos if n in repos_by_name), None)
         if match:
             return match
         logger.warning(
             "autofix.coding_agent_handoff.relevant_repo_not_found",
-            extra={**warning_extras, "relevant_repo": relevant_repo},
+            extra={**warning_extras, "relevant_repos": relevant_repos},
         )
     else:
         logger.warning(

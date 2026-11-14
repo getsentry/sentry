@@ -42,6 +42,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     feedback_text,
     serialize_feedback,
 )
+from sentry.seer.autofix.single_run import CODING_AGENT_HANDOFF_KEY, hands_off_to_coding_agent
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -122,11 +123,8 @@ def should_use_single_run(
     existing_run_id: int | None = None,
     single_run_requested: bool = False,
 ) -> bool:
-    # Only fresh root-cause starts qualify: later steps and retries continue step-by-step runs,
-    # and coding-agent handoff only exists in that flow (AIML-3808).
+    # Only fresh root-cause starts qualify: later steps and retries continue step-by-step runs.
     if step != AutofixStep.ROOT_CAUSE or existing_run_id is not None:
-        return False
-    if get_automation_handoff(group.project.get_option) is not None:
         return False
     return single_run_requested or features.has(
         "organizations:autofix-single-run", group.organization
@@ -147,6 +145,18 @@ def _single_run_pr_internal_settings(
         description_suffix=build_pr_description_suffix(group, referrer),
         ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
         commit_author=commit_author,
+    )
+
+
+_CODING_STOPPING_POINTS = (AutofixStoppingPoint.CODE_CHANGES, AutofixStoppingPoint.OPEN_PR)
+
+
+def will_hand_off_to_coding_agent(
+    group: Group, stopping_point: AutofixStoppingPoint | None
+) -> bool:
+    return (
+        stopping_point in _CODING_STOPPING_POINTS
+        and get_automation_handoff(group.project.get_option) is not None
     )
 
 
@@ -205,7 +215,10 @@ def continue_single_run(
         SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
         is_new_run=False,
     )
-    enable_coding = _org_allows_coding(group)
+
+    # A run handing off to the project's coding agent never gets code tools, so Seer doesn't
+    # write a fix the agent is also writing.
+    enable_coding = not hands_off_to_coding_agent(agent_run) and _org_allows_coding(group)
     open_pr = enable_coding and can_publish
     return _continue_single_run(
         agent_run,
@@ -283,6 +296,7 @@ def _continue_single_run(
         existing_run_id=agent_run.run.seer_run_state_id,
         reply=reply,
         pr_internal_settings=pr_internal_settings,
+        coding_agent_handoff=hands_off_to_coding_agent(agent_run),
         pr_feedback=pr_feedback,
     )
     agent_run_options = AgentRunOptions(
@@ -387,10 +401,14 @@ def trigger_autofix_feature(
             user_context=args.user_context,
             should_run_repo_checks=True,
         )
-        enable_coding = stopping_point in (
-            AutofixStoppingPoint.CODE_CHANGES,
-            AutofixStoppingPoint.OPEN_PR,
-        ) and _org_allows_coding(group)
+        # The project's coding agent writes the fix, so Seer stops after the root cause. Only
+        # automated runs, which pass the project's stopping point, hand off. A manual run names
+        # none and has Seer write the fix; the user can hand off from the UI instead.
+        hand_off = will_hand_off_to_coding_agent(group, args.stopping_point)
+        enable_coding = (
+            stopping_point in _CODING_STOPPING_POINTS and not hand_off and _org_allows_coding(group)
+        )
+        payload.coding_agent_handoff = hand_off
         open_pr = enable_coding and stopping_point == AutofixStoppingPoint.OPEN_PR
         if open_pr:
             payload.pr_internal_settings = _single_run_pr_internal_settings(group, args.referrer)
@@ -411,6 +429,7 @@ def trigger_autofix_feature(
         )
         enable_coding = args.step in (AutofixStep.CODE_CHANGES, AutofixStep.PR_ITERATION)
         open_pr = False
+        hand_off = False
 
     client = SeerAgentClient(
         organization=group.organization,
@@ -440,6 +459,10 @@ def trigger_autofix_feature(
     # Store the stopping point here for delivery to use when advancing steps.
     if stopping_point is not None:
         extras["stopping_point"] = stopping_point.value
+    # Decided once here so the tools the run gets and the completion hook's handoff agree,
+    # even if the project's handoff settings change mid-run.
+    if hand_off:
+        extras[CODING_AGENT_HANDOFF_KEY] = True
 
     user_org_context = collect_user_org_context(
         args.user,

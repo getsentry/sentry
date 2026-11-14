@@ -800,9 +800,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["feature_id"] == AUTOFIX_FEATURE_ID
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_seer_write_token_handoff_project_open_pr_is_not_a_single_run(
+    def test_post_seer_write_token_handoff_project_manual_run_needs_no_publish_scope(
         self, mock_trigger_explorer: MagicMock
     ) -> None:
+        # Manual runs don't hand off, so the project's open_pr setting doesn't apply.
         group = self.create_group()
         group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
         group.project.update_option("sentry:seer_automation_handoff_point", "root_cause")

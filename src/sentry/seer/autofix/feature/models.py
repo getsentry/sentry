@@ -114,6 +114,9 @@ class AutofixSingleRunFeaturePayload(BaseModel):
     user_context: str | None = None
     should_run_repo_checks: bool = False
     pr_internal_settings: AutofixSingleRunPrInternalSettings | None = None
+    # The project's coding agent writes the fix, so Seer finishes after the root cause instead of
+    # stopping for its missing code tools.
+    coding_agent_handoff: bool = False
     existing_run_id: int | None = None
     reply: str | None = None
     # Marks the reply as a PR feedback turn, so Sentry can close out the iteration when it ends.
