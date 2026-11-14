@@ -1,16 +1,24 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Generator, Iterable, Mapping
+from contextlib import contextmanager
 from typing import IO, TYPE_CHECKING, Any, Protocol, cast
+from uuid import uuid4
 
 import pytest
 import requests
 import responses
-from django.conf import LazySettings
+from confluent_kafka import Consumer, KafkaException, TopicPartition
+from django.conf import LazySettings, settings
 
+from sentry.constants import DataCategory
 from sentry.models.eventattachment import PendingEventAttachment
 from sentry.services import eventstore
 from sentry.testutils.helpers import get_auth_header
+from sentry.testutils.pytest import xdist
+from sentry.utils import json
+from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.outcomes import Outcome
 
 if TYPE_CHECKING:
     from sentry.services.eventstore.models import Event
@@ -34,6 +42,49 @@ def _get_event(project_id: int, event_id: str) -> Event | None:
         tenant_ids={"referrer": "relay-test", "organization_id": 123},
         skip_transaction_groupevent=True,
     )
+
+
+@contextmanager
+def _capture_outcomes() -> Generator[Callable[[], dict[str, Any] | None]]:
+    """Yield a non-blocking poll over outcomes Relay produces from now on."""
+    topic = xdist.get_kafka_topic("outcomes")
+    create_topics("default", [topic])
+    consumer = Consumer(
+        {
+            **settings.KAFKA_CLUSTERS["default"]["common"],
+            "group.id": f"relay-test-outcomes-{uuid4().hex}",
+            "enable.auto.commit": False,
+        }
+    )
+    try:
+        partitions = consumer.list_topics(topic=topic, timeout=10).topics[topic].partitions
+        assert partitions, f"No partitions for {topic}"
+        # Assign concrete high watermarks rather than OFFSET_END: OFFSET_END is
+        # resolved on first poll and could skip an outcome Relay already produced.
+        consumer.assign(
+            [
+                TopicPartition(
+                    topic,
+                    partition,
+                    consumer.get_watermark_offsets(TopicPartition(topic, partition), timeout=10)[1],
+                )
+                for partition in partitions
+            ]
+        )
+
+        def poll() -> dict[str, Any] | None:
+            message = consumer.poll(0)
+            if message is None:
+                return None
+            if error := message.error():
+                raise KafkaException(error)
+            value = message.value()
+            assert value is not None
+            return json.loads(value)
+
+        yield poll
+    finally:
+        consumer.close()
 
 
 class RelayStoreHelper(RequiredBaseclass):
@@ -109,13 +160,51 @@ class RelayStoreHelper(RequiredBaseclass):
         assert event
         return event
 
-    def post_and_try_retrieve_event(
-        self, data: object, headers: Mapping[str, str] | None = None
-    ) -> Event | None:
-        try:
-            return self.post_and_retrieve_event(data, headers)
-        except AssertionError:
-            return None
+    def post_and_assert_rejected(
+        self,
+        data: Mapping[str, object],
+        *,
+        outcome: Outcome,
+        reason: str,
+        headers: Mapping[str, str | None] | None = None,
+    ) -> None:
+        """
+        Post an event that Relay accepts over HTTP and then drops asynchronously,
+        and wait for the outcome that records the drop instead of the ingestion timeout.
+        """
+        if headers is None:
+            headers = {"x-sentry-auth": self.auth_header, "content-type": "application/json"}
+        url = self.get_relay_store_url(self.project.id)
+        responses.add_passthru(url)
+        event_id = uuid4().hex
+
+        with _capture_outcomes() as poll:
+            resp = requests.post(url, headers=headers, json={**data, "event_id": event_id})
+            assert resp.status_code == 200, resp.text
+            assert resp.json()["id"] == event_id
+
+            # Relay aggregates outcomes and drops their event IDs. Snowflake project
+            # IDs are unique per test, and this is the only event posted for the key.
+            own_key = (self.project.organization_id, self.project.id, self.projectkey.id)
+
+            def poll_own_outcome() -> dict[str, Any] | None:
+                result = poll()
+                if (
+                    result is not None
+                    and (result.get("org_id"), result.get("project_id"), result.get("key_id"))
+                    == own_key
+                    and result.get("category") == DataCategory.ERROR
+                ):
+                    return result
+                return None
+
+            result = self.wait_for_ingest_consumer(poll_own_outcome)
+
+        assert result is not None, f"Relay produced no error outcome for event {event_id}"
+        assert result["quantity"] == 1, result
+        assert result["outcome"] == outcome, result
+        assert result["reason"] == reason, result
+        assert _get_event(self.project.id, event_id) is None
 
     def post_and_retrieve_attachment(
         self,
