@@ -1,6 +1,6 @@
 {
   "name": "@sentry/api",
-  "version": "2.3.1",
+  "version": "2.5.0",
   "description": "Official auto-generated TypeScript client for the Sentry public REST API",
   "keywords": [
     "sentry",

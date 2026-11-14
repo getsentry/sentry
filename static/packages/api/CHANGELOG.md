@@ -1,3 +1,9 @@
+## 2.5.0
+
+### New Features ✨
+
+- (api) Move the @sentry/api package into static/packages/api by @BYK with @sentry-junior and @getsantry in [#130472](https://github.com/getsentry/sentry/pull/130472)
+
 ## 2.3.1
 
 ### Internal Changes
