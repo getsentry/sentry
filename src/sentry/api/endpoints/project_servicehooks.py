@@ -110,6 +110,9 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         """
         Register a new service hook on a project.
 
+        The signing secret is only returned in this response. Store it securely;
+        subsequent reads and updates return an empty string in the secret field.
+
         Events include:
 
         - `event.alert`: An alert is generated for an event (via rules).
@@ -154,7 +157,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             data=hook.get_audit_log_data(),
         )
 
-        return self.respond(
-            serialize(ServiceHook.objects.get(id=hook.id), request.user, ServiceHookSerializer()),
-            status=201,
-        )
+        created_hook = ServiceHook.objects.get(id=hook.id)
+        data = serialize(created_hook, request.user, ServiceHookSerializer())
+        data["secret"] = created_hook.secret
+        return self.respond(data, status=201)

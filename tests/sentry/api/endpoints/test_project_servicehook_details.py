@@ -3,16 +3,31 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectServiceHookDetailsTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.hook = self.create_service_hook(project=self.project)
+        self.path = (
+            f"/api/0/projects/{self.organization.slug}/{self.project.slug}/hooks/{self.hook.guid}/"
+        )
+
     def test_simple(self) -> None:
-        project = self.create_project()
-        hook = ServiceHook.objects.get_or_create(
-            project_id=project.id, actor_id=self.user.id, url="http://example.com"
-        )[0]
         self.login_as(user=self.user)
-        path = f"/api/0/projects/{project.organization.slug}/{project.slug}/hooks/{hook.guid}/"
-        response = self.client.get(path)
+        response = self.client.get(self.path)
         assert response.status_code == 200
-        assert response.data["id"] == hook.guid
+        assert response.data["id"] == self.hook.guid
+        assert response.data["secret"] == ""
+
+    def test_member_cannot_read_secret_with_feature_disabled(self) -> None:
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, teams=[self.team], role="member"
+        )
+        self.login_as(user=member)
+        with self.feature({"projects:servicehooks": False}):
+            response = self.client.get(self.path)
+        assert response.status_code == 200
+        assert response.data["id"] == self.hook.guid
+        assert response.data["secret"] == ""
 
 
 class UpdateProjectServiceHookTest(APITestCase):
@@ -31,6 +46,7 @@ class UpdateProjectServiceHookTest(APITestCase):
             data={"url": "http://example.com/foo", "events": ["event.alert", "event.created"]},
         )
         assert resp.status_code == 200, resp.content
+        assert resp.data["secret"] == ""
         hook = ServiceHook.objects.get(id=self.hook.id)
         assert hook.url == "http://example.com/foo"
         assert hook.events == ["event.alert", "event.created"]

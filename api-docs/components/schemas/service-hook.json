@@ -20,7 +20,7 @@
       },
       "secret": {
         "type": "string",
-        "description": "The secret used to sign the requests that Sentry sends to the hook URL."
+        "description": "The webhook signing secret. Populated only when the hook is created; an empty string on subsequent reads and updates. Store the creation value securely to verify webhook signatures."
       },
       "status": {
         "type": "string",
