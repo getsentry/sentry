@@ -6,6 +6,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {
   act,
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -238,7 +239,32 @@ describe('SeerDrawer', () => {
     expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('clicking reset triggers a new root cause analysis', async () => {
+  it('restarts a failed run without asking what to change', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: makeExplorerAutofixData({status: 'error'})},
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      method: 'POST',
+      body: {run_id: 2},
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    renderGlobalModal();
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Start a new analysis from scratch'})
+    );
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('starts a new root cause analysis with what the user wants changed', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {
@@ -263,14 +289,23 @@ describe('SeerDrawer', () => {
     const resetButton = screen.getByRole('button', {
       name: 'Start a new analysis from scratch',
     });
+    renderGlobalModal();
     await userEvent.click(resetButton);
+    await userEvent.type(
+      await screen.findByPlaceholderText(/cache layer/),
+      'Check the retry logic'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Start new analysis'}));
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           method: 'POST',
-          data: expect.objectContaining({step: 'root_cause'}),
+          data: expect.objectContaining({
+            step: 'root_cause',
+            user_context: 'Check the retry logic',
+          }),
         })
       );
     });

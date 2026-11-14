@@ -1,5 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
+import {useModal} from '@sentry/scraps/modal';
+
 import {getReferrerFromBlocks} from 'sentry/components/events/autofix/autofixReferrer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
@@ -15,6 +17,8 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
+import {RestartAutofixModal} from './restartAutofixModal';
+import {useRerunSingleRun} from './useToggleSingleRunChat';
 import {artifactToMarkdown} from './utils';
 
 /**
@@ -80,11 +84,17 @@ function useHandleRestart({
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
 }): () => void {
-  const {startStep} = aiAutofix;
+  const {openModal} = useModal();
+  const {rerun} = useRerunSingleRun(aiAutofix, {enabled: false});
+  const failed = aiAutofix.runState?.status === 'error';
 
   return useCallback(() => {
-    startStep('root_cause');
-  }, [startStep]);
+    if (failed) {
+      rerun();
+      return;
+    }
+    openModal(deps => <RestartAutofixModal {...deps} onRestart={rerun} />);
+  }, [failed, openModal, rerun]);
 }
 
 function useHandleOpenSeerAgent({
