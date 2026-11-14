@@ -1,6 +1,7 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -1083,6 +1084,71 @@ describe('Dashboards > WidgetCard', () => {
       );
 
       expect(await screen.findByText('Low confidence data')).toBeInTheDocument();
+    });
+  });
+
+  describe('chart layers', () => {
+    const spansWidget: Widget = {
+      title: 'Span Count',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          name: '',
+          orderby: '',
+        },
+      ],
+    };
+    it('offers only Releases in the Layers menu without the flag', async () => {
+      renderWithProviders(
+        <WidgetCard
+          widget={spansWidget}
+          selection={selection}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+          widgetInterval="5m"
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart layers'}));
+
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'Releases',
+      ]);
+    });
+
+    it('adds Dropped data to the Layers menu with the flag', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-dropped/',
+        body: {
+          droppedEvents: [OutcomeRowFixture({count: 10})],
+          acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 90})],
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+        },
+      });
+
+      renderWithProviders(
+        <WidgetCard
+          widget={spansWidget}
+          selection={selection}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+          widgetInterval="5m"
+        />,
+        ['explore-data-fidelity-annotations', 'dashboards-data-fidelity-annotations']
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart layers'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Dropped Spans'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();
     });
   });
 });
