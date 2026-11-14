@@ -28,6 +28,7 @@ class IssueSubscribersActivityStrategy(NotificationStrategy):
         participant_map = get_participants_for_group(
             group=group,
             user_id=self.activity.user_id,
+            # TODO(ISWF-3771): Temporary, until inbox notifications replace this notification.
             exclude_user_ids=get_inbox_notified_user_ids(self.activity),
         )
         return get_targets_from_participant_map(

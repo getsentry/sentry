@@ -84,6 +84,7 @@ class EmailActivityHandler(ActivityHandler):
                 )
                 return
 
+        # TODO(ISWF-3771): Temporary, until inbox notifications replace this notification.
         inbox_notified_user_ids = (
             get_inbox_notified_user_ids(activity)
             if target_type == ActionTarget.ISSUE_OWNERS

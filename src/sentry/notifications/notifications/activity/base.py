@@ -109,6 +109,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         return get_participants_for_group(
             self.group,
             self.activity.user_id,
+            # TODO(ISWF-3771): Temporary, until inbox notifications replace this notification.
             exclude_user_ids=get_inbox_notified_user_ids(self.activity),
         )
 

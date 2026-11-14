@@ -59,6 +59,8 @@ def get_inbox_notified_user_ids(activity: Activity) -> set[int]:
     """
     Users who are notified about the activity through their inbox, and so shouldn't also get the
     issue workflow notification or the workflow engine's issue owners notification for it.
+
+    Temporary: remove once inbox notifications replace those notifications (ISWF-3771).
     """
     if activity.type not in _INBOX_NOTIFIED_ACTIVITY_TYPES or activity.group is None:
         return set()
