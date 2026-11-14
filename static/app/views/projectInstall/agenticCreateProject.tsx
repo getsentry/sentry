@@ -124,6 +124,7 @@ export function AgenticCreateProject({
                 hasProgressFailed={hasProgressFailed}
                 onRefresh={() => void refreshRun()}
                 onRetry={restartRun}
+                onStartOver={restartRun}
                 onCopyCommand={handleCopyCommand}
                 onSelectSnippet={handleSelectSnippet}
                 feedbackSource="project-creation-agent-setup"

@@ -219,6 +219,7 @@ export function NewWelcomeUI(props: StepProps) {
                   onRetry={restartRun}
                   onSelectSnippet={handleSelectSnippet}
                   onSetupInBrowser={handleComplete}
+                  onStartOver={restartRun}
                   run={run}
                 />
               </MotionContainer>

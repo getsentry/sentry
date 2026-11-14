@@ -73,6 +73,7 @@ export function ProjectSetupExample() {
         hasProgressFailed={false}
         onRefresh={() => {}}
         onRetry={() => setState('connecting')}
+        onStartOver={() => setState('connecting')}
         onCopyCommand={() => {}}
         onSelectSnippet={() => {}}
         feedbackSource="project-creation-agent-setup"
