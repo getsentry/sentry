@@ -255,9 +255,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(
-          /Auto-refresh is only available when visualizing `count\(logs\)`./i
-        )
+        screen.getByText(/Auto-refresh is only available when visualizing `count\(\)`./i)
       ).toBeInTheDocument();
     });
   });

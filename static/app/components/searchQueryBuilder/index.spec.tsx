@@ -6415,6 +6415,19 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('hides saved arguments for functions without parameters', async () => {
+        render(
+          <SearchQueryBuilder
+            {...aggregateDefaultProps}
+            initialQuery="count(span.duration):>100"
+          />
+        );
+
+        expect(
+          await screen.findByRole('button', {name: 'Edit parameters for filter: count'})
+        ).toHaveTextContent('count()');
+      });
+
       it('can modify parameter with predefined options', async () => {
         render(
           <SearchQueryBuilder

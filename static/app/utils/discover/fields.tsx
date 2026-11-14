@@ -1799,21 +1799,14 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
 
 export function prettifyParsedFunction(func: ParsedFunction) {
-  // special case for `count(span.duration)` as we want to say `count(spans)`
+  // `count(span.duration)` and `count(message)` count every span or log, so the
+  // argument carries no meaning for the reader.
   if (
     func.name === 'count' &&
     func.arguments.length === 1 &&
-    func.arguments[0] === 'span.duration'
+    (func.arguments[0] === 'span.duration' || func.arguments[0] === 'message')
   ) {
-    return 'count(spans)';
-  }
-
-  if (
-    func.name === 'count' &&
-    func.arguments.length === 1 &&
-    func.arguments[0] === 'message'
-  ) {
-    return 'count(logs)';
+    return 'count()';
   }
 
   // special case for trace metrics format: function(value,metricName,metricType,unit)

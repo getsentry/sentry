@@ -1270,7 +1270,6 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
             (valueType === FieldValueType.DURATION || valueType === FieldValueType.NUMBER)
           );
         },
-        defaultLabel: 'spans',
         defaultValue: 'span.duration',
         required: false,
       },
@@ -3561,7 +3560,25 @@ export function getExploreEquationFieldDefinition(
     }
     return conditionalDefinition;
   }
-  return getFieldDefinition(key, 'span', kind);
+  return withoutTraceItemCountArgument(key, getFieldDefinition(key, 'span', kind));
+}
+
+/**
+ * `count` on spans and logs counts every item; the backend fills in its column
+ * argument, so text inputs (search bars, equations) offer it as a bare `count()`.
+ */
+export function withoutTraceItemCountArgument(
+  key: string,
+  definition: FieldDefinition | null
+): FieldDefinition | null {
+  if (
+    key !== AggregationKey.COUNT ||
+    definition?.kind !== FieldKind.FUNCTION ||
+    !definition.parameters?.length
+  ) {
+    return definition;
+  }
+  return {...definition, parameters: []};
 }
 
 /**

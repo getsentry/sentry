@@ -4,7 +4,9 @@ import {
   FieldKind,
   FieldKey,
   FieldValueType,
+  getExploreEquationFieldDefinition,
   getFieldDefinition,
+  withoutTraceItemCountArgument,
 } from 'sentry/utils/fields';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -167,5 +169,28 @@ describe('getFieldDefinition typed tag keys', () => {
 
   it('only falls back to conventions for trace item datasets', () => {
     expect(getFieldDefinition('tags[app.in_foreground,boolean]')).toBeNull();
+  });
+});
+
+describe('withoutTraceItemCountArgument', () => {
+  it('drops the column argument from count', () => {
+    expect(getFieldDefinition('count', 'span')?.parameters).toHaveLength(1);
+    expect(
+      withoutTraceItemCountArgument('count', getFieldDefinition('count', 'span'))
+        ?.parameters
+    ).toEqual([]);
+    expect(
+      withoutTraceItemCountArgument('count', getFieldDefinition('count', 'log'))
+        ?.parameters
+    ).toEqual([]);
+  });
+
+  it('leaves other aggregates untouched', () => {
+    const definition = getFieldDefinition('avg', 'span');
+    expect(withoutTraceItemCountArgument('avg', definition)).toBe(definition);
+  });
+
+  it('is applied to explore equations', () => {
+    expect(getExploreEquationFieldDefinition('count')?.parameters).toEqual([]);
   });
 });

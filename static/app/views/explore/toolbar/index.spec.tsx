@@ -1128,7 +1128,7 @@ describe('ExploreToolbar', () => {
     expect(sortBys).toEqual([{field: 'avg(span.self_time)', kind: 'desc'}]);
 
     // check the default field options
-    const fields = ['avg(span.self_time)', 'count(spans)'];
+    const fields = ['avg(span.self_time)', 'count()'];
     await userEvent.click(
       within(section).getByRole('button', {name: 'avg(span.self_time)'})
     );
@@ -1457,9 +1457,7 @@ describe('ExploreToolbar', () => {
 
     await userEvent.click(screen.getByRole('button', {name: /save as/i}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Monitor for'}));
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'count(spans)'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'count()'}));
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/monitors/new/settings'
     );

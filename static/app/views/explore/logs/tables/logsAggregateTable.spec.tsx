@@ -482,7 +482,7 @@ describe('LogsAggregateTable', () => {
       }
     );
 
-    expect(screen.getByText('count(logs)')).toBeInTheDocument();
+    expect(screen.getByText('count()')).toBeInTheDocument();
     expect(screen.queryByText(aggregate)).not.toBeInTheDocument();
     expect(screen.getByText('7.8M')).toBeInTheDocument();
   });

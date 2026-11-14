@@ -502,6 +502,14 @@ describe('fieldAlignment()', () => {
 });
 
 describe('prettifyParsedFunction', () => {
+  it.each([
+    ['span.duration', 'count()'],
+    ['message', 'count()'],
+    ['span.self_time', 'count(span.self_time)'],
+  ])('renders count(%s) as %s', (argument, expected) => {
+    expect(prettifyParsedFunction({name: 'count', arguments: [argument]})).toBe(expected);
+  });
+
   it('prettifies typed tag arguments', () => {
     expect(
       prettifyParsedFunction({
