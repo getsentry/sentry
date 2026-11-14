@@ -222,6 +222,10 @@ class RecordEngagementTest(TestCase):
         ("https://acme.sentry.io/monitors/3/", NotificationLink.ALERT),
         ("https://acme.sentry.io/alerts/rules/details/3/", NotificationLink.ALERT),
         (
+            "https://acme.sentry.io/issues/1/?referrer=metric_alert_slack&openPeriod=5",
+            NotificationLink.ALERT,
+        ),
+        (
             "https://sentry.io/organizations/acme/issues/alerts/rules/backend/3/details/",
             NotificationLink.ALERT,
         ),

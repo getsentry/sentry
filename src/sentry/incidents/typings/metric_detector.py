@@ -6,11 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from sentry.incidents.models.alert_rule import (
-    AlertRule,
-    AlertRuleDetectionType,
-    AlertRuleThresholdType,
-)
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
@@ -81,31 +77,6 @@ class AlertContext:
     sensitivity: str | None
     resolve_threshold: float | None
     alert_threshold: float | None
-
-    @classmethod
-    def from_alert_rule_incident(
-        cls, alert_rule: AlertRule, alert_rule_threshold: float | None = None
-    ) -> AlertContext:
-        resolve_threshold = (
-            alert_rule.resolve_threshold
-            if alert_rule.resolve_threshold is not None
-            else alert_rule_threshold
-        )
-
-        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-            alert_rule_threshold = 0
-            resolve_threshold = 0
-
-        return cls(
-            name=alert_rule.name,
-            action_identifier_id=alert_rule.id,
-            threshold_type=AlertRuleThresholdType(alert_rule.threshold_type),
-            detection_type=AlertRuleDetectionType(alert_rule.detection_type),
-            comparison_delta=alert_rule.comparison_delta,
-            sensitivity=alert_rule.sensitivity,
-            alert_threshold=alert_rule_threshold,
-            resolve_threshold=resolve_threshold,
-        )
 
     @classmethod
     def from_workflow_engine_models(
