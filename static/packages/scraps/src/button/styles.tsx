@@ -51,6 +51,9 @@ export function DO_NOT_USE_getButtonStyles(
 
   const buttonTheme = getButtonTheme(variant, p.theme);
   const buttonElevation = elevation[p.size];
+  const borderless = variant === 'transparent' || variant === 'link';
+  const borderlessBackground = (background: string) =>
+    p.busy || disabled || variant === 'link' ? 'inherit' : background;
 
   return {
     '--button-lift': buttonElevation,
@@ -71,86 +74,94 @@ export function DO_NOT_USE_getButtonStyles(
     },
 
     padding:
-      p.shapeVariant === 'square' ? '0' : getButtonSizeTheme(p.size, p.theme).padding,
+      variant === 'link' || p.shapeVariant === 'square'
+        ? '0'
+        : getButtonSizeTheme(p.size, p.theme).padding,
     borderRadius: getButtonSizeTheme(p.size, p.theme).borderRadius,
     border: 'none',
     color: buttonTheme.color,
 
     background: 'none',
 
-    height: buttonSizes[p.size].height,
+    height: variant === 'link' ? 'auto' : buttonSizes[p.size].height,
     // Use min width as a progressive enhancement for square buttons.
     // We can't yet swap to width because I'm not entirely condifent that
     // that would not break existing buttons.
-    minWidth: p.shapeVariant === 'square' ? buttonSizes[p.size].height : undefined,
+    minWidth:
+      variant === 'link'
+        ? 'auto'
+        : p.shapeVariant === 'square'
+          ? buttonSizes[p.size].height
+          : undefined,
 
-    minHeight: buttonSizes[p.size].minHeight,
+    minHeight: variant === 'link' ? 'auto' : buttonSizes[p.size].minHeight,
     fontSize: buttonSizes[p.size].fontSize,
     lineHeight: buttonSizes[p.size].lineHeight,
 
-    '&::before': {
-      content: '""',
-      display: 'block',
-      position: 'absolute',
-      inset: '0',
-      height: `calc(100% - ${buttonElevation})`,
-      top: buttonElevation,
-      transform: `translateY(-${buttonElevation})`,
-      boxShadow: `0 ${buttonElevation} 0 0px ${buttonTheme.background}`,
-      background: buttonTheme.background,
-      borderRadius: 'inherit',
-    },
+    // Borderless buttons are not chonky
+    '&::before': borderless
+      ? {display: 'none'}
+      : {
+          content: '""',
+          display: 'block',
+          position: 'absolute',
+          inset: '0',
+          height: `calc(100% - ${buttonElevation})`,
+          top: buttonElevation,
+          transform: `translateY(-${buttonElevation})`,
+          boxShadow: `0 ${buttonElevation} 0 0px ${buttonTheme.background}`,
+          background: buttonTheme.background,
+          borderRadius: 'inherit',
+        },
 
-    '&::after': {
-      content: '""',
-      display: 'block',
-      position: 'absolute',
-      inset: '0',
-      background: buttonTheme.surface,
-      borderRadius: 'inherit',
-      border: `1px solid ${buttonTheme.background}`,
-      transform: 'translateY(calc(-1 * var(--button-lift)))',
-      transition: `transform ${p.theme.motion.snap.fast}`,
-    },
+    '&::after': borderless
+      ? {display: 'none'}
+      : {
+          content: '""',
+          display: 'block',
+          position: 'absolute',
+          inset: '0',
+          background: buttonTheme.surface,
+          borderRadius: 'inherit',
+          border: `1px solid ${buttonTheme.background}`,
+          transform: 'translateY(calc(-1 * var(--button-lift)))',
+          transition: `transform ${p.theme.motion.snap.fast}`,
+        },
 
-    '&:focus-visible': {
-      outline: 'none',
-      color: disabled || p.busy ? undefined : buttonTheme.color,
+    '&:focus-visible': borderless
+      ? p.theme.focusRing()
+      : {
+          outline: 'none',
+          color: disabled || p.busy ? undefined : buttonTheme.color,
 
-      '&::after': buttonTheme.focus
-        ? {border: `2px dotted ${buttonTheme.focus}`}
-        : {
-            // Three layers: the chonk color masks the offset ring copy, then
-            // the ring is drawn at the lift offset and again at rest, so it
-            // closes around the surface and chonk as a single outline.
-            boxShadow: `0 var(--button-lift) 0 0 ${buttonTheme.background}, 0 var(--button-lift) 0 2px ${p.theme.tokens.focus.default}, 0 0 0 2px ${p.theme.tokens.focus.default}`,
-          },
-    },
+          '&::after': buttonTheme.focus
+            ? {border: `2px dotted ${buttonTheme.focus}`}
+            : {
+                // Three layers: the chonk color masks the offset ring copy, then
+                // the ring is drawn at the lift offset and again at rest, so it
+                // closes around the surface and chonk as a single outline.
+                boxShadow: `0 var(--button-lift) 0 0 ${buttonTheme.background}, 0 var(--button-lift) 0 2px ${p.theme.tokens.focus.default}, 0 0 0 2px ${p.theme.tokens.focus.default}`,
+              },
+        },
 
     '&[aria-busy="true"] > span:last-child': {
       overflow: 'visible',
     },
 
-    '> span:last-child': {
-      zIndex: 1,
-      position: 'relative',
+    '> span:last-child': getLabelStyles(variant, p.theme),
 
-      display: 'inherit',
-      alignItems: 'inherit',
-      justifyContent: 'inherit',
-      flex: '1',
-      gap: 'inherit',
-      overflow: 'hidden',
-
-      whiteSpace: 'nowrap',
-      transform: 'translateY(calc(-1 * var(--button-lift)))',
-      transition: `transform ${p.theme.motion.snap.fast}`,
-    },
-
-    '&:hover': {
-      '--button-lift': `calc(${buttonElevation} + ${hoverElevation})`,
-      color: disabled || p.busy ? undefined : buttonTheme.color,
-    },
+    '&:hover':
+      variant === 'link'
+        ? {'> span:last-child': {transform: 'translateY(0px)'}}
+        : variant === 'transparent'
+          ? {
+              '> span:last-child': {transform: 'translateY(0px)'},
+              backgroundColor: borderlessBackground(p.theme.colors.gray100),
+            }
+          : {
+              '--button-lift': `calc(${buttonElevation} + ${hoverElevation})`,
+              color: disabled || p.busy ? undefined : buttonTheme.color,
+            },
 
     '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
       '--button-lift': '0px',
@@ -173,75 +184,49 @@ export function DO_NOT_USE_getButtonStyles(
       cursor: 'progress',
     },
 
-    ...(variant === 'link' && {
+    ...(borderless && {
       transform: 'translateY(0px)',
-
-      '&::before': {
-        display: 'none',
-      },
-
-      '&::after': {
-        display: 'none',
-      },
-    }),
-
-    // Borderless buttons are not chonky
-    ...((variant === 'transparent' || variant === 'link') && {
-      border: 'none',
-      transform: 'translateY(0px)',
-
-      '&::before': {
-        display: 'none',
-      },
-      '&::after': {
-        display: 'none',
-      },
-
-      '&:focus-visible': {
-        ...p.theme.focusRing(),
-      },
-
-      '> span:last-child': {
-        transform: 'translateY(0px)',
-      },
-
-      '&:hover': {
-        '> span:last-child': {
-          transform: 'translateY(0px)',
-        },
-        backgroundColor:
-          p.busy || disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray100,
-      },
 
       '&:active': {
         '> span:last-child': {
           transform: 'translateY(0px)',
         },
 
-        backgroundColor:
-          p.busy || disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray200,
-      },
-    }),
-
-    ...(variant === 'link' && {
-      padding: '0',
-      height: 'auto',
-      minHeight: 'auto',
-      minWidth: 'auto',
-      border: 'none',
-      transform: 'translateY(0px)',
-
-      '> span:last-child': {
-        color: 'inherit',
-      },
-
-      '&:hover': {
-        '> span:last-child': {
-          transform: 'translateY(0px)',
-        },
+        backgroundColor: borderlessBackground(p.theme.colors.gray200),
       },
     }),
   };
+}
+
+/**
+ * Only the chonky variants lay out their label. The transparent and link
+ * labels skip the flex layout and `overflow: hidden`, and call sites rely on
+ * that, for example to let an avatar stack overflow a `zero` button. The
+ * button layout snapshots pin these differences.
+ */
+function getLabelStyles(variant: ButtonVariant, theme: Theme): StrictCSSObject {
+  switch (variant) {
+    case 'link':
+      return {color: 'inherit'};
+    case 'transparent':
+      return {transform: 'translateY(0px)'};
+    default:
+      return {
+        zIndex: 1,
+        position: 'relative',
+
+        display: 'inherit',
+        alignItems: 'inherit',
+        justifyContent: 'inherit',
+        flex: '1',
+        gap: 'inherit',
+        overflow: 'hidden',
+
+        whiteSpace: 'nowrap',
+        transform: 'translateY(calc(-1 * var(--button-lift)))',
+        transition: `transform ${theme.motion.snap.fast}`,
+      };
+  }
 }
 
 function getButtonTheme(variant: ButtonVariant, theme: Theme) {
