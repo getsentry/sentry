@@ -21,7 +21,7 @@ import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTrace
 /**
  * Returns a link to the Agent Activity tab of the event's trace, with `nodeId` selected.
  */
-function useAgentActivityLink(event: Event) {
+export function useAgentActivityLink(event: Event) {
   const organization = useOrganization();
   const location = useLocation();
 
