@@ -1,29 +1,24 @@
 # Deployment configuration
 
-This preparation release adds Django settings and promotion from `config.yml`
-and `SENTRY_OPTIONS`. Integration credentials, email configuration and operational
-flags continue to use their existing option readers and precedence. Existing
-Option/ControlOption rows remain effective. Configuring a new setting alone does
-not change those readers; deployment writers must continue writing the legacy
-option as well until the consumer cutover.
+Deployment configuration is read from Django settings when the process starts.
+Changes to these values require restarting the process. Values stored with
+`sentry config set` for the keys below are no longer read by their consumers.
+Use `config.yml`, `SENTRY_OPTIONS` in `sentry.conf.py`, or the corresponding
+Django setting instead.
 
-The later consumer cutover switches the keys below to deployment settings.
-Changes then require restarting the process. Before that cutover, reconcile each
-candidate setting with the effective option value, including database rows and
-runtime overrides. A nonempty candidate is insufficient: a differing stored
-credential can currently take precedence over its configured fallback.
-
-During preparation, an explicitly configured option key is promoted to its
-candidate setting. Registered defaults and `None` option values do not replace a
-direct setting. Existing GitHub login and email mappings retain their bootstrap
+Self-hosted deployments promote non-null `SENTRY_OPTIONS` values for newly
+migrated keys into their corresponding settings. Earlier self-hosted hostname,
+filestore, analytics, viewer context, relay, and objectstore mappings retain
+their legacy precedence: `SENTRY_DEFAULT_OPTIONS` promotes first, then
+`SENTRY_OPTIONS` overrides it, including explicit `None`. SaaS deployment options
+no longer promote into new settings; configure the setting directly.
+Existing GitHub login and email mappings retain their original bootstrap
 precedence and backend aliases. Setup wizard email credentials remain options.
 
-Single organization mode reuses the GitHub integration app's client ID and
+Self-hosted single organization mode reuses the GitHub integration app's client ID and
 secret for login when the app option keys are absent and the corresponding
 app settings are nonempty. When either modern app credential is configured,
 login settings never backfill the empty partner into the integration credentials.
-When deployment provenance selects the modern pair, GitHub login uses that pair
-including empty values after any original app option values are promoted.
 Original app option keys take precedence over direct app settings and
 synthetic login backfills. GitHub login option keys retain their login remap
 precedence. Plain bootstrap also copies the paired direct app
@@ -31,12 +26,12 @@ credentials into the login settings, even without the application initializer's
 legacy app remap. This changes unused GitHub login settings in API gateway
 bootstrap; API gateway has no GitHub login consumers.
 
-The symbolicator, symbol server, and chart rendering enablement flags remain
-runtime options until the consumer cutover.
+The symbolicator, symbol server, and chart rendering enablement flags are
+also deployment settings; they no longer change while the process is running.
 
-`system.support-email` continues to use the legacy option read while the admin
-API accepts updates. `SENTRY_SYSTEM_SUPPORT_EMAIL` is prepared for the later
-cutover, which removes that editable option and switches the client config read.
+Client configuration reads support email from `SENTRY_SYSTEM_SUPPORT_EMAIL`.
+The admin API rejects the retired `system.support-email` option; change the
+deployment setting and restart the process to update the address.
 
 | Option key                            | Django setting                           |
 | ------------------------------------- | ---------------------------------------- |
@@ -118,41 +113,61 @@ cutover, which removes that editable option and switches the client config read.
 | `github-login.extended-permissions`   | `GITHUB_EXTENDED_PERMISSIONS`            |
 | `github-login.organization`           | `GITHUB_ORGANIZATION`                    |
 
-Deployment settings writers temporarily record explicit assignments in
-`SENTRY_CONFIGURED_OPTION_SETTINGS`, an immutable internal set of setting names.
-This protects intentionally empty identifiers and secrets and false reply
-settings from deprecated aliases. Aliases still populate missing legacy options
-for existing readers, but do not overwrite an explicitly tracked modern setting.
-Untracked settings retain the legacy alias precedence. The provenance is removed
-when the deprecated writers and SaaS credential remaps are retired.
+SaaS deployment settings, including empty identifiers and secrets and false reply
+settings, are never replaced by deprecated deployment aliases. Self-hosted legacy
+aliases retain their existing precedence.
 
 ## Deployment prerequisites
 
-The six application-state keys (`sentry:system-token`, `sentry:install-id`,
-`sentry:latest_version`, `sentry:last_worker_ping`,
-`sentry:last_worker_version`, and `sentry:version-configured`) remain on the
-existing `options.get()`, `options.set()`, and `options.delete()` APIs and their
-Option/ControlOption storage. This deployment settings mapping does not move or
-retype those values.
+Deploy Sentry #128309 and GetSentry #22648 in one normal-pinned GetSentry reader
+image after their source prerequisites merge. Keep Sentry #126993 policy in a
+separate serving release. Compare full initialization of the actual reader image
+with currently effective option values in every workload, including jobs and
+canaries. Preparation-only settings equality does not establish consumer parity.
 
-Preserve the legacy option registrations and explicit option promotion during
-the settings rollout. Verify effective-value equality for every mapped key in
-every serving workload before deploying the consumer cutover. Compare the currently served option value
-with the candidate setting from the actual cutover image and its full bootstrap,
-including intentionally empty and false values, old aliases, database precedence
-and credential rotations. Preparation promotion can mask differences that the
-cutover exposes; equality on the preparation image alone is insufficient. Keep this evidence private;
-never log secret values. Confirm Slack uses HMAC whenever it currently uses HMAC;
-a configured verification token cannot substitute for a missing signing secret.
-No production parity evidence is supplied by this PR. The cutover must remain
-blocked until this verification is complete. Continue both legacy and new writes
-through the handover; remove the legacy writes only after every reader migrates.
+Include database and runtime override precedence, conflicting or rotated
+credentials, intentionally empty and false values, aliases, and mail backend
+aliases. Require Slack to retain HMAC wherever it currently uses HMAC. A nonempty
+credential or verification token cannot substitute for a matching signing secret.
+No production parity evidence is supplied by this PR.
 
-Pause legacy ConfigMap delivery and drain or cancel queued and in-flight legacy applies before removing
-deployment declarations from source. Protect exact ConfigMap revisions and rows;
-old watchers must see unchanged legacy ConfigMaps until stopped, while new
-namespace delivery remains active. Source merges do not prove serving rollout.
+Deploy settings support before GetSentry preparation writers. Use normal merged
+dependency pins, working runtime mounts, and matching replay configuration.
+Keep compatibility writes until the reader release serves everywhere and policy
+soak and rollback closure complete. Compare the final image again before removing
+those writes, which can expose different aliases or defaults.
 
-Deploy runtime schema coverage and preserved values before the later
-authoritative read cutover. Runtime registration changes that need new schemas
-belong to that cutover after schema deployment.
+Stage runtime mirrors and preserved overrides through Automator #10302. Freeze
+legacy ConfigMap delivery, drain queued and in-flight applies, and protect exact
+ConfigMaps, matching declarations, and rows. Roll preparation images to watchers,
+then convert them in place to reporter-only with Ops #24527 and `Recreate`.
+Verify watcher termination in every context and one signed reporter per target
+for both namespaces before Automator #10112 removes deployment declarations.
+Keep new namespace delivery active and retain old ConfigMaps and rollback access.
+
+Require parity for every retained runtime key and target before Sentry #126993.
+Supply a mounted value or verify the intended local fallback against current
+behavior, including cached values and null, false, or empty overrides. A missing
+mounted value under authoritative policy can select a registered default instead
+of the legacy DB value. Keep unresolved production evidence as a deployment blocker.
+The Seer token metrics option remains a runtime boolean and needs its schema and
+value parity before its automator registration serves.
+
+Export surviving deployment rows before removing their registrations. Keep exports
+private and retain protected snapshots through rollback closure. Delete reviewed
+configuration rows only after policy soak, rehearsal, and rollback-window closure.
+Use version 2 cleanup plans with explicit `rollback_closed_at`. Unused clients and
+schemas may retire before individual row deletion once those paths cannot use
+configuration rows. Keep inventory and restore tooling through table-removal gates.
+Remove obsolete watcher IAM, RBAC, and restart permissions last.
+
+The six application-state keys remain on the existing `options.get()`,
+`options.set()`, and `options.delete()` APIs and their Option/ControlOption store
+and cache. The keys are `sentry:system-token`, `sentry:install-id`,
+`sentry:latest_version`, `sentry:last_worker_ping`, `sentry:last_worker_version`,
+and `sentry:version-configured`.
+
+Until the policy release, runtime options retain their existing manager, storage,
+cache, permissions and update channels. Legacy `sentry configoptions`, drift checks and presenters
+remain available until Sentry #126993 retires that machinery. Keep their
+registrations, settings and dependencies until that release.

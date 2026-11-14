@@ -10,6 +10,7 @@ from typing import cast
 from urllib.parse import quote, urlencode
 
 from django import template
+from django.conf import settings
 from django.template import Context
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone as django_timezone
@@ -189,7 +190,7 @@ def system_origin() -> str:
 
 @register.simple_tag
 def security_contact() -> str | None:
-    email = options.get("system.security-email") or options.get("system.admin-email")
+    email = settings.SENTRY_SYSTEM_SECURITY_EMAIL or options.get("system.admin-email")
     return email
 
 

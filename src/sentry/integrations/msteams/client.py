@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import NotRequired, TypedDict, cast
 from urllib.parse import urlencode
 
+from django.conf import settings
 from requests import PreparedRequest
 
 from sentry import options
@@ -204,7 +205,7 @@ class OAuthMsTeamsClient(ApiClient):
         self.client_secret = client_secret
         # tenant_id is required for single-tenant bots to authenticate. The bot framework
         # base_url is specific to multi-tenant bots which microsoft no longer provisions.
-        tenant_id = options.get("msteams.tenant-id")
+        tenant_id = settings.SENTRY_MSTEAMS_TENANT_ID
         if tenant_id:
             self.base_url = f"https://login.microsoftonline.com/{tenant_id}"
 
@@ -228,8 +229,8 @@ class TokenData(TypedDict):
 
 
 def get_token_data() -> TokenData:
-    client_id = options.get("msteams.client-id")
-    client_secret = options.get("msteams.client-secret")
+    client_id = settings.SENTRY_MSTEAMS_CLIENT_ID
+    client_secret = settings.SENTRY_MSTEAMS_CLIENT_SECRET
     _record_client_secret_expiry()
     client = OAuthMsTeamsClient(client_id, client_secret)
     resp = client.exchange_token()

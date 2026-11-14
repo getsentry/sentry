@@ -7,13 +7,13 @@ from urllib.parse import urlencode
 
 import orjson
 import pytest
+from django.conf import settings
 from django.http.response import HttpResponse
 from django.urls import reverse
 from rest_framework import status
 from slack_sdk.web import SlackResponse
 from slack_sdk.webhook import WebhookResponse
 
-from sentry import options
 from sentry.integrations.slack.utils.auth import set_signing_secret
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.team import Team
@@ -77,7 +77,7 @@ class SlackCommandsTest(APITestCase, TestCase):
             reverse(self.endpoint),
             content_type="application/x-www-form-urlencoded",
             data=data,
-            **set_signing_secret(options.get("slack.signing-secret"), data),
+            **set_signing_secret(settings.SENTRY_SLACK_SIGNING_SECRET, data),
         )
         assert response.status_code == (status_code or status.HTTP_200_OK)
         return response

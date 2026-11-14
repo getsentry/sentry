@@ -4,13 +4,13 @@ import logging
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
+from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
 from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.fields import CharField
 
-from sentry import options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
@@ -73,7 +73,7 @@ INSTALL_NOTICE_TEXT = (
 )
 
 external_install = {
-    "url": "https://teams.microsoft.com/l/app/{}".format(options.get("msteams.app-id")),
+    "url": f"https://teams.microsoft.com/l/app/{settings.SENTRY_MSTEAMS_APP_ID}",
     "buttonText": _("Teams Marketplace"),
     "noticeText": _(INSTALL_NOTICE_TEXT),
 }
