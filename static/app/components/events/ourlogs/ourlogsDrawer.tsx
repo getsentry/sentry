@@ -1,24 +1,18 @@
 import {useMemo} from 'react';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {DrawerHeader} from '@sentry/scraps/drawer';
+import {Stack} from '@sentry/scraps/layout';
 
 import {
-  CrumbContainer,
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
   EventNavigator,
-  NavigationCrumbs,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -34,10 +28,10 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
+import {useEventLogsUrl} from './useEventLogsUrl';
+
 interface LogIssueDrawerProps {
   event: Event;
-  group: Group;
-  project: Project;
   additionalData?: {
     event?: Event;
     scrollToDisabled?: boolean;
@@ -49,8 +43,6 @@ interface LogIssueDrawerProps {
 
 export function OurlogsDrawer({
   event,
-  project,
-  group,
   embeddedOptions,
   additionalData: propAdditionalData,
 }: LogIssueDrawerProps) {
@@ -99,36 +91,28 @@ export function OurlogsDrawer({
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
       <EventDrawerContainer>
-        <EventDrawerHeader>
-          <NavigationCrumbs
-            crumbs={[
-              {
-                label: (
-                  <CrumbContainer>
-                    <ProjectAvatar project={project} />
-                    <ShortId>{group.shortId}</ShortId>
-                  </CrumbContainer>
-                ),
-              },
-              {label: getShortEventId(event.id)},
-              {label: t('Logs')},
-            ]}
+        <DrawerHeader>
+          <DrawerBreadcrumbs
+            current={{
+              label: t('Logs'),
+              labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
+            }}
           />
-        </EventDrawerHeader>
-        <EventNavigator>
-          <Flex align="center" gap="sm">
-            <Flex flex="1">
-              <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
-            </Flex>
-            {exploreUrl && (
+        </DrawerHeader>
+        <EventNavigator
+          leadingItems={
+            <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+          }
+          trailingItems={
+            exploreUrl ? (
               <LinkButton size="sm" to={exploreUrl} openInNewTab>
                 {t('Open in Explore')}
               </LinkButton>
-            )}
-          </Flex>
-        </EventNavigator>
+            ) : null
+          }
+        />
         <EventDrawerBody>
-          <Stack position="relative">
+          <Stack position="relative" flex="1" minHeight="0">
             <LogsInfiniteTable
               embedded
               embeddedOptions={embeddedOptions}

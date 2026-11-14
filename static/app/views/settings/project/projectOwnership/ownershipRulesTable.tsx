@@ -7,7 +7,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -23,7 +23,8 @@ import {defined} from 'sentry/utils/defined';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
-import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
+
+import {OwnershipOwnerFilter} from './ownershipOwnerFilter';
 
 const OWNERSHIP_COLUMNS: TableColumnConfig[] = [
   {key: 'type', width: 'min-content'},
@@ -166,7 +167,7 @@ export function OwnershipRulesTable({
   };
 
   return (
-    <RulesTableWrapper data-test-id="ownership-rules-table">
+    <Stack gap="xl" data-test-id="ownership-rules-table">
       <Flex align="center" gap="xl">
         <OwnershipOwnerFilter
           actors={allActors.filter((actor): actor is Actor => defined(actor.id))}
@@ -276,18 +277,12 @@ export function OwnershipRulesTable({
           />
         </ButtonBar>
       </Flex>
-    </RulesTableWrapper>
+    </Stack>
   );
 }
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-`;
-
-const RulesTableWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
 `;
 
 const StyledSimpleTable = styled(SimpleTable)`

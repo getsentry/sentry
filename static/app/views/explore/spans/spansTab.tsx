@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 
@@ -60,15 +59,6 @@ import {
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
-import {ExploreCharts} from 'sentry/views/explore/spans/charts';
-import {SPANS_TABLE_LIMIT} from 'sentry/views/explore/spans/constants';
-import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
-import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
-import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
-import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
-import {SpanTabSearchSection} from 'sentry/views/explore/spans/spansTabSearchSection';
-import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
-import {TracesExportModalButton} from 'sentry/views/explore/spans/tracesExportModalButton';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -81,17 +71,39 @@ import {
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
+import {useCrossEventDatasetAvailability} from './crossEvents/useCrossEventDatasetAvailability';
+import {ExploreCharts} from './charts';
+import {SPANS_TABLE_LIMIT} from './constants';
+import {DroppedFieldsAlert} from './droppedFieldsAlert';
+import {ExtrapolationEnabledAlert} from './extrapolationEnabledAlert';
+import {SettingsDropdown} from './settingsDropdown';
+import {SpanTabSearchSection} from './spansTabSearchSection';
+import {ExploreSpansTour, ExploreSpansTourContext} from './tour';
+import {TracesExportModalButton} from './tracesExportModalButton';
+
 interface SpansTabOnboardingProps {
   datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
 }
 
-export function SpansTabOnboarding({
+function SpansTabOnboardingInner({
   datePageFilterProps,
   organization,
   project,
 }: SpansTabOnboardingProps) {
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
+  useLLMContext({
+    contextHint:
+      'Sentry traces explorer page. Shows setup instructions because the selected projects have not sent any spans yet. ' +
+      'onboardingProject is the project the setup instructions are for. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
+    onboardingProject: {slug: project.slug, platform: project.platform},
+    ...toLLMContextProjectFields(selectedProjects),
+  });
+
   return (
     <Layout.Body>
       <PageFilterBar condensed>
@@ -284,16 +296,6 @@ function SpanTabContentSectionInner({
     crossEventQueries,
   });
 
-  const error = defined(timeseriesResult.error)
-    ? null // if the timeseries errors, we prefer to show that error in the chart
-    : queryType === 'samples'
-      ? spansTableResult.result.error
-      : queryType === 'traces'
-        ? tracesTableResult.error
-        : queryType === 'aggregate'
-          ? aggregatesTableResult.result.error
-          : null;
-
   return (
     <ExploreContentSection gap="md">
       <OverChartButtonGroup>
@@ -327,11 +329,6 @@ function SpanTabContentSectionInner({
       {defined(id) && <DroppedFieldsAlert />}
       <ExploreQuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       <ExtrapolationEnabledAlert />
-      {defined(error) && (
-        <Alert.Container>
-          <Alert variant="danger">{error.message}</Alert>
-        </Alert.Container>
-      )}
       <TourElement<ExploreSpansTour>
         tourContext={ExploreSpansTourContext}
         id={ExploreSpansTour.RESULTS}
@@ -379,6 +376,11 @@ function SpanTabContentSectionInner({
     </ExploreContentSection>
   );
 }
+
+export const SpansTabOnboarding = registerLLMContext(
+  'traces-explorer',
+  SpansTabOnboardingInner
+);
 
 const SpanTabContentSection = registerLLMContext(
   'traces-explorer',

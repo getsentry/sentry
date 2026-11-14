@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useRef, useState} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';

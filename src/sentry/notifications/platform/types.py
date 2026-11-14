@@ -65,13 +65,20 @@ class NotificationSource(StrEnum):
 
     # SEER
     SEER_AUTOFIX_ERROR = "seer-autofix-error"
+    SEER_AUTOFIX_STOPPED = "seer-autofix-stopped"
     SEER_AUTOFIX_UPDATE = "seer-autofix-update"
     SEER_AUTOFIX_TRIGGER = "seer-autofix-trigger"
     SEER_AUTOFIX_FOOTER = "seer-autofix-footer"
     SEER_AUTOFIX_SUCCESS = "seer-autofix-success"
+    SEER_AUTOFIX_OUT_OF_CREDITS = "seer-autofix-out-of-credits"
     SEER_AGENT_RESPONSE = "seer-agent-response"
     SEER_AGENT_ERROR = "seer-agent-error"
     SEER_AGENT_WRITE_APPROVAL = "seer-agent-write-approval"
+    SEER_AGENT_OUT_OF_CREDITS = "seer-agent-out-of-credits"
+    SEER_INVESTIGATION_STARTED = "seer-investigation-started"
+    SEER_INVESTIGATION_ERROR = "seer-investigation-error"
+    SEER_INVESTIGATION_STATUS = "seer-investigation-status"
+    SEER_INVESTIGATION_CONCLUSION = "seer-investigation-conclusion"
 
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
@@ -131,11 +138,18 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     NotificationCategory.SEER: [
         NotificationSource.SEER_AUTOFIX_TRIGGER,
         NotificationSource.SEER_AUTOFIX_ERROR,
+        NotificationSource.SEER_AUTOFIX_STOPPED,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
+        NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
         NotificationSource.SEER_AGENT_WRITE_APPROVAL,
+        NotificationSource.SEER_AGENT_OUT_OF_CREDITS,
+        NotificationSource.SEER_INVESTIGATION_STARTED,
+        NotificationSource.SEER_INVESTIGATION_ERROR,
+        NotificationSource.SEER_INVESTIGATION_STATUS,
+        NotificationSource.SEER_INVESTIGATION_CONCLUSION,
     ],
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
@@ -179,6 +193,16 @@ class NotificationProviderKey(StrEnum):
     SLACK_STAGING = ExternalProviderEnum.SLACK_STAGING
     MSTEAMS = ExternalProviderEnum.MSTEAMS
     DISCORD = ExternalProviderEnum.DISCORD
+
+
+SLACK_PROVIDERS = frozenset({NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING})
+
+SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
+    "slack": NotificationProviderKey.SLACK,
+    "slack_staging": NotificationProviderKey.SLACK_STAGING,
+    "discord": NotificationProviderKey.DISCORD,
+    "msteams": NotificationProviderKey.MSTEAMS,
+}
 
 
 class NotificationTargetResourceType(StrEnum):

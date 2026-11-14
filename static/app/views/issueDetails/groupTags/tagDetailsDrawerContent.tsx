@@ -1,14 +1,14 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconArrow} from '@sentry/icons/arrow';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconOpen} from '@sentry/icons/open';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -22,39 +22,49 @@ import {
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {DeviceName} from 'sentry/components/deviceName';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {percent} from 'sentry/utils';
+import {escapeDoubleQuotes, percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
-import {getUserTagValue} from 'sentry/views/issueDetails/utils';
+import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDetailsEventsQuery';
+import {getUserTagValue, TAG_DRAWER_PARSERS} from 'sentry/views/issueDetails/utils';
 
-type TagSort = 'date' | 'count';
+import {TagDetailsTable, type TagSort} from './tagDetailsTable';
+import {TagBar} from './tagDistribution';
+
 const DEFAULT_SORT: TagSort = 'count';
 
+const SORT_LINK_PARSERS = {
+  ...TAG_DRAWER_PARSERS,
+  cursor: parseAsString,
+  page: parseAsString,
+};
+
+// Rows treat a null value (e.g. events without a user) the same as '' and render
+// it as "(empty)".
+type TagValueRow = TagValue & {value: string};
+
 export function TagDetailsDrawerContent({group}: {group: Group}) {
-  const theme = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
+  const [{tagDrawerCursor, tagDrawerSort}, setTagDrawerQuery] =
+    useQueryStates(TAG_DRAWER_PARSERS);
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
-  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
-  const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  const sort = (tagDrawerSort as TagSort | null) ?? DEFAULT_SORT;
 
   const {
     data: tagValuesResponse,
@@ -66,11 +76,14 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
       groupId: group.id,
       tagKey,
       sort,
-      cursor: location.query.tagDrawerCursor as string | undefined,
+      cursor: tagDrawerCursor ?? undefined,
     }),
     select: selectJsonWithHeaders,
   });
-  const tagValues = tagValuesResponse?.json;
+  const tagValues = tagValuesResponse?.json.map((tv): TagValueRow => ({
+    ...tv,
+    value: tv.value ?? '',
+  }));
 
   const {
     data: tag,
@@ -81,105 +94,52 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const isError = tagValuesIsError || tagIsError;
   const isPending = tagValuesIsPending || tagIsPending;
 
-  const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
   const paginationCaption = tct('[count] results', {
     count: (tag?.uniqueValues ?? 0).toLocaleString(),
   });
 
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return <LoadingError message={t('There was an error loading tag details')} />;
-  }
+  const getSortLocation = (newSort: TagSort) => ({
+    pathname: location.pathname,
+    query: applyQueryParamsUpdates(SORT_LINK_PARSERS, location, {
+      cursor: null,
+      page: null,
+      tagDrawerCursor: null,
+      tagDrawerSort: newSort,
+    }).query,
+  });
 
   return (
     <Fragment>
-      {tag && tagValues?.length && (
-        <Grid
-          data-test-id="group-tag-value"
-          columns="1fr 0.22fr min-content min-content 45px min-content"
-          gap={{zero: 'xs md', '5xl': 'xs xl'}}
-          position="relative"
-          left={`-${theme.space.md}`}
-          width={`calc(100% + ${theme.space.md} + ${theme.space.md})`}
-        >
-          <Grid column="1 / -1" columns="subgrid" borderBottom="primary" margin="0 md">
-            <Text as="div" wrap="nowrap" variant="muted" bold>
-              {t('Value')}
-            </Text>
-            <Flex gap="xs" align="center">
-              {props => (
-                <Link
-                  {...props}
-                  to={{
-                    pathname: location.pathname,
-                    query: {
-                      ...currentQuery,
-                      tagDrawerCursor: undefined,
-                      tagDrawerSort: 'date',
-                    },
-                  }}
-                >
-                  {sort === 'date' && sortArrow}
-                  <Text wrap="nowrap" variant="muted" bold underline="dotted">
-                    {t('Last Seen')}
-                  </Text>
-                </Link>
-              )}
-            </Flex>
-            <Flex gap="xs" align="center">
-              {props => (
-                <Link
-                  {...props}
-                  to={{
-                    pathname: location.pathname,
-                    query: {
-                      ...currentQuery,
-                      tagDrawerCursor: undefined,
-                      tagDrawerSort: 'count',
-                    },
-                  }}
-                >
-                  {sort === 'count' && sortArrow}
-                  <Text wrap="nowrap" variant="muted" bold underline="dotted">
-                    {t('Count')}
-                  </Text>
-                </Link>
-              )}
-            </Flex>
-            <Text as="div" wrap="nowrap" variant="muted" bold align="center">
-              {t('Share')}
-            </Text>
-          </Grid>
-          <Grid column="1 / -1" columns="subgrid">
-            {tagValues.map((tv, i) => (
+      <Container flexShrink={0}>
+        <TagDetailsTable sort={sort} getSortLocation={getSortLocation}>
+          {isPending ? (
+            <SimpleTable.Loading />
+          ) : isError ? (
+            <SimpleTable.Error message={t('There was an error loading tag details')} />
+          ) : tag && tagValues?.length ? (
+            tagValues.map((tv, i) => (
               <TagDetailsRow
                 key={`${tv.value}-${i}`}
                 group={group}
                 tag={tag}
                 tagValue={tv}
-                striped={i % 2 === 1}
               />
-            ))}
-          </Grid>
-        </Grid>
+            ))
+          ) : (
+            <SimpleTable.Empty>{t('No tag values found')}</SimpleTable.Empty>
+          )}
+        </TagDetailsTable>
+      </Container>
+      {isPending || isError ? null : (
+        <Pagination
+          caption={paginationCaption}
+          onCursor={cursor =>
+            setTagDrawerQuery({tagDrawerCursor: cursor ?? null}, {history: 'push'})
+          }
+          size="xs"
+          {...getPaginationProps(tagValuesResponse?.headers.Link)}
+        />
       )}
-      <Pagination
-        caption={paginationCaption}
-        onCursor={(cursor, path, query) =>
-          navigate({
-            pathname: path,
-            query: {
-              ...query,
-              tagDrawerCursor: cursor,
-            },
-          })
-        }
-        size="xs"
-        pageLinks={tagValuesResponse?.headers.Link}
-      />
     </Fragment>
   );
 }
@@ -188,12 +148,10 @@ function TagDetailsRow({
   group,
   tag,
   tagValue,
-  striped,
 }: {
   group: Group;
-  striped: boolean;
   tag: Tag;
-  tagValue: TagValue;
+  tagValue: TagValueRow;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -206,7 +164,9 @@ function TagDetailsRow({
           query: undefined,
         }
       : {
-          query: tagValue.query || `${key}:"${tagValue.value}"`,
+          query:
+            tagValue.query ||
+            `${escapeIssueTagKey(key)}:"${escapeDoubleQuotes(tagValue.value)}"`,
         };
 
   const allEventsLocation = {
@@ -230,32 +190,36 @@ function TagDetailsRow({
   return (
     <RevealOnHover>
       {props => (
-        <Grid
-          {...props}
-          column="1 / -1"
-          columns="subgrid"
-          align="center"
-          radius="md"
-          padding="2xs md"
-          background={striped ? 'tertiary' : undefined}
-        >
-          <TagDetailsValue
-            valueLocation={allEventsLocation}
-            tagKey={key}
-            tagValue={tagValue}
-          />
-          <Text ellipsis variant="inherit">
-            {textProps => <TimeSince {...textProps} date={tagValue.lastSeen} />}
-          </Text>
-          <Text as="div" align="right" variant="inherit">
+        <SimpleTable.Row {...props} data-test-id="group-tag-value">
+          <SimpleTable.RowCell>
+            <TagDetailsValue
+              valueLocation={allEventsLocation}
+              tagKey={key}
+              tagValue={tagValue}
+            />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <Text ellipsis variant="inherit">
+              {textProps => <TimeSince {...textProps} date={tagValue.lastSeen} />}
+            </Text>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end">
             {tagValue.count.toLocaleString()}
-          </Text>
-          <Text as="div" align="right" variant="inherit">
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end" gap="md">
             {displayPercentage}
-          </Text>
-          {tag.totalValues ? <TagBar percentage={percentage} /> : '--'}
-          <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
-        </Grid>
+            {tag.totalValues ? (
+              <Container width="45px">
+                <TagBar percentage={percentage} />
+              </Container>
+            ) : (
+              '--'
+            )}
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
       )}
     </RevealOnHover>
   );
@@ -267,7 +231,7 @@ function TagDetailsValue({
   tagValue,
 }: {
   tagKey: string;
-  tagValue: TagValue;
+  tagValue: TagValueRow;
   valueLocation: LocationDescriptor;
 }) {
   const theme = useTheme();
@@ -341,7 +305,7 @@ function TagValueActionsMenu({
 }: {
   group: Group;
   tag: Tag;
-  tagValue: TagValue;
+  tagValue: TagValueRow;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -362,6 +326,7 @@ function TagValueActionsMenu({
     <RevealOnHover.Action visible={isVisible}>
       <DropdownMenu
         size="xs"
+        strategy="fixed"
         onOpenChange={isOpen => setIsVisible(isOpen)}
         trigger={triggerProps => (
           <OverlayTrigger.IconButton

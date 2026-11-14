@@ -1,7 +1,8 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconLink} from '@sentry/icons/link';
 import type {LocationDescriptor} from 'history';
+import {createSerializer, parseAsString} from 'nuqs';
 
 import {
   MessageRow,
@@ -10,7 +11,7 @@ import {
   type ToolCallStatus,
 } from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -19,13 +20,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import {
   RESOURCE_KIND_ICON,
   type ResourceKind,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
@@ -157,9 +158,6 @@ export function ToolUseBlock({
   showThinking,
   blocks,
   getPageReferrer,
-  pendingInput,
-  readOnly = false,
-  respondToUserInput,
 }: ToolUseBlockProps) {
   const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
 
@@ -172,11 +170,7 @@ export function ToolUseBlock({
   // call is a thing that happened, exactly like a classic tool call, and packing several into one
   // row makes an execute that made three calls look different from three that made one each.
   return (
-    <AgentWriteApprovalProvider
-      pendingInput={pendingInput ?? null}
-      readOnly={readOnly}
-      respondToUserInput={respondToUserInput}
-    >
+    <Fragment>
       {showThinking && hasValidContent(block.message.thinking_content) && (
         <MessageRow from="assistant" density="compact">
           <Disclosure size="sm">
@@ -198,7 +192,7 @@ export function ToolUseBlock({
           getPageReferrer={getPageReferrer}
         />
       ) : null}
-    </AgentWriteApprovalProvider>
+    </Fragment>
   );
 }
 
@@ -600,6 +594,7 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
                     url: toolUrl,
                     failure: failureTooltip,
                     // Only the first classic row shows the block status; call rows carry their own.
+                    // oxlint-disable-next-line react/todo
                     status: ++rendered === 1 ? blockStatus : undefined,
                   }}
                   onLinkClick={handleLinkClick}
@@ -647,6 +642,53 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
   );
 }
 
+const OPEN_TRACE_PATHNAME = /\/trace\/[^/]+\/$/;
+
+// The open trace's target params. A new link clears these and sets only its own.
+const openTraceTargetParsers = {
+  eventId: parseAsString,
+  node: parseAsString,
+  revealNode: parseAsString,
+  targetId: parseAsString,
+};
+
+/**
+ * Rules build a trace link with only its target, so following one to the trace that is already open
+ * would drop the zoom, tab and filters the page has. Keep those and replace only the target. The open
+ * waterfall only reads `node` on load, so the span target is passed as `revealNode`.
+ */
+function useKeepOpenTraceQuery() {
+  const location = useLocation();
+  return useCallback(
+    (url: LocationDescriptor): LocationDescriptor => {
+      if (
+        typeof url === 'string' ||
+        url.pathname !== location.pathname ||
+        !OPEN_TRACE_PATHNAME.test(location.pathname)
+      ) {
+        return url;
+      }
+      const {query: linkQuery, ...link} = url;
+      const {node, ...target} = linkQuery ?? {};
+      const serialize = createSerializer({
+        ...openTraceTargetParsers,
+        ...Object.fromEntries(Object.keys(target).map(key => [key, parseAsString])),
+      });
+      return {
+        ...link,
+        search: serialize(location.search, {
+          eventId: null,
+          node: null,
+          targetId: null,
+          ...target,
+          revealNode: typeof node === 'string' ? node : null,
+        }),
+      };
+    },
+    [location]
+  );
+}
+
 interface NavItem {
   /** The rule that resolved the link, for analytics. */
   kind: string;
@@ -678,6 +720,7 @@ function CallRow({
   row: RenderRow;
   onLinkClick?: (e: React.MouseEvent) => void;
 }) {
+  const keepOpenTraceQuery = useKeepOpenTraceQuery();
   const text = (
     <Tooltip title={row.failure ?? ''} disabled={!row.failure}>
       <ToolCallText size="xs" variant="muted" monospace>
@@ -686,14 +729,16 @@ function CallRow({
     </Tooltip>
   );
   const label = row.url ? (
-    <ToolCallLink to={row.url} onClick={onLinkClick}>
+    <ToolCallLink to={keepOpenTraceQuery(row.url)} onClick={onLinkClick}>
       {text}
       <ToolCallLinkIconWrapper>
         <ToolCallLinkIcon size="xs" />
       </ToolCallLinkIconWrapper>
     </ToolCallLink>
   ) : (
-    <ToolCallPlainRow>{text}</ToolCallPlainRow>
+    <Flex as="span" display="inline-flex" align="center" gap="md" maxWidth="100%">
+      {text}
+    </Flex>
   );
 
   return (
@@ -738,6 +783,7 @@ function CodeModeCallRow({
   url: LocationDescriptor | null;
   onLinkClick?: (e: React.MouseEvent) => void;
 }) {
+  const keepOpenTraceQuery = useKeepOpenTraceQuery();
   const detail = callRecordDetail(record);
   const failure = callRecordFailure(record);
   const inputQuery = callRecordInputQuery(record);
@@ -754,7 +800,7 @@ function CodeModeCallRow({
         url && !isFailure
           ? {
               value: linkLabel ?? t('Open'),
-              to: url,
+              to: keepOpenTraceQuery(url),
               icon: <Icon />,
               onClick: onLinkClick,
             }
@@ -843,13 +889,17 @@ function NavLinks({
   navItems: NavItem[];
   onNavLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
 }) {
+  const keepOpenTraceQuery = useKeepOpenTraceQuery();
   return (
     <Stack as="ul" gap="xs" padding="0">
       {navItems.map((item, idx) => (
         <Flex key={`${item.kind}-${idx}`} as="li" gap="sm" align="center">
           {/* ToolCallText (not plain Text) so ToolCallLink's hover rule, which targets it by
               class, colors the label the same way it does the positional row link. */}
-          <ToolCallLink to={item.url} onClick={onNavLinkClick?.(item.kind)}>
+          <ToolCallLink
+            to={keepOpenTraceQuery(item.url)}
+            onClick={onNavLinkClick?.(item.kind)}
+          >
             <ToolCallText size="xs" monospace>
               {item.label}
             </ToolCallText>
@@ -926,11 +976,4 @@ const ToolCallLinkIcon = styled(IconLink)`
   ${ToolCallLink}:hover & {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
-`;
-
-const ToolCallPlainRow = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  max-width: 100%;
 `;

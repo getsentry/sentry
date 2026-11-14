@@ -8,11 +8,13 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.notifications.additional_attachment_manager import msteams_attachment_manager
 from sentry.notifications.platform.msteams.provider import MSTeamsRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.service import NotificationRenderError
 from sentry.notifications.platform.templates.issue import IssueNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -39,7 +41,11 @@ if TYPE_CHECKING:
 class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> MSTeamsRenderable:
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueMSTeamsRenderer does not support {data.__class__.__name__}")
@@ -68,6 +74,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
         rules = [data.rule.to_notification_origin()] if data.rule else []
         issue_url = cls.build_issue_url(group=group, notification_uuid=data.notification_uuid)
+        issue_url = link_decorator.decorate_url(issue_url)
 
         fields: list[Block | None] = [
             cls.build_description(group=group, event=event),
@@ -76,10 +83,17 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             cls.build_actions(group=group, data=data, rules=rules),
         ]
 
-        return MSTeamsMessageBuilder().build(
+        card = MSTeamsMessageBuilder().build(
             title=cls.build_title(group=group, issue_url=issue_url),
             fields=fields,
         )
+
+        card["body"].extend(
+            msteams_attachment_manager.get_additional_attachment_for_integration_id(
+                data.integration_id, group.organization
+            )
+        )
+        return card
 
     @classmethod
     def build_issue_url(cls, *, group: Group, notification_uuid: str) -> str:
@@ -203,7 +217,6 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                 "actionType": action_type,
                 "groupId": data.group_id,
                 "eventId": data.event_id,
-                "rules": [rule.legacy_rule_id for rule in rules if rule.legacy_rule_id is not None],
                 "workflows": get_workflow_ids(rules),
             }
         }

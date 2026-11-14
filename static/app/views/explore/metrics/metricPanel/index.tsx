@@ -22,6 +22,10 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -125,8 +129,10 @@ export function MetricPanel({
   const setAggregateFields = useSetMetricAggregateFields();
 
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
+  const showTransformationControls =
+    !isHeatmap && organization.features.includes('explore-interpolation-and-smoothing');
 
-  const [interval, setInterval, intervalOptions] = useChartInterval({
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
 
@@ -206,7 +212,7 @@ export function MetricPanel({
   });
 
   useMetricsPanelAnalytics({
-    interval,
+    interval: chartInterval,
     isTopN: !!topEvents,
     metricAggregatesTableResult,
     metricSamplesTableResult,
@@ -273,9 +279,11 @@ export function MetricPanel({
         onChange={option => handleChartTypeChange(option.value)}
       />
       <CompactSelect
-        value={isHeatmap ? (heatMapBucketDimensions?.interval ?? interval) : interval}
+        value={
+          isHeatmap ? (heatMapBucketDimensions?.interval ?? chartInterval) : chartInterval
+        }
         disabled={isHeatmap}
-        onChange={({value}) => setInterval(value)}
+        onChange={({value}) => setChartInterval(value)}
         trigger={triggerProps => (
           <OverlayTrigger.Button
             tooltipProps={{
@@ -293,6 +301,10 @@ export function MetricPanel({
       />
     </Fragment>
   );
+
+  function handleTransformationsChange(transformations: readonly string[]) {
+    setVisualizes(visualizes.map(v => v.replace({transformations})));
+  }
 
   return (
     <Panel ref={ref} style={style} {...rest} data-test-id="metric-panel">
@@ -328,7 +340,7 @@ export function MetricPanel({
                   }}
                 >
                   <Grid columns={{xs: '1fr', lg: '1fr 1fr'}} gap="sm">
-                    <Container minWidth="0" ref={chartContainerRef}>
+                    <Stack minWidth="0" alignSelf="start" ref={chartContainerRef}>
                       {areHeatMapsEnabled && isHeatmap ? (
                         <MetricsHeatMap
                           heatMapData={heatMapData}
@@ -337,15 +349,42 @@ export function MetricPanel({
                           queryLabel={queryLabel}
                         />
                       ) : (
-                        <MetricsGraph
-                          timeseriesResult={timeseriesResult}
-                          actions={actions}
-                          isMetricOptionsEmpty={isMetricOptionsEmpty}
-                          title={title}
-                        />
+                        <Fragment>
+                          <MetricsGraph
+                            timeseriesResult={timeseriesResult}
+                            actions={actions}
+                            isMetricOptionsEmpty={isMetricOptionsEmpty}
+                            title={title}
+                            footerActions={
+                              showTransformationControls ? (
+                                <AddTransformationButton
+                                  traceItemDataset={TraceItemDataset.TRACEMETRICS}
+                                  transformations={visualize.transformations}
+                                  onChange={handleTransformationsChange}
+                                />
+                              ) : undefined
+                            }
+                          />
+                          {showTransformationControls &&
+                          visualize.transformations.length > 0 ? (
+                            <Container padding="xl" paddingTop="0" paddingBottom="md">
+                              <VisualizeTransformationRows
+                                traceItemDataset={TraceItemDataset.TRACEMETRICS}
+                                transformations={visualize.transformations}
+                                layout="inline"
+                                onChange={handleTransformationsChange}
+                              />
+                            </Container>
+                          ) : null}
+                        </Fragment>
                       )}
-                    </Container>
-                    <Container minWidth="0">
+                    </Stack>
+                    <Container
+                      minWidth="0"
+                      minHeight="0"
+                      contain={{xs: 'none', lg: 'size'}}
+                      height={{xs: `${STACKED_GRAPH_HEIGHT}px`, lg: 'auto'}}
+                    >
                       <MetricInfoTabs
                         traceMetric={traceMetric}
                         isMetricOptionsEmpty={isMetricOptionsEmpty}
@@ -357,7 +396,10 @@ export function MetricPanel({
                             {mode === Mode.AGGREGATE ? (
                               <MetricsAggregateExportModalButton
                                 isError={metricAggregatesTableResult.result.isError}
-                                isLoading={metricAggregatesTableResult.result.isPending}
+                                isLoading={
+                                  areQueriesEnabled &&
+                                  metricAggregatesTableResult.result.isPending
+                                }
                                 pageLinks={metricAggregatesTableResult.result.pageLinks}
                                 tableData={metricAggregatesTableResult.result.data ?? []}
                                 traceMetric={traceMetric}

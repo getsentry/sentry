@@ -11,7 +11,8 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {StepDescriptor} from 'sentry/views/onboarding/types';
+
+import type {StepDescriptor} from './types';
 
 /**
  * Custom hook that performs a couple of actions when navigating back in the onboarding flow,

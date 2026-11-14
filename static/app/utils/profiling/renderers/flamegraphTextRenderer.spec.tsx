@@ -5,9 +5,10 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
-import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {trimTextCenter} from 'sentry/utils/string/trimTextCenter';
+
+import {FlamegraphTextRenderer} from './flamegraphTextRenderer';
 
 const theme = makeLightFlamegraphTheme(ThemeFixture());
 

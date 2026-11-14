@@ -1,7 +1,9 @@
+from typing import Any
+
 from sentry.grouping.strategies.base import ComponentsByVariant
 
 
-def remove_non_stacktrace_variants(variants: ComponentsByVariant) -> ComponentsByVariant:
+def remove_non_stacktrace_variants(variants: ComponentsByVariant[Any]) -> ComponentsByVariant[Any]:
     """
     Given multiple variants, if at least one variant has a contributing stacktrace, mark all
     variants without a stacktrace as non-contributing.

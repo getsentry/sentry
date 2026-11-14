@@ -1,11 +1,12 @@
+import {useStore} from 'zustand';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import {NotificationSettings} from './notificationSettings';
 
 function NotificationSettingsController() {
-  const {loaded} = useLegacyStore(OrganizationsStore);
+  const loaded = useStore(OrganizationsStore, state => state.loaded);
   if (!loaded) {
     return <LoadingIndicator />;
   }

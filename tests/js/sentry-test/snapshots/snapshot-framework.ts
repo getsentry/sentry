@@ -2,7 +2,7 @@ import type {ReactElement} from 'react';
 
 import {Tooltip as mockTooltip} from 'sentry-test/snapshots/mocks/tooltip';
 
-import {lightTheme} from 'sentry/utils/theme/theme';
+import {lightTheme} from '@sentry/scraps/theme';
 
 import {closeBrowser, takeSnapshot, type SnapshotInteraction} from './snapshot';
 import type {SnapshotTestMetadata} from './snapshot-image-metadata';

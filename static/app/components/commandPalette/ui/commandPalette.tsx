@@ -26,32 +26,29 @@ import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {InnerWrap} from '@sentry/scraps/menuListItem';
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+import type {ListItemProps} from '@sentry/scraps/menu';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import type {Theme} from '@sentry/scraps/theme';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
-import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk';
-import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
-import {
-  useCommandPaletteDispatch,
-  useCommandPaletteState,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {
-  getLocationHref,
-  isExternalLocation,
-} from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
-import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import type {CMDKActionData} from './cmdk';
+import {CMDKCollection} from './cmdk';
+import type {CollectionTreeNode} from './collection';
+import {
+  useCommandPaletteDispatch,
+  useCommandPaletteState,
+} from './commandPaletteStateContext';
+import {getLocationHref, isExternalLocation} from './locationUtils';
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);
@@ -77,7 +74,7 @@ function makeLeadingItemAnimation(theme: Theme, instant = false) {
   };
 }
 
-type CommandPaletteActionMenuItem = MenuListItemProps & {
+type CommandPaletteActionMenuItem = ListItemProps & {
   children: CommandPaletteActionMenuItem[];
   key: string;
   hideCheck?: boolean;
@@ -627,7 +624,7 @@ export function CommandPalette({
                 <StyledInputGroupInput
                   seerEnabled={seerExplorerEnabled}
                   autoFocus
-                  data-1p-ignore
+                  type="search"
                   ref={state.input}
                   value={state.query}
                   aria-label={t('Search commands')}
@@ -645,7 +642,7 @@ export function CommandPalette({
                       <Text size="xs" variant="muted">
                         {t('Ask Seer')}
                       </Text>
-                      <Hotkey variant="debossed" value="tab" />
+                      <Hotkey variant="debossed" value="Tab" />
                     </Flex>
                   ) : (
                     <AnimatePresence mode="popLayout">
@@ -1208,21 +1205,21 @@ function CommandPaletteHints() {
         <Flex align="center" gap="lg">
           <Flex align="center" gap="xs">
             <Flex align="center" gap="2xs">
-              <Hotkey variant="debossed" value="up" />
-              <Hotkey variant="debossed" value="down" />
+              <Hotkey variant="debossed" value="ArrowUp" />
+              <Hotkey variant="debossed" value="ArrowDown" />
             </Flex>
             <Text size="xs" variant="muted">
               {t('Move')}
             </Text>
           </Flex>
           <Flex align="center" gap="xs">
-            <Hotkey variant="debossed" value="enter" />
+            <Hotkey variant="debossed" value="Enter" />
             <Text size="xs" variant="muted">
               {t('Select')}
             </Text>
           </Flex>
           <Flex align="center" gap="xs">
-            <Hotkey variant="debossed" value="shift+enter" />
+            <Hotkey variant="debossed" value="Shift+Enter" />
             <Text size="xs" variant="muted">
               {t('New tab')}
             </Text>
@@ -1232,7 +1229,7 @@ function CommandPaletteHints() {
           <Text size="xs" variant="muted">
             {t('Toggle Command Palette')}
           </Text>
-          <Hotkey variant="debossed" value="mod+k" />
+          <Hotkey variant="debossed" value="Mod+K" />
         </Flex>
       </Flex>
     </Stack>
@@ -1284,12 +1281,12 @@ const ResultsList = styled(Flex)`
     margin: 0;
   }
 
-  ${InnerWrap} {
+  [data-menu-item-content] {
     padding-top: ${p => p.theme.space.sm};
     padding-bottom: ${p => p.theme.space.sm};
   }
 
-  li[data-focused] > ${InnerWrap} {
+  li[data-focused] > [data-menu-item-content] {
     outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
 `;

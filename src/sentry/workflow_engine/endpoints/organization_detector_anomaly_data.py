@@ -1,4 +1,5 @@
 import logging
+from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied
@@ -11,10 +12,18 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
+from sentry.seer.anomaly_detection.types import AnomalyThresholdDataPoint
 from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import Detector
 
@@ -25,6 +34,10 @@ class SubscriptionNotFound(Exception):
     """Raised when a QuerySubscription cannot be found."""
 
     pass
+
+
+class AnomalyThresholdDataResponse(TypedDict):
+    data: list[AnomalyThresholdDataPoint]
 
 
 @extend_schema(tags=["Workflows"])
@@ -41,19 +54,23 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         """Look up QuerySubscription from a detector ID."""
         validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
-            detector = Detector.objects.with_type_filters().get(
-                id=validated_detector_id, project__organization=organization
+            detector = (
+                Detector.objects.with_type_filters()
+                .select_related("project")
+                .get(id=validated_detector_id, project__organization=organization)
             )
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
-        data_source = detector.data_sources.first()
+        data_source = detector.data_sources.filter(
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        ).first()
         if not data_source:
             raise SubscriptionNotFound
 
         try:
             return QuerySubscription.objects.select_related("project").get(
-                id=int(data_source.source_id)
+                id=int(data_source.source_id), project_id=detector.linked_project.id
             )
         except ValueError:
             raise SubscriptionNotFound
@@ -62,7 +79,10 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         operation_id="Retrieve Anomaly Detection Threshold Data for a Detector",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DetectorParams.DETECTOR_ID],
         responses={
-            200: object,
+            200: inline_sentry_response_serializer(
+                "AnomalyThresholdDataResponse", AnomalyThresholdDataResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

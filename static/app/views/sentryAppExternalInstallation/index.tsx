@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {Select} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
@@ -44,6 +45,7 @@ export default function SentryAppExternalInstallation() {
 function SentryAppExternalInstallationContent() {
   const params = useParams<{sentryAppSlug: string}>();
   const location = useLocation();
+  const [state] = useQueryState('state');
   const api = useApi();
   // The selected organization fetched from org details
   const [organization, setOrganization] = useState<Organization>();
@@ -115,7 +117,7 @@ function SentryAppExternalInstallationContent() {
         setSelectedOrgSlug(org.slug);
         setIsInstalled(installed);
       } catch (err) {
-        addErrorMessage(t('Failed to retrieve organization or integration details'));
+        toast.error(t('Failed to retrieve organization or integration details'));
       }
     },
     [
@@ -192,7 +194,6 @@ function SentryAppExternalInstallationContent() {
         code: install.code,
         orgSlug: organization.slug,
       };
-      const state = location.query.state as string | undefined;
       if (state) {
         queryParams.state = state;
       }
@@ -200,7 +201,7 @@ function SentryAppExternalInstallationContent() {
       return testableWindowLocation.assign(redirectUrl);
     }
     return onClose();
-  }, [api, organization, sentryApp, onClose, location.query.state]);
+  }, [api, organization, sentryApp, onClose, state]);
 
   if (sentryAppLoading || orgsLoading || !sentryApp) {
     return <LoadingIndicator />;
@@ -352,7 +353,7 @@ function MultiOrgView({
       <FieldGroup label={t('Organization')} inline={false} stacked required>
         <Select
           onChange={({value}: any) => onSelectOrg(value)}
-          value={selectedOrgSlug}
+          value={selectedOrgSlug ?? null}
           placeholder={t('Select an organization')}
           options={getOrganizationOptions(organizations)}
           data-test-id="org-select"

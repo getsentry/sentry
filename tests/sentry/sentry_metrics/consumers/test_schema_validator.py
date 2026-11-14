@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from sentry_kafka_schemas.codecs import Codec, ValidationError
@@ -194,7 +194,7 @@ def test_metrics_schema_validator(
     """
     Test the behavior of the MetricsSchemaValidator class with different parameters.
     """
-    with override_options({option_name: option_value}):
+    with override_options({cast(str, option_name): option_value}):
         validator = MetricsSchemaValidator(codec, option_name if option_name else None)
         if is_valid:
             validator.validate(use_case_id, message)

@@ -6,7 +6,8 @@ set -euo pipefail
 #
 #   merge_base=<sha>    the PR fork point (empty when it can't be determined)
 #   scope=scoped|full   scoped when a merge base resolved AND every changed file is
-#                       under static/ or is oxlint-suppressions.json; full otherwise
+#                       under static/ or is a project oxlint-suppressions.json,
+#                       and no package lint config changed; full otherwise
 #
 # We can only scope safely when both hold: tools that select work from the changed file
 # set seed on source files and can't trace the impact of global config or dependency
@@ -28,8 +29,9 @@ elif ! CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD^2); then
   echo "Could not diff against merge base — running over all files" >&2
   echo "merge_base=$MERGE_BASE"
   echo "scope=full"
-elif printf '%s' "$CHANGED" | grep -qvE '^static/|^oxlint-suppressions\.json$'; then
-  echo "Global file changed. Running over all files" >&2
+elif printf '%s' "$CHANGED" | grep -qvE '^static/|(^|/)oxlint-suppressions\.json$' ||
+     printf '%s' "$CHANGED" | grep -qE '(^|/)(oxlint\.config\.(ts|mts)|\.oxlintrc\.jsonc?)$'; then
+  echo "Global file or lint config changed. Running over all files" >&2
   echo "merge_base=$MERGE_BASE"
   echo "scope=full"
 else

@@ -5,31 +5,31 @@ import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {t, tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   ConnectionModalFrame,
   LockedRepoField,
   getApiErrorMessage,
-} from 'sentry/components/connectRepository/connectionModalFrame';
-import {DEFAULT_BRANCH} from 'sentry/components/connectRepository/normalization';
-import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
+} from './connectionModalFrame';
+import {DEFAULT_BRANCH} from './normalization';
+import {PathMappingList} from './pathMappingList';
 import {
   orgProjectsOptions,
   projectCodeMappingsOptions,
   saveProjectRepoConnection,
   useEditRepoInfo,
   useInvalidateRepoQueries,
-} from 'sentry/components/connectRepository/queries';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
-import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './queries';
+import type {PathMappingValue} from './type';
+import {hasExactDuplicate} from './warnings';
 
 export type RepoLockedConnectFormProps = ModalRenderProps & {
   externalId: string | null;
@@ -173,7 +173,7 @@ export function RepoLockedConnectForm({
       placeholder={t('Search projects')}
       isLoading={isProjectsPending}
       searchable
-      components={{MenuList: ScmVirtualizedMenuList}}
+      virtualized
     />
   );
 
@@ -227,6 +227,8 @@ export function RepoLockedConnectForm({
                 <PathMappingList
                   key={selectedProject.id}
                   form={form}
+                  projectSlug={selectedProject.slug}
+                  repositoryId={repositoryId}
                   providerKey={providerKey ?? undefined}
                   defaultBranch={defaultBranch ?? undefined}
                   existingMappings={existingMappings}

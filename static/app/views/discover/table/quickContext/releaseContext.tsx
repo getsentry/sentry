@@ -17,7 +17,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniqueId} from 'sentry/utils/guid';
 import {useUser} from 'sentry/utils/useUser';
 
-import {NoContext} from './quickContextWrapper';
+import {NoContext} from './noContext';
 import {
   ContextBody,
   ContextContainer,

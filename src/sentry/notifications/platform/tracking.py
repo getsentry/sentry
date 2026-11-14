@@ -14,7 +14,9 @@ from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
     NotificationTrackingSentEvent,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.notifications.platform.types import (
+    NOTIFICATION_SOURCE_MAP,
     LinkTextBlock,
     NotificationCategory,
     NotificationData,
@@ -42,6 +44,7 @@ class NotificationLink(StrEnum):
     SETTINGS = "settings"
     REPOSITORIES = "repositories"
     SEER_AGENT_RUN = "seer_agent_run"
+    INVESTIGATION = "investigation"
     OTHER = "other"
 
 
@@ -61,7 +64,7 @@ class NotificationTrackingContext:
     """
     Identifies a single delivered notification for tracking.
 
-    `source`, `category`, `provider`, and `stage` become metric tags, so each must come from a
+    `source`, `category`, and `provider` become metric tags, so each must come from a
     small fixed set of values. IDs and URLs belong in `notification_uuid` and `organization_id`,
     which are only recorded on analytics events.
 
@@ -74,7 +77,33 @@ class NotificationTrackingContext:
     category: NotificationCategory | str
     notification_uuid: str | None
     organization_id: int
-    stage: str | None = None
+
+
+@dataclass(frozen=True)
+class NotificationReferrer:
+    """The notification a tracked link came from, as identified by the link's `referrer`."""
+
+    source: NotificationSource
+    category: NotificationCategory
+    provider: ExternalProviderEnum
+
+
+_SOURCE_CATEGORIES: dict[str, NotificationCategory] = {
+    source: category for category, sources in NOTIFICATION_SOURCE_MAP.items() for source in sources
+}
+
+
+def parse_referrer(referrer: str) -> NotificationReferrer | None:
+    """
+    Identify a notification from a link's `referrer` of `<source>-<provider>`, as set by
+    `NotificationLinkDecorator`. Referrers naming an unknown source or provider aren't recognized.
+    """
+    source, _, provider = referrer.rpartition("-")
+    if source not in _SOURCE_CATEGORIES or provider not in ExternalProviderEnum:
+        return None
+    return NotificationReferrer(
+        NotificationSource(source), _SOURCE_CATEGORIES[source], ExternalProviderEnum(provider)
+    )
 
 
 def is_tracking_enabled(
@@ -85,8 +114,6 @@ def is_tracking_enabled(
     before they become metric tags: the source against the rollout option, and the provider
     against the known providers.
     """
-    from sentry.integrations.types import ExternalProviderEnum
-
     return (
         source in options.get("notifications.tracking.sources") and provider in ExternalProviderEnum
     )
@@ -196,6 +223,8 @@ def classify_link(url: str) -> NotificationLink:
         return NotificationLink.REPOSITORIES
     if path.startswith("/explore/agents/conversations/"):
         return NotificationLink.SEER_AGENT_RUN
+    if path.startswith("/seer/investigations/"):
+        return NotificationLink.INVESTIGATION
     logger.error("notifications.tracking.unclassified_link", extra={"path": path})
     return NotificationLink.OTHER
 
@@ -240,7 +269,6 @@ def record_sent(context: NotificationTrackingContext, *, links: Collection[str] 
                 source=context.source,
                 category=context.category,
                 provider=context.provider,
-                stage=context.stage,
                 links=links,
             )
         )
@@ -279,7 +307,6 @@ def record_engagement(
                 source=context.source,
                 category=context.category,
                 provider=context.provider,
-                stage=context.stage,
                 link=link,
                 mechanism=mechanism,
                 user_id=user_id,
@@ -296,18 +323,14 @@ class _NotificationTrackingTags(TypedDict):
     source: str
     provider: str
     category: str
-    stage: NotRequired[str]
     link: NotRequired[str]
     mechanism: NotRequired[NotificationEngagementMechanism]
 
 
 def _get_tags(context: NotificationTrackingContext) -> _NotificationTrackingTags:
-    tags = _NotificationTrackingTags(
+    return _NotificationTrackingTags(
         source=context.source, provider=context.provider, category=context.category
     )
-    if context.stage:
-        tags["stage"] = context.stage
-    return tags
 
 
 def _incr(key: str, tags: _NotificationTrackingTags) -> None:

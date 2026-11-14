@@ -1,10 +1,10 @@
-import type {Series} from 'sentry/types/echarts';
 import {
   AGGREGATE_BASE,
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
-import type {Widget} from 'sentry/views/dashboards/types';
+
+import type {Widget} from './types';
 
 const SERIES_NAME_DELIMITER = '|~|';
 
@@ -32,10 +32,10 @@ export const WidgetLegendNameEncoderDecoder = {
   },
 
   // change timeseries names to SeriesName:widgetID
-  modifyTimeseriesNames(
+  modifyTimeseriesNames<T extends {seriesName: string}>(
     widget: Widget,
-    timeseriesResults?: Series[]
-  ): Series[] | undefined {
+    timeseriesResults?: T[]
+  ): T[] | undefined {
     if (!timeseriesResults) {
       return undefined;
     }

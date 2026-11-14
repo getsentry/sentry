@@ -4,6 +4,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
 
 import type {SelectValue} from '@sentry/scraps/select';
+import type {Theme} from '@sentry/scraps/theme';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {BaseChart} from 'sentry/components/charts/baseChart';
@@ -19,7 +20,6 @@ import {t} from 'sentry/locale';
 import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-import type {Theme} from 'sentry/utils/theme';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';

@@ -9,6 +9,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -21,10 +22,9 @@ function useReminderData() {
   const canWrite = useCanWriteSettings();
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
+  const hasTokenBasedSeer = isSeerTokenBasedBillingOnboardingEnabled(organization);
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
-
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
 
   const analyticsParams = useMemo(() => {
     return {
@@ -32,8 +32,9 @@ function useReminderData() {
       has_code_review_beta: hasCodeReviewBeta,
       has_legacy_seer: hasLegacySeer,
       has_seat_based_seer: hasSeatBasedSeer,
+      has_token_based_seer: hasTokenBasedSeer,
     };
-  }, [canWrite, hasSeatBasedSeer, hasLegacySeer, hasCodeReviewBeta]);
+  }, [canWrite, hasSeatBasedSeer, hasTokenBasedSeer, hasLegacySeer, hasCodeReviewBeta]);
 
   const {
     isPending,
@@ -41,23 +42,19 @@ function useReminderData() {
     data: data,
   } = useQuery(getSeerOnboardingCheckQueryOptions({organization, staleTime: 60_000}));
 
-  if (!canWrite || !hasSeatBasedSeer || isPending || isError) {
+  if (!canWrite || !(hasSeatBasedSeer || hasTokenBasedSeer) || isPending || isError) {
     return {canSeeReminder: false, analyticsParams, title: null, description: null};
   }
-  const {hasSupportedScmIntegration, isAutofixEnabled, isCodeReviewEnabled} = data;
+  const {hasSupportedScmIntegration, isAutofixEnabled} = data;
 
   if (!hasSupportedScmIntegration) {
     return {
       canSeeReminder: true,
       analyticsParams,
-      title: hasGitLabSupport ? t('Connect GitHub or GitLab') : t('Connect GitHub'),
-      description: hasGitLabSupport
-        ? t(
-            'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix and Code Review.'
-          )
-        : t(
-            'Seer is enabled, but repositories are not connected. Connect your GitHub account to enable Autofix and Code Review.'
-          ),
+      title: t('Connect GitHub or GitLab'),
+      description: t(
+        'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix.'
+      ),
     };
   }
 
@@ -73,22 +70,6 @@ function useReminderData() {
       ),
       description: t(
         'Seer is enabled but projects are not connected to repos. Connect your source code and run Root Cause Analysis, Solution generation, and PR creation.'
-      ),
-    };
-  }
-
-  if (!isCodeReviewEnabled) {
-    return {
-      canSeeReminder: true,
-      analyticsParams,
-      title: (
-        <Flex align="center" gap="sm">
-          <IconSeer />
-          {t('Start using Code Review')}
-        </Flex>
-      ),
-      description: t(
-        'Seer is enabled but Code Review is not configured. Configure Seer to automatically review PRs and flag potential issues.'
       ),
     };
   }

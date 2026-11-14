@@ -6,11 +6,11 @@ import {IconUser} from '@sentry/icons/user';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ActorAvatar, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
@@ -21,23 +21,25 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
+
+import {BULK_LIMIT, BULK_LIMIT_STR} from './actions/constants';
 import {
-  BULK_LIMIT,
-  BULK_LIMIT_STR,
   invalidateIssueQueries,
   performBulkUpdate as performSharedBulkUpdate,
-} from 'sentry/views/issueList/actions/utils';
+} from './actions/utils';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
-} from 'sentry/views/issueList/issueSelectionContext';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+} from './issueSelectionContext';
+import type {IssueUpdateData} from './types';
+import type {IssueSortOptions} from './utils';
 
 interface IssueListBulkCommandPaletteActionsProps {
   groupIds: string[];
   query: string;
   queryCount: number;
   selection: PageFilters;
+  sort: IssueSortOptions;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 }
 
@@ -219,6 +221,7 @@ function useIssueListBulkCommandPaletteActions({
   query,
   queryCount,
   selection,
+  sort,
   groupIds,
   onActionTaken,
 }: IssueListBulkCommandPaletteActionsProps) {
@@ -264,6 +267,7 @@ function useIssueListBulkCommandPaletteActions({
       organizationSlug: organization.slug,
       query,
       selection,
+      sort,
       onSuccess: updatedItemIds => {
         onSuccess?.(updatedItemIds);
         invalidateIssueQueries({

@@ -1,3 +1,5 @@
+import type {TermOperator} from 'sentry/components/searchSyntax/tokens';
+
 export enum FieldKind {
   TAG = 'tag',
   FEATURE_FLAG = 'feature_flag',
@@ -81,6 +83,12 @@ export interface FieldDefinition {
    */
   allowWildcard?: boolean;
   /**
+   * List the comparison operators before the text operators in the operator
+   * menu. Useful for a field such as a release, which users mostly compare as a
+   * version. Only applies with `allowComparisonOperators`.
+   */
+  comparisonOperatorsFirst?: boolean;
+  /**
    * Default value for the field
    */
   defaultValue?: string;
@@ -99,6 +107,12 @@ export interface FieldDefinition {
    */
   disallowWildcardOperators?: boolean;
   /**
+   * Operators to leave out of the operator menu, for a field whose backend does
+   * not take them. A query typed as text can still hold one, so the consumer
+   * must also refuse it.
+   */
+  disallowedOperators?: readonly TermOperator[];
+  /**
    * Feature flag that indicates gating of the field from use
    */
   featureFlag?: string;
@@ -106,6 +120,12 @@ export interface FieldDefinition {
    * Additional keywords used when filtering via autocomplete
    */
   keywords?: string[];
+  /**
+   * Labels for operators in the operator menu and on the filter token, where the
+   * default wording does not fit what the field matches, e.g. an IP address that
+   * "matches" a range instead of "is" one.
+   */
+  operatorLabels?: Partial<Record<TermOperator, string>>;
   /**
    * Only valid for aggregate fields.
    * Modifies the value type based on the parameters passed to the function.
@@ -116,6 +136,11 @@ export interface FieldDefinition {
    * Defines the number and type of parameters that the function accepts.
    */
   parameters?: AggregateParameter[];
+  /**
+   * The hint the value dropdown shows under the given operator, in place of the
+   * default wildcard hint: what the field takes as a value.
+   */
+  valueHint?: (operator: TermOperator) => string | undefined;
   /**
    * Potential values for the field
    */

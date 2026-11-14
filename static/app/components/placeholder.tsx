@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SpaceSize} from 'sentry/utils/theme';
+import type {SpaceSize} from '@sentry/scraps/theme';
 
 export interface PlaceholderProps {
   bottomGutter?: SpaceSize;

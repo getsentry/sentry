@@ -9,15 +9,17 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
-import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
+import {openModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
+
 import {TextField} from 'sentry/components/forms/fields/textField';
+
+import {FeedbackModal} from './feedbackModal';
 
 describe('FeatureFeedback', () => {
   describe('default', () => {
     it('submits modal on click', async () => {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      jest.spyOn(toast, 'success');
 
       const feedbackClient = new Sentry.BrowserClient({
         transport: Sentry.makeFetchTransport,
@@ -81,7 +83,7 @@ describe('FeatureFeedback', () => {
         )
       );
 
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         'Thanks for taking the time to provide us feedback!'
       );
     });
@@ -134,7 +136,7 @@ describe('FeatureFeedback', () => {
 
   describe('custom', () => {
     it('renders custom feedback form', async () => {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      jest.spyOn(toast, 'success');
 
       // Mock implementation of the Sentry Browser SDK
       Sentry.BrowserClient.prototype.captureEvent = jest.fn();
@@ -236,7 +238,7 @@ describe('FeatureFeedback', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         'Thanks for taking the time to provide us feedback!'
       );
     });

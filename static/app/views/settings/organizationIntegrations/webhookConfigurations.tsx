@@ -4,16 +4,12 @@ import {IconSettings} from '@sentry/icons/settings';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel} from 'sentry/components/panels/panel';
@@ -23,8 +19,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-import {legacyWebhooksQueryOptions} from './webhookDetailedView';
-import type {WebhookProject} from './webhookDetailedView';
+import {legacyWebhooksQueryOptions} from './legacyWebhooksQueryOptions';
+import type {WebhookProject} from './legacyWebhooksQueryOptions';
 
 interface WebhookConfigurationsProps {
   webhookProjects: WebhookProject[];
@@ -55,7 +51,7 @@ function useWebhookProjectMutations(project: WebhookProject) {
 
   const toggleMutation = useMutation({
     mutationFn: (shouldEnable: boolean) => {
-      addLoadingMessage(shouldEnable ? t('Enabling...') : t('Disabling...'));
+      toast.loading(shouldEnable ? t('Enabling...') : t('Disabling...'));
       return fetchMutation({
         method: 'POST',
         url: getApiUrl(
@@ -71,13 +67,13 @@ function useWebhookProjectMutations(project: WebhookProject) {
       });
     },
     onSuccess: (_data, shouldEnable) => {
-      addSuccessMessage(
+      toast.success(
         shouldEnable ? t('Configuration was enabled.') : t('Configuration was disabled.')
       );
       queryClient.invalidateQueries({queryKey});
     },
     onError: (_error, shouldEnable) => {
-      addErrorMessage(
+      toast.error(
         shouldEnable
           ? t('Unable to enable configuration.')
           : t('Unable to disable configuration.')
@@ -87,7 +83,7 @@ function useWebhookProjectMutations(project: WebhookProject) {
 
   const uninstallMutation = useMutation({
     mutationFn: () => {
-      addLoadingMessage(t('Removing...'));
+      toast.loading(t('Removing...'));
       return fetchMutation({
         method: 'DELETE',
         url: getApiUrl(
@@ -102,11 +98,11 @@ function useWebhookProjectMutations(project: WebhookProject) {
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Configuration was removed'));
+      toast.success(t('Configuration was removed'));
       queryClient.invalidateQueries({queryKey});
     },
     onError: () => {
-      addErrorMessage(t('Unable to remove configuration'));
+      toast.error(t('Unable to remove configuration'));
     },
   });
 

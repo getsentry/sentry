@@ -1,9 +1,11 @@
 import time
 import uuid
 from datetime import timedelta
-from typing import Any, Literal
+from typing import Annotated, Any, Literal, NotRequired, TypedDict, cast
 
 import sentry_sdk
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtoTimestamp
 from rest_framework import serializers
@@ -17,8 +19,21 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.conditional_get import CacheTier, ConditionalGetResponseMixin
 from sentry.api.exceptions import BadRequest
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.examples.trace_item_examples import TraceItemExamples
+from sentry.apidocs.formats import JsonValue
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.exceptions import InvalidParams
@@ -33,7 +48,7 @@ from sentry.search.eap.types import (
 )
 from sentry.search.eap.utils import (
     can_expose_attribute_to_api,
-    get_deprecated_source_internal_names,
+    get_non_backfill_deprecated_source_internal_names,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
     translate_search_type_for_internal_column,
@@ -44,6 +59,86 @@ from sentry.utils import json
 from sentry.utils.attributes import get_attribute
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba_rpc import SnubaRPCBadRequest, trace_item_details_rpc
+
+
+class TraceItemLinkAttribute(TypedDict):
+    name: Annotated[
+        str, ApiDescription("The name of the link attribute, such as `sentry.link.type`")
+    ]
+    value: Annotated[str | int | float | bool, ApiDescription("The link attribute value")]
+    type: Annotated[
+        Literal["str", "int", "float", "bool"],
+        ApiDescription("The type of the link attribute value"),
+    ]
+
+
+class TraceItemLink(TypedDict):
+    itemId: Annotated[str, ApiDescription("The ID of the linked span")]
+    traceId: Annotated[str, ApiDescription("The ID of the trace the linked span belongs to")]
+    sampled: NotRequired[Annotated[bool, ApiDescription("Whether the linked span was sampled")]]
+    attributes: NotRequired[
+        Annotated[
+            list[TraceItemLinkAttribute],
+            ApiDescription(
+                "The attributes of the link. Attributes with values that aren't a string, "
+                "number or boolean are left out"
+            ),
+        ]
+    ]
+
+
+class TraceItemEvent(TypedDict):
+    contexts: NotRequired[
+        Annotated[JsonValue, ApiDescription("The contexts of the event the item came from")]
+    ]
+    extra: NotRequired[
+        Annotated[JsonValue, ApiDescription("The extra data of the event the item came from")]
+    ]
+    breadcrumbs: NotRequired[
+        Annotated[
+            JsonValue,
+            ApiDescription(
+                "The breadcrumbs of the event the item came from. Breadcrumb timestamps are "
+                "ISO 8601 strings"
+            ),
+        ]
+    ]
+
+
+class TraceItemDetailsResponse(TypedDict):
+    itemId: Annotated[
+        str,
+        ApiDescription("The ID of the item. For a span, this is the 16-character span ID"),
+    ]
+    timestamp: Annotated[
+        str,
+        ApiDescription("When the item happened, as an RFC 3339 UTC timestamp ending in `Z`"),
+    ]
+    attributes: Annotated[
+        list[TraceItemAttribute],
+        ApiDescription("The attributes of the item, sorted by type and then by name"),
+    ]
+    meta: Annotated[
+        dict[str, JsonValue],
+        ApiDescription(
+            "Processing metadata, keyed by attribute name, for attributes that were changed "
+            "during ingestion, such as a value that was trimmed for length"
+        ),
+    ]
+    links: Annotated[
+        list[TraceItemLink] | None,
+        ApiDescription("The span links of the item, or null if it has none"),
+    ]
+    event: NotRequired[
+        Annotated[
+            TraceItemEvent,
+            ApiDescription(
+                "Fields of the event the item came from that are stored with it. Only present "
+                "when at least one of them is"
+            ),
+        ]
+    ]
+
 
 _NUMERIC_COERCIONS: dict[str, type] = {"valFloat": float, "valDouble": float}
 _VAL_TYPE_TO_COLUMN_TYPE: dict[str, ColumnType] = {
@@ -57,9 +152,9 @@ _VAL_TYPE_TO_COLUMN_TYPE: dict[str, ColumnType] = {
 
 
 def _parse_scalar(
-    column_type: ColumnType, value_type, value: str
+    column_type: ColumnType, value_type: str, value: str
 ) -> tuple[ScalarValueType, ScalarType]:
-    parsed_value_type = value_type[3:].lower()
+    parsed_value_type = cast("ScalarType", value_type[3:].lower())
     match column_type:
         case "number":
             if value_type in _NUMERIC_COERCIONS:
@@ -111,11 +206,12 @@ def _get_value_from_attribute(
 
 
 def convert_rpc_attribute_to_json(
-    attributes: list[dict],
+    attributes: list[dict[str, Any]],
     trace_item_type: SupportedTraceItemType,
     include_internal: bool = False,
     include_arrays: bool = False,
     include_internal_convention_attributes: bool = False,
+    use_raw_attribute_names: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
     all_internal_names = {attr["name"] for attr in attributes}
@@ -136,7 +232,7 @@ def convert_rpc_attribute_to_json(
             raise BadRequest(f"Unknown field in Response: {internal_name}")
         column_type, output_value, python_scalar_type = _get_value_from_attribute(source)
 
-        if column_type is None and output_value is None:
+        if column_type is None or output_value is None:
             continue
 
         output_type: ScalarType | Literal["array"] = "str"
@@ -173,7 +269,12 @@ def convert_rpc_attribute_to_json(
         if external_name and is_sentry_convention_replacement_attribute(
             external_name, trace_item_type
         ):
-            deprecated_names = get_deprecated_source_internal_names(external_name, trace_item_type)
+            # Hide the replacement only if a deprecated source that it supersedes is
+            # present. Backfilled sources are stored alongside their replacement, and
+            # consumers read the replacement name, so it must stay visible.
+            deprecated_names = get_non_backfill_deprecated_source_internal_names(
+                external_name, trace_item_type
+            )
             if not deprecated_names.isdisjoint(all_internal_names):
                 continue
 
@@ -190,21 +291,22 @@ def convert_rpc_attribute_to_json(
         if external_name == "trace" and isinstance(output_value, str):
             output_value = output_value.replace("-", "")
 
-        result.append(
-            TraceItemAttribute(
-                name=external_name,
-                type=output_type,
-                value=output_value,
-            )
+        result_attribute = TraceItemAttribute(
+            name=external_name,
+            type=output_type,
+            value=output_value,
         )
+        if use_raw_attribute_names:
+            result_attribute["rawName"] = attribute["name"]
+        result.append(result_attribute)
 
     return sorted(result, key=lambda x: (x["type"], x["name"]))
 
 
 def serialize_meta(
-    attributes: list[dict],
+    attributes: list[dict[str, Any]],
     trace_item_type: SupportedTraceItemType,
-) -> dict:
+) -> dict[str, Any]:
     internal_name = ""
     attribute = {}
     meta_result = {}
@@ -266,7 +368,7 @@ def serialize_meta(
 
 
 # Attribute name -> `event` field name
-_SERIALIZED_EVENT_ATTRIBUTES: dict[str, str] = {
+_SERIALIZED_EVENT_ATTRIBUTES: dict[str, Literal["contexts", "extra", "breadcrumbs"]] = {
     "sentry.event.serialized_contexts": "contexts",
     "sentry.event.serialized_extra": "extra",
     "sentry.event.serialized_breadcrumbs": "breadcrumbs",
@@ -291,12 +393,12 @@ def _normalize_breadcrumbs(breadcrumbs: Any) -> None:
                 sentry_sdk.capture_exception(e)
 
 
-def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
+def serialize_event(attributes: list[dict[str, Any]]) -> TraceItemEvent | None:
     """A few event fields (contexts, extra, breadcrumbs) are stored as
     JSON-serialized strings under internal `sentry.event.serialized_*`
     attributes. Parse any that are present back into JSON and return them,
     wrapped in a single `event` dict."""
-    result: dict[str, Any] = {}
+    result: TraceItemEvent = {}
     attribute_map = {attribute["name"]: attribute for attribute in attributes}
     for attribute_name, event_key in _SERIALIZED_EVENT_ATTRIBUTES.items():
         attribute = get_attribute(attribute_map, attribute_name)
@@ -321,7 +423,7 @@ def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
     return result or None
 
 
-def serialize_links(attributes: list[dict]) -> list[dict] | None:
+def serialize_links(attributes: list[dict[str, Any]]) -> list[TraceItemLink] | None:
     """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
     attribute_map = {attribute["name"]: attribute for attribute in attributes}
     link_attribute = get_attribute(attribute_map, "sentry.links")
@@ -341,8 +443,8 @@ def serialize_links(attributes: list[dict]) -> list[dict] | None:
         return None
 
 
-def serialize_link(link: dict) -> dict:
-    clean_link = {
+def serialize_link(link: dict[str, Any]) -> TraceItemLink:
+    clean_link: TraceItemLink = {
         "itemId": link["span_id"],
         "traceId": link["trace_id"],
     }
@@ -360,7 +462,7 @@ def serialize_link(link: dict) -> dict:
     return clean_link
 
 
-def serialize_link_attribute(name: str, value: Any) -> dict | None:
+def serialize_link_attribute(name: str, value: Any) -> TraceItemLinkAttribute | None:
     """
     Serializes a single span link attribute, returning `None` for unsupported
     values. The stored value shape depends on the ingest pipeline: the
@@ -378,7 +480,7 @@ def serialize_link_attribute(name: str, value: Any) -> dict | None:
     return {"name": name, "value": value, "type": attribute_type}
 
 
-def infer_type(value: Any) -> str | None:
+def infer_type(value: Any) -> Literal["str", "int", "float", "bool"] | None:
     """
     Attempt to infer the type of a link attribute value. Only supports a subset
     of types, since realistically we only store known keys. This becomes moot
@@ -416,27 +518,96 @@ class ProjectTraceItemDetailsEndpointSerializer(serializers.Serializer):
     )
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
-class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
+class ProjectTraceItemDetailsEndpoint(ConditionalGetResponseMixin, ProjectEndpoint):
     owner = ApiOwner.DATA_BROWSING
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        # The response shape is still changing.
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    # Deletion, retention, and flag rollouts can still change a written item.
+    cache_tier = CacheTier.STABLE
 
-    @staticmethod
-    def get(request: Request, project: Project, item_id: str) -> Response:
+    @extend_schema(
+        operation_id="retrieveProjectTraceItem",
+        summary="Retrieve a Trace Item",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            OpenApiParameter(
+                name="item_id",
+                location="path",
+                required=True,
+                type=str,
+                description=(
+                    "The hexadecimal ID of the item: the 16-character span ID for a span, "
+                    "or the 32-character item ID for other item types"
+                ),
+            ),
+            OpenApiParameter(
+                name="trace_id",
+                location="query",
+                required=True,
+                type=str,
+                description="The 32-character ID of the trace the item belongs to",
+            ),
+            OpenApiParameter(
+                name="item_type",
+                location="query",
+                required=True,
+                type=str,
+                enum=[item_type.value for item_type in constants.SUPPORTED_TRACE_ITEM_TYPE_MAP],
+                description="The type of the item",
+            ),
+            OpenApiParameter(
+                name="routing_hint",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "The opaque `meta.routingHint` of the events response that contained "
+                    "the item. Pass it unchanged to look the item up in the same storage. "
+                    "When it's omitted or empty, the default storage is used"
+                ),
+            ),
+            OpenApiParameter(
+                name="timestamp",
+                location="query",
+                required=False,
+                type=OpenApiTypes.DATETIME,
+                description=(
+                    "When the item happened, as an ISO 8601 timestamp or Unix seconds. The "
+                    "lookup is narrowed to a few minutes around it, which makes it faster"
+                ),
+            ),
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "TraceItemDetailsResponse", TraceItemDetailsResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TraceItemExamples.RETRIEVE_TRACE_ITEM,
+    )
+    def get(
+        self, request: Request, project: Project, item_id: str
+    ) -> Response[TraceItemDetailsResponse] | Response[ValidationErrorResponse] | Response[str]:
         """
-        Retrieve a Trace Item for a project.
+        Retrieve a span, log or other trace item of a project, with all of its attributes.
 
-        For example, you might ask 'give me all the details about the span/log with id 01234567'
-
-        Pass the events response's meta.routingHint as routing_hint to look up an item
-        using the same storage. Omitted or empty hints use the default storage;
-        invalid hints return 400. Treat the hint as opaque and pass it unchanged.
+        Pass the `meta.routingHint` of the events response that listed the item as
+        `routing_hint`, unchanged. An invalid hint returns 400.
         """
         serializer = ProjectTraceItemDetailsEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)
@@ -517,10 +688,16 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             actor=request.user,
         )
 
+        use_raw_attribute_names = features.has(
+            "organizations:trace-item-details-raw-attribute-names",
+            project.organization,
+            actor=request.user,
+        )
+
         include_internal = is_active_superuser(request) or is_active_staff(request)
         include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
 
-        resp_dict = {
+        resp_dict: TraceItemDetailsResponse = {
             "itemId": serialize_item_id(resp["itemId"], item_type),
             "timestamp": resp["timestamp"],
             "attributes": convert_rpc_attribute_to_json(
@@ -529,6 +706,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 include_internal=include_internal,
                 include_internal_convention_attributes=include_internal_convention_attributes,
                 include_arrays=include_arrays,
+                use_raw_attribute_names=use_raw_attribute_names,
             ),
             "meta": serialize_meta(resp["attributes"], item_type),
             "links": serialize_links(resp["attributes"]),

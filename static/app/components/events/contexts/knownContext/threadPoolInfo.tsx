@@ -1,4 +1,4 @@
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {getContextKeys} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import {ThreadPoolInfoContextKey, type ThreadPoolInfoContext} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';

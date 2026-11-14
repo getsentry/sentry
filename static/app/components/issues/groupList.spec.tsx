@@ -1,3 +1,4 @@
+import {Fragment, useState} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -5,12 +6,37 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+
+import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {GroupStore} from 'sentry/stores/groupStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
 import {GroupList} from './groupList';
+
+function GroupListWithExternalPagination() {
+  const [onCursor, setOnCursor] = useState<CursorHandler>();
+  return (
+    <Fragment>
+      <GroupList
+        numPlaceholderRows={1}
+        queryParams={{query: '', sort: 'new', limit: '50'}}
+        onFetchSuccess={(_state, handler) => setOnCursor(() => handler)}
+      />
+      <button disabled={!onCursor} onClick={() => onCursor?.('next-cursor', 1)}>
+        Next external page
+      </button>
+    </Fragment>
+  );
+}
 
 describe('GroupList', () => {
   const organization = OrganizationFixture();
@@ -60,6 +86,25 @@ describe('GroupList', () => {
     expect(screen.getByText('327K')).toBeInTheDocument();
     // Users
     expect(screen.getByText('35K')).toBeInTheDocument();
+  });
+
+  it('renders a header for each column of the rows', async () => {
+    render(
+      <GroupList
+        numPlaceholderRows={1}
+        queryParams={defaultQueryParams}
+        withColumns={['firstSeen', 'lastSeen', 'event', 'priority', 'assigneeAvatar']}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    await screen.findByText(group.shortId);
+    const row = screen.getByTestId('group');
+
+    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(
+      ['Issue', 'Last Seen', 'Age', 'Graph', 'Events', 'Priority', 'Assignee']
+    );
+    expect(within(row).getAllByRole('cell')).toHaveLength(7);
   });
 
   it('renders empty state when no groups are returned', async () => {
@@ -227,7 +272,13 @@ describe('GroupList', () => {
       <GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />,
       {
         organization,
-        initialRouterConfig,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {...defaultQueryParams, project: ['1', '2']},
+          },
+        },
       }
     );
 
@@ -244,6 +295,32 @@ describe('GroupList', () => {
     });
 
     expect(router.location.query.page).toBe('1');
+    expect(router.location.query.project).toEqual(['1', '2']);
+    expect(router.location.pathname).toBe(initialRouterConfig.location.pathname);
+  });
+
+  it('keeps external pagination handlers synchronized with URL filters', async () => {
+    const {router} = render(<GroupListWithExternalPagination />, {
+      organization,
+      initialRouterConfig,
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Next external page'})).toBeEnabled()
+    );
+    act(() => {
+      router.navigate(
+        `${initialRouterConfig.location.pathname}?query=&sort=new&limit=50&environment=production&environment=staging`
+      );
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Next external page'}));
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        ...defaultQueryParams,
+        environment: ['production', 'staging'],
+        cursor: 'next-cursor',
+        page: '1',
+      });
+    });
   });
 
   it('updates the assignee when changed', async () => {

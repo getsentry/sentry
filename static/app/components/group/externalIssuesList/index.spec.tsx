@@ -4,17 +4,10 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {JiraIntegrationFixture} from 'sentry-fixture/jiraIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
-import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
-
 import {ExternalIssueList} from '.';
-
-jest.mock('sentry/utils/useSentryAppComponentsStore');
-const mockUseSentryAppComponentsStore = jest.mocked(useSentryAppComponentsStore);
 
 describe('ExternalIssueList', () => {
   const event = EventFixture();
@@ -22,8 +15,14 @@ describe('ExternalIssueList', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
-    SentryAppInstallationStore.init();
-    mockUseSentryAppComponentsStore.mockReturnValue([]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-installations/`,
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -58,12 +57,10 @@ describe('ExternalIssueList', () => {
       body: [],
     });
     const component = SentryAppComponentFixture();
-    SentryAppInstallationStore.load([
-      SentryAppInstallationFixture({
-        app: component.sentryApp,
-      }),
-    ]);
-    mockUseSentryAppComponentsStore.mockReturnValue([component]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [component],
+    });
     render(<ExternalIssueList group={group} event={event} />, {
       organization,
     });
@@ -96,7 +93,10 @@ describe('ExternalIssueList', () => {
       body: [],
     });
     const component = SentryAppComponentFixture();
-    mockUseSentryAppComponentsStore.mockReturnValue([component]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [component],
+    });
     render(<ExternalIssueList group={group} event={event} />, {
       organization,
     });

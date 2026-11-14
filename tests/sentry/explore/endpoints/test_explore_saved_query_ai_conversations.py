@@ -54,7 +54,8 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["dataset"] == "ai_conversations"
         assert response.data["name"] == "My conversations query"
-        assert response.data["range"] == "24h"
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "24h"
         assert response.data["environment"] == ["production"]
         assert response.data["query"] == [
             {
@@ -113,6 +114,46 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
             detail = self.client.get(self._detail_url(int(response.data["id"])))
         assert detail.status_code == 200
         assert detail.data["agent"] == ["my-agent", "other-agent"]
+
+    def test_post_preserves_errors_only_filter(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.list_url,
+                {
+                    "name": "Errors only query",
+                    "projects": [self.project.id],
+                    "dataset": "ai_conversations",
+                    "range": "24h",
+                    "errorsOnly": True,
+                    "query": [{"fields": [], "mode": "samples"}],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 201, response.content
+        assert response.data["errorsOnly"] is True
+
+        with self.feature(self.features):
+            detail = self.client.get(self._detail_url(int(response.data["id"])))
+        assert detail.status_code == 200
+        assert detail.data["errorsOnly"] is True
+
+    def test_post_omits_errors_only_when_not_set(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.list_url,
+                {
+                    "name": "Unfiltered query",
+                    "projects": [self.project.id],
+                    "dataset": "ai_conversations",
+                    "range": "24h",
+                    "query": [{"fields": [], "mode": "samples"}],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 201, response.content
+        assert "errorsOnly" not in response.data
 
     # ── Read ────────────────────────────────────────────────────────────
 
@@ -194,7 +235,8 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["name"] == "Updated name"
-        assert response.data["range"] == "7d"
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "7d"
         assert response.data["dataset"] == "ai_conversations"
         assert response.data["query"] == [
             {

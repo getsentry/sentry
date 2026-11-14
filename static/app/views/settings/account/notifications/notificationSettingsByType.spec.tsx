@@ -92,11 +92,6 @@ function renderComponent({
 }
 
 describe('NotificationSettingsByType', () => {
-  afterEach(() => {
-    MockApiClient.clearMockResponses();
-    OrganizationsStore.init();
-    jest.clearAllMocks();
-  });
   beforeEach(() => {
     OrganizationsStore.init();
     MockApiClient.addMockResponse({
@@ -106,6 +101,10 @@ describe('NotificationSettingsByType', () => {
     });
   });
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
   it('should render when default is disabled', async () => {
     renderComponent({
       notificationOptions: [

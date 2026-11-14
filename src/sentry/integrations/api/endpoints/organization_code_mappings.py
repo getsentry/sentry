@@ -1,8 +1,9 @@
-from typing import Any
+from typing import Any, cast
 
 from django.db import router, transaction
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,9 +18,25 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.api.serializers.rest_framework.base import (
+    CamelSnakeModelSerializer,
+    camel_to_snake_case,
+    convert_dict_key_case,
+)
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.integrations.api.serializers.models.repository_project_path_config import (
+    RepositoryProjectPathConfigSerializerResponse,
+)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.path import normalize_repository_source_root
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
@@ -38,11 +55,14 @@ def validate_source_root(path: str) -> None:
         raise serializers.ValidationError(_(INVALID_SOURCE_ROOT_ERROR_MESSAGE))
 
 
-def gen_path_regex_field(*, validate_source: bool = False):
+def gen_path_regex_field(
+    *, validate_source: bool = False, help_text: str | None = None
+) -> serializers.RegexField:
     return serializers.RegexField(
         r"^[^\s'\"]+$",  # may need to add more characters to prevent in the future
         required=True,
         allow_blank=True,
+        help_text=help_text,
         validators=[validate_source_root] if validate_source else [],
         error_messages={"invalid": _("Path may not contain spaces or quotations")},
     )
@@ -51,15 +71,25 @@ def gen_path_regex_field(*, validate_source: bool = False):
 BRANCH_NAME_ERROR_MESSAGE = "Branch name may only have letters, numbers, underscores, forward slashes, dashes, and periods. Branch name may not start or end with a forward slash."
 
 
-class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
-    repository_id = serializers.IntegerField(required=True)
-    project_id = serializers.IntegerField(required=True)
-    stack_root = gen_path_regex_field()
-    source_root = gen_path_regex_field(validate_source=True)
+class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer[RepositoryProjectPathConfig]):
+    repository_id = serializers.IntegerField(
+        required=True, help_text="The ID of a repository belonging to the installed integration."
+    )
+    project_id = serializers.IntegerField(
+        required=True, help_text="The ID of the project to associate with the code mapping."
+    )
+    stack_root = gen_path_regex_field(
+        help_text="The path prefix to replace in stack trace filenames."
+    )
+    source_root = gen_path_regex_field(
+        validate_source=True,
+        help_text="The repository path prefix to substitute for the stack trace prefix.",
+    )
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=False,  # Validated in validate_default_branch based on integration type
         allow_blank=True,  # Perforce allows empty streams
+        help_text="The default branch to use when resolving source files. May be empty for Perforce.",
         error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
     )
     instance: RepositoryProjectPathConfig | None
@@ -76,16 +106,16 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         extra_kwargs: dict[str, Any] = {}
 
     @property
-    def org_integration(self):
+    def org_integration(self) -> RpcOrganizationIntegration:
         return self.context["organization_integration"]
 
     @property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.context["organization"]
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         query = RepositoryProjectPathConfig.objects.filter(
-            project_repository__project_id=attrs.get("project_id"),
+            project_repository__project_id=cast("str | int", attrs.get("project_id")),
             stack_root=attrs.get("stack_root"),
             source_root=attrs.get("source_root"),
         )
@@ -97,7 +127,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
             )
         return attrs
 
-    def validate_repository_id(self, repository_id):
+    def validate_repository_id(self, repository_id: int) -> int:
         # validate repo exists on this org
         repo_query = Repository.objects.filter(
             id=repository_id, organization_id=self.organization.id
@@ -110,14 +140,14 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("Repository does not exist")
         return repository_id
 
-    def validate_project_id(self, project_id):
+    def validate_project_id(self, project_id: int) -> int:
         # validate project exists on this org
         project_query = Project.objects.filter(id=project_id, organization_id=self.organization.id)
         if not project_query.exists():
             raise serializers.ValidationError("Project does not exist")
         return project_id
 
-    def validate_default_branch(self, default_branch):
+    def validate_default_branch(self, default_branch: str | None) -> str | None:
         # Get the integration to check if it's Perforce
         integration = integration_service.get_integration(
             integration_id=self.org_integration.integration_id,
@@ -135,7 +165,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
         return default_branch
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> RepositoryProjectPathConfig:
         with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
             project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
                 project_id=validated_data.pop("project_id"),
@@ -150,7 +180,9 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
                 **validated_data,
             )
 
-    def update(self, instance, validated_data):
+    def update(
+        self, instance: RepositoryProjectPathConfig, validated_data: dict[str, Any]
+    ) -> RepositoryProjectPathConfig:
         if "id" in validated_data:
             validated_data.pop("id")
         if self.instance:
@@ -168,19 +200,30 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
                 for key, value in validated_data.items():
                     setattr(self.instance, key, value)
                 self.instance.save()
-        return self.instance
+        return cast(RepositoryProjectPathConfig, self.instance)
+
+
+class CreateOrganizationCodeMappingRequestSerializer(RepositoryProjectPathConfigSerializer):
+    integration_id = serializers.IntegerField(
+        help_text="The ID of the installed integration that provides the repository."
+    )
+
+    class Meta(RepositoryProjectPathConfigSerializer.Meta):
+        fields = [*RepositoryProjectPathConfigSerializer.Meta.fields, "integration_id"]
 
 
 class OrganizationIntegrationMixin:
-    def get_organization_integration(self, organization, integration_id):
+    def get_organization_integration(
+        self, organization: Organization, integration_id: object
+    ) -> RpcOrganizationIntegration:
         org_integration = integration_service.get_organization_integration(
-            integration_id=integration_id, organization_id=organization.id
+            integration_id=cast(int, integration_id), organization_id=organization.id
         )
         if not org_integration:
             raise Http404
         return org_integration
 
-    def get_project(self, organization, project_id):
+    def get_project(self, organization: Organization, project_id: int | str) -> Project:
         try:
             return Project.objects.get(organization=organization, id=project_id)
 
@@ -188,23 +231,64 @@ class OrganizationIntegrationMixin:
             raise Http404
 
 
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationCodeMappings",
+        summary="List an Organization's Code Mappings",
+        description="Return repository path mappings for projects the user can access.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                "integrationId",
+                type=str,
+                description="Filter mappings to a specific installed integration.",
+            ),
+            OpenApiParameter(
+                "project",
+                type=str,
+                many=True,
+                description=(
+                    "Filter by project ID or slug. Pass `-1` to include all projects the user can access. "
+                    "When omitted, mappings include all projects the user can access."
+                ),
+            ),
+            CursorQueryParam,
+            OpenApiParameter(
+                "per_page",
+                type=int,
+                description="The maximum number of mappings to return per page.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationCodeMappingsResponse",
+                list[RepositoryProjectPathConfigSerializerResponse],
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[RepositoryProjectPathConfigSerializerResponse]]:
         """
         Get the list of repository project path configs
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :qparam int integrationId: the optional integration id.
-        :qparam int project: Optional. Pass "-1" to filter to 'all projects user has access to'. Omit to filter for 'all projects user is a member of'.
+        :qparam string project: Optional project ID or slug. Pass "-1" or omit to include all projects the user can access.
         :qparam int per_page: Pagination size.
         :qparam string cursor: Pagination cursor.
         :auth: required
@@ -238,7 +322,25 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    @extend_schema(
+        operation_id="createOrganizationCodeMapping",
+        summary="Create an Organization Code Mapping",
+        description="Create a repository path mapping for a project and installed integration.",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=CreateOrganizationCodeMappingRequestSerializer,
+        responses={
+            201: inline_sentry_response_serializer(
+                "OrganizationCodeMappingResponse", RepositoryProjectPathConfigSerializerResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[RepositoryProjectPathConfigSerializerResponse]:
         """
         Create a new repository project path config
         ``````````````````
@@ -253,13 +355,16 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         :param int required integrationId:
         :auth: required
         """
-        integration_id = request.data.get("integrationId")
+        # Normalize keys the way the serializer does first, so the snake_case body the schema
+        # documents reaches these reads as the camelCase one does.
+        data = convert_dict_key_case(request.data, camel_to_snake_case)
+        integration_id = data.get("integration_id")
 
         if not integration_id:
             return self.respond("Missing param: integrationId", status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            project = Project.objects.get(id=request.data["projectId"])
+            project = Project.objects.get(id=data["project_id"])
         except ValueError as exc:
             if "invalid literal for int() with base 10" in str(exc):
                 return self.respond(

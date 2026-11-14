@@ -1,8 +1,9 @@
 import {useCallback, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import union from 'lodash/union';
 
-import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import {fetchTagValues, organizationTagsApiOptions} from 'sentry/actionCreators/tags';
 import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
@@ -212,26 +213,22 @@ export function FeedbackSearch() {
     ? getUtcDateString(pageFilters.datetime.end)
     : undefined;
   const statsPeriod = pageFilters.datetime.period;
-  const tagQuery = useFetchOrganizationTags(
-    {
+  const {data: tags} = useQuery(
+    organizationTagsApiOptions({
       orgSlug: organization.slug,
       projectIds: projectIds.map(String),
       dataset: Dataset.ISSUE_PLATFORM,
-      useCache: true,
-      enabled: true,
-      keepPreviousData: false,
       start,
       end,
       statsPeriod,
-    },
-    {}
+    })
   );
   const issuePlatformTags = useMemo(() => {
-    return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
+    return (tags ?? []).reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {...tag, kind: FieldKind.TAG};
       return acc;
     }, {});
-  }, [tagQuery]);
+  }, [tags]);
 
   const assignedValues = useAssignedSearchValues();
 
@@ -267,7 +264,10 @@ export function FeedbackSearch() {
         endpointParams,
       }).then(
         tagValues =>
-          tagValues.filter(tagValue => tagValue.name !== '').map(({value}) => value),
+          // Events without the tag come back with an empty name or a null value
+          tagValues.flatMap(({name, value}) =>
+            name !== '' && value !== null ? [value] : []
+          ),
         () => {
           throw new Error('Unable to fetch event field values');
         }

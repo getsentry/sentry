@@ -9,11 +9,17 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
+from sentry.issues import grouptype
 from sentry.models.environment import Environment
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import Monitor, ScheduleType, is_monitor_muted
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
+from sentry.preprod.size_analysis.grouptype import (
+    PreprodSizeAnalysisDetectorHandler,
+    PreprodSizeAnalysisDetectorSettings,
+    PreprodSizeAnalysisGroupType,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
     QuerySubscription,
@@ -34,8 +40,19 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.registry import data_source_type_registry, detector_settings_registry
+from sentry.workflow_engine.types import (
+    DetectorAPIOperation,
+    DetectorPriorityLevel,
+    DetectorSettings,
+    DetectorType,
+    FeatureGate,
+)
+from tests.sentry.workflow_engine.endpoints.test_helpers import (
+    GATE_FEATURE,
+    assert_querysets_unchanged,
+    override_detector_api_availability,
+)
 from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
 
@@ -156,10 +173,7 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
                     },
                 ],
             },
-            "config": {
-                "thresholdPeriod": 1,
-                "detectionType": AlertRuleDetectionType.STATIC.value,
-            },
+            "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
             "workflowIds": [self.connected_workflow.id],
         }
 
@@ -167,6 +181,41 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
 @cell_silo_test
 @with_feature(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
 class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
+    def test_post_feature_gate(self) -> None:
+        # Read exclusions don't restrict creation
+        with override_detector_api_availability(
+            MetricIssue.slug,
+            {
+                DetectorAPIOperation.POST: FeatureGate(GATE_FEATURE),
+                DetectorAPIOperation.LIST: False,
+                DetectorAPIOperation.GET: False,
+            },
+        ):
+            with (
+                self.feature({GATE_FEATURE: False}),
+                assert_querysets_unchanged(
+                    detectors=Detector.objects.filter(project=self.project),
+                    data_sources=DataSource.objects.filter(organization=self.organization),
+                    snuba_queries=SnubaQuery.objects.all(),
+                    condition_groups=DataConditionGroup.objects.filter(
+                        organization_id=self.organization.id
+                    ),
+                ),
+            ):
+                response = self.get_error_response(
+                    self.organization.slug, self.project.slug, **self.valid_data, status_code=400
+                )
+            assert "type" in response.data
+
+            with self.feature(GATE_FEATURE), self.tasks():
+                response = self.get_success_response(
+                    self.organization.slug, self.project.slug, **self.valid_data, status_code=201
+                )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.type == MetricIssue.slug
+        assert detector.project_id == self.project.id
+
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
         data = {**self.valid_data}
@@ -195,7 +244,10 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
 
     def test_invalid_comparison_delta(self) -> None:
         data = {**self.valid_data}
-        data["config"]["comparisonDelta"] = 0
+        data["config"] = {
+            "detectionType": AlertRuleDetectionType.PERCENT.value,
+            "comparisonDelta": 0,
+        }
 
         response = self.get_error_response(
             self.organization.slug,
@@ -204,7 +256,7 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             status_code=400,
         )
         assert response.data["config"][0] == ErrorDetail(
-            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            string="Invalid config: 0 is not one of [300, 900, 3600, 86400, 604800, 2592000]",
             code="invalid",
         )
 
@@ -217,7 +269,7 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             status_code=400,
         )
         assert response.data["config"][0] == ErrorDetail(
-            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000, None]",
+            string="Invalid config: 2592001 is not one of [300, 900, 3600, 86400, 604800, 2592000]",
             code="invalid",
         )
 
@@ -229,6 +281,25 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             status_code=201,
         )
         assert response.data["config"]["comparisonDelta"] == 300
+
+    def test_percent_type_without_comparison_delta(self) -> None:
+        data = {
+            **self.valid_data,
+            "config": {"detectionType": AlertRuleDetectionType.PERCENT.value},
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"] == [
+            ErrorDetail(
+                string="`comparisonDelta` is required when `detectionType` is 'percent'.",
+                code="invalid",
+            )
+        ]
 
     def test_invalid_group_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}
@@ -242,16 +313,15 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             "type": [get_unknown_detector_type_error("invalid_type", self.organization)]
         }
 
-    def test_incompatible_group_type(self) -> None:
-        with mock.patch.object(MetricIssue, "detector_settings", None):
-            data = {**self.valid_data, "type": MetricIssue.slug}
-            response = self.get_error_response(
-                self.organization.slug,
-                self.project.slug,
-                **data,
-                status_code=400,
-            )
-            assert response.data == {"type": ["Detector type not compatible with detectors"]}
+    def test_detector_type_without_an_api_validator(self) -> None:
+        data = {**self.valid_data, "type": DetectorType.ISSUE_STREAM}
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert response.data == {"type": ["Detector type not compatible with detectors"]}
 
     def test_create_blocked_when_dataset_not_allowed(self) -> None:
         """
@@ -498,6 +568,42 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 status_code=201,
             )
 
+    def test_documented_eap_transaction_payload_is_valid(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "is_transaction:true",
+                    "aggregate": "p75(measurements.ttfb)",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                    "extrapolationMode": "unknown",
+                }
+            ],
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=201,
+            )
+
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"] == {
+            "id": mock.ANY,
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "is_transaction:true",
+            "aggregate": "p75(measurements.ttfb)",
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+            "extrapolationMode": "unknown",
+        }
+
     @with_feature(
         [
             "organizations:tracemetrics-enabled",
@@ -548,6 +654,57 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
         assert query_sub.snuba_query.event_types == [
             SnubaQueryEventType.EventType.TRACE_ITEM_METRIC
         ]
+
+    def _spans_equation_data(self, equation: str) -> dict[str, Any]:
+        return {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "span.op:gen_ai.chat",
+                    "aggregate": equation,
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                }
+            ],
+        }
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_use_spans_equation_as_aggregate(self) -> None:
+        equation = (
+            "equation|sum(gen_ai.usage.cache_read.input_tokens) / sum(gen_ai.usage.input_tokens)"
+        )
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **self._spans_equation_data(equation),
+                status_code=201,
+            )
+
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["aggregate"] == equation
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+        assert query_sub.status == QuerySubscription.Status.ACTIVE.value
+        assert query_sub.subscription_id is not None
+        assert query_sub.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert query_sub.snuba_query.query == "span.op:gen_ai.chat"
+        assert query_sub.snuba_query.aggregate == equation
+        assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN]
+
+    def test_use_spans_equation_as_aggregate_without_feature(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **self._spans_equation_data("equation|count() / count(span.duration)"),
+            status_code=400,
+        )
+        assert "Span monitors do not support equations" in str(response.data)
 
 
 @cell_silo_test
@@ -738,3 +895,55 @@ class OrganizationProjectDetectorIndexMonitorPostTest(APITestCase):
         assert monitor.config["timezone"] == "America/New_York"
         assert monitor.config["failure_issue_threshold"] == 3
         assert monitor.config["recovery_threshold"] == 2
+
+
+@cell_silo_test
+class DetectorImplementationIdentityTest(APITestCase):
+    endpoint = "sentry-api-0-organization-project-detector-index"
+    method = "POST"
+
+    def test_create_and_edit_without_a_matching_issue_type(self) -> None:
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        class RegistryOnlySettings(PreprodSizeAnalysisDetectorSettings):
+            api_availability = dict(DetectorSettings.DEFAULT_API_AVAILABILITY)
+
+        detector_type = DetectorType.PERFORMANCE_SLOW_DB_QUERY
+        with (
+            mock.patch.dict(
+                detector_settings_registry.registrations,
+                {detector_type: RegistryOnlySettings},
+            ),
+            mock.patch.dict(grouptype.registry._slug_lookup),
+        ):
+            del grouptype.registry._slug_lookup[detector_type]
+            response = self.get_success_response(
+                self.organization.slug,
+                project.slug,
+                type=detector_type,
+                name="Size detector",
+                config={"threshold_type": "absolute", "measurement": "install_size"},
+                status_code=201,
+            )
+            detector = Detector.objects.get(id=response.data["id"])
+            assert detector.type == detector_type
+            assert isinstance(detector.detector_handler, PreprodSizeAnalysisDetectorHandler)
+
+            issue = self.create_group(project=project, type=PreprodSizeAnalysisGroupType.type_id)
+            self.create_detector_group(detector=detector, group=issue)
+            detail_url = f"/api/0/organizations/{self.organization.slug}/detectors/{detector.id}/"
+            response = self.client.get(detail_url)
+            assert response.status_code == 200
+            assert response.data["type"] == detector_type
+
+            response = self.client.put(detail_url, {"name": "Renamed size detector"}, format="json")
+            assert response.status_code == 200
+            detector.refresh_from_db()
+            assert detector.name == "Renamed size detector"
+
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/detector-types/"
+            )
+            assert response.status_code == 200
+            assert detector_type in response.data

@@ -282,7 +282,7 @@ class StatusCheckFiltersTest(TestCase):
         status, triggered_rules = _compute_overall_status(
             [artifact], size_metrics_map, rules=[rule]
         )
-        assert status == StatusCheckStatus.FAILURE
+        assert status == StatusCheckStatus.ACTION_REQUIRED
         assert len(triggered_rules) == 1
         assert triggered_rules[0].rule == rule
 
@@ -885,7 +885,7 @@ class StatusCheckFiltersTest(TestCase):
             base_artifact_map=base_artifact_map,
             base_metrics_by_artifact=base_metrics_by_artifact,
         )
-        assert status == StatusCheckStatus.FAILURE
+        assert status == StatusCheckStatus.ACTION_REQUIRED
         assert len(triggered_rules) == 1
         assert triggered_rules[0].rule == rule
 
@@ -969,7 +969,7 @@ class StatusCheckFiltersTest(TestCase):
         status, triggered_rules = _compute_overall_status(
             [artifact], size_metrics_map, rules=[rule]
         )
-        assert status == StatusCheckStatus.FAILURE
+        assert status == StatusCheckStatus.ACTION_REQUIRED
         assert len(triggered_rules) == 1
         assert (
             triggered_rules[0].metrics_artifact_type
@@ -1015,7 +1015,7 @@ class StatusCheckFiltersTest(TestCase):
         status, triggered_rules = _compute_overall_status(
             [artifact], size_metrics_map, rules=[rule]
         )
-        assert status == StatusCheckStatus.FAILURE
+        assert status == StatusCheckStatus.ACTION_REQUIRED
         assert len(triggered_rules) == 1
         assert (
             triggered_rules[0].metrics_artifact_type
@@ -1069,7 +1069,7 @@ class StatusCheckFiltersTest(TestCase):
         status, triggered_rules = _compute_overall_status(
             [artifact], size_metrics_map, rules=[rule]
         )
-        assert status == StatusCheckStatus.FAILURE
+        assert status == StatusCheckStatus.ACTION_REQUIRED
         assert len(triggered_rules) == 2
         assert all(
             tr.metrics_artifact_type
@@ -1154,7 +1154,7 @@ class StatusCheckFiltersTest(TestCase):
         status, triggered_rules = _compute_overall_status(
             [artifact], size_metrics_map, rules=[rule]
         )
-        assert status == StatusCheckStatus.FAILURE
+        assert status == StatusCheckStatus.ACTION_REQUIRED
         assert len(triggered_rules) == 1
         assert (
             triggered_rules[0].metrics_artifact_type
@@ -1202,7 +1202,7 @@ class StatusCheckFiltersTest(TestCase):
             [artifact], size_metrics_map, rules=[rule]
         )
 
-        assert status == StatusCheckStatus.FAILURE
+        assert status == StatusCheckStatus.ACTION_REQUIRED
         assert len(triggered_rules) == 1
         assert (
             triggered_rules[0].metrics_artifact_type

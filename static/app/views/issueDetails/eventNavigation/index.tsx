@@ -3,15 +3,17 @@ import {useTheme} from '@emotion/react';
 import {useResizeObserver} from '@react-aria/utils';
 import {IconTelescope} from '@sentry/icons/telescope';
 import {keepPreviousData} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -30,16 +32,16 @@ import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
 import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDetailsEventsQuery';
 import {
   issueAndEventToMarkdown,
   useActiveThreadId,
 } from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -47,6 +49,8 @@ import {
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+
+import {IssueDetailsEventNavigation} from './issueDetailsEventNavigation';
 
 interface IssueEventNavigationProps {
   event: Event | undefined;
@@ -75,6 +79,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const organization = useOrganization();
   const {baseUrl, currentTab} = useGroupDetailsRoute();
   const location = useLocation();
+  const [sort] = useQueryState('sort', parseAsRawList);
   const eventView = useIssueDetailsEventView({group});
   const {eventCount} = useIssueDetails();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
@@ -303,7 +308,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   </Text>
                 </Flex>
               ) : (
-                <DropdownButton
+                <OverlayTrigger.Button
                   {...triggerProps}
                   isOpen={isOpen}
                   variant="transparent"
@@ -317,7 +322,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   <Text size="lg" bold variant="inherit">
                     {TabName[currentTab] ?? TabName[Tab.DETAILS]}
                   </Text>
-                </DropdownButton>
+                </OverlayTrigger.Button>
               )
             }
           />
@@ -342,9 +347,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   <AutofixReferrerInfoTip referrer={autofixPanel.referrer} />
                   <SeerPanelActions
                     autofixState={autofixPanel.runState}
-                    enableBashMode={autofixPanel.enableBashMode}
                     onCopyMarkdown={autofixPanel.handleCopyMarkdown}
-                    onEnableBashModeChange={autofixPanel.setEnableBashMode}
                     onOpenSeerAgent={autofixPanel.handleOpenSeerAgent}
                     onReset={autofixPanel.handleRestart}
                   />
@@ -441,7 +444,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                         pathname: discoverUrl.pathname,
                         query: {
                           ...discoverUrl.query,
-                          sort: location.query.sort ?? '-timestamp',
+                          sort: sort.length ? sort : '-timestamp',
                         },
                       }}
                       aria-label={t('Open in Explore')}

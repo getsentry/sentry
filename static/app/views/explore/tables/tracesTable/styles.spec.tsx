@@ -1,12 +1,11 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 import {BreakdownCell} from './styles';
 
 describe('trace table cells', () => {
-  it('sets slice highlight variables when highlightedSliceName is provided', () => {
+  it('renders a table cell without forwarding highlightedSliceName', () => {
     render(
       <SimpleTable>
         <SimpleTable.Row>
@@ -19,8 +18,6 @@ describe('trace table cells', () => {
 
     const cell = screen.getByRole('cell', {name: 'Span breakdown'});
     expect(cell.tagName).toBe('TD');
-    const styles = getEmotionRules(cell).join(' ');
-    expect(styles).toMatch(/--highlightedSlice-database-opacity:\s*1\.0/);
     expect(cell).not.toHaveAttribute('highlightedSliceName');
   });
 });

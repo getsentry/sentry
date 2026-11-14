@@ -1,3 +1,6 @@
+import re
+import textwrap
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -7,10 +10,17 @@ from rest_framework.serializers import ValidationError
 from sentry.auth.access import SystemAccess
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     TriggerSerializerResponse,
     WorkflowSerializer,
     WorkflowSerializerResponse,
+)
+from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
+    DATA_SOURCES_HELP_TEXT,
+    DETECTOR_CONFIG_HELP_TEXT,
+    WORKFLOW_CONFIG_HELP_TEXT,
+    WORKFLOW_TRIGGERS_HELP_TEXT,
 )
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
@@ -25,6 +35,26 @@ from sentry.workflow_engine.models import (
 from tests.sentry.workflow_engine.test_base import MockActionHandler, MockActionValidatorTranslator
 
 
+def _parse_json_examples(help_text: str) -> list[dict[str, Any] | list[Any]]:
+    examples = re.findall(r"```json\s*(.*?)\s*```", help_text, re.DOTALL)
+    return [json.loads(textwrap.dedent(example)) for example in examples]
+
+
+@pytest.mark.parametrize(
+    "help_text",
+    [
+        WORKFLOW_CONFIG_HELP_TEXT,
+        WORKFLOW_TRIGGERS_HELP_TEXT,
+        DATA_SOURCES_HELP_TEXT,
+        DETECTOR_CONFIG_HELP_TEXT,
+    ],
+)
+def test_documented_request_examples_are_valid_json(help_text: str) -> None:
+    examples = _parse_json_examples(help_text)
+
+    assert examples
+
+
 class TestWorkflowValidator(TestCase):
     def setUp(self) -> None:
         self.context = {
@@ -37,7 +67,7 @@ class TestWorkflowValidator(TestCase):
             "enabled": True,
             "actionFilters": [],
             "config": {
-                "frequency": 30,
+                "frequency": 60,
             },
             "triggers": {
                 "logicType": "any",
@@ -48,6 +78,19 @@ class TestWorkflowValidator(TestCase):
     def test_valid_data(self) -> None:
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
+
+    def test_documented_workflow_request_is_valid(self) -> None:
+        config = _parse_json_examples(WORKFLOW_CONFIG_HELP_TEXT)[0]
+        triggers = _parse_json_examples(WORKFLOW_TRIGGERS_HELP_TEXT)[0]
+        assert isinstance(config, dict)
+        assert isinstance(triggers, dict)
+
+        validator = WorkflowValidator(
+            data={"name": "Documented workflow", "config": config, **triggers},
+            context=self.context,
+        )
+
+        assert validator.is_valid(), validator.errors
 
     @mock.patch(
         "sentry.workflow_engine.registry.action_handler_registry.get",
@@ -548,7 +591,7 @@ class TestWorkflowValidatorCreate(TestCase):
                 ],
                 "logicType": "any",
                 "conditions": [],
-                "organizationId": self.organization.id,
+                "organizationId": str(self.organization.id),
             }
         ]
 
@@ -584,7 +627,7 @@ class TestWorkflowValidatorCreate(TestCase):
                 ],
                 "logicType": "any",
                 "conditions": [],
-                "organizationId": self.organization.id,
+                "organizationId": str(self.organization.id),
             }
         ]
 
@@ -606,6 +649,29 @@ class TestWorkflowValidatorCreate(TestCase):
         # check the action / condition group
         assert action_group.action.type == Action.Type.SLACK
         assert action_group.condition_group.logic_type == "any"
+
+    def test_create_workflow_ignores_type_field(self) -> None:
+        validator = WorkflowValidator(
+            data={**self.valid_data, "type": Workflow.Type.INBOX}, context=self.context
+        )
+
+        assert validator.is_valid() is True
+
+        workflow = validator.create(validator.validated_data)
+
+        assert workflow.type == Workflow.Type.ALERT
+
+    def test_create_workflow_limit_ignores_hidden_workflows(self) -> None:
+        self.create_workflow(organization=self.organization, type=Workflow.Type.INBOX)
+
+        with self.options({"workflow_engine.max_workflows_per_org": 1}):
+            validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+            assert validator.is_valid() is True
+
+            workflow = validator.create(validator.validated_data)
+
+        assert workflow.id is not None
 
     def test_create__exceeds_workflow_limit(self) -> None:
         REGULAR_LIMIT = 2
@@ -733,7 +799,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                 ],
                 "logicType": "any",
                 "conditions": [],
-                "organizationId": self.organization.id,
+                "organizationId": str(self.organization.id),
             }
         ]
 
@@ -785,6 +851,19 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         assert workflow.id == self.workflow.id
         assert workflow.name == "Update Test"
+
+    def test_update_workflow_ignores_type_field(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        self.valid_data["type"] = Workflow.Type.INBOX
+
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid() is True
+
+        workflow = validator.update(self.workflow, validator.validated_data)
+
+        assert workflow.type == Workflow.Type.ALERT
 
     def test_update__remove_trigger_conditions(self, mock_action_validator: mock.MagicMock) -> None:
         assert self.workflow.when_condition_group
@@ -857,7 +936,7 @@ class TestWorkflowValidatorUpdate(TestCase):
             {
                 "actions": [
                     {
-                        "type": Action.Type.SLACK,
+                        "type": "slack",
                         "config": {
                             "targetIdentifier": "bar",
                             "targetDisplay": "baz",
@@ -869,7 +948,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                 ],
                 "logicType": "all",
                 "conditions": [],
-                "organizationId": self.organization.id,
+                "organizationId": str(self.organization.id),
             }
         )
 
@@ -981,10 +1060,14 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group.conditions.count() == 1
         assert self.workflow.when_condition_group.conditions.first() == dc
 
-    def test_update__add_new_action(self, mock_action_validator: mock.MagicMock) -> None:
-        assert self.valid_saved_data["actionFilters"]
-        self.valid_saved_data["actionFilters"][0]["actions"].append(
+    def test_update__add_new_action_ignores_client_primary_key(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        data: dict[str, Any] = dict(self.valid_saved_data)
+        assert data["actionFilters"]
+        data["actionFilters"][0]["actions"].append(
             {
+                "pk": 2**62,
                 "type": Action.Type.SLACK,
                 "config": {
                     "targetIdentifier": "foo",
@@ -996,9 +1079,12 @@ class TestWorkflowValidatorUpdate(TestCase):
             }
         )
 
-        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        validator = WorkflowValidator(data=data, context=self.context)
         assert validator.is_valid() is True
         validator.update(self.workflow, validator.validated_data)
+
+        assert Action.objects.count() == 2
+        assert not Action.objects.filter(id=2**62).exists()
 
     def test_update__modify_action(self, mock_action_validator: mock.MagicMock) -> None:
         workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()
@@ -1016,7 +1102,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         self.valid_saved_data["actionFilters"][0]["actions"] = [
             {
                 "id": str(action.id),
-                "type": Action.Type.EMAIL,
+                "type": "email",
                 "config": {
                     "targetIdentifier": str(self.user.id),
                     "targetType": "user",

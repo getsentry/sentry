@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry import tagstore
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.mobile import get_readable_device_name
@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 
 @cell_silo_endpoint
 class GroupTagsEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

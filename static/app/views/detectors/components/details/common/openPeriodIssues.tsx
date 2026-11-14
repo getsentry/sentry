@@ -1,6 +1,7 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useCallback} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryStates} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -24,15 +25,14 @@ import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  buildDetectorZoomQuery,
-  computeZoomRangeMs,
-} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getOpenPeriodDurationSeconds} from 'sentry/views/detectors/utils/getOpenPeriodDurationSeconds';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useZoomToOpenPeriodRange} from './useZoomToOpenPeriodRange';
 
 const OPEN_PERIOD_COLUMNS: TableColumnConfig[] = [
   {key: 'issue', width: '1fr'},
@@ -47,11 +47,13 @@ interface OpenPeriodsSubTableProps {
 }
 
 function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
-  const location = useLocation();
-  const start = location.query?.start as string | undefined;
-  const end = location.query?.end as string | undefined;
-  const statsPeriod = location.query?.statsPeriod as string | undefined;
-  const dateParams = {start, end, statsPeriod};
+  const [now] = useState(() => new Date());
+  const [{start, end, statsPeriod}] = useQueryStates(pageFilterParsers);
+  const dateParams = {
+    start: start || undefined,
+    end: end || undefined,
+    statsPeriod: statsPeriod || undefined,
+  };
   const {
     data: openPeriods,
     isPending: isOpenPeriodsPending,
@@ -85,9 +87,7 @@ function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
       {openPeriods.map((period, idx) => {
         const openPeriodStart = new Date(period.start);
         const openPeriodEnd = period.end ? new Date(period.end) : undefined;
-        const diffMs =
-          (openPeriodEnd ?? new Date()).getTime() - openPeriodStart.getTime();
-        const seconds = diffMs / 1000;
+        const openPeriodDurationSeconds = getOpenPeriodDurationSeconds(period, now);
         return (
           <SimpleTable.Row key={`${period.start}-${idx}`}>
             <SimpleTable.RowCell>
@@ -111,7 +111,7 @@ function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
               </Text>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
-              <Duration seconds={seconds} abbreviation />
+              <Duration seconds={openPeriodDurationSeconds} abbreviation />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell justify="end">
               <Button size="xs" onClick={() => onZoom(openPeriodStart, openPeriodEnd)}>
@@ -159,25 +159,7 @@ function LatestGroupWithOpenPeriods({
   intervalSeconds?: number;
 }) {
   const {data: group, isPending, isError} = useGroup({groupId});
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const zoomToRange = useCallback(
-    (start: Date, end?: Date) => {
-      const startMs = start.getTime();
-      const endMs = (end ?? new Date()).getTime();
-      const zoomRange = computeZoomRangeMs({
-        startMs,
-        endMs,
-        intervalSeconds,
-      });
-      navigate({
-        pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomRange),
-      });
-    },
-    [location.pathname, location.query, navigate, intervalSeconds]
-  );
+  const zoomToOpenPeriodRange = useZoomToOpenPeriodRange(intervalSeconds);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -229,7 +211,7 @@ function LatestGroupWithOpenPeriods({
           direction="column"
           padding="0"
         >
-          <OpenPeriodsSubTable groupId={group.id} onZoom={zoomToRange} />
+          <OpenPeriodsSubTable groupId={group.id} onZoom={zoomToOpenPeriodRange} />
         </SimpleTable.RowCell>
       </SimpleTable.Row>
     </SimpleTable>

@@ -17,8 +17,9 @@ import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ReleasesList from 'sentry/views/explore/releases/list/';
-import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
-import {ReleasesStatusOption} from 'sentry/views/explore/releases/list/releasesStatusOptions';
+
+import {ReleasesDisplayOption} from './releasesDisplayOptions';
+import {ReleasesStatusOption} from './releasesStatusOptions';
 
 describe('ReleasesList', () => {
   const organization = OrganizationFixture({
@@ -108,7 +109,6 @@ describe('ReleasesList', () => {
   });
 
   afterEach(() => {
-    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 
@@ -557,6 +557,35 @@ describe('ReleasesList', () => {
     expect(screen.queryByText(/hidden projects/)).not.toBeInTheDocument();
   });
 
+  it('shows health rows past the first five projects when expanded', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [
+        {
+          ...ReleaseFixture({version: '2.0.0'}),
+          projects: Array.from({length: 7}, (_, index) => ({
+            id: index + 1,
+            name: `Test${index + 1}`,
+            slug: `test${index + 1}`,
+          })),
+        },
+      ],
+    });
+    PageFiltersStore.updateProjects([-1], null);
+    render(<ReleasesList />, {organization});
+
+    expect(await screen.findAllByRole('button', {name: 'View'})).toHaveLength(5);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 More'}));
+
+    expect(screen.getAllByRole('button', {name: 'View'})).toHaveLength(7);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+
+    expect(screen.getAllByRole('button', {name: 'View'})).toHaveLength(5);
+    expect(screen.getByRole('button', {name: 'Show 2 More'})).toBeInTheDocument();
+  });
+
   it('renders mobile builds when the mobile-builds tab is selected', async () => {
     const mobileProject = ProjectFixture({
       id: '12',
@@ -679,6 +708,40 @@ describe('ReleasesList', () => {
 
     expect(router.location.query.display).toBe(PreprodBuildsDisplay.SIZE);
     expect(router.location.query.query).toBeFalsy();
+  });
+
+  it('restores the previous display with one back navigation when the display changes', async () => {
+    const {router} = renderMobileBuildsTab();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Display Size'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Distribution'}));
+    await screen.findByRole('button', {name: 'Display Distribution'});
+
+    router.navigate(-1);
+    await screen.findByRole('button', {name: 'Display Size'});
+
+    expect(router.location.query.display).toBeUndefined();
+    expect(router.location.query.query).toBeUndefined();
+  });
+
+  it('keeps the previous cursor when navigating back after a search', async () => {
+    const {router} = renderMobileBuildsTab({display: 'distribution', cursor: '0:25:0'});
+
+    const searchInput = await screen.findByTestId('query-builder-input');
+    await userEvent.type(searchInput, 'install_groups:alpha{enter}');
+    await waitFor(() => {
+      expect(router.location.query.query).toBe('install_groups:alpha');
+    });
+
+    router.navigate(-1);
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('row', {name: 'install_groups:alpha'})
+      ).not.toBeInTheDocument();
+    });
+
+    expect(router.location.query.query).toBeUndefined();
+    expect(router.location.query.cursor).toBe('0:25:0');
   });
 
   it('shows the Download CSV button on the distribution display', async () => {

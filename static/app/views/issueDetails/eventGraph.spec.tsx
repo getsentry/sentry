@@ -9,10 +9,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {EventGraph} from 'sentry/views/issueDetails/eventGraph';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
+import {EventGraph} from './eventGraph';
+import {GroupDataContextProvider} from './groupDataContext';
 
 describe('EventGraph', () => {
   const organization = OrganizationFixture();
@@ -21,7 +21,7 @@ describe('EventGraph', () => {
   });
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
-  const persistantQuery = `issue:${group.shortId}`;
+  const persistantQuery = `issue.id:${group.id}`;
   const defaultProps = {group, event, project, showReleasesAs: 'bubble' as const};
 
   let mockEventStats: jest.Mock;
@@ -79,7 +79,9 @@ describe('EventGraph', () => {
         },
       }
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
+    );
 
     const eventsToggle = screen.getByRole('button', {
       name: 'Toggle graph series - Events',
@@ -125,7 +127,9 @@ describe('EventGraph', () => {
         },
       }
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
+    );
 
     expect(mockEventStats).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -163,7 +167,9 @@ describe('EventGraph', () => {
         },
       }
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
     await waitFor(() => {
@@ -250,19 +256,23 @@ describe('EventGraph', () => {
         },
       }
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
+    );
 
     await userEvent.click(screen.getByRole('button', {name: '14D'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Last 7 days'}));
 
-    expect(mockEventStats).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '7d',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(mockEventStats).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '7d',
+          }),
+        })
+      );
+    });
   });
 
   it('displays error messages from bad queries', async () => {
@@ -292,7 +302,7 @@ describe('EventGraph', () => {
     await screen.findByRole('button', {name: '14D'});
 
     expect(mockStats).toHaveBeenCalled();
-    expect(screen.getByText(new RegExp(errorMessage))).toBeInTheDocument();
+    expect(await screen.findByText(new RegExp(errorMessage))).toBeInTheDocument();
     // Omit the graph
     expect(screen.queryByRole('figure')).not.toBeInTheDocument();
   });

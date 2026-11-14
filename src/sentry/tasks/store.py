@@ -4,7 +4,8 @@ import logging
 import random
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
-from typing import Any
+from time import time
+from typing import Any, cast
 
 import orjson
 from sentry_relay.processing import StoreNormalizer
@@ -18,7 +19,11 @@ from sentry.event_preprocessors import get_event_preprocessors
 from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
 )
-from sentry.ingest.event_payload import load_event_payload, prepare_submit
+from sentry.ingest.event_payload import (
+    get_event_payload_transport,
+    load_event_payload,
+    prepare_submit,
+)
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
@@ -41,7 +46,7 @@ from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -71,6 +76,7 @@ def submit_process(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
     data: MutableMapping[str, Any] | None = None,
+    unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
     data, cache_key = prepare_submit(data, cache_key, event_id)
     if from_reprocessing:
@@ -85,6 +91,7 @@ def submit_process(
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
         data=data,
+        unprocessed=unprocessed,
     )
 
 
@@ -102,6 +109,7 @@ def submit_save_event(
     start_time: float | None,
     data: MutableMapping[str, Any] | None,
     inline: bool = False,
+    unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
     data, cache_key = prepare_submit(data, cache_key, event_id)
 
@@ -117,6 +125,7 @@ def submit_save_event(
         "start_time": start_time,
         "event_id": event_id,
         "project_id": project_id,
+        "unprocessed": unprocessed,
     }
 
     if inline:
@@ -214,7 +223,7 @@ def _do_preprocess_event(
     # The event will be submitted to Symbolicator for all returned platforms,
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
-    symbolicate_functions = get_symbolication_functions(data, stacktraces)
+    symbolicate_functions = get_symbolication_functions(data, stacktraces, project)
     metrics.incr(
         "events.to-symbolicate",
         tags={f.value: True for f in symbolicate_functions},
@@ -235,7 +244,11 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
-            reprocessing2.backup_unprocessed_event(data=original_data)
+            # Base the backup on the cache key fixed at ingest, not on current options, so
+            # `save_event` can rely on events without a cache key having no Redis backup.
+            transport = get_event_payload_transport(event_id)
+            if cache_key and transport.cache:
+                reprocessing2.backup_unprocessed_event(data=original_data)
 
             submit_symbolicate(
                 SymbolicatorTaskKind(
@@ -248,6 +261,7 @@ def _do_preprocess_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
+                unprocessed_pending=transport.inline or not cache_key,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
@@ -358,6 +372,7 @@ def do_process_event(
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
+    unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
     data = load_event_payload(data, cache_key, processing.event_processing_store)
 
@@ -390,6 +405,7 @@ def do_process_event(
             event_id=data_event_id,
             start_time=start_time,
             data=data,
+            unprocessed=unprocessed,
         )
 
     if is_process_disabled(project_id, data_event_id, data.get("platform") or "null"):
@@ -481,6 +497,7 @@ def process_event(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
     data: MutableMapping[str, Any] | None = None,
+    unprocessed: MutableMapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -502,6 +519,7 @@ def process_event(
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
         data=data,
+        unprocessed=unprocessed,
     )
 
 
@@ -520,6 +538,7 @@ def process_event_from_reprocessing(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
     data: MutableMapping[str, Any] | None = None,
+    unprocessed: MutableMapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     return do_process_event(
@@ -531,6 +550,7 @@ def process_event_from_reprocessing(
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
         data=data,
+        unprocessed=unprocessed,
     )
 
 
@@ -541,13 +561,14 @@ def _do_save_event(
     project_id: int | None = None,
     has_attachments: bool = False,
     consumer_type: str | None = None,
+    unprocessed: MutableMapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     """
     Saves an event to the database.
     """
 
-    set_current_event_project(project_id)
+    set_current_event_project(cast("int", project_id))
 
     from sentry.event_manager import EventManager, resolve_project
     from sentry.exceptions import HashDiscarded
@@ -559,6 +580,9 @@ def _do_save_event(
 
     data = load_event_payload(data, cache_key, processing_store)
     event_type = data and data.get("type") or "none"
+
+    if data:
+        data["save_event_start"] = time()
 
     track_event_since_received(
         step="start_save_event",
@@ -606,9 +630,9 @@ def _do_save_event(
 
             with viewer_context_scope(
                 ViewerContext(
+                    actor=Actor(type=ActorType.SYSTEM),
                     organization_id=project.organization_id,
                     project_id=project.id,
-                    actor_type=ActorType.SYSTEM,
                 )
             ):
                 if killswitch_matches_context(
@@ -628,6 +652,7 @@ def _do_save_event(
                     start_time=start_time,
                     cache_key=cache_key,
                     attachments=attachments,
+                    unprocessed=unprocessed,
                 )
         except HashDiscarded:
             # Mark all the attachments as `rate_limited`, so they are being properly cleaned up in the `finally` block:

@@ -10,31 +10,14 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   getEquationAliasIndex,
   isEquationAlias,
-  parseFunction,
-  RateUnit,
   stripEquationPrefix,
-  type AggregationOutputType,
-  type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
-import {
-  type DatasetConfig,
-  type SearchBarData,
-  type SearchBarDataProviderProps,
-  type WidgetBuilderSearchBarProps,
-} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  getTableSortOptions,
-  getTimeseriesSortOptions,
-  transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/events';
-import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
-import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {
   extractTraceMetricFromColumn,
   getTraceMetricDisplayFields,
@@ -45,8 +28,6 @@ import {
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
 } from 'sentry/views/dashboards/widgetCard/hooks/useTraceMetricsWidgetQuery';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
@@ -55,8 +36,24 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {combineBaseFieldsWithTags} from './utils/combineBaseFieldsWithEapTags';
+import {traceMetricsResponseTransforms} from './utils/traceMetricsResponseTransforms';
+import {
+  type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
+  type WidgetBuilderSearchBarProps,
+} from './base';
+import {
+  getTableSortOptions,
+  getTimeseriesSortOptions,
+  renderTraceAsLinkable,
+} from './events';
+import {formatTraceMetricsFunction} from './formatTraceMetricsFunction';
 
 // This is a placeholder that currently signals that no metric is selected
 // When the metrics are loaded up, the first metric is selected and this will be filled out
@@ -342,42 +339,11 @@ export const TraceMetricsConfig: DatasetConfig<
   useSeriesQuery: useTraceMetricsSeriesQuery,
   useTableQuery: useTraceMetricsTableQuery,
   useHeatmapQuery: useTraceMetricsHeatmapQuery,
-  transformTable: (data, widgetQuery) => {
-    const transformedData = transformEventsResponseToTable(data, widgetQuery);
-
-    // Inject the rate units for per_second and per_minute functions explicitly
-    // because the response does not include these units
-    if (transformedData.meta?.units) {
-      Object.keys(transformedData.meta.units).forEach(key => {
-        const parsedFunction = parseFunction(key);
-        if (parsedFunction?.name === 'per_second') {
-          transformedData.meta!.units![key] = RateUnit.PER_SECOND;
-        } else if (parsedFunction?.name === 'per_minute') {
-          transformedData.meta!.units![key] = RateUnit.PER_MINUTE;
-        }
-      });
-    }
-    return transformedData;
-  },
-  transformSeries: (data, widgetQuery) => {
-    return data.timeSeries.map(timeSeries => {
-      // The function should always be defined when dealing with a successful
-      // time series response
-      return {
-        data: timeSeries.values.map(value => ({
-          name: value.timestamp,
-          value: value.value ?? 0,
-        })),
-
-        seriesName: formatMetricsTimeseriesLabel({
-          widgetQuery,
-          timeSeries,
-        }),
-        timeSeries,
-      };
-    });
-  },
+  ...traceMetricsResponseTransforms,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
+    if (field === TraceMetricKnownFieldKey.TRACE) {
+      return renderTraceAsLinkable(widget);
+    }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
   getFieldHeaderMap: widgetQuery => {
@@ -387,27 +353,6 @@ export const TraceMetricsConfig: DatasetConfig<
         return acc;
       }, {}) ?? {}
     );
-  },
-  getSeriesResultType(data, _widgetQuery) {
-    return data.timeSeries.reduce<Record<string, AggregationOutputType>>(
-      (acc, timeSeries) => {
-        acc[timeSeries.yAxis] = timeSeries.meta.valueType as AggregationOutputType;
-        return acc;
-      },
-      {}
-    );
-  },
-  getSeriesResultUnit: (data, _widgetQuery) => {
-    return data.timeSeries.reduce<Record<string, DataUnit>>((acc, timeSeries) => {
-      if (timeSeries.yAxis.includes('per_second(')) {
-        acc[timeSeries.yAxis] = RateUnit.PER_SECOND;
-      } else if (timeSeries.yAxis.includes('per_minute(')) {
-        acc[timeSeries.yAxis] = RateUnit.PER_MINUTE;
-      } else {
-        acc[timeSeries.yAxis] = timeSeries.meta.valueUnit;
-      }
-      return acc;
-    }, {});
   },
 };
 
@@ -441,35 +386,4 @@ function filterSeriesSortOptions(columns: Set<string>) {
 
     return columns.has(option.value.meta.name);
   };
-}
-
-function formatMetricsTimeseriesLabel({
-  widgetQuery,
-  timeSeries,
-}: {
-  timeSeries: TimeSeries;
-  widgetQuery: WidgetQuery;
-}): string {
-  const func = parseFunction(timeSeries.yAxis);
-  const formattedYAxis = func
-    ? `${func.name}(${func.arguments[1] ?? '…'})`
-    : timeSeries.yAxis;
-
-  const multiYAxis = new Set(widgetQuery.aggregates).size > 1;
-  const hasGroupings = new Set(widgetQuery.columns).size > 0;
-
-  let baseName = formatTimeSeriesLabel({...timeSeries, yAxis: formattedYAxis});
-
-  // When we have both multiple aggregates and groupings, append function name for uniqueness
-  if (multiYAxis && hasGroupings && func) {
-    baseName = `${baseName} : ${func.name}(${func.arguments[1] ?? '…'})`;
-  }
-
-  // Add query name prefix with appropriate separator if an alias is present
-  if (widgetQuery.name) {
-    const separator = multiYAxis && hasGroupings ? ' > ' : ' : ';
-    return `${widgetQuery.name}${separator}${baseName}`;
-  }
-
-  return baseName;
 }

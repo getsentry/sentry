@@ -1,61 +1,102 @@
-import {FeatureBadge} from '@sentry/scraps/badge';
+import {IconAllProjects} from '@sentry/icons/allProjects';
+import {IconFlag} from '@sentry/icons/flag';
+import {IconGroup} from '@sentry/icons/group';
+import {IconLink} from '@sentry/icons/link';
+import {IconLock} from '@sentry/icons/lock';
+import {IconMail} from '@sentry/icons/mail';
+import {IconRepository} from '@sentry/icons/repository';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconSubscribed} from '@sentry/icons/subscribed';
+import {IconTerminal} from '@sentry/icons/terminal';
+import {IconUser} from '@sentry/icons/user';
 
 import {t} from 'sentry/locale';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {getSettingsScopeIcon} from 'sentry/views/settings/settingsScope';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 const organizationSettingsPathPrefix = '/settings/:orgId';
 const userSettingsPathPrefix = '/settings/account';
 
-export function getUserOrgNavigationConfiguration(): NavigationSection[] {
+type ConfigParams = {
+  /**
+   * Whether the `settings-v3` navigation is enabled. Index items are titled
+   * "General" instead of "General Settings", and the organization
+   * configuration leaves out account pages, which move to the Account scope.
+   */
+  settingsV3?: boolean;
+};
+
+export function getUserOrgNavigationConfiguration({
+  settingsV3,
+}: ConfigParams = {}): NavigationSection[] {
+  if (settingsV3) {
+    return [
+      ...getOrganizationNavigationConfiguration({settingsV3}),
+      ...getDeveloperNavigationConfiguration({organization: true, account: false}),
+    ];
+  }
+
   return [
-    ...getAccountNavigationConfiguration(),
-    ...getOrganizationNavigationConfiguration(),
-    ...getDeveloperNavigationConfiguration(true),
+    ...getAccountNavigationConfiguration({settingsV3}),
+    ...getOrganizationNavigationConfiguration({settingsV3}),
+    ...getDeveloperNavigationConfiguration({organization: true, account: true}),
   ];
 }
 
-export function getUserNavigationConfiguration(): NavigationSection[] {
+export function getUserNavigationConfiguration({
+  settingsV3,
+}: ConfigParams = {}): NavigationSection[] {
   return [
-    ...getAccountNavigationConfiguration(),
-    ...getDeveloperNavigationConfiguration(false),
+    ...getAccountNavigationConfiguration({settingsV3}),
+    ...getDeveloperNavigationConfiguration({organization: false, account: true}),
   ];
 }
 
-function getAccountNavigationConfiguration(): NavigationSection[] {
+function getAccountNavigationConfiguration({
+  settingsV3,
+}: ConfigParams): NavigationSection[] {
   return [
     {
       id: 'settings-account',
       name: t('Account'),
       items: [
         {
+          id: 'account_details',
           path: `${userSettingsPathPrefix}/details/`,
-          title: t('Account Details'),
+          icon: getSettingsScopeIcon('account'),
+          title: settingsV3 ? t('General') : t('Account Details'),
           keywords: [t('user settings'), t('account settings')],
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
           ),
         },
         {
+          id: 'account_security',
           path: `${userSettingsPathPrefix}/security/`,
+          icon: <IconLock />,
           title: t('Security'),
           description: t('Change your account password and/or two factor authentication'),
         },
         {
+          id: 'account_notifications',
           path: `${userSettingsPathPrefix}/notifications/`,
+          icon: <IconSubscribed />,
           title: t('Notifications'),
           keywords: [t('weekly report')],
           description: t('Configure what email notifications to receive'),
         },
         {
+          id: 'account_emails',
           path: `${userSettingsPathPrefix}/emails/`,
+          icon: <IconMail />,
           title: t('Email Addresses'),
           description: t(
             'Add or remove secondary emails, change your primary email, verify your emails'
           ),
         },
         {
+          id: 'account_subscriptions',
           path: `${userSettingsPathPrefix}/subscriptions/`,
           title: t('Subscriptions'),
           description: t(
@@ -63,13 +104,15 @@ function getAccountNavigationConfiguration(): NavigationSection[] {
           ),
         },
         {
+          id: 'account_authorizations',
           path: `${userSettingsPathPrefix}/authorizations/`,
-          title: t('Authorized Applications'),
+          title: t('Authorized Apps'),
           description: t(
             'Manage third-party applications that have access to your Sentry account'
           ),
         },
         {
+          id: 'account_identities',
           path: `${userSettingsPathPrefix}/identities/`,
           title: t('Identities'),
           description: t(
@@ -77,6 +120,7 @@ function getAccountNavigationConfiguration(): NavigationSection[] {
           ),
         },
         {
+          id: 'account_close_account',
           path: `${userSettingsPathPrefix}/close-account/`,
           title: t('Close Account'),
           keywords: [t('delete account')],
@@ -87,7 +131,9 @@ function getAccountNavigationConfiguration(): NavigationSection[] {
   ];
 }
 
-function getOrganizationNavigationConfiguration(): NavigationSection[] {
+function getOrganizationNavigationConfiguration({
+  settingsV3,
+}: ConfigParams): NavigationSection[] {
   return [
     {
       id: 'settings-organization',
@@ -95,7 +141,8 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
       items: [
         {
           path: `${organizationSettingsPathPrefix}/`,
-          title: t('General Settings'),
+          icon: getSettingsScopeIcon('org'),
+          title: settingsV3 ? t('General') : t('General Settings'),
           keywords: [t('slug'), t('org slug'), t('organization slug')],
           index: true,
           description: t('Configure general settings for an organization'),
@@ -110,24 +157,28 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
         },
         {
           path: `${organizationSettingsPathPrefix}/projects/`,
+          icon: <IconAllProjects />,
           title: t('Projects'),
           description: t("View and manage an organization's projects"),
           id: 'projects',
         },
         {
           path: `${organizationSettingsPathPrefix}/teams/`,
+          icon: <IconGroup />,
           title: t('Teams'),
           description: t("Manage an organization's teams"),
           id: 'teams',
         },
         {
           path: `${organizationSettingsPathPrefix}/members/`,
+          icon: <IconUser />,
           title: t('Members'),
           description: t('Manage user membership for an organization'),
           id: 'members',
         },
         {
           path: `${organizationSettingsPathPrefix}/security-and-privacy/`,
+          icon: <IconLock />,
           title: t('Security & Privacy'),
           keywords: [
             t('data scrubbing'),
@@ -150,6 +201,7 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
         },
         {
           path: `${organizationSettingsPathPrefix}/api-keys/`,
+          icon: <IconLock />,
           title: t('API Keys'),
           show: false, // deprecated: hide from settings nav and cmd+k (SEC-551)
           id: 'api-keys',
@@ -177,21 +229,15 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
           path: `${organizationSettingsPathPrefix}/early-features/`,
           title: t('Early Features'),
           description: t('Manage early access features'),
-          badge: () => <FeatureBadge type="new" />,
+          badge: () => 'new',
           show: ({isSelfHosted}) => isSelfHosted || false,
           id: 'early-features',
           recordAnalytics: true,
         },
         {
-          path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
-          title: t('Dynamic Sampling'),
-          description: t('Manage your sampling rate'),
-          badge: () => 'alpha',
-          show: ({organization}) =>
-            !!organization && hasDynamicSamplingCustomFeature(organization),
-        },
-        {
+          id: 'feature-flags',
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
+          icon: <IconFlag />,
           title: t('Feature Flags'),
           description: t('Set up feature flag integrations'),
         },
@@ -211,6 +257,7 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
       items: [
         {
           path: `${organizationSettingsPathPrefix}/seer/`,
+          icon: <IconSeer />,
           title: t('Issue Scans & Fixes'),
           description: t("Manage Seer's automated issue analysis across your projects"),
           id: 'seer-autofix-legacy',
@@ -239,7 +286,7 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
           title: t('Connectors'),
           description: t('Connect monitoring providers to Seer'),
           id: 'seer-connectors',
-          badge: () => <FeatureBadge type="beta" />,
+          badge: () => 'beta',
           show: ({organization}) =>
             !!organization &&
             showNewSeer(organization) &&
@@ -260,12 +307,14 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
       items: [
         {
           path: `${organizationSettingsPathPrefix}/mcp-cli/`,
+          icon: <IconTerminal />,
           title: t('MCP & CLI'),
           description: t('Connect to Sentry via MCP server or the Sentry CLI'),
           id: 'mcp-cli',
         },
         {
           path: `${organizationSettingsPathPrefix}/integrations/`,
+          icon: <IconLink />,
           title: t('Integrations'),
           keywords: [
             t('slack'),
@@ -290,7 +339,6 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
             t('twilio'),
             t('victorops'),
             t('segment'),
-            t('code mappings'),
           ],
           description: t(
             'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
@@ -300,7 +348,9 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
         },
         {
           path: `${organizationSettingsPathPrefix}/repos/`,
+          icon: <IconRepository />,
           title: t('Repositories'),
+          keywords: [t('code mappings')],
           description: t('Manage repositories connected to the organization'),
           id: 'repos',
           recordAnalytics: true,
@@ -325,11 +375,16 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
   ];
 }
 
-function getDeveloperNavigationConfiguration(
-  includeOrganization: boolean
-): NavigationSection[] {
-  const items: NavigationItem[] = [
+function getDeveloperNavigationConfiguration({
+  organization,
+  account,
+}: {
+  account: boolean;
+  organization: boolean;
+}): NavigationSection[] {
+  const accountItems: NavigationItem[] = [
     {
+      id: 'account_api_auth_tokens',
       path: `${userSettingsPathPrefix}/api/auth-tokens/`,
       title: t('Personal Tokens'),
       keywords: [
@@ -349,15 +404,19 @@ function getDeveloperNavigationConfiguration(
       ),
     },
     {
+      id: 'account_api_applications',
       path: `${userSettingsPathPrefix}/api/applications/`,
       title: t('OAuth Applications'),
       description: t('Add and configure OAuth2 applications'),
     },
   ];
 
-  if (includeOrganization) {
+  const items: NavigationItem[] = account ? accountItems : [];
+
+  if (organization) {
     items.unshift({
       path: `${organizationSettingsPathPrefix}/auth-tokens/`,
+      icon: <IconLock />,
       title: t('Organization Tokens'),
       keywords: [
         t('auth'),

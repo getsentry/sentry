@@ -32,10 +32,10 @@ from sentry.ai_monitoring.tasks import (
 )
 from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -233,7 +233,6 @@ class TitleHelpersTest(TestCase):
         )
 
 
-@with_feature("organizations:gen-ai-conversation-title-generation")
 class GenerateAIConversationTitleTaskTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -390,13 +389,6 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         mock_generate.assert_not_called()
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
-    def test_skips_when_feature_disabled(self, mock_generate: MagicMock) -> None:
-        with self.feature({"organizations:gen-ai-conversation-title-generation": False}):
-            generate_ai_conversation_title(**self._task_kwargs())
-        assert AIConversationMetadata.objects.count() == 0
-        mock_generate.assert_not_called()
-
-    @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
     def test_skips_when_not_in_rollout(self, mock_generate: MagicMock) -> None:
         with override_options({CONVERSATION_TITLE_ROLLOUT_RATE_OPTION: 0.0}):
             generate_ai_conversation_title(**self._task_kwargs())
@@ -449,7 +441,6 @@ def _user_messages(content: str) -> str:
     return json.dumps([{"role": "user", "content": content}])
 
 
-@with_feature("organizations:gen-ai-conversation-title-generation")
 class SpawnConversationTitleGenerationTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -492,9 +483,9 @@ class SpawnConversationTitleGenerationTest(TestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.SYSTEM),
             organization_id=self.project.organization_id,
             project_id=self.project.id,
-            actor_type=ActorType.SYSTEM,
         )
         assert get_viewer_context() is None
 
@@ -614,11 +605,3 @@ class SpawnConversationTitleGenerationTest(TestCase):
         )
         assert mock_extract.call_count == 1
         mock_delay.assert_called_once()
-
-
-class SpawnConversationTitleGenerationFeatureDisabledTest(TestCase):
-    @patch(DELAY)
-    def test_feature_disabled_returns_early(self, mock_delay: MagicMock) -> None:
-        project = self.create_project()
-        spawn_conversation_title_generation([make_gen_ai_span(project_id=project.id)], project)
-        mock_delay.assert_not_called()

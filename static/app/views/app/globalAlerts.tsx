@@ -9,8 +9,9 @@ import {
 } from 'react';
 import {uuid4} from '@sentry/core';
 
+import type {AlertVariant} from '@sentry/scraps/theme';
+
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import type {AlertVariant} from 'sentry/utils/theme';
 
 export interface GlobalAlert {
   /**

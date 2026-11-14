@@ -2,47 +2,19 @@ import type {LineSeriesOption} from 'echarts';
 
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
-import {segmentTimeSeriesByIncompleteData} from 'sentry/utils/timeSeries/segmentTimeSeriesByIncompleteData';
-import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {segmentTimeSeriesByDisplayStyle} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 
 import {
   ContinuousTimeSeries,
-  type ContinuousTimeSeriesConfig,
+  DEFAULT_SEGMENT_BY,
   type ContinuousTimeSeriesPlottingOptions,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
 export class Area extends ContinuousTimeSeries implements Plottable {
-  #timeSeriesAndIsIncomplete: Array<[TimeSeries, boolean]>;
-
-  constructor(timeSeries: TimeSeries, config?: ContinuousTimeSeriesConfig) {
-    super(timeSeries, config);
-
-    this.#timeSeriesAndIsIncomplete = segmentTimeSeriesByIncompleteData(timeSeries);
-  }
-
-  onHighlight(dataIndex: number): void {
-    const {config = {}} = this;
-    // The incomplete series prepends the final data point from the complete
-    // series. This causes off-by-one errors with `seriesDataIndex`, since the
-    // complete series has one more data points than we'd expect. Account for
-    // this by reconstructing the data points from the split series
-    const mergedData = this.#timeSeriesAndIsIncomplete.flatMap(([timeSeries]) => {
-      return timeSeries.values;
-    });
-
-    const datum = mergedData.at(dataIndex);
-
-    if (!datum) {
-      return;
-    }
-
-    config.onHighlight?.(datum);
-  }
-
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): LineSeriesOption[] {
     const {config = {}} = this;
+    const segmentBy = plottingOptions.segmentBy ?? DEFAULT_SEGMENT_BY;
 
     const color = plottingOptions.color ?? config.color ?? undefined;
 
@@ -58,15 +30,21 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     // ECharts groups stacks by name, even when series use different Y axes.
     const stackPrefix = plottingOptions.yAxisPosition;
 
-    this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete], index) => {
-      if (isIncomplete) {
+    const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {
+      segmentBy,
+    });
+
+    segments.forEach(([timeSeries, style], index) => {
+      const data = scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
+        item => this.toDataPoint(item, segmentBy)
+      );
+
+      if (style === 'incomplete') {
         plottableSeries.push(
           createLineSeries({
             ...commonOptions,
             stack: `incomplete-${stackPrefix}-${index}`,
-            data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
-              timeSeriesItemToEChartsDataPoint
-            ),
+            data,
             lineStyle: {
               type: 'dotted',
             },
@@ -79,7 +57,25 @@ export class Area extends ContinuousTimeSeries implements Plottable {
         );
       }
 
-      if (!isIncomplete) {
+      if (style === 'lowConfidence') {
+        plottableSeries.push(
+          createLineSeries({
+            ...commonOptions,
+            stack: `lowConfidence-${stackPrefix}-${index}`,
+            data,
+            lineStyle: {
+              type: 'dashed',
+              opacity: 0.6,
+            },
+            areaStyle: {
+              color,
+              opacity: 0.5,
+            },
+          })
+        );
+      }
+
+      if (style === 'normal') {
         plottableSeries.push(
           createLineSeries({
             ...commonOptions,
@@ -88,9 +84,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
               color,
               opacity: 1,
             },
-            data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
-              timeSeriesItemToEChartsDataPoint
-            ),
+            data,
           })
         );
       }

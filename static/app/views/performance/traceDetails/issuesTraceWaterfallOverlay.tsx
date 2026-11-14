@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {LocationDescriptor} from 'history';
+import {useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
@@ -12,14 +13,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {isCollapsedNode} from 'sentry/views/performance/traceDetails/traceGuards';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
-import {IssuesTraceTree} from 'sentry/views/performance/traceDetails/traceModels/issuesTraceTree';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
-import type {TraceWaterfallSource} from 'sentry/views/performance/traceDetails/traceWaterfall';
 
+import {TraceViewSources} from './traceHeader/traceViewSources';
+import {IssuesTraceTree} from './traceModels/issuesTraceTree';
+import {TraceTree} from './traceModels/traceTree';
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import {isCollapsedNode} from './traceGuards';
+import {getTraceTargetFromEvent} from './traceTarget';
+import type {TraceWaterfallSource} from './traceWaterfall';
 
 interface RowPosition {
   height: number;
@@ -53,6 +54,7 @@ export function IssueTraceWaterfallOverlay({
   const organization = useOrganization();
   const [rowPositions, setRowPositions] = useState<RowPosition[] | null>(null);
   const location = useLocation();
+  const [referrer] = useQueryState('referrer');
 
   const traceTarget = useMemo(
     () =>
@@ -63,14 +65,14 @@ export function IssueTraceWaterfallOverlay({
           ...location,
           query: {
             ...(groupId ? {groupId} : {}),
-            referrer: location.query.referrer,
+            referrer: referrer ?? undefined,
           },
         },
         source === 'feedback'
           ? TraceViewSources.FEEDBACK_DETAILS
           : TraceViewSources.ISSUE_DETAILS
       ),
-    [event, organization, location, groupId, source]
+    [event, organization, location, groupId, referrer, source]
   );
 
   useEffect(() => {

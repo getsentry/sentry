@@ -1,11 +1,11 @@
-import {deriveUpdatedManagedFields} from 'sentry/views/explore/queryParams/managedFields';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {deriveUpdatedManagedFields} from './managedFields';
+import {Mode} from './mode';
 import {
   ReadableQueryParams,
   type ReadableQueryParamsOptions,
-} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+} from './readableQueryParams';
+import {VisualizeFunction} from './visualize';
+import type {WritableQueryParams} from './writableQueryParams';
 
 const defaultReadableQueryParamsOptions: ReadableQueryParamsOptions = {
   extrapolate: true,
@@ -112,6 +112,26 @@ describe('deriveUpdatedManagedFields', () => {
       writableQueryParams
     );
     expect(updatedManagedFields).toEqual(new Set(['baz']));
+  });
+
+  it('should not manage numbers passed to a formula', () => {
+    const managedFields = new Set<string>();
+    const readableQueryParams = new ReadableQueryParams({
+      ...defaultReadableQueryParamsOptions,
+    });
+    const writableQueryParams: WritableQueryParams = {
+      aggregateFields: [
+        {groupBy: ''},
+        {yAxes: ['avg(foo)']},
+        {yAxes: ['formula.score(300,baz)']},
+      ],
+    };
+    const {updatedManagedFields} = deriveUpdatedManagedFields(
+      managedFields,
+      readableQueryParams,
+      writableQueryParams
+    );
+    expect(updatedManagedFields).toEqual(new Set());
   });
 
   it('should keep managing unchanged visualized field', () => {

@@ -21,12 +21,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {ReplayDetailsProviders} from 'sentry/views/explore/replays/detail/body/replayDetailsProviders';
-import {ReplayDetailsEntityHeader} from 'sentry/views/explore/replays/detail/header/replayDetailsEntityHeader';
-import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/header/replayDetailsPageBreadcrumbs';
-import {ReplayDetailsPage} from 'sentry/views/explore/replays/detail/page';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {ReplayDetailsProviders} from './detail/body/replayDetailsProviders';
+import {ReplayDetailsEntityHeader} from './detail/header/replayDetailsEntityHeader';
+import {ReplayDetailsPageBreadcrumbs} from './detail/header/replayDetailsPageBreadcrumbs';
+import {ReplayDetailsPage} from './detail/page';
 
 function ReplayDetailsInner() {
   return (
@@ -76,21 +77,24 @@ function ReplayDetailsContent() {
     mobile: replay?.isVideoReplay(),
   });
 
-  useLLMContext({
-    contextHint:
-      'Sentry session replay detail page. The user is viewing a specific recorded browser session. You can look up full details for this replay using the replayId below, query for related replay sessions, or search live telemetry for errors and spans associated with this session.',
-    replayId: replayRecord?.id,
-    replaySlug,
-    projectSlug: readerResult.projectSlug,
-    browser: replayRecord?.browser.name,
-    os: replayRecord?.os.name,
-    duration: replayRecord?.duration,
-    countErrors: replayRecord?.count_errors,
-    countRageClicks: replayRecord?.count_rage_clicks,
-    countDeadClicks: replayRecord?.count_dead_clicks,
-    environment: replayRecord?.environment,
-    platform: replayRecord?.platform,
-  });
+  useLLMContext(
+    {
+      contextHint:
+        'Sentry session replay detail page. The user is viewing a specific recorded browser session. You can look up full details for this replay using the replayId below, query for related replay sessions, or search live telemetry for errors and spans associated with this session.',
+      replayId: replayRecord?.id,
+      replaySlug,
+      projectSlug: readerResult.projectSlug,
+      browser: replayRecord?.browser.name,
+      os: replayRecord?.os.name,
+      duration: replayRecord?.duration,
+      countErrors: replayRecord?.count_errors,
+      countRageClicks: replayRecord?.count_rage_clicks,
+      countDeadClicks: replayRecord?.count_dead_clicks,
+      environment: replayRecord?.environment,
+      platform: replayRecord?.platform,
+    },
+    {isLoading: !replayRecord && readerResult.isPending}
+  );
 
   const title = replayRecord
     ? `${
@@ -114,7 +118,13 @@ function ReplayDetailsContent() {
     <SentryDocumentTitle title={title}>
       <Stack flex={1} height="100%" minHeight="0" width="100%" overflow="hidden">
         {replay ? (
-          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
+          <ReplayDetailsProviders
+            // A cached replay record skips the `replay === null` render that
+            // otherwise remounts the page, so reset per-replay state here
+            key={readerResult.replayId}
+            replay={replay}
+            projectSlug={readerResult.projectSlug}
+          >
             {pageContent}
           </ReplayDetailsProviders>
         ) : (

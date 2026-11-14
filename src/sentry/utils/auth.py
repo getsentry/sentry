@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Iterable, Mapping
 from datetime import datetime, timedelta, timezone
 from time import time
 from typing import TYPE_CHECKING, Any
@@ -17,6 +17,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.auth.email import filter_matching_emails
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
@@ -105,14 +106,6 @@ class SsoSession:
 class AuthUserPasswordExpired(Exception):
     def __init__(self, user: User) -> None:
         self.user = user
-
-
-def get_auth_providers() -> Collection[str]:
-    return [
-        key
-        for key, cfg_names in settings.AUTH_PROVIDERS.items()
-        if all(getattr(settings, c, None) for c in cfg_names)
-    ]
 
 
 def get_pending_2fa_user(request: HttpRequest) -> User | None:
@@ -328,7 +321,7 @@ def find_users(
         # If not, we can take a stab at guessing it's an email address
         if "@" in username:
             # email isn't guaranteed unique
-            return list(queryset.filter(email__iexact=username))
+            return filter_matching_emails(queryset, username)
         return []
 
 
@@ -454,7 +447,7 @@ def is_user_signed_request(request: Request) -> bool:
         return False
 
 
-def is_user_from_viewer_context(request: Request) -> bool:
+def is_user_from_viewer_context(request: HttpRequest | Request) -> bool:
     """
     This function returns True if the request was authenticated via viewer context.
     """

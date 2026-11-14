@@ -508,6 +508,13 @@ export type InvoiceBase = StructuredAddress & {
   sentryTaxIds: SentryTaxIds | null;
   taxNumber: string | null;
   type: string | null;
+  /**
+   * Usage exports for the period (billing history or platform contract) the receipt bills usage for.
+   */
+  usageCsvLinks?: {
+    csv: string;
+    csvPerProject: string;
+  } | null;
 };
 
 export type Invoice = InvoiceBase & {
@@ -533,14 +540,16 @@ export type Invoice = InvoiceBase & {
   };
 };
 
+type InvoiceItemData = {period?: any; plan?: any; quantity?: any};
+
 type BaseInvoiceItem = {
   amount: number;
-  data: {period?: any; plan?: any; quantity?: any};
   description: string;
   type: InvoiceItemType;
 };
 
 export type InvoiceItem = BaseInvoiceItem & {
+  data: InvoiceItemData;
   periodEnd: string;
   periodStart: string;
 };
@@ -766,6 +775,7 @@ export type PreviewData = {
 };
 
 export type PreviewInvoiceItem = BaseInvoiceItem & {
+  data: InvoiceItemData | null;
   period_end: string;
   period_start: string;
 };

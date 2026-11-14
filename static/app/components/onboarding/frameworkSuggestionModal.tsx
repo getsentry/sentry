@@ -9,23 +9,13 @@ import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Radio} from '@sentry/scraps/radio';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
-import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
-import {
-  type ScmAnalyticsFlow,
-  scmFlowVariantParams,
-  trackScmPlatformSelected,
-} from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
-import {
-  useCreateProjectAndRulesError,
-  useIsCreatingProjectAndRules,
-} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {categoryList, createablePlatforms} from 'sentry/data/platformPickerCategories';
@@ -37,6 +27,17 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
+import {
+  type ScmAnalyticsFlow,
+  scmFlowVariantParams,
+  trackScmPlatformSelected,
+} from './scm/scmAnalyticsFlow';
+import {ProjectCreationErrorAlert} from './projectCreationErrorAlert';
+import {
+  useCreateProjectAndRulesError,
+  useIsCreatingProjectAndRules,
+} from './useCreateProjectAndRules';
 
 export enum SupportedLanguages {
   JAVASCRIPT = 'javascript',
@@ -408,22 +409,26 @@ export function FrameworkSuggestionModal({
                           {items.map((platform, index) => (
                             <PlatformListItem key={platform.id}>
                               <RadioLabel index={index}>
-                                <RadioBox
-                                  size="sm"
-                                  autoFocus={platform.id === selectedPlatform.key}
-                                  name={field.name}
-                                  value={platform.id}
-                                  checked={field.state.value === platform.id}
-                                  onChange={() => field.handleChange(platform.id)}
-                                  onBlur={field.handleBlur}
-                                  onKeyDown={event => {
-                                    // Radios do not consistently submit on Enter across browsers.
-                                    if (event.key === 'Enter') {
-                                      event.preventDefault();
-                                      event.currentTarget.form?.requestSubmit();
-                                    }
-                                  }}
-                                />
+                                <field.Base<HTMLInputElement>>
+                                  {baseProps => (
+                                    <RadioBox
+                                      {...baseProps}
+                                      id={`${baseProps.id}-${platform.id}`}
+                                      size="sm"
+                                      autoFocus={platform.id === selectedPlatform.key}
+                                      value={platform.id}
+                                      checked={field.state.value === platform.id}
+                                      onChange={() => field.handleChange(platform.id)}
+                                      onKeyDown={event => {
+                                        // Radios do not consistently submit on Enter across browsers.
+                                        if (event.key === 'Enter') {
+                                          event.preventDefault();
+                                          event.currentTarget.form?.requestSubmit();
+                                        }
+                                      }}
+                                    />
+                                  )}
+                                </field.Base>
                                 <PlatformListItemIcon
                                   size={24}
                                   platform={platform.id}

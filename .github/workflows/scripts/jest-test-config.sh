@@ -5,6 +5,7 @@ set -euo pipefail
 #
 # Inputs (env vars):
 #   FRONTEND_ALL_FILES  - space-separated list of changed frontend files
+#   FRONTEND_TOO_MANY_FILES - "true" when the list was too long to pass; runs all tests
 #   GITHUB_EVENT_NAME   - set automatically by GitHub Actions
 #   GITHUB_OUTPUT       - set automatically by GitHub Actions
 #
@@ -16,21 +17,25 @@ set -euo pipefail
 # (scope=scoped) or must run everything (scope=full). We only need the scope here;
 # --findRelatedTests reads the changed files from FRONTEND_ALL_FILES.
 eval "$(./.github/workflows/scripts/frontend-changed-scope.sh)"
+if [ "${FRONTEND_TOO_MANY_FILES:-}" == "true" ]; then
+  echo "Too many changed files to scope tests. Running all tests" >&2
+  scope=full
+fi
 
 if [ "$scope" == "scoped" ]; then
   # shellcheck disable=SC2086
-  JEST_TESTS="$(pnpm exec jest --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq '.')"
+  JEST_TESTS="$(pnpm exec sentry-test --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq '.')"
 
   RUNNER_CHUNK_SIZE=250
   JEST_TESTS_LENGTH=$(echo "$JEST_TESTS" | jq 'length')
   if [ "$JEST_TESTS_LENGTH" -gt 0 ]; then
     RUNNERS=$(( ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) > 0 ? ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) : 1 ))
   else
-    JEST_TESTS="$(pnpm exec jest --listTests --json)"
+    JEST_TESTS="$(pnpm exec sentry-test --listTests --json)"
     RUNNERS=8
   fi
 else
-  JEST_TESTS="$(pnpm exec jest --listTests --json)"
+  JEST_TESTS="$(pnpm exec sentry-test --listTests --json)"
   RUNNERS=8
 fi
 echo "$JEST_TESTS" > jest-test-files.json

@@ -153,6 +153,70 @@ describe('getValidOpsForFilter', () => {
       })
     ).not.toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
   });
+
+  it('leaves out the operators the field definition disallows', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      disallowedOperators: [TermOperator.NOT_EQUAL],
+    };
+
+    const ops = getValidOpsForFilter({
+      filterToken: parseFilterToken('message:hello'),
+      fieldDefinition,
+    });
+
+    expect(ops).not.toContain(TermOperator.NOT_EQUAL);
+    expect(ops).toEqual(
+      expect.arrayContaining([TermOperator.DEFAULT, TermOperator.DOES_NOT_CONTAIN])
+    );
+  });
+});
+
+describe('getValidOpsForFilter comparison operators first', () => {
+  it('lists the comparison operators right after the basic ones', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowComparisonOperators: true,
+      comparisonOperatorsFirst: true,
+    };
+
+    const ops = getValidOpsForFilter({
+      filterToken: parseFilterToken('release:1.0'),
+      fieldDefinition,
+    });
+
+    expect(ops.slice(0, 7)).toEqual([
+      TermOperator.DEFAULT,
+      TermOperator.NOT_EQUAL,
+      TermOperator.GREATER_THAN_EQUAL,
+      TermOperator.LESS_THAN_EQUAL,
+      TermOperator.GREATER_THAN,
+      TermOperator.LESS_THAN,
+      TermOperator.EQUAL,
+    ]);
+    expect(ops).toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
+  });
+
+  it('keeps the default order without the flag', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowComparisonOperators: true,
+    };
+
+    const ops = getValidOpsForFilter({
+      filterToken: parseFilterToken('release:1.0'),
+      fieldDefinition,
+    });
+
+    expect(ops.slice(0, 3)).toEqual([
+      TermOperator.DEFAULT,
+      TermOperator.NOT_EQUAL,
+      TermOperator.CONTAINS,
+    ]);
+  });
 });
 
 describe('getValidOpsForFilter regex operators', () => {

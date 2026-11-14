@@ -6,11 +6,11 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BooleanField as NewBooleanField} from 'sentry/components/forms/fields/booleanField';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -22,13 +22,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AllocationTargetTypes, BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
+import {displayPrice} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
-import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
+import {
+  bigNumFormatter,
+  BigNumUnits,
+  getRequestErrorMessage,
+} from 'getsentry/views/spendAllocations/utils';
 
 import {ProjectSelectControl} from './projectSelectControl';
 import {HalvedGrid} from './styles';
@@ -181,7 +185,7 @@ export function AllocationForm({
     const hasErrors = validateForm();
 
     if (hasErrors) {
-      addErrorMessage(t('Please validate your form values are correct'));
+      toast.error(t('Please validate your form values are correct'));
       return;
     }
     let METHOD = 'POST';
@@ -203,8 +207,13 @@ export function AllocationForm({
           end_timestamp: new Date(end).getTime() / 1000,
         },
       });
-    } catch (err: any) {
-      addErrorMessage(err.responseJSON.detail);
+    } catch (err) {
+      toast.error(
+        getRequestErrorMessage(
+          err,
+          t('Unable to save spend allocation. Please try again.')
+        )
+      );
       return;
     }
 

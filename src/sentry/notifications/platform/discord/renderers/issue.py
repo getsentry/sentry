@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.notifications.additional_attachment_manager import discord_attachment_manager
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.service import NotificationRenderError
 from sentry.notifications.platform.templates.issue import IssueNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -20,7 +22,11 @@ from sentry.workflow_engine.tasks.utils import fetch_event
 class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> DiscordRenderable:
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueDiscordRenderer does not support {data.__class__.__name__}")
@@ -49,9 +55,17 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
 
         rules = [data.rule.to_notification_origin()] if data.rule else []
 
-        return DiscordIssuesMessageBuilder(
+        message = DiscordIssuesMessageBuilder(
             group=group,
             event=group_event,
             tags=set(data.tags) if data.tags else None,
             rules=rules,
+            link_decorator=link_decorator,
         ).build(notification_uuid=data.notification_uuid)
+
+        message.setdefault("embeds", []).extend(
+            discord_attachment_manager.get_additional_attachment_for_integration_id(
+                data.integration_id, group.organization
+            )
+        )
+        return message

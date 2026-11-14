@@ -9,12 +9,18 @@ import {
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {useReplayData} from './useReplayData';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture();
@@ -49,10 +55,14 @@ describe('useReplayData', () => {
   });
 
   afterEach(() => {
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
-    jest.useRealTimers();
+    try {
+      cleanup();
+      act(() => {
+        jest.runOnlyPendingTimers();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('should hydrate the replayRecord', async () => {

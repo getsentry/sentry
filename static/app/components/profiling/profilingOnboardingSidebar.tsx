@@ -1,10 +1,12 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -30,8 +32,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -59,8 +61,7 @@ const PROFILING_ONBOARDING_STEPS = [
 
 export function useProfilingOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.PROFILING_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.PROFILING_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 
@@ -273,7 +274,10 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -362,7 +366,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
 
   return (
     <TabSelectionScope>
-      <Wrapper>
+      <Container marginTop="xl">
         {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
         <Steps>
           {steps.map((step, index) => {
@@ -384,14 +388,10 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
             );
           })}
         </Steps>
-      </Wrapper>
+      </Container>
     </TabSelectionScope>
   );
 }
-
-const Wrapper = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-`;
 
 const Steps = styled('div')`
   display: flex;

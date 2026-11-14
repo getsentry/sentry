@@ -257,7 +257,17 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             report_fatal_errors=False,
             # used by the JS/RN SDKs
             # https://github.com/getsentry/sentry-javascript/blob/dafd51054d8b2ab2030fa0b16ad0fd70493b6e08/packages/core/src/integrations/captureconsole.ts#L60
-            ignore_mechanism_type={"console"},
+            # The Supabase integration intentionally reports failed Supabase responses via
+            # captureException with an Error constructed inside SDK code, so the stack trace only
+            # contains SDK frames. Hermes infers the frame's function name from the build (e.g.
+            # `Reflect.apply.then$argument_0` or `Proxy$argument_1.apply`), so we ignore these
+            # captures by their explicit mechanism type instead of by stack frame.
+            # https://github.com/getsentry/sentry-javascript/blob/10.47.0/packages/core/src/integrations/supabase.ts
+            ignore_mechanism_type={
+                "console",
+                "auto.db.supabase.auth",
+                "auto.db.supabase.postgres",
+            },
             allow_mechanism_type=set(),
             system_library_path_patterns={
                 r"**/react-native/Libraries/**",
@@ -302,22 +312,26 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 # The `fetch` wrapper rethrows synchronously, while the `<anonymous>` promise
                 # rejection handler rethrows the error asynchronously (surfacing via
                 # onunhandledrejection), so both pass-through frames must be ignored.
+                # The leading `*` matches the module wherever it sits in the path: pnpm
+                # (`.pnpm/@sentry+core@x/node_modules/@sentry/core/...`), nested copies
+                # (`@sentry/react-native/node_modules/@sentry/core/...`), and bundler prefixes.
+                # Older SDKs shipped the same instrumentation in @sentry/utils.
                 # https://github.com/getsentry/sentry-javascript/blob/090d08c284089acf886d675f06cd516b3f6e06be/packages/core/src/instrument/fetch.ts
                 FunctionAndModulePattern(
-                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    module_pattern="*@sentry/core/*/instrument/fetch*",
                     function_pattern="fetch",
                 ),
                 FunctionAndModulePattern(
-                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    module_pattern="*@sentry/core/*/instrument/fetch*",
                     function_pattern="<anonymous>",
                 ),
-                # The Supabase integration wraps PostgREST queries and captures errors from
-                # Supabase responses via captureException. The Error is constructed inside SDK
-                # code, so the stack trace only contains SDK frames, triggering false positives.
-                # https://github.com/getsentry/sentry-javascript/blob/10.47.0/packages/core/src/integrations/supabase.ts
                 FunctionAndModulePattern(
-                    module_pattern="@sentry/core/*/integrations/supabase*",
-                    function_pattern="Reflect.apply.then$argument_0",
+                    module_pattern="*@sentry/utils/*/instrument/fetch*",
+                    function_pattern="fetch",
+                ),
+                FunctionAndModulePattern(
+                    module_pattern="*@sentry/utils/*/instrument/fetch*",
+                    function_pattern="<anonymous>",
                 ),
             },
             sdk_crash_ignore_stacktrace_matchers={
@@ -357,6 +371,23 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                         ),
                     ),
                     require_sdk_frame_after=True,
+                ),
+                # The Supabase integration wraps PostgREST queries via a Proxy on `.then()` and
+                # captures failed queries via captureException. The Error is constructed inside SDK
+                # code (`new Error(res.error.message)`), so its stack trace contains only SDK frames,
+                # triggering SDK-crash false positives. Match the frame by path rather than `module`,
+                # which real React Native / Hermes frames don't carry (the path lives in
+                # `filename`/`abs_path`). A single supabase frame identifies the intentional capture,
+                # so we don't require a following SDK frame.
+                # https://github.com/getsentry/sentry-javascript/blob/10.47.0/packages/core/src/integrations/supabase.ts
+                StacktraceIgnoreMatcher(
+                    patterns=(
+                        FunctionAndPathPattern(
+                            function_pattern="Reflect.apply.then$argument_0",
+                            path_pattern="**/@sentry/core/**/integrations/supabase*",
+                        ),
+                    ),
+                    require_sdk_frame_after=False,
                 ),
             },
         )
@@ -601,6 +632,19 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="*",
                     function_pattern="SentryWidgetsBindingMixin.handleBeginFrame",
+                ),
+                # Since 10.0.0-alpha.7, the Sentry Flutter SDK also overrides drawFrame and
+                # attachToBuildOwner to record app start. Both only forward to Flutter (try/finally,
+                # no catch), so any error Flutter throws while building, laying out, or attaching
+                # widgets has one of them as the first SDK frame, causing false positives. Errors
+                # in the SDK's own recorder code still have the recorder as the first SDK frame.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="SentryWidgetsBindingMixin.drawFrame",
+                ),
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="SentryWidgetsBindingMixin.attachToBuildOwner",
                 ),
                 # This is the integration responsible for reporting unhandled errors.
                 # For certain errors the frame is sometimes included in the stacktrace which leads to false positives.

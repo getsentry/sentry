@@ -1,4 +1,5 @@
 from time import time
+from typing import Any
 
 import orjson
 import responses
@@ -8,10 +9,10 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models.grouplink import GroupLink
-from sentry.notifications.types import NotificationActionContext
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.notifications import create_notification_action_context
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -24,6 +25,11 @@ pytestmark = [requires_snuba]
 @freeze_time()
 class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     rule_cls = AzureDevopsCreateTicketAction
+
+    def get_azure_rule(self, **kwargs: Any) -> AzureDevopsCreateTicketAction:
+        rule = self.get_rule(**kwargs)
+        assert isinstance(rule, AzureDevopsCreateTicketAction)
+        return rule
 
     def setUp(self) -> None:
         integration, _, _, _ = self.create_identity_integration(
@@ -43,22 +49,22 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                 "data": {"access_token": "123456789", "expires": time() + 1234567},
             },
         )
-        self.integration = VstsIntegration(integration, self.organization.id)
+        self.installation = VstsIntegration(integration, self.organization.id)
 
     @responses.activate
     def test_create_issue(self) -> None:
         self.mock_categories("ac7c05bb-7f8e-4880-85a6-e08f37fd4a10")
-        event = self.get_event()
+        event = self.get_group_event()
         rule = self.create_project_rule(project=self.project)
-        azuredevops_rule = self.get_rule(
+        azuredevops_rule = self.get_azure_rule(
             data={
                 "title": "Hello",
                 "description": "Fix this.",
                 "project": "0987654321",
                 "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
-                "integration": self.integration.model.id,
+                "integration": self.installation.model.id,
             },
-            context=NotificationActionContext.from_legacy_rule(rule),
+            context=create_notification_action_context(rule),
         )
         responses.reset()
         responses.add(
@@ -88,10 +94,10 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         """Don't create an issue if one already exists on the event"""
 
         self.mock_categories("ac7c05bb-7f8e-4880-85a6-e08f37fd4a10")
-        event = self.get_event()
+        event = self.get_group_event()
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
-            integration_id=self.integration.model.id,
+            integration_id=self.installation.model.id,
             key="6",
             title=event.title,
             description="Fix this.",
@@ -102,7 +108,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
             linked_type=GroupLink.LinkedType.issue,
             linked_id=external_issue.id,
             relationship=GroupLink.Relationship.references,
-            data={"provider": self.integration.model.provider},
+            data={"provider": self.installation.model.provider},
         )
         responses.add(
             responses.GET,
@@ -110,16 +116,15 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
             body=GET_PROJECTS_RESPONSE,
             content_type="application/json",
         )
-        azuredevops_rule = self.get_rule(
+        azuredevops_rule = self.get_azure_rule(
             data={
                 "title": "Hello",
                 "description": "Fix this.",
                 "project": "0987654321",
                 "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
-                "integration": self.integration.model.id,
+                "integration": self.installation.model.id,
             }
         )
-        azuredevops_rule.rule = self.create_project_rule(name="test rule")
 
         results = list(azuredevops_rule.after(event=event))
         assert len(results) == 1
@@ -127,9 +132,9 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         assert len(responses.calls) == 0
 
     def test_render_label(self) -> None:
-        azuredevops_rule = self.get_rule(
+        azuredevops_rule = self.get_azure_rule(
             data={
-                "integration": self.integration.model.id,
+                "integration": self.installation.model.id,
                 "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
                 "project": "0987654321",
                 "dynamic_form_fields": {
@@ -190,6 +195,6 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration.delete()
 
-        rule = self.get_rule(data={"integration": deleted_id})
+        rule = self.get_azure_rule(data={"integration": deleted_id})
 
         assert rule.render_label() == "Create an Azure DevOps work item in [removed] with these "

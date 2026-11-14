@@ -12,7 +12,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from pydantic import BaseModel
-from requests.exceptions import RequestException
 from rest_framework.exceptions import (
     APIException,
     AuthenticationFailed,
@@ -34,17 +33,13 @@ from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentic
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.client_kind import ClientKind, client_kind_scope
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
-from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
-from sentry.identity import default_manager as identity_manager
-from sentry.identity.oauth2 import OAuth2Provider
-from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.investigations.endpoints.validators import InvestigationOrchestrationEventValidator
 from sentry.investigations.services.orchestration_events import deliver_orchestration_event
 from sentry.models.group import Group
@@ -67,13 +62,16 @@ from sentry.seer.agent.index_data import (
 from sentry.seer.agent.monitoring_providers import (
     get_monitoring_provider_connections as fetch_monitoring_provider_connections,
 )
+from sentry.seer.agent.monitoring_providers import (
+    refresh_monitoring_provider_identity_token,
+    refresh_monitoring_provider_integration_token,
+)
 from sentry.seer.agent.on_completion_hook import call_on_completion_hook
 from sentry.seer.agent.tools import (
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
     get_baseline_tag_distribution,
-    get_dsn,
     get_event_details,
     get_group_assignees,
     get_issue_committers,
@@ -105,6 +103,7 @@ from sentry.seer.assisted_query.traces_tools import (
 )
 from sentry.seer.auth import SeerRpcViewerContextAuthentication
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.utils import read_preference_from_sentry_db
 from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
@@ -117,9 +116,11 @@ from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_qu
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.models.seer_api_models import SeerProjectPreference
+from sentry.seer.public_caller import restrict_projects
 from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    CommitAuthorResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
@@ -127,7 +128,6 @@ from sentry.seer.sentry_data_models import (
     HasRepoCodeMappingsResponse,
     InvestigationEventDeliveryResponse,
     MonitoringProviderConnectionsResponse,
-    OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
     OrganizationProjectDetail,
     OrganizationProjectsResponse,
@@ -140,10 +140,9 @@ from sentry.seer.sentry_data_models import (
     SpanAttribute,
     SpanAttributesResponse,
 )
-from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
-from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.seer.utils import encrypt_access_token_for_seer
+from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
@@ -152,6 +151,7 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.groupreference import find_fix_statements
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.viewer_context import (
+    get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
     viewer_context_from_header,
@@ -409,6 +409,23 @@ def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
     return OrganizationSlugResponse(slug=org.slug)
 
 
+def get_commit_author(*, org_id: int) -> CommitAuthorResponse:
+    """The viewer's GitHub identity, which Seer credits on the PRs its agent opens.
+
+    The user comes from the signed viewer context, never an argument, so Seer can only
+    credit whoever is driving the run.
+    """
+    viewer = get_viewer_context()
+    user_id = get_acting_user_id(viewer)
+    # HMAC callers aren't bound to ``org_id``, so check it against the viewer here.
+    if viewer is None or viewer.organization_id != org_id or user_id is None:
+        return CommitAuthorResponse()
+    user = user_service.get_user(user_id=user_id)
+    return CommitAuthorResponse(
+        author=commit_author_for_user(user, org_id, referrer="seer_agent_write_pull_request")
+    )
+
+
 def find_referenced_fix_statements(*, org_id: int, text: str) -> ReferencedFixStatementsResponse:
     statements = find_fix_statements(text, org_id)
     return ReferencedFixStatementsResponse(
@@ -455,7 +472,9 @@ def get_organization_projects(*, org_id: int) -> OrganizationProjectsResponse:
             slug=project.slug,
             instrumentation=get_instrumentation_types(project),
         )
-        for project in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+        for project in restrict_projects(
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+        )
     ]
 
     return OrganizationProjectsResponse(projects=projects)
@@ -509,10 +528,6 @@ def get_organization_features(
 class SentryOrganizaionIdsAndSlugs(TypedDict):
     org_ids: list[int]
     org_slugs: list[str]
-
-
-def get_organization_autofix_consent(*, org_id: int) -> OrganizationAutofixConsentResponse:
-    return OrganizationAutofixConsentResponse(consent=True)
 
 
 def get_attributes_for_span(
@@ -612,7 +627,7 @@ def get_github_enterprise_integration_config(
 
 
 def send_seer_webhook(
-    *, event_name: str, organization_id: int, payload: dict
+    *, event_name: str, organization_id: int, payload: dict[str, Any]
 ) -> SendSeerWebhookSuccessResponse | SendSeerWebhookErrorResponse:
     """
     Handles receipt (in Sentry, from Seer) of a seer webhook event for an organization.
@@ -637,6 +652,11 @@ def send_seer_webhook(
             "seer.webhook_invalid_event_type",
             extra={"event_type": event_type},
         )
+        return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
+    # Internal only: Sentry raises it itself from the autofix completion hook, and it must not
+    # reach Sentry Apps until its payload is settled.
+    if sentry_app_event_type in INTERNAL_SEER_EVENT_TYPES:
+        logger.warning("seer.webhook_internal_event_type", extra={"event_type": event_type})
         return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
 
     # Handle organization lookup safely
@@ -733,7 +753,12 @@ def get_repo_installation_id(
         owner: The repository owner (e.g., "getsentry")
         name: The repository name (e.g., "sentry")
     """
-    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+    repo, _resolution = Repository.objects.resolve_active_by_reference(
+        organization_id=organization_id,
+        provider=provider,
+        external_id=external_id,
+        name=f"{owner}/{name}",
+    )
 
     if not repo:
         return GetRepoInstallationIdErrorResponse(error="repository_not_found")
@@ -781,7 +806,7 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> SeerPro
     if project.organization_id != organization_id:
         raise Project.DoesNotExist
 
-    return read_preference_from_sentry_db(project)
+    return read_preference_from_sentry_db(project, limit_repos=True)
 
 
 def deliver_feature_result(
@@ -814,7 +839,11 @@ def deliver_feature_result(
 def get_monitoring_provider_connections(
     *, organization_id: int, user_id: int
 ) -> MonitoringProviderConnectionsResponse:
-    """Fetch the user's connected monitoring provider identities."""
+    """
+    Seer RPC shim for ``OrganizationSeerMonitoringConnectionsEndpoint``. Kept until Seer
+    calls the endpoint. It trusts ``user_id``; the endpoint takes the caller from the
+    viewer context.
+    """
     try:
         organization = Organization.objects.get_from_cache(id=organization_id)
     except Organization.DoesNotExist:
@@ -833,76 +862,27 @@ def get_monitoring_provider_connections(
     )
 
 
+def refresh_org_monitoring_provider_token(
+    *, organization_id: int, integration_id: int
+) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
+    """
+    Seer RPC shim for ``OrganizationSeerMonitoringIntegrationTokenEndpoint``. Kept until
+    Seer calls the endpoint.
+    """
+    return refresh_monitoring_provider_integration_token(
+        organization_id=organization_id, integration_id=integration_id
+    )
+
+
 def refresh_monitoring_provider_token(
     *, identity_id: int
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
-    """Refresh the access token for a monitoring provider identity."""
-    if not settings.SEER_GHE_ENCRYPT_KEY:
-        logger.error("Cannot encrypt monitoring provider access token without SEER_GHE_ENCRYPT_KEY")
-        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
-
-    identity = identity_service.get_identity(filter={"id": identity_id})
-    if identity is None:
-        logger.error(
-            "monitoring_provider.refresh.identity_not_found", extra={"identity_id": identity_id}
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
-
-    idp = identity_service.get_provider(provider_id=identity.idp_id)
-    if idp is None or idp.type not in MONITORING_PROVIDERS:
-        logger.error(
-            "monitoring_provider.refresh.identity_provider_not_found",
-            extra={
-                "identity_id": identity.id,
-                "idp_id": identity.idp_id,
-                "idp_type": idp.type if idp is not None else None,
-            },
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
-
-    provider = identity_manager.get(idp.type)
-    if not isinstance(provider, OAuth2Provider):
-        # Static-token providers (e.g. Datadog PAT) have no refresh flow.
-        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_not_supported")
-
-    try:
-        provider.refresh_identity(identity)
-    except IdentityNotValid:
-        logger.exception(
-            "monitoring_provider.refresh.identity_not_valid",
-            extra={
-                "identity_id": identity_id,
-                "provider": idp.type,
-                "has_refresh_token": "refresh_token" in identity.data,
-            },
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
-    except (ApiError, KeyError, RequestException):
-        logger.exception(
-            "monitoring_provider.refresh.failed",
-            extra={"identity_id": identity_id, "provider": idp.type},
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
-
-    access_token = identity.data.get("access_token")
-    if not access_token:
-        logger.error(
-            "monitoring_provider.refresh.access_token_not_found", extra={"identity_id": identity.id}
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
-
-    encrypted_auth_header = encrypt_access_token_for_seer(f"Bearer {access_token}")
-    if not encrypted_auth_header:
-        logger.error(
-            "monitoring_provider.refresh.access_token_encryption_failed",
-            extra={"identity_id": identity.id},
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
-
-    return RefreshMonitoringProviderTokenSuccessResponse(
-        encrypted_auth_headers={"Authorization": encrypted_auth_header},
-        expires=identity.data.get("expires"),
-    )
+    """
+    Seer RPC shim for ``OrganizationSeerMonitoringIdentityTokenEndpoint``. Kept until
+    Seer calls the endpoint. Unlike the endpoint, it doesn't bind the identity to a user
+    or an organization.
+    """
+    return refresh_monitoring_provider_identity_token(identity_id)
 
 
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or
@@ -929,7 +909,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Autofix
     "get_organization_slug": seer_rpc(get_organization_slug),
     "find_referenced_fix_statements": seer_rpc(find_referenced_fix_statements),
-    "get_organization_autofix_consent": seer_rpc(get_organization_autofix_consent),
     "get_error_event_details": seer_rpc(get_error_event_details),
     "get_profile_details": seer_rpc(get_profile_details),
     "send_seer_webhook": seer_rpc(send_seer_webhook),
@@ -978,7 +957,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_log_attributes_for_trace": seer_rpc(get_log_attributes_for_trace),
     "get_metric_attributes_for_trace": seer_rpc(get_metric_attributes_for_trace),
     "get_baseline_tag_distribution": seer_rpc(get_baseline_tag_distribution),
-    "get_dsn": seer_rpc(get_dsn),
+    "get_commit_author": seer_rpc(get_commit_author),
     #
     # Replays
     "get_replay_summary_logs": seer_rpc(rpc_get_replay_summary_logs),
@@ -996,6 +975,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Monitoring provider tokens (MCP)
     "get_monitoring_provider_connections": seer_rpc(get_monitoring_provider_connections),
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
+    "refresh_org_monitoring_provider_token": seer_rpc(refresh_org_monitoring_provider_token),
 }
 
 

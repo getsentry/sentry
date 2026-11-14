@@ -8,6 +8,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
 import {t} from 'sentry/locale';
@@ -17,17 +18,15 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
-import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import {
-  canEditIssueView,
-  confirmDeleteIssueView,
-} from 'sentry/views/issueList/issueViews/utils';
-import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
-import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
-import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {canEditIssueView, confirmDeleteIssueView} from './issueViews/utils';
+import {useDeleteGroupSearchView} from './mutations/useDeleteGroupSearchView';
+import {useUpdateGroupSearchViewStarred} from './mutations/useUpdateGroupSearchViewStarred';
+import {groupSearchViewApiOptions} from './queries/groupSearchView';
+import {EditableIssueViewHeader} from './editableIssueViewHeader';
 
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
@@ -205,7 +204,7 @@ function IssueViewEditMenu() {
         },
       ]}
       trigger={props => (
-        <Button
+        <OverlayTrigger.IconButton
           size="sm"
           {...props}
           tooltipProps={{title: moreOptionsLabel}}

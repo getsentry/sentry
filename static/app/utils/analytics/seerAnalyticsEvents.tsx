@@ -5,6 +5,13 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
+type InvestigationActionRequestEvent = {
+  action_kind: string;
+  action_request_id: string;
+  investigation_id: string;
+  state: string;
+};
+
 // Pipeline stage a run is bucketed into on the Autofix Overview page. Mirrors
 // the `AutofixStateKey` union in the overview view without importing across the
 // utils -> views layer boundary.
@@ -193,6 +200,7 @@ export type SeerAnalyticsEventsParameters = {
     has_code_review_beta: boolean;
     has_legacy_seer: boolean;
     has_seat_based_seer: boolean;
+    has_token_based_seer: boolean;
   };
   'seer.explorer.block_copied': Record<string, unknown>;
   'seer.explorer.feedback_submitted': {
@@ -244,12 +252,31 @@ export type SeerAnalyticsEventsParameters = {
     /** Seer pane size as a percent of the available split axis, 0–100. */
     seer_size_percent: number;
   };
+  'seer.explorer.suggestion_clicked': {
+    position: number;
+    referrer: string;
+    source: 'generated' | 'fallback' | 'legacy';
+    action_type?: string;
+    kind?: 'question' | 'action';
+  };
+  'seer.explorer.suggestions_shown': {
+    action_types: string[];
+    count: number;
+    referrer: string;
+    source: 'generated' | 'fallback' | 'legacy';
+    fallback_reason?: 'timeout' | 'error' | 'empty' | 'incomplete_context';
+  };
   'seer.explorer.timed_out': {
     run_id: SeerExplorerRunId | null;
   };
   'seer.explorer.update_slack_clicked': {
     num_configurations: number;
   };
+  'seer.investigation.action_request.applied': InvestigationActionRequestEvent;
+  'seer.investigation.action_request.link_clicked': InvestigationActionRequestEvent & {
+    link: string;
+  };
+  'seer.investigation.action_request.shown': InvestigationActionRequestEvent;
 };
 
 type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;
@@ -293,6 +320,13 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',
   'seer.explorer.sidebar.position_changed': 'Seer Explorer: Sidebar Position Changed',
   'seer.explorer.sidebar.resized': 'Seer Explorer: Sidebar Resized',
+  'seer.explorer.suggestion_clicked': 'Seer Explorer: Suggestion Clicked',
+  'seer.explorer.suggestions_shown': 'Seer Explorer: Suggestions Shown',
   'seer.explorer.timed_out': 'Seer Explorer: Timed Out',
   'seer.explorer.update_slack_clicked': 'Seer Explorer: Update Slack Clicked',
+  'seer.investigation.action_request.applied':
+    'Seer Investigation: Action Request Applied',
+  'seer.investigation.action_request.link_clicked':
+    'Seer Investigation: Action Request Link Clicked',
+  'seer.investigation.action_request.shown': 'Seer Investigation: Action Request Shown',
 };

@@ -10,17 +10,18 @@ import {IconProfiling} from '@sentry/icons/profiling';
 import {IconTerminal} from '@sentry/icons/terminal';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -45,7 +46,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
-import {tryParseJsonRecursive} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -66,6 +66,7 @@ import {
   makeDurationComparisonStatusColors,
   MIN_PCT_DURATION_DIFFERENCE,
 } from './durationComparison';
+import {tryParseJsonRecursive} from './utils';
 
 function BodyContainer({children}: PropsWithChildren) {
   return (
@@ -464,7 +465,8 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
       menuTitle={<div>{t('Panel Position')}</div>}
       trigger={triggerProps => (
         <Tooltip title={t('Panel Position')}>
-          <ActionButton
+          <OverlayTrigger.IconButton
+            css={actionButtonStyles}
             {...triggerProps}
             size="zero"
             aria-label={t('Panel position')}

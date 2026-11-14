@@ -4,9 +4,9 @@ import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconCircle} from '@sentry/icons/circle';
+import {IconInfo} from '@sentry/icons/info';
 import {IconMegaphone} from '@sentry/icons/megaphone';
 import {IconOpen} from '@sentry/icons/open';
-import {IconQuestion} from '@sentry/icons/question';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {IconWarning} from '@sentry/icons/warning';
 
@@ -15,15 +15,14 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
@@ -37,6 +36,8 @@ import {defined} from 'sentry/utils/defined';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {sourceMapSdkDocsMap} from './crashContent/exception/utils';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
   not_found: {
@@ -905,17 +906,17 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
             none: <IconCircle size="md" variant="muted" />,
             checked: <IconCheckmark size="md" variant="success" />,
             alert: <IconWarning size="md" variant="warning" />,
-            question: <IconQuestion size="md" variant="muted" />,
+            question: <IconInfo size="md" variant="muted" />,
           }[status]
         }
         <Line className="source-map-debugger-modal-checklist-line" />
       </Stack>
-      <ListItemContentContainer>
+      <Container flexGrow={1} paddingBottom="xl" marginLeft="lg" maxWidth="100%">
         <Flex align="center" minHeight="20px">
           <ListItemTitle status={status}>{title}</ListItemTitle>
         </Flex>
         {children}
-      </ListItemContentContainer>
+      </Container>
     </ListItemContainer>
   );
 }
@@ -2017,13 +2018,6 @@ const Line = styled('div')`
   width: ${p => p.theme.space['2xs']};
   background-color: ${p => p.theme.colors.gray200};
   border-radius: ${p => p.theme.space['2xs']};
-`;
-
-const ListItemContentContainer = styled('div')`
-  flex-grow: 1;
-  margin-left: ${p => p.theme.space.lg};
-  padding-bottom: ${p => p.theme.space.xl};
-  max-width: 100%;
 `;
 
 const CompletionNoteContainer = styled('div')`

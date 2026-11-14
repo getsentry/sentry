@@ -26,7 +26,6 @@ import {
   isTokenReference,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {Row} from 'sentry/components/arithmeticBuilder/token/styles';
 import {
   nextSimilarTokenKey,
   nextTokenKeyOfKind,
@@ -38,6 +37,8 @@ import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+
+import {Row} from './styles';
 
 interface ArithmeticTokenFreeTextProps {
   item: Node<Token>;
@@ -490,7 +491,7 @@ function useParenthesisItems({
     if (nextAllowedTokenKinds.includes(TokenKind.OPEN_PARENTHESIS)) {
       options.push({
         key: `${TokenKind.OPEN_PARENTHESIS}:open`,
-        label: <IconParenthesis height={26} />,
+        label: <IconParenthesis size="lg" />,
         value: '(',
         textValue: '(',
         hideCheck: true,
@@ -500,7 +501,7 @@ function useParenthesisItems({
     if (nextAllowedTokenKinds.includes(TokenKind.CLOSE_PARENTHESIS)) {
       options.push({
         key: `${TokenKind.CLOSE_PARENTHESIS}:close`,
-        label: <IconParenthesis side="right" height={26} />,
+        label: <IconParenthesis side="right" size="lg" />,
         value: ')',
         textValue: ')',
         hideCheck: true,

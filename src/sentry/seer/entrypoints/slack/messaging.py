@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any, assert_never
 
 from pydantic import ValidationError
@@ -25,6 +26,12 @@ from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixUpdate,
+    SeerInvestigationStarted,
+)
+from sentry.notifications.platform.tracking import (
+    NotificationLinkDecorator,
+    NotificationTrackingContext,
+    record_sent,
 )
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -36,7 +43,11 @@ from sentry.seer.entrypoints.slack.cache import (
     SlackSeerAgentMessageCache,
     SlackSeerAgentMessageCachePayload,
 )
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
+    IntegrationError,
+    IntegrationResourceNotFoundError,
+)
 from sentry.silo.base import all_silo_function
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
@@ -52,14 +63,44 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _render_tracked(
+    data: NotificationData,
+) -> tuple[SlackRenderable, NotificationTrackingContext, set[str]]:
+    """
+    Renders a Seer Slack message with its callback buttons marked with the notification. Returns
+    the renderable, the context to record its send with, and the links and buttons it contains.
+    """
+    provider = provider_registry.get(NotificationProviderKey.SLACK)
+    template_cls = template_registry.get(data.source)
+    renderable, links = NotificationService.render_template(
+        data=data, template=template_cls(), provider=provider
+    )
+    tracking_context = NotificationTrackingContext(
+        source=data.source,
+        provider=NotificationProviderKey.SLACK,
+        category=template_cls.category,
+        notification_uuid=data.notification_uuid,
+        organization_id=data.organization_id,
+    )
+    tracked: set[str] = {
+        *links,
+        *provider.track_actions(renderable=renderable, context=tracking_context),
+    }
+    return renderable, tracking_context, tracked
+
+
 def send_thread_update(
     *,
     install: SlackIntegration,
     thread: SlackThreadDetails,
     data: NotificationData,
     ephemeral_user_id: str | None = None,
-) -> None:
-    """Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task."""
+) -> str | None:
+    """
+    Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task.
+    Returns the posted message's ts, or None if it wasn't posted.
+    """
+    message_ts: str | None = None
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.SEND_THREAD_UPDATE,
         integration_id=install.model.id,
@@ -73,11 +114,7 @@ def send_thread_update(
                 "ephemeral_user_id": ephemeral_user_id,
             }
         )
-        provider = provider_registry.get(NotificationProviderKey.SLACK)
-        template_cls = template_registry.get(data.source)
-        renderable = NotificationService.render_template(
-            data=data, template=template_cls(), provider=provider
-        )
+        renderable, tracking_context, tracked = _render_tracked(data)
         try:
             if ephemeral_user_id:
                 response = install.send_threaded_ephemeral_message(
@@ -94,6 +131,8 @@ def send_thread_update(
                     renderable=renderable,
                 )
                 message_ts = response.get("ts") if response else None
+            if response is not None:
+                record_sent(tracking_context, links=tracked)
             run_id = getattr(data, "run_id", None)
             if (
                 message_ts
@@ -120,6 +159,44 @@ def send_thread_update(
         except IntegrationError as e:
             lifecycle.record_failure(failure_reason=e)
             # Retry, hopefully it's transient
+            raise
+    return message_ts
+
+
+def edit_thread_message(
+    *, install: SlackIntegration, channel_id: str, message_ts: str, data: NotificationData
+) -> None:
+    """
+    Re-render a message we already posted from new data, recording the edit as a send of the
+    data's notification, since the re-rendered links and buttons carry its ID.
+    Returns once there's nothing left to do, including when the message is gone. Raises
+    IntegrationError otherwise, so the caller can retry.
+    """
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.EDIT_THREAD_MESSAGE,
+        integration_id=install.model.id,
+        organization_id=install.organization_id,
+    ).capture() as lifecycle:
+        lifecycle.add_extras(
+            {"channel_id": channel_id, "message_ts": message_ts, "data_source": data.source}
+        )
+        renderable, tracking_context, tracked = _render_tracked(data)
+        try:
+            install.update_message(
+                channel_id=channel_id, message_ts=message_ts, renderable=renderable
+            )
+            record_sent(tracking_context, links=tracked)
+        except IntegrationResourceNotFoundError as e:
+            lifecycle.record_halt(halt_reason=e)
+        except TimeoutError as e:
+            lifecycle.record_failure(failure_reason=e)
+            raise IntegrationError("Slack request timed out") from e
+        except IntegrationConfigurationError as e:
+            # Halts like rate limits can clear, and the edit may carry the run's final PR status.
+            lifecycle.record_halt(halt_reason=e)
+            raise
+        except IntegrationError as e:
+            lifecycle.record_failure(failure_reason=e)
             raise
 
 
@@ -284,8 +361,14 @@ def update_existing_message(
 
         parsed_blocks = [Block.parse(block) for block in blocks]
         footer_extra_text = f"(ty <@{slack_user_id}>)" if slack_user_id else None
+        link_decorator = NotificationLinkDecorator(
+            data=data, provider=NotificationProviderKey.SLACK
+        )
         footer_blocks = SeerSlackRenderer.render_footer_blocks(
-            data=data, extra_text=footer_extra_text, has_complete_stage=has_complete_stage
+            data=data,
+            link_decorator=link_decorator,
+            extra_text=footer_extra_text,
+            has_complete_stage=has_complete_stage,
         )
         parsed_blocks.extend(footer_blocks)
 
@@ -298,9 +381,116 @@ def update_existing_message(
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
             )
-
         except (IntegrationError, IntegrationConfigurationError) as e:
             lifecycle.record_halt(halt_reason=e)
+            return
+
+        record_sent(
+            NotificationTrackingContext(
+                source=data.source,
+                provider=NotificationProviderKey.SLACK,
+                category=template_registry.get(data.source).category,
+                notification_uuid=data.notification_uuid,
+                organization_id=data.organization_id,
+            ),
+            links=link_decorator.links,
+        )
+
+
+def replace_investigation_buttons(
+    *, message: SlackRenderable, link_button: ButtonElement
+) -> SlackRenderable | None:
+    """Replace metric alert start buttons without mutating the supplied content.
+
+    Return None when the message has no investigation-start button.
+    """
+    # Slack action registration imports the entrypoint that imports this module.
+    from sentry.integrations.slack.message_builder.routing import decode_action_id
+    from sentry.integrations.slack.message_builder.types import SlackAction
+
+    changed = False
+
+    def replace_button(element: dict[str, Any]) -> dict[str, Any]:
+        nonlocal changed
+        action_id = element.get("action_id", "")
+        if (
+            element["type"] == "button"
+            and decode_action_id(action_id).action == SlackAction.SEER_INVESTIGATION_START.value
+        ):
+            changed = True
+            return deepcopy(link_button.to_dict())
+        return element
+
+    attachments = [
+        {
+            **attachment,
+            "blocks": _transform_block_actions(attachment["blocks"], replace_button),
+        }
+        if "blocks" in attachment
+        else attachment
+        for attachment in message.get("attachments", [])
+    ]
+
+    if not changed:
+        return None
+
+    return SlackRenderable(blocks=message["blocks"], text=message["text"], attachments=attachments)
+
+
+def update_investigation_alert_message(
+    *,
+    request: SlackActionRequest,
+    install: SlackIntegration,
+    channel_id: str,
+    message_ts: str,
+    data: SeerInvestigationStarted,
+) -> None:
+    link_decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
+    link_button = SeerSlackRenderer.render_investigation_link_button(
+        investigation_url=data.investigation_url, link_decorator=link_decorator
+    )
+
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
+        integration_id=install.model.id,
+        organization_id=data.organization_id,
+    ).capture() as lifecycle:
+        lifecycle.add_extras({"channel_id": channel_id, "message_ts": message_ts})
+        try:
+            original_message = request.data["message"]
+            message = SlackRenderable(
+                blocks=[],
+                text=original_message["text"],
+                attachments=original_message["attachments"],
+            )
+        except (KeyError, TypeError) as e:
+            lifecycle.record_failure(failure_reason=e)
+            return
+
+        message_data = replace_investigation_buttons(message=message, link_button=link_button)
+        if message_data is None:
+            return
+
+        try:
+            install.update_message(
+                channel_id=channel_id,
+                message_ts=message_ts,
+                renderable=message_data,
+            )
+        except (IntegrationError, IntegrationConfigurationError) as e:
+            lifecycle.record_halt(halt_reason=e)
+            return
+
+        record_sent(
+            NotificationTrackingContext(
+                source=data.source,
+                provider=NotificationProviderKey.SLACK,
+                category=template_registry.get(data.source).category,
+                notification_uuid=data.notification_uuid,
+                organization_id=data.organization_id,
+            ),
+            links=link_decorator.links,
+        )
 
 
 @all_silo_function

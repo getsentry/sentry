@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.auth.email import first_matching_email
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.bases.user import UserEndpoint
@@ -132,7 +133,7 @@ class UserEmailsEndpoint(UserEndpoint):
         new_email = result["email"].lower()
 
         # defense in depth: UserEmail must already exist and be verified
-        existing_useremail = user.emails.filter(email__iexact=new_email).first()
+        existing_useremail = first_matching_email(user.emails.all(), new_email)
         if not existing_useremail or not existing_useremail.is_verified:
             return self.respond(
                 {

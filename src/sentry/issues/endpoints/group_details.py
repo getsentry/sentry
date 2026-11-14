@@ -12,10 +12,10 @@ from rest_framework.response import Response
 
 from sentry import analytics, features, options, tagstore, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
-from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
+from sentry.api.client import client
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
@@ -26,7 +26,12 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
+from sentry.api.serializers.models.group import (
+    BaseGroupSerializerResponse,
+    GroupDetailsResponse,
+    GroupParticipantResponse,
+    GroupSeenByResponse,
+)
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -39,15 +44,19 @@ from sentry.apidocs.examples.issue_examples import IssueExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import (
     publish_action,
+)
+from sentry.issues.action_log.read_metrics import activity_read_endpoint
+from sentry.issues.action_log.request import (
+    has_recent_view,
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.read_metrics import activity_read_endpoint
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
@@ -83,6 +92,9 @@ from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
+# A ViewAction is published at most once per group/source/actor in this interval.
+VIEW_ACTION_PUBLISH_INTERVAL = timedelta(hours=4)
+
 
 def get_group_global_count(group: Group) -> str:
     fetch_buffered_group_stats(group)
@@ -101,12 +113,14 @@ class GroupDetailsPermission(GroupPermission):
 @cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     permission_classes = (GroupDetailsPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -130,7 +144,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
     def _get_seen_by_and_participants(
         self, request: Request, group: Group
-    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    ) -> tuple[list[GroupSeenByResponse], list[GroupParticipantResponse]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         participant_ids = set(GroupSubscriptionManager.get_participating_user_ids(group))
         user_ids = {seen.user_id for seen in seen_by} | participant_ids
@@ -145,11 +159,15 @@ class GroupDetailsEndpoint(GroupEndpoint):
         users_by_id = {int(user["id"]): user for user in users}
         return (
             [
-                {**users_by_id[seen.user_id], "lastSeen": seen.last_seen}
+                cast(GroupSeenByResponse, {**users_by_id[seen.user_id], "lastSeen": seen.last_seen})
                 for seen in seen_by
                 if seen.user_id in users_by_id
             ],
-            [{**user, "type": "user"} for user in users if int(user["id"]) in participant_ids],
+            [
+                cast(GroupParticipantResponse, {**user, "type": "user"})
+                for user in users
+                if int(user["id"]) in participant_ids
+            ],
         )
 
     def _report_status_inconsistency(self, group: Group) -> None:
@@ -241,8 +259,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
     )
     def get(self, request: Request, group: Group) -> Response[GroupDetailsResponse]:
         """
-        Return details on an individual issue, including its basic stats, comment
-        and user-report counts, and a summary of the latest event.
+        Return details on an individual issue, including its basic stats, comment count, and
+        user-report count.
         """
         from sentry.utils import snuba
 
@@ -307,14 +325,14 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 data.update({"owners": owners})
 
             if "forecast" in expand:
-                fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
+                fetched_forecast = EscalatingGroupForecast.fetch(group)
                 if fetched_forecast:
                     fetched_forecast_dict = fetched_forecast.to_dict()
                     data.update(
                         {
                             "forecast": {
-                                "data": fetched_forecast_dict.get("forecast"),
-                                "date_added": fetched_forecast_dict.get("date_added"),
+                                "data": fetched_forecast_dict["forecast"],
+                                "date_added": fetched_forecast_dict["date_added"],
                             }
                         }
                     )
@@ -365,7 +383,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     data.update({"latestEventHasAttachments": num_attachments > 0})
 
             activity_items = get_serialized_activity_items(
-                group, request.user, endpoint=activity_read_endpoint(request)
+                group,
+                request.user,
+                access=request.access,
+                endpoint=activity_read_endpoint(request),
             )
             if activity_items is None:
                 activity = Activity.objects.get_activities_for_group(group, 100)
@@ -385,13 +406,27 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
                 data["stats"] = {"24h": hourly_stats, "30d": daily_stats}
 
-            publish_action(
-                ViewAction(),
-                source=resolve_action_source(request),
-                group_id=group.id,
-                project=group.project,
-                actor=resolve_action_actor(request),
-            )
+            view_source = resolve_action_source(request)
+            view_actor = resolve_action_actor(request)
+            if not options.get("issues.action_log.view_rate_limit.killswitch") and has_recent_view(
+                group.id, source=view_source, actor=view_actor, within=VIEW_ACTION_PUBLISH_INTERVAL
+            ):
+                metrics.incr(
+                    "issues.action_log.view_rate_limited",
+                    sample_rate=1.0,
+                    tags={
+                        "source": view_source,
+                        "actor_type": view_actor.actor_type.name.lower(),
+                    },
+                )
+            else:
+                publish_action(
+                    ViewAction(),
+                    source=view_source,
+                    group_id=group.id,
+                    project=group.project,
+                    actor=view_actor,
+                )
 
             try:
                 self._report_status_inconsistency(group)
@@ -451,7 +486,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         are modified.
         """
         try:
-            discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, request, project)
             response = update_groups_with_search_fn(
@@ -460,7 +494,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # if action was discard, there isn't a group to serialize anymore
             # if response isn't 200, return the response update_groups gave us (i.e. helpful error)
             # instead of serializing the updated group
-            if discard or response.status_code != 200:
+            if response.status_code != 200 or request.data.get("discard"):
                 return response
 
             # we need to fetch the object against as the bulk mutation endpoint
@@ -567,7 +601,7 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
                 project_id=group.project.id,
                 group_id=group.id,
                 client=f"mcp - {client_family}",
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
             )
         )
         if features.has("organizations:mcp-issue-view-attribution", group.project.organization):

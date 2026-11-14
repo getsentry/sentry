@@ -1,5 +1,6 @@
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -25,6 +26,7 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
         variant="primary"
         onClick={item.onAction}
         aria-label={item.textValue}
+        disabled={'disabled' in item && item.disabled}
       >
         {t('Save as')}
       </Button>
@@ -35,19 +37,15 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
     <DropdownMenu
       items={items}
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.Button
+          showChevron={false}
           {...triggerProps}
           size={size}
           variant="primary"
           aria-label={t('Save as')}
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-            triggerProps.onClick?.(e);
-          }}
         >
           {t('Save as')}
-        </Button>
+        </OverlayTrigger.Button>
       )}
     />
   );

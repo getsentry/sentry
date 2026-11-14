@@ -6,15 +6,13 @@ import {
 } from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  Provider as ReplayContextProvider,
-  useReplayContext,
-} from 'sentry/components/replays/replayContext';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {RawReplayError, RecordingFrame} from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
+
+import {Provider as ReplayContextProvider, useReplayContext} from './replayContext';
 
 const mockPause = jest.fn();
 const mockPlay = jest.fn();
@@ -150,42 +148,54 @@ function setVisibility(visibilityState: 'hidden' | 'visible') {
 }
 
 describe('replayContext', () => {
-  it.each([false, true])(
-    'keeps polling the player after an unchanged timestamp (video: %s)',
-    video => {
-      jest.useFakeTimers();
-      const replay = makeReader({
-        attachments: video
-          ? [VideoFrameEventFixture()]
-          : RRWebInitFrameEventsFixture({timestamp: startedAt}),
-      });
-      const {unmount} = render(
-        <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
-          <TestPlayer />
-        </ReplayContextProvider>
-      );
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it.each([false, true])(
+      'keeps polling the player after an unchanged timestamp (video: %s)',
+      video => {
+        jest.useFakeTimers();
+        const replay = makeReader({
+          attachments: video
+            ? [VideoFrameEventFixture()]
+            : RRWebInitFrameEventsFixture({timestamp: startedAt}),
+        });
+        const {unmount} = render(
+          <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
+            <TestPlayer />
+          </ReplayContextProvider>
+        );
 
-      act(() => jest.advanceTimersToNextFrame());
-      mockGetCurrentTime.mockReturnValue(1_000);
-      act(() => jest.advanceTimersToNextFrame());
-      expect(screen.getByText('Current time: 1000')).toBeInTheDocument();
+        act(() => jest.advanceTimersToNextFrame());
+        mockGetCurrentTime.mockReturnValue(1_000);
+        act(() => jest.advanceTimersToNextFrame());
+        expect(screen.getByText('Current time: 1000')).toBeInTheDocument();
 
-      // Polling must also survive an unchanged clock after a React render.
-      act(() => jest.advanceTimersToNextFrame());
-      mockGetCurrentTime.mockReturnValue(2_000);
-      act(() => jest.advanceTimersToNextFrame());
-      expect(screen.getByText('Current time: 2000')).toBeInTheDocument();
+        // Polling must also survive an unchanged clock after a React render.
+        act(() => jest.advanceTimersToNextFrame());
+        mockGetCurrentTime.mockReturnValue(2_000);
+        act(() => jest.advanceTimersToNextFrame());
+        expect(screen.getByText('Current time: 2000')).toBeInTheDocument();
 
-      unmount();
-      mockGetCurrentTime.mockClear();
-      act(() => jest.advanceTimersToNextFrame());
-      expect(mockGetCurrentTime).not.toHaveBeenCalled();
-    }
-  );
+        unmount();
+        mockGetCurrentTime.mockClear();
+        act(() => jest.advanceTimersToNextFrame());
+        expect(mockGetCurrentTime).not.toHaveBeenCalled();
+      }
+    );
+  });
 
   afterEach(() => {
     mockGetCurrentTime.mockReturnValue(0);
-    jest.useRealTimers();
+
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       value: 'visible',

@@ -232,8 +232,11 @@ def _sync_project_debug_file(
     target_storage_path = None
     try:
         with atomic_transaction(using=(router.db_for_write(ProjectDebugFile))):
+            source_project_id = source_project_debug_file.project_id
+            if source_project_id is None:
+                return None
             target_project = _find_matching_project(
-                source_project_debug_file.project_id,
+                source_project_id,
                 target_org.id,
             )
 

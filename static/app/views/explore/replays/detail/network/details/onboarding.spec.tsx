@@ -7,8 +7,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
-import {Setup} from 'sentry/views/explore/replays/detail/network/details/onboarding';
-import {Output} from 'sentry/views/explore/replays/detail/network/details/output';
+
+import {Setup} from './onboarding';
+import {Output} from './output';
 
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 jest.mock('sentry/utils/replays/playback/providers/replayReaderProvider');

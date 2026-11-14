@@ -1,8 +1,13 @@
 import os
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
 
 import pytest
+from pytest_django.live_server_helper import LiveServer
 
 from sentry.models.files.file import File
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.helpers.datetime import before_now
@@ -23,11 +28,11 @@ from sentry.testutils.skips import requires_kafka, requires_symbolicator
 pytestmark = [requires_symbolicator, requires_kafka]
 
 
-def get_fixture_path(name):
+def get_fixture_path(name: str) -> str:
     return os.path.join(os.path.dirname(__file__), "fixtures/example", name)
 
 
-def load_fixture(name):
+def load_fixture(name: str) -> str:
     with open(get_fixture_path(name)) as f:
         return f.read()
 
@@ -36,8 +41,13 @@ def load_fixture(name):
 class TestExample(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(
-        self, default_projectkey, default_project, request, set_sentry_option, live_server
-    ):
+        self,
+        default_projectkey: ProjectKey,
+        default_project: Project,
+        request: pytest.FixtureRequest,
+        set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+        live_server: LiveServer,
+    ) -> Iterator[None]:
         self.project = default_project
         self.projectkey = default_projectkey
         self.project.update_option("sentry:scrape_javascript", False)

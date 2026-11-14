@@ -49,6 +49,7 @@ describe('useScmProjectCreation', () => {
   }
 
   beforeEach(() => {
+    TeamStore.reset();
     TeamStore.loadInitialData([adminTeam]);
     ProjectsStore.loadInitialData([]);
     MockApiClient.addMockResponse({
@@ -59,7 +60,7 @@ describe('useScmProjectCreation', () => {
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
-    // ProjectsStore.onCreateSuccess reloads organization details.
+    // useCreateProject reloads organization details after creating a project.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       body: organization,
@@ -67,8 +68,6 @@ describe('useScmProjectCreation', () => {
   });
 
   afterEach(() => {
-    TeamStore.reset();
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

@@ -6,15 +6,16 @@ import path from 'node:path';
 import {defineConfig} from '@rsbuild/core';
 import type {ProxyOptions, RsbuildConfig, ServerConfig} from '@rsbuild/core';
 import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
-import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/core';
 import type {
   Configuration,
   OptimizationSplitChunksCacheGroup,
+  RuleSetRule,
   SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
-import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
+import {sentryWebpackPlugin} from '@sentry/bundler-plugins/webpack';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
@@ -112,6 +113,18 @@ const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
+const legacyCssPath = path.join(staticPrefix, 'css');
+
+// sentry.css is emitted to entrypoints/ (entrypoints-hashed/ in SaaS), so the
+// fonts and images it references must step up to reach assets/. The layer
+// keeps these separate from the same files imported from JS, which need the
+// runtime public path.
+const legacyCssAssetRule: RuleSetRule = {
+  issuer: {and: [legacyCssPath, /\.css$/]},
+  layer: 'legacy-css-assets',
+  generator: {publicPath: '../'},
+};
+
 const typeLoaderPath = path.resolve(
   import.meta.dirname,
   'static/app/stories/typeLoader.ts'
@@ -221,7 +234,24 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
-              'transparent-components': ['Flex', 'Grid', 'Container', 'Stack'],
+              // Layout and interactive primitives report the component that renders
+              // them, like `IssueActions-Button`, instead of their own name
+              'transparent-components': [
+                'Flex',
+                'Grid',
+                'Container',
+                'Stack',
+                'Button',
+                'LinkButton',
+                'Link',
+                'LinkBase',
+                'ExternalLink',
+                'DropdownButton',
+                'Checkbox',
+                'Radio',
+                'Switch',
+                'Input',
+              ],
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
@@ -239,10 +269,7 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
       tsx: true,
     },
     transform: {
-      // TODO: Enable in production
-      reactCompiler:
-        options.reactCompiler &&
-        (IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY),
+      reactCompiler: options.reactCompiler,
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
@@ -289,7 +316,7 @@ const appConfig: Configuration = {
      * This generates a single "sentry.css" file that imports ALL component styles
      * for use on Django-powered pages.
      */
-    sentry: './less/sentry.less',
+    sentry: './css/sentry.css',
   },
   context: staticPrefix,
   incremental: DEV_MODE,
@@ -304,7 +331,10 @@ const appConfig: Configuration = {
     futureDefaults: true,
     // https://rspack.rs/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
-    nativeWatcher: true,
+    // On Linux the native (inotify) watcher confuses the
+    // static/app/node_modules/sentry -> .. self-link with the real directory,
+    // so edits under static/app never trigger a rebuild.
+    nativeWatcher: process.platform === 'darwin',
   },
   // https://rspack.rs/config/lazy-compilation
   lazyCompilation: {
@@ -327,21 +357,6 @@ const appConfig: Configuration = {
      */
     rules: [
       ...workspaceResolutionRules,
-      {
-        // Only first-party imports use V8 paths. Leave dependencies and the
-        // compatibility implementation on the original V6 package resolution.
-        include: [staticPrefix, path.join(import.meta.dirname, 'tests/js')],
-        exclude: [path.join(staticPrefix, 'app/utils/reactRouterV6'), /node_modules/],
-        resolve: {
-          alias: {
-            'react-router$': path.join(staticPrefix, 'app/utils/reactRouterV6/index.ts'),
-            'react-router/dom$': path.join(
-              staticPrefix,
-              'app/utils/reactRouterV6/dom.ts'
-            ),
-          },
-        },
-      },
       {
         test: /\.(?:tsx?|jsx?)$/,
         oneOf: [
@@ -392,25 +407,29 @@ const appConfig: Configuration = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        include: [legacyCssPath],
+        type: 'css/auto',
       },
       {
-        test: /\.less$/,
-        include: [staticPrefix],
-        use: [
-          {
-            loader: rspack.CssExtractRspackPlugin.loader,
-            options: {
-              publicPath: 'auto',
-            },
-          },
-          'css-loader',
-          'less-loader',
-        ],
+        test: /\.css$/,
+        exclude: [legacyCssPath],
+        type: 'css/auto',
+        // Inject a <style> tag, like style-loader did
+        parser: {exportType: 'style'},
+        // Resolve asset URLs against `import.meta.rspackPublicPath` (set in setupStatics)
+        generator: {runtimePublicPath: true},
       },
       {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
+        // Always emit fonts as files. Inlining them as data URLs puts every
+        // unicode-range subset in sentry.css, even ones the page never needs.
+        test: /\.woff2$/,
+        type: 'asset/resource',
+        oneOf: [legacyCssAssetRule, {}],
+      },
+      {
+        test: /\.(?:svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
         type: 'asset',
+        oneOf: [legacyCssAssetRule, {}],
       },
     ],
   },
@@ -450,16 +469,6 @@ const appConfig: Configuration = {
      * This plugin tells rspack where to find those SVG files
      */
     new rspack.ContextReplacementPlugin(/platformicons/, /\.svg$/),
-
-    /**
-     * Extract CSS into separate files.
-     * https://rspack.rs/plugins/rspack/css-extract-rspack-plugin
-     */
-    new rspack.CssExtractRspackPlugin({
-      // We want the sentry css file to be unversioned for frontend-only deploys
-      // We will cache using `Cache-Control` headers
-      filename: 'entrypoints/[name].css',
-    }),
 
     /**
      * Defines environment specific flags.
@@ -520,14 +529,6 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      // Keep Prose available until the text barrel is fully isolated.
-      '@sentry/scraps/text$': path.join(
-        staticPrefix,
-        'app',
-        'components',
-        'core',
-        'text'
-      ),
       '@sentry/scraps': [
         path.join(staticPrefix, 'packages', 'scraps', 'src'),
         path.join(staticPrefix, 'app', 'components', 'core'),
@@ -557,7 +558,7 @@ const appConfig: Configuration = {
     // Prefers local modules over node_modules
     preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.tsx', '.ts', '.js', '.json', '.less'],
+    extensions: ['.tsx', '.ts', '.js', '.json'],
     symlinks: true,
   },
   output: {
@@ -573,6 +574,11 @@ const appConfig: Configuration = {
     path: distPath,
     publicPath: '',
     filename: 'entrypoints/[name].js',
+    // Entrypoints keep stable names. The getsentry frontend deploy hashes them
+    // into entrypoints-hashed/ and Django resolves them via
+    // frontend-versions.json (see sentry.utils.assets). Self-hosted serves them
+    // as-is.
+    cssFilename: 'entrypoints/[name].css',
     chunkFilename: 'chunks/[name].[contenthash].js',
     sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
     assetModuleFilename: 'assets/[name].[contenthash][ext]',
@@ -587,7 +593,17 @@ const appConfig: Configuration = {
       chunks: 'async',
       maxInitialRequests: 10, // (default: 30)
       maxAsyncRequests: 10, // (default: 30)
-      cacheGroups: localeChunkGroups,
+      cacheGroups: {
+        ...localeChunkGroups,
+        // Keep charting in one chunk that only changes when echarts is
+        // upgraded, so it stays cached across deploys
+        echarts: {
+          chunks: 'async',
+          name: 'echarts',
+          test: /[\\/]node_modules[\\/](echarts|echarts-for-react|zrender)[\\/]/,
+          enforce: true,
+        },
+      },
     },
 
     // This only runs in production mode
@@ -993,6 +1009,9 @@ if (IS_PRODUCTION) {
       },
       release: {
         create: false,
+        // The SDK sets `release` itself. Injecting it puts the commit SHA in
+        // every chunk, which changes every chunk hash on every deploy.
+        inject: false,
       },
       reactComponentAnnotation: {
         // Using swc-plugin-react-component-annotate instead
@@ -1012,11 +1031,24 @@ if (IS_PRODUCTION) {
 if (env.WEBPACK_CACHE_PATH) {
   appConfig.experiments = {...appConfig.experiments, newCache: true};
   appConfig.cache = {
-    type: 'filesystem',
+    type: 'persistent',
     // Keep clear of the old persistent cache's `app-production` directory,
     // the new cache fails to open when both share a location
     name: `app-${WEBPACK_MODE}-new`,
-    cacheDirectory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    storage: {
+      type: 'filesystem',
+      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    },
+    // Older snapshots did not track the resolver inputs listed below.
+    version: '1',
+    // Component moves change which Scraps alias root resolves an import. Restored
+    // caches must re-resolve those imports when the package boundary changes.
+    buildDependencies: [
+      import.meta.filename,
+      path.join(import.meta.dirname, 'tsconfig.json'),
+      path.join(import.meta.dirname, 'tsconfig.base.json'),
+      path.join(import.meta.dirname, 'static/packages/scraps/package.json'),
+    ],
     // Read entries from disk instead of holding the whole cache in memory
     maxMemoryGenerations: 0,
     // Only master deploys write the cache, preview deploys restore it from
@@ -1087,7 +1119,7 @@ const rsbuildConfig: RsbuildConfig = {
             import: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
             html: false,
           },
-          sentry: {import: 'less/sentry.less', html: false},
+          sentry: {import: 'css/sentry.css', html: false},
         },
       },
       output: {target: 'web', distPath: {root: distPath}, cleanDistPath: false},

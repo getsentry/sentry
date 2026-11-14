@@ -3,16 +3,17 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
 import {List} from 'sentry/components/list';
@@ -31,35 +32,28 @@ import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {slugify} from 'sentry/utils/slugify';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {useCreateNotificationAction} from './issueAlertNotificationOptions';
+import type {AlertRuleOptions, RequestDataFragment} from './issueAlertOptions';
+import {getRequestDataFragment, IssueAlertOptions, RuleAction} from './issueAlertOptions';
 import {
   MultipleCheckboxOptions,
-  useCreateNotificationAction,
   type IntegrationChannel,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import type {
-  AlertRuleOptions,
-  RequestDataFragment,
-} from 'sentry/views/projectInstall/issueAlertOptions';
-import {
-  getRequestDataFragment,
-  IssueAlertOptions,
-  RuleAction,
-} from 'sentry/views/projectInstall/issueAlertOptions';
-import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
-import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
-import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+} from './messagingIntegrationTypes';
+import {useProjectCreationPageOrigin} from './projectCreationOrigin';
+import {validateChannelQueryOptions} from './useValidateChannel';
 
 type FormData = {
   projectName: string;
@@ -141,18 +135,22 @@ function getSubmitTooltipText({
   return t('Please select a team');
 }
 
+const autoFillParsers = {
+  referrer: parseAsString,
+  project: parseAsScalar,
+};
+
 export function CreateProject() {
   const {openModal, visible: isModalVisible} = useModal();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const location = useLocation();
   const canUserCreateProject = useCanCreateProject();
   const createProjectAndRules = useCreateProjectAndRules();
 
   const {teams} = useTeams();
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
-  const referrer = decodeScalar(location.query.referrer);
-  const projectId = decodeScalar(location.query.project);
+  const [{referrer, project: projectParam}] = useQueryStates(autoFillParsers);
+  const projectId = projectParam ?? undefined;
   const [createdProject, setCreatedProject] = useLocalStorageState<CreatedProject | null>(
     'created-project-context',
     null
@@ -338,7 +336,7 @@ export function CreateProject() {
           variant: 'legacy',
         });
 
-        addSuccessMessage(
+        toast.success(
           team
             ? t('Created project %s', project.slug)
             : t('Created %s under new team %s', project.slug, `#${project.team.slug}`)
@@ -364,7 +362,7 @@ export function CreateProject() {
           query: {projectCreationVariant: 'legacy'},
         });
       } catch (error: any) {
-        addErrorMessage(t('Failed to create project %s', projectName));
+        toast.error(t('Failed to create project %s', projectName));
 
         // Unfiltered, unlike captureProjectCreationFailure below: both variants
         // count every caught failure, so filtering here would skew the rate.
@@ -412,6 +410,7 @@ export function CreateProject() {
       }
 
       const {FrameworkSuggestionModal, modalCss} =
+        // oxlint-disable-next-line react/todo
         await import('sentry/components/onboarding/frameworkSuggestionModal');
 
       openModal(
@@ -582,7 +581,7 @@ export function CreateProject() {
           >
             <div>
               <FormLabel>{t('Project slug')}</FormLabel>
-              <ProjectNameInputWrap>
+              <Container position="relative">
                 <StyledPlatformIcon
                   platform={formData.platform?.key ?? 'other'}
                   size={20}
@@ -601,12 +600,12 @@ export function CreateProject() {
                     updateFormData('projectName', slugified);
                   }}
                 />
-              </ProjectNameInputWrap>
+              </Container>
             </div>
             {!isOrgMemberWithNoAccess && (
               <div>
                 <FormLabel>{t('Team')}</FormLabel>
-                <TeamSelectInput>
+                <Grid align="center" gap="md" columns="1fr min-content">
                   <TeamSelector
                     allowCreate
                     name="team"
@@ -615,12 +614,12 @@ export function CreateProject() {
                     placeholder={t('Select a Team')}
                     teamFilter={(tm: Team) => tm.access.includes('team:admin')}
                     minMenuHeight={240}
-                    value={formData.team}
+                    value={formData.team ?? null}
                     onChange={({value}: {value: string}) => {
                       updateFormData('team', value);
                     }}
                   />
-                </TeamSelectInput>
+                </Grid>
               </div>
             )}
             <div>
@@ -678,10 +677,6 @@ const FormLabel = styled('div')`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-const ProjectNameInputWrap = styled('div')`
-  position: relative;
-`;
-
 const ProjectNameInput = styled(Input)`
   padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
 `;
@@ -691,13 +686,6 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   top: 50%;
   left: ${p => p.theme.form.md.paddingLeft}px;
   transform: translateY(-50%);
-`;
-
-const TeamSelectInput = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  grid-template-columns: 1fr min-content;
-  align-items: center;
 `;
 
 const HelpText = styled('p')`

@@ -2,8 +2,9 @@ import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata
 import {t, tct} from 'sentry/locale';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
-import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
-import {TicketActionSettingsButton} from 'sentry/views/automations/components/actions/ticketActionSettingsButton';
+
+import {IntegrationField} from './integrationField';
+import {TicketActionSettingsButton} from './ticketActionSettingsButton';
 
 export function JiraServerDetails({
   action,
@@ -25,6 +26,11 @@ export function JiraServerNode() {
   return tct('Create a [logo] Jira Server issue in {integration} with these [settings]', {
     logo: ActionMetadata[ActionType.JIRA_SERVER]?.icon,
     integration: <IntegrationField />,
-    settings: <TicketActionSettingsButton />,
+    settings: (
+      <TicketActionSettingsButton
+        ticketType={t('a Jira Server issue')}
+        link="https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync"
+      />
+    ),
   });
 }

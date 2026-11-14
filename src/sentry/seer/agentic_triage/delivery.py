@@ -27,7 +27,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
 )
 from sentry.seer.models.agentic_triage import (
     SeerAgenticTriageRunErrorType,
@@ -199,6 +199,7 @@ def deliver_agentic_triage_result(
 
     options = (run.extras or {}).get("options") or {}
     dry_run = bool(options.get("dry_run", False))
+    single_run = bool(options.get("single_run", False))
 
     # Clear any stale delivery error now that this delivery has succeeded.
     if (shard.extras or {}).get("error_message"):
@@ -212,6 +213,7 @@ def deliver_agentic_triage_result(
         organization=run.organization,
         triage_response=triage_response,
         dry_run=dry_run,
+        single_run=single_run,
         prompt_version=prompt_version,
         enable_code_mode_tools=shard.extras.get("enable_code_mode_tools"),
         log_extra=log_extra,
@@ -224,6 +226,7 @@ def _process_verdicts(
     organization: Organization,
     triage_response: TriageResponse,
     dry_run: bool,
+    single_run: bool,
     prompt_version: str | None,
     enable_code_mode_tools: str | None,
     log_extra: Mapping[str, object],
@@ -310,8 +313,8 @@ def _process_verdicts(
 
         referrer = referrer_map[SeerAutomationSource.AGENTIC_TRIAGE]
 
-        # Rate limit only applies to legacy org plans
-        check_rate_limit = not is_seer_seat_based_tier_enabled(organization)
+        # Rate limit only applies to legacy usage-based orgs
+        check_rate_limit = not is_seer_seat_or_token_billed_enabled(organization)
 
         for group in fixable_groups:
             if check_rate_limit and is_seer_autotriggered_autofix_rate_limited_and_increment(
@@ -334,6 +337,7 @@ def _process_verdicts(
                     stopping_point=stopping_point_by_project_id[group.project_id],
                     user_context=user_context,
                     allow_free_cohort=True,
+                    single_run=single_run,
                 )
             except Exception:
                 logger.exception(

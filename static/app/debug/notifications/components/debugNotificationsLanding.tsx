@@ -7,9 +7,8 @@ import heroImg from 'sentry-images/debug/notifications/hero.png';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
-
 // Mimicking useStoriesDarkMode -> Don't use these elsewhere please 🙏
-import {darkTheme} from 'sentry/utils/theme/theme';
+import {darkTheme} from '@sentry/scraps/theme';
 
 function DarkModeProvider(props: PropsWithChildren) {
   return <ThemeProvider theme={darkTheme}>{props.children}</ThemeProvider>;

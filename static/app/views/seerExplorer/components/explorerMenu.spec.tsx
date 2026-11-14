@@ -17,6 +17,7 @@ function ExplorerMenuInput({
   const [inputValue, setInputValue] = useState('');
   const {menu} = useExplorerMenu({
     clearInput: () => setInputValue(''),
+    completeInput: setInputValue,
     composerRef,
     focusInput: () => composerRef.current?.focus(),
     inputAnchorRef: composerRef,

@@ -1,7 +1,8 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import type {Event} from 'sentry/types/event';
+
+import {getOrderedContextItems} from './contextItems';
 
 describe('getOrderedContextItems', () => {
   it('orders context items correctly', () => {

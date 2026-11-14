@@ -16,8 +16,9 @@ import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {ActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
-import {TicketActionSettingsButton} from 'sentry/views/automations/components/actions/ticketActionSettingsButton';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
+
+import {TicketActionSettingsButton} from './ticketActionSettingsButton';
 
 function renderComponent({
   action,
@@ -43,7 +44,7 @@ function renderComponent({
           onUpdate: jest.fn(),
         }}
       >
-        <TicketActionSettingsButton />
+        <TicketActionSettingsButton ticketType="a Jira issue" />
       </ActionNodeContext.Provider>
     </AutomationFormProvider>
   );

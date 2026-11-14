@@ -10,33 +10,47 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useLocation} from 'sentry/utils/useLocation';
-import {Dashboard} from 'sentry/views/dashboards/dashboard';
-import {FiltersBar} from 'sentry/views/dashboards/filtersBar';
-import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
-import type {
-  DashboardDetails,
-  DashboardFilters,
-  Widget,
-} from 'sentry/views/dashboards/types';
-import {
-  DashboardFilterKeys,
-  DisplayType,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
-import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
+import {useDashboardChartInterval} from './hooks/useDashboardChartInterval';
+import {Dashboard} from './dashboard';
+import {FiltersBar} from './filtersBar';
+import type {DashboardDetails, DashboardFilters, Widget} from './types';
+import {DashboardFilterKeys, DisplayType, WidgetType} from './types';
+import {getSavedFiltersAsPageFilters} from './utils';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
-jest.mock('sentry/components/lazyRender', () => ({
-  LazyRender: ({children}: {children: React.ReactNode}) => children,
-}));
+// Widgets only render and fetch once they intersect the viewport
+class AlwaysIntersectingObserver {
+  callback: IntersectionObserverCallback;
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
+  observe(target: Element) {
+    this.callback(
+      [{isIntersecting: true, target} as IntersectionObserverEntry],
+      this as unknown as IntersectionObserver
+    );
+  }
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return [];
+  }
+}
 
 describe('Dashboards > Dashboard', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-basic', 'dashboards-edit'],
+  const originalIntersectionObserver = window.IntersectionObserver;
+  beforeAll(() => {
+    window.IntersectionObserver =
+      AlwaysIntersectingObserver as unknown as typeof IntersectionObserver;
   });
+  afterAll(() => {
+    window.IntersectionObserver = originalIntersectionObserver;
+  });
+
+  const organization = OrganizationFixture();
   const mockDashboard = {
     dateCreated: '2021-08-10T21:20:46.798237Z',
     id: '1',
@@ -102,9 +116,8 @@ describe('Dashboards > Dashboard', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      method: 'GET',
-      body: [],
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -451,15 +464,15 @@ describe('Dashboards > Dashboard', () => {
     describe('no interval set in URL', () => {
       it('defaults to the second-biggest valid interval for the dashboard period', async () => {
         const tenMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '10m'})],
         });
         const thirtyMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '30m'})],
         });
 
@@ -488,22 +501,22 @@ describe('Dashboards > Dashboard', () => {
     describe('interval set in URL', () => {
       it('uses the URL interval as the selector default and queries with that interval', async () => {
         const thirtyMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '30m'})],
         });
         const fiveMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '5m'})],
         });
 
         const tenMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '10m'})],
         });
 
@@ -541,15 +554,15 @@ describe('Dashboards > Dashboard', () => {
 
       it('ignores the URL interval and falls back to the period default', async () => {
         const sixHourMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '6h'})],
         });
         const fiveMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '5m'})],
         });
 
@@ -670,11 +683,7 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('triggers the edit widget callback', async () => {
-      const testData = initializeOrg({
-        organization: {
-          features: ['dashboards-basic', 'dashboards-edit'],
-        },
-      });
+      const testData = initializeOrg();
       const dashboardWithOneWidget = {
         ...mockDashboard,
         widgets: [newWidget],
@@ -696,11 +705,7 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('does not show the add widget button if dashboard is in preview mode', async () => {
-      const testData = initializeOrg({
-        organization: {
-          features: ['dashboards-basic', 'dashboards-edit'],
-        },
-      });
+      const testData = initializeOrg();
       const dashboardWithOneWidget = {
         ...mockDashboard,
         widgets: [newWidget],
@@ -751,10 +756,10 @@ describe('Dashboards > Dashboard', () => {
       widgets: [spansWidget],
     };
 
-    const eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+    const eventsTimeseriesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
       method: 'GET',
-      body: [],
+      body: {timeSeries: []},
     });
 
     // URL has release= but no globalFilter — saved global filters must still
@@ -780,8 +785,8 @@ describe('Dashboards > Dashboard', () => {
       }
     );
 
-    await waitFor(() => expect(eventsStatsMock).toHaveBeenCalled());
-    const requestQuery = eventsStatsMock.mock.calls[0]![1]!.query!.query as string;
+    await waitFor(() => expect(eventsTimeseriesMock).toHaveBeenCalled());
+    const requestQuery = eventsTimeseriesMock.mock.calls[0]![1]!.query!.query as string;
     expect(requestQuery).toContain('span.op:db');
   });
 

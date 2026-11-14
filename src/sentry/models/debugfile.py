@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import uuid
 import zipfile
-from collections.abc import Container, Iterable, Mapping
+from collections.abc import Callable, Container, Iterable, Mapping
 from datetime import datetime
 from typing import (
     IO,
@@ -19,6 +19,8 @@ from typing import (
     Any,
     BinaryIO,
     ClassVar,
+    cast,
+    overload,
 )
 
 from django.db import models
@@ -26,7 +28,14 @@ from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
 from django.http import HttpRequest
 from django.utils import timezone
-from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
+from symbolic.debuginfo import (
+    Archive,
+    BcSymbolMap,
+    Object,
+    UuidMapping,
+    normalize_code_id,
+    normalize_debug_id,
+)
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
 from sentry import features, options
@@ -88,6 +97,49 @@ def _dif_file_extension(file_format: str, file_type: str | None) -> str:
         return ".json"
 
     return ""
+
+
+@overload
+def _normalize_code_id(code_id: None) -> None: ...
+@overload
+def _normalize_code_id(code_id: str) -> str: ...
+def _normalize_code_id(code_id: str | None) -> str | None:
+    normalize = cast("Callable[[str | None], str | None]", normalize_code_id)
+    return normalize(code_id)
+
+
+def wasm_legacy_code_id(code_id: str) -> str | None:
+    """For a 32-character debug ID, computes the "legacy" code ID by
+    prepending `"10"`.
+
+    32 characters is the length of the unhyphenated representation of
+    a UUID. The "legacy" code ID is how any `symbolic` version before
+    14.0.0a4 would have read the code ID of a WASM file.
+    See INGEST-1282 and https://github.com/getsentry/symbolic/pull/1093.
+    """
+    if len(code_id) != 32:
+        return None
+    try:
+        return _normalize_code_id(f"10{code_id}")
+    except SymbolicError:
+        return None
+
+
+def wasm_legacy_debug_id(debug_id: str) -> str | None:
+    """For a 36-character debug ID, computes the "legacy" debug ID by
+    discarding the last two characters and prepending `"10"`.
+
+    36 characters is the length of the hyphenated representation of
+    a UUID. The "legacy" debug ID is how any `symbolic` version before
+    14.0.0a4 would have read the debug ID of a WASM file.
+    See INGEST-1282 and https://github.com/getsentry/symbolic/pull/1093.
+    """
+    if len(debug_id) != 36:
+        return None
+    try:
+        return normalize_debug_id(f"10{_normalize_code_id(debug_id)[:-2]}")
+    except SymbolicError:
+        return None
 
 
 class BadDif(Exception):
@@ -172,6 +224,11 @@ class ProjectDebugFile(Model):
     data = LegacyTextJSONField(default=dict, null=True)
     date_accessed = models.DateTimeField(default=timezone.now, db_default=Now())
 
+    # (INGEST-1282) These columns exists to store the "legacy" (incorrect)
+    # code ID and debug ID for WASM files. We need to store them for lookup purposes.
+    wasm_legacy_code_id = models.CharField(max_length=64, null=True)
+    wasm_legacy_debug_id = models.CharField(max_length=64, null=True)
+
     # The following fields are present if and only if the file is stored in Objectstore.
     # Key of the file in Objectstore.
     storage_path = models.TextField(null=True)
@@ -190,6 +247,8 @@ class ProjectDebugFile(Model):
         indexes = (
             models.Index(fields=("project_id", "debug_id")),
             models.Index(fields=("project_id", "code_id")),
+            models.Index(fields=("project_id", "wasm_legacy_debug_id")),
+            models.Index(fields=("project_id", "wasm_legacy_code_id")),
         )
         db_table = "sentry_projectdsymfile"
         app_label = "sentry"
@@ -221,7 +280,8 @@ class ProjectDebugFile(Model):
             assert self.content_type is not None
             return str(self.content_type)
         if self.file is not None:
-            return self.file.headers.get("Content-Type", "unknown")
+            content_type = self.file.headers.get("Content-Type", "unknown")
+            return content_type
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_file_size(self) -> int:
@@ -229,6 +289,7 @@ class ProjectDebugFile(Model):
             assert self.file_size is not None
             return int(self.file_size)
         if self.file is not None:
+            assert self.file.size is not None
             return self.file.size
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
@@ -548,6 +609,8 @@ def create_dif_from_file(
             checksum=checksum,
             debug_id=meta.debug_id,
             code_id=meta.code_id,
+            wasm_legacy_code_id=meta.legacy_code_id,
+            wasm_legacy_debug_id=meta.legacy_debug_id,
             cpu_name=meta.arch,
             object_name=object_name,
             project_id=project.id,
@@ -625,6 +688,8 @@ def create_dif_from_fileobj(
             checksum=checksum,
             debug_id=meta.debug_id,
             code_id=meta.code_id,
+            wasm_legacy_code_id=meta.legacy_code_id,
+            wasm_legacy_debug_id=meta.legacy_debug_id,
             cpu_name=meta.arch,
             object_name=object_name,
             project_id=project.id,
@@ -718,6 +783,8 @@ class DifMeta:
         debug_id: str,
         path: str,
         code_id: str | None = None,
+        legacy_code_id: str | None = None,
+        legacy_debug_id: str | None = None,
         name: str | None = None,
         data: Any | None = None,
     ):
@@ -725,6 +792,8 @@ class DifMeta:
         self.arch = arch
         self.debug_id = debug_id  # TODO(flub): should this use normalize_debug_id()?
         self.code_id = code_id
+        self.legacy_code_id = legacy_code_id
+        self.legacy_debug_id = legacy_debug_id
         self.path = path
         self.data = data
 
@@ -754,11 +823,36 @@ class DifMeta:
         if obj_id and debug_id and obj_id[:36] == debug_id[:36]:
             obj_id = debug_id
 
+        legacy_code_id = None
+        legacy_debug_id = None
+        if obj.file_format == "wasm" and obj.code_id and len(obj.code_id) == 32:
+            # (INGEST-1282) For WASM files, the "legacy" code ID is the actual
+            # code ID with its length prepended as a varuint32. In the common
+            # case that the code ID is a UUID, that means that the legacy code
+            # ID has an additional `0x10` byte at the front.
+            #
+            # Since for WASM files the debug ID is always the first 16 bytes of the
+            # code ID, in return for the additional byte at the front one byte gets
+            # dropped from the back.
+            #
+            # We recompute these legacy IDs here and write them into special fields
+            # in the `DifMeta` (and later, the `ProjectDebugFile` model).
+            # We only do this if the code ID is 16B long, because I haven't actually
+            # seen anything other than a UUID as the build ID and generalizing this
+            # would complicate the code quite a bit.
+            #
+            # These "legacy" IDs exist because of a longstanding bug in WASM build ID
+            # parsing that was fixed in https://github.com/getsentry/symbolic/pull/1093.
+            legacy_code_id = wasm_legacy_code_id(obj.code_id)
+            legacy_debug_id = wasm_legacy_debug_id(obj.debug_id)
+
         return cls(
             file_format=obj.file_format,
             arch=obj.arch,
             debug_id=obj_id,
             code_id=obj.code_id,
+            legacy_code_id=legacy_code_id,
+            legacy_debug_id=legacy_debug_id,
             path=path,
             # TODO: Extract the object name from the object
             name=name,
@@ -1014,7 +1108,8 @@ def create_files_from_dif_zip(
 class DIFCache:
     @property
     def cache_path(self) -> str:
-        return options.get("dsym.cache-path")
+        cache_path = options.get("dsym.cache-path")
+        return cache_path
 
     def get_project_path(self, project: Project) -> str:
         return os.path.join(self.cache_path, str(project.id))

@@ -1,19 +1,16 @@
+import type {ComponentProps} from 'react';
 import {IconOpen} from '@sentry/icons/open';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
+import {repositoryWithSettingsApiOptions} from 'sentry/components/repositories/repositoryWithSettingsApiOptions';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
-import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {
@@ -23,23 +20,19 @@ import {
 } from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface Props {
-  gridColumns: string;
+interface Props extends Omit<ComponentProps<typeof SimpleTable.Row>, 'children'> {
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   repository: RepositoryWithSettings;
-  style?: React.CSSProperties;
 }
 
 export function SeerRepoTableRow({
-  gridColumns,
   mutateRepositorySettings,
   repository,
-  style,
+  ...rowProps
 }: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -47,17 +40,7 @@ export function SeerRepoTableRow({
   const canWrite = useCanWriteSettings();
 
   return (
-    <Grid
-      columns={gridColumns}
-      align="center"
-      style={style}
-      role="row"
-      position="absolute"
-      top="0"
-      left="0"
-      width="100%"
-      borderBottom="muted"
-    >
+    <SimpleTable.Row {...rowProps}>
       <SimpleTable.RowCell>
         <ListItemSelectCheckbox
           htmlPrefix="seer-repo-table-select"
@@ -98,10 +81,10 @@ export function SeerRepoTableRow({
           disabled={!canWrite}
           checked={repository.settings?.enabledCodeReview ?? false}
           onChange={e => {
-            const queryKey = getRepositoryWithSettingsQueryKey(
+            const queryKey = repositoryWithSettingsApiOptions(
               organization,
               repository.id
-            );
+            ).queryKey;
             const optimisticData = {
               ...repository,
               settings: {
@@ -110,12 +93,11 @@ export function SeerRepoTableRow({
                 enabledCodeReview: e.target.checked,
               },
             };
-            setApiQueryData<RepositoryWithSettings>(
-              queryClient,
-              getRepositoryWithSettingsQueryKey(organization, repository.id),
-              optimisticData
-            );
-            addLoadingMessage(t('Updating code review for %s', repository.name));
+            queryClient.setQueryData(queryKey, previous => ({
+              json: optimisticData,
+              headers: previous?.headers ?? {},
+            }));
+            toast.loading(t('Updating code review for %s', repository.name));
             mutateRepositorySettings(
               {
                 codeReviewTriggers:
@@ -125,17 +107,14 @@ export function SeerRepoTableRow({
               },
               {
                 onError: () => {
-                  setApiQueryData<RepositoryWithSettings>(
-                    queryClient,
-                    queryKey,
-                    repository
-                  );
-                  addErrorMessage(
-                    t('Failed to update code review for %s', repository.name)
-                  );
+                  queryClient.setQueryData(queryKey, previous => ({
+                    json: repository,
+                    headers: previous?.headers ?? {},
+                  }));
+                  toast.error(t('Failed to update code review for %s', repository.name));
                 },
                 onSuccess: () => {
-                  addSuccessMessage(t('Code review updated for %s', repository.name));
+                  toast.success(t('Code review updated for %s', repository.name));
                 },
                 onSettled: () => {
                   queryClient.invalidateQueries({queryKey});
@@ -158,7 +137,7 @@ export function SeerRepoTableRow({
             ))}
         </Text>
       </SimpleTable.RowCell>
-    </Grid>
+    </SimpleTable.Row>
   );
 }
 

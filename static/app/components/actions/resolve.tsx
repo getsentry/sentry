@@ -5,13 +5,14 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconReleases} from '@sentry/icons/releases';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
 import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
 import {t} from 'sentry/locale';
@@ -266,7 +267,7 @@ function ResolveDropdownMenu({
       itemsHidden={shouldDisplayCta}
       items={items}
       trigger={(triggerProps, isOpen) => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           size={size}
           variant={variant}

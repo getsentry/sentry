@@ -13,24 +13,15 @@ import {
 } from 'sentry/views/dashboards/types';
 import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {
-  serializeSorts,
-  type WidgetBuilderState,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+  remapTransformations,
+  supportsWidgetTransformations,
+} from 'sentry/views/dashboards/utils/transformations';
+import {type WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-/**
- * Resolves the selected aggregate index, defaulting to the last aggregate.
- */
-export function getSelectedAggregateIndex(
-  selectedAggregate: number | undefined,
-  aggregateCount: number
-): number {
-  if (selectedAggregate === undefined) {
-    return aggregateCount > 0 ? aggregateCount - 1 : 0;
-  }
-  return Math.min(selectedAggregate, Math.max(0, aggregateCount - 1));
-}
+import {getSelectedAggregateIndex} from './getSelectedAggregateIndex';
+import {serializeSorts} from './serialization';
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   if (state.displayType === DisplayType.TEXT) {
@@ -124,6 +115,18 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       ...defaultQuery,
       fields,
       aggregates: aggregates ?? [],
+      ...(state.transformations &&
+        supportsWidgetTransformations(state.dataset, state.displayType) && {
+          transformations: remapTransformations(
+            state.transformations[index] ?? {},
+            (state.yAxis ?? []).flatMap((field, fieldIndex) => {
+              const value = generateFieldAsString(field);
+              return !isEquation(value) || getEquation(value).trim() !== ''
+                ? [field.kind === FieldValueKind.FIELD ? undefined : fieldIndex]
+                : [];
+            })
+          ),
+        }),
       columns: columns ?? [],
       conditions: query,
       fieldAliases: fieldAliases ?? [],

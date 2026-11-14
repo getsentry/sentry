@@ -7,14 +7,15 @@ import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getReadableQueryParamsFromLocation as getSpansQueryParamsFromLocation} from 'sentry/views/explore/spans/spansQueryParams';
+
 import {
   LINK_RULES,
   type LinkSubject,
   resolveLink,
   subjectFromCallRecord,
   subjectFromToolLink,
-} from 'sentry/views/seerExplorer/links';
-import type {CallRecord} from 'sentry/views/seerExplorer/types';
+} from './links';
+import type {CallRecord} from './types';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 const projects = [
@@ -101,12 +102,6 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
     method: 'GET',
     path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/monitors/{monitor_id_or_slug}/',
     params: {project_id_or_slug: 'javascript', monitor_id_or_slug: 'nightly-sync'},
-  },
-  get_issue_alert_rule: {
-    kind: 'api',
-    method: 'GET',
-    path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/rules/{rule_id}/',
-    params: {project_id_or_slug: 'javascript', rule_id: '99'},
   },
   get_member_details: {
     kind: 'api',
@@ -450,7 +445,7 @@ describe('entity links added for Code Mode API coverage', () => {
     ).toEqual({pathname: '/organizations/org-slug/monitors/alerts/881/'});
   });
 
-  it('leaves an org-level cron monitor unlinked without a project to pin', () => {
+  it('links a classic cron monitor to the modern cron monitors list', () => {
     expect(
       resolveLink(
         {
@@ -461,7 +456,16 @@ describe('entity links added for Code Mode API coverage', () => {
         },
         ctx
       )
-    ).toBeNull();
+    ).toEqual({
+      id: 'get_cron_monitor_details',
+      label: 'View cron monitors',
+      url: {pathname: '/organizations/org-slug/monitors/crons/'},
+    });
+
+    expect(resolveLink(LINK_RULE_EXAMPLES.get_cron_monitor_details!, ctx)?.url).toEqual({
+      pathname: '/organizations/org-slug/monitors/crons/',
+      query: {project: '2'},
+    });
   });
 
   it('treats nested team membership as the member, not the team page', () => {

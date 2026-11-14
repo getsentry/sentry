@@ -1,4 +1,4 @@
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
+import {displayPrice} from 'getsentry/utils/billing';
 
 /**
  * Converts from cents to human-readable string

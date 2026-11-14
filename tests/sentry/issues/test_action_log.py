@@ -1,9 +1,11 @@
+from datetime import timedelta
 from typing import Any, cast
 from unittest.mock import DEFAULT, MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
+from django.utils import timezone
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
@@ -16,6 +18,9 @@ from sentry.issues.action_log import (
     get_action_context,
     publish_action,
     publish_actions_from_context_bulk,
+)
+from sentry.issues.action_log.request import (
+    has_recent_view,
     resolve_action_actor,
     resolve_action_source,
 )
@@ -40,6 +45,7 @@ from sentry.issues.action_log.types import (
     UnlinkExternalIssueAction,
     ViewAction,
 )
+from sentry.issues.endpoints.group_details import VIEW_ACTION_PUBLISH_INTERVAL
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -49,6 +55,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.action_log import CapturedAction, capture_action_log
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -86,6 +93,15 @@ class TestResolveActionSource(TestCase):
             },
         )
         assert resolve_action_source(request) == "mcp:claude-code"
+
+    def test_mcp_legacy_claude_desktop_family_is_recorded_as_claude(self) -> None:
+        request = _make_request(
+            meta={
+                "HTTP_USER_AGENT": MCP_USER_AGENT,
+                "HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "claude-desktop",
+            },
+        )
+        assert resolve_action_source(request) == "mcp:claude"
 
     def test_mcp_unrecognized_family_logs_and_falls_back(self) -> None:
         request = _make_request(
@@ -182,12 +198,14 @@ class TestResolveActionActor(TestCase):
 
     def test_sentry_app_token_resolves_to_app(self) -> None:
         sentry_app = self.create_sentry_app(organization=self.organization)
+        proxy_user = sentry_app.proxy_user
+        assert proxy_user is not None
         auth = AuthenticatedToken(
             kind="api_token",
             application_id=sentry_app.application_id,
-            user_id=sentry_app.proxy_user.id,
+            user_id=proxy_user.id,
         )
-        request = self._request(auth=auth, user=sentry_app.proxy_user)
+        request = self._request(auth=auth, user=proxy_user)
         assert resolve_action_actor(request) == GroupActionActor.sentry_app(sentry_app.id)
 
     def test_user_oauth_token_with_application_id_is_user(self) -> None:
@@ -200,6 +218,64 @@ class TestResolveActionActor(TestCase):
 
     def test_unauthenticated_is_system(self) -> None:
         assert resolve_action_actor(self._request()) == SYSTEM_ACTOR
+
+
+class TestHasRecentView(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+        self.actor = GroupActionActor.user(self.user.id)
+
+    def _create_view(self, **kwargs: Any) -> GroupActionLogEntry:
+        defaults: dict[str, Any] = {
+            "type": GroupActionType.VIEW,
+            "actor_type": self.actor.actor_type,
+            "actor_id": self.actor.actor_id,
+            "source": ActionSource.WEB,
+        }
+        return self.create_group_action_log_entry(group=self.group, **{**defaults, **kwargs})
+
+    def _has_recent_view(self) -> bool:
+        return has_recent_view(
+            self.group.id, source=ActionSource.WEB, actor=self.actor, within=timedelta(days=2)
+        )
+
+    def test_no_entries(self) -> None:
+        assert not self._has_recent_view()
+
+    def test_recent_view(self) -> None:
+        self._create_view()
+        assert self._has_recent_view()
+
+    def test_stale_view(self) -> None:
+        self._create_view(date_added=timezone.now() - timedelta(days=3))
+        assert not self._has_recent_view()
+
+    def test_other_source(self) -> None:
+        self._create_view(source=ActionSource.API)
+        assert not self._has_recent_view()
+
+    def test_other_actor(self) -> None:
+        self._create_view(actor_id=self.user.id + 1)
+        assert not self._has_recent_view()
+
+    def test_other_actor_type(self) -> None:
+        self._create_view(actor_type=GroupActorType.ORG)
+        assert not self._has_recent_view()
+
+    def test_other_action_type(self) -> None:
+        self._create_view(type=GroupActionType.BOOKMARK)
+        assert not self._has_recent_view()
+
+    def test_other_group(self) -> None:
+        self.create_group_action_log_entry(
+            group=self.create_group(),
+            type=GroupActionType.VIEW,
+            actor_type=self.actor.actor_type,
+            actor_id=self.actor.actor_id,
+            source=ActionSource.WEB,
+        )
+        assert not self._has_recent_view()
 
 
 class TestActionContext(TestCase):
@@ -389,6 +465,53 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         log.assert_not_logged(UnassignAction)
 
     def test_view_emits_action(self) -> None:
+        with capture_action_log() as log:
+            response = self.client.get(self.url, format="json")
+        assert response.status_code == 200
+        log.assert_logged(ViewAction, group_id=self.group.id)
+
+    @patch("sentry.issues.endpoints.group_details.metrics.incr")
+    def test_view_skipped_when_recently_viewed(self, mock_incr: MagicMock) -> None:
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source=ActionSource.WEB,
+        )
+        with capture_action_log() as log:
+            response = self.client.get(self.url, format="json")
+        assert response.status_code == 200
+        log.assert_not_logged(ViewAction)
+        mock_incr.assert_any_call(
+            "issues.action_log.view_rate_limited",
+            sample_rate=1.0,
+            tags={"source": "web", "actor_type": "user"},
+        )
+
+    def test_view_emits_when_last_view_is_stale(self) -> None:
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source=ActionSource.WEB,
+            date_added=timezone.now() - VIEW_ACTION_PUBLISH_INTERVAL - timedelta(minutes=1),
+        )
+        with capture_action_log() as log:
+            response = self.client.get(self.url, format="json")
+        assert response.status_code == 200
+        log.assert_logged(ViewAction, group_id=self.group.id)
+
+    @override_options({"issues.action_log.view_rate_limit.killswitch": True})
+    def test_view_emits_when_recently_viewed_and_killswitch_on(self) -> None:
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source=ActionSource.WEB,
+        )
         with capture_action_log() as log:
             response = self.client.get(self.url, format="json")
         assert response.status_code == 200

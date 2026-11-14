@@ -1,4 +1,7 @@
+from typing import Any
+
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.explore.models import (
     TraceItemAttributeValueContext,
@@ -37,7 +40,13 @@ class OrganizationTraceItemMetricContextEndpointTest(
             ]
         )
 
-    def do_request(self, metric, data, query=None, features=None):
+    def do_request(
+        self,
+        metric: str,
+        data: dict[str, Any],
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = self.feature_flags
         if query is None:
@@ -47,12 +56,13 @@ class OrganizationTraceItemMetricContextEndpointTest(
             kwargs={"organization_id_or_slug": self.organization.slug, "metric": metric},
         )
         with self.feature(features):
-            return self.client.put(
+            response: Response[Any] = self.client.put(
                 url,
                 data,
                 format="json",
                 QUERY_STRING="&".join(f"{name}={value}" for name, value in query.items()),
             )
+            return response
 
     def test_creates_context(self) -> None:
         self.store_metric("checkout.requests")

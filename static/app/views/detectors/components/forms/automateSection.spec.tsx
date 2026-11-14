@@ -28,9 +28,9 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
 
 import {AutomateSection, AutomateSectionDeprecated} from './automateSection';
+import {DetectorFormProvider} from './context';
 
 const automation1 = AutomationFixture();
 const project = ProjectFixture({id: '1', slug: 'test-project'});

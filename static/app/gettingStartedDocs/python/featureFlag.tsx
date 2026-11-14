@@ -19,9 +19,9 @@ const FEATURE_FLAG_CONFIGURATION_MAP: Record<
     integrationName: '',
     makeConfigureCode: (dsn: string) => `sentry_sdk.init(
     dsn="${dsn}",
-    # Add data like request headers and IP for users, if applicable;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    # To customize collected data (user info, request bodies, AI inputs/outputs),
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    # data_collection={"user_info": False},
     integrations=[
         # your other integrations here
     ],
@@ -41,9 +41,9 @@ import ldclient
 
 sentry_sdk.init(
     dsn="${dsn}",
-    # Add data like request headers and IP for users, if applicable;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    # To customize collected data (user info, request bodies, AI inputs/outputs),
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    # data_collection={"user_info": False},
     integrations=[
         LaunchDarklyIntegration(),
     ],
@@ -61,9 +61,9 @@ from openfeature import api
 
 sentry_sdk.init(
     dsn="${dsn}",
-    # Add data like request headers and IP for users, if applicable;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    # To customize collected data (user info, request bodies, AI inputs/outputs),
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    # data_collection={"user_info": False},
     integrations=[
         OpenFeatureIntegration(),
     ],
@@ -83,9 +83,9 @@ import time
 
 sentry_sdk.init(
     dsn="${dsn}",
-    # Add data like request headers and IP for users, if applicable;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    # To customize collected data (user info, request bodies, AI inputs/outputs),
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    # data_collection={"user_info": False},
     integrations=[StatsigIntegration()],
 )
 statsig.initialize("server-secret-key")`,
@@ -104,9 +104,9 @@ from UnleashClient import UnleashClient
 
 sentry_sdk.init(
     dsn="${dsn}",
-    # Add data like request headers and IP for users, if applicable;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    # To customize collected data (user info, request bodies, AI inputs/outputs),
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    # data_collection={"user_info": False},
     integrations=[UnleashIntegration()],
 )
 

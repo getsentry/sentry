@@ -9,8 +9,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
 import type {PreviewData, Subscription} from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents, formatReservedWithUnits} from 'getsentry/utils/billing';
 
 import type {Reservations} from './types';
 

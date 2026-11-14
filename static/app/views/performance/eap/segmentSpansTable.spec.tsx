@@ -7,7 +7,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {SegmentSpansTable} from 'sentry/views/performance/eap/segmentSpansTable';
+
+import {SegmentSpansTable} from './segmentSpansTable';
 
 describe('SegmentSpansTable', () => {
   const organization = OrganizationFixture();
@@ -20,10 +21,6 @@ describe('SegmentSpansTable', () => {
       PageFiltersFixture({projects: [Number(project.id)]})
     );
     ProjectsStore.loadInitialData([project]);
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   it('renders column headers and data rows', async () => {

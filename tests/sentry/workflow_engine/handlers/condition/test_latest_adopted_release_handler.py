@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from typing import Any, Mapping
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -7,7 +7,6 @@ from jsonschema import ValidationError
 
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
 from sentry.search.utils import LatestReleaseOrders
 from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType, ModelAgeType
 from sentry.workflow_engine.handlers.condition.utils.releases import (
@@ -23,16 +22,11 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     condition = Condition.LATEST_ADOPTED_RELEASE
-    payload: Mapping[str, Any] = {
-        "id": LatestAdoptedReleaseFilter.id,
-        "oldest_or_newest": "oldest",
-        "older_or_newer": "newer",
-        "environment": "prod",
-    }
 
     def create_new_group_event(self, fingerprint: str) -> tuple[Any, Any]:
         event = self.store_event(data={"fingerprint": [fingerprint]}, project_id=self.project.id)
         group = event.group
+        assert group is not None
         group_event = self.event.for_group(group)
         return group, group_event
 
@@ -42,7 +36,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.prod_env = self.create_environment(name="prod")
         self.test_env = self.create_environment(name="test")
         self.newest_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@2.0",
             date_added=self.now - timedelta(days=2),
             environments=[self.test_env],
@@ -50,7 +44,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.oldest_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@1.0",
             date_added=self.now - timedelta(days=1),
             environments=[self.prod_env],
@@ -58,7 +52,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
 
         self.middle_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@1.5",
             date_added=self.now,
             environments=[self.prod_env],
@@ -75,19 +69,6 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             },
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "release_age_type": "oldest",
-            "age_comparison": "newer",
-            "environment": "prod",
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"age_comparison": AgeComparisonType.OLDER})
@@ -135,7 +116,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.assert_passes(self.dc, WorkflowEventData(event=group_event_4, group=group_4))
 
         self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="test@3.0",
             date_added=self.now - timedelta(days=5),
             environments=[self.prod_env],
@@ -264,7 +245,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
 
         self.create_group_release(group=self.event.group, release=self.newest_release)
         self.assert_does_not_pass(
-            self.dc, WorkflowEventData(event=self.event, group=self.group_event.group)
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group)
         )
 
         group_2, group_event_2 = self.create_new_group_event("group2")

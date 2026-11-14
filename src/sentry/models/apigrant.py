@@ -1,12 +1,11 @@
 import secrets
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django.utils import timezone
 
-from bitfield import typed_dict_bitfield
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -47,32 +46,6 @@ class ApiGrant(Model):
     code = models.CharField(max_length=64, db_index=True, default=generate_code)
     expires_at = models.DateTimeField(db_index=True, default=default_expiration)
     redirect_uri = models.CharField(max_length=255)
-    scopes = typed_dict_bitfield(
-        TypedDict(  # type: ignore[operator]
-            "scopes",
-            {
-                "project:read": bool,
-                "project:write": bool,
-                "project:admin": bool,
-                "project:releases": bool,
-                "team:read": bool,
-                "team:write": bool,
-                "team:admin": bool,
-                "event:read": bool,
-                "event:write": bool,
-                "event:admin": bool,
-                "org:read": bool,
-                "org:write": bool,
-                "org:admin": bool,
-                "member:read": bool,
-                "member:write": bool,
-                "member:admin": bool,
-                "openid": bool,
-                "profile": bool,
-                "email": bool,
-            },
-        )
-    )
     scope_list = ArrayField(models.TextField(), default=list)
     # API applications should ideally get access to only one organization of user
     # If null, the grant is about user level access and not org level
@@ -98,9 +71,7 @@ class ApiGrant(Model):
         )
 
     def get_scopes(self) -> list[str]:
-        if self.scope_list:
-            return self.scope_list
-        return [k for k, v in self.scopes.items() if v]
+        return self.scope_list
 
     def has_scope(self, scope: str) -> bool:
         return scope in self.get_scopes()

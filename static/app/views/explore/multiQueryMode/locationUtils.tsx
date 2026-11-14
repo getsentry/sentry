@@ -1,14 +1,19 @@
 import {useCallback, useMemo} from 'react';
-import type {Location, LocationDescriptorObject} from 'history';
+import type {Location} from 'history';
+import {parseAsJson} from 'nuqs';
+import {z} from 'zod';
 
-import {URL_PARAM} from 'sentry/components/pageFilters/constants';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
-import {decodeList, decodeSorts, encodeSort} from 'sentry/utils/queryString';
+import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  hasIgnoreCaseDefault,
+  isCaseIndependent,
+} from 'sentry/views/explore/caseInsensitivityDefault';
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -17,13 +22,17 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
-  buildConditionalAggregate,
-  parseConditionalAggregate,
-} from 'sentry/views/explore/utils/conditionalAggregate';
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+  parseAsRawList,
+} from 'sentry/views/explore/queryParams/parsers';
+import {buildConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 // Read utils begin
+
+export type ExploreCaseSensitivity = '1' | '0' | null;
 
 export type ReadableExploreQueryParts = {
   fields: string[];
@@ -31,7 +40,7 @@ export type ReadableExploreQueryParts = {
   query: string;
   sortBys: Sort[];
   yAxes: string[];
-  caseInsensitive?: '1' | null;
+  caseInsensitive?: ExploreCaseSensitivity;
   chartType?: ChartType;
 };
 
@@ -146,75 +155,96 @@ export function normalizeCompareQueryParts(
   };
 }
 
+const compareQuerySchema = z.object({
+  caseInsensitive: z.literal(['0', '1', false]).optional().catch(undefined),
+  chartType: z.preprocess(Number, z.enum(ChartType)).optional().catch(undefined),
+  fields: z.array(z.string()).optional().catch(undefined),
+  groupBys: z.array(z.string().catch('')).catch([]),
+  query: z.string().catch(''),
+  sortBys: z
+    .union([z.string(), z.array(z.string().catch(''))])
+    .optional()
+    .catch(undefined),
+  yAxes: z
+    .array(z.string())
+    .refine(yAxes => yAxes.some(yAxis => defined(parseFunction(yAxis)))),
+});
+
+const parseAsCompareQuery = parseAsJson(compareQuerySchema);
+
 function parseQuery(raw: string): ReadableExploreQueryParts {
-  try {
-    const parsed = JSON.parse(raw);
-    if (!defined(parsed) || !Array.isArray(parsed.yAxes)) {
-      return DEFAULT_QUERY;
-    }
-
-    const yAxes = parsed.yAxes;
-    const parsedFunctions = yAxes.map(parseFunction).filter(defined);
-    if (parsedFunctions.length <= 0) {
-      return DEFAULT_QUERY;
-    }
-
-    let chartType: number | undefined = Number(parsed.chartType);
-    if (isNaN(chartType) || !Object.values(ChartType).includes(chartType)) {
-      chartType = undefined;
-    }
-
-    const groupBys: string[] = parsed.groupBys ?? [];
-    const fields = getFieldsForConstructedQuery(yAxes);
-
-    const parsedSortBys = decodeSorts(parsed.sortBys);
-    const sortBys = validateSortBys(parsedSortBys, groupBys, fields, yAxes);
-
-    const caseInsensitive = parsed.caseInsensitive ?? undefined;
-
-    const normalized = normalizeCompareQueryParts({
-      yAxes,
-      chartType,
-      sortBys,
-      query: parsed.query ?? '',
-      groupBys,
-      caseInsensitive,
-    });
-
-    const normalizedFields = getFieldsForConstructedQuery(normalized.yAxes ?? yAxes);
-    const normalizedSortBys = validateSortBys(
-      [...(normalized.sortBys ?? sortBys)],
-      groupBys,
-      normalizedFields,
-      normalized.yAxes ?? yAxes
-    );
-
-    return {
-      yAxes: normalized.yAxes ?? yAxes,
-      chartType: normalized.chartType ?? chartType,
-      sortBys: normalizedSortBys,
-      query: normalized.query ?? '',
-      groupBys,
-      fields: normalizedFields,
-      caseInsensitive: normalized.caseInsensitive ?? caseInsensitive,
-    };
-  } catch (error) {
+  const parsed = parseAsCompareQuery.parse(raw);
+  if (!parsed) {
     return DEFAULT_QUERY;
   }
+
+  const {chartType, groupBys, yAxes} = parsed;
+  const fields = getFieldsForConstructedQuery(yAxes);
+
+  const parsedSortBys = decodeSorts(parsed.sortBys);
+  const sortBys = validateSortBys(parsedSortBys, groupBys, fields, yAxes);
+
+  const caseInsensitive = parsed.caseInsensitive === false ? '0' : parsed.caseInsensitive;
+
+  const normalized = normalizeCompareQueryParts({
+    yAxes,
+    chartType,
+    sortBys,
+    query: parsed.query,
+    groupBys,
+    caseInsensitive,
+  });
+
+  const normalizedFields = getFieldsForConstructedQuery(normalized.yAxes ?? yAxes);
+  const normalizedSortBys = validateSortBys(
+    [...(normalized.sortBys ?? sortBys)],
+    groupBys,
+    normalizedFields,
+    normalized.yAxes ?? yAxes
+  );
+
+  return {
+    yAxes: normalized.yAxes ?? yAxes,
+    chartType: normalized.chartType ?? chartType,
+    sortBys: normalizedSortBys,
+    query: normalized.query ?? '',
+    groupBys,
+    fields: normalizedFields,
+    caseInsensitive: normalized.caseInsensitive ?? caseInsensitive,
+  };
 }
+
+function withCaseInsensitiveDefault(
+  query: ReadableExploreQueryParts
+): ReadableExploreQueryParts {
+  if (defined(query.caseInsensitive)) {
+    return query;
+  }
+  return {
+    ...query,
+    caseInsensitive: isCaseIndependent({
+      query: query.query,
+      yAxes: query.yAxes,
+      groupBys: query.groupBys,
+    })
+      ? '1'
+      : '0',
+  };
+}
+
+const MULTI_QUERY_PARSERS = {queries: parseAsRawList};
 
 export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
   const location = useLocation();
-  const rawQueries = decodeList(location.query.queries);
+  const organization = useOrganization();
+  const ignoreCaseByDefault = hasIgnoreCaseDefault(organization);
 
-  const parsedQueries = useMemo(() => {
-    if (!defined(rawQueries) || rawQueries.length === 0) {
-      return [DEFAULT_QUERY];
-    }
-    return rawQueries.map(parseQuery);
-  }, [rawQueries]);
-
-  return parsedQueries;
+  return useMemo(() => {
+    const rawQueries = loadQueryParamsFromLocation(MULTI_QUERY_PARSERS, location).queries;
+    const queries =
+      rawQueries.length === 0 ? [DEFAULT_QUERY] : rawQueries.map(parseQuery);
+    return ignoreCaseByDefault ? queries.map(withCaseInsensitiveDefault) : queries;
+  }, [ignoreCaseByDefault, location]);
 }
 
 // Read utils end
@@ -222,7 +252,7 @@ export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
 // Write utils begin
 
 type WritableExploreQueryParts = {
-  caseInsensitive?: '1' | null;
+  caseInsensitive?: ExploreCaseSensitivity;
   chartType?: ChartType;
   fields?: string[];
   groupBys?: readonly string[];
@@ -231,15 +261,27 @@ type WritableExploreQueryParts = {
   yAxes?: string[];
 };
 
-function getQueriesAsUrlParam(queries: WritableExploreQueryParts[]): string[] {
+export function encodeCompareCaseInsensitive(
+  caseInsensitive: ExploreCaseSensitivity | undefined
+) {
+  // Older bundles/URLs read this value by truthiness, so explicit match case
+  // is written as `false` rather than '0' to stay falsy for them.
+  if (caseInsensitive === '0') {
+    return false;
+  }
+
+  return caseInsensitive === '1' ? '1' : undefined;
+}
+
+function getQueriesAsUrlParam(queries: ReadableExploreQueryParts[]): string[] {
   return queries.map(query =>
-    JSON.stringify({
+    parseAsCompareQuery.serialize({
       chartType: query.chartType,
-      caseInsensitive: query.caseInsensitive,
+      caseInsensitive: encodeCompareCaseInsensitive(query.caseInsensitive),
       fields: query.fields,
       groupBys: query.groupBys,
       query: query.query,
-      sortBys: query.sortBys?.map(encodeSort),
+      sortBys: query.sortBys.map(encodeSort),
       yAxes: query.yAxes,
     })
   );
@@ -247,16 +289,11 @@ function getQueriesAsUrlParam(queries: WritableExploreQueryParts[]): string[] {
 
 function getUpdatedLocationWithQueries(
   location: Location,
-  queries: WritableExploreQueryParts[] | null | undefined
+  queries: ReadableExploreQueryParts[]
 ) {
-  const targetQueries = defined(queries) ? getQueriesAsUrlParam(queries) : null;
-  return {
-    ...location,
-    query: {
-      ...location.query,
-      queries: targetQueries,
-    },
-  };
+  return applyQueryParamsUpdates(MULTI_QUERY_PARSERS, location, {
+    queries: getQueriesAsUrlParam(queries),
+  });
 }
 
 export function useUpdateQueryAtIndex(index: number) {
@@ -265,7 +302,7 @@ export function useUpdateQueryAtIndex(index: number) {
   const navigate = useNavigate();
 
   return useCallback(
-    (updates: Partial<WritableExploreQueryParts>) => {
+    (updates: Partial<ReadableExploreQueryParts>) => {
       const queryToUpdate = queries[index];
       if (!queryToUpdate) {
         return;
@@ -384,56 +421,4 @@ export function getFieldsForConstructedQuery(yAxes: string[]): string[] {
 
 export function getQueryMode(groupBys?: string[]): Mode {
   return groupBys?.length === 0 ? Mode.SAMPLES : Mode.AGGREGATE;
-}
-
-function getCompareBaseUrl(organization: Organization) {
-  return makeTracesPathname({
-    organization,
-    path: '/compare/',
-  });
-}
-
-type CompareRouteProps = {
-  location: Location;
-  mode: Mode;
-  organization: Organization;
-  queries: WritableExploreQueryParts[];
-};
-
-export function generateExploreCompareRoute({
-  organization,
-  location,
-  mode,
-  queries,
-}: CompareRouteProps): LocationDescriptorObject {
-  const url = getCompareBaseUrl(organization);
-  const compareQueries = queries.map(query => {
-    const normalized = normalizeCompareQueryParts({
-      ...query,
-      yAxes: query.yAxes ?? [],
-    });
-    return {
-      ...normalized,
-      fields: getFieldsForConstructedQuery(normalized.yAxes ?? []),
-      groupBys: mode === Mode.AGGREGATE ? normalized.groupBys?.filter(Boolean) : [],
-    };
-  });
-
-  if (compareQueries.length < 2) {
-    compareQueries.push(DEFAULT_QUERY);
-  }
-  const query = {
-    [URL_PARAM.END]: location.query.end,
-    [URL_PARAM.START]: location.query.start,
-    [URL_PARAM.UTC]: location.query.utc,
-    [URL_PARAM.PERIOD]: location.query.statsPeriod,
-    [URL_PARAM.PROJECT]: location.query.project,
-    [URL_PARAM.ENVIRONMENT]: location.query.environment,
-    queries: getQueriesAsUrlParam(compareQueries),
-  };
-
-  return {
-    pathname: url,
-    query,
-  };
 }

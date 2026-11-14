@@ -1,15 +1,18 @@
+import {IconChevron} from '@sentry/icons/chevron';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 import {AgenticProgress} from './agenticProgressList';
 import {AgentSetupCard, type AgentSetupCopySource} from './agentSetupCard';
+import {SetupCardFrame} from './setupCardFrame';
 import type {AgenticProgressRun} from './types';
 
 const MotionContainer = motion.create(Container);
@@ -21,14 +24,16 @@ interface AgenticSetupProps {
   hasProgressFailed: boolean;
   isAgentConnected: boolean;
   issueLinkReferrer: string;
-  /** The host supplies the action for continuing with browser setup. */
-  manualSetup: React.ReactNode;
   onCopyCommand: (source: AgentSetupCopySource) => void;
   onRefresh: () => void;
   onRetry: () => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;
-  prompt: string;
+  /** The host supplies the action for continuing with browser setup. */
+  onSetupInBrowser: () => void;
   run: AgenticProgressRun | undefined;
+  handoffFlow?: AgentHandoffFlow;
+  /** Tilts the setup card and adds the stacked brand border and shadows. */
+  layered?: boolean;
   onboardingCode?: string;
 }
 
@@ -39,13 +44,14 @@ export function AgenticSetup({
   onCopyCommand,
   onRetry,
   onSelectSnippet,
-  manualSetup,
-  prompt,
+  onSetupInBrowser,
   feedbackSource,
   issueLinkReferrer,
   hasProgressFailed,
   onRefresh,
   run,
+  handoffFlow = AgentHandoffFlow.ONBOARDING,
+  layered = false,
 }: AgenticSetupProps) {
   const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const showsProgress =
@@ -63,7 +69,7 @@ export function AgenticSetup({
             </Button>
           }
         >
-          {t('Could not start setup, so the prompt below will not report progress.')}
+          {t('Could not prepare agent setup. Try again or set up manually.')}
         </Alert>
       </ScmCollapsibleReveal>
 
@@ -116,14 +122,15 @@ export function AgenticSetup({
               exit={{opacity: 0}}
               transition={CARD_MORPH_TRANSITION}
             >
-              <AgentSetupCard
-                feedbackSource={feedbackSource}
-                hasSetupFailed={hasInitFailed}
-                onboardingCode={onboardingCode}
-                onCopyCommand={onCopyCommand}
-                onSelectSnippet={onSelectSnippet}
-                prompt={prompt}
-              />
+              <SetupCardFrame layered={layered}>
+                <AgentSetupCard
+                  feedbackSource={feedbackSource}
+                  flow={handoffFlow}
+                  onCopyCommand={onCopyCommand}
+                  onSelectSnippet={onSelectSnippet}
+                  run={run}
+                />
+              </SetupCardFrame>
             </MotionContainer>
           )}
         </AnimatePresence>
@@ -136,13 +143,25 @@ export function AgenticSetup({
       </ScmCollapsibleReveal>
 
       <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
-        <Stack gap="2xl" align="center" width="100%">
-          <Text variant="muted" size="md" bold>
-            {t('or')}
-          </Text>
-
-          {manualSetup}
-        </Stack>
+        <Container width="100%">
+          {buttonProps => (
+            <Button
+              {...buttonProps}
+              variant="transparent"
+              onClick={onSetupInBrowser}
+              data-test-id="onboarding-setup-in-browser"
+            >
+              <Flex as="span" align="center" gap="sm">
+                <Text variant="secondary">
+                  {tct('Prefer to do it yourself? [manual]', {
+                    manual: <Text variant="accent">{t('Set up manually')}</Text>,
+                  })}
+                </Text>
+                <IconChevron direction="right" size="sm" variant="accent" />
+              </Flex>
+            </Button>
+          )}
+        </Container>
       </ScmCollapsibleReveal>
     </Stack>
   );

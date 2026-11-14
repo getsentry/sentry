@@ -16,6 +16,9 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
+      - name: Test workspace CI runner
+        run: node --test scripts/testCi.test.ts
+
       - name: Jest Test Config
         id: jest_test_config
         env:
@@ -77,7 +80,8 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
         with:
           name: jest-balance-${{ matrix.index }}
-          path: tests/js/test-balancer/jest-balance.json
+          path: .artifacts/jest-balance/*.json
+          include-hidden-files: true
 
   combine-balance:
     needs: jest-balance

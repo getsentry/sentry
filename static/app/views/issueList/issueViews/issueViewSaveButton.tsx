@@ -4,9 +4,10 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -17,14 +18,15 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
-import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
-import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
-import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {createIssueViewFromUrl} from './createIssueViewFromUrl';
+import {CreateIssueViewModal} from './createIssueViewModal';
+import {getIssueViewQueryParams} from './getIssueViewQueryParams';
+import {useIssueViewUnsavedChanges} from './useIssueViewUnsavedChanges';
+import {useSelectedGroupSearchView} from './useSelectedGroupSeachView';
+import {canEditIssueView} from './utils';
 
 type IssueViewSaveButtonProps = {
   query: string;
@@ -67,7 +69,7 @@ function SegmentedIssueViewSaveButton({
         },
         {
           onSuccess: () => {
-            addSuccessMessage(t('Saved changes'));
+            toast.success(t('Saved changes'));
           },
         }
       );
@@ -209,7 +211,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
 
 const PrimarySaveButton = Button;
 
-const DropdownTrigger = styled(Button)`
+const DropdownTrigger = styled(OverlayTrigger.IconButton)`
   box-shadow: none;
   border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   padding-left: ${p => p.theme.space.md};

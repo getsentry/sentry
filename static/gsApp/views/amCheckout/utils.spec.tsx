@@ -1,8 +1,12 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AddOnCategory} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
-import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
+import {getCheckoutAPIData, useSubmitCheckout} from 'getsentry/views/amCheckout/utils';
 
 describe('utils', () => {
   const teamPlan = PlanDetailsLookupFixture('am1_team');
@@ -12,53 +16,6 @@ describe('utils', () => {
       enabled: false,
     },
   };
-
-  describe('formatPrice', () => {
-    it('formats price correctly', () => {
-      expect(utils.formatPrice({cents: 0})).toBe('0');
-      expect(utils.formatPrice({cents: 1500})).toBe('15');
-      expect(utils.formatPrice({cents: 1510})).toBe('15.10');
-      expect(utils.formatPrice({cents: 92400})).toBe('924');
-      expect(utils.formatPrice({cents: 119400})).toBe('1,194');
-      expect(utils.formatPrice({cents: -1510})).toBe('-15.10');
-    });
-  });
-
-  describe('displayPrice', () => {
-    it('formats price correctly', () => {
-      expect(utils.displayPrice({cents: 0})).toBe('$0');
-      expect(utils.displayPrice({cents: 1500})).toBe('$15');
-      expect(utils.displayPrice({cents: 92430})).toBe('$924.30');
-      expect(utils.displayPrice({cents: 119499})).toBe('$1,194.99');
-      expect(utils.displayPrice({cents: -92430})).toBe('-$924.30');
-    });
-  });
-
-  describe('displayPriceWithCents', () => {
-    it('formats price correctly', () => {
-      expect(utils.displayPriceWithCents({cents: 0})).toBe('$0.00');
-      expect(utils.displayPriceWithCents({cents: 1500})).toBe('$15.00');
-      expect(utils.displayPriceWithCents({cents: 92430})).toBe('$924.30');
-      expect(utils.displayPriceWithCents({cents: 119499})).toBe('$1,194.99');
-      expect(utils.displayPriceWithCents({cents: -92430})).toBe('-$924.30');
-    });
-  });
-
-  describe('displayUnitPrice', () => {
-    it('formats unit price correctly', () => {
-      expect(utils.displayUnitPrice({cents: 24, minDigits: 2, maxDigits: 2})).toBe(
-        '$0.24'
-      );
-      expect(utils.displayUnitPrice({cents: 24.5, minDigits: 2, maxDigits: 2})).toBe(
-        '$0.25'
-      );
-      expect(utils.displayUnitPrice({cents: 245, minDigits: 2, maxDigits: 2})).toBe(
-        '$2.45'
-      );
-      expect(utils.displayUnitPrice({cents: 0.0167})).toBe('$0.000167');
-      expect(utils.displayUnitPrice({cents: 0.528})).toBe('$0.00528');
-    });
-  });
 
   describe('utils.getBucket', () => {
     it('can get exact bucket by events', () => {
@@ -244,6 +201,93 @@ describe('utils', () => {
         reservedProfileDuration: 80,
         addOnLegacySeer: false,
       });
+    });
+  });
+
+  describe('utils.useSubmitCheckout', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({organization});
+    const data = getCheckoutAPIData({
+      formData: {
+        plan: 'am3_business',
+        reserved: {errors: 10},
+        addOns: DEFAULT_ADDONS,
+      },
+    });
+
+    function renderSubmitCheckout(onSuccess: jest.Mock) {
+      return renderHookWithProviders(useSubmitCheckout, {
+        initialProps: {
+          organization,
+          subscription,
+          onErrorMessage: jest.fn(),
+          onFetchPreviewData: jest.fn(),
+          onHandleCardAction: jest.fn(),
+          onSubmitting: jest.fn(),
+          onSuccess,
+        },
+      });
+    }
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        body: organization,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/`,
+        body: subscription,
+      });
+    });
+
+    it('submits the checkout with the invoice expanded and reports success', async () => {
+      const invoice = {id: 'invoice-id'};
+      const submitRequest = MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/subscription/`,
+        method: 'PUT',
+        match: [MockApiClient.matchQuery({expand: 'invoice'})],
+        body: {invoice},
+      });
+      const onSuccess = jest.fn();
+
+      const {result} = renderSubmitCheckout(onSuccess);
+      act(() => result.current.mutate({data}));
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+      expect(submitRequest).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/subscription/`,
+        expect.objectContaining({method: 'PUT', data, query: {expand: 'invoice'}})
+      );
+      expect(onSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({isSubmitted: true, invoice})
+      );
+    });
+
+    it('navigates to the receipt when the payment requires action', async () => {
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/subscription/`,
+        method: 'PUT',
+        body: {paymentRequiresAction: true, invoiceGuid: 'invoice-guid'},
+      });
+      const onSuccess = jest.fn();
+
+      const {result, router} = renderSubmitCheckout(onSuccess);
+      act(() => result.current.mutate({data}));
+
+      await waitFor(() =>
+        expect(router.location.pathname).toBe(
+          `/settings/${organization.slug}/billing/receipts/invoice-guid/`
+        )
+      );
+      expect(onSuccess).not.toHaveBeenCalled();
     });
   });
 });

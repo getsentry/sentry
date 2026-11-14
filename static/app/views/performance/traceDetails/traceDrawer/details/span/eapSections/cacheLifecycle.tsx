@@ -4,15 +4,16 @@ import type {Location} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -28,8 +29,8 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {useTraceStateDispatch} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
+
+import {useLinkedSpanTarget} from './useLinkedSpanTarget';
 
 const CACHE_ORIGIN_LINK_TYPE = 'cache_origin';
 
@@ -110,57 +111,6 @@ function findCacheOriginLink(
   );
 }
 
-/**
- * Link target and click handler for the origin span. The real href lets users
- * open the origin trace in a new tab. A plain left click is intercepted when
- * the fill span is in the tree already on screen: the replay trace view merges
- * several traces into one tree, so search it even when the link points to
- * another trace.
- */
-function useOriginSpanLink({
-  tree,
-  link,
-  timestamp,
-  organization,
-  location,
-  onTabScrollToNode,
-}: Pick<
-  CacheLifecycleSectionProps,
-  'tree' | 'organization' | 'location' | 'onTabScrollToNode'
-> & {
-  link: TraceItemResponseLink;
-  timestamp: number;
-}) {
-  const traceDispatch = useTraceStateDispatch();
-
-  const to = generateLinkToEventInTraceView({
-    organization,
-    location,
-    traceSlug: link.traceId,
-    spanId: link.itemId,
-    timestamp,
-    tab: TraceLayoutTabKeys.WATERFALL,
-  });
-
-  function onClick(event: React.MouseEvent<HTMLAnchorElement>) {
-    // Modified clicks (new tab, new window) go through the href.
-    if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
-      return;
-    }
-
-    const spanNode = tree?.root.findChild(c => c.matchById(link.itemId));
-    if (spanNode) {
-      event.preventDefault();
-      onTabScrollToNode(spanNode);
-      return;
-    }
-
-    traceDispatch({type: 'minimize drawer', payload: true});
-  }
-
-  return {to, onClick};
-}
-
 function useTimelineColors() {
   const theme = useTheme();
   return {
@@ -209,8 +159,9 @@ function getReadOutcome(
   return {title: t('Cache read'), colorConfig: colors.neutral};
 }
 
+/** `cache.item_age` and `cache.ttl` are whole seconds, so 0 means under a second. */
 function formatAge(seconds: number): string {
-  return getDuration(seconds, seconds < 1 ? 2 : 0, true);
+  return seconds < 1 ? t('<1s') : getDuration(seconds, 0, true);
 }
 
 function formatMs(ms: number): string {
@@ -222,7 +173,12 @@ export function CacheLifecycleSection(props: CacheLifecycleSectionProps) {
     case 'get':
       return <CacheReadLifecycleSection {...props} />;
     case 'put':
-      return <CacheWriteLifecycleSection attributes={props.attributes} />;
+      return (
+        <CacheWriteLifecycleSection
+          attributes={props.attributes}
+          spanStartTimestamp={props.node.value.start_timestamp}
+        />
+      );
     default:
       return null;
   }
@@ -264,12 +220,27 @@ function LifecycleFoldSection({
   );
 }
 
-/** Muted text for a timeline row's timestamp slot. */
-function TimestampText({children}: {children: React.ReactNode}) {
+/**
+ * Muted text for a timeline row's time, with the absolute time on hover. Trace
+ * times come from the SDK host clock, so do not compare them with the browser
+ * clock.
+ */
+function TimestampText({
+  timestamp,
+  children,
+}: {
+  children: React.ReactNode;
+  /** Unix time in seconds. */
+  timestamp: number;
+}) {
   return (
-    <Text size="sm" variant="muted">
+    <InfoText
+      size="sm"
+      variant="muted"
+      title={<DateTime date={timestamp * 1000} seconds timeZone />}
+    >
       {children}
-    </Text>
+    </InfoText>
   );
 }
 
@@ -334,24 +305,57 @@ function SourceFact({path}: {path: string}) {
   );
 }
 
-function ExpiresItem({
-  inSeconds,
-  ttlSeconds,
-  colorConfig,
-}: {
-  colorConfig: TimelineColorConfig;
-  inSeconds: number;
+/**
+ * The end of an entry's TTL, which starts at the fill. Without `cache.ttl`
+ * there is no expiry to show. The conventions list when SDKs omit it:
+ * https://conventions.sentry.dev/attributes/cache/#cache-ttl
+ */
+interface CacheExpiry {
+  /** Seconds between this span and the expiry. */
+  distanceSeconds: number;
+  state: 'upcoming' | 'expired';
+  /** Unix time in seconds. */
+  timestamp: number;
   ttlSeconds: number;
-}) {
+}
+
+function getExpiry(
+  spanStartTimestamp: number,
+  ageSeconds: number,
+  ttlSeconds: number
+): CacheExpiry {
+  // An entry is fresh only while its age is below its TTL.
+  const remainingSeconds = ttlSeconds - ageSeconds;
+  return {
+    state: remainingSeconds > 0 ? 'upcoming' : 'expired',
+    distanceSeconds: Math.abs(remainingSeconds),
+    timestamp: spanStartTimestamp + remainingSeconds,
+    ttlSeconds,
+  };
+}
+
+function ExpiryItem({expiry, colors}: {colors: TimelineColors; expiry: CacheExpiry}) {
+  const isExpired = expiry.state === 'expired';
+  const distance = formatAge(expiry.distanceSeconds);
+
   return (
     <Timeline.Item
-      title={t('Expires')}
+      title={isExpired ? t('Expired') : t('Expires')}
       icon={<Timeline.Dot />}
-      colorConfig={colorConfig}
-      timestamp={<TimestampText>{t('%s later', formatAge(inSeconds))}</TimestampText>}
+      colorConfig={isExpired ? colors.miss : colors.projected}
+      timestamp={
+        <TimestampText timestamp={expiry.timestamp}>
+          {isExpired ? t('%s earlier', distance) : t('%s later', distance)}
+        </TimestampText>
+      }
     >
       <LabelValueFacts>
-        <Fact label={t('TTL')}>{formatAge(ttlSeconds)}</Fact>
+        <Fact label={t('TTL')}>
+          {/* A TTL of 0 means the entry expires immediately. */}
+          {expiry.ttlSeconds === 0
+            ? t('0s, expires at fill')
+            : t('%s after fill', formatAge(expiry.ttlSeconds))}
+        </Fact>
       </LabelValueFacts>
     </Timeline.Item>
   );
@@ -391,7 +395,7 @@ function CacheOriginContent({
     timestamp: fillTimestamp,
     enabled: isSampled && !isPastRetention,
   });
-  const originSpanLink = useOriginSpanLink({
+  const originSpanLink = useLinkedSpanTarget({
     ...props,
     link,
     timestamp: fillTimestamp,
@@ -470,11 +474,11 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
   } = getCacheSpanSummary(props.attributes);
   const link = findCacheOriginLink(props.links);
   const outcome = getReadOutcome(hit, colors);
-
-  const expiresInSeconds =
+  const spanStartTimestamp = props.node.value.start_timestamp;
+  const expiry =
     itemAgeSeconds === undefined || ttlSeconds === undefined
       ? undefined
-      : Math.max(ttlSeconds - itemAgeSeconds, 0);
+      : getExpiry(spanStartTimestamp, itemAgeSeconds, ttlSeconds);
 
   return (
     <LifecycleFoldSection
@@ -491,7 +495,9 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
           colorConfig={colors.filled}
           timestamp={
             itemAgeSeconds === undefined ? undefined : (
-              <TimestampText>{t('%s earlier', formatAge(itemAgeSeconds))}</TimestampText>
+              <TimestampText timestamp={spanStartTimestamp - itemAgeSeconds}>
+                {t('%s earlier', formatAge(itemAgeSeconds))}
+              </TimestampText>
             )
           }
         >
@@ -501,11 +507,18 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
         </Timeline.Item>
       ) : null}
 
+      {/* Rows are in time order, so an expiry before this read comes first. */}
+      {expiry?.state === 'expired' ? (
+        <ExpiryItem expiry={expiry} colors={colors} />
+      ) : null}
+
       <Timeline.Item
         title={outcome.title}
         icon={<Timeline.Dot />}
         colorConfig={outcome.colorConfig}
-        timestamp={<TimestampText>{t('this span')}</TimestampText>}
+        timestamp={
+          <TimestampText timestamp={spanStartTimestamp}>{t('this span')}</TimestampText>
+        }
         isActive
         aria-current="step"
       >
@@ -521,12 +534,9 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
         </LabelValueFacts>
       </Timeline.Item>
 
-      {expiresInSeconds !== undefined && ttlSeconds !== undefined && hit !== false ? (
-        <ExpiresItem
-          inSeconds={expiresInSeconds}
-          ttlSeconds={ttlSeconds}
-          colorConfig={colors.projected}
-        />
+      {/* A miss read no live entry, so it has no upcoming expiry. */}
+      {expiry?.state === 'upcoming' && hit !== false ? (
+        <ExpiryItem expiry={expiry} colors={colors} />
       ) : null}
     </LifecycleFoldSection>
   );
@@ -538,8 +548,10 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
  */
 function CacheWriteLifecycleSection({
   attributes,
+  spanStartTimestamp,
 }: {
   attributes: TraceItemResponseAttribute[];
+  spanStartTimestamp: number;
 }) {
   const colors = useTimelineColors();
   const {key: cacheKey, ttlSeconds, durationMs} = getCacheSpanSummary(attributes);
@@ -551,7 +563,9 @@ function CacheWriteLifecycleSection({
         title={t('Cache filled')}
         icon={<Timeline.Dot />}
         colorConfig={colors.filled}
-        timestamp={<TimestampText>{t('this span')}</TimestampText>}
+        timestamp={
+          <TimestampText timestamp={spanStartTimestamp}>{t('this span')}</TimestampText>
+        }
         isActive
         aria-current="step"
       >
@@ -586,10 +600,9 @@ function CacheWriteLifecycleSection({
       */}
 
       {ttlSeconds === undefined ? null : (
-        <ExpiresItem
-          inSeconds={ttlSeconds}
-          ttlSeconds={ttlSeconds}
-          colorConfig={colors.projected}
+        <ExpiryItem
+          expiry={getExpiry(spanStartTimestamp, 0, ttlSeconds)}
+          colors={colors}
         />
       )}
     </LifecycleFoldSection>

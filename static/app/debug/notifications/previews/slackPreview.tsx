@@ -1,8 +1,9 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -24,7 +25,7 @@ export function SlackPreview({
   registration: NotificationTemplateRegistration;
 }) {
   const {body, actions, subject, chart, footer} = registration.example;
-  const previewTime = moment(new Date()).format('h:mm A');
+  const [previewTime] = useState(() => moment(new Date()).format('h:mm A'));
   const blocks = registration.previews[NotificationProviderKey.SLACK];
   const previewLink = `${SLACK_PREVIEW_BASE_URL}#${JSON.stringify(blocks)}`;
   return (

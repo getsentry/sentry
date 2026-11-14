@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import abc
+import string
 from collections.abc import Collection, Iterable
 from dataclasses import dataclass
+from typing import Any, Protocol
+
+from django.db.models import QuerySet
 
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, organization_service
@@ -18,10 +22,51 @@ class AmbiguousUserFromEmail(Exception):
         self.users = tuple(users)
 
 
+_ASCII_CASE_FOLD = str.maketrans(string.ascii_uppercase, string.ascii_lowercase)
+
+
+def ascii_casefold(email: str) -> str:
+    """Lower-case only the ASCII letters of an email address."""
+    return email.translate(_ASCII_CASE_FOLD)
+
+
+def emails_match(a: str, b: str) -> bool:
+    """Case-insensitive email equality, folding ASCII case only."""
+    return ascii_casefold(a) == ascii_casefold(b)
+
+
+class _HasEmail(Protocol):
+    @property
+    def email(self) -> str | None: ...
+
+
+def filter_matching_emails[R: _HasEmail](qs: QuerySet[Any, R], email: str) -> list[R]:
+    """Rows of ``qs`` whose ``email`` field equals ``email``, folding ASCII case only.
+
+    ``email__iexact`` compiles to a locale-aware ``UPPER()`` comparison in PostgreSQL,
+    which can fold distinct Unicode code points together. Keep it for the indexed
+    lookup, then re-check each row with ASCII-only folding.
+    """
+    target = ascii_casefold(email)
+    # ``row.email`` is nullable on some models; the guard is for typing, since
+    # ``email__iexact`` never returns NULL rows.
+    return [
+        row
+        for row in qs.filter(email__iexact=email)
+        if row.email and ascii_casefold(row.email) == target
+    ]
+
+
+def first_matching_email[R: _HasEmail](qs: QuerySet[Any, R], email: str) -> R | None:
+    """The lowest-id row of ``qs`` matching ``email`` (see ``filter_matching_emails``)."""
+    matches = filter_matching_emails(qs.order_by("id"), email)
+    return matches[0] if matches else None
+
+
 def resolve_email_to_user(
     email: str, organization: Organization | RpcOrganization | None = None
 ) -> User | None:
-    candidates = tuple(UserEmail.objects.filter(email__iexact=email, user__is_active=True))
+    candidates = filter_matching_emails(UserEmail.objects.filter(user__is_active=True), email)
     if not candidates:
         return None
     return _EmailResolver(email, organization).resolve(candidates)

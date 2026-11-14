@@ -4,7 +4,8 @@ import {IconParenthesis} from '@sentry/icons/parenthesis';
 
 import type {Token, TokenParenthesis} from 'sentry/components/arithmeticBuilder/token';
 import {Parenthesis} from 'sentry/components/arithmeticBuilder/token';
-import {DeletableToken} from 'sentry/components/arithmeticBuilder/token/deletableToken';
+
+import {DeletableToken} from './deletableToken';
 
 interface ArithmeticTokenParenthesisProps {
   item: Node<Token>;
@@ -30,7 +31,7 @@ export function ArithmeticTokenParenthesis({
 
   return (
     <DeletableToken label={side} item={item} state={state} token={token}>
-      <IconParenthesis side={side} height={26} />
+      <IconParenthesis side={side} size="lg" />
     </DeletableToken>
   );
 }

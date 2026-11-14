@@ -1,12 +1,13 @@
 import {useEffect, useState} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {providerDetails} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {providerDetails} from 'sentry/views/projectInstall/messagingIntegrationTypes';
+
+import type {ScmMessagingSetup} from './scmMessagingSetup';
 
 export type StaleDestinationReason =
   | 'channel'

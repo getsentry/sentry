@@ -1,5 +1,6 @@
-import {platforms} from 'sentry/data/platforms';
 import type {PlatformKey} from 'sentry/types/platform';
+
+import {platforms} from './platforms';
 
 export enum PlatformCategory {
   FRONTEND = 0,
@@ -298,6 +299,7 @@ export const withPerformanceOnboarding = new Set<PlatformKey>([
   'node-eve',
   'node-flue',
   'node-mastra',
+  'node-pi-durable',
 ]);
 
 // List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
@@ -377,6 +379,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'node-koa',
   'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -479,6 +482,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'node-koa',
   'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -555,6 +559,7 @@ export const profiling: PlatformKey[] = [
   'node-koa',
   'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -635,7 +640,6 @@ export const releaseHealth: PlatformKey[] = [
   'python-pymongo',
   'rust',
   'apple-macos',
-  'native',
   'native-crashpad',
   'native-breakpad',
   'native-qt',
@@ -653,6 +657,10 @@ export const releaseHealth: PlatformKey[] = [
   'dotnet-winforms',
   'dotnet-xamarin',
   'unity',
+  'unreal',
+  'nintendo-switch',
+  'playstation',
+  'xbox',
   'java',
   'kotlin',
 ];

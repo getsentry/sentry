@@ -2,23 +2,19 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconMail} from '@sentry/icons/mail';
+import {useMutation} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {Card} from 'sentry/components/card';
-import {openConfirmModal} from 'sentry/components/confirm';
-import {OnCallServiceForm} from 'sentry/components/notificationActions/forms/onCallServiceForm';
-import {SlackForm} from 'sentry/components/notificationActions/forms/slackForm';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
@@ -27,8 +23,12 @@ import type {
 } from 'sentry/types/notificationActions';
 import {NotificationActionService} from 'sentry/types/notificationActions';
 import type {Project} from 'sentry/types/project';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {OnCallServiceForm} from './forms/onCallServiceForm';
+import {SlackForm} from './forms/slackForm';
 
 type NotificationActionItemProps = {
   /**
@@ -174,7 +174,7 @@ function NotificationActionEditButton({
       <DropdownMenu
         items={menuItems}
         trigger={triggerProps => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             aria-label={t('Actions')}
             size="xs"
@@ -283,8 +283,30 @@ export function NotificationActionItem({
   const [isEditing, setIsEditing] = useState(defaultEdit);
   const [editedAction, setEditedAction] = useState(action);
   const serviceType = action.serviceType;
-  const api = useApi();
   const organization = useOrganization();
+
+  const {mutateAsync: deleteNotificationAction} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/notifications/actions/$actionId/',
+          {path: {organizationIdOrSlug: organization.slug, actionId: String(action.id)}}
+        ),
+        method: 'DELETE',
+      }),
+  });
+
+  const {mutateAsync: saveNotificationAction} = useMutation({
+    mutationFn: ({
+      apiEndpoint,
+      apiMethod,
+      data,
+    }: {
+      apiEndpoint: ReturnType<typeof getApiUrl>;
+      apiMethod: 'POST' | 'PUT';
+      data: Record<string, unknown>;
+    }) => fetchMutation<NotificationAction>({url: apiEndpoint, method: apiMethod, data}),
+  });
 
   const icon =
     serviceType === NotificationActionService.EMAIL ||
@@ -299,15 +321,12 @@ export function NotificationActionItem({
   );
 
   const handleDelete = async () => {
-    const endpoint = `/organizations/${organization.slug}/notifications/actions/${action.id}/`;
     try {
-      await api.requestPromise(endpoint, {
-        method: 'DELETE',
-      });
-      addSuccessMessage(t('Successfully deleted notification action'));
+      await deleteNotificationAction();
+      toast.success(t('Successfully deleted notification action'));
       onDelete(index);
     } catch (err) {
-      addErrorMessage(t('Unable to delete notification action'));
+      toast.error(t('Unable to delete notification action'));
     }
   };
 
@@ -323,7 +342,7 @@ export function NotificationActionItem({
 
   const handleSave = async () => {
     const {apiMethod, apiEndpoint, successMessage, errorMessage} = getFormData();
-    addLoadingMessage();
+    toast.loading(t('Saving changes...'));
     // TODO(enterprise): use "requires" to get data to send
     // This is currently optimized for spike protection
     const data = {...editedAction};
@@ -338,16 +357,17 @@ export function NotificationActionItem({
     });
 
     try {
-      const resp = await api.requestPromise(apiEndpoint, {
-        method: apiMethod,
+      const resp = await saveNotificationAction({
+        apiEndpoint,
+        apiMethod,
         data: {...data, projects: [project.slug]},
       });
-      addSuccessMessage(successMessage);
+      toast.success(successMessage);
       onUpdate(index, resp);
       setEditedAction(resp);
       setIsEditing(false);
     } catch (err) {
-      addErrorMessage(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -366,14 +386,22 @@ export function NotificationActionItem({
     if (editedAction.id) {
       return {
         apiMethod: 'PUT' as const,
-        apiEndpoint: `/organizations/${organization.slug}/notifications/actions/${action.id}/`,
+        apiEndpoint: getApiUrl(
+          '/organizations/$organizationIdOrSlug/notifications/actions/$actionId/',
+          {path: {organizationIdOrSlug: organization.slug, actionId: String(action.id)}}
+        ),
         successMessage: t('Successfully updated notification action'),
         errorMessage: t('Unable to update notification action'),
       };
     }
     return {
       apiMethod: 'POST' as const,
-      apiEndpoint: `/organizations/${organization.slug}/notifications/actions/`,
+      apiEndpoint: getApiUrl(
+        '/organizations/$organizationIdOrSlug/notifications/actions/',
+        {
+          path: {organizationIdOrSlug: organization.slug},
+        }
+      ),
       successMessage: t('Successfully added notification action'),
       errorMessage: t('Unable to add notification action'),
     };

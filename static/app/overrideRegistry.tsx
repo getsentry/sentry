@@ -1,4 +1,4 @@
-import type {OverrideName, Overrides} from 'sentry/types/overrides';
+import type {OverrideName, Overrides} from './types/overrides';
 
 /**
  * The override registry is the mechanism that allows the getsentry (SaaS) frontend

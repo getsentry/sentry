@@ -7,7 +7,6 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {
   defaultFormOptions,
   setFieldErrors,
@@ -15,10 +14,9 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -154,7 +152,7 @@ export function DataScrubFormModal({
             });
             break;
           default:
-            addErrorMessage(parsedError.message);
+            toast.error(parsedError.message);
         }
       }
     },
@@ -235,28 +233,30 @@ export function DataScrubFormModal({
           {traceItemDatasetsEnabled && (
             <form.AppField name="dataset">
               {field => (
-                <field.Radio.Group
+                <field.RadioGroup
                   value={field.state.value}
                   onChange={value => {
-                    field.handleChange(value as AllowedDataScrubbingDatasets);
-                    setDataset(value as AllowedDataScrubbingDatasets);
+                    field.handleChange(value);
+                    setDataset(value);
                     form.setFieldValue('source', '');
                   }}
                 >
-                  <field.Layout.Stack
-                    label={t('Dataset')}
-                    hintText={t('The dataset targeted by the scrubbing rule')}
-                    variant="compact"
-                  >
-                    <Stack gap="lg">
-                      {sortBy(enabledDatasets).map(value => (
-                        <field.Radio.Item key={value} value={value}>
-                          {getDatasetLabelLong(value)}
-                        </field.Radio.Item>
-                      ))}
-                    </Stack>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
+                  {({Item}) => (
+                    <field.Layout.Stack
+                      label={t('Dataset')}
+                      hintText={t('The dataset targeted by the scrubbing rule')}
+                      variant="compact"
+                    >
+                      <Stack gap="lg">
+                        {sortBy(enabledDatasets).map(value => (
+                          <Item key={value} value={value}>
+                            {getDatasetLabelLong(value)}
+                          </Item>
+                        ))}
+                      </Stack>
+                    </field.Layout.Stack>
+                  )}
+                </field.RadioGroup>
               )}
             </form.AppField>
           )}
@@ -290,7 +290,7 @@ export function DataScrubFormModal({
                         options={methodOptions}
                         value={methodField.state.value}
                         onChange={methodField.handleChange}
-                        isSearchable={false}
+                        searchable={false}
                       />
                     </methodField.Layout.Stack>
                   )}
@@ -345,7 +345,7 @@ export function DataScrubFormModal({
                     options={typeOptions}
                     value={typeField.state.value}
                     onChange={typeField.handleChange}
-                    isSearchable={false}
+                    searchable={false}
                   />
                 </typeField.Layout.Stack>
               )}
@@ -381,10 +381,15 @@ export function DataScrubFormModal({
                     </RegularExpressionWrapper>
                     <form.AppField name="replaceCaptured">
                       {replaceCapturedField => (
-                        <ReplaceCapturedCheckbox
-                          pattern={patternField.state.value}
+                        <replaceCapturedField.Checkbox
+                          label={t('Only replace first capture match')}
+                          disabled={
+                            hasCaptureGroups(patternField.state.value)
+                              ? undefined
+                              : t('This rule does not contain capture groups')
+                          }
                           checked={replaceCapturedField.state.value}
-                          onChange={val => replaceCapturedField.handleChange(val)}
+                          onChange={replaceCapturedField.handleChange}
                         />
                       )}
                     </form.AppField>
@@ -542,37 +547,6 @@ export function DataScrubFormModal({
   );
 }
 
-function ReplaceCapturedCheckbox({
-  pattern,
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  pattern: string;
-}) {
-  const disabled = !hasCaptureGroups(pattern);
-  return (
-    <Tooltip
-      title={disabled ? t('This rule does not contain capture groups') : undefined}
-      disabled={!disabled}
-    >
-      <Flex gap="xs" align="center">
-        <Checkbox
-          id="replace-captured"
-          name="replaceCaptured"
-          checked={checked}
-          disabled={disabled}
-          onChange={e => onChange(e.target.checked)}
-        />
-        <ReplaceCapturedLabel htmlFor="replace-captured" disabled={disabled}>
-          {t('Only replace first capture match')}
-        </ReplaceCapturedLabel>
-      </Flex>
-    </Tooltip>
-  );
-}
-
 const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   transition-property: height;
@@ -617,15 +591,4 @@ const Toggle = styled(Button)`
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }
-`;
-
-const ReplaceCapturedLabel = styled('label')<{disabled: boolean}>`
-  font-weight: normal;
-  margin-bottom: 0;
-  line-height: 1rem;
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.tokens.content.disabled};
-    `}
 `;

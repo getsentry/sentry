@@ -25,7 +25,10 @@ export function getLineHeight(
     return undefined;
   }
 
-  return theme.font.lineHeight[density].toString();
+  // Use String() rather than calling .toString() on the token: some browser
+  // builds (Chrome 154) have been observed dispatching Number.prototype.toString
+  // with a non-Number receiver here, crashing render.
+  return String(theme.font.lineHeight[density]);
 }
 
 export function getFontSize(

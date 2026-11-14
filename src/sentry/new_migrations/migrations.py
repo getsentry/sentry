@@ -1,4 +1,7 @@
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations import Migration, RunSQL, SeparateDatabaseAndState
+from django.db.migrations.operations.base import Operation
+from django.db.migrations.state import ProjectState
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
 from sentry.new_migrations.monkey.special import SafeRunSQL
@@ -19,16 +22,33 @@ class CheckedMigration(Migration):
     # the `owners-migrations` team.
     checked = True
 
-    def apply(self, project_state, schema_editor, collect_sql=False):
+    def apply(
+        self,
+        project_state: ProjectState,
+        schema_editor: BaseDatabaseSchemaEditor,
+        collect_sql: bool = False,
+    ) -> ProjectState:
         if self.checked:
-            schema_editor.safe = True
+            setattr(schema_editor, "safe", True)
         for op in self.operations:
             validate_operation(op)
 
         return super().apply(project_state, schema_editor, collect_sql)
 
+    def mutate_state(self, project_state: ProjectState, preserve: bool = True) -> ProjectState:
+        # `SafeDeleteModel`/`SafeRemoveField` with `MOVE_TO_PENDING` render `state.apps`
+        # to look up the model. If that rendered registry is left on the state, Django
+        # re-renders models on every later state change, so building state from the full
+        # migration history (`migrate`, unapplying migrations in tests) takes minutes.
+        # Drop it again at the end of the migration unless it was already rendered.
+        was_rendered = "apps" in project_state.__dict__
+        new_state = super().mutate_state(project_state, preserve)
+        if not was_rendered:
+            new_state.__dict__.pop("apps", None)
+        return new_state
 
-def validate_operation(op):
+
+def validate_operation(op: Operation) -> None:
     if isinstance(op, RunSQL) and not isinstance(op, SafeRunSQL):
         raise UnsafeOperationException(
             "Using `RunSQL` is unsafe because our migrations safety framework can't detect problems with the "

@@ -1,8 +1,4 @@
-import type {ReactNode} from 'react';
-import {useId, useState} from 'react';
-
-import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
@@ -10,19 +6,19 @@ import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, PriorityLevel} from 'sentry/types/group';
 import type {Commit, PullRequest, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+
 import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
+} from './activityLineItem/activityFeedItem';
 import {
-  ActivityLineNote,
-  isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+  ActivityLineInvestigationLinked,
+  isInvestigationLinkedActivity,
+} from './activityLineItem/investigationLinked';
+import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
+import {ActivityLine} from './activityLineItem';
+import {Timeline} from './timeline';
 
 const user = {
   id: '1',
@@ -265,6 +261,20 @@ const issueActivities = [
     title: '#5678',
     new: false,
   }),
+  activity(GroupActivityType.UNLINK_EXTERNAL_ISSUE, {
+    external_issue_key: 'example/repository#1234',
+    provider: 'github',
+  }),
+  activity(GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE, {
+    display_name: 'example#APP-42',
+    service_type: 'linear',
+    web_url: 'https://linear.app/example/issue/APP-42',
+  }),
+  activity(GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE, {
+    display_name: 'example#APP-43',
+    service_type: 'example',
+    web_url: '',
+  }),
   activity(GroupActivityType.MERGE, {issues: [{id: '2'}, {id: '3'}]}),
   activity(GroupActivityType.UNMERGE_SOURCE, {
     fingerprints: ['one', 'two'],
@@ -285,6 +295,23 @@ const issueActivities = [
 const note = activity(GroupActivityType.NOTE, {
   text: 'This started after the latest deploy.',
 });
+
+const sourceActivities = [
+  {...note, id: 'mcp-claude-code', source: 'mcp:claude-code'},
+  {...activity(GroupActivityType.SET_RESOLVED), source: 'mcp:cursor'},
+  {
+    ...activity(GroupActivityType.ASSIGNED, {assignee: user.id, assigneeType: 'user'}),
+    source: 'mcp:codex',
+  },
+  {...activity(GroupActivityType.SET_IGNORED), source: 'mcp:copilot'},
+  {...activity(GroupActivityType.SET_UNRESOLVED), source: 'mcp'},
+  {...activity(GroupActivityType.SET_RESOLVED), source: 'api'},
+  {...activity(GroupActivityType.SET_RESOLVED, {}, null), source: 'api'},
+  {
+    ...activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {version: 'frontend@1.0.0'}),
+    source: 'sentry-cli',
+  },
+];
 
 const seerPullRequest = {
   provider: 'GitHub',
@@ -311,6 +338,13 @@ const seerActivities = [
   seerActivity(GroupActivityType.SEER_PR_CREATED, {
     pull_requests: [seerPullRequest],
   }),
+  {
+    ...seerActivity(GroupActivityType.SEER_PR_CREATED, {
+      pull_requests: [seerPullRequest],
+    }),
+    id: 'seer-pr-created-by-user',
+    user,
+  },
   seerActivity(GroupActivityType.SEER_PR_READY_FOR_REVIEW, {
     pull_requests: [seerPullRequest],
   }),
@@ -342,9 +376,12 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
   seerActivityAt(GroupActivityType.SEER_CODING_COMPLETED, '2025-01-01T00:30:00Z', {
     run_id: 3,
   }),
-  seerActivityAt(GroupActivityType.SEER_CODING_STARTED, '2025-01-01T00:22:00Z', {
-    run_id: 3,
-  }),
+  {
+    ...seerActivityAt(GroupActivityType.SEER_CODING_STARTED, '2025-01-01T00:22:00Z', {
+      run_id: 3,
+    }),
+    user,
+  },
   seerActivityAt(GroupActivityType.SEER_ITERATION_COMPLETED, '2025-01-01T00:37:00Z', {
     pull_requests: [seerPullRequest],
     run_id: 4,
@@ -361,55 +398,57 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
   }),
 ]);
 
-export default Storybook.story('Issue Activity', story => {
-  const activityStory = (name: string, render: () => ReactNode) =>
-    story(name, () => <ActivityStory>{render()}</ActivityStory>);
+const investigation = {id: '42', title: 'Checkout p95 latency spike', status: 'active'};
 
-  activityStory('Resolution', () => <ResolutionExamples />);
-  activityStory('Archived', () => <ActivityExamples items={archivedActivities} />);
-  activityStory('Assignment', () => <ActivityExamples items={assignmentActivities} />);
-  activityStory('Priority and escalation', () => (
-    <ActivityExamples items={priorityActivities} />
-  ));
-  activityStory('Source control', () => (
-    <ActivityExamples items={sourceControlActivities} />
-  ));
-  activityStory('Issue changes', () => <ActivityExamples items={issueActivities} />);
-  activityStory('Comments', () => <CommentExample />);
-  activityStory('Seer', () => <ActivityExamples items={seerActivities} />);
-  activityStory('Collapsed Seer', () => (
-    <ActivityFeedExamples items={collapsedSeerActivities} />
+const investigationLinkActivities = [
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation,
+      hypothesisId: 'h-1',
+      hypothesisStatement: 'Payment client retries exhaust the connection pool',
+      reason:
+        'TimeoutError QueuePool limit 10+10 reached, 4,734 events during the spike; culprit process_payment_authorization_and_retry_connection_pool in payments/client.py.',
+    }),
+    id: 'investigation-linked',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation: {
+        ...investigation,
+        title: 'Checkout p95 latency spike after the payments deploy on the EU cluster',
+      },
+      hypothesisId: 'h-2',
+      hypothesisStatement: 'The 14:02 payments deploy added a slow fraud check',
+      reason: null,
+    }),
+    id: 'investigation-linked-long-title',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation: null,
+      hypothesisId: 'h-1',
+      hypothesisStatement: 'Payment client retries exhaust the connection pool',
+      reason: null,
+    }),
+    id: 'investigation-linked-deleted',
+  },
+];
+
+export default Storybook.story('Issue Activity', story => {
+  story('Resolution', () => <ResolutionExamples />);
+  story('Archived', () => <ActivityExamples items={archivedActivities} />);
+  story('Assignment', () => <ActivityExamples items={assignmentActivities} />);
+  story('Priority and escalation', () => <ActivityExamples items={priorityActivities} />);
+  story('Source control', () => <ActivityExamples items={sourceControlActivities} />);
+  story('Issue changes', () => <ActivityExamples items={issueActivities} />);
+  story('Comments', () => <CommentExample />);
+  story('Sources', () => <ActivityExamples items={sourceActivities} />);
+  story('Seer', () => <ActivityExamples items={seerActivities} />);
+  story('Collapsed Seer', () => <ActivityFeedExamples items={collapsedSeerActivities} />);
+  story('Investigation links', () => (
+    <ActivityExamples items={investigationLinkActivities} />
   ));
 });
-
-function ActivityStory({children}: {children: ReactNode}) {
-  const checkboxId = useId();
-  const organization = useOrganization();
-  const [showProgress, setShowProgress] = useState(false);
-  const features = organization.features.filter(
-    feature => feature !== 'issue-activity-progress'
-  );
-
-  if (showProgress) {
-    features.push('issue-activity-progress');
-  }
-
-  return (
-    <OrganizationContext.Provider value={{...organization, features}}>
-      <Stack gap="lg">
-        <Flex as="label" align="center" gap="sm" htmlFor={checkboxId}>
-          <Checkbox
-            id={checkboxId}
-            checked={showProgress}
-            onChange={() => setShowProgress(value => !value)}
-          />
-          <Text>Show progress indicators</Text>
-        </Flex>
-        {children}
-      </Stack>
-    </OrganizationContext.Provider>
-  );
-}
 
 function ResolutionExamples() {
   return (
@@ -474,26 +513,35 @@ function ActivityExamples({items}: {items: GroupActivity[]}) {
 
 function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
   return (
-    <ActivityLineList>
-      {items.map((item, index) =>
-        item.type === 'activity' && isActivityNote(item.activity) ? (
-          <ActivityLineNote
-            key={`${item.activity.id}-${index}`}
-            activity={item.activity}
-            inputVariant="compact"
-            onDelete={async () => {}}
-            onUpdate={async () => {}}
-          />
-        ) : (
-          <ActivityLine
-            key={`${item.activity.id}-${index}`}
-            group={group}
-            item={item}
-            timestampUnitStyle="short"
-          />
-        )
-      )}
-    </ActivityLineList>
+    <Timeline.Container>
+      {items.map((item, index) => {
+        const key = `${item.activity.id}-${index}`;
+        if (item.type === 'activity' && isActivityNote(item.activity)) {
+          return (
+            <ActivityLineNote
+              key={key}
+              activity={item.activity}
+              inputVariant="compact"
+              onDelete={async () => {}}
+              onUpdate={async () => {}}
+            />
+          );
+        }
+        if (item.type === 'activity' && isInvestigationLinkedActivity(item.activity)) {
+          return (
+            <ActivityLineInvestigationLinked
+              key={key}
+              activity={item.activity}
+              variant="full"
+              timestampUnitStyle="short"
+            />
+          );
+        }
+        return (
+          <ActivityLine key={key} group={group} item={item} timestampUnitStyle="short" />
+        );
+      })}
+    </Timeline.Container>
   );
 }
 
@@ -505,13 +553,13 @@ function CommentExample() {
   }
 
   return (
-    <ActivityLineList>
+    <Timeline.Container>
       <ActivityLineNote
         activity={{...note, user: activeUser}}
         inputVariant="full"
         onDelete={async () => {}}
         onUpdate={async () => {}}
       />
-    </ActivityLineList>
+    </Timeline.Container>
   );
 }

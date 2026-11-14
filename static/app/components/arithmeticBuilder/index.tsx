@@ -3,12 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 
-import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
-import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
-import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {
   ComboBoxLayoutContext,
@@ -17,7 +13,12 @@ import {
 import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
-import {PanelProvider} from 'sentry/utils/panelProvider';
+
+import {TokenGrid} from './token/grid';
+import {useArithmeticBuilderAction} from './action';
+import {ArithmeticBuilderContext} from './context';
+import type {Expression} from './expression';
+import type {FunctionArgument} from './types';
 
 export type {ComboBoxMenuPresentation};
 
@@ -54,9 +55,14 @@ interface ArithmeticBuilderProps {
    */
   references?: Set<string>;
   setExpression?: (expression: Expression) => void;
+  /**
+   * Caps function argument inputs to a narrow width with an ellipsis, for
+   * builders rendered in constrained spaces like sidebars.
+   */
+  truncateArguments?: boolean;
 }
 
-const VALID_REFERENCE_PATTERN = /^[A-Z]$/;
+export const VALID_REFERENCE_PATTERN = /^[\w.]+$/;
 
 export function ArithmeticBuilder({
   'data-test-id': dataTestId,
@@ -71,6 +77,7 @@ export function ArithmeticBuilder({
   className,
   disabled,
   references,
+  truncateArguments = true,
 }: ArithmeticBuilderProps) {
   if (references) {
     for (const reference of references) {
@@ -130,6 +137,7 @@ export function ArithmeticBuilder({
             className={className}
             aria-disabled={disabled}
             data-test-id={dataTestId ?? 'arithmetic-builder'}
+            data-truncate-arguments={truncateArguments}
             state={state.expression.isValid ? 'valid' : 'invalid'}
             disabled={disabled}
           >

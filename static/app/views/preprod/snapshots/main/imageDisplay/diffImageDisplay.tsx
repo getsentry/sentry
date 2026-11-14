@@ -129,7 +129,6 @@ function SplitView({
               {t('Base')}
             </Text>
           </Container>
-          {/* oxlint-disable-next-line react/refs */}
           <ZoomContainer ref={zoom1.containerRef} style={splitZoomContainerStyle}>
             <Flex
               justify="center"
@@ -157,7 +156,6 @@ function SplitView({
               {headLabel}
             </Text>
           </Container>
-          {/* oxlint-disable-next-line react/refs */}
           <ZoomContainer ref={zoom2.containerRef} style={splitZoomContainerStyle}>
             <Flex
               justify="center"
@@ -190,11 +188,8 @@ function SplitView({
         </Stack>
       </Grid>
       <ZoomControls
-        // oxlint-disable-next-line react/refs
         onZoomIn={zoom2.zoomIn}
-        // oxlint-disable-next-line react/refs
         onZoomOut={zoom2.zoomOut}
-        // oxlint-disable-next-line react/refs
         onReset={zoom2.resetZoom}
       />
     </ZoomableArea>

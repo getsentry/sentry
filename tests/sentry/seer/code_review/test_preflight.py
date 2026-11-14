@@ -27,7 +27,7 @@ class TestCodeReviewPreflightService(TestCase):
                 provider="github",
                 external_id="github:123",
             )
-            self.integration = serialize_integration(integration)
+            self.rpc_integration = serialize_integration(integration)
         self.external_identifier = "user123"
 
     def _create_service(
@@ -37,7 +37,7 @@ class TestCodeReviewPreflightService(TestCase):
         return CodeReviewPreflightService(
             organization=self.organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=self.rpc_integration,
             pr_author_external_id=(
                 external_identifier if external_identifier is not None else self.external_identifier
             ),
@@ -85,7 +85,7 @@ class TestCodeReviewPreflightService(TestCase):
 
         self.create_organization_contributor(
             organization=self.organization,
-            integration=self.integration,
+            integration=self.rpc_integration,
             external_identifier=self.external_identifier,
         )
 
@@ -123,7 +123,7 @@ class TestCodeReviewPreflightService(TestCase):
 
         self.create_organization_contributor(
             organization=self.organization,
-            integration=self.integration,
+            integration=self.rpc_integration,
             external_identifier=self.external_identifier,
         )
 
@@ -148,7 +148,7 @@ class TestCodeReviewPreflightService(TestCase):
 
         self.create_organization_contributor(
             organization=self.organization,
-            integration=self.integration,
+            integration=self.rpc_integration,
             external_identifier=self.external_identifier,
         )
 
@@ -196,7 +196,7 @@ class TestCodeReviewPreflightService(TestCase):
 
         self.create_organization_contributor(
             organization=self.organization,
-            integration=self.integration,
+            integration=self.rpc_integration,
             external_identifier=self.external_identifier,
         )
 
@@ -228,7 +228,7 @@ class TestCodeReviewPreflightService(TestCase):
 
         self.create_organization_contributor(
             organization=self.organization,
-            integration=self.integration,
+            integration=self.rpc_integration,
             external_identifier=self.external_identifier,
         )
 
@@ -261,7 +261,7 @@ class TestCodeReviewPreflightService(TestCase):
 
         self.create_organization_contributor(
             organization=self.organization,
-            integration=self.integration,
+            integration=self.rpc_integration,
             external_identifier=self.external_identifier,
         )
 
@@ -312,7 +312,7 @@ class TestCodeReviewPreflightService(TestCase):
         )
         self.create_organization_contributor(
             organization=self.organization,
-            integration=self.integration,
+            integration=self.rpc_integration,
             external_identifier=self.external_identifier,
         )
 
@@ -333,7 +333,7 @@ class TestCodeReviewPreflightService(TestCase):
         service = CodeReviewPreflightService(
             organization=self.organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=self.rpc_integration,
             pr_author_external_id=None,
         )
         result = service.check()
@@ -366,7 +366,7 @@ class TestCodeReviewPreflightService(TestCase):
 
         self.create_organization_contributor(
             organization=self.organization,
-            integration=self.integration,
+            integration=self.rpc_integration,
             external_identifier=self.external_identifier,
         )
 
@@ -396,7 +396,7 @@ class TestCodeReviewPreflightService(TestCase):
 
         self.create_organization_contributor(
             organization=self.organization,
-            integration=self.integration,
+            integration=self.rpc_integration,
             external_identifier=self.external_identifier,
         )
 
@@ -424,7 +424,7 @@ class TestCodeReviewPreflightService(TestCase):
 
         self.create_organization_contributor(
             organization=self.organization,
-            integration=self.integration,
+            integration=self.rpc_integration,
             external_identifier=self.external_identifier,
             alias="dependabot[bot]",
         )

@@ -101,7 +101,6 @@ describe('EAPSampledEventsTab', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('renders the filter bar and table', async () => {

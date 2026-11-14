@@ -1,17 +1,27 @@
 import {createContext, useContext, useMemo} from 'react';
-import {createParser, useQueryState} from 'nuqs';
+import {createParser, parseAsJson, useQueryState} from 'nuqs';
+import {z} from 'zod';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 
-export type ChartSelectionQueryParam = {
-  chartIndex: number;
-  panelId: string;
-  range: [number, number];
-};
+const chartSelectionQueryParamSchema = z.object({
+  chartIndex: z.number(),
+  panelId: z.string(),
+  range: z.tuple([z.number(), z.number()]),
+  yRange: z.tuple([z.number(), z.number()]).optional(),
+});
+
+export type ChartSelectionQueryParam = z.infer<typeof chartSelectionQueryParamSchema>;
+
+const parseAsChartSelectionQueryParam = parseAsJson(chartSelectionQueryParamSchema);
 
 type ChartSelectionState = {
   chartIndex: number;
   selection: Selection;
+  /**
+   * Y-axis bounds of a heatmap region selection.
+   */
+  yRange?: [number, number];
 } | null;
 
 type ChartSelectionContextValue = {
@@ -27,32 +37,21 @@ interface ChartSelectionProviderProps {
   children: React.ReactNode;
 }
 
-const parseAsChartSelection = createParser<ChartSelectionState>({
+export const parseAsChartSelection = createParser<ChartSelectionState>({
   parse(value: string): ChartSelectionState | null {
-    try {
-      const parsed = JSON.parse(value);
-
-      if (
-        typeof parsed.chartIndex === 'number' &&
-        Array.isArray(parsed.range) &&
-        parsed.range.length === 2 &&
-        typeof parsed.range[0] === 'number' &&
-        typeof parsed.range[1] === 'number' &&
-        typeof parsed.panelId === 'string'
-      ) {
-        return {
-          chartIndex: parsed.chartIndex,
-          selection: {
-            range: parsed.range as [number, number],
-            panelId: parsed.panelId,
-          },
-        };
-      }
-    } catch {
+    const parsed = parseAsChartSelectionQueryParam.parse(value);
+    if (!parsed) {
       return null;
     }
 
-    return null;
+    return {
+      chartIndex: parsed.chartIndex,
+      selection: {
+        range: parsed.range,
+        panelId: parsed.panelId,
+      },
+      yRange: parsed.yRange,
+    };
   },
   serialize(state: ChartSelectionState): string {
     if (!state) {
@@ -63,9 +62,10 @@ const parseAsChartSelection = createParser<ChartSelectionState>({
       chartIndex: state.chartIndex,
       range: state.selection.range,
       panelId: state.selection.panelId,
+      yRange: state.yRange,
     };
 
-    return JSON.stringify(chartSelection);
+    return parseAsChartSelectionQueryParam.serialize(chartSelection);
   },
 });
 

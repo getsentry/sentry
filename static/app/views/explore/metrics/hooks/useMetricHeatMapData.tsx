@@ -7,14 +7,16 @@ import {defined} from 'sentry/utils/defined';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
-import {metricBoundsApiOptions} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
-import {metricHeatMapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatMapApiOptions';
-import {makePartitionedHeatMapWindowCombiner} from 'sentry/views/explore/metrics/hooks/metricHeatMapCombine';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+
+import {metricBoundsApiOptions} from './metricBoundsApiOptions';
+import {metricHeatMapApiOptions} from './metricHeatMapApiOptions';
+import {makePartitionedHeatMapWindowCombiner} from './metricHeatMapCombine';
 import {
   dateTimeAsHeatMapWindow,
   partitionDateTimeIntoHeatMapWindows,
-} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+} from './partitionHeatMapWindows';
 
 interface UseMetricHeatMapDataOptions {
   enabled: boolean;
@@ -23,6 +25,7 @@ interface UseMetricHeatMapDataOptions {
   selection: PageFilters;
   traceMetric: TraceMetric;
   interval?: string | null;
+  sampling?: SamplingMode;
   yBuckets?: number | null;
 }
 
@@ -45,6 +48,7 @@ export function useMetricHeatMapData({
   traceMetric,
   query,
   interval,
+  sampling,
   yBuckets,
   enabled,
 }: UseMetricHeatMapDataOptions): MetricHeatMapData {
@@ -67,6 +71,7 @@ export function useMetricHeatMapData({
       selection,
       traceMetric,
       query,
+      sampling,
     }),
     enabled: enabled && isBoundsQueryNeeded,
   });
@@ -99,6 +104,7 @@ export function useMetricHeatMapData({
       traceMetric,
       query,
       interval,
+      sampling,
       yBuckets,
       // Pin the shared y-domain only when chunking, so every chunk has aligned
       // y-buckets and can be merged. The fallback request stays unpinned.

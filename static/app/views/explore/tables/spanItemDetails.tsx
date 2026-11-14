@@ -39,7 +39,7 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {sortAttributes} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 const HIDDEN_SPAN_DETAIL_ATTRIBUTES = new Set(['is_segment', 'project_id', 'received']);
@@ -99,15 +99,15 @@ export function SpanItemDetails({
     dateSelection,
   });
 
-  const visibleAttributes = useMemo(
-    () =>
-      sortAttributes(
-        (data?.attributes ?? []).filter(
-          attribute => !HIDDEN_SPAN_DETAIL_ATTRIBUTES.has(attribute.name)
-        )
-      ),
-    [data?.attributes]
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
   );
+  const visibleAttributes = useMemo(() => {
+    const attributes = (data?.attributes ?? []).filter(
+      attribute => !HIDDEN_SPAN_DETAIL_ATTRIBUTES.has(attribute.name)
+    );
+    return sortAttributes(attributes, useRawAttributeNames);
+  }, [data?.attributes, useRawAttributeNames]);
 
   if (isLoading) {
     return (

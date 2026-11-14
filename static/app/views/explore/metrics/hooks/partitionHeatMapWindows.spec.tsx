@@ -1,7 +1,8 @@
 import moment from 'moment-timezone';
 
 import type {PageFilterDatetime} from 'sentry/types/core';
-import {partitionDateTimeIntoHeatMapWindows} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
+
+import {partitionDateTimeIntoHeatMapWindows} from './partitionHeatMapWindows';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -124,7 +125,7 @@ function relative(period: string): DateTimeFilter {
   return {start: null, end: null, period, utc: null};
 }
 
-const spanHours = (window: {end: string; start: string}) =>
+const spanHours = (timeWindow: {end: string; start: string}) =>
   Math.round(
-    (moment.utc(window.end).valueOf() - moment.utc(window.start).valueOf()) / HOUR
+    (moment.utc(timeWindow.end).valueOf() - moment.utc(timeWindow.start).valueOf()) / HOUR
   );

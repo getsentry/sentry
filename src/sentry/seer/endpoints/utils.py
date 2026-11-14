@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid as uuid_module
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar
+from typing import TYPE_CHECKING, Any, Final, Literal, NamedTuple, TypeVar
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -16,6 +16,22 @@ if TYPE_CHECKING:
 
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+# Let API clients like the CLI and MCP tell billing 402s apart without parsing detail text.
+# The API schema documents these codes as an enum, so a new code has to be added here.
+SeerPaymentRequiredCode = Literal["seer_out_of_credits", "seer_out_of_quota"]
+SEER_OUT_OF_CREDITS_CODE: Final[SeerPaymentRequiredCode] = "seer_out_of_credits"
+SEER_OUT_OF_QUOTA_CODE: Final[SeerPaymentRequiredCode] = "seer_out_of_quota"
+
+SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL = (
+    "Your organization does not have enough credits to start an Autofix run."
+)
+SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL = (
+    "Your organization does not have enough credits to continue your Autofix run."
+)
+SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL = (
+    "Your organization does not have enough credits left for you to message Seer."
+)
 
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):
@@ -39,6 +55,16 @@ def get_seer_run(seer_run_state_id: int, organization: Organization) -> SeerRun 
     ).first()
 
 
+_NO_ACCESS_DETAIL = "You do not have access to this run."
+
+
+def _owner_mismatch_response() -> Response:
+    return Response(
+        {"detail": _NO_ACCESS_DETAIL},
+        status=status.HTTP_403_FORBIDDEN,
+    )
+
+
 def resolve_seer_run(
     run_id: str | int,
     organization: Organization,
@@ -49,7 +75,8 @@ def resolve_seer_run(
     """Resolve a client-facing run id (numeric ``seer_run_state_id`` or
     ``SeerRun.uuid``) to a :class:`ResolvedSeerRun`, or an error ``Response``
     (narrow with ``isinstance``). When ``user_id`` is supplied, the mirrored run
-    must belong to that user. For a not-ready run, a poll gets the 200
+    must belong to that user. A numeric id with no ``SeerRun`` row is rejected
+    in that case. For a not-ready run, a poll gets the 200
     ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
     (still mirroring) or 422 (mirror failed).
     """
@@ -63,10 +90,7 @@ def resolve_seer_run(
             return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
         run = get_seer_run(seer_run_state_id, organization)
         if user_id is not None and (run is None or run.user_id != user_id):
-            return Response(
-                {"detail": "This conversation belongs to another user and is read-only."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            return _owner_mismatch_response()
         return ResolvedSeerRun(seer_run_state_id, str(run.uuid) if run else None)
 
     try:
@@ -78,10 +102,7 @@ def resolve_seer_run(
     if run is None:
         return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
     if user_id is not None and run.user_id != user_id:
-        return Response(
-            {"detail": "This conversation belongs to another user and is read-only."},
-            status=status.HTTP_403_FORBIDDEN,
-        )
+        return _owner_mismatch_response()
     if run.mirror_status == SeerRunMirrorStatus.FAILED:
         if for_continue:
             return Response(

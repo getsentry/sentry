@@ -3,18 +3,69 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.endpoints.timeseries import IncompleteReason
-from sentry.constants import DataCategory
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
-from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
+
+
+class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-events-timeseries"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.org = self.create_organization(owner=self.user)
+
+    def test_invalid_transformations_with_no_projects(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            }
+        ):
+            response = self.get_error_response(
+                self.org.slug, **{"transformations[-1]": ["fill(locf)"]}, status_code=400
+            )
+
+        assert response.data == {"detail": "Invalid transformations index"}
+
+    def test_invalid_transformation_function_with_no_projects(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            }
+        ):
+            response = self.get_error_response(
+                self.org.slug, **{"transformations[0]": ["smooth(linear,3)"]}, status_code=400
+            )
+
+        assert response.data == {
+            "detail": "smooth(linear,3): mode argument invalid: expected one of sma, ema, asap"
+        }
+
+    def test_transformations_ignored_when_feature_disabled(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": False,
+            }
+        ):
+            response = self.get_success_response(
+                self.org.slug,
+                **{"transformations[-1]": ["fill(locf)"], "transformations[0]": ["fill(sma)"]},
+            )
+
+        assert response.data == {"timeSeries": []}
 
 
 class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
@@ -82,11 +133,19 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def do_request(self, data, url=None, features=None):
+    def do_request(
+        self,
+        data: dict[str, Any],
+        url: str | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            response: Response = self.client.get(
+                self.url if url is None else url, data=data, format="json"
+            )
+            return response
 
     def test_no_projects(self) -> None:
         org = self.create_organization(owner=self.user)
@@ -109,6 +168,11 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "end": self.end,
                 "interval": "1h",
                 "project": [self.project.id, self.project2.id],
+                "transformations[0]": ["fill(locf)", "smooth(sma,3)"],
+            },
+            features={
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
             },
         )
         assert response.status_code == 200, response.content
@@ -437,7 +501,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert other["meta"]["order"] == 1
         assert other["values"][0]["value"] == 1
 
-    def test_incomplete_bucket(self):
+    def test_incomplete_bucket(self) -> None:
         with freeze_time(self.end):
             response = self.do_request(
                 {
@@ -482,18 +546,19 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "interval": 3_600_000,
         }
 
-    def _api_token_request(self, data, features):
+    def _api_token_request(self, data: dict[str, Any], features: dict[str, bool]) -> Response:
         api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
         with self.feature(features):
-            return self.client.get(
+            response: Response = self.client.get(
                 self.url,
                 data=data,
                 format="json",
                 HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
             )
+            return response
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -513,6 +578,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert kwargs["attributes"] == {
             "org_id": self.organization.id,
             "org_slug": self.organization.slug,
+            "is_blocked": True,
             # no dataset param was passed, so the requested value is empty
             "requested_dataset": "",
             # but the default dataset is used
@@ -521,7 +587,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         }
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_fires_for_transactions(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_transactions(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -543,7 +611,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert kwargs["attributes"]["requested_dataset"] == "transactions"
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_when_flag_off(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_allowlisted_org(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -558,10 +628,12 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         )
 
-        mock_sdk_logger.warning.assert_not_called()
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"]["is_blocked"] is False
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_for_non_external_request(
+    def test_legacy_dataset_log_not_fired_for_non_external_request(
         self, mock_sdk_logger: mock.MagicMock
     ) -> None:
         data = {
@@ -582,7 +654,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         mock_sdk_logger.warning.assert_not_called()
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_for_non_legacy_dataset(
+    def test_legacy_dataset_log_not_fired_for_non_legacy_dataset(
         self, mock_sdk_logger: mock.MagicMock
     ) -> None:
         data = {
@@ -603,76 +675,6 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         mock_sdk_logger.warning.assert_not_called()
 
 
-class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest):
-    endpoint = "sentry-api-0-organization-events-timeseries"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(user=self.user)
-        # Align to an hour boundary so the hourly Outcomes rollup buckets cleanly.
-        self.end = before_now(days=1).replace(minute=0, second=0, microsecond=0)
-        self.start = self.end - timedelta(hours=2)
-        self.url = reverse(
-            self.endpoint,
-            kwargs={"organization_id_or_slug": self.organization.slug},
-        )
-
-    def _store_outcome(
-        self,
-        outcome: Outcome,
-        category: DataCategory,
-        quantity: int,
-        reason: str = "none",
-        minutes: int = 30,
-    ) -> None:
-        self.store_outcomes(
-            {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
-                "outcome": outcome,
-                "reason": reason,
-                "category": category,
-                "timestamp": self.start + timedelta(minutes=minutes),
-                "quantity": quantity,
-            }
-        )
-
-    def test_annotations_include_accepted_annotations(self) -> None:
-        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
-        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")
-
-        data: dict[str, Any] = {
-            "start": self.start,
-            "end": self.end,
-            "interval": "1h",
-            "project": [self.project.id],
-            "dataset": "logs",
-            "includeAnnotations": "",
-        }
-        with self.feature(
-            {
-                "organizations:visibility-explore-view": True,
-                "organizations:explore-data-fidelity-annotations": True,
-            }
-        ):
-            response = self.client.get(self.url, data=data, format="json")
-
-        assert response.status_code == 200, response.content
-
-        dropped = response.data["meta"]["droppedAnnotations"]
-        assert len(dropped) == 1
-        assert dropped[0]["category"] == DataCategory.LOG_ITEM.api_name()
-        assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
-        assert dropped[0]["reason"] == "key_quota"
-        assert dropped[0]["eventCount"] == 400
-        assert "label" not in dropped[0]
-
-        accepted = response.data["meta"]["acceptedAnnotations"]
-        assert len(accepted) == 1
-        assert accepted[0]["outcome"] == Outcome.ACCEPTED.api_name()
-        assert accepted[0]["eventCount"] == 1000
-
-
 class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
@@ -686,7 +688,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def _do_request(self, features: dict[str, bool], dataset: str = "spans"):
+    def _do_request(self, features: dict[str, bool], dataset: str = "spans") -> Response:
         data: dict[str, Any] = {
             "start": self.start,
             "end": self.end,
@@ -695,10 +697,11 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             "dataset": dataset,
         }
         with self.feature(features):
-            return self.client.get(self.url, data=data, format="json")
+            response: Response = self.client.get(self.url, data=data, format="json")
+            return response
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_absent_without_flag(self, mock_measure) -> None:
+    def test_ingestion_delay_absent_without_flag(self, mock_measure: MagicMock) -> None:
         response = self._do_request({"organizations:visibility-explore-view": True})
         assert response.status_code == 200, response.content
         assert "ingestion" not in response.data["meta"]
@@ -706,7 +709,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert not mock_measure.called
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_present(self, mock_measure) -> None:
+    def test_ingestion_delay_present(self, mock_measure: MagicMock) -> None:
         complete_through = before_now(minutes=5)
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=42.5,
@@ -728,7 +731,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         }
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_unknown_status_is_reported_without_values(self, mock_measure) -> None:
+    def test_unknown_status_is_reported_without_values(self, mock_measure: MagicMock) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=None,
             complete_through=None,
@@ -744,7 +747,9 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert response.data["meta"]["ingestion"] == {"status": "unknown"}
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_query_failure_does_not_break_the_response(self, mock_measure) -> None:
+    def test_ingestion_delay_query_failure_does_not_break_the_response(
+        self, mock_measure: MagicMock
+    ) -> None:
         mock_measure.side_effect = Exception("snuba is down")
         response = self._do_request(
             {
@@ -756,7 +761,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert "ingestion" not in response.data["meta"]
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_complete_through_is_returned_in_milliseconds(self, mock_measure) -> None:
+    def test_complete_through_is_returned_in_milliseconds(self, mock_measure: MagicMock) -> None:
         complete_through = before_now(seconds=10)
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=42.5,
@@ -778,7 +783,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_are_marked_incomplete_from_measured_complete_through(
-        self, mock_measure
+        self, mock_measure: MagicMock
     ) -> None:
         complete_through = self.end - timedelta(seconds=10)
         mock_measure.return_value = IngestionDelayStatus(
@@ -803,7 +808,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_fall_back_to_static_incomplete_boundary_when_no_measurement(
-        self, mock_measure
+        self, mock_measure: MagicMock
     ) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=None,
@@ -823,7 +828,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
     @mock.patch("sentry.quotas.backend.get_event_retention")
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_starting_before_retention_are_marked_outside_it(
-        self, mock_measure, mock_retention
+        self, mock_measure: MagicMock, mock_retention: MagicMock
     ) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=1.0,

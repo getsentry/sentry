@@ -9,12 +9,12 @@ import {
   UserAvatar,
 } from '@sentry/scraps/avatar';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import type {SpaceSize} from '@sentry/scraps/theme';
 
 import type {Actor} from 'sentry/types/core';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {AvatarUser} from 'sentry/types/user';
-import type {SpaceSize} from 'sentry/utils/theme';
 
 export interface BaseBadgeProps extends FlexProps {
   avatarProps?: Record<string, any>;

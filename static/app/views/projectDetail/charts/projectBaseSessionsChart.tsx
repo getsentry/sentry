@@ -20,16 +20,15 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {EChartEventHandler, Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
 import {sessionTerm} from 'sentry/views/explore/releases/utils/sessionTerm';
-import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
+import {DisplayModes} from 'sentry/views/projectDetail/displayModes';
 
 import {ProjectSessionsAnrRequest} from './projectSessionsAnrRequest';
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';
@@ -44,17 +43,15 @@ type Props = {
     | DisplayModes.STABILITY;
   onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
-  selection: PageFilters;
   title: string;
   disablePrevious?: boolean;
   help?: string;
   query?: string;
 };
 
-function ProjectBaseSessionsChart({
+export function ProjectBaseSessionsChart({
   title,
   organization,
-  selection,
   api,
   onTotalValuesChange,
   displayMode,
@@ -63,6 +60,7 @@ function ProjectBaseSessionsChart({
   query,
 }: Props) {
   const theme = useTheme();
+  const {selection} = usePageFilters();
 
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
@@ -358,5 +356,3 @@ class Chart extends Component<ChartProps, ChartState> {
     );
   }
 }
-
-export default withPageFilters(ProjectBaseSessionsChart);

@@ -1,34 +1,68 @@
-import {createContext, useContext, useMemo, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
+import {useMedia} from '@sentry/scraps/useMedia';
+
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
+import {SecondaryNavigationContextProvider} from './secondaryNavigationContext';
+
+interface NavigationGroupConfig {
+  /** First path segments (after the organization) that belong to this group */
+  paths: readonly string[];
+  /**
+   * Whether the group renders a secondary navigation. When false, the
+   * secondary sidebar is not rendered while the group is active, so the page
+   * takes up the space instead.
+   */
+  secondaryNavigation: boolean;
+}
 
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
-  issues: ['issues'],
-  explore: ['explore', 'preprod'],
-  dashboards: ['dashboards', 'dashboard'],
-  insights: ['insights'],
-  projects: ['projects'], // No primary nav button — accessed via logo nav. Needed for secondary nav routing.
-  monitors: ['monitors'],
-  settings: ['settings'],
-  prevent: ['prevent'],
-  admin: ['manage'],
-} as const;
+  inbox: {paths: ['inbox'], secondaryNavigation: false},
+  issues: {paths: ['issues'], secondaryNavigation: true},
+  explore: {paths: ['explore', 'preprod'], secondaryNavigation: true},
+  seer: {paths: ['seer'], secondaryNavigation: true},
+  dashboards: {paths: ['dashboards', 'dashboard'], secondaryNavigation: true},
+  insights: {paths: ['insights'], secondaryNavigation: true},
+  // No primary nav button — accessed via logo nav. Needed for secondary nav routing.
+  projects: {paths: ['projects'], secondaryNavigation: true},
+  monitors: {paths: ['monitors'], secondaryNavigation: true},
+  settings: {paths: ['settings'], secondaryNavigation: true},
+  prevent: {paths: ['prevent'], secondaryNavigation: false},
+  admin: {paths: ['manage'], secondaryNavigation: true},
+} as const satisfies Record<string, NavigationGroupConfig>;
 
 type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
+
+export function hasSecondaryNavigation(group: NavigationGroup): boolean {
+  return PRIMARY_NAVIGATION_GROUP_CONFIG[group].secondaryNavigation;
+}
+
+/**
+ * Whether hovering a primary navigation item previews its group in the
+ * secondary navigation. When disabled, the secondary navigation only follows
+ * the current route (and clicks on primary items).
+ */
+export function useNavigationGroupHoverEnabled(): boolean {
+  const organization = useOrganization({allowNull: true});
+  return !organization?.features.includes('universal-inbox');
+}
 
 const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
   group: NavigationGroup;
   pattern: RegExp;
+  /** Only apply the override when the organization lacks this feature */
+  unlessFeature?: string;
 }> = [
+  // Seer pages linked from Explore until the Seer primary nav ships.
   {
     group: 'explore',
-    pattern: /(?:^|\/)seer\/investigation\/[^/]+\/?$/,
+    pattern: /(?:^|\/)seer\/(?:automations|investigations(?:\/[^/]+)?)\/?$/,
+    unlessFeature: 'seer-primary-nav',
   },
 ];
 
@@ -65,21 +99,45 @@ interface PrimaryNavigationContextProviderProps {
 export function PrimaryNavigationContextProvider(
   props: PrimaryNavigationContextProviderProps
 ) {
-  const [activeGroupOverride, setActiveGroup] = useState<NavigationGroup | null>(null);
+  const [activeGroupOverride, setActiveGroupOverride] = useState<{
+    group: NavigationGroup;
+    routeGroup: NavigationGroup;
+  } | null>(null);
 
   const theme = useTheme();
+  // Primary navigation switches at the viewport breakpoint.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
   const hasHover = useMedia('(hover: hover)');
   const activeRouteGroup = useActiveNavigationGroup();
+
+  // An override only lasts for the route group it was set under. Otherwise it
+  // sticks after navigating elsewhere (e.g. tapping Explore on mobile, then
+  // opening Settings from the org menu), leaving a stale secondary navigation.
+  // Clear it rather than ignore it, so it cannot come back when the user
+  // returns to the route group it was set under.
+  if (activeGroupOverride && activeGroupOverride.routeGroup !== activeRouteGroup) {
+    setActiveGroupOverride(null);
+  }
+  const activeGroupOverrideForRoute =
+    activeGroupOverride?.routeGroup === activeRouteGroup
+      ? activeGroupOverride.group
+      : null;
+
+  const setActiveGroup = useCallback(
+    (group: NavigationGroup | null) =>
+      setActiveGroupOverride(group ? {group, routeGroup: activeRouteGroup} : null),
+    [activeRouteGroup]
+  );
 
   const value = useMemo(
     () => ({
       layout: isMobile ? ('mobile' as const) : ('sidebar' as const),
       features: {hover: hasHover},
-      activeGroup: activeGroupOverride ?? activeRouteGroup,
+      activeGroup: activeGroupOverrideForRoute ?? activeRouteGroup,
       setActiveGroup,
     }),
-    [isMobile, hasHover, activeGroupOverride, activeRouteGroup]
+    [isMobile, hasHover, activeGroupOverrideForRoute, activeRouteGroup, setActiveGroup]
   );
 
   return (
@@ -107,8 +165,11 @@ const getPrimaryRoutePath = (path: string): string | undefined => {
 
 function useActiveNavigationGroup(): NavigationGroup {
   const location = useLocation();
-  const routeOverride = PRIMARY_NAVIGATION_ROUTE_OVERRIDES.find(({pattern}) =>
-    pattern.test(location.pathname)
+  const organization = useOrganization({allowNull: true});
+  const routeOverride = PRIMARY_NAVIGATION_ROUTE_OVERRIDES.find(
+    ({pattern, unlessFeature}) =>
+      pattern.test(location.pathname) &&
+      !(unlessFeature && organization?.features.includes(unlessFeature))
   );
   if (routeOverride) {
     return routeOverride.group;
@@ -121,11 +182,9 @@ function useActiveNavigationGroup(): NavigationGroup {
   }
 
   for (const key in PRIMARY_NAVIGATION_GROUP_CONFIG) {
-    if (
-      (
-        PRIMARY_NAVIGATION_GROUP_CONFIG[key as NavigationGroup] as readonly string[]
-      ).includes(primaryPath)
-    ) {
+    const {paths}: NavigationGroupConfig =
+      PRIMARY_NAVIGATION_GROUP_CONFIG[key as NavigationGroup];
+    if (paths.includes(primaryPath)) {
       return key as NavigationGroup;
     }
   }

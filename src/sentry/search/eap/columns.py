@@ -78,10 +78,21 @@ class ResolvedColumn:
     # Normalizer transforms a search value before sending to Snuba (e.g. stripping dashes from UUIDs).
     # Called after validation, before building the AttributeValue proto.
     normalizer: Callable[[Any], Any] | None = None
+    # Values are stored and searched in one canonical case, so case insensitive search is skipped:
+    # wrapping an indexed column like trace_id in lower() stops ClickHouse from narrowing by it.
+    canonical_case: bool = False
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
     is_aggregate: bool
+
+    def __post_init__(self) -> None:
+        # Without ignore_case, snuba parses ID values as UUIDs or integers and errors on anything
+        # else, so only validated and normalized values are safe to send in canonical case.
+        if self.canonical_case and (self.validator is None or self.normalizer is None):
+            raise ValueError(
+                f"{self.public_alias} needs a validator and normalizer to use canonical_case"
+            )
 
     def process_column(self, value: Any) -> Any:
         """Given the value from results, return a processed value if a processor is defined otherwise return it"""
@@ -100,7 +111,10 @@ class ResolvedColumn:
         if self.normalizer is None:
             return value
         if isinstance(value, list):
-            return [self.normalizer(item) for item in value]
+            return cast(
+                "Sequence[float] | Sequence[str]",
+                [self.normalizer(item) for item in value],
+            )
         return self.normalizer(value)
 
     def validate(self, value: Any) -> None:
@@ -282,6 +296,13 @@ class ResolvedFormula(ResolvedFunction):
 @dataclass(frozen=True, kw_only=True)
 class ResolvedTraceMetricFormula(ResolvedFormula):
     trace_metric: TraceMetric | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedMultiTraceMetricFormula(ResolvedFormula):
+    """A formula that reads from several trace metrics at once."""
+
+    trace_metrics: frozenset[TraceMetric]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -866,6 +887,48 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
 class ConditionalTraceMetricFormulaDefinition(TraceMetricFormulaDefinition):
     offset = 1
     expected_args = 5
+
+
+@dataclass(kw_only=True)
+class MultiTraceMetricFormulaDefinition(FormulaDefinition):
+    """
+    A formula over several trace metrics at once.
+
+    Uses `trace_metrics_resolver` to derive the metrics the formula reads.
+    """
+
+    trace_metrics_resolver: Callable[[ResolvedArguments], frozenset[TraceMetric]]
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: list[AttributeKey | Any],
+        snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        search_config: SearchResolverConfig,
+        default_value: float | None = None,
+    ) -> ResolvedFunction:
+        resolver_settings = ResolverSettings(
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
+            ),
+            snuba_params=snuba_params,
+            query_result_cache=query_result_cache,
+            search_config=search_config,
+            conditional=False,
+        )
+
+        return ResolvedMultiTraceMetricFormula(
+            public_alias=alias,
+            search_type=search_type,
+            formula=self.formula_resolver(resolved_arguments, resolver_settings),
+            is_aggregate=self.is_aggregate,
+            internal_type=self.internal_type,
+            processor=self.processor,
+            default_value=default_value,
+            trace_metrics=self.trace_metrics_resolver(resolved_arguments),
+        )
 
 
 def simple_sentry_field(

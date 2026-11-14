@@ -22,8 +22,9 @@ import {getNoAlertWritePermissionTooltip} from 'sentry/views/automations/hooks/u
 import {canCreateDetachedAutomation} from 'sentry/views/automations/utils/permissions';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
-import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
+
+import {useDetectorFormProject} from './common/useDetectorFormProject';
 
 /**
  * Section that lets the user connect, disconnect, and create automations
@@ -33,16 +34,18 @@ export const AutomateSection = withFieldGroup({
   defaultValues: {workflowIds: [] as string[]},
   props: {} as {project: Project; step?: number},
   render: ({group, step, project}) => (
-    <group.AppField name="workflowIds">
-      {field => (
+    <group.Subscribe selector={state => state.values.workflowIds}>
+      {workflowIds => (
         <AutomateSectionInner
           step={step}
           project={project}
-          workflowIds={field.state.value}
-          setWorkflowIds={field.handleChange}
+          workflowIds={workflowIds}
+          setWorkflowIds={nextWorkflowIds =>
+            group.setFieldValue('workflowIds', nextWorkflowIds)
+          }
         />
       )}
-    </group.AppField>
+    </group.Subscribe>
   ),
 });
 

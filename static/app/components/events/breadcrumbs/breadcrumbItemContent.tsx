@@ -66,6 +66,7 @@ export function BreadcrumbItemContent({
         value={cleanedBreadcrumbData}
         meta={meta?.data}
         {...structuredDataProps}
+        forceDefaultExpand={!shouldCollapseData(bc, cleanedBreadcrumbData)}
       />
     </Timeline.Data>
   ) : null;
@@ -147,7 +148,12 @@ function HTTPCrumbContent({
       </BreadcrumbText>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData value={otherData} meta={meta?.data} {...structuredDataProps} />
+          <StructuredData
+            value={otherData}
+            meta={meta?.data}
+            {...structuredDataProps}
+            forceDefaultExpand={!shouldCollapseData(breadcrumb, otherData)}
+          />
         </Timeline.Data>
       ) : null}
     </Fragment>
@@ -247,6 +253,36 @@ function cleanBreadcrumbData<B extends Record<string, any> | undefined | null>(
   }
 
   return cleanedBreadcrumbData;
+}
+
+/**
+ * Collapse data that only has fields the JS SDKs add on their own.
+ */
+function shouldCollapseData(breadcrumb: RawCrumb, data: Record<string, any>): boolean {
+  const onlyHas = (...keys: string[]) =>
+    Object.keys(data).every(key => keys.includes(key));
+
+  // The message is the arguments joined, except objects become "[object Object]"
+  if (breadcrumb.category === 'console') {
+    const args = data.arguments ?? [];
+    return (
+      onlyHas('logger', 'arguments') &&
+      Array.isArray(args) &&
+      args.every(arg => typeof arg !== 'object' || arg === null)
+    );
+  }
+
+  // The component name is already in the message
+  if (breadcrumb.category?.startsWith('ui.')) {
+    return onlyHas('ui.component_name');
+  }
+
+  // Replay adds body sizes to fetch and xhr
+  if (breadcrumb.type === BreadcrumbType.HTTP) {
+    return onlyHas('request_body_size', 'response_body_size');
+  }
+
+  return false;
 }
 
 const Link = styled('a')`

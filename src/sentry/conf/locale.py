@@ -6,7 +6,7 @@ import sentry
 
 
 # change locale file dir name to locale code
-def dirname_to_local(dir_name):
+def dirname_to_local(dir_name: str) -> str:
     if "_" in dir_name:
         pre, post = dir_name.split("_", 1)
         dir_name = f"{pre}-{post.lower()}"

@@ -36,7 +36,7 @@ fix: |
   Example before:
     this.api.request('/endpoint/', {
       success: (data) => { this.setState({data}); },
-      error: (err) => { addErrorMessage('Failed'); },
+      error: (err) => { toast.error('Failed'); },
     });
 
   Example after:
@@ -46,7 +46,7 @@ fix: |
       });
       this.setState({data});
     } catch {
-      addErrorMessage('Failed');
+      toast.error('Failed');
     }
 
   Gotchas:
@@ -72,8 +72,8 @@ examples:
     - |
       useMutation({
         mutationFn: (data) => api.requestPromise('/endpoint/', { method: 'POST', data }),
-        onSuccess: () => addSuccessMessage('Saved'),
-        onError: () => addErrorMessage('Failed'),
+        onSuccess: () => toast.success('Saved'),
+        onError: () => toast.error('Failed'),
       });
     - |
       const handleSubmit: OnSubmitCallback = async (data, onSubmitSuccess, onSubmitError) => {
@@ -85,18 +85,15 @@ examples:
         }
       };
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
-  - 'static/gsApp/**/*.tsx'
-  - 'static/gsApp/**/*.ts'
-  - 'static/gsAdmin/**/*.tsx'
-  - 'static/gsAdmin/**/*.ts'
-exclude:
-  - '**/__fixtures__/**'
-  - '**/__mocks__/**'
-  - '**/*.spec.*'
-  - '**/*.test.*'
-  - '**/test/**'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/app/ {repo_path}/static/gsApp/ {repo_path}/static/gsAdmin/"
+search:
+  match: 'api\.request\(|api\.requestPromise\('
+  include:
+    - 'static/**/*.tsx'
+    - 'static/**/*.ts'
+  exclude:
+    - '**/__fixtures__/**'
+    - '**/__mocks__/**'
+    - '**/*.spec.*'
+    - '**/*.test.*'
+    - '**/test/**'
+  excerpt: 10

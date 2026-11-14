@@ -1,13 +1,15 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {BreadcrumbItemContent} from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import {
   BreadcrumbLevelType,
   BreadcrumbMessageFormat,
   BreadcrumbType,
   type BreadcrumbTypeDefault,
   type BreadcrumbTypeHTTP,
+  type RawCrumb,
 } from 'sentry/types/breadcrumbs';
+
+import {BreadcrumbItemContent} from './breadcrumbItemContent';
 
 describe('BreadcrumbItemContent', () => {
   it('renders default crumbs with all data', () => {
@@ -184,6 +186,58 @@ describe('BreadcrumbItemContent', () => {
     render(<BreadcrumbItemContent breadcrumb={breadcrumb} meta={meta} />);
     expect(screen.getByText('[Filtered]')).toBeInTheDocument();
     expect(screen.queryByText('failed')).not.toBeInTheDocument();
+  });
+
+  describe('data the SDK adds on its own', () => {
+    it.each<[string, RawCrumb, string]>([
+      [
+        'console arguments',
+        {
+          type: BreadcrumbType.DEBUG,
+          level: BreadcrumbLevelType.INFO,
+          category: 'console',
+          message: 'UndoManager: startGroupIfNeeded',
+          data: {arguments: ['UndoManager: startGroupIfNeeded'], logger: 'console'},
+        },
+        '2 items',
+      ],
+      [
+        'click component names',
+        {
+          type: BreadcrumbType.UI,
+          level: BreadcrumbLevelType.INFO,
+          category: 'ui.click',
+          message: 'LinkBase > Component',
+          data: {'ui.component_name': 'Component'},
+        },
+        '1 item',
+      ],
+      [
+        'fetch body sizes',
+        {
+          type: BreadcrumbType.HTTP,
+          level: BreadcrumbLevelType.INFO,
+          category: 'fetch',
+          data: {method: 'GET', url: 'https://example.com', response_body_size: 2},
+        },
+        '1 item',
+      ],
+    ])('collapses %s', (_, breadcrumb, itemCount) => {
+      render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+      expect(screen.getByRole('button', {name: itemCount})).toBeInTheDocument();
+    });
+
+    it('keeps console objects expanded', () => {
+      const breadcrumb: BreadcrumbTypeDefault = {
+        type: BreadcrumbType.DEBUG,
+        level: BreadcrumbLevelType.INFO,
+        category: 'console',
+        message: 'user [object Object]',
+        data: {arguments: ['user', {id: 1}], logger: 'console'},
+      };
+      render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+      expect(screen.getByText('arguments')).toBeInTheDocument();
+    });
   });
 
   it('applies item limits with fullyExpanded', () => {

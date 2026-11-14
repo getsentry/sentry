@@ -29,7 +29,7 @@ class EmailAuthBackendTest(TestCase):
         self.user.save()
 
     @property
-    def backend(self):
+    def backend(self) -> EmailAuthBackend:
         return EmailAuthBackend()
 
     def test_can_authenticate_with_username(self) -> None:
@@ -51,6 +51,15 @@ class EmailAuthBackendTest(TestCase):
             HttpRequest(), username="BAZ@example.com", password="bar"
         )
         self.assertEqual(result, self.user)
+
+    def test_find_users_ignores_unicode_lookalike(self) -> None:
+        from sentry.utils.auth import find_users
+
+        user = User(username="adminuser", email="admin@example.com")
+        user.set_password("pw")
+        user.save()
+        assert find_users("admin@example.com") == [user]
+        assert find_users("adm\u0131n@example.com") == []
 
     def test_does_not_authenticate_with_invalid_password(self) -> None:
         result = self.backend.authenticate(HttpRequest(), username="foo", password="pizza")
@@ -80,7 +89,7 @@ class EmailAuthBackendTest(TestCase):
 
 @control_silo_test
 class GetLoginRedirectTest(TestCase):
-    def _make_request(self, next=None):
+    def _make_request(self, next: str | None = None) -> HttpRequest:
         request = HttpRequest()
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = "80"
@@ -177,7 +186,7 @@ class GetLoginRedirectTest(TestCase):
 
 @control_silo_test
 class LoginTest(TestCase):
-    def _make_request(self):
+    def _make_request(self) -> HttpRequest:
         request = HttpRequest()
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.session = self.session

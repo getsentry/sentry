@@ -4,12 +4,16 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
 import {TeamStore} from 'sentry/stores/teamStore';
 
+import {MissingProjectMembership} from './missingProjectMembership';
+
 describe('MissingProjectMembership', () => {
-  afterEach(() => {
+  beforeEach(() => {
     TeamStore.reset();
+  });
+
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 

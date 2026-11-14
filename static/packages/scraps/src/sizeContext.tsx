@@ -1,0 +1,20 @@
+import type * as React from 'react';
+import {createContext, useContext} from 'react';
+
+type SizeVariant = 'xs' | 'sm' | 'md';
+
+export const SizeContext = createContext<SizeVariant | undefined>(undefined);
+
+export function SizeProvider({
+  size,
+  children,
+}: {
+  children: React.ReactNode;
+  size: SizeVariant;
+}) {
+  return <SizeContext value={size}>{children}</SizeContext>;
+}
+
+export function useSizeContext(): SizeVariant | undefined {
+  return useContext(SizeContext);
+}

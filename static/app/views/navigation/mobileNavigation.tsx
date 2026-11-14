@@ -6,31 +6,30 @@ import {IconMenu} from '@sentry/icons/menu';
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT,
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
-} from 'sentry/views/navigation/constants';
+
+import {PrimaryNavigation} from './primary/components';
+import {PrimaryNavigationHelpMenu, useWhatsNewHelpMenuItem} from './primary/helpMenu';
+import {OrganizationDropdown} from './primary/organizationDropdown';
+import {SecondaryNavigation} from './secondary/components';
+import {SecondaryNavigationContent} from './secondary/content';
+import {NAVIGATION_MOBILE_TOPBAR_HEIGHT, PRIMARY_HEADER_HEIGHT} from './constants';
 import {
   PrimaryNavigationFooterItems,
   PrimaryNavigationFooterItemsUserDropdown,
   PrimaryNavigationItems,
-} from 'sentry/views/navigation/navigation';
-import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {
-  PrimaryNavigationHelpMenu,
-  useWhatsNewHelpMenuItem,
-} from 'sentry/views/navigation/primary/helpMenu';
-import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
-import {SearchButton} from 'sentry/views/navigation/searchButton';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+  SettingsNavigationBackButton,
+  SettingsPrimaryNavigationItems,
+} from './navigation';
+import {hasSecondaryNavigation, usePrimaryNavigation} from './primaryNavigationContext';
+import {SearchButton} from './searchButton';
+import {useSecondaryNavigation} from './secondaryNavigationContext';
+import {useSettingsNavigation} from './useSettingsNavigation';
 
 function MobileNavigationHeader(props: FlexProps<'header'>) {
   const theme = useTheme();
@@ -66,19 +65,30 @@ function MobileHelpMenuFallback() {
 
 function MobilePrimaryNavigation() {
   const organization = useOrganization({allowNull: true});
+  const isSettingsNavigation = useSettingsNavigation();
   const {view} = useSecondaryNavigation();
+  const {activeGroup} = usePrimaryNavigation();
 
   return (
     <SizeProvider size="sm">
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
-          {organization && <OrganizationDropdown />}
+          {organization &&
+            (isSettingsNavigation ? (
+              <SettingsNavigationBackButton organizationSlug={organization.slug} />
+            ) : (
+              <OrganizationDropdown />
+            ))}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List>
-          <PrimaryNavigationItems />
+          {isSettingsNavigation && organization ? (
+            <SettingsPrimaryNavigationItems organizationSlug={organization.slug} />
+          ) : (
+            <PrimaryNavigationItems />
+          )}
         </PrimaryNavigation.List>
       </PrimaryNavigation.Sidebar>
-      {view === 'expanded' && (
+      {view === 'expanded' && hasSecondaryNavigation(activeGroup) && (
         <SecondaryNavigation.Sidebar>
           <SecondaryNavigationContent />
         </SecondaryNavigation.Sidebar>
@@ -94,7 +104,10 @@ export function MobileNavigation() {
   const navPanelRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const {view, setView} = useSecondaryNavigation();
-  const scrollLock = useScrollLock(document.getElementById('main') ?? document.body);
+  // Lock the document, not #main. `overflow: hidden` on #main drops its flex
+  // min-height to 0, so inside the Seer Explorer content pane it collapses to
+  // the pane height and squeezes the TopBar.
+  const scrollLock = useScrollLock(document.body);
 
   useEffect(() => {
     const main = document.getElementById('main');
@@ -137,10 +150,7 @@ export function MobileNavigation() {
 
   return (
     <SizeProvider size="sm">
-      <MobileNavigationHeader
-        padding="sm"
-        height={`${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`}
-      >
+      <MobileNavigationHeader padding="sm" height={`${PRIMARY_HEADER_HEIGHT}px`}>
         <Flex align="center" gap="md" justify="between" width="100%">
           <Button
             ref={toggleButtonRef}

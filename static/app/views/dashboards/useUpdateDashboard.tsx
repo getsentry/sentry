@@ -2,9 +2,10 @@ import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-quer
 
 import {updateDashboard} from 'sentry/actionCreators/dashboards';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
-import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
-import type {DashboardDetails} from 'sentry/views/dashboards/types';
+
+import {getDashboardRevisionsQueryKey} from './hooks/useDashboardRevisions';
+import {getStarredDashboardsQueryKey} from './hooks/useGetStarredDashboards';
+import type {DashboardDetails} from './types';
 
 export type UpdateDashboardVariables = {
   dashboard: DashboardDetails;

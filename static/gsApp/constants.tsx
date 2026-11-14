@@ -18,6 +18,7 @@ export const RESERVED_BUDGET_QUOTA = -2;
 export const CPE_MULTIPLIER_TO_CENTS = 0.000001;
 
 export const GIGABYTE = 10 ** 9;
+export const MILLISECONDS_IN_HOUR = 3_600_000;
 
 /**
  * Pseudo-tiers accepted by the customer billing-config endpoint as its `tier`
@@ -137,7 +138,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.SPAN_INDEXED]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED],
     canProductTrial: true,
-    freeEventsMultiple: 100_000,
     feature: 'spans-usage-tracking',
   },
   [DataCategoryExact.MONITOR_SEAT]: {
@@ -231,7 +231,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.INSTALLABLE_BUILD]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.INSTALLABLE_BUILD],
-    freeEventsMultiple: 1,
     shortenedUnitName: t('install'),
     adminOnlyProductTrialFeature: 'expose-category-installable-build',
   },

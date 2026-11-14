@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -10,8 +12,8 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorDetails';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
+
+import type {DetectorDetails} from './detectorDetails';
 
 export function getDetectorDetails({
   event,
@@ -124,7 +126,9 @@ function DetectorSectionContent({
 
   return (
     <div>
-      <SidebarSectionTitle>{title}</SidebarSectionTitle>
+      <Container marginBottom="md">
+        <SidebarSection.Title variant="primary">{title}</SidebarSection.Title>
+      </Container>
       {description && <DetectorDescription>{description}</DetectorDescription>}
       <LinkButton
         aria-label={ctaText}

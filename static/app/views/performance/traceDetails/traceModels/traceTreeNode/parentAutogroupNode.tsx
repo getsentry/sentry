@@ -1,9 +1,7 @@
 import type {Theme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
-import {AutogroupNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/autogroup';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceAutogroupedRow} from 'sentry/views/performance/traceDetails/traceRow/traceAutogroupedRow';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
 
@@ -86,12 +84,6 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
     return <TraceAutogroupedRow {...props} node={this} />;
-  }
-
-  renderDetails<NodeType extends BaseNode>(
-    props: TraceTreeNodeDetailsProps<NodeType>
-  ): React.ReactNode {
-    return <AutogroupNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

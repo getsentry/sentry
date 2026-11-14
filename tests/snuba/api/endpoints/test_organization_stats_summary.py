@@ -5,10 +5,13 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.constants import DataCategory
+from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
 from sentry.testutils.helpers.datetime import freeze_time, isoformat_z
+from sentry.users.models.user import User
 from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
 
@@ -91,13 +94,19 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             }
         )
 
-    def do_request(self, query, user=None, org=None):
+    def do_request(
+        self,
+        query: dict[str, Any],
+        user: User | None = None,
+        org: Organization | None = None,
+    ) -> Response:
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-stats-summary",
             kwargs={"organization_id_or_slug": (org or self.organization).slug},
         )
-        return self.client.get(url, query, format="json")
+        response: Response[Any] = self.client.get(url, query, format="json")
+        return response
 
     def test_empty_request(self) -> None:
         response = self.do_request({})
@@ -568,15 +577,14 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
         )
-        response = make_request(
-            {
-                "project": self.project.id,
-                "statsPeriod": "1d",
-                "interval": "1d",
-                "field": ["sum(quantity)"],
-                "category": ["error", "transaction"],
-            }
-        )
+        query_params: dict[str, Any] = {
+            "project": self.project.id,
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["sum(quantity)"],
+            "category": ["error", "transaction"],
+        }
+        response = make_request(query_params)
 
         assert response.status_code == 200, response.content
         assert response.data == {

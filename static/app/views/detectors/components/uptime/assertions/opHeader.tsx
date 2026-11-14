@@ -14,7 +14,8 @@ import {
   type UptimeOp,
 } from 'sentry/views/detectors/components/uptime/types';
 
-import {COMPARISON_OPTIONS, OpContainer, STRING_OPERAND_OPTIONS} from './opCommon';
+import {COMPARISON_OPTIONS, STRING_OPERAND_OPTIONS} from './comparisonOptions';
+import {OpContainer} from './opCommon';
 import {
   getHeaderKeyCombinedLabelAndTooltip,
   getHeaderOperandValue,

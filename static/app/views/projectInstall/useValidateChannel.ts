@@ -1,7 +1,8 @@
 import {skipToken} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {IntegrationChannel} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+
+import type {IntegrationChannel} from './messagingIntegrationTypes';
 
 type Response = {
   valid: boolean;

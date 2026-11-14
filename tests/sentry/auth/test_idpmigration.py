@@ -1,11 +1,13 @@
 import re
 from typing import cast
 
+from django.core import mail
 from django.urls import reverse
 
 import sentry.auth.idpmigration as idpmigration
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -28,7 +30,11 @@ class IDPMigrationTests(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.create(organization=self.org, user_id=self.user.id)
         link = idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
+            self.user,
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+            self.provider,
+            self.email,
+            self.IDENTITY_ID,
         )
         assert re.match(r"auth:one-time-key:\w{32}", link.verification_key)
 
@@ -43,7 +49,11 @@ class IDPMigrationTests(TestCase):
 
     def test_send_without_org_membership(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
+            self.user,
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+            self.provider,
+            self.email,
+            self.IDENTITY_ID,
         )
 
         value = json.loads(cast(str, idpmigration._get_redis_client().get(link.verification_key)))
@@ -55,9 +65,69 @@ class IDPMigrationTests(TestCase):
         assert value["identity_id"] == self.IDENTITY_ID
         assert value["provider"] == "dummy"
 
+    def test_confirm_link_sent_only_to_verified_account_email(self) -> None:
+        """The link goes to the account's verified address, not the asserted email."""
+        asserted = "other@example.com"
+        with self.tasks():
+            idpmigration.send_one_time_account_confirm_link(
+                self.user,
+                serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+                self.provider,
+                asserted,
+                self.IDENTITY_ID,
+            )
+
+        verified = set(self.user.get_verified_emails().values_list("email", flat=True))
+        assert verified
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert asserted not in sent.to
+        assert set(sent.to) == verified
+
+    def test_confirm_link_falls_back_to_primary_without_verified_email(self) -> None:
+        """With no verified email, the link goes to the primary address, not the asserted one."""
+        self.user.emails.update(is_verified=False)
+        asserted = "other@example.com"
+        with self.tasks():
+            idpmigration.send_one_time_account_confirm_link(
+                self.user,
+                serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+                self.provider,
+                asserted,
+                self.IDENTITY_ID,
+            )
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert asserted not in sent.to
+        assert sent.to == [self.user.email]
+
+    def test_legacy_identity_id_formats_normalized_on_read(self) -> None:
+        client = idpmigration._get_redis_client()
+        base = {"user_id": self.user.id, "email": self.email, "organization_id": self.org.id}
+        client.setex(
+            "auth:one-time-key:legacy-list",
+            60,
+            json.dumps({**base, "identity_id": ["sub-1", self.email]}),
+        )
+        client.setex("auth:one-time-key:legacy-int", 60, json.dumps({**base, "identity_id": 12345}))
+        client.setex("auth:one-time-key:legacy-none", 60, json.dumps({**base, "identity_id": None}))
+
+        def read(key: str) -> object:
+            value = idpmigration.get_verification_value_from_key(key)
+            assert value is not None
+            return value["identity_id"]
+
+        assert read("legacy-list") == "sub-1"
+        assert read("legacy-int") == "12345"
+        assert read("legacy-none") is None
+
     def test_verify_account(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
+            self.user,
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+            self.provider,
+            self.email,
+            self.IDENTITY_ID,
         )
         path = reverse(
             "sentry-idp-email-verification",
@@ -71,7 +141,11 @@ class IDPMigrationTests(TestCase):
 
     def test_verify_account_wrong_key(self) -> None:
         idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
+            self.user,
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+            self.provider,
+            self.email,
+            self.IDENTITY_ID,
         )
         path = reverse(
             "sentry-idp-email-verification",

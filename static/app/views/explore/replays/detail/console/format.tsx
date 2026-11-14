@@ -76,10 +76,11 @@ export function Format({onExpand, expandPaths, args}: FormatProps) {
     }
     switch (x) {
       case '%c':
-        // oxlint-disable-next-line react/immutability
+        // oxlint-disable-next-line react/immutability, react/todo
         styling = args[i++];
         return '';
       case '%s': {
+        // oxlint-disable-next-line react/todo
         const val = args[i++];
         try {
           return String(val);
@@ -88,9 +89,11 @@ export function Format({onExpand, expandPaths, args}: FormatProps) {
         }
       }
       case '%d':
+        // oxlint-disable-next-line react/todo
         return Number(args[i++]);
       case '%j':
         try {
+          // oxlint-disable-next-line react/todo
           return JSON.stringify(args[i++]);
         } catch (_) {
           return '[Circular]';
@@ -137,6 +140,7 @@ export function Format({onExpand, expandPaths, args}: FormatProps) {
     pieces.push(str);
   }
 
+  // oxlint-disable-next-line react/todo
   for (let x = args[i]; i < len; x = args[++i]) {
     if (x === null || typeof x !== 'object') {
       pieces.push(' ' + x);

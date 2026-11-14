@@ -17,9 +17,11 @@ from sentry.notifications.platform.templates.activity.base import (
     AssignedNotificationData,
     build_activity_notification_data,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     BoldTextBlock,
     LinkTextBlock,
+    NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSection,
@@ -30,9 +32,20 @@ from sentry.notifications.platform.types import (
     ParagraphSection,
     PlainTextBlock,
 )
+from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 from sentry.types.activity import ActivityType
+
+
+def render_email(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> EmailMultiAlternatives:
+    return EmailRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(data=data, provider=NotificationProviderKey.EMAIL),
+    )
 
 
 def validate_text_block(
@@ -76,7 +89,7 @@ class EmailRendererTest(TestCase):
         self.rendered_template = self.template.render(self.data)
 
     def test_render(self) -> None:
-        email = EmailRenderer.render(data=self.data, rendered_template=self.rendered_template)
+        email = render_email(self.data, self.rendered_template)
 
         assert isinstance(email, EmailMultiAlternatives)
         assert email.subject == self.rendered_template.subject_text
@@ -130,7 +143,7 @@ class EmailRendererTest(TestCase):
             ],
         )
 
-        email = EmailRenderer.render(data=self.data, rendered_template=xss_template)
+        email = render_email(self.data, xss_template)
         [html_content, _] = email.alternatives[0]
 
         # User content should be escaped (not executable)
@@ -161,7 +174,7 @@ class EmailRendererTest(TestCase):
             ],
         )
 
-        email = EmailRenderer.render(data=self.data, rendered_template=xss_template)
+        email = render_email(self.data, xss_template)
         [html_content, _] = email.alternatives[0]
 
         assert "<script>" not in str(html_content)
@@ -174,7 +187,7 @@ class EmailRendererTest(TestCase):
             email_subject_prefix="[Project] ",
         )
 
-        email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
+        email = render_email(self.data, rendered_template)
 
         assert email.subject == "[Project] Test subject"
 
@@ -185,7 +198,7 @@ class EmailRendererTest(TestCase):
             email_subject_prefix="[Project]\nInjected: ",
         )
 
-        email = EmailRenderer.render(data=self.data, rendered_template=rendered_template)
+        email = render_email(self.data, rendered_template)
 
         assert email.subject == "[Project] Injected: Test subject"
 
@@ -215,11 +228,16 @@ class EmailNotificationProviderTest(TestCase):
         assert self.provider.target_class == GenericNotificationTarget
         assert self.provider.target_resource_types == [NotificationTargetResourceType.EMAIL]
         assert EmailNotificationProvider.is_available() is True
-        assert EmailNotificationProvider.is_available(organization=self.organization) is True
+        assert (
+            EmailNotificationProvider.is_available(
+                organization=serialize_organization_summary(self.organization)
+            )
+            is True
+        )
 
     @mock.patch("sentry.notifications.platform.email.provider.send_messages")
     def test_send(self, mock_send_messages: mock.MagicMock) -> None:
-        email = EmailRenderer.render(data=self.data, rendered_template=self.rendered_template)
+        email = render_email(self.data, self.rendered_template)
         EmailNotificationProvider.send(target=self.target, renderable=email)
         mock_send_messages.assert_called_once()
         [sent_message] = mock_send_messages.call_args[0][0]
@@ -239,7 +257,7 @@ class EmailNotificationProviderTest(TestCase):
         data = build_activity_notification_data(activity=activity, target=self.target)
         assert isinstance(data, AssignedNotificationData)
         rendered_template = AssignedActivityTemplate().render(data)
-        email = EmailRenderer.render(data=data, rendered_template=rendered_template)
+        email = render_email(data, rendered_template)
 
         EmailNotificationProvider.send(target=self.target, renderable=email)
 
@@ -279,7 +297,7 @@ class EmailNotificationProviderTest(TestCase):
         rendered_template = AssignedActivityTemplate().render(data)
 
         with self.options({"mail.enable-replies": True}):
-            email = EmailRenderer.render(data=data, rendered_template=rendered_template)
+            email = render_email(data, rendered_template)
             EmailNotificationProvider.send(target=self.target, renderable=email)
             first_message_id = email.extra_headers["Message-Id"]
             mock_send_messages.reset_mock()
@@ -287,7 +305,7 @@ class EmailNotificationProviderTest(TestCase):
             data = build_activity_notification_data(activity=activity, target=self.target)
             assert isinstance(data, AssignedNotificationData)
             rendered_template = AssignedActivityTemplate().render(data)
-            email = EmailRenderer.render(data=data, rendered_template=rendered_template)
+            email = render_email(data, rendered_template)
             EmailNotificationProvider.send(target=self.target, renderable=email)
 
         [sent_message] = mock_send_messages.call_args[0][0]

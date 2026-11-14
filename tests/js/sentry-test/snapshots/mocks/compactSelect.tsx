@@ -1,6 +1,6 @@
 import type {ComponentProps, ReactNode} from 'react';
 
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 export function CompactSelect({
   options,
@@ -8,12 +8,12 @@ export function CompactSelect({
   size,
 }: {
   options: Array<{label: ReactNode; value: unknown}>;
-  size?: ComponentProps<typeof DropdownButton>['size'];
+  size?: ComponentProps<typeof OverlayTrigger.Button>['size'];
   value?: unknown;
 }) {
   return (
-    <DropdownButton size={size}>
-      {options.find(opt => opt.value === value)?.label}
-    </DropdownButton>
+    <OverlayTrigger.Button size={size}>
+      {options.find(opt => opt.value === value)?.label ?? ''}
+    </OverlayTrigger.Button>
   );
 }

@@ -2,9 +2,10 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {HypothesisCard} from 'sentry/views/investigations/hypotheses/hypothesisCard';
-import {HypothesisCardPlaceholder} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
+
+import {HypothesisCard} from './hypothesisCard';
+import {HypothesisCardPlaceholder} from './hypothesisPlaceholder';
 
 /**
  * The narrowest a hypothesis card may get before the row drops to fewer
@@ -22,6 +23,7 @@ const ROW_LAYOUT = {
   columns: `repeat(auto-fit, minmax(${MIN_CARD_WIDTH}, 1fr))`,
   gap: 'xl',
   align: 'start',
+  margin: '0',
   padding: '0',
 } as const;
 
@@ -84,7 +86,7 @@ export function HypothesisList({
     return null;
   }
 
-  const ordered = [...hypotheses].sort((a, b) => a.order - b.order);
+  const ordered = hypotheses.toSorted((a, b) => a.order - b.order);
 
   return (
     <Grid {...ROW_LAYOUT} className={className} data-test-id="investigation-hypotheses">

@@ -1,3 +1,4 @@
+import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {
   AutofixRootCauseArtifactFixture,
   ExplorerAutofixBlockFixture,
@@ -21,11 +22,21 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {clearIndicators} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {DiffFileType} from 'sentry/components/events/autofix/types';
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
-import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
+import {
+  GroupActivityType,
+  GroupStatus,
+  ProgressState,
+  type Group,
+} from 'sentry/types/group';
 import type {LinkedPullRequest} from 'sentry/types/integrations';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import {IssuePreview} from './issuePreview';
 
@@ -87,6 +98,10 @@ describe('IssuePreview', () => {
   }
 
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     localStorage.clear();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -100,9 +115,19 @@ describe('IssuePreview', () => {
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: []},
     });
-    clearIndicators();
+    toast.dismiss();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {
+        headline: 'Test summary',
+        whatsWrong: null,
+        possibleCause: null,
+        trace: null,
+      },
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
       body: group,
@@ -157,7 +182,17 @@ describe('IssuePreview', () => {
     });
   });
 
-  it('shows the recommended stack trace when AI features are hidden', async () => {
+  it('uses saved stack trace collapse preferences when AI features are hidden', async () => {
+    const summaryRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {
+        headline: 'A cached summary',
+        whatsWrong: null,
+        possibleCause: null,
+        trace: null,
+      },
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
       body: EventStacktraceExceptionFixture(),
@@ -169,11 +204,150 @@ describe('IssuePreview', () => {
     });
 
     const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    expect(within(stackTrace).queryByText('doThing')).not.toBeInTheDocument();
+    expect(summaryRequest).not.toHaveBeenCalled();
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    );
     expect(within(stackTrace).getByText('an error occurred')).toBeVisible();
     expect(within(stackTrace).getByText('doThing')).toBeVisible();
+    expect(localStorage.getItem('issue-details-fold-section-collapse:exception')).toBe(
+      'false'
+    );
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'Collapse Stack Trace Section'})
+    );
+    expect(within(stackTrace).queryByText('doThing')).not.toBeInTheDocument();
+    expect(localStorage.getItem('issue-details-fold-section-collapse:exception')).toBe(
+      'true'
+    );
   });
 
-  it('shows the recommended stack trace alongside Seer analysis', async () => {
+  describe('issue summary', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+        body: EventStacktraceExceptionFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+        body: AutofixSetupFixture({billing: {hasAutofixQuota: false}}),
+      });
+    });
+
+    it('keeps telemetry and actions available when summary generation fails', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Unable to generate summary'},
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+      expect(within(stackTrace).getByText('doThing')).toBeVisible();
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+    });
+
+    it('waits for the summary before showing the body while keeping actions available', async () => {
+      const response = Promise.withResolvers<void>();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+        method: 'POST',
+        asyncDelay: response.promise,
+        body: {
+          headline: 'Requests time out',
+          whatsWrong: null,
+          possibleCause: null,
+          trace: null,
+        },
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+      expect(screen.queryByRole('region', {name: 'Stack Trace'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('region', {name: 'Summary'})).not.toBeInTheDocument();
+
+      response.resolve();
+      const summary = await screen.findByRole('region', {name: 'Summary'});
+      expect(within(summary).getByText('Requests time out')).toBeVisible();
+      expect(screen.getByRole('region', {name: 'Stack Trace'})).toBeVisible();
+    });
+
+    it('renders and copies summary context without Seer quota', async () => {
+      const writeText = jest.fn((_text: string) => Promise.resolve());
+      Object.assign(navigator, {
+        clipboard: {writeText},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+        method: 'POST',
+        body: {
+          headline: 'Requests time out',
+          whatsWrong: 'The connection pool is exhausted.',
+          possibleCause: 'The retry handler opens connections outside the managed pool.',
+          trace: 'The request failed while acquiring a connection.',
+        },
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      const summary = await screen.findByRole('region', {name: 'Summary'});
+      expect(
+        within(summary).getByText(
+          'The connection pool is exhausted. The retry handler opens connections outside the managed pool.'
+        )
+      ).toBeVisible();
+      expect(
+        within(summary).getByText('The request failed while acquiring a connection.')
+      ).toBeVisible();
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '## Summary\n\nThe connection pool is exhausted. The retry handler opens connections outside the managed pool.'
+        )
+      );
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '## In the trace\n\nThe request failed while acquiring a connection.'
+        )
+      );
+      await userEvent.click(
+        screen.getByRole('button', {name: 'More issue context options'})
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Open in ChatGPT'})
+      );
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        `codex://new?prompt=${encodeURIComponent(
+          `Fix Sentry issue ${group.shortId}: ${group.permalink}\n\nUse the Sentry MCP to fetch the issue details.\n\nSummary: The connection pool is exhausted. The retry handler opens connections outside the managed pool.`
+        )}`
+      );
+    });
+  });
+
+  it('keeps frames expanded when historical RCA metadata has no Seer content to show', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: {...group, derivedData: fixAppliedGroup.derivedData},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: EventStacktraceExceptionFixture(),
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    expect(within(stackTrace).getByTestId('core-stacktrace-frame-context')).toBeVisible();
+  });
+
+  it('starts the stack trace collapsed with Seer analysis and allows manual expansion', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
       body: EventStacktraceExceptionFixture(),
@@ -191,19 +365,67 @@ describe('IssuePreview', () => {
       body: [],
     });
 
+    localStorage.setItem('issue-details-fold-section-collapse:exception', 'false');
     render(<IssuePreview groupId={group.id} />, {organization});
 
     const rootCause = await screen.findByRole('region', {name: 'Root Cause'});
     expect(
       within(rootCause).getByText('The issue was caused by an unexpected value.')
     ).toBeVisible();
+    expect(screen.getByRole('region', {name: 'Issue Timeline'})).not.toContainElement(
+      rootCause
+    );
     const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    );
     expect(within(stackTrace).getByText('doThing')).toBeVisible();
     await userEvent.click(
       within(stackTrace).getByRole('button', {name: 'Display options'})
     );
     await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
     expect(within(stackTrace).getByText(/Error: an error occurred/)).toBeVisible();
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'Collapse Stack Trace Section'})
+    );
+    expect(localStorage.getItem('issue-details-fold-section-collapse:exception')).toBe(
+      'false'
+    );
+  });
+
+  it('collapses the stack trace when Seer analysis arrives after the preview', async () => {
+    const autofixResponse = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({billing: {hasAutofixQuota: false}}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: EventStacktraceExceptionFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture(),
+      asyncDelay: autofixResponse.promise,
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    expect(within(stackTrace).getByText('doThing')).toBeVisible();
+
+    autofixResponse.resolve();
+    expect(
+      await screen.findByText('The issue was caused by an unexpected value.')
+    ).toBeVisible();
+    const updatedStackTrace = screen.getByRole('region', {name: 'Stack Trace'});
+    expect(
+      within(updatedStackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    ).toBeVisible();
+    await userEvent.click(
+      within(updatedStackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    );
+    expect(within(updatedStackTrace).getByText('doThing')).toBeVisible();
   });
 
   it('shows Resolve and Archive without waiting for Seer setup when AI is hidden', async () => {
@@ -229,7 +451,9 @@ describe('IssuePreview', () => {
     ).not.toBeInTheDocument();
 
     setup.resolve();
-    expect(await screen.findByRole('heading', {name: 'Activity'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Issue Timeline'})
+    ).toBeInTheDocument();
   });
 
   it('links to an open pull request alongside the Seer action', async () => {
@@ -264,6 +488,102 @@ describe('IssuePreview', () => {
     );
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', {name: 'Issue Timeline'})).getByRole('list', {
+        name: 'Other linked pull requests',
+      })
+    ).toBeVisible();
+  });
+
+  it('embeds PR cards alongside Seer results without duplicating linked PR activity', async () => {
+    const seerPullRequest = {
+      ...linkedPullRequest,
+      title: 'Fix the null lookup',
+      dateLinked: '2024-01-01T00:01:00Z',
+      status: 'merged',
+    } satisfies LinkedPullRequest;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: GroupFixture({
+        ...group,
+        activity: [
+          ActivityFeedFixture({
+            id: 'pr-merged',
+            type: GroupActivityType.PULL_REQUEST_MERGED,
+            dateCreated: '2024-01-01T00:02:00Z',
+            data: {pullRequest: seerPullRequest},
+          }),
+          ActivityFeedFixture({
+            id: 'seer-reference',
+            type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+            dateCreated: '2024-01-01T00:01:00Z',
+            data: {pullRequest: seerPullRequest},
+          }),
+          ActivityFeedFixture({
+            id: 'seer-ready',
+            type: GroupActivityType.SEER_PR_READY_FOR_REVIEW,
+            dateCreated: '2024-01-01T00:01:00Z',
+            data: {
+              run_id: 42,
+              pull_requests: [
+                {
+                  provider: 'github',
+                  repo_name: seerPullRequest.repository.name,
+                  pull_request: {pr_number: 10, pr_url: seerPullRequest.externalUrl},
+                },
+              ],
+            },
+          }),
+          ActivityFeedFixture({
+            id: 'seer-created',
+            type: GroupActivityType.SEER_PR_CREATED,
+            dateCreated: '2024-01-01T00:01:00Z',
+            data: {
+              run_id: 42,
+              pull_requests: [
+                {
+                  provider: 'github',
+                  repo_name: seerPullRequest.repository.name,
+                  pull_request: {pr_number: 10, pr_url: seerPullRequest.externalUrl},
+                },
+              ],
+            },
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          blocks: [
+            ExplorerAutofixBlockFixture({
+              artifacts: [],
+              message: {
+                role: 'assistant',
+                content: 'Code changes complete',
+                metadata: {step: 'code_changes'},
+              },
+            }),
+          ],
+        }),
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: [seerPullRequest]},
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    const pullRequestCard = screen.getByRole('link', {name: /Fix the null lookup$/});
+    expect(timeline).toContainElement(pullRequestCard);
+    expect(pullRequestCard).toHaveAttribute('href', seerPullRequest.externalUrl);
+    expect(within(timeline).getByRole('region', {name: 'Code Changes'})).toBeVisible();
+    expect(within(timeline).getByText('Referenced in pull request')).toAppearBefore(
+      pullRequestCard
+    );
   });
 
   it('labels and links current PRs alongside Seer actions', async () => {
@@ -468,7 +788,7 @@ describe('IssuePreview', () => {
       });
 
       it('copies the issue and the selected thread stacktrace', async () => {
-        MockApiClient.addMockResponse({
+        const eventRequest = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
           body: EventFixture({
             entries: [
@@ -515,6 +835,12 @@ describe('IssuePreview', () => {
 
         render(<IssuePreview groupId={group.id} />, {
           organization: organizationWithoutAi,
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/issues/inbox/`,
+              query: {statsPeriod: '24h', environment: 'production'},
+            },
+          },
         });
 
         const copyButton = await screen.findByRole('button', {
@@ -547,6 +873,13 @@ describe('IssuePreview', () => {
         );
         expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
           expect.stringContaining('processTask in src/worker.ts [Line 12]')
+        );
+        expect(eventRequest).toHaveBeenCalledTimes(1);
+        expect(eventRequest).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            query: {collapse: ['fullRelease'], llmFormat: 'markdown'},
+          })
         );
       });
 
@@ -675,6 +1008,9 @@ describe('IssuePreview', () => {
           await screen.findByRole('button', {name: 'Copy as Markdown'})
         ).toBeDisabled();
         expect(eventRequest).not.toHaveBeenCalled();
+        expect(
+          screen.getByRole('button', {name: 'More issue context options'})
+        ).toBeDisabled();
       });
     });
   });
@@ -774,13 +1110,27 @@ describe('IssuePreview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps previous Seer analysis readable without quota and disables rerunning it', async () => {
+  it('keeps matched Seer analysis readable without quota and disables rerunning it', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
-      body: GroupFixture({
-        ...group,
-        derivedData: {...fixAppliedGroup.derivedData!, progress: ProgressState.DIAGNOSED},
-      }),
+      body: {
+        ...GroupFixture({
+          ...group,
+          derivedData: {
+            ...fixAppliedGroup.derivedData!,
+            progress: ProgressState.DIAGNOSED,
+          },
+        }),
+        activity: [
+          {
+            ...ActivityFeedFixture({
+              type: GroupActivityType.SEER_RCA_COMPLETED,
+              dateCreated: '2024-01-01T00:01:00Z',
+            }),
+            data: {run_id: '42'},
+          },
+        ],
+      },
     });
     const description = 'The user lookup returned an unexpected null value.';
     MockApiClient.addMockResponse({
@@ -812,7 +1162,10 @@ describe('IssuePreview', () => {
     expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
     expect(await screen.findByText(description)).toBeVisible();
-    const rootCause = screen.getByRole('region', {name: 'Root Cause'});
+    const rootCause = within(
+      screen.getByRole('region', {name: 'Issue Timeline'})
+    ).getByRole('region', {name: 'Root Cause'});
+    expect(screen.getAllByRole('region', {name: 'Root Cause'})).toHaveLength(1);
     expect(within(rootCause).getByRole('button', {name: 'Re-run step'})).toHaveAttribute(
       'aria-disabled',
       'true'
@@ -1179,5 +1532,242 @@ describe('IssuePreview', () => {
       await screen.findByText('Unable to update events. Please try again.')
     ).toBeInTheDocument();
     expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
+  });
+
+  describe('out of Seer credits', () => {
+    const creditCheckOrganization = OrganizationFixture({
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+    });
+    const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
+
+    function mockCreditCheck(operation: string) {
+      return MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        match: [MockApiClient.matchQuery({operation})],
+        body: {hasEnoughCredits: false},
+      });
+    }
+
+    // getsentry fills in the CTA; this stand-in shows what it was asked for.
+    function StubOutOfCreditsCta({
+      reason,
+      variant = 'warning',
+    }: SeerOutOfCreditsCtaProps) {
+      return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
+    }
+
+    beforeEach(() => {
+      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+        body: {integrations: []},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+        body: [{provider: 'github'}],
+      });
+    });
+
+    it('shows the CTA and disables Find Root Cause', async () => {
+      const creditCheck = mockCreditCheck('autofix_root_cause');
+
+      render(<IssuePreview groupId={group.id} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-start'
+      );
+      expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeDisabled();
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the root cause and coding agent menu, and disables Make a Plan', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: ExplorerAutofixResponseFixture(),
+      });
+      mockCreditCheck('autofix_solution');
+
+      render(<IssuePreview groupId={group.id} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-continue'
+      );
+      expect(
+        screen.getByText('The issue was caused by an unexpected value.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Make a Plan'})).toBeDisabled();
+      // Hand-offs to coding agents aren't paid for in Seer credits.
+      expect(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      ).toBeEnabled();
+    });
+
+    it('shows the start copy and keeps the PR link when restarting a finished run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: ExplorerAutofixResponseFixture({
+          autofix: ExplorerAutofixStateFixture({
+            blocks: [
+              ExplorerAutofixBlockFixture(),
+              ExplorerAutofixBlockFixture({
+                id: 'completed',
+                message: {
+                  content: 'Autofix complete',
+                  metadata: {step: 'completed'},
+                  role: 'assistant',
+                },
+              }),
+            ],
+          }),
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+        body: {pullRequests: [linkedPullRequest]},
+      });
+      const creditCheck = mockCreditCheck('autofix_root_cause');
+
+      render(<IssuePreview groupId={group.id} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-start'
+      );
+      expect(screen.getByRole('button', {name: 'Restart Autofix'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'View PR'})).toHaveAttribute(
+        'href',
+        linkedPullRequest.externalUrl
+      );
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('checks Restart Autofix when PRs take the place of the coding agent link', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: ExplorerAutofixResponseFixture({
+          autofix: ExplorerAutofixStateFixture({
+            coding_agents: {
+              'agent-1': {
+                id: 'agent-1',
+                name: 'Cursor',
+                provider: 'cursor_background_agent',
+                started_at: '2026-08-17T12:00:00Z',
+                status: 'completed',
+                results: [
+                  {
+                    description: 'Fixed',
+                    repo_full_name: 'example/repo-name',
+                    repo_provider: 'github',
+                    pr_number: 11,
+                    pr_url: 'https://github.com/example/repo-name/pull/11',
+                  },
+                ],
+              },
+            },
+          }),
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+        body: {
+          pullRequests: [
+            {
+              ...linkedPullRequest,
+              id: '11',
+              dateCreated: '2026-08-17T12:00:00Z',
+              externalUrl: 'https://github.com/example/repo-name/pull/11',
+            },
+            {...linkedPullRequest, dateCreated: '2026-08-16T12:00:00Z'},
+          ],
+        },
+      });
+      const creditCheck = mockCreditCheck('autofix_root_cause');
+
+      render(<IssuePreview groupId={group.id} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-start'
+      );
+      expect(screen.getByRole('button', {name: 'Restart Autofix'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'View PR #11'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'View PR #10'})).toBeInTheDocument();
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('disables Create PR', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: ExplorerAutofixResponseFixture({
+          autofix: ExplorerAutofixStateFixture({
+            blocks: [
+              ExplorerAutofixBlockFixture(),
+              ExplorerAutofixBlockFixture({
+                id: 'code-changes',
+                artifacts: undefined,
+                merged_file_patches: [
+                  {
+                    repo_name: 'org/repo',
+                    diff: 'diff --git a/src/user.ts b/src/user.ts',
+                    patch: {
+                      path: 'src/user.ts',
+                      added: 1,
+                      removed: 0,
+                      hunks: [],
+                      source_file: 'src/user.ts',
+                      target_file: 'src/user.ts',
+                      type: DiffFileType.MODIFIED,
+                    },
+                  },
+                ],
+                message: {
+                  content: 'Code changes complete',
+                  metadata: {step: 'code_changes'},
+                  role: 'assistant',
+                },
+              }),
+            ],
+          }),
+        }),
+      });
+      const creditCheck = mockCreditCheck('autofix_open_pr');
+
+      render(<IssuePreview groupId={group.id} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-continue'
+      );
+      expect(screen.getByRole('button', {name: 'Create PR'})).toBeDisabled();
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not check credits while Seer is processing', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: ExplorerAutofixResponseFixture({
+          autofix: ExplorerAutofixStateFixture({status: 'processing'}),
+        }),
+      });
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(<IssuePreview groupId={group.id} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByRole('button', {name: 'Make a Plan'})).toBeDisabled();
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
   });
 });

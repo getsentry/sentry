@@ -4,6 +4,7 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
+import {createMultiParser, parseAsString} from 'nuqs';
 
 import type {SelectValue} from '@sentry/scraps/select';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
@@ -17,9 +18,37 @@ import type {PageFilters} from 'sentry/types/core';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import {toArray} from 'sentry/utils/array/toArray';
-import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
-import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import {AggregationKey} from 'sentry/utils/fields';
+import {
+  decodeList,
+  decodeScalar,
+  decodeSorts,
+  encodeSort,
+  type QueryValue,
+} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+import type {WidgetType} from 'sentry/views/dashboards/types';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {
+  getDatasetFromLocationOrSavedQueryDataset,
+  getSavedQueryDatasetFromLocationOrDataset,
+} from 'sentry/views/discover/savedQuery/datasets';
+import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
+import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+
+import {decodeColumnOrder} from './decodeColumnOrder';
+import type {Column, ColumnType, Field, Sort} from './fields';
 import {
   aggregateOutputType,
   generateFieldAsString,
@@ -29,7 +58,8 @@ import {
   isAggregateField,
   isEquation,
   isLegalYAxisType,
-} from 'sentry/utils/discover/fields';
+} from './fields';
+import {getSortField} from './getSortField';
 import {
   CHART_AXIS_OPTIONS,
   DiscoverDatasets,
@@ -38,31 +68,7 @@ import {
   DisplayModes,
   TOP_N,
   type SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
-import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-import {AggregationKey} from 'sentry/utils/fields';
-import {
-  decodeList,
-  decodeScalar,
-  decodeSorts,
-  encodeSort,
-} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import type {WidgetType} from 'sentry/views/dashboards/types';
-import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {
-  getDatasetFromLocationOrSavedQueryDataset,
-  getSavedQueryDatasetFromLocationOrDataset,
-} from 'sentry/views/discover/savedQuery/utils';
-import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
-import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-
-import {getSortField} from './fieldRenderers';
+} from './types';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, any> & {
@@ -146,15 +152,45 @@ export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
   return !!getSortKeyFromField(field, tableMeta);
 }
 
-const decodeFields = (location: Location): Field[] => {
-  const {query} = location;
-  if (!query?.field) {
-    return [];
-  }
+// Mirrors decodeList: a lone blank is absent, but repeated blanks are kept and count as present.
+const parseAsList = createMultiParser({
+  parse: values => (values.length === 1 && !values[0] ? [] : values),
+  serialize: (values: readonly string[]) => [...values],
+}).withDefault([]);
 
-  const fields = decodeList(query.field);
-  const widths = decodeList(query.widths);
+const eventViewQueryParsers = {
+  dataset: parseAsScalar,
+  display: parseAsScalar,
+  end: parseAsList,
+  environment: parseAsStringArray,
+  field: parseAsList,
+  id: parseAsScalar,
+  interval: parseAsScalar,
+  name: parseAsScalar,
+  project: parseAsList,
+  query: parseAsString,
+  sort: parseAsStringArray,
+  start: parseAsList,
+  statsPeriod: parseAsList,
+  team: parseAsStringArray,
+  topEvents: parseAsScalar,
+  utc: parseAsList,
+  widths: parseAsList,
+  yAxis: parseAsScalar,
+};
 
+const dateSelectionQueryParsers = {
+  period: parseAsScalar,
+  utc: parseAsScalar,
+};
+
+const decodeFields = ({
+  field: fields,
+  widths,
+}: {
+  field: readonly string[];
+  widths: readonly string[];
+}): Field[] => {
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
     if (!field) {
@@ -171,12 +207,6 @@ const decodeFields = (location: Location): Field[] => {
 
 const encodeSorts = (sorts: readonly Sort[]): string[] => sorts.map(encodeSort);
 
-// TODO(__SENTRY_USING_REACT_ROUTER_SIX): This is needed to translate query
-// objects that have non-string values and single-element arrays to match what
-// react-router 6 translates these objects into, so that the tests can work
-// between 3 and 6.
-//
-// Once we're fully on 6 we can likely remove these changes
 function stringifyQueryParams(
   query: Record<string, string | number | string[] | number[] | undefined>
 ) {
@@ -196,9 +226,8 @@ function stringifyQueryParams(
   }
 }
 
-const collectQueryStringByKey = (query: Query, key: string): string[] => {
-  const needle = query[key];
-  const collection = decodeList(needle);
+const collectTrimmedValues = (value: QueryValue): string[] => {
+  const collection = decodeList(value);
   return collection.reduce((acc: string[], item: string) => {
     if (typeof item !== 'string') {
       return acc;
@@ -213,16 +242,6 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
   }, []);
 };
 
-const decodeQuery = (location: Location): string => {
-  if (!location.query?.query) {
-    return '';
-  }
-
-  const queryParameter = location.query.query;
-
-  return decodeScalar(queryParameter, '').trim();
-};
-
 const decodeTeam = (value: string): 'myteams' | number => {
   if (value === 'myteams') {
     return value;
@@ -230,24 +249,11 @@ const decodeTeam = (value: string): 'myteams' | number => {
   return parseInt(value, 10);
 };
 
-const decodeTeams = (location: Location): Array<'myteams' | number> => {
-  if (!location.query?.team) {
-    return [];
-  }
-  const value = location.query.team;
-  return toArray(value)
-    .map(decodeTeam)
-    .filter(team => team === 'myteams' || !isNaN(team));
-};
+const decodeTeams = (teams: readonly string[]): Array<'myteams' | number> =>
+  teams.map(decodeTeam).filter(team => team === 'myteams' || !isNaN(team));
 
-const decodeProjects = (location: Location): number[] => {
-  if (!location.query?.project) {
-    return [];
-  }
-
-  const value = location.query.project;
-  return toArray(value).map(i => parseInt(i, 10));
-};
+const decodeProjects = (projects: readonly string[]): number[] =>
+  projects.map(project => parseInt(project, 10));
 
 const queryStringFromSavedQuery = (saved: NewQuery | SavedQuery): string => {
   if (saved.query) {
@@ -366,42 +372,43 @@ export class EventView {
 
   static fromLocation(location: Location): EventView {
     const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
+    const params = loadQueryParamsFromLocation(eventViewQueryParsers, location);
 
     return new EventView({
-      id: decodeScalar(location.query.id),
-      name: decodeScalar(location.query.name),
-      fields: decodeFields(location),
-      sorts: decodeSorts(location.query.sort),
-      query: decodeQuery(location),
-      team: decodeTeams(location),
-      project: decodeProjects(location),
+      id: params.id ?? undefined,
+      name: params.name ?? undefined,
+      fields: decodeFields(params),
+      sorts: decodeSorts(params.sort),
+      query: params.query?.trim() ?? '',
+      team: decodeTeams(params.team),
+      project: decodeProjects(params.project),
       start: decodeScalar(start),
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
-      environment: collectQueryStringByKey(location.query, 'environment'),
-      yAxis: decodeScalar(location.query.yAxis),
-      display: decodeScalar(location.query.display),
-      topEvents: decodeScalar(location.query.topEvents),
-      interval: decodeScalar(location.query.interval),
+      environment: collectTrimmedValues(params.environment),
+      yAxis: params.yAxis ?? undefined,
+      display: params.display ?? undefined,
+      topEvents: params.topEvents ?? undefined,
+      interval: params.interval ?? undefined,
       createdBy: undefined,
       additionalConditions: new MutableSearch([]),
-      dataset: decodeScalar(location.query.dataset) as DiscoverDatasets,
+      dataset: (params.dataset ?? undefined) as DiscoverDatasets,
     });
   }
 
   static fromNewQueryWithLocation(newQuery: NewQuery, location: Location): EventView {
-    const query = location.query;
+    const params = loadQueryParamsFromLocation(eventViewQueryParsers, location);
 
     // apply global selection header values from location whenever possible
     const environment: string[] =
       Array.isArray(newQuery.environment) && newQuery.environment.length > 0
         ? newQuery.environment
-        : collectQueryStringByKey(query, 'environment');
+        : collectTrimmedValues(params.environment);
 
     const project: number[] =
       Array.isArray(newQuery.projects) && newQuery.projects.length > 0
         ? newQuery.projects
-        : decodeProjects(location);
+        : decodeProjects(params.project);
 
     const saved: NewQuery = {
       ...newQuery,
@@ -410,9 +417,9 @@ export class EventView {
       projects: project,
 
       // datetime selection
-      start: newQuery.start || decodeScalar(query.start),
-      end: newQuery.end || decodeScalar(query.end),
-      range: newQuery.range || decodeScalar(query.statsPeriod),
+      start: newQuery.start || params.start[0],
+      end: newQuery.end || params.end[0],
+      range: newQuery.range || params.statsPeriod[0],
     };
 
     return EventView.fromSavedQuery(saved);
@@ -460,12 +467,7 @@ export class EventView {
       statsPeriod: decodeScalar(statsPeriod),
       utc,
       sorts: decodeSorts(saved.orderby),
-      environment: collectQueryStringByKey(
-        {
-          environment: saved.environment as string[],
-        },
-        'environment'
-      ),
+      environment: collectTrimmedValues(saved.environment as string[]),
       yAxis:
         Array.isArray(saved.yAxis) && saved.yAxis.length === 1
           ? saved.yAxis[0]
@@ -487,23 +489,17 @@ export class EventView {
     saved: SavedQuery | undefined,
     location: Location
   ): EventView {
-    let fields = decodeFields(location);
-    const id = decodeScalar(location.query.id);
-    const teams = decodeTeams(location);
-    const projects = decodeProjects(location);
-    const sorts = decodeSorts(location.query.sort);
-    const environments = collectQueryStringByKey(location.query, 'environment');
-
     if (saved) {
-      if (fields.length === 0) {
-        fields = EventView.getFields(saved);
-      }
+      const params = loadQueryParamsFromLocation(eventViewQueryParsers, location);
+      const urlFields = decodeFields(params);
+      const fields = urlFields.length === 0 ? EventView.getFields(saved) : urlFields;
+      const sorts = decodeSorts(params.sort);
 
       const {start, end, statsPeriod, utc} = normalizeDateTimeParams(
-        location.query.start ||
-          location.query.end ||
-          location.query.statsPeriod ||
-          location.query.utc
+        params.start.length ||
+          params.end.length ||
+          params.statsPeriod.length ||
+          params.utc.length
           ? location.query
           : {
               start: saved.start,
@@ -513,41 +509,34 @@ export class EventView {
             }
       );
       return new EventView({
-        id: id || saved.id,
-        name: decodeScalar(location.query.name) || saved.name,
+        id: params.id || saved.id,
+        name: params.name || saved.name,
         fields,
         query:
-          'query' in location.query
-            ? decodeQuery(location)
-            : queryStringFromSavedQuery(saved),
+          params.query === null ? queryStringFromSavedQuery(saved) : params.query.trim(),
         sorts: sorts.length === 0 ? decodeSorts(saved.orderby) : sorts,
         yAxis:
-          decodeScalar(location.query.yAxis) ||
+          params.yAxis ||
           // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
           (Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis),
-        display: decodeScalar(location.query.display) || saved.display,
-        topEvents: (
-          decodeScalar(location.query.topEvents) ||
-          saved.topEvents ||
-          TOP_N
-        ).toString(),
-        interval: decodeScalar(location.query.interval) || saved.interval,
+        display: params.display || saved.display,
+        topEvents: (params.topEvents || saved.topEvents || TOP_N).toString(),
+        interval: params.interval || saved.interval,
         createdBy: saved.createdBy,
         expired: saved.expired,
         additionalConditions: new MutableSearch([]),
         // Always read team from location since they can be set by other parts
         // of the UI
-        team: teams,
+        team: decodeTeams(params.team),
         // Always read project and environment from location since they can
         // be set by the GlobalSelectionHeaders.
-        project: projects,
-        environment: environments,
+        project: decodeProjects(params.project),
+        environment: collectTrimmedValues(params.environment),
         start: decodeScalar(start),
         end: decodeScalar(end),
         statsPeriod: decodeScalar(statsPeriod),
         utc,
-        dataset:
-          (decodeScalar(location.query.dataset) as DiscoverDatasets) ?? saved.dataset,
+        dataset: (params.dataset as DiscoverDatasets | null) ?? saved.dataset,
       });
     }
     return EventView.fromLocation(location);
@@ -1088,31 +1077,11 @@ export class EventView {
     }));
   }
 
-  getFacetsAPIPayload(
-    location: Location
-  ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
-    const payload = this.getEventsAPIPayload(location);
-
-    const remove = [
-      'id',
-      'name',
-      'per_page',
-      'sort',
-      'cursor',
-      'field',
-      'equation',
-      'interval',
-    ];
-    for (const key of remove) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      delete payload[key];
-    }
-
-    return payload;
-  }
-
   normalizeDateSelection(location: Location) {
-    const query = location?.query || {};
+    const {period, utc} = loadQueryParamsFromLocation(
+      dateSelectionQueryParsers,
+      location
+    );
 
     // pick only the query strings that we care about
     const picked = pickRelevantLocationQueryStrings(location);
@@ -1129,14 +1098,14 @@ export class EventView {
       : {
           start: picked.start,
           end: picked.end,
-          period: decodeScalar(query.period),
+          period: period ?? undefined,
           statsPeriod: picked.statsPeriod,
         };
 
     // normalize datetime selection
     return normalizeDateTimeParams({
       ...dateSelection,
-      utc: decodeScalar(query.utc),
+      utc: utc ?? undefined,
     });
   }
 

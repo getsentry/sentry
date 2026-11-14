@@ -117,6 +117,7 @@ def create_skipped_status_check(
             reason="repo_not_integrated",
         )
 
+    assert repository.integration_id is not None
     status_check_provider = get_status_check_provider(
         client,
         provider,

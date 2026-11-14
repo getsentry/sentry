@@ -7,13 +7,12 @@ import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {
-  TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,
-  TraceViewSources,
-} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+
+import {TRACE_SOURCE_TO_NON_INSIGHT_ROUTES} from './traceHeader/breadcrumbs';
+import {TraceViewSources} from './traceHeader/traceViewSources';
+import {TraceLayoutTabKeys} from './useTraceLayoutTabs';
 
 function getBaseTraceUrl(
   organization: Organization,

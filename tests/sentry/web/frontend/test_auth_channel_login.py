@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class AuthOrganizationChannelLoginTest(TestCase):
-    def create_auth_provider(self, partner_org_id, sentry_org_id):
+    def create_fly_auth_provider(self, partner_org_id: str, sentry_org_id: int) -> None:
         config_data = FlyOAuth2Provider.build_config(resource={"id": partner_org_id})
         AuthProvider.objects.create(
             organization_id=sentry_org_id, provider="fly", config=config_data
@@ -18,7 +18,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
 
     def setUp(self) -> None:
         self.organization = self.create_organization(name="test org", owner=self.user)
-        self.create_auth_provider("fly-test-org", self.organization.id)
+        self.create_fly_auth_provider("fly-test-org", self.organization.id)
         self.path = reverse("sentry-auth-channel", args=["fly", "fly-test-org"])
 
     def test_redirect_for_logged_in_user(self) -> None:
@@ -30,9 +30,13 @@ class AuthOrganizationChannelLoginTest(TestCase):
         ]
 
     def test_redirect_for_logged_in_user_with_different_active_org(self) -> None:
-        self.login_as(self.user)  # log in to "test org"
+        self.login_as(self.user)
+        # Without an active org in the session, the view falls back to the first of the user's
+        # orgs in whatever order Postgres returns them, which can be "another org".
+        self.session["activeorg"] = self.organization.slug
+        self.save_session()
         another_org = self.create_organization(name="another org", owner=self.user)
-        self.create_auth_provider("another-fly-org", another_org.id)
+        self.create_fly_auth_provider("another-fly-org", another_org.id)
         path = reverse("sentry-auth-channel", args=["fly", "another-fly-org"])
         response = self.client.get(path + "?next=/projects/", follow=True)
         assert response.status_code == 200
@@ -102,7 +106,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
 
 @control_silo_test
 class AuthNonPartnerOrganizationChannelLoginTest(TestCase):
-    def create_auth_provider(self, partner_org_id, sentry_org_id):
+    def create_fly_auth_provider(self, partner_org_id: str, sentry_org_id: int) -> None:
         config_data = FlyOAuth2Provider.build_config(resource={"id": partner_org_id})
         AuthProvider.objects.create(
             organization_id=sentry_org_id, provider="fly-non-partner", config=config_data
@@ -110,7 +114,7 @@ class AuthNonPartnerOrganizationChannelLoginTest(TestCase):
 
     def setUp(self) -> None:
         self.organization = self.create_organization(name="test org", owner=self.user)
-        self.create_auth_provider("fly-test-org", self.organization.id)
+        self.create_fly_auth_provider("fly-test-org", self.organization.id)
         self.path = reverse("sentry-auth-channel", args=["fly", "fly-test-org"])
 
     def test_with_next_uri(self) -> None:

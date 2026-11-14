@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 from unittest import mock
+from unittest.mock import MagicMock
+from urllib.parse import urlencode
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
+from django.core import mail
 from django.db import IntegrityError, models, router, transaction
-from django.http import HttpResponseRedirect
+from django.http import HttpRequest, HttpResponseRedirect, QueryDict
 from django.http.response import HttpResponseBase
 from django.test import Client, RequestFactory
 from django.urls import reverse
@@ -26,11 +30,14 @@ from sentry.auth.helper import (
     AuthIdentityHandler,
 )
 from sentry.auth.idpmigration import SSO_VERIFICATION_KEY
+from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
-from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -40,18 +47,26 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
-from sentry.utils.redis import clusters
+from sentry.utils.redis import redis_clusters
 from sentry.web.frontend.signup_email_verification import (
     PENDING_EXPIRY_TEXT_SESSION_KEY,
     PENDING_VERIFICATION_SESSION_KEY,
 )
 
+if TYPE_CHECKING:
+    from django.http.request import _ImmutableQueryDict
 
-def _set_up_request():
+
+def _post_data(data: Mapping[str, str]) -> _ImmutableQueryDict:
+    return QueryDict(urlencode(data))
+
+
+def _set_up_request() -> HttpRequest:
     request = RequestFactory().post("/auth/sso/")
     request.user = AnonymousUser()
     request.auth = None
@@ -85,10 +100,10 @@ class AuthIdentityHandlerTest(TestCase):
         self.state = AuthHelperSessionStore(self.request, "pipeline", ttl=PIPELINE_STATE_TTL)
 
     @property
-    def handler(self):
+    def handler(self) -> AuthIdentityHandler:
         return self._handler_with(self.identity)
 
-    def _handler_with(self, identity):
+    def _handler_with(self, identity: Mapping[str, Any]) -> AuthIdentityHandler:
         with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
         return AuthIdentityHandler(
@@ -99,7 +114,7 @@ class AuthIdentityHandlerTest(TestCase):
             identity,
         )
 
-    def set_up_user(self):
+    def set_up_user(self) -> User:
         """Set up a persistent user and associate it to the request.
 
         If not called, default to having the request come from an
@@ -110,7 +125,7 @@ class AuthIdentityHandlerTest(TestCase):
         self.request.user = user
         return user
 
-    def set_up_user_identity(self):
+    def set_up_user_identity(self) -> tuple[User, AuthIdentity]:
         """Set up a persistent user who already has an auth identity."""
         user = self.set_up_user()
         auth_identity = self.create_auth_identity(
@@ -223,6 +238,36 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
                 referrer="in-app",
             ),
         )
+
+    def test_outbox_flush_failure_completes_signup(self) -> None:
+        with mock.patch.object(
+            AuthIdentity, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            auth_identity = self.handler.handle_new_user()
+
+        mock_replication.assert_called()
+        user = auth_identity.user
+        assert user.email == self.email
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert OrganizationMember.objects.filter(
+                organization=self.organization, user_id=user.id
+            ).exists()
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.AUTH_IDENTITY_UPDATE, object_identifier=auth_identity.id
+        ).exists()
+
+        # At this point, the identity change has been committed, but the outbox
+        # has not been processed, so there should be no replica.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not AuthIdentityReplica.objects.filter(
+                auth_identity_id=auth_identity.id
+            ).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert AuthIdentityReplica.objects.filter(auth_identity_id=auth_identity.id).exists()
 
     def test_associated_existing_member_invite_by_email(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
@@ -422,6 +467,41 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         )
 
     @mock.patch("sentry.auth.helper.messages")
+    def test_new_identity_outbox_flush_failure(self, mock_messages: mock.MagicMock) -> None:
+        request_user = self.set_up_user()
+
+        with mock.patch.object(
+            AuthIdentity, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            auth_identity = self.handler.handle_attach_identity()
+
+        mock_replication.assert_called()
+        assert auth_identity.user_id == request_user.id
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert OrganizationMember.objects.filter(
+                user_id=request_user.id, organization=self.organization
+            ).exists()
+        mock_messages.add_message.assert_called_with(
+            self.request, mock_messages.SUCCESS, OK_LINK_IDENTITY
+        )
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.AUTH_IDENTITY_UPDATE, object_identifier=auth_identity.id
+        ).exists()
+
+        # At this point, the identity change has been committed, but the outbox
+        # has not been processed, so there should be no replica.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not AuthIdentityReplica.objects.filter(
+                auth_identity_id=auth_identity.id
+            ).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert AuthIdentityReplica.objects.filter(auth_identity_id=auth_identity.id).exists()
+
+    @mock.patch("sentry.auth.helper.messages")
     def test_new_identity_with_existing_om(self, mock_messages: mock.MagicMock) -> None:
         user = self.set_up_user()
         with assume_test_silo_mode(SiloMode.CELL):
@@ -492,7 +572,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             )
         self.assert_org_member_mapping(org_member=org_member)
 
-    def _test_with_identity_belonging_to_another_user(self, request_user):
+    def _test_with_identity_belonging_to_another_user(self, request_user: User) -> None:
         other_user = self.create_user()
 
         # The user logs in with credentials from this other identity
@@ -566,7 +646,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
 @control_silo_test
 class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
-    def _test_simple(self, mock_render, expected_template):
+    def _test_simple(self, mock_render: MagicMock, expected_template: str) -> dict[str, object]:
         redirect = self.handler.handle_unknown_identity(self.state)
 
         assert redirect is mock_render.return_value
@@ -648,8 +728,48 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert email == self.email
         assert identity_id == self.identity["id"]
 
-        assert context["existing_user"].id == existing_user.id
+        context_existing_user = context["existing_user"]
+        assert isinstance(context_existing_user, User)
+        assert context_existing_user.id == existing_user.id
         assert "login_form" in context
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_automatic_migration_sends_link_to_verified_email(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """A passwordless user asserting their own email gets the link at that address."""
+        existing_user = self.create_user(email=self.email)
+        existing_user.update(password="")
+
+        with self.tasks():
+            self.handler.handle_unknown_identity(self.state)
+
+        assert mock_render.call_args.args[0] == "sentry/auth-confirm-account.html"
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert sent.to == [self.email]
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_confirm_link_sent_to_verified_email_when_asserted_differs(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """An asserted email that resolves case-insensitively still sends the link
+        to the account's address, not the asserted string."""
+        account_email = "person@example.com"
+        asserted = "PERSON@example.com"
+
+        user = self.create_user(email=account_email)
+        user.update(password="")
+
+        handler = self._handler_with({**self.identity, "email": asserted})
+        with self.tasks():
+            handler.handle_unknown_identity(self.state)
+
+        assert mock_render.call_args.args[0] == "sentry/auth-confirm-account.html"
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert asserted not in sent.to
+        assert sent.to == [account_email]
 
     @mock.patch("sentry.auth.helper.render_to_response")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
@@ -668,7 +788,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         self, mock_render: mock.MagicMock, mock_messages: mock.MagicMock
     ) -> None:
         self.create_user(email=self.email, is_test_user=False)
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         response = self.handler.handle_unknown_identity(self.state)
 
         assert response is mock_render.return_value
@@ -691,7 +811,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         # Create the user whose email the IdP asserted
         self.create_user(email=self.email)
 
-        self.request.POST = {"op": "confirm"}
+        self.request.POST = _post_data({"op": "confirm"})
         self.handler.handle_unknown_identity(self.state)
 
         auth_identity = AuthIdentity.objects.get(
@@ -712,7 +832,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         other_user = self.create_user(email="primary@example.com")
         self.create_useremail(user=other_user, email=self.email, is_verified=True)
 
-        self.request.POST = {"op": "confirm"}
+        self.request.POST = _post_data({"op": "confirm"})
         self.handler.handle_unknown_identity(self.state)
 
         auth_identity = AuthIdentity.objects.get(
@@ -812,14 +932,14 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         with assume_test_silo_mode(SiloMode.CELL):
             self.create_member(user=existing_user, organization=self.organization, role="member")
 
-        identity: _Identity = {
+        identity: dict[str, object] = {
             "id": self.identity["id"],
             "email": self.email,
             "name": self.identity["name"],
             "data": {},
         }
+        identity["email_verified"] = True
         handler = self._handler_with(identity)
-        handler.identity["email_verified"] = True
 
         response = handler.handle_unknown_identity(self.state)
 
@@ -838,7 +958,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         """op=confirm without authentication or email verification shows ERR_MERGE_FAILED."""
         self.create_user(email=self.email)
 
-        self.request.POST = {"op": "confirm"}
+        self.request.POST = _post_data({"op": "confirm"})
         response = self.handler.handle_unknown_identity(self.state)
 
         assert response is mock_render.return_value
@@ -851,7 +971,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
     @mock.patch("sentry.auth.helper.messages")
     def test_newuser_creates_account_and_identity(self, mock_messages: mock.MagicMock) -> None:
         """op=newuser creates a new User and links the AuthIdentity to them."""
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         self.handler.handle_unknown_identity(self.state)
 
         auth_identity = AuthIdentity.objects.get(
@@ -872,7 +992,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         mock_form.is_valid.return_value = True
         mock_form.get_user.return_value = existing_user
 
-        self.request.POST = {"op": "login"}
+        self.request.POST = _post_data({"op": "login"})
         with mock.patch.object(
             type(self.handler), "_login_form", new_callable=lambda: property(lambda s: mock_form)
         ):
@@ -892,7 +1012,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         mock_form = mock.MagicMock()
         mock_form.is_valid.return_value = False
 
-        self.request.POST = {"op": "login", "username": self.email}
+        self.request.POST = _post_data({"op": "login", "username": self.email})
         with mock.patch.object(
             type(self.handler), "_login_form", new_callable=lambda: property(lambda s: mock_form)
         ):
@@ -931,7 +1051,7 @@ class AuthHelperTest(TestCase):
         self.request = _set_up_request()
         self.request.session["auth_key"] = self.auth_key
 
-    def _test_pipeline(self, flow, referrer=None):
+    def _test_pipeline(self, flow: int, referrer: str | None = None) -> HttpResponseRedirect:
         initial_state = {
             "org_id": self.organization.id,
             "flow": flow,
@@ -939,7 +1059,7 @@ class AuthHelperTest(TestCase):
             "provider_key": None,
             "referrer": referrer,
         }
-        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client = redis_clusters.get_binary("default")
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
@@ -954,7 +1074,7 @@ class AuthHelperTest(TestCase):
 
         next_step = helper.next_step()
         assert next_step.status_code == 302
-        return next_step
+        return cast(HttpResponseRedirect, next_step)
 
     @mock.patch("sentry.auth.helper.messages")
     def test_login(self, mock_messages: mock.MagicMock) -> None:
@@ -995,7 +1115,7 @@ class AuthHelperTest(TestCase):
             "provider_key": None,
             "referrer": None,
         }
-        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client = redis_clusters.get_binary("default")
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
@@ -1041,7 +1161,7 @@ class AuthHelperTest(TestCase):
             "provider_key": None,
             "referrer": None,
         }
-        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client = redis_clusters.get_binary("default")
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
@@ -1185,6 +1305,26 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
         verification_value = {**self.verification_value, "organization_id": 99999}
         assert self.handler.has_verified_account(verification_value) is False
 
+    def test_has_verified_account_fail_identity_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        value = {**self.verification_value, "identity_id": "someone-else"}
+        assert self.handler.has_verified_account(value) is False
+
+    def test_has_verified_account_migrating_identity_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        identity = {**self.identity, "id": MigratingIdentityId(id="sub-1", legacy_id=self.email)}
+        handler = self._handler_with(identity)
+        assert handler.has_verified_account({**self.verification_value, "identity_id": "sub-1"})
+        # the legacy (email) half of the migrating id must not verify
+        assert not handler.has_verified_account(
+            {**self.verification_value, "identity_id": self.email}
+        )
+
+    def test_has_verified_account_ascii_case_insensitive(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        identity = {**self.identity, "email": self.email.upper()}
+        assert self._handler_with(identity).has_verified_account(self.verification_value) is True
+
     def test_has_verified_account_fail_missing_organization_id(self) -> None:
         self.create_useremail(email=self.email, user=self.user)
         verification_value = {
@@ -1210,7 +1350,7 @@ class ProviderMismatchTest(TestCase):
         self.request = _set_up_request()
         self.request.session["auth_key"] = self.auth_key
 
-    def _create_helper_with_state(self, provider_key=None):
+    def _create_helper_with_state(self, provider_key: str | None = None) -> AuthHelper:
         """Create an AuthHelper with initial state and optional provider key mismatch."""
         initial_state = {
             "org_id": self.organization.id,
@@ -1223,7 +1363,7 @@ class ProviderMismatchTest(TestCase):
             "config": {},
             "data": {"provider_key": provider_key} if provider_key else {},
         }
-        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client = redis_clusters.get_binary("default")
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
@@ -1245,6 +1385,7 @@ class ProviderMismatchTest(TestCase):
             response = helper.finish_pipeline()
 
         # Should redirect to org SSO page
+        assert isinstance(response, HttpResponseRedirect)
         assert response.status_code == 302
         assert f"/auth/login/{self.organization.slug}/" in response.url
 
@@ -1323,7 +1464,7 @@ class SetupPipelineIdentityLinkingTest(TestCase, HybridCloudTestMixin):
             "provider_key": self.provider,
             "referrer": None,
         }
-        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client = redis_clusters.get_binary("default")
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
@@ -1391,7 +1532,7 @@ class SetupPipelineIdentityLinkingTest(TestCase, HybridCloudTestMixin):
 class InactiveUserIdentityTest(AuthIdentityHandlerTest):
     """Tests that inactive-user AuthIdentity always routes through handle_unknown_identity."""
 
-    def _create_inactive_user_with_identity(self):
+    def _create_inactive_user_with_identity(self) -> tuple[User, AuthIdentity]:
         """Create an inactive user with an AuthIdentity matching self.identity."""
         inactive_user = self.create_user(is_active=False)
         auth_identity = self.create_auth_identity(
@@ -1442,7 +1583,7 @@ class HandleNewUserTransactionRollbackTest(AuthIdentityHandlerTest):
     def test_plain_newuser_rollback_shows_confirmation_instead_of_500(
         self, mock_messages: mock.MagicMock, mock_render: mock.MagicMock
     ) -> None:
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with mock.patch("sentry.auth.helper.User.objects.create", side_effect=ValueError("boom")):
             response = self.handler.handle_unknown_identity(self.state)
 
@@ -1456,7 +1597,7 @@ class HandleNewUserTransactionRollbackTest(AuthIdentityHandlerTest):
 @control_silo_test
 class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     def test_flag_off_creates_user_immediately(self) -> None:
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": False}):
             self.handler.handle_unknown_identity(self.state)
 
@@ -1479,7 +1620,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         identity["email_verified"] = True  # type: ignore[typeddict-unknown-key]
 
         handler = self._handler_with(identity)
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch.object(handler, "provider") as mock_provider:
                 mock_provider.key = "google"
@@ -1497,7 +1638,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.state.regenerate({"flow": FLOW_LOGIN})
         self.state.verified_email = self.email
 
-        self.request.POST = {"op": "confirm"}
+        self.request.POST = _post_data({"op": "confirm"})
         self.handler.handle_unknown_identity(self.state)
 
         assert not User.objects.filter(email=self.email).exists()
@@ -1511,7 +1652,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.state.regenerate({"flow": FLOW_LOGIN})
         self.state.verified_email = self.email
 
-        self.request.POST = {"op": "login", "username": self.email}
+        self.request.POST = _post_data({"op": "login", "username": self.email})
         self.handler.handle_unknown_identity(self.state)
 
         assert not User.objects.filter(email=self.email).exists()
@@ -1521,7 +1662,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.state.regenerate({"flow": FLOW_LOGIN})
         self.state.verified_email = self.email
 
-        self.request.POST = {}
+        self.request.POST = _post_data({})
         self.handler.handle_unknown_identity(self.state)
         assert User.objects.filter(email=self.email).count() == 1
 
@@ -1541,7 +1682,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
     def test_flag_on_untrusted_provider_sends_verification_email(
         self, mock_send: mock.MagicMock
     ) -> None:
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             response = self.handler.handle_unknown_identity(self.state)
 
@@ -1566,7 +1707,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
     def test_allowlist_forces_verification_even_without_sso_enabled(
         self, mock_send: mock.MagicMock
     ) -> None:
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         response = self.handler.handle_unknown_identity(self.state)
 
         assert isinstance(response, HttpResponseRedirect)
@@ -1584,7 +1725,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.request.session["invite_token"] = member.token
         self.save_session()
 
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 self.handler.handle_unknown_identity(self.state)
@@ -1602,7 +1743,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.request.session["invite_token"] = member.token
         self.save_session()
 
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 response = self.handler.handle_unknown_identity(self.state)
@@ -1616,7 +1757,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         with assume_test_silo_mode(SiloMode.CELL):
             OrganizationMember.objects.create(organization=self.organization, email=self.email)
 
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 response = self.handler.handle_unknown_identity(self.state)
@@ -1637,7 +1778,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.save_session()
         self.set_up_user()
 
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 self.handler.handle_unknown_identity(self.state)
@@ -1659,6 +1800,19 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
 
         assert self.handler._email_verified_via_pending_invite() is False
 
+    def test_unicode_lookalike_email_does_not_match_invite(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            member = OrganizationMember.objects.create(
+                organization=self.organization, email="kate@example.com", token="abc"
+            )
+        self.request.session["invite_member_id"] = member.id
+        self.request.session["invite_token"] = member.token
+        self.save_session()
+
+        # U+212A lower-cases to ASCII "k"
+        identity: _Identity = {**self.identity, "email": "\u212aate@example.com"}
+        assert self._handler_with(identity)._email_verified_via_pending_invite() is False
+
     def test_unapproved_invite_does_not_grant_verification_exemption(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             member = self.create_member(
@@ -1672,7 +1826,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.request.session["invite_token"] = member.token
         self.save_session()
 
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 response = self.handler.handle_unknown_identity(self.state)
@@ -1685,7 +1839,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
     def test_invite_check_failure_falls_back_to_requiring_verification(
         self, mock_send: mock.MagicMock
     ) -> None:
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch(
                 "sentry.auth.helper.ApiInviteHelper.from_session_or_email",
@@ -1708,7 +1862,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.state.verification_email_sent = True
 
         handler = self.handler
-        self.request.POST = {}
+        self.request.POST = _post_data({})
         with mock.patch("sentry.auth.helper.User.objects.create", side_effect=ValueError("boom")):
             response = handler.handle_unknown_identity(self.state)
 
@@ -1716,7 +1870,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         assert getattr(self.state, "verification_email_sent", None) is False
         assert not User.objects.filter(email=self.email).exists()
 
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 handler.handle_unknown_identity(self.state)
@@ -1731,13 +1885,13 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.state.verified_email = self.email
 
         handler = self.handler
-        self.request.POST = {}
+        self.request.POST = _post_data({})
         with mock.patch("sentry.auth.helper.User.objects.create", side_effect=ValueError("boom")):
             handler.handle_unknown_identity(self.state)
 
         assert getattr(self.state, "verified_email", None) is None
 
-        self.request.POST = {}
+        self.request.POST = _post_data({})
         handler.handle_unknown_identity(self.state)
 
         assert not User.objects.filter(email=self.email).exists()
@@ -1751,7 +1905,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.state.verification_email_sent = True
 
         handler = self.handler
-        self.request.POST = {}
+        self.request.POST = _post_data({})
         with mock.patch.object(
             handler, "_handle_new_membership", side_effect=AuthIdentityUserMismatch()
         ):
@@ -1765,21 +1919,23 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
     def test_flag_on_refreshes_pipeline_ttl(self, mock_send: mock.MagicMock) -> None:
         self.state.regenerate({"flow": FLOW_LOGIN})
         client = self.state._client
-        client.expire(self.state.redis_key, 5)
-        assert client.ttl(self.state.redis_key) <= 5
+        redis_key = self.state.redis_key
+        assert redis_key is not None
+        client.expire(redis_key, 5)
+        assert client.ttl(redis_key) <= 5
 
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             self.handler.handle_unknown_identity(self.state)
 
-        assert client.ttl(self.state.redis_key) > 5
+        assert client.ttl(redis_key) > 5
 
     @mock.patch("sentry.auth.helper.send_signup_verification_email")
     def test_resubmitting_confirmation_form_does_not_resend_email(
         self, mock_send: mock.MagicMock
     ) -> None:
         self.state.regenerate({"flow": FLOW_LOGIN})
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
 
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             for _ in range(3):
@@ -1796,7 +1952,7 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
     ) -> None:
         mock_ratelimiter.backend.is_limited.return_value = True
 
-        self.request.POST = {"op": "newuser"}
+        self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             response = self.handler.handle_unknown_identity(self.state)
 

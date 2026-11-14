@@ -1,152 +1,32 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import timedelta
-from unittest import mock
 
 import pytest
-from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
     DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION,
-    create_incident,
+    EAP_FUNCTIONS,
     get_alert_resolution,
     translate_aggregate_field,
     update_detector,
-    update_incident_status,
-)
-from sentry.incidents.models.incident import (
-    Incident,
-    IncidentProject,
-    IncidentStatus,
-    IncidentStatusMethod,
-    IncidentType,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.search.eap.columns import ColumnDefinitions
+from sentry.search.eap.ourlogs.aggregates import LOG_AGGREGATE_COMBINATORS
+from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
+from sentry.search.eap.spans.aggregates import SPAN_AGGREGATE_COMBINATORS
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import BaseIncidentsTest, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models.detector import Detector
 
 pytestmark = [pytest.mark.sentry_metrics]
-
-
-class CreateIncidentTest(TestCase):
-    @pytest.fixture(autouse=True)
-    def _patch_record_event(self):
-        with mock.patch(
-            "sentry.analytics.base.Analytics.record_event_envelope"
-        ) as self.record_event:
-            yield
-
-    def test_simple(self) -> None:
-        incident_type = IncidentType.ALERT_TRIGGERED
-        title = "hello"
-        date_started = timezone.now() - timedelta(minutes=5)
-        date_detected = timezone.now() - timedelta(minutes=4)
-        alert_rule = self.create_alert_rule()
-
-        self.record_event.reset_mock()
-        incident = create_incident(
-            self.organization,
-            incident_type=incident_type,
-            title=title,
-            date_started=date_started,
-            date_detected=date_detected,
-            projects=[self.project],
-            alert_rule=alert_rule,
-        )
-        assert incident.identifier == 1
-        assert incident.status == IncidentStatus.OPEN.value
-        assert incident.type == incident_type.value
-        assert incident.title == title
-        assert incident.date_started == date_started
-        assert incident.date_detected == date_detected
-        assert incident.alert_rule == alert_rule
-        assert IncidentProject.objects.filter(
-            incident=incident, project__in=[self.project]
-        ).exists()
-        assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0].event
-        assert event == IncidentCreatedEvent(
-            organization_id=self.organization.id,
-            incident_id=incident.id,
-            incident_type=IncidentType.ALERT_TRIGGERED.value,
-        )
-
-
-@freeze_time()
-class UpdateIncidentStatus(TestCase):
-    @pytest.fixture(autouse=True)
-    def _patch_record_event(self):
-        with mock.patch(
-            "sentry.analytics.base.Analytics.record_event_envelope"
-        ) as self.record_event:
-            yield
-
-    def test_status_already_set(self) -> None:
-        incident = self.create_incident(status=IncidentStatus.WARNING.value)
-        self.record_event.reset_mock()
-        update_incident_status(
-            incident, IncidentStatus.WARNING, status_method=IncidentStatusMethod.RULE_TRIGGERED
-        )
-        incident.refresh_from_db()
-        assert incident.status == IncidentStatus.WARNING.value
-        self.record_event.assert_not_called()
-
-    def run_test(self, incident, status, expected_date_closed, user=None, date_closed=None):
-        prev_status = incident.status
-        self.record_event.reset_mock()
-        update_incident_status(
-            incident,
-            status,
-            status_method=IncidentStatusMethod.RULE_TRIGGERED,
-            date_closed=date_closed,
-        )
-        incident = Incident.objects.get(id=incident.id)
-        assert incident.status == status.value
-        assert incident.status_method == IncidentStatusMethod.RULE_TRIGGERED.value
-        assert incident.date_closed == expected_date_closed
-
-        assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0].event
-        assert event == IncidentStatusUpdatedEvent(
-            organization_id=self.organization.id,
-            incident_id=incident.id,
-            incident_type=incident.type,
-            prev_status=prev_status,
-            status=incident.status,
-        )
-
-    def test_closed(self) -> None:
-        incident = self.create_incident(
-            self.organization, title="Test", date_started=timezone.now(), projects=[self.project]
-        )
-        self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
-
-    def test_closed_specify_date(self) -> None:
-        incident = self.create_incident(
-            self.organization,
-            title="Test",
-            date_started=timezone.now() - timedelta(days=5),
-            projects=[self.project],
-        )
-        date_closed = timezone.now() - timedelta(days=1)
-        self.run_test(incident, IncidentStatus.CLOSED, date_closed, date_closed=date_closed)
-
-    def test_all_params(self) -> None:
-        incident = self.create_incident()
-        self.run_test(incident, IncidentStatus.CLOSED, timezone.now(), user=self.user)
-
-    def test_reopen_clears_date_closed(self) -> None:
-        incident = self.create_incident(
-            status=IncidentStatus.CLOSED.value, date_closed=timezone.now()
-        )
-        self.run_test(incident, IncidentStatus.OPEN, None)
 
 
 class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
@@ -290,3 +170,70 @@ class TestGetAlertResolution(TestCase):
         time_window = -5
         result = get_alert_resolution(time_window, self.organization)
         assert result == timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION)
+
+
+# EAP functions that metric monitors don't accept. A function added to the span or log definitions
+# fails test_eap_functions_cover_eap_definitions until it is added here or to EAP_FUNCTIONS.
+EAP_FUNCTIONS_EXCLUDED_FROM_MONITORS = {
+    # Insights creates monitors with equivalent count() queries instead, because Explore and
+    # alerts don't support these.
+    "cache_miss_rate",
+    "count_scores",
+    "http_response_rate",
+    # Not reviewed for monitors. Move to EAP_FUNCTIONS when a monitor needs one.
+    "any",
+    "avg_compare",
+    "avg_sample",
+    "bounded_sample",
+    "collect_unique",
+    "count_op",
+    "count_sample",
+    "count_starts",
+    "division",
+    "elapsed_if",
+    "first",
+    "http_response_count",
+    "last",
+    "p50_sample",
+    "time_spent_percentage",
+    "tpm",
+    "trace_status_rate",
+    "ttfd_contribution_rate",
+    "ttid_contribution_rate",
+}
+
+
+@pytest.mark.parametrize(
+    ("definitions", "combinators"),
+    [
+        (SPAN_DEFINITIONS, SPAN_AGGREGATE_COMBINATORS),
+        (OURLOG_DEFINITIONS, LOG_AGGREGATE_COMBINATORS),
+    ],
+    ids=["spans", "logs"],
+)
+def test_eap_functions_cover_eap_definitions(
+    definitions: ColumnDefinitions, combinators: Iterable[str]
+) -> None:
+    defined = set(definitions.aggregates) | set(definitions.formulas)
+    # Combinator variants such as avg_if are covered by their base function. Monitors filter with
+    # the query instead.
+    combinator_variants = {
+        f"{function}_{combinator}" for function in defined for combinator in combinators
+    }
+    undecided = (
+        defined - combinator_variants - set(EAP_FUNCTIONS) - EAP_FUNCTIONS_EXCLUDED_FROM_MONITORS
+    )
+    assert not undecided, (
+        f"Decide whether metric monitors should accept {sorted(undecided)}: add each to "
+        "EAP_FUNCTIONS in src/sentry/incidents/logic.py, or to EAP_FUNCTIONS_EXCLUDED_FROM_MONITORS."
+    )
+
+
+def test_eap_functions_excluded_from_monitors_are_defined() -> None:
+    defined = (
+        set(SPAN_DEFINITIONS.aggregates)
+        | set(SPAN_DEFINITIONS.formulas)
+        | set(OURLOG_DEFINITIONS.aggregates)
+    )
+    assert EAP_FUNCTIONS_EXCLUDED_FROM_MONITORS <= defined
+    assert not EAP_FUNCTIONS_EXCLUDED_FROM_MONITORS & set(EAP_FUNCTIONS)

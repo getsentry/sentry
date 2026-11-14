@@ -201,6 +201,36 @@ export function ConditionalDemo() {
 
 // fields.mdx demos
 
+export function CompactSelectFieldDemo() {
+  const {t} = useTranslation();
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {country: null as string | null},
+    validators: {onDynamic: z.object({country: z.string().nullable()})},
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="country">
+        {field => (
+          <field.Layout.Row label={t('Country')}>
+            <field.CompactSelect
+              clearable
+              search
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={[
+                {value: 'us', label: t('United States')},
+                {value: 'uk', label: t('United Kingdom')},
+              ]}
+            />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
 export function NumberFieldDemo() {
   const {t} = useTranslation();
   const defaultValues: {amount: number | null} = {amount: 0};
@@ -423,18 +453,20 @@ export function FullAutoSaveDemo() {
         mutationOptions={fullMutationOptions}
       >
         {field => (
-          <field.Radio.Group
-            value={field.state.value ?? ''}
-            onChange={field.handleChange}
-          >
-            <field.Layout.Row label={t('Priority')} hintText={t('Select issue priority')}>
-              <Flex gap="lg">
-                <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
-                <field.Radio.Item value="medium">{t('Medium')}</field.Radio.Item>
-                <field.Radio.Item value="high">{t('High')}</field.Radio.Item>
-              </Flex>
-            </field.Layout.Row>
-          </field.Radio.Group>
+          <field.RadioGroup value={field.state.value ?? ''} onChange={field.handleChange}>
+            {({Item}) => (
+              <field.Layout.Row
+                label={t('Priority')}
+                hintText={t('Select issue priority')}
+              >
+                <Flex gap="lg">
+                  <Item value="low">{t('Low')}</Item>
+                  <Item value="medium">{t('Medium')}</Item>
+                  <Item value="high">{t('High')}</Item>
+                </Flex>
+              </field.Layout.Row>
+            )}
+          </field.RadioGroup>
         )}
       </AutoSaveForm>
 

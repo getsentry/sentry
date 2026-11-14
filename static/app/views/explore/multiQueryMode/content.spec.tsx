@@ -12,8 +12,9 @@ import {
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
-import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
+
+import {MultiQueryModeContent} from './content';
+import {useReadQueriesFromLocation} from './locationUtils';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -1159,6 +1160,7 @@ describe('MultiQueryModeContent', () => {
           },
         ],
         range: '14d',
+        statsPeriod: '14d',
         projects: [],
         environment: [],
       },
@@ -1210,6 +1212,7 @@ describe('MultiQueryModeContent', () => {
         },
       ],
       range: '7d',
+      statsPeriod: '7d',
       projects: [Number(project.id)],
       environment: [],
     };

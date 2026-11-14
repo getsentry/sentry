@@ -2,9 +2,10 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {FieldValueType} from 'sentry/utils/fields';
+
+import {AttributeDetailsTooltip} from './attributeDetailsTooltip';
 
 describe('AttributeDetailsTooltip', () => {
   beforeEach(() => {
@@ -67,6 +68,20 @@ describe('AttributeDetailsTooltip', () => {
     expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
   });
 
+  it('renders Markdown in the description', async () => {
+    render(
+      <AttributeDetailsTooltip attributeKey="db.system" fieldDefinitionType="span" />
+    );
+
+    await userEvent.hover(screen.getByText('db.system'));
+
+    expect(await screen.findByRole('link', {name: 'OpenTelemetry docs'})).toHaveAttribute(
+      'href',
+      'https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md#notes-and-well-known-identifiers-for-dbsystem'
+    );
+    expect(screen.queryByText(/\]\(https:/)).not.toBeInTheDocument();
+  });
+
   it('renders the name underlined so it reads as something to hover', () => {
     render(
       <AttributeDetailsTooltip attributeKey="logger.name" fieldDefinitionType="log" />
@@ -110,6 +125,60 @@ describe('AttributeDetailsTooltip', () => {
 
     expect(
       await screen.findByText('The name of the logger that generated this event.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+  });
+
+  it.each([
+    {attributeKey: 'tags[message,string]', name: 'message'},
+    {attributeKey: 'tags[payload_size,number]', name: 'payload_size'},
+  ])(
+    'does not credit Sentry for $attributeKey, a user attribute that shadows a known one',
+    async ({attributeKey, name}) => {
+      render(
+        <AttributeDetailsTooltip
+          attributeKey={attributeKey}
+          fieldDefinitionType="log"
+          name={name}
+        />
+      );
+
+      await userEvent.hover(screen.getByText(name));
+
+      expect(
+        await screen.findByText('A tag sent with one or more events')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
+    }
+  );
+
+  it('credits Sentry for known attributes that are registered by a typed key', async () => {
+    render(
+      <AttributeDetailsTooltip
+        attributeKey="tags[code.line.number,number]"
+        fieldDefinitionType="log"
+        name="code.line.number"
+      />
+    );
+
+    await userEvent.hover(screen.getByText('code.line.number'));
+
+    expect(await screen.findByText('Added by Sentry')).toBeInTheDocument();
+  });
+
+  it('describes a typed convention attribute with its convention', async () => {
+    render(
+      <AttributeDetailsTooltip
+        attributeKey="tags[app.in_foreground,boolean]"
+        fieldDefinitionType="span"
+        name="app.in_foreground"
+      />
+    );
+
+    await userEvent.hover(screen.getByText('app.in_foreground'));
+
+    expect(
+      await screen.findByText('Whether the application is currently in the foreground.')
     ).toBeInTheDocument();
     expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
   });

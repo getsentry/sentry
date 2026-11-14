@@ -2,15 +2,16 @@ import type {Location} from 'history';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
-  LOGS_CURSOR_KEY,
   LOGS_FIELDS_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {getLogsSeerLocationQuery} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {getLogsSeerLocationQuery} from './logsTabSeerComboBox';
 
 const pageDatetime = {
   start: null,

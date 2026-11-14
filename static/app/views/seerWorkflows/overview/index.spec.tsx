@@ -30,13 +30,14 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
+
 import type {
   AutofixOverviewResponse,
   OverviewPullRequest,
   OverviewRunIssue,
-} from 'sentry/views/seerWorkflows/overview/types';
-import {SCM_WINDOW_SIZE} from 'sentry/views/seerWorkflows/overview/types';
-import {useOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/useOverviewSeerDrawer';
+} from './types';
+import {SCM_WINDOW_SIZE} from './types';
+import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 
 describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
@@ -852,20 +853,35 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('5 users')).toBeInTheDocument();
   });
 
-  it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
-    mockOverview({
-      base: {autofix_root_cause: [rootCauseRun]},
-      issueStatsStatusCode: 500,
+  describe('shows the cards when the issueStats call fails instead of blocking forever with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    renderPage();
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
 
-    // A failed vitals call must not withhold the cards forever; once the query
-    // settles (after its one retry) the cards render. The timeout covers the
-    // issueStats retry backoff.
-    expect(
-      await screen.findByText('TypeError in checkout cart', undefined, {timeout: 5000})
-    ).toBeInTheDocument();
+    it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
+      const {issueStatsRequest} = mockOverview({
+        base: {autofix_root_cause: [rootCauseRun]},
+        issueStatsStatusCode: 500,
+      });
+
+      renderPage();
+
+      await waitFor(() => expect(issueStatsRequest).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText('TypeError in checkout cart')).not.toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(1000));
+      expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+      expect(screen.getByText('1.2K events')).toBeInTheDocument();
+      expect(screen.getByText('5 users')).toBeInTheDocument();
+      expect(issueStatsRequest).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('fetches the vitals once for a stable run set, without looping', async () => {

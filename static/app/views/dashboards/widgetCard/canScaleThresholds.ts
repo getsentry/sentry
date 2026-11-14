@@ -6,6 +6,7 @@ import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 const SCALABLE_AGGREGATES = new Set<string>([
   AggregationKey.COUNT,
   AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_WEB_VITALS,
   AggregationKey.SUM,
   AggregationKey.FAILURE_COUNT,
 ]);
@@ -26,13 +27,8 @@ export function canScaleThresholds(
   return (
     usesTimeSeriesData(widget.displayType) &&
     widget.queries.length > 0 &&
-    widget.queries.every(query => {
-      const [aggregate] = query.aggregates;
-      return (
-        aggregate !== undefined &&
-        query.aggregates.length === 1 &&
-        isScalableAggregate(aggregate)
-      );
-    })
+    widget.queries.every(
+      query => query.aggregates.length > 0 && query.aggregates.every(isScalableAggregate)
+    )
   );
 }

@@ -46,7 +46,7 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
 from sentry.utils.validators import normalize_event_id
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -477,7 +477,7 @@ def update_existing_attachments(job: PostProcessJob) -> None:
     event = job["event"]
 
     # Update attachments from reprocessed events or feedback events,
-    # which get their group ID after `save_generic_event`.
+    # which get their group ID after `save_generic_events`.
     EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).exclude(
         group_id=event.group_id
     ).update(group_id=event.group_id)
@@ -656,9 +656,9 @@ def post_process_group(
 
         with viewer_context_scope(
             ViewerContext(
+                actor=Actor(type=ActorType.SYSTEM),
                 organization_id=event.project.organization_id,
                 project_id=event.project_id,
-                actor_type=ActorType.SYSTEM,
             )
         ):
             is_reprocessed = is_reprocessed_event(event.data)
@@ -696,6 +696,20 @@ def post_process_group(
                 event_data=event.data,
                 tags=metric_tags,
             )
+
+            save_event_start = event.data.get("save_event_start")
+            if save_event_start is not None:
+                # Measures latency from save_event start to post-processing completion.
+                metrics.timing(
+                    "events.save_to_post_process",
+                    time() - save_event_start,
+                    instance=event.data.get("platform") or None,
+                    tags={
+                        **metric_tags,
+                        "reprocessing": "true" if is_reprocessed else "false",
+                        "type": event.data.get("type"),
+                    },
+                )
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
@@ -1336,11 +1350,11 @@ def process_data_forwarding(job: PostProcessJob) -> None:
 
 
 def process_similarity(job: PostProcessJob) -> None:
+    from sentry.seer.similarity.utils import project_uses_seer_similarity
+
     if not options.get("sentry.similarity.indexing.enabled"):
         return
-    if job["is_reprocessed"] or job["event"].group.project.get_option(
-        "sentry:similarity_backfill_completed"
-    ):
+    if job["is_reprocessed"] or project_uses_seer_similarity(job["event"].group.project):
         return
 
     from sentry import similarity
@@ -1486,6 +1500,10 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         user_reports_without_group = UserReport.objects.filter(
             project_id=project.id, event_id=event.event_id, group_id__isnull=True
         )
+        # Almost no events have a user report, so skip the update and environment lookup.
+        # Reports saved after this read are linked later by the update_user_reports task.
+        if not user_reports_without_group:
+            return
         for report in user_reports_without_group:
             if report.environment_id is None:
                 shim_to_feedback(
@@ -1541,7 +1559,7 @@ def detect_new_escalation(job: PostProcessJob) -> None:
     group = job["event"].group
     if not group:
         return
-    extra = {
+    extra: dict[str, object] = {
         "org_id": group.organization.id,
         "project_id": job["event"].project.id,
         "group_id": group.id,
@@ -1625,7 +1643,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         get_issue_summary_lock_key,
     )
     from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
-    from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
+    from sentry.seer.autofix.utils import is_seer_seat_or_token_billed_enabled
     from sentry.tasks.seer.autofix import (
         generate_issue_summary_only,
         generate_summary_and_run_automation,
@@ -1634,7 +1652,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
-    if is_seer_seat_based_tier_enabled(group.organization):
+    if is_seer_seat_or_token_billed_enabled(group.organization):
         if group.seer_fixability_score is not None:
             return
         # Issues created in last 5 minutes only. This can be removed once this is live past 1 week.
@@ -1642,7 +1660,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         if (timezone.now() - group.first_seen).total_seconds() > 300:
             return
         # Generate issue summary and fixability score if not cached.
-        # Agentic Triage handles automations for seat-based orgs but still needs these.
+        # Agentic Triage handles automations for seat-based and token-billed orgs but still needs these.
         cache_key = get_issue_summary_cache_key(group.id)
         if cache.get(cache_key) is None:
             lock_key, lock_name = get_issue_summary_lock_key(group.id)
@@ -1673,7 +1691,7 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
     ):
         return
 
-    trigger_lightweight_rca_cluster_task.delay(group.id)
+    trigger_lightweight_rca_cluster_task.delay(group.id, event_id=event.event_id)
 
 
 def _noop_siem_security_log_hook(job: PostProcessJob) -> None:

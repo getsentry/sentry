@@ -10,12 +10,12 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
-import {isDeveloperPlan} from 'getsentry/utils/billing';
+import {formatPrice, isDeveloperPlan} from 'getsentry/utils/billing';
 import {isReservedBudgetCategory} from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {VolumeSliders} from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
-import {formatPrice, getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
+import {getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
 export function ReserveAdditionalVolume({
   organization,

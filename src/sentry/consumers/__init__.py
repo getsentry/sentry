@@ -8,12 +8,13 @@ from typing import Any, Union, get_args, get_origin, get_type_hints
 import click
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.backends.kafka.consumer import KafkaConsumer
+from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.dlq import DlqPolicy
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import Healthcheck
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.types import Commit, Partition
 from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
 
@@ -100,7 +101,7 @@ def apply_processor_args_overrides(
     return base_args
 
 
-def convert_max_batch_time(ctx, param, value):
+def convert_max_batch_time(ctx: click.Context, param: click.Parameter, value: int) -> int:
     if value <= 0:
         raise click.BadParameter("--max-batch-time must be greater than 0")
 
@@ -491,7 +492,7 @@ def get_stream_processor(
     add_global_tags: bool = False,
     profile_consumer_join: bool = False,
     arroyo_args: Sequence[str] | None = None,
-) -> StreamProcessor:
+) -> StreamProcessor[KafkaPayload]:
     from sentry.utils import kafka_config
 
     try:
@@ -535,7 +536,9 @@ def get_stream_processor(
         **extra_kwargs,
     )
 
-    def build_consumer_config(group_id: str, topic: Topic | None = consumer_topic):
+    def build_consumer_config(
+        group_id: str, topic: Topic | None = consumer_topic
+    ) -> dict[str, object]:
         consumer_config = build_kafka_consumer_configuration(
             kafka_config.get_kafka_consumer_cluster_options(
                 cluster_from_config,
@@ -561,7 +564,7 @@ def get_stream_processor(
 
         return consumer_config
 
-    consumer: Consumer = KafkaConsumer(build_consumer_config(group_id))
+    consumer: Consumer[KafkaPayload] = KafkaConsumer(build_consumer_config(group_id))
 
     if synchronize_commit_group is None:
         synchronize_commit_group = consumer_definition.get("synchronize_commit_group_default")
@@ -667,35 +670,44 @@ def get_stream_processor(
     return StreamProcessor(**processor_args)
 
 
-class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):
+class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory[KafkaPayload]):
     """
     This wrapper is used to validate the schema of the event before
     passing to the rest of the pipeline. Since the message is currently decoded
     twice, it should only be run in dev or on a small fraction of prod data.
     """
 
-    def __init__(self, topic: str, enforce_schema: bool, inner: ProcessingStrategyFactory) -> None:
+    def __init__(
+        self,
+        topic: str,
+        enforce_schema: bool,
+        inner: ProcessingStrategyFactory[KafkaPayload],
+    ) -> None:
         self.topic = topic
         self.enforce_schema = enforce_schema
         self.inner = inner
 
-    def create_with_partitions(self, commit, partitions) -> ProcessingStrategy:
+    def create_with_partitions(
+        self, commit: Commit, partitions: Mapping[Partition, int]
+    ) -> ProcessingStrategy[KafkaPayload]:
         rv = self.inner.create_with_partitions(commit, partitions)
 
         return ValidateSchema(self.topic, self.enforce_schema, rv)
 
 
-class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
+class MinPartitionMetricTagWrapper(ProcessingStrategyFactory[KafkaPayload]):
     """
     A wrapper that tracks the minimum partition index being processed by the consumer
     and adds it as a global metric tag. This helps with monitoring partition distribution
     and debugging partition-specific issues.
     """
 
-    def __init__(self, inner: ProcessingStrategyFactory):
+    def __init__(self, inner: ProcessingStrategyFactory[KafkaPayload]) -> None:
         self.inner = inner
 
-    def create_with_partitions(self, commit, partitions):
+    def create_with_partitions(
+        self, commit: Commit, partitions: Mapping[Partition, int]
+    ) -> ProcessingStrategy[KafkaPayload]:
         from sentry.metrics.middleware import add_global_tags
 
         # Update the min_partition global tag based on current partition assignment
@@ -706,20 +718,26 @@ class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
         return self.inner.create_with_partitions(commit, partitions)
 
 
-class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
-    def __init__(self, healthcheck_file_path: str, inner: ProcessingStrategyFactory):
+class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(
+        self, healthcheck_file_path: str, inner: ProcessingStrategyFactory[KafkaPayload]
+    ) -> None:
         self.healthcheck_file_path = healthcheck_file_path
         self.inner = inner
 
-    def create_with_partitions(self, commit, partitions):
+    def create_with_partitions(
+        self, commit: Commit, partitions: Mapping[Partition, int]
+    ) -> ProcessingStrategy[KafkaPayload]:
         rv = self.inner.create_with_partitions(commit, partitions)
         return Healthcheck(self.healthcheck_file_path, rv)
 
 
-class JoinProfilerStrategyFactoryWrapper(ProcessingStrategyFactory):
-    def __init__(self, inner: ProcessingStrategyFactory):
+class JoinProfilerStrategyFactoryWrapper(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(self, inner: ProcessingStrategyFactory[KafkaPayload]) -> None:
         self.inner = inner
 
-    def create_with_partitions(self, commit, partitions):
+    def create_with_partitions(
+        self, commit: Commit, partitions: Mapping[Partition, int]
+    ) -> ProcessingStrategy[KafkaPayload]:
         rv = self.inner.create_with_partitions(commit, partitions)
         return JoinProfiler(rv)

@@ -2,7 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
-import {EventsRequest as _EventsRequest} from 'sentry/components/charts/eventsRequest';
+import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import {Count} from 'sentry/components/count';
@@ -15,14 +15,14 @@ import {
 } from 'sentry/utils/discover/charts';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {
   canUseMetricsData,
   useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {withApi} from 'sentry/utils/withApi';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {
@@ -60,6 +60,7 @@ type ComponentData = React.ComponentProps<
 >;
 
 export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
+  const api = useApi();
   const theme = useTheme();
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
@@ -67,7 +68,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const {organization, InteractiveTitle, fields} = props;
   const {setPageDanger} = usePageAlert();
 
-  const colors = [...theme.chart.getColorPalette(5)].reverse();
+  const colors = theme.chart.getColorPalette(5).toReversed();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -154,6 +155,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...pick(prunedProvided, eventsRequestQueryProps)}
+              api={api}
               includeAllArgs={false}
               limit={5}
               includePrevious={false}
@@ -287,5 +289,3 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
     />
   );
 }
-
-const EventsRequest = withApi(_EventsRequest);

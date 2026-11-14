@@ -23,7 +23,7 @@ class JiraSentryUninstalledWebhook(JiraWebhookBase):
     Webhook hit by Jira whenever someone uninstalls the Sentry integration from their Jira instance.
     """
 
-    def post(self, request: Request, *args, **kwargs) -> Response:
+    def post(self, request: Request, *args: object, **kwargs: object) -> Response:
         token = self.get_token(request)
         rpc_integration = get_integration_from_jwt(
             token=token,

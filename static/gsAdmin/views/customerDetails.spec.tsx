@@ -652,6 +652,10 @@ function setUpMocks(
     body: PoliciesFixture(),
   });
   MockApiClient.addMockResponse({
+    url: `/_admin/customers/${organization.slug}/contracts/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/invoices/`,
     body: [InvoiceFixture()],
   });
@@ -1204,6 +1208,66 @@ describe('Customer Details', () => {
     });
   });
 
+  describe('clear pending pay-as-you-go', () => {
+    const pendingPaygOrg = OrganizationFixture();
+
+    it('renders disabled without billing.admin permissions', async () => {
+      ConfigStore.set('user', mockUser);
+      setUpMocks(pendingPaygOrg, {pendingChanges: true});
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${pendingPaygOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: pendingPaygOrg,
+      });
+
+      await openCustomerActions();
+
+      expect(screen.getByTestId('clearPendingPayg')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('clears pending pay-as-you-go', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(pendingPaygOrg, {pendingChanges: true});
+
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/customers/${pendingPaygOrg.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture(),
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${pendingPaygOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: pendingPaygOrg,
+      });
+
+      await openCustomerActions();
+
+      await userEvent.click(screen.getByText('Clear Pending Pay-as-you-go'));
+
+      renderGlobalModal();
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          `/customers/${pendingPaygOrg.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {clearPendingPayg: true},
+          })
+        );
+      });
+    });
+  });
+
   describe('allow trial', () => {
     const cannotTrialOrg = OrganizationFixture({slug: 'cannot-trial-org'});
 
@@ -1492,6 +1556,65 @@ describe('Customer Details', () => {
     });
   });
 
+  describe('enable restricted members', () => {
+    const restrictedOrg = OrganizationFixture({slug: 'restricted-members-org'});
+
+    function renderCustomerDetails() {
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${restrictedOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: restrictedOrg,
+      });
+    }
+
+    it('enables restricted members', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(restrictedOrg);
+      const enableMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${restrictedOrg.slug}/members/enable-restricted/`,
+        method: 'POST',
+        statusCode: 204,
+      });
+
+      renderCustomerDetails();
+      await openCustomerActions();
+      await userEvent.click(
+        screen.getByRole('option', {name: /Enable Restricted Members/})
+      );
+      renderGlobalModal();
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Notes'}),
+        'Trial workaround'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Enable Members'}));
+
+      await waitFor(() => {
+        expect(enableMock).toHaveBeenCalledWith(
+          `/_admin/customers/${restrictedOrg.slug}/members/enable-restricted/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: {notes: 'Trial workaround'},
+          })
+        );
+      });
+    });
+
+    it('requires billing admin permissions', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set()}));
+      setUpMocks(restrictedOrg);
+
+      renderCustomerDetails();
+      await openCustomerActions();
+
+      expect(screen.getByTestId('enableRestrictedMembers')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+  });
+
   describe('billing platform migration', () => {
     const migrationOrg = OrganizationFixture();
 
@@ -1567,6 +1690,65 @@ describe('Customer Details', () => {
           })
         );
       });
+    });
+  });
+
+  describe('set contract package', () => {
+    const packageOrg = OrganizationFixture({slug: 'package-org'});
+    const packageUid = 'c2fa2600-1075-4855-99a2-f11e35baffde';
+
+    function renderPackageOrg() {
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${packageOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: packageOrg,
+      });
+    }
+
+    it('is hidden for orgs on legacy billing', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(packageOrg, {hasMigratedToBillingPlatform: false});
+      renderPackageOrg();
+
+      await openCustomerActions();
+
+      expect(screen.queryByText('Set Contract Package')).not.toBeInTheDocument();
+    });
+
+    it('posts the package uid and refreshes the contracts table', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(packageOrg, {hasMigratedToBillingPlatform: true});
+      const contractsMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${packageOrg.slug}/contracts/`,
+        body: [],
+      });
+      const setPackageMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${packageOrg.slug}/contract/package/`,
+        method: 'POST',
+      });
+      renderPackageOrg();
+
+      await waitFor(() => expect(contractsMock).toHaveBeenCalledTimes(1));
+      await openCustomerActions();
+      renderGlobalModal();
+      await userEvent.click(screen.getByText('Set Contract Package'));
+
+      expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Package UID'}),
+        packageUid
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() =>
+        expect(setPackageMock).toHaveBeenCalledWith(
+          `/_admin/customers/${packageOrg.slug}/contract/package/`,
+          expect.objectContaining({method: 'POST', data: {packageUid}})
+        )
+      );
+      await waitFor(() => expect(contractsMock).toHaveBeenCalledTimes(2));
     });
   });
 
@@ -1808,7 +1990,7 @@ describe('Customer Details', () => {
 
       await openCustomerActions();
 
-      renderGlobalModal();
+      const {router} = renderGlobalModal();
 
       await userEvent.click(screen.getByText('Fork Customer'));
       await selectEvent.openMenu(
@@ -1829,7 +2011,13 @@ describe('Customer Details', () => {
           `/organizations/${organization.slug}/fork/`,
           expect.objectContaining({
             method: 'POST',
+            host: 'https://bar.example.com/api/0/',
           })
+        )
+      );
+      await waitFor(() =>
+        expect(router.location.pathname).toBe(
+          '/_admin/relocations/bar/d39f84fc-554a-4d7d-95b7-78f983bcba73/'
         )
       );
     });
@@ -2256,6 +2444,50 @@ describe('Customer Details', () => {
             data: {
               sponsoredType: 'open_source',
             },
+          })
+        )
+      );
+    });
+
+    it('can remove sponsorship', async () => {
+      const sponsoredSubscription = SubscriptionFixture({
+        organization,
+        isSponsored: true,
+        sponsoredType: 'open_source',
+      });
+      setUpMocks(organization, sponsoredSubscription);
+
+      const apiMock = MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture(),
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
+
+      await openCustomerActions();
+
+      await userEvent.click(screen.getByText('Change Sponsorship'));
+
+      renderGlobalModal();
+
+      await userEvent.click(await screen.findByRole('textbox', {name: 'Sponsored Type'}));
+      await userEvent.click(screen.getByTestId('remove'));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() =>
+        expect(apiMock).toHaveBeenCalledWith(
+          `/customers/${organization.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {sponsoredType: null},
           })
         )
       );

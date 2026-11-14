@@ -28,6 +28,7 @@ import type {AuditLog, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {getInternalDate} from 'sentry/utils/dates';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
@@ -343,11 +344,11 @@ export function AuditLogList({
       />
       <EventSelector
         clearable
-        isDisabled={isLoading}
+        disabled={isLoading}
         name="eventFilter"
-        value={eventType}
+        value={eventType ?? null}
         placeholder={t('Select Action: ')}
-        options={getEventOptions(eventTypes)}
+        options={getEventOptions(eventTypes) ?? []}
         onChange={(options: any) => {
           onEventSelect(options?.value);
         }}
@@ -414,7 +415,7 @@ export function AuditLogList({
             );
           })}
       </SimpleTable>
-      {pageLinks && <Pagination pageLinks={pageLinks} onCursor={onCursor} />}
+      {pageLinks && <Pagination {...getPaginationProps(pageLinks)} onCursor={onCursor} />}
     </div>
   );
 }
@@ -429,7 +430,7 @@ const Name = styled('strong')`
 
 const EventSelector = styled(Select)`
   width: 250px;
-`;
+` as typeof Select;
 
 const UserInfo = styled(SimpleTable.RowCell)`
   display: flex;

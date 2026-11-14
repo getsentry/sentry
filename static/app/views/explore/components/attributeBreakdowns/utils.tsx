@@ -1,9 +1,10 @@
+import type {Theme} from '@sentry/scraps/theme';
+
 import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
-import type {Theme} from 'sentry/utils/theme';
-import type {AttributeDistribution} from 'sentry/views/explore/components/attributeBreakdowns/attributeDistributionContent';
 import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
+import type {AttributeDistribution} from './attributeDistributionContent';
 import {CHART_AXIS_LABEL_FONT_SIZE, CHART_MAX_SERIES_LENGTH} from './constants';
 
 export function calculateAttributePopulationPercentage(

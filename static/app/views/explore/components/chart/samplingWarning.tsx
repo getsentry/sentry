@@ -5,7 +5,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {tct} from 'sentry/locale';
 import type {SamplingWarningReason} from 'sentry/views/explore/utils';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 interface SamplingWarningProps {
   reason: SamplingWarningReason;

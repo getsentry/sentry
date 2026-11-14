@@ -4,6 +4,7 @@ from typing import Annotated, Any, Literal, TypedDict, Union
 
 from pydantic import BaseModel, Field
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.issues.formatting.formatter import FormattedResponse
 
 
@@ -17,9 +18,15 @@ class GithubAppPermissionsWarning(BaseModel):
     installation_url: str | None = None
 
 
+class PrIterationOutOfCreditsWarning(BaseModel):
+    """PR iteration stopped when the organization ran out of credits."""
+
+    warning_type: Literal["pr_iteration_out_of_credits"] = "pr_iteration_out_of_credits"
+
+
 # Discriminated on `warning_type`; add new warning models to this union.
 AutofixWarning = Annotated[
-    Union[GithubAppPermissionsWarning],
+    Union[GithubAppPermissionsWarning, PrIterationOutOfCreditsWarning],
     Field(discriminator="warning_type"),
 ]
 
@@ -27,9 +34,15 @@ AutofixWarning = Annotated[
 class AutofixPostResponse(TypedDict):
     """Response type for the POST endpoint (default kickoff and step paths)."""
 
-    run_id: int
+    run_id: Annotated[int, ApiDescription("ID of the Autofix run in Seer")]
     # None for legacy runs predating SeerRun mirroring, which have no mirror row.
-    sentry_run_id: str | None
+    sentry_run_id: Annotated[
+        str | None, ApiDescription("ID of the run in Sentry. Null for legacy runs")
+    ]
+    feature_id: Annotated[
+        str,
+        ApiDescription('"autofix_single_run" for a single-run Autofix run, otherwise "autofix"'),
+    ]
 
 
 class AutofixHandoffResponse(TypedDict):
@@ -52,4 +65,7 @@ class AutofixStateResponse(_AutofixStateResponseOptional):
 
     # can't fold into one `total=False` class the way GroupEventDetailsFormattedResponse does:
     # `autofix` is declared here, so it would go optional too
-    autofix: dict[str, Any] | None
+    autofix: Annotated[
+        dict[str, Any] | None,
+        ApiDescription("Autofix state of the issue. Null when Autofix hasn't run"),
+    ]

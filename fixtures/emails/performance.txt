@@ -15,17 +15,17 @@ Tags
 ----
 
 * browser = Safari 15.5
-* browser.name = Safari
+* browser⁠.name = Safari
 * client_os = Mac OS X 10.15.7
-* client_os.name = Mac OS X
+* client_os⁠.name = Mac OS X
 * device = Mac
-* device.family = Mac
+* device⁠.family = Mac
 * environment = production
-* http.status_code = 200
+* http⁠.status_code = 200
 * interface_type = spans
 * level = info
 * runtime = CPython 3.8.9
-* runtime.name = CPython
+* runtime⁠.name = CPython
 * sentry:release = 0.1
 * sentry:user = ip:127.0.0.1
 * transaction = /books/

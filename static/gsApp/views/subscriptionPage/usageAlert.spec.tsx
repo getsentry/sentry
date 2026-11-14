@@ -10,9 +10,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {GIGABYTE} from 'getsentry/constants';
+import {GIGABYTE, MILLISECONDS_IN_HOUR} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 import {UsageAlert} from 'getsentry/views/subscriptionPage/usageAlert';
 
 describe('Subscription > UsageAlert', () => {
@@ -560,6 +559,36 @@ describe('Subscription > UsageAlert', () => {
                 accepted: GIGABYTE * 40,
                 projected: GIGABYTE * 4,
               }),
+            },
+          })}
+        />,
+        {organization}
+      );
+
+      expect(screen.queryByTestId('usage-alert')).not.toBeInTheDocument();
+    });
+
+    it('does not render when an unlimited trial grant makes prepaid unlimited', () => {
+      const organization = OrganizationFixture({access: ['org:billing']});
+      const subscription = SubscriptionFixture({organization, canTrial: false});
+
+      render(
+        <UsageAlert
+          subscription={{
+            ...subscription,
+            plan: 'am3_team',
+            categories: {
+              logBytes: MetricHistoryFixture({
+                category: DataCategory.LOG_BYTE,
+                prepaid: -1,
+                reserved: 5,
+                free: -1,
+              }),
+            },
+          }}
+          usage={CustomerUsageFixture({
+            totals: {
+              logBytes: UsageTotalFixture({accepted: 0, projected: 0}),
             },
           })}
         />,

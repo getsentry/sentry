@@ -4,6 +4,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconDownload} from '@sentry/icons/download';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
+import {useQueryState} from 'nuqs';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -21,7 +22,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {useLocation} from 'sentry/utils/useLocation';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -38,13 +39,13 @@ import {OnDemandBudgetMode} from 'getsentry/types';
 import {
   convertUsageToReservedUnit,
   displayBudgetName,
+  displayPriceWithCents,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getSoftCapType,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
@@ -88,12 +89,12 @@ function getCategoryDisplay({
 
 function UsageHistory({subscription}: Props) {
   const organization = useOrganization();
-  const location = useLocation();
+  const [cursor] = useQueryState('cursor');
 
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<BillingHistory[]>()('/customers/$organizationIdOrSlug/history/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {cursor: location.query.cursor},
+      query: {cursor: cursor ?? undefined},
       staleTime: 0,
     }),
     select: selectJsonWithHeaders,
@@ -117,7 +118,9 @@ function UsageHistory({subscription}: Props) {
               <UsageHistoryRow key={row.id} history={row} subscription={subscription} />
             ))}
           </Container>
-          {usageListPageLinks && <Pagination pageLinks={usageListPageLinks} />}
+          {usageListPageLinks && (
+            <Pagination {...getPaginationProps(usageListPageLinks)} />
+          )}
         </Fragment>
       ) : (
         <ContactBillingMembers />

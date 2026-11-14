@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 
-import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {NotificationActionItem} from 'sentry/components/notificationActions/notificationActionItem';
 import {t} from 'sentry/locale';
 import type {
   AvailableNotificationAction,
@@ -14,6 +14,8 @@ import type {
 import {NotificationActionService} from 'sentry/types/notificationActions';
 import type {Project} from 'sentry/types/project';
 import {capitalize} from 'sentry/utils/string/capitalize';
+
+import {NotificationActionItem} from './notificationActionItem';
 
 type NotificationActionManagerProps = {
   /**
@@ -224,7 +226,7 @@ export function NotificationActionManager({
       <DropdownMenu
         items={menuItems}
         trigger={(triggerProps, isOpen) => (
-          <DropdownButton
+          <OverlayTrigger.Button
             {...triggerProps}
             isOpen={isOpen}
             aria-label={t('Add Action')}
@@ -233,7 +235,7 @@ export function NotificationActionManager({
             disabled={isAddAlertDisabled}
           >
             {t('Add Action')}
-          </DropdownButton>
+          </OverlayTrigger.Button>
         )}
         isDisabled={isAddAlertDisabled}
         data-test-id="add-action-button"

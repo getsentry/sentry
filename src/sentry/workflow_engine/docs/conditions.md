@@ -260,12 +260,13 @@ the same way, but it has no dedupe or thresholds and produces no output for `OK`
 The common stateful path is
 [`StatefulDetectorHandler.evaluate`](../handlers/detector/stateful.py):
 
-1. Extract one packet-wide positive integer dedupe value.
-2. Extract one evaluation value or a mapping of `DetectorGroupKey` to value.
+1. Extract one evaluation value or `DetectorGroupValues` mapping `DetectorGroupKey` to value.
+2. Extract one packet-wide positive integer dedupe value.
 3. Load PostgreSQL detector state and Redis dedupe/counter state.
 4. Skip a group key when the packet dedupe value is not newer.
 5. Enqueue the new dedupe watermark _before_ condition evaluation.
-6. Pass each extracted value to `process_data_condition_group`.
+6. Pass each remaining value to `process_data_condition_group` through
+   `DetectorHandler.evaluate`.
 7. From a triggered group, keep triggered results that are actual
    `DetectorPriorityLevel` values and choose the maximum.
 8. Apply priority threshold rules and persist state.
@@ -294,6 +295,10 @@ run later from the resulting issue event; they are not part of the detector stat
 
 ## Workflows
 
+Handlers define their input requirements: use `require_group()` when issue context is
+needed. Organization events with unresolved slow conditions produce an evaluation error;
+delayed processing requires a `GroupEvent`.
+
 A [`Workflow`](../models/workflow.py) is connected to detectors through
 [`DetectorWorkflow`](../models/detector_workflow.py). Its conditions have two stages:
 
@@ -303,8 +308,8 @@ A [`Workflow`](../models/workflow.py) is connected to detectors through
 
 Both stages pass equivalent [`WorkflowEventData`](../types.py) values to the shared
 layer. Each stage creates a dataclass copy with its Workflow environment; the copies
-share the event-local cache. The value contains a `GroupEvent` or `Activity`, the issue
-group, optional state and escalation data, and an optional workflow environment.
+share the event-local cache. The value contains the source event, an optional issue
+group, state and escalation data, and an optional workflow environment.
 
 [`process_workflows`](../processors/workflow.py) performs the surrounding lifecycle:
 
@@ -520,8 +525,9 @@ condition handler alone cannot add detector packet data or detector-specific API
 
 These are separate decisions, not part of backend registration.
 
-For legacy issue-alert compatibility, add a forward translation in
-[`migration_helpers/issue_alert_conditions.py`](../migration_helpers/issue_alert_conditions.py).
+Production code no longer translates legacy issue-alert conditions. Test factories still do,
+through `data_condition_translator_mapping` in
+[`testutils/helpers/issue_alert_conditions.py`](../../testutils/helpers/issue_alert_conditions.py).
 
 For the automation builder, add the matching frontend enum and node implementation in a
 separate frontend PR:
@@ -546,7 +552,7 @@ have explicit frontend nodes, defaults, details, and validation.
 | Add slow condition                  | `SLOW_CONDITIONS`, `event_frequency_query_handlers.py`, delayed query/result code, delayed processor tests |
 | Change API validation               | `endpoints/validators/base/data_condition.py` and group/Detector/Workflow validators                       |
 | Change availability metadata        | `endpoints/organization_data_condition_index.py` and handler serializer                                    |
-| Add legacy compatibility            | `migration_helpers/issue_alert_conditions.py`                                                              |
+| Add legacy test translation         | `src/sentry/testutils/helpers/issue_alert_conditions.py`                                                   |
 | Add automation UI                   | Frontend condition enum, node registry, editor/details components, frontend tests                          |
 
 ## Conventions and Invariants

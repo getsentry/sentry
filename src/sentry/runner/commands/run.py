@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 import logging
+import multiprocessing
 import os
 import random
 import signal
+import threading
 import time
+from multiprocessing.synchronize import Event
 from typing import Any
 
 import click
 import taskbroker_client.constants as taskworker_constants
+from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
 from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 logger = logging.getLogger("sentry.runner.commands.run")
@@ -32,6 +37,11 @@ def _address_validate(
         host = value
         port = None
     return host, port
+
+
+def _tick_taskworker_scheduler(runner: ScheduleRunner) -> float:
+    with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))):
+        return runner.tick()
 
 
 @click.group()
@@ -106,7 +116,6 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
     """
     from django.conf import settings
-    from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
     from sentry.taskworker.runtime import app
     from sentry.utils.redis import redis_clusters
@@ -128,7 +137,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
         runner.log_startup()
         while True:
-            sleep_time = runner.tick()
+            sleep_time = _tick_taskworker_scheduler(runner)
             time.sleep(sleep_time)
 
 
@@ -223,6 +232,12 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default=None,
     type=int,
 )
+@click.option(
+    "--autoreload",
+    is_flag=True,
+    default=False,
+    help="Restart the worker when Python files change. For local development only.",
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -230,8 +245,71 @@ def taskworker(**options: Any) -> None:
     Run a taskworker worker
     """
     os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
-    # TODO(mark) restore autoreload
-    run_taskworker(**options)
+    if options.pop("autoreload"):
+        _run_taskworker_with_autoreload(**options)
+    else:
+        run_taskworker(**options)
+
+
+def _run_taskworker_with_autoreload(**options: Any) -> None:
+    # watchfiles pulls in anyio, which CLI startup must not import.
+    import watchfiles
+
+    import sentry
+    from sentry.runner.settings import discover_configs
+
+    # Run the worker in its own process so its signal handlers get the main thread.
+    # Known gap: a task still running 5s after SIGINT orphans its child and gets redelivered.
+    ready = multiprocessing.get_context("spawn").Event()
+    try:
+        watchfiles.run_process(
+            os.path.dirname(sentry.__file__),
+            discover_configs()[0],
+            target=_run_reloaded_taskworker,
+            kwargs={"ready": ready, **options},
+            callback=lambda _: _wait_for_reloaded_taskworker(ready),
+            watch_filter=watchfiles.PythonFilter(),
+        )
+    except KeyboardInterrupt:
+        # Stopped while waiting on a restart. watchfiles has already stopped
+        # the worker on its way out.
+        pass
+
+
+def _wait_for_reloaded_taskworker(ready: Event) -> None:
+    # A SIGINT before the worker registers its handler skips the shutdown that
+    # stops its children, which are then orphaned when watchfiles kills it.
+    # So hold off restarting until the handler is in place.
+    while not ready.wait(timeout=0.1):
+        if not multiprocessing.active_children():
+            break
+    ready.clear()
+
+
+def _run_reloaded_taskworker(ready: Event, **options: Any) -> None:
+    # Runs in a fresh spawned process, which has to configure Sentry again.
+    from sentry.runner import configure
+
+    threading.Thread(
+        target=_set_when_sigint_handled,
+        args=(ready, signal.getsignal(signal.SIGINT)),
+        daemon=True,
+    ).start()
+    try:
+        configure()
+        run_taskworker(**options)
+    except KeyboardInterrupt:
+        # A Ctrl-C arrived before the worker registered its SIGINT handler.
+        # Ignore the second SIGINT watchfiles sends while we exit.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+
+def _set_when_sigint_handled(ready: Event, initial_handler: Any) -> None:
+    # The worker registers its handler deep inside start(), with no hook to
+    # tell us, so watch for it to replace the initial one.
+    while signal.getsignal(signal.SIGINT) is initial_handler:
+        time.sleep(0.05)
+    ready.set()
 
 
 def run_taskworker(

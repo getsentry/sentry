@@ -15,6 +15,16 @@ Existing issue events can enter at post-processing without first running a Workf
 Engine detector. This is how error and issue-stream workflows participate in the same
 workflow pipeline.
 
+## Evaluation without an issue
+
+`_evaluate_workflows()` evaluates selected workflows using `WorkflowEventData` with
+organization context, a required detector, and an optional issue group. It returns
+passing action groups, delayed items, and evaluation artifacts. Workflow selection and
+action dispatch remain the caller's responsibility; `process_workflows()` handles these
+for issue events.
+
+See [Conditions](conditions.md#workflows) for group-less condition requirements.
+
 ## Detection Pipeline
 
 ### 1. Build a packet
@@ -54,8 +64,10 @@ same after detector selection.
 ### 3. Evaluate each detector
 
 `process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
-registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler,
-which delegates to the default or overridden `evaluate` methods that contain most of the detector's logic.
+registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler.
+`_evaluate` normalizes the output of `extract_value` to group key and value pairs, passes them to `evaluate`, and calls
+`create_occurrence` for every `DetectorEvaluation.create_issue` evaluation. Evaluations built with `with_result` are
+kept as-is, and `DetectorEvaluation.ok` evaluations are dropped. An empty `DetectorGroupValues` skips `evaluate`.
 
 One packet can produce:
 
@@ -63,15 +75,16 @@ One packet can produce:
 - One result for an ungrouped detector
 - Multiple results keyed by `DetectorGroupKey`
 
-A handler returns a mapping of group keys to `DetectorEvaluation` objects. An evaluation
-can contain an `IssueOccurrence`, a `StatusChangeMessage`, or `None`. `process_detectors`
-routes non-null results according to the handler's `outcome`.
+`evaluate` returns `DetectorEvaluations`, whose `evaluations` map group keys to `DetectorEvaluation`
+objects. `_evaluate` returns only the evaluations that have a result, either an `IssueOccurrence` or a
+`StatusChangeMessage`. `process_detectors` routes those results according to the handler's `outcome`.
 
 ### 4. Detector orchestration
 
-Every detector handler inherits [`DetectorHandler`](../handlers/detector/base.py). Its
-default `evaluate` is stateless; `StatefulDetectorHandler` replaces it with durable
-state and thresholds.
+Every detector handler inherits [`BaseDetectorHandler`](../handlers/detector/base.py), which owns
+the `_evaluate` lifecycle and occurrence decoration. [`DetectorHandler`](../handlers/detector/condition.py)
+adds a default stateless `evaluate` over the trigger condition group; `StatefulDetectorHandler`
+layers durable state and thresholds over that evaluation by calling `super().evaluate()`.
 
 #### Stateless (default)
 
@@ -138,9 +151,9 @@ empty or passing `NONE` group can also trigger without a priority-bearing result
 therefore use the stateful handler's default `OK` priority. A missing trigger group is
 invalid and produces no transition.
 
-Detectors that need a different flow inherit `DetectorHandler` and override `evaluate`,
-but then they own this orchestration. `BaseDetectorHandler` is only the abstract
-interface and is not a base for new detectors.
+Detectors that decide without the trigger condition group inherit `BaseDetectorHandler` and
+implement `evaluate`. Detectors that extend the condition evaluation override `evaluate` and
+call `super().evaluate()`, then own the orchestration they add.
 
 ### 5. Produce detector output
 
@@ -313,9 +326,21 @@ batches so asynchronous task messages contain identifiers rather than large payl
 4. Combines equivalent conditions into bulk queries.
 5. Evaluates query results for each issue group.
 6. Combines delayed results with fast results retained in the buffer key.
-7. Reconstructs representative group events.
+7. Reconstructs representative group events from eligible buffered entries.
 8. Sends passing action groups through the normal action path.
 9. Deletes successfully processed Redis items.
+
+Hydration first uses `EventRedisData.filter_to_group_dcgs` to keep only buffered entries
+whose condition-group IDs intersect the passing condition-group IDs for their issue
+group. The method returns a new container without modifying the original buffered data.
+Hydration loads unique group, event, and occurrence IDs from those entries only,
+retaining 100-key event payload batches. No
+eligible entries means no group-cache, event payload, or occurrence reads; evaluation
+reporting and successful Redis cleanup still run. Eligible entries retain their buffer
+iteration order: the last successfully hydrated event for each issue group supplies the
+event, attached occurrence, and original timestamp. A later missing event payload does
+not replace an earlier successfully hydrated event. Required read failures still propagate
+after the existing retries, leaving buffered work for a task retry.
 
 Snuba rate limits are retried by the task. A missing per-group query result becomes a
 tainted non-triggered evaluation. If a slow condition has no registered query handler,
@@ -417,10 +442,11 @@ processing, delayed scheduling, caches, and actions. Logging helpers in
 [`utils/log_context.py`](../utils/log_context.py) attach workflow and event context.
 
 [`emit_evaluations`](../processors/evaluations/tracking.py) records detector and workflow
-evaluations. Runtime options and feature flags control sampling and direct logging.
+evaluations through each `EvaluationEmitter`, which filters artifacts for its destination.
+Runtime options and feature flags control sampling and direct logging.
 
 When `organizations:workflow-engine-evaluation-artifacts-eap` is enabled,
-[`emit_evaluation_to_eap`](../processors/evaluations/eap.py) publishes artifacts to
+[`EAPEmitter`](../processors/evaluations/eap.py) publishes artifacts to
 `SNUBA_ITEMS` as `TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION` trace items. These are not
 log trace items and do not include log body or severity attributes.
 

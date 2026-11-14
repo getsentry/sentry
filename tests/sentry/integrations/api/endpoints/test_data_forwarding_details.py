@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -18,7 +19,7 @@ class DataForwardingDetailsEndpointTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: object, **kwargs: object) -> Response:
         """
         Override get_response to always add the required feature flag.
         """
@@ -69,7 +70,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert not response.data["isEnabled"]
         assert response.data["enrollNewProjects"]
 
-        data_forwarder.refresh_from_db()
+        data_forwarder = DataForwarder.objects.get(id=data_forwarder.id)
         assert data_forwarder.config == {"write_key": "new_key"}
         assert not data_forwarder.is_enabled
         assert data_forwarder.enroll_new_projects
@@ -172,6 +173,24 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             self.organization.slug, data_forwarder.id, status_code=400, **payload
         )
         assert "invalid project ids" in str(response.data).lower()
+
+    def test_update_with_malformed_project_ids(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "test_key"},
+        )
+
+        for project_ids in ([{"id": self.project.id}], None, "not-a-list"):
+            payload = {
+                "provider": DataForwarderProviderSlug.SEGMENT,
+                "config": {"write_key": "test_key"},
+                "project_ids": project_ids,
+            }
+
+            response = self.get_error_response(
+                self.organization.slug, data_forwarder.id, status_code=400, **payload
+            )
+            assert "project_ids" in response.data
 
     @freeze_time(datetime.now(tz=timezone.utc) - timedelta(hours=1))
     def test_update_with_project_write_bulk_enrollment(self) -> None:

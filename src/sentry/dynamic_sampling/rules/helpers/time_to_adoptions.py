@@ -47,6 +47,7 @@ LATEST_RELEASE_TTAS = {
     "dotnet-xamarin": 36899,
     "electron": 25198,
     "elixir": 12596,
+    "expo": 54047,
     "flutter": 204973,
     "go": 16487,
     "go-http": 5658,

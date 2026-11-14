@@ -384,3 +384,5 @@ export function usePendingUserInput({
     handleReauthComplete,
   };
 }
+
+export type PendingUserInputState = ReturnType<typeof usePendingUserInput>;

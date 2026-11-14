@@ -20,13 +20,13 @@ import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
+import {AddOnCategory, type ProductTrial, type Subscription} from 'getsentry/types';
 import {
-  AddOnCategory,
-  BillingType,
-  type ProductTrial,
-  type Subscription,
-} from 'getsentry/types';
-import {checkIsAddOn, getBilledCategory, hasBillingAccess} from 'getsentry/utils/billing';
+  checkIsAddOn,
+  getBilledCategory,
+  hasBillingAccess,
+  isSalesAccount,
+} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import {
   USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
@@ -269,11 +269,7 @@ function UpgradeCta({
   selectedProduct: DataCategory | AddOnCategory;
   subscription: Subscription;
 }) {
-  const isSalesAccount =
-    // Invoiced subscriptions are managed by sales
-    subscription.type === BillingType.INVOICED ||
-    // Custom-priced subscriptions (price > 0) are managed by sales
-    (subscription.customPrice !== null && subscription.customPrice > 0);
+  const isSales = isSalesAccount(subscription);
   const hasBillingPerms = hasBillingAccess(organization);
 
   if (selectedProduct === AddOnCategory.SEER) {
@@ -289,7 +285,7 @@ function UpgradeCta({
               >
                 {t('Add to plan')}
               </LinkButton>
-            ) : isSalesAccount ? (
+            ) : isSales ? (
               <Text variant="muted" size="sm">
                 {tct('Contact us at [mailto:sales@sentry.io] to upgrade.', {
                   mailto: <a href="mailto:sales@sentry.io" />,
@@ -320,7 +316,7 @@ function UpgradeCta({
         action: hasBillingPerms
           ? subscription.canSelfServe
             ? t('Upgrade your plan to enable it.')
-            : isSalesAccount
+            : isSales
               ? tct('Contact us at [mailto:sales@sentry.io] to upgrade.', {
                   mailto: <a href="mailto:sales@sentry.io" />,
                 })
@@ -361,23 +357,15 @@ function SetupCta({
     return null;
   }
 
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
-
   return (
     <Cta
       isBanner={false}
       image={seerConfigSeerImg}
       imageAlt=""
       title={t('Get started with Seer')}
-      subtitle={
-        hasGitLabSupport
-          ? t(
-              'Finish connecting to GitHub or GitLab, configure your repositories and projects, and start getting the most out of Seer.'
-            )
-          : t(
-              'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
-            )
-      }
+      subtitle={t(
+        'Finish connecting to GitHub or GitLab, configure your repositories and projects, and start getting the most out of Seer.'
+      )}
       heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
       buttons={
         <LinkButton

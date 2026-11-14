@@ -1,11 +1,12 @@
 import {IconSort} from '@sentry/icons/sort';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import type {DropdownButtonProps} from '@sentry/scraps/dropdownMenu';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {
+  OverlayTrigger,
+  type OverlayTriggerButtonProps,
+} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
@@ -18,7 +19,7 @@ type Props = {
   sort: string;
   className?: string;
   showIcon?: boolean;
-  triggerSize?: DropdownButtonProps['size'];
+  triggerSize?: OverlayTriggerButtonProps['size'];
 };
 
 function getSortTooltip(key: IssueSortOptions) {
@@ -53,7 +54,6 @@ export function IssueListSortOptions({
   triggerSize = 'xs',
   showIcon = true,
 }: Props) {
-  const organization = useOrganization();
   // The explicit v1/v2 sort values are URL-only escape hatches for pinning one of
   // the two recommended scorers; the dropdown just shows them as Recommended.
   const isPinnedRecommended =
@@ -62,14 +62,8 @@ export function IssueListSortOptions({
   const sortKey = isPinnedRecommended
     ? IssueSortOptions.RECOMMENDED
     : sort || IssueSortOptions.DATE;
-  const hasRecommendedSort =
-    organization.features.includes('issue-stream-recommended-sort') ||
-    // If Recommended is the default sort it must also be selectable, otherwise a
-    // user with a stored non-recommended sort can't switch back to it.
-    organization.features.includes('issue-stream-recommended-sort-default') ||
-    sortKey === IssueSortOptions.RECOMMENDED;
   const sortKeys = [
-    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
+    IssueSortOptions.RECOMMENDED,
     ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,

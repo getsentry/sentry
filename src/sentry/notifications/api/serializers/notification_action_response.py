@@ -1,9 +1,10 @@
-from collections.abc import Sequence
-from typing import TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -11,20 +12,45 @@ from sentry.notifications.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.serializers import manytoone_to_dict
 
 
 class OutgoingNotificationActionResponse(TypedDict):
-    id: int
-    organizationId: int
-    integrationId: int | None
-    sentryAppId: int | None
+    id: Annotated[int, ApiDescription("ID of the notification action")]
+    organizationId: Annotated[int, ApiDescription("ID of the organization")]
+    integrationId: Annotated[
+        int | None,
+        ApiDescription("ID of the integration that sends the notification. Null when none is used"),
+    ]
+    sentryAppId: Annotated[
+        int | None,
+        ApiDescription(
+            "ID of the Sentry app that receives the notification. Null when none is used"
+        ),
+    ]
+    projects: Annotated[list[int], ApiDescription("IDs of the projects the action applies to")]
+    serviceType: Annotated[
+        str | None,
+        ApiDescription("Service that sends the notification, such as email, slack or pagerduty"),
+    ]
+    triggerType: Annotated[
+        str, ApiDescription("What triggers the action, such as audit-log or spike-protection")
+    ]
+    targetType: Annotated[
+        str | None,
+        ApiDescription("Kind of target: specific, user, team, sentry_app or issue_owners"),
+    ]
+    targetIdentifier: Annotated[
+        str | None, ApiDescription("ID of the target in the service, such as a Slack channel ID")
+    ]
+    targetDisplay: Annotated[str | None, ApiDescription("Name of the target, such as #alerts")]
+
+
+class NotificationActionAttrs(TypedDict):
+    trigger_type: str
     projects: list[int]
-    serviceType: str | None
-    triggerType: str
-    targetType: str | None
-    targetIdentifier: str | None
-    targetDisplay: str | None
 
 
 @register(NotificationAction)
@@ -33,7 +59,12 @@ class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationAction
     Model serializer for outgoing NotificationAction API payloads
     """
 
-    def get_attrs(self, item_list: Sequence[NotificationAction], user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[NotificationAction],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[NotificationAction, NotificationActionAttrs]:
         action_ids = {i.id for i in item_list}
         projects_by_action_id = manytoone_to_dict(
             NotificationActionProject.objects.filter(action_id__in=action_ids),
@@ -49,7 +80,11 @@ class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationAction
         }
 
     def serialize(
-        self, obj: NotificationAction, attrs, user, **kwargs
+        self,
+        obj: NotificationAction,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> OutgoingNotificationActionResponse:
         return {
             "id": obj.id,
@@ -65,7 +100,7 @@ class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationAction
         }
 
     @classmethod
-    def get_example(cls, **action_kwargs):
+    def get_example(cls, **action_kwargs: object) -> OutgoingNotificationActionResponse:
         """
         Create example serialized response for documentation.
         Any kwargs will be applied to the NotificationAction.

@@ -5,7 +5,6 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
-import orjson
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -38,7 +37,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
     permission_classes = ()
     slack_request_class = SlackOptionsLoadRequest
 
-    def is_substring(self, string, substring):
+    def is_substring(self, string: str, substring: str) -> bool:
         # in case either have special characters, we want to preserve the strings
         # as is, so we escape both before applying re.match
         substring = re.escape(substring)
@@ -114,7 +113,6 @@ class SlackOptionsLoadEndpoint(Endpoint):
                 "slack.options_load.request-error",
                 extra={
                     "group_id": slack_request.group_id,
-                    "request_data": orjson.dumps(slack_request.data).decode(),
                 },
             )
             return self.respond(status=status.HTTP_400_BAD_REQUEST)

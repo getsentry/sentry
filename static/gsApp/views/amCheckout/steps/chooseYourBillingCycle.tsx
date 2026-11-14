@@ -1,11 +1,15 @@
-import {useMemo} from 'react';
+import {useMemo, type ReactNode} from 'react';
+import moment from 'moment-timezone';
 
-import {Stack, Grid} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 import {ANNUAL} from 'getsentry/constants';
-import {BillingCycleSelectCard} from 'getsentry/views/amCheckout/components/billingCycleSelectCard';
+import {displayBudgetName, formatPrice, isDeveloperPlan} from 'getsentry/utils/billing';
 import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -41,6 +45,8 @@ export function ChooseYourBillingCycle({
           '4xl': `repeat(${intervalOptions.length}, 1fr)`,
         }}
         gap="lg"
+        role="radiogroup"
+        aria-label={t('Billing cycle')}
       >
         {intervalOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
@@ -50,28 +56,90 @@ export function ChooseYourBillingCycle({
             reserved: formData.reserved,
             addOns: formData.addOns,
           });
-          const formattedPriceAfterDiscount = utils.formatPrice({
+          const formattedPriceAfterDiscount = formatPrice({
             cents: priceAfterDiscount,
           });
 
           const priceBeforeDiscount = isAnnual ? previousPlanPrice * 12 : 0;
           const formattedPriceBeforeDiscount = previousPlanPrice
-            ? utils.formatPrice({cents: priceBeforeDiscount})
+            ? formatPrice({cents: priceBeforeDiscount})
             : '';
           // oxlint-disable-next-line react/immutability
           previousPlanPrice = priceAfterDiscount;
+          const intervalName = isAnnual ? t('Yearly') : t('Monthly');
+          const isPartnerMigration = !!subscription.partner?.partnership.id;
+          const isCotermUpgrade =
+            priceAfterDiscount >= subscription.planDetails.totalPrice;
+          const isCurrentUsageCycle =
+            subscription.billingInterval === plan.billingInterval;
+          const shouldApplyToExistingPeriod =
+            isCotermUpgrade &&
+            isCurrentUsageCycle &&
+            !isDeveloperPlan(subscription.planDetails);
+          const today = moment();
+          const contractStartDate =
+            !shouldApplyToExistingPeriod && isCotermUpgrade
+              ? today
+              : moment(subscription.billingPeriodEnd).add(1, 'day');
+          let cycleInfo: ReactNode;
+          if (isPartnerMigration) {
+            cycleInfo = isAnnual
+              ? t('Billed annually from your selected start date on submission')
+              : t('Billed monthly starting on your selected start date on submission');
+          } else if (isAnnual) {
+            cycleInfo = t('Billed annually');
+          } else {
+            cycleInfo = tct('Billed on the [day] of each month', {
+              day: contractStartDate.format('Do'),
+            });
+          }
+          const additionalInfo = isAnnual
+            ? tct('[budgetTerm] usage billed monthly, discount does not apply', {
+                budgetTerm:
+                  plan.budgetTerm === 'pay-as-you-go'
+                    ? displayBudgetName(plan, {abbreviated: true})
+                    : displayBudgetName(plan, {title: true}),
+              })
+            : t('Cancel anytime');
 
           return (
-            <BillingCycleSelectCard
+            <ToggleCard
               key={plan.id}
-              plan={plan}
-              isSelected={isSelected}
-              onUpdate={onUpdate}
-              subscription={subscription}
-              formattedPriceAfterDiscount={formattedPriceAfterDiscount}
-              formattedPriceBeforeDiscount={formattedPriceBeforeDiscount}
-              priceAfterDiscount={priceAfterDiscount}
-            />
+              variant="radio"
+              name="checkout-billing-cycle"
+              value={plan.id}
+              checked={isSelected}
+              onChange={() => onUpdate({plan: plan.id})}
+              data-test-id={`billing-cycle-option-${plan.billingInterval}`}
+              aria-label={t('%s billing cycle', intervalName)}
+            >
+              <Flex align="start" gap="md">
+                <ToggleCard.Indicator />
+                <Stack gap="sm" flexGrow={1}>
+                  <Flex justify="between" align="center">
+                    <Flex align="center" gap="sm">
+                      <Heading as="h3" variant="primary">
+                        {intervalName}
+                      </Heading>
+                      {isAnnual && <Tag variant="promotion">{t('save 10%')}</Tag>}
+                    </Flex>
+                    <Flex align="center" gap="xs">
+                      {formattedPriceBeforeDiscount && (
+                        <Text variant="muted" strikethrough size="lg">
+                          {`$${formattedPriceBeforeDiscount}`}
+                        </Text>
+                      )}
+                      <Text size="lg" bold variant="primary">
+                        {`$${formattedPriceAfterDiscount}`}
+                      </Text>
+                    </Flex>
+                  </Flex>
+                  <Text variant="muted" size="md" textWrap="pretty">
+                    {cycleInfo}. {additionalInfo}
+                  </Text>
+                </Stack>
+              </Flex>
+            </ToggleCard>
           );
         })}
       </Grid>

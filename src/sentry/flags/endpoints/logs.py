@@ -1,7 +1,9 @@
-from datetime import datetime
-from typing import Any, TypedDict
+from collections.abc import Mapping
+from typing import Annotated, Any, Literal, TypedDict, cast
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers as rest_serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -16,39 +18,84 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.examples.flag_examples import FlagExamples
+from sentry.apidocs.parameters import CursorQueryParam, FlagParams, GlobalParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.flags.models import (
     PROVIDER_MAP,
     ActionEnum,
     CreatedByTypeEnum,
     FlagAuditLogModel,
     ProviderEnum,
+    ProviderName,
 )
 from sentry.models.organization import Organization
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class FlagAuditLogModelSerializerResponse(TypedDict):
-    id: int
-    action: str
-    createdAt: datetime
-    createdBy: str | None
-    createdByType: str | None
-    flag: str
-    provider: str | None
-    tags: dict[str, Any]
+    id: Annotated[int, ApiDescription("ID of the audit log entry")]
+    action: Annotated[
+        Literal["created", "deleted", "updated"],
+        ApiDescription("What happened to the flag: created, deleted or updated"),
+    ]
+    createdAt: Annotated[str, ApiDescription("When the change happened (ISO 8601)")]
+    createdBy: Annotated[
+        str | None, ApiDescription("Who made the change, such as an email address")
+    ]
+    createdByType: Annotated[
+        Literal["email", "id", "name"] | None,
+        ApiDescription("Kind of value in createdBy: email, id or name"),
+    ]
+    flag: Annotated[str, ApiDescription("Name of the flag")]
+    provider: Annotated[
+        ProviderName | None,
+        ApiDescription(
+            "Feature flag provider that sent the change: generic, flagpole, launchdarkly, unleash or statsig"
+        ),
+    ]
+    tags: Annotated[dict[str, Any], ApiDescription("Tags of the change, such as the environment")]
+
+
+class FlagLogIndexResponse(TypedDict):
+    data: Annotated[list[FlagAuditLogModelSerializerResponse], ApiDescription("Audit log entries")]
+
+
+class FlagLogDetailsResponse(TypedDict):
+    data: Annotated[FlagAuditLogModelSerializerResponse, ApiDescription("The audit log entry")]
 
 
 @register(FlagAuditLogModel)
 class FlagAuditLogModelSerializer(Serializer[FlagAuditLogModelSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> FlagAuditLogModelSerializerResponse:
+    def serialize(
+        self,
+        obj: FlagAuditLogModel,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> FlagAuditLogModelSerializerResponse:
         return {
             "id": obj.id,
-            "action": ActionEnum.to_string(obj.action),
+            "action": cast(
+                Literal["created", "deleted", "updated"], ActionEnum.to_string(obj.action)
+            ),
             "createdAt": obj.created_at.isoformat(),
             "createdBy": obj.created_by,
             "createdByType": (
                 None
                 if obj.created_by_type is None
-                else CreatedByTypeEnum.to_string(obj.created_by_type)
+                else cast(
+                    Literal["email", "id", "name"],
+                    CreatedByTypeEnum.to_string(obj.created_by_type),
+                )
             ),
             "flag": obj.flag,
             "provider": (None if obj.provider is None else ProviderEnum.to_string(obj.provider)),
@@ -88,11 +135,40 @@ class FlagLogIndexRequestSerializer(rest_serializers.Serializer):
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Flags"])
 class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FLAG
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationFlagLogs",
+        summary="List an Organization's Flag Logs",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
+            FlagParams.FLAG,
+            FlagParams.PROVIDER,
+            FlagParams.SORT,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("ListFlagLogsResponse", FlagLogIndexResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=FlagExamples.LIST_FLAG_LOGS,
+    )
+    def get(self, request: Request, organization: Organization) -> Response[FlagLogIndexResponse]:
+        """
+        Return a paginated list of feature flag changes (creations, updates and deletions)
+        recorded for an organization within the requested time range.
+        """
         start, end = get_date_range_from_params(request.GET)
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
@@ -137,11 +213,29 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Flags"])
 class OrganizationFlagLogDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FLAG
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
 
-    def get(self, request: Request, organization: Organization, flag_log_id: int) -> Response:
+    @extend_schema(
+        operation_id="retrieveOrganizationFlagLog",
+        summary="Retrieve an Organization's Flag Log",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, FlagParams.FLAG_LOG_ID],
+        responses={
+            200: inline_sentry_response_serializer("GetFlagLogResponse", FlagLogDetailsResponse),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=FlagExamples.GET_FLAG_LOG,
+    )
+    def get(
+        self, request: Request, organization: Organization, flag_log_id: int
+    ) -> Response[FlagLogDetailsResponse]:
+        """
+        Return a single feature flag change recorded for an organization.
+        """
         try:
             model = FlagAuditLogModel.objects.filter(
                 id=flag_log_id,

@@ -5,7 +5,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -14,22 +13,23 @@ import {DataCategory} from 'sentry/types/core';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreCaseInsensitivityDefault} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
-import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {LogsTabOnboarding} from './logsOnboarding';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {LogsTabContent} from './logsTab';
 
 export default function LogsContent() {
   const organization = useOrganization();
@@ -59,23 +59,25 @@ export default function LogsContent() {
       >
         <AnalyticsArea name="explore.logs">
           <AiQueryProvider strategy="Logs">
-            <LogsPageStack flex={1} data-footer-constrained data-hide-footer>
+            <LogsPageStack flex={1} data-hide-footer>
               <LogsQueryParamsProvider
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
                 source="location"
               >
-                <LogsHeader />
-                <LogsPageDataProvider allowHighFidelity>
-                  {defined(onboardingProject) ? (
-                    <LogsTabOnboarding
-                      organization={organization}
-                      project={onboardingProject}
-                      datePageFilterProps={datePageFilterProps}
-                    />
-                  ) : (
-                    <LogsTabContent datePageFilterProps={datePageFilterProps} />
-                  )}
-                </LogsPageDataProvider>
+                <ExploreCaseInsensitivityDefault>
+                  <LogsHeader />
+                  <LogsPageDataProvider allowHighFidelity>
+                    {defined(onboardingProject) ? (
+                      <LogsTabOnboarding
+                        organization={organization}
+                        project={onboardingProject}
+                        datePageFilterProps={datePageFilterProps}
+                      />
+                    ) : (
+                      <LogsTabContent datePageFilterProps={datePageFilterProps} />
+                    )}
+                  </LogsPageDataProvider>
+                </ExploreCaseInsensitivityDefault>
               </LogsQueryParamsProvider>
             </LogsPageStack>
           </AiQueryProvider>
@@ -86,12 +88,6 @@ export default function LogsContent() {
 }
 
 const LogsPageStack = styled(Stack)`
-  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
-    &[data-footer-constrained] ~ footer {
-      display: none;
-    }
-  }
-
   &[data-hide-footer] ~ footer {
     display: none;
   }
@@ -148,15 +144,7 @@ function LogsHeader() {
           }}
         />
       )}
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={logsFeedbackOptions}
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot name="feedback" feedbackOptions={logsFeedbackOptions} />
     </Fragment>
   );
 }

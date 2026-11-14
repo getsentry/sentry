@@ -29,7 +29,6 @@ export function ReleasesDisplayOptions({selected, onSelect}: Props) {
           options={displayOptions}
           selected={selected}
           onSelect={onSelect}
-          style={{zIndex: 1}}
         />
       )}
     </Container>

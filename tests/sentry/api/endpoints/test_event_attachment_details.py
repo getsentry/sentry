@@ -17,6 +17,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.skips import requires_objectstore, requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [requires_snuba]
 
@@ -45,6 +46,7 @@ class CreateAttachmentMixin(TestCase):
         )
         file = EventAttachment.putfile(self.project.id, attachment)
 
+        assert attachment.name is not None
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
             project_id=self.event.project_id,
@@ -256,6 +258,23 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
         close_streaming_response(self.assert_member_can_access(self.path))
         close_streaming_response(self.assert_can_access(self.owner, self.path))
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature(["organizations:event-attachments", "organizations:service-accounts"])
+    def test_service_account_cannot_access_for_owner_role(self) -> None:
+        self.organization.update_option("sentry:attachments_role", "owner")
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["event:read"], all_projects=True
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        response = self.client.get(self.path, HTTP_X_VIEWER_CONTEXT=viewer_context)
+        assert response.status_code == 403, response.content
+
     @with_feature("organizations:event-attachments")
     def test_member_cannot_access_for_owner_role(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
@@ -277,7 +296,7 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
         close_streaming_response(self.assert_can_access(superuser, self.path))
 
         with self.settings(SENTRY_SELF_HOSTED=False):
-            self.assert_can_access(superuser, self.path)
+            close_streaming_response(self.assert_can_access(superuser, self.path))
             self.assert_can_access(superuser, self.path, method="DELETE")
 
     @with_feature("organizations:event-attachments")

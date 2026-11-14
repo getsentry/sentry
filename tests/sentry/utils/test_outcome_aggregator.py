@@ -1,4 +1,5 @@
 import types
+from collections.abc import Iterator
 from unittest import mock
 
 import pytest
@@ -9,13 +10,13 @@ from sentry.utils.outcomes import Outcome, OutcomeAggregator
 
 
 @pytest.fixture(autouse=True)
-def setup():
+def setup() -> Iterator[types.SimpleNamespace]:
     with mock.patch.object(outcomes.outcomes_producer, "produce") as mck_outcomes:
         with mock.patch.object(outcomes.billing_producer, "produce") as mck_billing:
             yield types.SimpleNamespace(outcomes=mck_outcomes, billing=mck_billing)
 
 
-def test_basic_aggregation(setup):
+def test_basic_aggregation(setup: types.SimpleNamespace) -> None:
     aggregator = OutcomeAggregator(
         bucket_interval=10, flush_interval=5, max_batch_size=100, jitter=0
     )
@@ -45,7 +46,7 @@ def test_basic_aggregation(setup):
     assert data["quantity"] == 8
 
 
-def test_different_keys_not_aggregated(setup):
+def test_different_keys_not_aggregated(setup: types.SimpleNamespace) -> None:
     aggregator = OutcomeAggregator(
         bucket_interval=10, flush_interval=5, max_batch_size=100, jitter=0
     )
@@ -72,7 +73,7 @@ def test_different_keys_not_aggregated(setup):
     assert setup.outcomes.call_count == 2
 
 
-def test_flush_on_buffer_size(setup):
+def test_flush_on_buffer_size(setup: types.SimpleNamespace) -> None:
     aggregator = OutcomeAggregator(
         bucket_interval=10, flush_interval=60, max_batch_size=2, jitter=0
     )
@@ -97,7 +98,7 @@ def test_flush_on_buffer_size(setup):
     assert setup.outcomes.call_count == 2
 
 
-def test_flush_on_time_interval(setup):
+def test_flush_on_time_interval(setup: types.SimpleNamespace) -> None:
     base_time = 1000
 
     with mock.patch("time.time", return_value=base_time):
@@ -129,7 +130,7 @@ def test_flush_on_time_interval(setup):
     assert setup.outcomes.call_count >= 1
 
 
-def test_jitter_applied(setup):
+def test_jitter_applied(setup: types.SimpleNamespace) -> None:
     # Test that jitter is applied when not explicitly set
     base_time = 1000
 

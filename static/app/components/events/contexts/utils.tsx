@@ -1,47 +1,10 @@
-import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {SvgIcon} from '@sentry/icons/svgIcon';
 import type {Location} from 'history';
-import moment from 'moment-timezone';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 
 import {DeviceName} from 'sentry/components/deviceName';
-import {
-  ContextIcon,
-  getLogoImage,
-  type ContextIconProps,
-} from 'sentry/components/events/contexts/contextIcon';
-import {getAccessibilityContextData} from 'sentry/components/events/contexts/knownContext/accessibility';
-import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
-import {getARTContextData} from 'sentry/components/events/contexts/knownContext/art';
-import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
-import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
-import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
-import {getDartContextData} from 'sentry/components/events/contexts/knownContext/dartContext';
-import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
-import {getFlutterContextData} from 'sentry/components/events/contexts/knownContext/flutterContext';
-import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
-import {getGPUCrashContextData} from 'sentry/components/events/contexts/knownContext/gpuCrash';
-import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
-import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
-import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
-import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
-import {getReactNativeContextData} from 'sentry/components/events/contexts/knownContext/reactNativeContext';
-import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
-import {getRuntimeContextData} from 'sentry/components/events/contexts/knownContext/runtime';
-import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
-import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
-import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
-import {getUserContextData} from 'sentry/components/events/contexts/knownContext/user';
-import {getWERContextData} from 'sentry/components/events/contexts/knownContext/wer';
-import {
-  getPlatformContextData,
-  getPlatformContextIcon,
-  getPlatformContextTitle,
-  PLATFORM_CONTEXT_KEYS,
-} from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -49,6 +12,38 @@ import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
+
+import {getAccessibilityContextData} from './knownContext/accessibility';
+import {getAppContextData} from './knownContext/app';
+import {getARTContextData} from './knownContext/art';
+import {getBrowserContextData} from './knownContext/browser';
+import {getCloudResourceContextData} from './knownContext/cloudResource';
+import {getCultureContextData} from './knownContext/culture';
+import {getDartContextData} from './knownContext/dartContext';
+import {getDeviceContextData} from './knownContext/device';
+import {getFlutterContextData} from './knownContext/flutterContext';
+import {getGPUContextData} from './knownContext/gpu';
+import {getGPUCrashContextData} from './knownContext/gpuCrash';
+import {getMemoryInfoContext} from './knownContext/memoryInfo';
+import {getMissingInstrumentationContextData} from './knownContext/missingInstrumentation';
+import {getOperatingSystemContextData} from './knownContext/os';
+import {getProfileContextData} from './knownContext/profile';
+import {getReactNativeContextData} from './knownContext/reactNativeContext';
+import {getReplayContextData} from './knownContext/replay';
+import {getRuntimeContextData} from './knownContext/runtime';
+import {getStateContextData} from './knownContext/state';
+import {getThreadPoolInfoContext} from './knownContext/threadPoolInfo';
+import {getTraceContextData} from './knownContext/trace';
+import {getUserContextData} from './knownContext/user';
+import {getWERContextData} from './knownContext/wer';
+import {
+  getPlatformContextData,
+  getPlatformContextIcon,
+  getPlatformContextTitle,
+  PLATFORM_CONTEXT_KEYS,
+} from './platformContext/utils';
+import {ContextIcon, getLogoImage, type ContextIconProps} from './contextIcon';
+import {getContextKeys, getContextMeta} from './dataUtils';
 
 /**
  * Generates the class name used for contexts
@@ -103,39 +98,6 @@ export function generateIconName(
   }
 
   return formattedName;
-}
-
-export function getRelativeTimeFromEventDateCreated(
-  eventDateCreated: string | undefined,
-  timestamp?: string
-) {
-  if (!defined(timestamp)) {
-    return timestamp;
-  }
-
-  const dateTime = moment(timestamp);
-
-  if (!dateTime.isValid()) {
-    return timestamp;
-  }
-
-  // Without a valid reference date (e.g. the event isn't available) we can't
-  // compute a relative time, so just show the timestamp on its own.
-  const referenceDate = moment(eventDateCreated);
-  if (!eventDateCreated || !referenceDate.isValid()) {
-    return timestamp;
-  }
-
-  const relativeTime = `(${dateTime.from(referenceDate, true)} ${t(
-    'before this event'
-  )})`;
-
-  return (
-    <Fragment>
-      {timestamp}
-      <RelativeTime>{relativeTime}</RelativeTime>
-    </Fragment>
-  );
 }
 
 type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
@@ -196,23 +158,6 @@ export function getContextType({alias, type}: {alias: string; type?: string}): s
     return alias;
   }
   return type === 'default' ? alias : type;
-}
-
-/**
- * Omit certain keys from ever being displayed on context items.
- * All custom context (and some known context) has the type:default so we remove it.
- */
-export function getContextKeys({
-  data,
-  hiddenKeys = [],
-}: {
-  data: Record<string, any>;
-  hiddenKeys?: string[];
-}): string[] {
-  const hiddenKeySet = new Set(hiddenKeys);
-  return Object.keys(data).filter(
-    ctxKey => ctxKey !== 'type' && !hiddenKeySet.has(ctxKey)
-  );
 }
 
 export function getContextTitle({
@@ -303,25 +248,6 @@ export function getContextTitle({
       return t('Dart');
     default:
       return contextType;
-  }
-}
-
-export function getContextMeta(
-  event: Event | undefined,
-  contextType: string
-): Record<string, any> {
-  const defaultMeta = event?._meta?.contexts?.[contextType] ?? {};
-  switch (contextType) {
-    case 'memory_info': // Current
-    case 'Memory Info': // Legacy
-      return event?._meta?.contexts?.['Memory Info'] ?? defaultMeta;
-    case 'threadpool_info': // Current
-    case 'ThreadPool Info': // Legacy
-      return event?._meta?.contexts?.['ThreadPool Info'] ?? defaultMeta;
-    case 'user':
-      return event?._meta?.user ?? defaultMeta;
-    default:
-      return defaultMeta;
   }
 }
 
@@ -600,11 +526,6 @@ export function getContextSummary({
     subtitleType,
   };
 }
-
-const RelativeTime = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${p => p.theme.space.xs};
-`;
 
 export const CONTEXT_DOCS_LINK =
   'https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/';

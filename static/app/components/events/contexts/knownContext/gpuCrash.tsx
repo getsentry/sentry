@@ -1,9 +1,9 @@
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {getContextKeys} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 
-// Fields emitted by `_produce_gpu_occurrence` in
-// src/sentry/lang/native/processing.py when teapot decodes a GPU crash.
+// Fields emitted by `_build_gpu_crash_context` in
+// src/sentry/lang/native/gpu.py when teapot decodes a GPU crash.
 enum GPUCrashContextKeys {
   STATUS = 'status',
   HANDLER = 'handler',
@@ -29,35 +29,81 @@ enum GPUCrashContextKeys {
   SHADER_DEBUG_INFO_UID = 'shader_debug_info_uid',
   PC_ADDRESS = 'pc_address',
   MISSING_DIF_COUNT = 'missing_dif_count',
+  FAULT_CATEGORY = 'fault_category',
+  LAST_GPU_OPERATION = 'last_gpu_operation',
+  ENGINE = 'engine',
+  CLIENT = 'client',
+  DEVICE_STATE = 'device_state',
+  ACTIVE_WARPS = 'active_warps',
+  FAULTING_PC = 'faulting_pc',
+  FAULT_NAME = 'fault_name',
+  FAULT_DETAIL = 'fault_detail',
+  RESOURCE = 'resource',
+  RESOURCE_DESTROYED = 'resource_destroyed',
+  SHADER_SIZE = 'shader_size',
+  FAULTED_WARPS = 'faulted_warps',
+  WARNINGS = 'warnings',
 }
+
+export type FaultCategory =
+  | 'shader_hang'
+  | 'gpu_hang'
+  | 'page_fault'
+  | 'dma_fault'
+  | 'out_of_memory'
+  | 'device_reset'
+  | 'device_stopped'
+  | 'device_removed'
+  | 'unknown';
+
+export type FaultedWarp = {
+  fault_detail?: string;
+  fault_name?: string;
+  pc?: string;
+  shader_mapping?: {File?: string; Line?: number} | null;
+};
 
 export interface GPUCrashContext {
   // Any custom keys users may set
   [key: string]: any;
   [GPUCrashContextKeys.ACCESS_TYPE]?: string;
+  [GPUCrashContextKeys.ACTIVE_WARPS]?: number;
   [GPUCrashContextKeys.ADAPTER_RESET]?: boolean;
   [GPUCrashContextKeys.APPLICATION_NAME]?: string;
   [GPUCrashContextKeys.APPLICATION_VERSION]?: string;
+  [GPUCrashContextKeys.CLIENT]?: string;
   [GPUCrashContextKeys.DECODE_TIME_MS]?: number;
   [GPUCrashContextKeys.DEVICE_NAME]?: string;
+  [GPUCrashContextKeys.DEVICE_STATE]?: string;
   [GPUCrashContextKeys.DEVICE_STATUS]?: string;
   [GPUCrashContextKeys.DRIVER_VERSION]?: string;
+  [GPUCrashContextKeys.ENGINE]?: string;
   [GPUCrashContextKeys.ENGINE_RESET]?: boolean;
+  [GPUCrashContextKeys.FAULTED_WARPS]?: FaultedWarp[];
+  [GPUCrashContextKeys.FAULTING_PC]?: string;
+  [GPUCrashContextKeys.FAULT_CATEGORY]?: FaultCategory;
   [GPUCrashContextKeys.FAULT_CODE]?: string;
   [GPUCrashContextKeys.FAULT_DESCRIPTION]?: string;
+  [GPUCrashContextKeys.FAULT_DETAIL]?: string;
+  [GPUCrashContextKeys.FAULT_NAME]?: string;
   [GPUCrashContextKeys.FAULT_TYPE]?: string;
   [GPUCrashContextKeys.GRAPHICS_API]?: string;
   [GPUCrashContextKeys.HANDLER]?: string;
+  [GPUCrashContextKeys.LAST_GPU_OPERATION]?: string;
   [GPUCrashContextKeys.MISSING_DIF_COUNT]?: number;
   [GPUCrashContextKeys.OS_VERSION]?: string;
   [GPUCrashContextKeys.PC_ADDRESS]?: string;
+  [GPUCrashContextKeys.RESOURCE]?: string;
+  [GPUCrashContextKeys.RESOURCE_DESTROYED]?: boolean;
   [GPUCrashContextKeys.SDK_VERSION]?: string;
   [GPUCrashContextKeys.SHADER_DEBUG_INFO_UID]?: string;
   [GPUCrashContextKeys.SHADER_HASH]?: string;
   [GPUCrashContextKeys.SHADER_NAME]?: string;
+  [GPUCrashContextKeys.SHADER_SIZE]?: number;
   [GPUCrashContextKeys.SHADER_TYPE]?: string;
   [GPUCrashContextKeys.STATUS]?: string;
   [GPUCrashContextKeys.VIRTUAL_ADDRESS]?: string;
+  [GPUCrashContextKeys.WARNINGS]?: Array<{code?: string; message?: string}>;
 }
 
 export function getGPUCrashContextData({

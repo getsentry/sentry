@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -18,7 +19,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -31,6 +33,8 @@ import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataConte
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
 
+import {buildActivityFeedItems} from './activityLineItem/activityFeedItem';
+
 function getCommentEditor(name = 'Add a comment') {
   const editor = screen.getByRole('combobox', {name});
   // user-event does not yet recognize contenteditable="plaintext-only".
@@ -42,7 +46,6 @@ describe('ActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
   const tenMinutesAgo = () => new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
 
   ProjectsStore.loadInitialData([project]);
@@ -186,7 +189,7 @@ describe('ActivitySection', () => {
   });
 
   it('deletes only the referenced comment', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
     const note = ActivityFeedFixture({
       id: '987',
       commentId: '123',
@@ -229,7 +232,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment removed');
+    expect(toast.success).toHaveBeenCalledWith('Comment removed');
     expect(onActivityChange).toHaveBeenCalledWith([resolution]);
   });
 
@@ -339,6 +342,65 @@ describe('ActivitySection', () => {
     expect(screen.getByText(`${user.name} commented`)).toBeInTheDocument();
     expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Comment Actions'})).toBeInTheDocument();
+  });
+
+  it('renders activity sources', async () => {
+    const activityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          commentId: 'note-1',
+          data: {text: 'User note'},
+          dateCreated: '2020-01-01T00:00:00',
+          source: 'mcp:claude',
+          user,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: 'resolved-1',
+          data: {},
+          dateCreated: '2020-01-02T00:00:00',
+          source: 'sentry-cli',
+          user,
+        },
+        {
+          type: GroupActivityType.SET_UNRESOLVED,
+          id: 'unresolved-1',
+          data: {},
+          dateCreated: '2020-01-03T00:00:00',
+          source: 'api',
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_PUBLIC,
+          id: 'public-1',
+          data: {},
+          dateCreated: '2020-01-04T00:00:00',
+          source: 'web',
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('User note')).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Claude via MCP'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'via Sentry CLI'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'via API'})).toBeInTheDocument();
+    expect(screen.getAllByTestId('user-activity-actor')).toHaveLength(3);
+    expect(screen.queryByText(/^via /)).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByRole('img', {name: 'Claude via MCP'}));
+    expect(await screen.findByText('Claude via MCP')).toBeInTheDocument();
+    expect(screen.getByText(`${user.name} (${user.email})`)).toBeInTheDocument();
   });
 
   it('renders provider-specific icon for create issue in activity line items', async () => {
@@ -782,7 +844,7 @@ describe('ActivitySection', () => {
     expect(screen.getAllByText('Resolved')).toHaveLength(1);
   });
 
-  it('does not count rolled-up events as hidden sidebar rows', () => {
+  it('uses displayed rows, not rolled-up events, to decide when to collapse the sidebar', () => {
     const flappingGroup = makeFlappingGroup('1350');
 
     render(
@@ -798,8 +860,61 @@ describe('ActivitySection', () => {
     expect(screen.getAllByText('Resolved')).toHaveLength(1);
   });
 
+  it('counts rolled-up events in the hidden sidebar activity count', async () => {
+    const makeNote = (noteId: string, dateCreated: string): GroupActivity => ({
+      type: GroupActivityType.NOTE,
+      id: noteId,
+      commentId: noteId,
+      data: {text: noteId},
+      dateCreated,
+      user: UserFixture({id: '2'}),
+    });
+    const makeStatus = (
+      type: GroupActivityType.SET_REGRESSION | GroupActivityType.SET_RESOLVED,
+      statusId: string,
+      dateCreated: string
+    ): GroupActivity => ({type, id: statusId, dateCreated, data: {}}) as GroupActivity;
+
+    const flappingGroup = GroupFixture({
+      id: '1351',
+      activity: [
+        makeNote('newest-note', '2020-01-01T09:00:00Z'),
+        makeStatus(
+          GroupActivityType.SET_REGRESSION,
+          'regressed-3',
+          '2020-01-01T08:00:00Z'
+        ),
+        makeStatus(GroupActivityType.SET_RESOLVED, 'resolved-3', '2020-01-01T07:00:00Z'),
+        makeStatus(
+          GroupActivityType.SET_REGRESSION,
+          'regressed-2',
+          '2020-01-01T06:00:00Z'
+        ),
+        makeStatus(GroupActivityType.SET_RESOLVED, 'resolved-2', '2020-01-01T05:00:00Z'),
+        makeStatus(
+          GroupActivityType.SET_REGRESSION,
+          'regressed-1',
+          '2020-01-01T04:00:00Z'
+        ),
+        makeStatus(GroupActivityType.SET_RESOLVED, 'resolved-1', '2020-01-01T03:00:00Z'),
+        makeNote('oldest-note', '2020-01-01T02:00:00Z'),
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
+        <ActivitySection group={flappingGroup} />
+      </GroupDataContextProvider>
+    );
+
+    // The rollup (4 events) and the oldest note are hidden behind the sidebar link.
+    expect(await screen.findByText('View 5 more')).toBeInTheDocument();
+    expect(screen.queryByText('oldest-note')).not.toBeInTheDocument();
+  });
+
   it('renders note and allows for edit', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     const note = ActivityFeedFixture({
       id: '123',
@@ -853,7 +968,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1));
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
+    expect(toast.success).toHaveBeenCalledWith('Comment updated');
     expect(onActivityChange).toHaveBeenCalledWith([
       {...note, data: {text: 'Group Test Updated'}},
       resolution,
@@ -1080,7 +1195,7 @@ describe('ActivitySection', () => {
 
     render(
       <GroupIdProvider groupId={updatedActivityGroup.id}>
-        <ActivityDrawer project={project} />
+        <ActivityDrawer />
       </GroupIdProvider>,
       {
         initialRouterConfig: {
@@ -1160,7 +1275,7 @@ describe('ActivitySection', () => {
 
     render(
       <GroupIdProvider groupId={updatedActivityGroup.id}>
-        <ActivityDrawer project={project} />
+        <ActivityDrawer />
       </GroupIdProvider>,
       {
         initialRouterConfig: {
@@ -1334,7 +1449,7 @@ describe('ActivitySection', () => {
         data: {},
       } satisfies GroupActivity,
       expectedCopy: ['Autofix triggered'],
-      expectedMarker: 'Activity update',
+      expectedMarker: 'Seer activity',
     },
   ])('renders $name activity copy', async ({activity, expectedCopy, expectedMarker}) => {
     const activityGroup = GroupFixture({
@@ -1346,12 +1461,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
         <ActivitySection group={activityGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: expectedMarker ? ['issue-activity-progress'] : [],
-        }),
-      }
+      </GroupDataContextProvider>
     );
 
     for (const copy of expectedCopy) {
@@ -1387,35 +1497,90 @@ describe('ActivitySection', () => {
     expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
   });
 
-  it('shows progress markers behind activity progress', () => {
-    const activityGroup = GroupFixture({
-      id: '1339',
-      activity: [
-        {
-          type: GroupActivityType.SET_RESOLVED,
-          id: 'resolved-1',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {},
-          user,
-        },
-      ],
+  it('renders unlink events with provider details and available links', async () => {
+    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+    const unlinkGroup = GroupFixture({
       project,
+      activity: [
+        ActivityFeedFixture({
+          id: '1',
+          type: GroupActivityType.UNLINK_EXTERNAL_ISSUE,
+          data: {provider: 'github', external_issue_key: 'org/repo#42'},
+        }),
+        ActivityFeedFixture({
+          id: '2',
+          type: GroupActivityType.UNLINK_EXTERNAL_ISSUE,
+          data: {provider: 'jira_server', external_issue_key: 'APP-7'},
+        }),
+        ActivityFeedFixture({
+          id: '3',
+          type: GroupActivityType.UNLINK_EXTERNAL_ISSUE,
+          data: {provider: 'example', external_issue_key: 'EX-1'},
+        }),
+        ActivityFeedFixture({
+          id: '4',
+          type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+          data: {
+            service_type: 'linear',
+            display_name: 'APP-42',
+            web_url: 'https://linear.app/example/issue/APP-42',
+          },
+        }),
+      ],
     });
 
     render(
-      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-        <ActivitySection group={activityGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: ['issue-activity-progress'],
-        }),
-      }
+      <GroupDataContextProvider group={unlinkGroup} project={project}>
+        <ActivitySection group={unlinkGroup} />
+      </GroupDataContextProvider>
     );
 
-    expect(screen.getByRole('img', {name: 'Fix Applied'})).toBeInTheDocument();
-    expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Unlinked GitHub issue org/repo#42');
+    expect(timeline).toHaveTextContent('Unlinked Jira Server issue APP-7');
+    expect(timeline).toHaveTextContent('Unlinked external issue EX-1');
+    expect(timeline).toHaveTextContent('Unlinked external issue APP-42');
+    expect(screen.getByRole('link', {name: 'APP-42'})).toHaveAttribute(
+      'href',
+      'https://linear.app/example/issue/APP-42'
+    );
+    expect(captureMessage).not.toHaveBeenCalled();
   });
+
+  it.each([
+    {actor: 'user', user: UserFixture({name: 'Jane Doe'}), sentry_app: undefined},
+    {actor: 'app', user: null, sentry_app: SentryAppFixture({name: 'Issue Bot'})},
+    {actor: 'system or deleted app', user: null, sentry_app: undefined},
+  ])(
+    'renders unlink by $actor without a stored URL',
+    async ({user: actor, sentry_app}) => {
+      const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+      const unlinkGroup = GroupFixture({
+        project,
+        activity: [
+          ActivityFeedFixture({
+            type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+            user: actor,
+            sentry_app,
+            source: 'api',
+            data: {service_type: 'example', display_name: 'APP-99', web_url: ''},
+          }),
+        ],
+      });
+
+      render(
+        <GroupDataContextProvider group={unlinkGroup} project={project}>
+          <ActivitySection group={unlinkGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
+        `Unlinked external issue APP-99${sentry_app ? ' via Issue Bot' : ''}`
+      );
+      expect(screen.queryByRole('link', {name: 'APP-99'})).not.toBeInTheDocument();
+      expect(captureMessage).not.toHaveBeenCalled();
+    }
+  );
 
   it.each([
     {
@@ -1828,53 +1993,191 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('f7f395d')).toBeInTheDocument();
   });
 
-  it('hides an adjacent Seer creation activity for the same pull request', async () => {
+  describe('adjacent Seer pull request activities', () => {
     const repository = RepositoryFixture({name: 'example/repository'});
     const pullRequest = PullRequestFixture({
       externalUrl: 'https://github.com/example/repository/pull/1234',
       repository,
     });
-    const activityGroup = GroupFixture({
-      activity: [
+    const seerData = {
+      run_id: 123,
+      pull_requests: [
         {
-          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
-          id: 'referenced-in-pull-request',
-          dateCreated: '2020-01-01T00:00:03Z',
-          data: {pullRequest},
-          user: null,
-        },
-        {
-          type: GroupActivityType.SEER_PR_CREATED,
-          id: 'seer-pull-request-created',
-          dateCreated: '2020-01-01T00:00:00Z',
-          data: {
-            run_id: 123,
-            pull_requests: [
-              {
-                provider: 'github',
-                repo_name: repository.name,
-                pull_request: {
-                  pr_number: 1234,
-                  pr_url: pullRequest.externalUrl,
-                },
-              },
-            ],
-          },
-          user: null,
+          provider: 'github',
+          repo_name: repository.name,
+          pull_request: {pr_number: 1234, pr_url: pullRequest.externalUrl},
         },
       ],
-      project,
+    };
+    const reference = ActivityFeedFixture({
+      type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+      id: 'referenced-in-pull-request',
+      data: {pullRequest},
+      user: null,
+    });
+    const ready = ActivityFeedFixture({
+      type: GroupActivityType.SEER_PR_READY_FOR_REVIEW,
+      id: 'seer-pull-request-ready',
+      data: seerData,
+      user: null,
+    });
+    const created = ActivityFeedFixture({
+      type: GroupActivityType.SEER_PR_CREATED,
+      id: 'seer-pull-request-created',
+      data: seerData,
+      user,
     });
 
-    render(
-      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-        <ActivitySection group={activityGroup} />
-      </GroupDataContextProvider>
-    );
+    it('keeps one reference row and the creation actor with the reference on either side', async () => {
+      const activityGroup = GroupFixture({
+        activity: [reference, ready, created],
+        project,
+      });
+      const {rerender} = render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} />
+        </GroupDataContextProvider>
+      );
 
-    expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
-    expect(screen.getByRole('img', {name: 'Seer activity'})).toBeInTheDocument();
-    expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+      expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
+      expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+      expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+      expect(screen.queryByText(/ready for review/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/created/)).not.toBeInTheDocument();
+
+      rerender(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection
+            group={activityGroup}
+            activities={[ready, created, reference]}
+          />
+        </GroupDataContextProvider>
+      );
+
+      expect(screen.getByText('Referenced in pull request')).toBeInTheDocument();
+      expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+      expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+      expect(screen.queryByText(/ready for review/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/created/)).not.toBeInTheDocument();
+    });
+
+    it('collapses creations on both sides, including one that references multiple PRs', async () => {
+      const multiplePrs = ActivityFeedFixture({
+        ...created,
+        type: GroupActivityType.SEER_PR_CREATED,
+        data: {
+          ...seerData,
+          pull_requests: [
+            {
+              provider: 'github',
+              repo_name: 'example/other-repository',
+              pull_request: {
+                pr_number: 5678,
+                pr_url: 'https://github.com/example/other-repository/pull/5678',
+              },
+            },
+            ...seerData.pull_requests,
+          ],
+        },
+      });
+      const olderCreated = {...created, id: 'older-created', user: null};
+      const activityGroup = GroupFixture({
+        activity: [multiplePrs, reference, olderCreated],
+        project,
+      });
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
+      expect(screen.getByRole('img', {name: 'Seer activity'})).toBeInTheDocument();
+      expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+      expect(screen.queryByText(/created/)).not.toBeInTheDocument();
+    });
+
+    it('uses ready attribution when creation is absent', async () => {
+      const activityGroup = GroupFixture({activity: [ready, reference], project});
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
+      expect(screen.getByRole('img', {name: 'Seer activity'})).toBeInTheDocument();
+      expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+      expect(screen.queryByText(/ready for review/)).not.toBeInTheDocument();
+    });
+
+    it('keeps creation when a reference is absent', async () => {
+      const activityGroup = GroupFixture({activity: [ready, created], project});
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText(/created/)).toBeInTheDocument();
+      expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+      expect(screen.queryByText('Referenced in pull request')).not.toBeInTheDocument();
+      expect(screen.queryByText(/ready for review/)).not.toBeInTheDocument();
+    });
+
+    it('keeps milestones separated by a comment or a different PR', async () => {
+      const comment = ActivityFeedFixture({
+        id: 'comment',
+        type: GroupActivityType.NOTE,
+        data: {text: 'Checking this fix'},
+      });
+      const otherReference = ActivityFeedFixture({
+        ...reference,
+        type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+        id: 'other-reference',
+        data: {
+          pullRequest: {
+            ...pullRequest,
+            externalUrl: 'https://github.com/example/other-repository/pull/1234',
+          },
+        },
+      });
+      const activityGroup = GroupFixture({
+        activity: [reference, comment, created, otherReference, ready],
+        project,
+      });
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} variant="standalone" />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText('Checking this fix')).toBeInTheDocument();
+      expect(screen.getAllByText('Referenced in pull request')).toHaveLength(2);
+      expect(screen.getByText(/created/)).toBeInTheDocument();
+      expect(screen.getByText(/ready for review/)).toBeInTheDocument();
+    });
+
+    it('keeps milestones separate when the intervening PR identity is missing', async () => {
+      const unknownReady = ActivityFeedFixture({
+        ...ready,
+        type: GroupActivityType.SEER_PR_READY_FOR_REVIEW,
+        data: {run_id: seerData.run_id},
+      });
+      const activityGroup = GroupFixture({
+        activity: [reference, unknownReady, created],
+        project,
+      });
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
+      expect(screen.getByText(/created/)).toBeInTheDocument();
+      expect(screen.getByText('Pull request ready for review')).toBeInTheDocument();
+    });
   });
 
   it('prefers commit repository details for resolved commit activity line items', async () => {
@@ -2039,6 +2342,36 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Autofix triggered from Slack')).toBeInTheDocument();
   });
 
+  it('renders a Seer early stop', async () => {
+    const seerGroup = GroupFixture({
+      id: '1342',
+      activity: [
+        {
+          type: GroupActivityType.SEER_STOPPED,
+          id: 'seer-stop-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            run_id: 123,
+            reason: 'The API key expired.',
+            suggestion: 'Rotate the key.',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
+        <ActivitySection group={seerGroup} />
+      </GroupDataContextProvider>
+    );
+    expect(await screen.findByText('Seer stopped early')).toBeInTheDocument();
+    expect(
+      screen.getByText('The API key expired. Suggestion: Rotate the key.')
+    ).toBeInTheDocument();
+  });
+
   it('collapses Seer activity pairs across other activity', async () => {
     const seerGroup = GroupFixture({
       id: '1343',
@@ -2099,7 +2432,15 @@ describe('ActivitySection', () => {
 
     render(
       <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
-        <ActivitySection group={seerGroup} variant="standalone" />
+        <ActivitySection
+          group={seerGroup}
+          variant="standalone"
+          items={buildActivityFeedItems({activities: seerGroup.activity}).map(item =>
+            item.activity.id === 'seer-rca-completed'
+              ? {...item, body: 'Completed analysis'}
+              : item
+          )}
+        />
       </GroupDataContextProvider>
     );
 
@@ -2111,6 +2452,7 @@ describe('ActivitySection', () => {
     expect(screen.queryByText('Root cause analysis started')).not.toBeInTheDocument();
     expect(screen.queryByText('Plan started')).not.toBeInTheDocument();
     expect(screen.queryByText('Code changes started')).not.toBeInTheDocument();
+    expect(screen.getByText('Completed analysis')).toBeVisible();
   });
 
   it('does not collapse a Seer pair across another Seer activity', async () => {
@@ -2152,6 +2494,58 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Root cause analysis started')).toBeInTheDocument();
     expect(screen.getByText('Plan started')).toBeInTheDocument();
   });
+
+  it.each([
+    [
+      GroupActivityType.SEER_RCA_STARTED,
+      GroupActivityType.SEER_RCA_COMPLETED,
+      'Root cause found',
+    ],
+    [
+      GroupActivityType.SEER_SOLUTION_STARTED,
+      GroupActivityType.SEER_SOLUTION_COMPLETED,
+      'Plan created',
+    ],
+    [
+      GroupActivityType.SEER_CODING_STARTED,
+      GroupActivityType.SEER_CODING_COMPLETED,
+      'Code changes suggested',
+    ],
+  ] as const)(
+    'attributes a collapsed %s pair to the user who started it',
+    async (startedType, completedType, title) => {
+      const seerGroup = GroupFixture({
+        id: '1343',
+        activity: [
+          {
+            type: completedType,
+            id: 'seer-completed',
+            dateCreated: '2020-01-01T00:30:00Z',
+            data: {run_id: 123},
+            user: null,
+          },
+          {
+            type: startedType,
+            id: 'seer-started',
+            dateCreated: '2020-01-01T00:20:00Z',
+            data: {run_id: 123},
+            user,
+          },
+        ],
+        project,
+      });
+
+      render(
+        <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
+          <ActivitySection group={seerGroup} variant="standalone" />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText(title)).toBeInTheDocument();
+      expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+      expect(screen.queryByRole('img', {name: 'Seer activity'})).not.toBeInTheDocument();
+    }
+  );
 
   it('collapses Seer PR iteration activity', async () => {
     const seerIterationGroup = GroupFixture({
@@ -2279,5 +2673,164 @@ describe('ActivitySection', () => {
       'href',
       pullRequest.externalUrl
     );
+  });
+
+  it('renders Impact assessment details', async () => {
+    const impactGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.IMPACT_ASSESSMENT,
+          id: 'impact-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            score: 73.5,
+            level: 'high',
+            description: 'Users cannot submit an order.',
+            citations: [
+              {
+                source: 'event',
+                reference: 'entire-event:event-id',
+                claim: 'The request failed before order creation.',
+              },
+            ],
+            sourceEventId: '7f4b9a95abc449a8a5afc3d1d2683a8b',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+        <ActivitySection group={impactGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Impact assessed as High (73.5)');
+    expect(timeline).toHaveTextContent('Users cannot submit an order.');
+    expect(timeline).toHaveTextContent('Citations:');
+    expect(screen.getByTestId('impact-activity-details')).toBeInTheDocument();
+
+    const alphaBadge = screen.getByLabelText('alpha');
+    expect(alphaBadge).toBeInTheDocument();
+    await userEvent.hover(alphaBadge);
+    expect(
+      await screen.findByText('This feature is internal and available for QA purposes')
+    ).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('event'));
+    expect(await screen.findByText('Source Event')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '7f4b9a95'})).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/${impactGroup.id}/events/7f4b9a95abc449a8a5afc3d1d2683a8b/`
+    );
+    expect(
+      await screen.findByText('The request failed before order creation.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders a link from an investigation', async () => {
+    const linkedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_LINKED,
+          id: 'investigation-link-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            investigation: {id: '42', title: 'Checkout latency', status: 'active'},
+            hypothesisId: 'h-1',
+            hypothesisStatement: 'Payment retries exhaust the pool',
+            reason: 'Its timeouts start with the deploy.',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={linkedGroup} project={linkedGroup.project}>
+        <ActivitySection group={linkedGroup} variant="standalone" />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Mentioned in Checkout latency');
+    expect(timeline).toHaveTextContent('Its timeouts start with the deploy.');
+    expect(timeline).toHaveTextContent('Payment retries exhaust the pool');
+    expect(screen.getByText('Evidence:')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Checkout latency'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/investigations/42/'
+    );
+    expect(screen.getByLabelText('Seer activity')).toBeInTheDocument();
+  });
+
+  it('leaves the hypothesis out of an investigation link in the sidebar', async () => {
+    const linkedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_LINKED,
+          id: 'investigation-link-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            investigation: {id: '42', title: 'Checkout latency', status: 'active'},
+            hypothesisId: 'h-1',
+            hypothesisStatement: 'Payment retries exhaust the pool',
+            reason: 'Its timeouts start with the deploy.',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={linkedGroup} project={linkedGroup.project}>
+        <ActivitySection group={linkedGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Mentioned in Checkout latency');
+    expect(timeline).not.toHaveTextContent('Payment retries exhaust the pool');
+    expect(timeline).not.toHaveTextContent('Its timeouts start with the deploy.');
+  });
+
+  it('renders a link from a deleted investigation without details', async () => {
+    const linkedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_LINKED,
+          id: 'investigation-link-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            investigation: null,
+            hypothesisId: 'h-1',
+            hypothesisStatement: 'Payment retries exhaust the pool',
+            reason: 'Its timeouts start with the deploy.',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={linkedGroup} project={linkedGroup.project}>
+        <ActivitySection group={linkedGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Mentioned in a deleted investigation');
+    expect(timeline).not.toHaveTextContent('Payment retries exhaust the pool');
+    expect(screen.queryByRole('link', {name: /investigation/})).not.toBeInTheDocument();
   });
 });

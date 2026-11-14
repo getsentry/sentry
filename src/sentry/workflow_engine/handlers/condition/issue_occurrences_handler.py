@@ -1,6 +1,5 @@
-from typing import Any
-
 from sentry.tasks.post_process import fetch_buffered_group_stats
+from sentry.workflow_engine.generated_schema_types import IssueOccurrencesComparison
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -27,7 +26,9 @@ class IssueOccurrencesConditionHandler(ActionFilterDataConditionHandler[Workflow
     }
 
     @staticmethod
-    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+    def evaluate_value(
+        event_data: WorkflowEventData, comparison: IssueOccurrencesComparison
+    ) -> bool:
         try:
             value = int(comparison["value"])
         except (TypeError, ValueError, KeyError):
@@ -35,8 +36,8 @@ class IssueOccurrencesConditionHandler(ActionFilterDataConditionHandler[Workflow
 
         # This value is slightly delayed due to us batching writes to times_seen. We attempt to work
         # around this by including pending updates from buffers to improve accuracy.
-        group = event_data.group
-        fetch_buffered_group_stats(event_data.group)
+        group = event_data.require_group()
+        fetch_buffered_group_stats(group)
         issue_occurrences = (
             group.times_seen_with_pending
             if hasattr(group, "_times_seen_pending")

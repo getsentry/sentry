@@ -167,8 +167,8 @@ class ApiApplicationTest(TestCase):
     def test_is_valid_redirect_uri_triple_slash_traversal(self) -> None:
         """Non-canonical URIs that normalize to a registered URI pass validation.
 
-        Security relies on the TOCTOU fix in oauth_authorize.py which ensures
-        the redirect Location header uses the normalized form, not the raw input.
+        OAuth callback validation returns the normalized URI, which is also used
+        to construct the authorization response.
         """
         app = ApiApplication.objects.create(
             owner=self.user,
@@ -301,7 +301,7 @@ class ApiApplicationTest(TestCase):
         assert "%EF%BF%BD" not in result
         assert "%25ab" in result.lower()
 
-    def _assert_no_bypass(self, app, attack_uri, registered_path):
+    def _assert_no_bypass(self, app: ApiApplication, attack_uri: str, registered_path: str) -> None:
         """Verify an attack URI cannot redirect outside the registered path.
 
         Passes if EITHER validation rejects the URI, OR the normalized

@@ -1,13 +1,17 @@
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.models.rule import Rule
 from sentry.notifications.helpers import (
     collect_groups_by_project,
+    get_default_for_provider,
     get_subscription_from_attributes,
     validate,
 )
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import (
+    INBOX_NOTIFICATION_SETTINGS,
     TEST_NOTIFICATION_ID,
     NotificationOrigin,
     NotificationSettingEnum,
@@ -20,6 +24,10 @@ from sentry.notifications.utils.links import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.notifications import (
+    create_notification_origin,
+    create_workflow_notification_origin_for_rule,
+)
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -80,6 +88,14 @@ class NotificationHelpersTest(TestCase):
             )
         )
 
+    def test_inbox_settings_default_to_email_and_slack(self) -> None:
+        for setting in INBOX_NOTIFICATION_SETTINGS:
+            for provider in (ExternalProviderEnum.EMAIL, ExternalProviderEnum.SLACK):
+                assert (
+                    get_default_for_provider(setting, provider)
+                    == NotificationSettingsOptionEnum.ALWAYS
+                )
+
     def test_get_subscription_from_attributes(self) -> None:
         attrs = {"subscription": (True, True, None)}
         assert get_subscription_from_attributes(attrs) == (True, {"disabled": True})
@@ -90,13 +106,14 @@ class NotificationHelpersTest(TestCase):
     def test_collect_groups_by_project(self) -> None:
         assert collect_groups_by_project([self.group]) == {self.project.id: {self.group}}
 
-    def test_get_group_settings_link(self) -> None:
+    def test_get_group_settings_link_uses_workflow(self) -> None:
         rule: Rule = self.create_project_rule(self.project)
-        rule_details = get_rules([rule], self.organization, self.project, self.group.type)
-        assert rule_details[0].id == rule.id
+        origin = create_workflow_notification_origin_for_rule(rule)
+        rule_details = get_rules([origin], self.organization, self.project, self.group.type)
+        assert origin.workflow_id is not None
+        assert rule_details[0].id == origin.workflow_id
         assert rule_details[0].status_url == (
-            f"/organizations/{self.organization.slug}/issues/alerts/rules/"
-            f"{self.project.slug}/{rule.id}/details/"
+            f"/organizations/{self.organization.slug}/monitors/alerts/{origin.workflow_id}/"
         )
         link = get_group_settings_link(
             self.group, self.environment.name, rule_details, 1337, extra="123"
@@ -115,58 +132,63 @@ class NotificationHelpersTest(TestCase):
         }
 
     def test_get_rules_uses_workflow_identity_without_legacy_rule(self) -> None:
-        rule = self.create_project_rule(self.project, include_legacy_rule_id=False)
+        origin = NotificationOrigin(
+            label="Test Alert",
+            environment_id=None,
+            workflow_id=123,
+            legacy_rule_id=None,
+        )
 
-        [rule_details] = get_rules([rule], self.organization, self.project)
+        [rule_details] = get_rules([origin], self.organization, self.project)
 
-        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        workflow_id = origin.workflow_id
+        assert workflow_id is not None
         assert rule_details.id == workflow_id
         assert rule_details.status_url == (
             f"/organizations/{self.organization.slug}/monitors/alerts/{workflow_id}/"
         )
 
-    def test_get_rules_falls_back_to_rule_id_without_embedded_identity(self) -> None:
-        rule = self.create_project_rule(
-            self.project, include_legacy_rule_id=False, include_workflow_id=False
-        )
-
-        [rule_details] = get_rules([rule], self.organization, self.project)
-
-        assert rule_details.id == rule.id
-        assert rule_details.status_url == (
-            f"/organizations/{self.organization.slug}/issues/alerts/rules/"
-            f"{self.project.slug}/{rule.id}/details/"
-        )
-
-    def test_notification_origin_normalizes_legacy_identity(self) -> None:
+    def test_get_rules_omits_origin_without_workflow_identity(self) -> None:
         rule = self.create_project_rule(self.project)
-        rule.data["actions"][0]["legacy_rule_id"] = str(rule.id)
-        workflow_id = rule.data["actions"][0]["workflow_id"]
-        rule.data["actions"][0]["workflow_id"] = str(workflow_id)
+        origin = create_notification_origin(rule)
 
-        origin = NotificationOrigin.from_legacy_rule(rule)
-
-        assert origin.label == rule.label
-        assert origin.legacy_rule_id == rule.id
-        assert origin.workflow_id == workflow_id
-        assert not origin.is_test_notification()
+        assert get_rules([origin], self.organization, self.project) == []
 
     def test_notification_origin_identifies_test_notification(self) -> None:
-        origin = NotificationOrigin.from_legacy_data(
+        origin = NotificationOrigin(
             label="Test notification",
             environment_id=None,
-            data={},
-            fallback_legacy_rule_id=TEST_NOTIFICATION_ID,
+            workflow_id=None,
+            legacy_rule_id=TEST_NOTIFICATION_ID,
         )
 
         assert origin.is_test_notification()
+
+    def test_notification_origin_logs_missing_identity(self) -> None:
+        with patch("sentry.notifications.types.logger") as logger:
+            NotificationOrigin(
+                label="No identity", environment_id=None, workflow_id=None, legacy_rule_id=None
+            )
+            NotificationOrigin(
+                label="Workflow", environment_id=None, workflow_id=1, legacy_rule_id=None
+            )
+
+        logger.warning.assert_called_once_with(
+            "notifications.origin.missing_identity",
+            extra={"label": "No identity", "environment_id": None},
+            stack_info=True,
+        )
 
     def test_get_email_link_extra_params(self) -> None:
         rule: Rule = self.create_project_rule(self.project)
         project2 = self.create_project()
         rule2 = self.create_project_rule(project2)
+        origins = [
+            create_workflow_notification_origin_for_rule(rule),
+            create_workflow_notification_origin_for_rule(rule2),
+        ]
 
-        rule_details = get_rules([rule, rule2], self.organization, self.project, self.group.type)
+        rule_details = get_rules(origins, self.organization, self.project, self.group.type)
         extra_params = {
             k: dict(map(lambda x: (x[0], x[1][0]), parse_qs(v.strip("?")).items()))
             for k, v in get_email_link_extra_params(

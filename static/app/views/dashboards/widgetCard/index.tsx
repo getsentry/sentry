@@ -1,11 +1,10 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 import qs from 'query-string';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -19,11 +18,10 @@ import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -34,9 +32,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {withApi} from 'sentry/utils/withApi';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
-import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/constants';
+import {useDashboardQueryPriority} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -44,8 +41,8 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
-import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {
   LegendSelection,
@@ -56,19 +53,21 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
+import {useWidgetChartLayers} from './useWidgetChartLayers';
 import {VisualizationWidget} from './visualizationWidget';
+import {WidgetCardChartContainer} from './widgetCardChartContainer';
 import {
   getMenuOptions,
   useDroppedColumnsWarning,
   useTransactionsDeprecationWarning,
+  withMenuActionCallback,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
 import {readableConditions} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesResults?: WidgetTimeSeries[];
 };
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
@@ -87,8 +86,6 @@ export const SESSION_DURATION_ALERT = (
 );
 
 type Props = {
-  api: Client;
-  selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
@@ -101,9 +98,14 @@ type Props = {
   hasEditAccess?: boolean;
   index?: string;
   isMobile?: boolean;
+  isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
+  /**
+   * Called with the item key whenever a context menu item is selected.
+   */
+  onContextMenuAction?: (key: string) => void;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -111,6 +113,7 @@ type Props = {
   onLegendSelectChanged?: () => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
+  selection?: PageFilters;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
@@ -120,6 +123,10 @@ type Props = {
   windowWidth?: number;
 };
 
+const widgetViewerParsers = Object.fromEntries(
+  Object.values(WidgetViewerQueryField).map(field => [field, parseAsString])
+);
+
 type Data = {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
@@ -127,10 +134,7 @@ type Data = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
-  totalIssuesCount?: string;
+  timeseriesResults?: WidgetTimeSeries[];
 };
 
 function WidgetCard(props: Props) {
@@ -139,7 +143,11 @@ function WidgetCard(props: Props) {
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [, setWidgetViewerParams] = useQueryStates(widgetViewerParsers, {
+    history: 'replace',
+  });
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
+  const {priority: dashboardQueryPriority} = useDashboardQueryPriority();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Resolve TOP_N → AREA before capturing context (the render body mutates
@@ -180,9 +188,10 @@ function WidgetCard(props: Props) {
     organization.features.includes('seer-explorer-chat-prompts') &&
     isSeerExplorerEnabled(organization);
 
+  const {selection: globalSelection} = usePageFilters();
+  const selection = props.selection ?? globalSelection;
+
   const {
-    api,
-    selection,
     widget,
     isMobile,
     tableItemLimit,
@@ -209,8 +218,7 @@ function WidgetCard(props: Props) {
       if (onDataFetched) {
         onDataFetched({
           tableResults: newData.tableResults,
-          timeseriesResultsTypes: newData.timeseriesResultsTypes,
-          timeseriesResultsUnits: newData.timeseriesResultsUnits,
+          timeseriesResults: newData.timeseriesResults,
         });
       }
 
@@ -231,7 +239,7 @@ function WidgetCard(props: Props) {
   }
 
   const hasSessionDuration = widget.queries.some(query =>
-    query.aggregates.some(aggregate => aggregate.includes('session.duration'))
+    (query.aggregates ?? []).some(aggregate => aggregate.includes('session.duration'))
   );
 
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
@@ -244,6 +252,15 @@ function WidgetCard(props: Props) {
   const conflictingFilterWarning = useConflictingFilterWarning({
     widget,
     dashboardFilters,
+  });
+
+  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
+  const chartLayers = useWidgetChartLayers({
+    widget,
+    interval: widgetInterval,
+    enabled: canUseTimeseriesVisualization,
+    // disableFullscreen is true while creating or editing a widget.
+    hidden: disableFullscreen,
   });
 
   const onDataFetchStart = useCallback(() => {
@@ -314,14 +331,11 @@ function WidgetCard(props: Props) {
         widget,
         widgetLegendState,
         dashboardFilters,
+        queryPriority: dashboardQueryPriority,
         widgetInterval,
         onClose: () => {
           // Filter out Widget Viewer Modal query params when exiting the Modal
-          const query = omit(location.query, Object.values(WidgetViewerQueryField));
-          navigate(
-            {pathname: location.pathname, query},
-            {preventScrollReset: true, replace: true}
-          );
+          setWidgetViewerParams(null);
         },
       });
     }
@@ -340,7 +354,7 @@ function WidgetCard(props: Props) {
     ? t('This is a preview only. To edit, you must add this dashboard.')
     : undefined;
 
-  const actions = props.showContextMenu
+  const menuOptions = props.showContextMenu
     ? getMenuOptions(
         dashboardFilters,
         organization,
@@ -348,6 +362,7 @@ function WidgetCard(props: Props) {
         widget,
         props.widgetLimitReached,
         props.hasEditAccess,
+        props.isPrebuiltDashboard,
         location,
         props.onDelete,
         props.onDuplicate,
@@ -356,6 +371,9 @@ function WidgetCard(props: Props) {
         canAskSeer ? askSeer : undefined
       )
     : [];
+  const actions = props.onContextMenuAction
+    ? withMenuActionCallback(menuOptions, props.onContextMenuAction)
+    : menuOptions;
 
   const errorBoundaryHandler = () => {
     return (
@@ -371,7 +389,6 @@ function WidgetCard(props: Props) {
     );
   };
 
-  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
     // Legend state requires a stable widget ID to persist to the URL.
     // Unsaved widgets (no ID yet, e.g. in the widget builder preview) skip this.
@@ -420,6 +437,9 @@ function WidgetCard(props: Props) {
               showConfidenceWarning={showConfidenceWarning}
               legendSelection={legendSelectionForWidget}
               onLegendSelectionChange={handleLegendSelectionChange}
+              showReleases={chartLayers.showReleases}
+              droppedData={chartLayers.droppedData.band}
+              isDroppedDataLoading={chartLayers.droppedData.isLoading}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
@@ -453,7 +473,6 @@ function WidgetCard(props: Props) {
           noVisualizationPadding
         >
           <WidgetCardChartContainer
-            api={api}
             selection={selection}
             widget={widget}
             isMobile={isMobile}
@@ -481,7 +500,7 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default registerLLMContext('widget', withApi(withPageFilters(WidgetCard)));
+export default registerLLMContext('widget', WidgetCard);
 
 function useTimeRangeWarning({widget}: {widget: TWidget}) {
   const {

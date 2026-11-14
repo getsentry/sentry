@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Literal
 
 from django.conf import settings
 from django.db import models
@@ -15,7 +16,7 @@ class ActionEnum(Enum):
     UPDATED = 2
 
     @classmethod
-    def to_string(cls, integer):
+    def to_string(cls, integer: int) -> str:
         if integer == 0:
             return "created"
         if integer == 1:
@@ -38,7 +39,7 @@ class CreatedByTypeEnum(Enum):
     NAME = 2
 
     @classmethod
-    def to_string(cls, integer):
+    def to_string(cls, integer: int) -> str:
         if integer == 0:
             return "email"
         if integer == 1:
@@ -55,6 +56,9 @@ CREATED_BY_TYPE_MAP = {
 }
 
 
+ProviderName = Literal["generic", "flagpole", "launchdarkly", "unleash", "statsig"]
+
+
 class ProviderEnum(Enum):
     GENERIC = 0
     FLAGPOLE = 1
@@ -63,7 +67,7 @@ class ProviderEnum(Enum):
     STATSIG = 4
 
     @classmethod
-    def to_string(cls, integer) -> str:
+    def to_string(cls, integer: int) -> ProviderName:
         if integer == 0:
             return "generic"
         if integer == 1:

@@ -1,26 +1,33 @@
 import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {Pagination} from '@sentry/scraps/pagination';
+import {Container} from '@sentry/scraps/layout';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {Placeholder} from 'sentry/components/placeholder';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  LoadingStreamGroup,
   StreamGroup,
 } from 'sentry/components/stream/group';
+import {
+  StreamGroupTable,
+  useStreamGroupColumns,
+  type StreamGroupTableBorder,
+} from 'sentry/components/stream/groupColumns';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {isRetryableRequestError} from 'sentry/utils/queryClientConfig';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -34,10 +41,8 @@ export type GroupListColumn =
   | 'event'
   | 'users'
   | 'priority'
-  | 'progress'
   | 'assignee'
   | 'assigneeAvatar'
-  | 'lastTriggered'
   | 'firstSeen'
   | 'lastSeen';
 
@@ -47,6 +52,7 @@ export type GroupListProps = {
    */
   numPlaceholderRows: number;
   queryParams: Record<string, number | string | string[] | undefined | null>;
+  border?: StreamGroupTableBorder;
   canSelectGroups?: boolean;
   /**
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
@@ -61,12 +67,7 @@ export type GroupListProps = {
       };
   onFetchSuccess?: (
     groupListState: State,
-    onCursor: (
-      cursor: string,
-      path: string,
-      query: Record<string, any>,
-      pageDiff: number
-    ) => void
+    onCursor: (cursor: string | undefined, pageDiff: -1 | 1) => void
   ) => void;
   /**
    * Use `query` within `queryParams` for passing the parameter to the endpoint
@@ -107,6 +108,7 @@ export function GroupList({
   queryParams,
   endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
   onFetchSuccess,
+  border = 'full',
   renderEmptyMessage,
   queryFilterDescription,
   source,
@@ -145,13 +147,9 @@ export function GroupList({
   );
 
   const handleCursorChange = useCallback(
-    (
-      cursor: string | undefined,
-      path: string,
-      queryParam: Record<string, any>,
-      pageDiff: number
-    ) => {
-      const queryPageInt = parseInt(queryParam.page, 10);
+    (cursor: string | undefined, pageDiff: -1 | 1) => {
+      const {pathname: path, query: queryParam} = location;
+      const queryPageInt = parseInt(String(queryParam.page), 10);
       let nextPage: number | undefined = isNaN(queryPageInt)
         ? pageDiff
         : queryPageInt + pageDiff;
@@ -169,7 +167,7 @@ export function GroupList({
         query: {...queryParam, cursor, page: nextPage},
       });
     },
-    [navigate]
+    [location, navigate]
   );
 
   const parsedQuery = useMemo(
@@ -194,6 +192,13 @@ export function GroupList({
   );
 
   const queryClient = useQueryClient();
+
+  const {columns} = useStreamGroupColumns({
+    canSelect: canSelectGroups,
+    displayReprocessingLayout: false,
+    withChart,
+    withColumns,
+  });
 
   const issuesQueryOptions =
     endpoint.path === '/organizations/$organizationIdOrSlug/issues/'
@@ -274,7 +279,7 @@ export function GroupList({
   const hasError = hasLogicBoolean || isQueryError;
   const loading = !hasLogicBoolean && isPending;
 
-  const notifyFetchSuccess = useEffectEvent(() => {
+  const notifyFetchSuccess = useEffectEvent((cursorHandler: CursorHandler) => {
     onFetchSuccess?.(
       {
         error: false,
@@ -284,23 +289,23 @@ export function GroupList({
         pageLinks,
         memberList,
       },
-      handleCursorChange
+      cursorHandler
     );
   });
 
   useEffect(() => {
     if (isQuerySuccess) {
-      notifyFetchSuccess();
+      notifyFetchSuccess(handleCursorChange);
     }
   }, [
     isQuerySuccess,
+    // External pagination controls must receive a handler for the current URL.
+    handleCursorChange,
     // Sometimes data is already cached, so we need to include this in order to
     // trigger onFetchSuccess when new data is shown
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataUpdatedAt,
   ]);
-
-  const columns = withColumns;
 
   if (hasError) {
     // A retry only helps a failure that could land differently next time. The
@@ -320,14 +325,20 @@ export function GroupList({
     if (typeof renderEmptyMessage === 'function') {
       return renderEmptyMessage();
     }
-    return (
+    const emptyStateWarning = (
+      <EmptyStateWarning>
+        <p>{t("There don't seem to be any events fitting the query.")}</p>
+      </EmptyStateWarning>
+    );
+
+    return border === 'full' ? (
       <Panel>
-        <PanelBody>
-          <EmptyStateWarning>
-            <p>{t("There don't seem to be any events fitting the query.")}</p>
-          </EmptyStateWarning>
-        </PanelBody>
+        <PanelBody>{emptyStateWarning}</PanelBody>
       </Panel>
+    ) : (
+      <Container borderTop={border === 'top' ? 'primary' : undefined}>
+        {emptyStateWarning}
+      </Container>
     );
   }
 
@@ -338,14 +349,17 @@ export function GroupList({
 
   return (
     <Fragment>
-      <PanelContainer>
-        {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
-        <PanelBody>
+      <StreamGroupTable border={border} columns={columns}>
+        {withHeader && <GroupListHeader columns={columns} square={border !== 'full'} />}
+        <SimpleTable.Body>
           {loading
             ? Array.from({length: numPlaceholderRows}, (_, i) => (
-                <GroupPlaceholder key={i}>
-                  <Placeholder height="50px" />
-                </GroupPlaceholder>
+                <LoadingStreamGroup
+                  key={i}
+                  canSelect={canSelectGroups}
+                  withChart={withChart}
+                  withColumns={withColumns}
+                />
               ))
             : groups.map(group => {
                 const members = memberList?.get(group.project.slug);
@@ -356,7 +370,7 @@ export function GroupList({
                     group={group}
                     canSelect={canSelectGroups}
                     withChart={withChart}
-                    withColumns={columns}
+                    withColumns={withColumns}
                     memberList={members}
                     useFilteredStats={useFilteredStats}
                     useTintRow={useTintRow}
@@ -373,23 +387,11 @@ export function GroupList({
                   />
                 );
               })}
-        </PanelBody>
-      </PanelContainer>
+        </SimpleTable.Body>
+      </StreamGroupTable>
       {withPagination && (
-        <Pagination pageLinks={pageLinks} onCursor={handleCursorChange} />
+        <Pagination {...getPaginationProps(pageLinks)} onCursor={handleCursorChange} />
       )}
     </Fragment>
   );
 }
-
-const GroupPlaceholder = styled('div')`
-  padding: ${p => p.theme.space.md};
-
-  &:not(:last-child) {
-    border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
-  }
-`;
-
-const PanelContainer = styled(Panel)`
-  container-type: inline-size;
-`;

@@ -2,15 +2,15 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Card} from 'sentry/components/card';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {ImageVisualization} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import {
@@ -126,7 +126,7 @@ export function ScreenshotCard({
           ]}
           position="bottom-end"
           trigger={triggerProps => (
-            <Button
+            <OverlayTrigger.IconButton
               {...triggerProps}
               aria-label={t('Actions')}
               size="xs"

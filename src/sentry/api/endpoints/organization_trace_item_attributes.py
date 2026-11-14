@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypeIs, cast, get_args
 
 import sentry_sdk
 from django.db.models import Q
@@ -38,6 +38,7 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeContext,
     TraceItemAttributeKey,
     TraceItemAttributeSource,
+    TraceItemAttributeUnit,
     TraceItemAttributeValidateResponse,
     TraceItemAttributeValidationResult,
 )
@@ -52,20 +53,26 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    mark_parameter_experimental,
+)
 from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.exceptions import InvalidSearchQuery
 from sentry.explore.models import TraceItemAttributeContext as TraceItemAttributeContextModel
 from sentry.explore.models import TraceItemAttributeTypes, TraceItemTypes
 from sentry.models.organization import Organization
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
@@ -112,8 +119,8 @@ from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
 
-SCALAR_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
-POSSIBLE_ATTRIBUTE_TYPES = [*SCALAR_ATTRIBUTE_TYPES, "array"]
+SCALAR_ATTRIBUTE_TYPES: list[ColumnType] = ["string", "number", "boolean"]
+POSSIBLE_ATTRIBUTE_TYPES: list[ColumnType] = [*SCALAR_ATTRIBUTE_TYPES, "array"]
 
 # Max whole-array rows the attribute-values RPC will return in one call.
 MAX_ATTRIBUTE_VALUE_ROWS = 10_000
@@ -145,10 +152,12 @@ class TraceItemAttributesNamesPaginator:
     even if it exceeds limit + 1.
     """
 
-    def __init__(self, data_fn):
+    def __init__(self, data_fn: Callable[..., list[TraceItemAttributeKey]]):
         self.data_fn = data_fn
 
-    def get_result(self, limit, cursor=None):
+    def get_result(
+        self, limit: int, cursor: Cursor | None = None
+    ) -> CursorResult[TraceItemAttributeKey]:
         if limit <= 0:
             raise ValueError(f"invalid limit for paginator, expected >0, got {limit}")
 
@@ -218,21 +227,21 @@ VALUE_SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
     description="Restrict results to attribute values containing this substring.",
 )
 
-EXPAND_QUERY_PARAM = OpenApiParameter(
-    name="expand",
-    location="query",
-    required=False,
-    many=True,
-    type=str,
-    enum=["context"],
-    # Withheld from the public OpenAPI spec because the context shape it returns
-    # is still evolving. The matching half is ``omit_from_public_schema`` on
-    # ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
-    exclude=True,
-    description=(
-        "Optional fields to expand. Pass `context` to include attribute metadata "
-        "(brief, examples, deprecation, etc.)."
-    ),
+# The endpoint is PUBLIC, but the context shape is still evolving, so only this
+# parameter is flagged experimental.
+EXPAND_QUERY_PARAM = mark_parameter_experimental(
+    OpenApiParameter(
+        name="expand",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        enum=["context"],
+        description=(
+            "Optional fields to expand. Pass `context` to include attribute metadata "
+            "(brief, examples, deprecation, etc.)."
+        ),
+    )
 )
 
 
@@ -249,7 +258,7 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         batch_features = features.batch_has(
-            self.feature_flags, organization=organization, actor=request.user
+            self.feature_flags, organization=organization, actor=acting_user(request.user)
         )
 
         if batch_features is None:
@@ -339,6 +348,13 @@ _CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
 }
 
 
+_TRACE_ITEM_ATTRIBUTE_UNITS: frozenset[str] = frozenset(get_args(TraceItemAttributeUnit))
+
+
+def _is_trace_item_attribute_unit(value: str) -> TypeIs[TraceItemAttributeUnit]:
+    return value in _TRACE_ITEM_ATTRIBUTE_UNITS
+
+
 SENTRY_ALWAYS_INCLUDED_ATTRIBUTES: dict[SupportedTraceItemType, frozenset[str]] = {
     SupportedTraceItemType.SPANS: frozenset({"span.description"}),
     SupportedTraceItemType.LOGS: frozenset({"message"}),
@@ -415,6 +431,9 @@ def build_sentry_convention_context(
 
     if deprecation is not None and deprecation.replacement:
         context["replacementAttribute"] = deprecation.replacement
+
+    if metadata.is_in_otel:
+        context["isInOtel"] = True
 
     return context
 
@@ -507,18 +526,23 @@ def attach_custom_attribute_context(
     if scoped_project_id is not None:
         project_scope |= Q(project_id=scoped_project_id)
 
+    item_type_id = TraceItemTypes.get_id_for_type_name(item_type.value)
+    if item_type_id is None:
+        return
+
     rows = TraceItemAttributeContextModel.objects.filter(
         project_scope,
         organization=organization,
-        item_type=TraceItemTypes.get_id_for_type_name(item_type.value),
+        item_type=item_type_id,
         attribute_key__in={name for name, _ in describable},
     )
 
     # Org-wide rows first, so a project-scoped row overwrites them.
     for row in sorted(rows, key=lambda row: row.project_id is not None):
-        attribute = describable.get(
-            (row.attribute_key, TraceItemAttributeTypes.get_type_name(row.attribute_type))
-        )
+        attribute_type = TraceItemAttributeTypes.get_type_name(row.attribute_type)
+        if attribute_type is None:
+            continue
+        attribute = describable.get((row.attribute_key, cast(ColumnType, attribute_type)))
         if attribute is None:
             continue
         attribute["context"] = build_custom_attribute_context(row)
@@ -536,6 +560,30 @@ def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
     if name in {column.internal_name for column in definitions.columns.values()}:
         return True
     return ATTRIBUTE_METADATA.get(name) is not None
+
+
+def resolve_attribute_unit(
+    name: str,
+    public_name: str,
+    attr_type: ColumnType,
+    item_type: SupportedTraceItemType,
+) -> TraceItemAttributeUnit | None:
+    if attr_type != "number":
+        return None
+
+    # A user attribute can share a column's public alias without being that column.
+    column = get_column_definitions(item_type).columns.get(public_name)
+    if column is not None and column.internal_name == name and not column.secondary_alias:
+        if _is_trace_item_attribute_unit(column.search_type):
+            return column.search_type
+
+    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(name)
+    if metadata is None or metadata.search_alias is None or metadata.search_alias.type is None:
+        return None
+    if _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value, "number") != "number":
+        return None
+    unit = metadata.search_alias.type
+    return unit if _is_trace_item_attribute_unit(unit) else None
 
 
 def _replacement_superseded_by_present_source(
@@ -615,13 +663,22 @@ def as_attribute_key(
         # convention whose name is already the same internally -- e.g.
         # `http.route` -- is missing from it and resolves as a `user` source
         # attribute. A Sentry-defined attribute that isn't a convention (e.g.
-        # `span.description`) instead carries its context on the definition.
-        # Custom attributes get an empty context here; see
-        # attach_custom_attribute_context.
-        context = build_sentry_convention_context(
-            public_name, name, attr_type
-        ) or build_sentry_attribute_context(public_name, attr_type, item_type)
-        attribute_key["context"] = context or {}
+        # `span.description`) instead carries its context on the definition, which
+        # a user attribute merely shadowing its name doesn't share. Custom
+        # attributes get an empty context here; see attach_custom_attribute_context.
+        context: TraceItemAttributeContext = (
+            build_sentry_convention_context(public_name, name, attr_type)
+            or (
+                build_sentry_attribute_context(public_name, attr_type, item_type)
+                if serialized_source["source_type"] == AttributeSourceType.SENTRY.value
+                else None
+            )
+            or {}
+        )
+        unit = resolve_attribute_unit(name, public_name, attr_type, item_type)
+        if unit is not None:
+            context["unit"] = unit
+        attribute_key["context"] = context
 
     return attribute_key
 
@@ -716,6 +773,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             200: inline_sentry_response_serializer(
                 "ListTraceItemAttributesResponse", list[TraceItemAttributeKey]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -728,6 +786,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         """
         List the attribute keys available on a given trace item dataset (spans, logs,
         trace metrics, etc.), with optional substring and structured filtering.
+
+        Pass `expand=context` (experimental) to include each attribute's metadata:
+        a brief description, examples, and deprecation details.
         """
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -793,7 +854,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_internal = is_active_superuser(request) or is_active_staff(request)
         include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
         debug = request.user.is_superuser and request.GET.get("debug", False)
-        debug_infos: list[dict] = []
+        debug_infos: list[dict[str, Any]] = []
 
         # Expand the sentry conventions context when explicitly requested via
         # `expand=context`. The conventions metadata is static with no data
@@ -871,8 +932,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_context: bool = False,
         debug: str | bool = False,
         include_internal_convention_attributes: bool = False,
-    ) -> tuple[list[TraceItemAttributeKey], dict | None]:
-        debug_info: dict | None = None
+    ) -> tuple[list[TraceItemAttributeKey], dict[str, Any] | None]:
+        debug_info: dict[str, Any] | None = None
         value_substring_match = translate_escape_sequences(substring_match)
         attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
             attribute_type, AttributeKey.Type.TYPE_STRING
@@ -1153,19 +1214,18 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         definitions = get_column_definitions(SupportedTraceItemType(dataset))
 
-        def data_fn(offset: int, limit: int):
-            executor = TraceItemAttributeValuesAutocompletionExecutor(
-                organization=organization,
-                snuba_params=snuba_params,
-                key=key,
-                query=substring_match,
-                limit=limit,
-                offset=offset,
-                definitions=definitions,
-                supports_arrays=supports_arrays,
-            )
-
+        def data_fn(offset: int, limit: int) -> list[TagValue]:
             with handle_query_errors():
+                executor = TraceItemAttributeValuesAutocompletionExecutor(
+                    organization=organization,
+                    snuba_params=snuba_params,
+                    key=key,
+                    query=substring_match,
+                    limit=limit,
+                    offset=offset,
+                    definitions=definitions,
+                    supports_arrays=supports_arrays,
+                )
                 tag_values = executor.execute()
             tag_values.sort(
                 key=lambda tag: (
@@ -1182,6 +1242,10 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
             default_per_page=max_attribute_values,
             max_per_page=max_attribute_values,
         )
+
+
+# status is nullable; a null status predates the field and means OPEN.
+NON_ARCHIVED_RELEASES = Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True)
 
 
 class TraceItemAttributeValuesAutocompletionExecutor:
@@ -1286,7 +1350,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             if not self.query or self.query in project.slug
         ]
 
-    def release_stage_autocomplete_function(self):
+    def release_stage_autocomplete_function(self) -> list[TagValue]:
         return [
             TagValue(
                 key=self.key,
@@ -1299,8 +1363,8 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             if not self.query or self.query in stage.value
         ]
 
-    def semver_autocomplete_function(self):
-        versions = Release.objects.filter(version__contains="@" + self.query)
+    def semver_autocomplete_function(self) -> list[TagValue]:
+        versions = Release.objects.filter(NON_ARCHIVED_RELEASES, version__contains="@" + self.query)
 
         project_ids = self.snuba_params.project_ids
         if project_ids:
@@ -1348,7 +1412,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
 
         return formatted_versions
 
-    def semver_build_autocomplete_function(self):
+    def semver_build_autocomplete_function(self) -> list[TagValue]:
         build = self.query if self.query else ""
         if not build.endswith("*"):
             build += "*"
@@ -1361,7 +1425,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             "exact",
             build,
             self.snuba_params.project_ids,
-        )
+        ).filter(NON_ARCHIVED_RELEASES)
 
         environment_ids = self.snuba_params.environment_ids
         if environment_ids:
@@ -1387,7 +1451,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             for build in builds
         ]
 
-    def semver_package_autocomplete_function(self):
+    def semver_package_autocomplete_function(self) -> list[TagValue]:
         assert self.snuba_params.organization_id is not None
         packages = (
             Release.objects.filter(
@@ -1399,6 +1463,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         )
 
         versions = Release.objects.filter(
+            NON_ARCHIVED_RELEASES,
             organization_id=self.snuba_params.organization_id,
             package__in=packages,
             id__in=ReleaseProject.objects.filter(

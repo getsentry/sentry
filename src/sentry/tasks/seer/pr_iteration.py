@@ -15,8 +15,10 @@ from scm.types import (
     Author,
     CreatePullRequestCommentProtocol,
     CreatePullRequestCommentReactionProtocol,
+    CreatePullRequestReviewReactionProtocol,
     CreateReviewCommentReactionProtocol,
     DeletePullRequestCommentReactionProtocol,
+    DeletePullRequestReviewReactionProtocol,
     DeleteReviewCommentReactionProtocol,
     DiffLine,
     GetAuthenticatedActorProtocol,
@@ -50,6 +52,12 @@ from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_fro
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import (
+    continue_single_run_from_pr_feedback,
+    require_autofix_run_for_group,
+)
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.cap_exhausted import assign_user_for_exhausted_cap
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
@@ -68,6 +76,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     automated_iteration_allowed,
     feedback_kind,
+    feedback_text,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
@@ -79,6 +88,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     MissingCheckSuiteAutofixRun,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubIssueComment,
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrCommentUser,
@@ -86,11 +96,19 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
-from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
+from sentry.seer.autofix.pr_iteration.iterations import (
+    PrIterationNoPullRequestException,
+    get_open_iteration_index,
+)
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     block_iteration_for_missing_permissions,
     post_missing_permissions_comment,
+)
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    get_out_of_credits,
+    mark_out_of_credits,
+    take_out_of_credits,
 )
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
@@ -101,6 +119,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 )
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
+    iteration_prs_any_external_head,
     record_pr_closed,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
@@ -109,9 +128,11 @@ from sentry.seer.autofix.pr_iteration.queue import (
     count_queued_autofix_feedback,
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
+    requeue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
+from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerUnavailableError
 from sentry.tasks.base import instrumented_task
@@ -635,9 +656,11 @@ def _drain_queued_autofix_feedback(
         log_ctx.error("autofix.pr_iteration.consume_feedback.group_not_found", exc_info=False)
         return
 
-    if state.status in ("processing", "error"):
-        # An errored run should already be paused. A processing run's
-        # completion hook drains the queue when it finishes.
+    # An errored run should already be paused. A processing run's completion hook drains the
+    # queue when it finishes. A run that ran out of credits isn't paused, so it iterates again.
+    if state.status == "processing" or (
+        state.status == "error" and state.failure_reason != "out_of_credits"
+    ):
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -650,9 +673,38 @@ def _drain_queued_autofix_feedback(
         _record_drain_outcome(f"skipped_run_{state.status}", trigger_source)
         return
 
-    # Wait for the previous iteration to push. Its completion hook drains the queue.
     _, all_changes_pushed = state.has_code_changes()
-    if not all_changes_pushed:
+    if is_single_run(state):
+        all_changes_pushed = not any(
+            pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()
+        )
+
+    # A credit stop may have left the last iteration's push or branch-moved retry unfinished.
+    # Redo it here if necessary.
+    out_of_credits = get_out_of_credits(run_id=run_id, organization_id=organization_id)
+    stranded_action = out_of_credits.stranded_action if out_of_credits else None
+    if stranded_action is not None:
+        take_out_of_credits(run_id=run_id, organization_id=organization_id)
+    if stranded_action is not None and not all_changes_pushed:
+        from sentry.seer.autofix.pr_iteration.completion import redo_stranded_action
+
+        redo_stranded_action(log_ctx, group, run_id, state, stranded_action)
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="redo_stranded_action",
+            reason=stranded_action.value,
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            left_queued_count=count_queued_autofix_feedback(run_id),
+        )
+        _record_drain_outcome("redo_stranded_action", trigger_source)
+        # Leave the queued feedback for now: once the redo's push lands, its completion hook
+        # drains the queue and runs it.
+        return
+
+    # Wait for the previous iteration to push. Its completion hook drains the queue.
+    if not all_changes_pushed and state.status != "error":
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -814,6 +866,9 @@ def _drain_queued_autofix_feedback(
             feedback_bot_logins=bot_logins_for_feedback([item.source for item in feedback_items]),
         )
 
+    if out_of_credits is not None:
+        take_out_of_credits(run_id=run_id, organization_id=organization_id)
+
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
         metrics.incr(
@@ -825,18 +880,39 @@ def _drain_queued_autofix_feedback(
             },
             sample_rate=1.0,
         )
-        trigger_autofix_agent(
-            group=group,
-            step=AutofixStep.PR_ITERATION,
-            referrer=referrer,
-            run_id=run_id,
-            user_context="\n\n".join(item.text for item in feedback_items),
-            feedback=feedback_items,
-            actor_user_id=actor_user_id,
-            commit_author=commit_author_for_feedback(feedback_items, organization_id),
-            iteration_id=iteration_id,
-        )
-    except (PrIterationNoPullRequestException, SeerPermissionError) as error:
+        commit_author = commit_author_for_feedback(feedback_items, organization_id)
+        if is_single_run(state):
+            agent_run = require_autofix_run_for_group(
+                group, run_id, sources=(SINGLE_RUN_FEATURE_ID,)
+            )
+            if not any(pr.pr_number for pr in state.repo_pr_states.values()):
+                raise PrIterationNoPullRequestException()
+            continue_single_run_from_pr_feedback(
+                agent_run,
+                group,
+                feedback=feedback_items,
+                iteration_index=get_open_iteration_index(state),
+                iteration_id=iteration_id,
+                commit_author=commit_author,
+                referrer=referrer,
+            )
+        else:
+            trigger_autofix_agent(
+                group=group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=referrer,
+                run_id=run_id,
+                user_context=feedback_text(feedback_items),
+                feedback=feedback_items,
+                actor_user_id=actor_user_id,
+                commit_author=commit_author,
+                iteration_id=iteration_id,
+            )
+    except (
+        PrIterationNoPullRequestException,
+        SeerPermissionError,
+        SeerOutOfCreditsException,
+    ) as error:
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.trigger_agent",
             outcome="skipped",
@@ -845,12 +921,24 @@ def _drain_queued_autofix_feedback(
             trigger_id=trigger_id,
             trigger_source=trigger_source,
         )
-        _record_drain_outcome(
-            "skipped_permission" if isinstance(error, SeerPermissionError) else "skipped_no_pr",
-            trigger_source,
-        )
-        # The drain popped the queue, so this iteration will never run.
+        if isinstance(error, SeerPermissionError):
+            drain_outcome = "skipped_permission"
+        elif isinstance(error, SeerOutOfCreditsException):
+            drain_outcome = "skipped_out_of_credits"
+        else:
+            drain_outcome = "skipped_no_pr"
+        _record_drain_outcome(drain_outcome, trigger_source)
+        # This iteration never started, so drop its row.
         _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
+        if isinstance(error, SeerOutOfCreditsException):
+            _hold_for_credits(
+                log_ctx=log_ctx,
+                run_id=run_id,
+                organization_id=organization_id,
+                group_id=group.id,
+                state=state,
+                items=consumable_items,
+            )
         return
     except Exception as error:
         _stop_after_drain_failure(
@@ -878,6 +966,34 @@ def _drain_queued_autofix_feedback(
         trigger_source=trigger_source,
     )
     _record_drain_outcome("started", trigger_source)
+
+
+def _hold_for_credits(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_id: int,
+    organization_id: int,
+    group_id: int,
+    state: SeerRunState,
+    items: Sequence[QueuedAutofixFeedback],
+) -> None:
+    """Put a batch refused for credits back, so the next trigger after a top-up runs it."""
+    requeue_autofix_feedback(run_id, items)
+    try:
+        bootstrap_iteration(
+            logger=logger, run_state=state, organization_id=organization_id, group_id=group_id
+        )
+    except ValueError:
+        # A legacy run has no SeerRun row to reopen or mark.
+        return
+    # Save the reason for the sweep, in case no top-up comes.
+    record_pr_iteration_failure_reason(
+        log_ctx=log_ctx,
+        run_id=run_id,
+        organization_id=organization_id,
+        reason=PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value,
+    )
+    mark_out_of_credits(run_id=run_id, organization_id=organization_id)
 
 
 def _stop_after_drain_failure(
@@ -1015,6 +1131,41 @@ def _delete_own_comment_eyes_reaction(
                 scm_actions.delete_pull_request_comment_reaction(
                     scm, str(pr_number), str(comment_id), reaction_id
                 )
+    except Exception:
+        logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
+
+
+def _add_review_reaction(
+    scm: SourceCodeManager,
+    *,
+    pr_number: int,
+    review_id: int,
+    reaction: Reaction,
+) -> None:
+    """React to a submitted PR review's body via the SCM platform."""
+    if not isinstance(scm, CreatePullRequestReviewReactionProtocol):
+        logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider")
+        return
+    try:
+        scm_actions.create_pull_request_review_reaction(
+            scm, str(pr_number), str(review_id), reaction
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
+
+def _delete_own_review_eyes_reaction(
+    scm: SourceCodeManager,
+    *,
+    pr_number: int,
+    review_id: int,
+) -> None:
+    """Remove the :eyes: we added to a review body at trigger time."""
+    if not isinstance(scm, DeletePullRequestReviewReactionProtocol):
+        logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+        return
+    try:
+        scm_actions.delete_pull_request_review_reaction(scm, str(pr_number), str(review_id), "eyes")
     except Exception:
         logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
 
@@ -1873,6 +2024,15 @@ def _trigger_pr_iteration_from_review(
             external_id=author_external_id,
         )
 
+    # Someone else has pushed to the PR, so the review may not be about Seer's
+    # work. Only an explicit request (an @sentry comment, the UI) acts now.
+    if iteration_prs_any_external_head(organization_id, agent_state):
+        logger.info(
+            "autofix.pr_iteration.review_trigger.external_head",
+            extra={**log_extra, "run_id": agent_state.run_id},
+        )
+        return None
+
     inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
 
     # A bot review with no inline comments has nothing to act on; a human summary does.
@@ -1944,26 +2104,32 @@ def _trigger_pr_iteration_from_review(
         run_state=agent_state,
     )
 
-    # Ack each inline comment with :eyes:, mirroring the single-comment path (the
-    # review body has no reaction target). Skip the ack when no consume was
-    # scheduled (a bot review past the cap, a paused run), and gate each comment
-    # on should_consume so we don't ack one consume will drop as stale.
+    # Ack each inline comment and the review body with :eyes:, mirroring the
+    # single-comment path. Skip the ack when no consume was scheduled (a bot review
+    # past the cap, a paused run), and gate each item on should_consume so we don't
+    # ack one consume will drop as stale.
     # TODO: doesn't cover consume's other drop paths (group missing, processing,
     # cap hit mid-drain) — reconcile with consume's outcome later.
     if decision.task is not None:
         for feedback_obj in feedback_items:
             source = feedback_obj.source
-            if not isinstance(source, GithubPrReviewCommentFeedbackSource):
+            if not source.should_consume(agent_state).ok:
                 continue
-            if source.comment.id is None or not source.should_consume(agent_state).ok:
-                continue
-            _add_comment_reaction(
-                scm,
-                source_type="github-pr-review-comment",
-                pr_number=pr_number,
-                comment_id=int(source.comment.id),
-                reaction="eyes",
-            )
+            match source:
+                case GithubPrReviewBodyFeedbackSource():
+                    _add_review_reaction(
+                        scm, pr_number=pr_number, review_id=review_id, reaction="eyes"
+                    )
+                case GithubPrReviewCommentFeedbackSource(
+                    comment=GithubIssueComment(id=int() as comment_id)
+                ):
+                    _add_comment_reaction(
+                        scm,
+                        source_type=source.type,
+                        pr_number=pr_number,
+                        comment_id=comment_id,
+                        reaction="eyes",
+                    )
 
     metrics.incr("autofix.pr_iteration.review_trigger.success")
     logger.info("autofix.pr_iteration.review_trigger.success", extra=log_extra)

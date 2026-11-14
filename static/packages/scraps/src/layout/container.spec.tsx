@@ -1,4 +1,7 @@
+import type * as React from 'react';
 import {createRef, Fragment} from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
 import {expectTypeOf} from 'expect-type';
 
 import {
@@ -6,12 +9,15 @@ import {
   type ContainerProps,
   type ContainerPropsWithRenderFunction,
 } from '@sentry/scraps/layout';
+import {lightTheme} from '@sentry/scraps/theme';
 
-import {render, screen} from '../../test/env';
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
 
 describe('Container', () => {
   it('renders children', () => {
-    render(<Container>Hello</Container>);
+    render(<Container>Hello</Container>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
@@ -19,7 +25,8 @@ describe('Container', () => {
     render(
       <section>
         <Container border="primary">{props => <p {...props}>Hello</p>}</Container>
-      </section>
+      </section>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Hello')?.tagName).toBe('P');
@@ -34,7 +41,8 @@ describe('Container', () => {
       <Container border="primary" aria-activedescendant="what">
         {/* @ts-expect-error - this should be a React.ElementType */}
         {props => <p {...props}>Hello</p>}
-      </Container>
+      </Container>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Hello')).not.toHaveAttribute('aria-activedescendant');
@@ -50,7 +58,8 @@ describe('Container', () => {
       <Container border="primary">
         {/* @ts-expect-error - className is incompatible */}
         {props => <Child {...props} />}
-      </Container>
+      </Container>,
+      {wrapper: ThemeWrapper}
     );
   });
 
@@ -58,28 +67,31 @@ describe('Container', () => {
     render(
       <Container as="label" htmlFor="test-id">
         Hello World
-      </Container>
+      </Container>,
+      {wrapper: ThemeWrapper}
     );
     expectTypeOf<ContainerProps<'label'>>().toHaveProperty('htmlFor');
   });
 
   it('passes attributes to the underlying element', () => {
-    render(<Container data-test-id="container">Hello</Container>);
+    render(<Container data-test-id="container">Hello</Container>, {
+      wrapper: ThemeWrapper,
+    });
     expect(screen.getByTestId('container')).toBeInTheDocument();
   });
 
   it('renders as a different element if specified', () => {
-    render(<Container as="section">Hello</Container>);
+    render(<Container as="section">Hello</Container>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello').tagName).toBe('SECTION');
   });
 
   it('does not bleed attributes to the underlying element', () => {
-    render(<Container radius="sm">Hello</Container>);
+    render(<Container radius="sm">Hello</Container>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello')).not.toHaveAttribute('radius');
   });
 
   it('allows settings native html attributes', () => {
-    render(<Container style={{color: 'red'}}>Hello</Container>);
+    render(<Container style={{color: 'red'}}>Hello</Container>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello')).toHaveStyle({color: 'rgb(255, 0, 0)'});
   });
 
@@ -88,7 +100,8 @@ describe('Container', () => {
     render(
       <Container ref={ref} as="ol">
         Hello
-      </Container>
+      </Container>,
+      {wrapper: ThemeWrapper}
     );
     expect(ref.current).toBeInTheDocument();
     expect(ref.current?.tagName).toBe('OL');
@@ -103,7 +116,8 @@ describe('Container', () => {
         <Container radius="sm" padding="md">
           PaddingBottom First
         </Container>
-      </Fragment>
+      </Fragment>,
+      {wrapper: ThemeWrapper}
     );
 
     const paddingFirst = screen.getByText('Padding First').className;

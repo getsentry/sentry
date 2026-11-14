@@ -1,4 +1,4 @@
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 
 import {severityColor, withAlpha} from './severityColor';
 
@@ -9,7 +9,7 @@ describe('severityColor', () => {
     ['light', lightTheme],
     ['dark', darkTheme],
   ])('colors drop ratios with the %s magma scale', (_, theme) => {
-    const scale = theme.tokens.dataviz.sequential.magma.series5;
+    const scale = theme.tokens.dataviz.sequential.magma.series7;
 
     expect(severityColor(0, theme)).toBe(opaque(theme.tokens.background.secondary));
     expect(severityColor(0.001, theme)).toBe(opaque(scale[0]));

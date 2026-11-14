@@ -1,8 +1,8 @@
 from sentry.notifications.platform.templates.activity.base import (
     ActivityNotificationData,
+    build_subject_prefix,
 )
 from sentry.notifications.platform.types import (
-    CodeTextBlock,
     NotificationTextBlock,
     PlainTextBlock,
 )
@@ -32,10 +32,7 @@ def get_status_change_subject(data: ActivityNotificationData) -> list[Notificati
         case _:
             raise ValueError("Unsupported activity, can only be used for status changes.")
 
-    if data.issue_short_id:
-        blocks.extend([CodeTextBlock(text=data.issue_short_id), PlainTextBlock(text=action)])
-    else:
-        blocks.append(PlainTextBlock(text=f"A Sentry Issue {action}"))
+    blocks.extend([build_subject_prefix(data=data), PlainTextBlock(text=action)])
 
     # Escalating is not attributable, even if we have an author for some reason
     if data.activity_user_name and not activity_type == ActivityType.SET_ESCALATING:

@@ -10,24 +10,21 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconGrabbable} from '@sentry/icons/grabbable';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {isModalOpen} from '@sentry/scraps/modal';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {ModalStore} from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
@@ -37,21 +34,22 @@ import {
 } from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
-  SnapshotDetailsApiResponse,
   SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
 
-import {SnapshotHeaderActions} from './header/snapshotHeaderActions';
+import {SnapshotEntityHeader} from './header/snapshotEntityHeader';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import type {SnapshotListViewHandle} from './main/snapshotListView';
 import {type NavButtonRefs, SnapshotMainContent} from './main/snapshotMainContent';
+import type {ViewMode} from './main/snapshotsToolbar';
 import {
   DIFF_TYPE_ORDER,
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {useSnapShotApiOptions} from './snapshotApiOptions';
 import {buildSoloImages} from './soloImages';
 import {TagFilterProvider} from './tagFilterContext';
 import {narrowItemByTags} from './tagFiltering';
@@ -132,29 +130,25 @@ export default function SnapshotsPage() {
     snapshotId: string;
   }>();
 
-  const snapshotApiUrl = getApiUrl(
-    '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        snapshotId,
-      },
-    }
-  );
+  const snapshotApiOptions = useSnapShotApiOptions();
 
-  const {data, isPending, isError} = useApiQuery<SnapshotDetailsApiResponse>(
-    [snapshotApiUrl],
-    {
-      staleTime: 0,
-      enabled: !!snapshotId,
-      // Skip retries on 4xx so error pages render instantly
-      retry: (count, err) => count < 3 && (!err?.status || err.status >= 500),
-      refetchInterval: query => {
-        const state = query.state.data?.json?.comparison_state;
-        return state === 'pending' || state === 'processing' ? 5_000 : false;
-      },
-    }
-  );
+  const {data, isPending, isError} = useQuery({
+    ...snapshotApiOptions,
+    // Skip retries on 4xx so error pages render instantly
+    retry: (count, err) => {
+      if (count >= 3) {
+        return false;
+      }
+      if (err instanceof RequestError && err.status && err.status < 500) {
+        return false;
+      }
+      return true;
+    },
+    refetchInterval: query => {
+      const state = query.state.data?.json?.comparison_state;
+      return state === 'pending' || state === 'processing' ? 5_000 : false;
+    },
+  });
 
   const viewedArtifactRef = useRef<string | null>(null);
   useEffect(() => {
@@ -188,11 +182,14 @@ export default function SnapshotsPage() {
   );
   const isNarrow = useResponsivePropValue({zero: true, xl: false});
   const effectiveDiffMode = isNarrow && diffMode === 'split' ? 'wipe' : diffMode;
-  const [viewMode, setViewMode] = useQueryState(
+  const [view, setView] = useQueryState(
     'view',
-    parseAsStringLiteral(['list', 'single'] as const)
-      .withDefault('list')
-      .withOptions(pushHistory)
+    parseAsStringLiteral(['list', 'single', 'solo'] as const)
+  );
+  const viewMode = view === 'single' ? 'single' : 'list';
+  const setViewMode = useCallback(
+    (mode: ViewMode) => setView(mode === 'list' ? null : mode, {history: 'push'}),
+    [setView]
   );
   const replaceHistory = {history: 'replace' as const};
   const [searchQuery, setSearchQuery] = useQueryState(
@@ -268,22 +265,13 @@ export default function SnapshotsPage() {
     sizeStorageKey: 'snapshot-sidebar-width',
   });
 
-  const location = useLocation();
-  const navigate = useNavigate();
-  const viewOverride = location.query.view;
   const hasDiffComparison = data?.comparison_type === 'diff';
-  const comparisonType =
-    viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
+  const comparisonType = view === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
 
   const isSoloView = comparisonType === 'solo' || comparisonType === 'waiting_for_base';
   const handleToggleView = useCallback(() => {
-    const {view: _view, ...restQuery} = location.query;
-    if (isSoloView) {
-      navigate({...location, query: restQuery}, {replace: true});
-    } else {
-      navigate({...location, query: {...restQuery, view: 'solo'}}, {replace: true});
-    }
-  }, [location, navigate, isSoloView]);
+    setView(isSoloView ? null : 'solo', {history: 'replace'});
+  }, [isSoloView, setView]);
 
   const sidebarItems = useMemo(() => {
     if (!data) {
@@ -671,7 +659,7 @@ export default function SnapshotsPage() {
       ) {
         return;
       }
-      if (typeof ModalStore.getState().renderer === 'function') {
+      if (isModalOpen()) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -786,11 +774,7 @@ export default function SnapshotsPage() {
           overflow="auto"
           borderRight="primary"
           display={{zero: 'none', xl: 'flex'}}
-          maxWidth={{zero: '300px', '3xl': 'none'}}
-          style={{
-            width: sidebarWidth,
-            height: 'calc(100dvh - var(--top-bar-height, 53px))',
-          }}
+          style={{width: sidebarWidth}}
         >
           <SnapshotSidebarContent
             sections={sidebarSections}
@@ -805,6 +789,13 @@ export default function SnapshotsPage() {
           />
         </Flex>
         <DragHandle
+          display={{zero: 'none', xl: 'grid'}}
+          align="center"
+          justifyItems="center"
+          position="relative"
+          width={theme.space.xl}
+          height="100%"
+          cursor="ew-resize"
           data-is-held={isHeld}
           onMouseDown={onMouseDown}
           onDoubleClick={onDoubleClick}
@@ -847,10 +838,20 @@ export default function SnapshotsPage() {
     </TagFilterProvider>
   );
 
+  const breadcrumbs = (
+    <SnapshotHeaderContent
+      snapshotId={snapshotId}
+      data={data}
+      organizationSlug={organization.slug}
+    />
+  );
+
   if (isPending) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Stack flex={1}>
+          {breadcrumbs}
+          <SnapshotEntityHeader data={undefined} />
           <Flex align="center" justify="center" padding="3xl">
             <LoadingIndicator />
           </Flex>
@@ -863,6 +864,7 @@ export default function SnapshotsPage() {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Stack flex={1}>
+          {breadcrumbs}
           <BuildError
             title={t('Snapshot unavailable')}
             message={t(
@@ -876,15 +878,14 @@ export default function SnapshotsPage() {
 
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
-      <Stack flex={1} onClick={handleDeselectSnapshot}>
-        <SnapshotHeaderContent data={data} />
-        <TopBar.Slot name="actions">
-          <SnapshotHeaderActions
-            data={data}
-            organizationSlug={organization.slug}
-            apiUrl={snapshotApiUrl}
-          />
-        </TopBar.Slot>
+      <Stack
+        flex={1}
+        minHeight="0"
+        maxHeight="calc(100dvh - var(--top-bar-height, 53px))"
+        onClick={handleDeselectSnapshot}
+      >
+        {breadcrumbs}
+        <SnapshotEntityHeader data={data} />
 
         {isComparisonProcessing ? processingContent : snapshotContent}
       </Stack>
@@ -894,17 +895,7 @@ export default function SnapshotsPage() {
 
 const TOOLBAR_HEIGHT = '45px';
 
-const DragHandle = styled('div')`
-  position: relative;
-  display: grid;
-  place-items: center;
-
-  @container (max-width: ${p => p.theme.container['3xl']}) {
-    display: none;
-  }
-  width: ${p => p.theme.space.xl};
-  height: 100%;
-  cursor: ew-resize;
+const DragHandle = styled(Grid)`
   user-select: inherit;
   background: linear-gradient(
     to bottom,

@@ -1,3 +1,4 @@
+import {SEARCH_PAGE__SERVER_RENDERING__TYPE} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -9,24 +10,27 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  getServerRenderingType,
+  getStaticPart,
+  type StaticPart,
+} from 'sentry/views/performance/traceDetails/serverRendering/serverRendering';
 import type {
   TraceError as TraceErrorType,
   TracePerformanceIssue as TracePerformanceIssueType,
 } from 'sentry/views/performance/traceDetails/traceApi/types';
 import {getTraceQueryParams} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
+import {isBrowserRequestNode} from 'sentry/views/performance/traceDetails/traceApi/utils';
 import {
   isEAPError,
   isEAPSpan,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isTraceError,
   isUptimeCheck,
 } from 'sentry/views/performance/traceDetails/traceGuards';
-import {
-  collectTraceMeasurements,
-  type RENDERABLE_MEASUREMENTS,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
@@ -35,12 +39,23 @@ import {ErrorNode} from './traceTreeNode/errorNode';
 import {NoInstrumentationNode} from './traceTreeNode/noInstrumentationNode';
 import {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
 import {RootNode} from './traceTreeNode/rootNode';
+import {ServerRenderNode} from './traceTreeNode/serverRenderNode';
 import {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import {TraceNode} from './traceTreeNode/traceNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import {traceChronologicalSort} from './traceTreeNode/utils';
-import {makeExampleTrace} from './makeExampleTrace';
+import {makeExampleTraceData} from './makeExampleTraceData';
+import {
+  collectTraceMeasurements,
+  type RENDERABLE_MEASUREMENTS,
+} from './traceTree.measurements';
 import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
+import {
+  getVisibleParent,
+  getNodeDepth,
+  isLastVisibleChild,
+  getNodeConnectors,
+} from './traceTreeTraversal';
 
 /**
  *
@@ -207,6 +222,7 @@ export declare namespace TraceTree {
     | UptimeCheck
     | UptimeCheckTiming
     | MissingInstrumentationSpan
+    | ServerRenderPlaceholder
     | SiblingAutogroup
     | ChildrenAutogroup
     | CollapsedNode
@@ -221,6 +237,15 @@ export declare namespace TraceTree {
     start_timestamp: number;
     timestamp: number;
     type: 'missing_instrumentation';
+  }
+
+  /** Placeholder for the server spans of a reused page, which are in another trace. */
+  interface ServerRenderPlaceholder {
+    /** From the document request. It orders the row, but is not when the render ran. */
+    end_timestamp: number;
+    part: StaticPart;
+    start_timestamp: number;
+    type: 'server_render_placeholder';
   }
 
   interface BaseAutogroup {
@@ -253,6 +278,7 @@ export declare namespace TraceTree {
     | 'ag'
     | 'trace'
     | 'ms'
+    | 'sr'
     | 'error'
     | 'empty'
     | 'uptime-check'
@@ -334,14 +360,20 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   static Loading(organization: Organization): TraceTree {
-    const trace = makeExampleTrace(organization);
+    const trace = TraceTree.FromTrace(makeExampleTraceData(), {
+      replay: null,
+      organization,
+    });
     trace.type = 'loading';
     trace.build();
     return trace;
   }
 
   static ErrorState(organization: Organization): TraceTree {
-    const trace = makeExampleTrace(organization);
+    const trace = TraceTree.FromTrace(makeExampleTraceData(), {
+      replay: null,
+      organization,
+    });
     trace.type = 'error';
     trace.build();
     return trace;
@@ -544,6 +576,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     tree.indicators.sort((a, b) => a.start - b.start);
 
+    if (options.organization.features.includes('performance-trace-cache-lifecycle')) {
+      TraceTree.AddServerRenderPlaceholders(tree.root);
+    }
+
     TraceTree.ApplyPreferences(tree.root, options);
 
     return tree;
@@ -623,6 +659,45 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     for (const child of tree.root.children) {
       this.list = this.list.concat(child.visibleChildren);
+    }
+  }
+
+  /**
+   * Adds a placeholder to each pageload with `page.server_rendering.type`, first
+   * under its document request (or the pageload), where the server spans would be.
+   */
+  static AddServerRenderPlaceholders(root: BaseNode): void {
+    // Collect first, so the traversal does not visit the inserted nodes.
+    const pageloads: EapSpanNode[] = [];
+    root.forEachChild(child => {
+      if (isEAPSpanNode(child) && child.op === 'pageload') {
+        pageloads.push(child);
+      }
+    });
+
+    for (const pageload of pageloads) {
+      const type = getServerRenderingType(
+        pageload.value.additional_attributes?.[SEARCH_PAGE__SERVER_RENDERING__TYPE]
+      );
+      if (!type) {
+        continue;
+      }
+
+      const documentRequest = pageload.children.find(isBrowserRequestNode);
+      const parent = documentRequest ?? pageload;
+      const startTimestamp = parent.startTimestamp ?? 0;
+      const placeholder = new ServerRenderNode(
+        pageload,
+        parent,
+        {
+          type: 'server_render_placeholder',
+          part: getStaticPart(type),
+          start_timestamp: startTimestamp,
+          end_timestamp: documentRequest?.endTimestamp ?? startTimestamp,
+        },
+        pageload.extra
+      );
+      parent.children.unshift(placeholder);
     }
   }
 
@@ -993,18 +1068,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
     let index = tree.list.indexOf(node);
 
     if (node && index === -1) {
-      let parent_node = node.parent;
-      while (parent_node) {
-        // Transactions break autogrouping chains, so we can stop here
-        parent_node.expand(true, tree);
-        // This is very wasteful as it performs O(n^2) search each time we expand a node...
-        // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
-        // a low autogrouped node count.
-        index = node ? tree.list.indexOf(node) : -1;
+      const ancestors: BaseNode[] = [];
+      let parent = node.parent;
+      while (parent) {
+        ancestors.push(parent);
+        parent = parent.parent;
+      }
+
+      for (const ancestor of ancestors.toReversed()) {
+        ancestor.expand(true, tree);
+        index = tree.list.indexOf(node);
         if (index !== -1) {
           break;
         }
-        parent_node = parent_node.parent;
       }
     }
 
@@ -1092,89 +1168,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
    * Root node has a value of -1 as it is abstract.
    */
   static depth(node: BaseNode): number {
-    if (node.depth !== undefined) {
-      return node.depth;
-    }
-
-    const visibleParent = TraceTree.VisibleParent(node);
-    node.depth = visibleParent ? TraceTree.depth(visibleParent) + 1 : 0;
-    return node.depth;
+    return getNodeDepth(node);
   }
 
   static VisibleParent(node: BaseNode): BaseNode | null {
-    if (node.visibleParent !== undefined) {
-      return node.visibleParent;
-    }
-
-    let start = node.parent;
-
-    while (start) {
-      if (
-        start.directVisibleChildren.includes(node) &&
-        (start.isRootNodeChild() || TraceTree.VisibleParent(start) !== null)
-      ) {
-        node.visibleParent = start;
-        return node.visibleParent;
-      }
-
-      start = start.parent;
-    }
-
-    node.visibleParent = null;
-    return node.visibleParent;
+    return getVisibleParent(node);
   }
 
   static IsLastVisibleChild(node: BaseNode): boolean {
-    const visibleParent = TraceTree.VisibleParent(node);
-
-    if (!visibleParent) {
-      return node.isLastChild();
-    }
-
-    const visibleChildren = visibleParent.directVisibleChildren;
-    return visibleChildren[visibleChildren.length - 1] === node;
+    return isLastVisibleChild(node);
   }
 
   static ConnectorsTo(node: BaseNode): number[] {
-    if (node.connectors !== undefined) {
-      return node.connectors;
-    }
-
-    const connectors: number[] = [];
-    let start = TraceTree.VisibleParent(node);
-
-    if (start?.isRootNodeChild() && !TraceTree.IsLastVisibleChild(node)) {
-      node.connectors = [-TraceTree.depth(node)];
-      return node.connectors;
-    }
-
-    if (!TraceTree.IsLastVisibleChild(node)) {
-      connectors.push(TraceTree.depth(node));
-    }
-
-    while (start) {
-      if (!start.value) {
-        break;
-      }
-
-      const visibleParent = TraceTree.VisibleParent(start);
-      if (!visibleParent) {
-        break;
-      }
-
-      if (TraceTree.IsLastVisibleChild(start)) {
-        start = visibleParent;
-        continue;
-      }
-
-      connectors.push(
-        visibleParent.isRootNodeChild() ? -TraceTree.depth(start) : TraceTree.depth(start)
-      );
-      start = visibleParent;
-    }
-
-    node.connectors = connectors;
-    return connectors;
+    return getNodeConnectors(node);
   }
 
   toList(): BaseNode[] {

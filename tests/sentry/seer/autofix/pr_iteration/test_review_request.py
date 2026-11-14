@@ -11,6 +11,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckRunsSweep,
     CheckSuiteAutofixRun,
     confirm_green_check_suite,
+    green_review_side_effects_enabled,
     resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
@@ -35,7 +36,7 @@ HEAD_SHA = "abc"
 PR_NUMBER = 42
 
 
-def _green_event(raw: dict | None = None) -> CheckSuiteEvent:
+def _green_event(raw: dict[str, Any] | None = None) -> CheckSuiteEvent:
     if raw is None:
         raw = {
             "check_suite": {
@@ -70,11 +71,11 @@ def _pull_request_result(
     *,
     state: str = "open",
     merged: bool = False,
-    requested_reviewers: list[dict] | None = None,
+    requested_reviewers: list[dict[str, Any]] | None = None,
     author: str | None = None,
     head_sha: str = HEAD_SHA,
     draft: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     raw: dict[str, Any] = {"requested_reviewers": requested_reviewers or [], "draft": draft}
     if author is not None:
         raw["user"] = {"login": author}
@@ -88,7 +89,7 @@ def _pull_request_result(
 
 def _request_review(event: CheckSuiteEvent | None = None) -> None:
     resolved = resolve_green_check_suite(event or _green_event())
-    if resolved is None:
+    if resolved is None or not green_review_side_effects_enabled(resolved):
         return
     if (
         get_run_marker(resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name) is not None
@@ -148,9 +149,10 @@ class RequestReviewFromContextTest(TestCase):
             repository=self.repo, run_state=run_state, pr_id=555, group_id=1
         )
 
-    def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict | None:
+    def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict[str, Any] | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        marker = (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        return marker if isinstance(marker, dict) else None
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -198,8 +200,8 @@ class RequestReviewFromContextTest(TestCase):
 
         _request_review(_green_event())
 
-        # The flag gate runs before any Seer lookup so disabled orgs cost nothing.
-        mock_resolve.assert_not_called()
+        # Resolving parked feedback is unconditional; review requests are not.
+        mock_resolve.assert_called_once()
         mock_actions.request_review.assert_not_called()
         assert self._marker() is None
 
@@ -559,9 +561,10 @@ class RequestReviewFromCandidatesTest(TestCase):
             repository=self.repo, run_state=run_state, pr_id=555, group_id=1
         )
 
-    def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict | None:
+    def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict[str, Any] | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        marker = (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        return marker if isinstance(marker, dict) else None
 
     def test_requests_top_candidate_and_records_provenance(
         self,

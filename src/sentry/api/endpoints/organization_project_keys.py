@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.db.models import F
 from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
 from rest_framework import serializers
@@ -15,6 +17,7 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.examples.project_examples import KEY_NO_RATE_LIMIT, KEY_RATE_LIMIT
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.models.team import Team
@@ -81,7 +84,9 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
             ),
         ],
     )
-    def get(self, request: Request, organization) -> Response[list[ProjectKeySerializerResponse]]:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[ProjectKeySerializerResponse]]:
         """
         Return a list of client keys (DSNs) for all projects in an organization.
 
@@ -124,10 +129,23 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
         elif status:
             queryset = queryset.none()
 
+        projects_by_id = {project.id: project for project in projects}
+
+        def serialize_keys(keys: list[ProjectKey]) -> list[ProjectKeySerializerResponse]:
+            # Prevent the project and organization from being fetched again for each key's DSNs.
+            for key in keys:
+                project = projects_by_id[key.project_id]
+                project.set_cached_field_value("organization", organization)
+                key.set_cached_field_value("project", project)
+            return cast(
+                "list[ProjectKeySerializerResponse]",
+                serialize(keys, request.user, request=request),
+            )
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-id",
             default_per_page=10,
-            on_results=lambda x: serialize(x, request.user, request=request),
+            on_results=serialize_keys,
         )

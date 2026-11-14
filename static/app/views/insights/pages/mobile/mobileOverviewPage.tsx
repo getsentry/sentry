@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Link} from '@sentry/scraps/link';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {
@@ -16,23 +16,21 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  canUseMetricsData,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -44,17 +42,6 @@ import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDef
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {Am1MobileOverviewPage} from 'sentry/views/insights/pages/mobile/am1OverviewPage';
-import {
-  isAValidSort,
-  MobileOverviewTable,
-  type ValidSort,
-} from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
-import {Referrer} from 'sentry/views/insights/pages/mobile/referrers';
-import {
-  DEFAULT_SORT,
-  OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/mobile/settings';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
@@ -67,10 +54,14 @@ import {
   DoubleChartRow,
   TripleChartRow,
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
-import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
+
+import {Am1MobileOverviewPage} from './am1OverviewPage';
+import {isAValidSort, MobileOverviewTable, type ValidSort} from './mobileOverviewTable';
+import {Referrer} from './referrers';
+import {DEFAULT_SORT, OVERVIEW_PAGE_ALLOWED_OPS} from './settings';
 
 function MobileVitalsBanner() {
   const organization = useOrganization();
@@ -100,6 +91,14 @@ function MobileVitalsBanner() {
   );
 }
 
+const mobileOverviewQueryParsers = {
+  cursor: parseAsString,
+  isDefaultQuery: parseAsBoolean,
+  [QueryParameterNames.PAGES_CURSOR]: parseAsString,
+  query: parseAsString.withDefault(''),
+  sort: parseAsStringArray,
+};
+
 interface EAPMobileOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
 }
@@ -111,10 +110,14 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   const location = useLocation();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
-  const navigate = useNavigate();
-  const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+  const [{query: searchBarQuery}, setQueryParams] = useQueryStates(
+    mobileOverviewQueryParsers
+  );
+  const {pagesCursor, sort} = loadQueryParamsFromLocation(
+    mobileOverviewQueryParsers,
+    location
+  );
 
   useDefaultToAllProjects();
 
@@ -153,19 +156,14 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
     PerformanceWidgetSetting.MOST_SLOW_FRAMES,
     PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
   ];
-  const tripleChartRowCharts = filterAllowedChartsMetrics(
-    organization,
-    [
-      PerformanceWidgetSetting.TPM_AREA,
-      PerformanceWidgetSetting.DURATION_HISTOGRAM,
-      PerformanceWidgetSetting.P50_DURATION_AREA,
-      PerformanceWidgetSetting.P75_DURATION_AREA,
-      PerformanceWidgetSetting.P95_DURATION_AREA,
-      PerformanceWidgetSetting.P99_DURATION_AREA,
-      PerformanceWidgetSetting.FAILURE_RATE_AREA,
-    ],
-    mepSetting
-  );
+  const tripleChartRowCharts = [
+    PerformanceWidgetSetting.TPM_AREA,
+    PerformanceWidgetSetting.P50_DURATION_AREA,
+    PerformanceWidgetSetting.P75_DURATION_AREA,
+    PerformanceWidgetSetting.P95_DURATION_AREA,
+    PerformanceWidgetSetting.P99_DURATION_AREA,
+    PerformanceWidgetSetting.FAILURE_RATE_AREA,
+  ];
 
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
@@ -198,25 +196,18 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   function handleSearch(searchQuery: string) {
     trackAnalytics('performance.domains.mobile.search', {organization});
 
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
-        isDefaultQuery: false,
-      },
-    });
+    setQueryParams(
+      {cursor: null, query: String(searchQuery).trim() || null, isDefaultQuery: false},
+      {history: 'push'}
+    );
   }
-
-  const [searchBarQuery] = useQueryState('query', parseAsString.withDefault(''));
 
   const sorts: [ValidSort, ValidSort] = [
     {
       field: 'is_starred_transaction' satisfies SpanProperty,
       kind: 'desc',
     },
-    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
+    decodeSorts(sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
 
   existingQuery.addFilterValue('is_transaction', 'true');
@@ -225,7 +216,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
     {
       search: existingQuery,
       sorts,
-      cursor,
+      cursor: pagesCursor || undefined,
       useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
       fields: [
         'is_starred_transaction',

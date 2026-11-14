@@ -16,12 +16,13 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {FieldKind} from 'sentry/utils/fields';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
-} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+} from './traceItemSearchQueryBuilder';
 
 const defaultInitialProps: TraceItemSearchQueryBuilderProps = {
   itemType: TraceItemDataset.SPANS,
@@ -425,28 +426,19 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.placeholder).toBe('Search for logs, users, tags, and more');
   });
 
-  it('allows regex operators for logs when the feature is enabled', () => {
-    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
-      organization: OrganizationFixture({features: ['ourlogs-regex-searches']}),
-    });
-
-    expect(result.current.allowRegexOperators).toBe(true);
-  });
-
-  it('does not allow regex operators for logs when the feature is disabled', () => {
+  it('allows regex operators when the dataset is logs', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
       organization,
     });
 
-    expect(result.current.allowRegexOperators).toBe(false);
+    expect(result.current.allowRegexOperators).toBe(true);
   });
 
-  it('does not allow regex operators for spans when the feature is enabled', () => {
+  it('does not allow regex operators when the dataset is spans', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {...defaultInitialProps, itemType: TraceItemDataset.SPANS},
-      organization: OrganizationFixture({features: ['ourlogs-regex-searches']}),
+      organization,
     });
 
     expect(result.current.allowRegexOperators).toBe(false);

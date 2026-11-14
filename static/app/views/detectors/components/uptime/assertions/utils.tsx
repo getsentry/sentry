@@ -10,7 +10,7 @@ import {
   type UptimeOp,
 } from 'sentry/views/detectors/components/uptime/types';
 
-import {COMPARISON_OPTIONS, STRING_OPERAND_OPTIONS} from './opCommon';
+import {COMPARISON_OPTIONS, STRING_OPERAND_OPTIONS} from './comparisonOptions';
 
 /**
  * Checks if one op is directly after another op in a container's children array.

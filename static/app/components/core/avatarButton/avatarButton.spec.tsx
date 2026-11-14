@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 
@@ -35,21 +35,6 @@ describe('AvatarButton', () => {
       'src',
       'https://example.com/avatar.jpg?s=120'
     );
-  });
-
-  it('calls `onClick` callback', async () => {
-    const spy = jest.fn();
-    render(
-      <AvatarButton
-        aria-label="Open profile"
-        onClick={spy}
-        avatar={{type: 'letter_avatar', identifier: 'test-id', name: 'Test User'}}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Open profile'}));
-
-    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('renders a placeholder icon when no avatar is provided', () => {

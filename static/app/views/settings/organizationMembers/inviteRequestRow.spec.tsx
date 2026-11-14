@@ -11,9 +11,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OrgRole} from 'sentry/types/organization';
-import {InviteRequestRow} from 'sentry/views/settings/organizationMembers/inviteRequestRow';
+
+import {InviteRequestRow} from './inviteRequestRow';
 
 const roles: OrgRole[] = [
   {
@@ -40,6 +42,10 @@ const roles: OrgRole[] = [
 ];
 
 describe('InviteRequestRow', () => {
+  beforeEach(() => {
+    TeamStore.reset();
+  });
+
   const orgWithoutAdminAccess = OrganizationFixture({
     access: [],
   });
@@ -73,7 +79,8 @@ describe('InviteRequestRow', () => {
         onDeny={() => {}}
         onUpdate={() => {}}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     expect(screen.getByText(inviteRequest.email)).toBeInTheDocument();
@@ -92,7 +99,8 @@ describe('InviteRequestRow', () => {
         onDeny={() => {}}
         onUpdate={() => {}}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     expect(screen.getByText(joinRequest.email)).toBeInTheDocument();
@@ -113,7 +121,8 @@ describe('InviteRequestRow', () => {
         onDeny={mockDeny}
         onUpdate={() => {}}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
@@ -138,7 +147,8 @@ describe('InviteRequestRow', () => {
         onDeny={mockDeny}
         onUpdate={() => {}}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Deny'}));
@@ -157,7 +167,8 @@ describe('InviteRequestRow', () => {
         onDeny={() => {}}
         onUpdate={() => {}}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     expect(screen.getByRole('button', {name: 'Approve'})).toHaveAttribute(
@@ -199,19 +210,22 @@ describe('InviteRequestRow', () => {
         onDeny={() => {}}
         onUpdate={mockUpdate}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     // Select role from first select input
-    await selectEvent.select(screen.getAllByRole('textbox')[0]!, 'Member');
+    await selectEvent.select(screen.getAllByRole('textbox')[0]!, 'Member', {
+      container: document.body,
+    });
     expect(mockUpdate).toHaveBeenCalledWith({role: 'member'});
 
     // Select teams from first select input
     expect(await screen.findByText('#myteam')).toBeInTheDocument();
-    await selectEvent.select(screen.getAllByRole('textbox')[1]!, ['#one']);
+    await selectEvent.select(screen.getAllByRole('textbox')[1]!, ['#one'], {
+      container: document.body,
+    });
     expect(mockUpdate).toHaveBeenCalledWith({teams: ['myteam', 'one']});
-
-    TeamStore.reset();
   });
 
   it('cannot be approved when invitee role is not allowed', () => {
@@ -234,7 +248,8 @@ describe('InviteRequestRow', () => {
         onDeny={() => {}}
         onUpdate={mockUpdate}
         allRoles={roles}
-      />
+      />,
+      {additionalWrapper: SimpleTable}
     );
 
     expect(screen.getByRole('button', {name: 'Approve'})).toHaveAttribute(

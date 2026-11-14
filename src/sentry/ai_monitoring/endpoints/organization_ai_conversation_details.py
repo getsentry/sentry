@@ -3,7 +3,7 @@ from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -18,8 +18,10 @@ from sentry.ai_monitoring.conversation_aggregates import (
 )
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
 from sentry.ai_monitoring.utils import (
+    MAX_RETENTION_DAYS,
     ConversationProject,
     get_conversation_url,
+    get_time_range_error,
     serialize_conversation_project,
 )
 from sentry.api.api_owners import ApiOwner
@@ -34,19 +36,23 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import META_ATTRIBUTE_PREFIX
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
+from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS, SPAN_VIRTUAL_CONTEXTS
 from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
@@ -54,7 +60,6 @@ logger = logging.getLogger(__name__)
 type SpanRow = dict[str, Any]
 type SpanKey = tuple[str, str]
 
-MAX_RETENTION_DAYS = 30
 MAX_PARENT_REPAIR_DEPTH = 5
 MAX_MODEL_USAGE_ROWS = 100
 
@@ -63,6 +68,9 @@ MODEL_USAGE_COLUMNS = [
     "gen_ai.response.model",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.input_tokens) as input_cost",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.output_tokens) as output_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.cache_read.input_tokens) as cache_read_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.cache_creation.input_tokens) as cache_write_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.reasoning.output_tokens) as reasoning_cost",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_read.input_tokens) as cache_read_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_creation.input_tokens) as cache_write_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.reasoning.output_tokens) as reasoning_tokens",
@@ -128,6 +136,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.tool.name",
     "gen_ai.tool.call.arguments",
     "gen_ai.tool.call.result",
+    "gen_ai.tool.call.result.size",
     "anthropic.tool_result.content",
     "gen_ai.embeddings.input",
     "gen_ai.usage.cache_creation.input_tokens",
@@ -142,8 +151,6 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.request.model",
     "gen_ai.response.model",
     "gen_ai.agent.name",
-    # Distinguishes ingest sources; the transcript uses it to recognize Anthropic
-    # OTel conversations, whose messages live only on the invoke_agent span.
     "origin",
     "user.id",
     "user.email",
@@ -152,43 +159,119 @@ AI_CONVERSATION_ATTRIBUTES = [
 ]
 
 
+def _get_meta_columns() -> dict[str, str]:
+    """
+    Returns the columns to select for the PII scrubbing meta of the attributes the
+    endpoint returns, mapped to those attributes.
+
+    When Relay scrubs an attribute, it records what it changed in a separate
+    attribute, the meta. For `user.email`, stored as `sentry.user.email`, that's
+    `sentry._meta.fields.attributes.sentry.user.email`, so this maps
+    `tags[sentry._meta.fields.attributes.sentry.user.email,string]` to `user.email`.
+    """
+    columns = {}
+    for attribute in AI_CONVERSATION_ATTRIBUTES:
+        # Virtual columns, like `project`, are derived at query time, so Relay never
+        # scrubs them and they have no meta. Selecting one would only add an empty
+        # column to every query.
+        if attribute in SPAN_VIRTUAL_CONTEXTS:
+            continue
+        # Look up the public name, like `user.email`, to get its stored name and type.
+        definition = SPAN_ATTRIBUTE_DEFINITIONS.get(attribute)
+        # Only strings can hold replacement texts, so skip numbers and booleans.
+        if definition is not None and definition.search_type != "string":
+            continue
+        # Undefined attributes are stored as strings under their own name.
+        internal_name = definition.internal_name if definition else attribute
+        # The resolver only knows the public names in `SPAN_ATTRIBUTE_DEFINITIONS`, and
+        # meta attributes have none. `tags[<name>,<type>]` selects any attribute by its
+        # stored name instead. EAP stores attributes separately per value type, so
+        # the type tells it where to read: meta is a JSON string. The `tags` syntax is a
+        # leftover from querying event tags; it isn't specific to tags.
+        # The column is the key, as result rows come back keyed by the selected column.
+        columns[f"tags[{META_ATTRIBUTE_PREFIX}.{internal_name},string]"] = attribute
+    return columns
+
+
+META_COLUMNS = _get_meta_columns()
+
+
+def _move_meta_columns(spans: Sequence[SpanRow]) -> None:
+    for span in spans:
+        meta: dict[str, Any] = {}
+        for column, attribute in META_COLUMNS.items():
+            value = span.pop(column, None)
+            if not value:
+                continue
+            # Relay stores the meta as a JSON string; key it by the public name.
+            try:
+                meta[attribute] = json.loads(value)
+            except json.JSONDecodeError:
+                continue
+        span["meta"] = meta
+
+
 class AIConversationModelUsage(TypedDict):
-    model: str | None
-    llmCalls: int
-    inputTokens: int
-    outputTokens: int
-    totalTokens: int
-    cacheReadTokens: int
-    cacheWriteTokens: int
-    reasoningTokens: int
-    inputCost: float
-    outputCost: float
-    totalCost: float
+    model: Annotated[str | None, ApiDescription("Name of the model")]
+    llmCalls: Annotated[int, ApiDescription("Number of LLM calls to the model")]
+    inputTokens: Annotated[
+        int, ApiDescription("Number of input tokens, including cache-read and cache-write tokens")
+    ]
+    outputTokens: Annotated[int, ApiDescription("Number of output tokens")]
+    totalTokens: Annotated[int, ApiDescription("Total number of tokens")]
+    cacheReadTokens: Annotated[int, ApiDescription("Number of input tokens read from the cache")]
+    cacheWriteTokens: Annotated[int, ApiDescription("Number of input tokens written to the cache")]
+    reasoningTokens: Annotated[int, ApiDescription("Number of reasoning tokens")]
+    inputCost: Annotated[
+        float, ApiDescription("Cost of input tokens, including cache-read and cache-write costs")
+    ]
+    outputCost: Annotated[float, ApiDescription("Cost of output tokens, including reasoning cost")]
+    cacheReadCost: Annotated[float, ApiDescription("Cost of cache-read tokens")]
+    cacheWriteCost: Annotated[float, ApiDescription("Cost of cache-write tokens")]
+    reasoningCost: Annotated[float, ApiDescription("Cost of reasoning tokens")]
+    totalCost: Annotated[float, ApiDescription("Total cost")]
 
 
 class AIConversationStats(AIConversationAggregates):
-    cacheReadTokens: int
-    cacheWriteTokens: int
-    errorToolNames: list[str]
-    reasoningTokens: int
-    usageByModel: list[AIConversationModelUsage]
+    cacheReadTokens: Annotated[int, ApiDescription("Number of input tokens read from the cache")]
+    cacheWriteTokens: Annotated[int, ApiDescription("Number of input tokens written to the cache")]
+    errorToolNames: Annotated[
+        list[str], ApiDescription("Names of the tools used by spans with errors")
+    ]
+    reasoningTokens: Annotated[int, ApiDescription("Number of reasoning tokens")]
+    cacheReadCost: Annotated[float, ApiDescription("Cost of cache-read tokens")]
+    cacheWriteCost: Annotated[float, ApiDescription("Cost of cache-write tokens")]
+    reasoningCost: Annotated[float, ApiDescription("Cost of reasoning tokens")]
+    usageByModel: Annotated[
+        list[AIConversationModelUsage], ApiDescription("Token usage and cost per model")
+    ]
 
 
 class AIConversationQueryResult(TypedDict):
     # GenericOffsetPaginator requires the paginated list under this key.
     data: list[SpanRow]
-    stats: AIConversationStats
+    stats: AIConversationStats | None
 
 
 class AIConversationDetailsResponse(TypedDict):
     """Span page plus conversation-level metadata."""
 
-    conversationId: str
-    title: str | None
-    projects: list[ConversationProject]
-    webUrl: str
-    spans: list[dict[str, Any]]
-    stats: AIConversationStats
+    conversationId: Annotated[str, ApiDescription("ID of the conversation")]
+    title: Annotated[
+        str | None, ApiDescription("Stored title of the conversation. Null when it has none yet")
+    ]
+    projects: Annotated[
+        list[ConversationProject], ApiDescription("Projects the conversation's spans belong to")
+    ]
+    webUrl: Annotated[Url, ApiDescription("URL of the conversation in Sentry")]
+    spans: Annotated[
+        list[dict[str, Any]],
+        ApiDescription("Spans recorded for the conversation, in start-time order"),
+    ]
+    stats: Annotated[
+        AIConversationStats | None,
+        ApiDescription("Aggregate stats for the conversation. Only returned on the first page"),
+    ]
 
 
 def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationStats:
@@ -239,6 +322,9 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
                 "reasoningTokens": 0,
                 "inputCost": 0,
                 "outputCost": 0,
+                "cacheReadCost": 0.0,
+                "cacheWriteCost": 0.0,
+                "reasoningCost": 0.0,
                 "totalCost": 0,
             },
         )
@@ -251,6 +337,9 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
         usage["reasoningTokens"] += int(row.get("reasoning_tokens") or 0)
         usage["inputCost"] += float(row.get("input_cost") or 0)
         usage["outputCost"] += float(row.get("output_cost") or 0)
+        usage["cacheReadCost"] += float(row.get("cache_read_cost") or 0)
+        usage["cacheWriteCost"] += float(row.get("cache_write_cost") or 0)
+        usage["reasoningCost"] += float(row.get("reasoning_cost") or 0)
         usage["totalCost"] += model_pair_stats["totalCost"]
 
     conversation_stats["toolNames"] = sorted(
@@ -266,6 +355,9 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
         "cacheWriteTokens": sum(usage["cacheWriteTokens"] for usage in sorted_usage),
         "errorToolNames": sorted(error_tool_names),
         "reasoningTokens": sum(usage["reasoningTokens"] for usage in sorted_usage),
+        "cacheReadCost": sum(usage["cacheReadCost"] for usage in sorted_usage),
+        "cacheWriteCost": sum(usage["cacheWriteCost"] for usage in sorted_usage),
+        "reasoningCost": sum(usage["reasoningCost"] for usage in sorted_usage),
         "usageByModel": sorted_usage,
     }
 
@@ -274,7 +366,7 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.AGENT_TRACING
 
     @extend_schema(
         operation_id="retrieveOrganizationAIConversation",
@@ -309,9 +401,13 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         Message, tool, and response attributes contain their recorded string values.
         `stats.errors` counts spans whose status is not `ok`, `cancelled`, or `unknown`.
         `stats.errorToolNames` lists tools used by those spans.
-        `stats.inputTokens` includes cache-read and cache-write tokens.
-        Without an explicit range, Sentry widens the search across available retention.
-        A missing conversation returns an empty `spans` list.
+        `stats.inputTokens` includes cache-read and cache-write tokens. In `stats.usageByModel`,
+        `inputCost` includes cache-read and cache-write costs, and `outputCost` includes
+        reasoning cost. These cost breakdowns are not added to `totalCost`.
+        Stats are returned on the first page only. Without an explicit range, Sentry widens
+        the search to the last 30 days. Ranges that reach further back, including a
+        `statsPeriod` longer than 30 days, return a 400. A missing conversation returns an
+        empty `spans` list.
         """
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -319,20 +415,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         now = timezone.now()
-        max_retention_cutoff = now - timedelta(days=MAX_RETENTION_DAYS)
+        if time_range_error := get_time_range_error(request, snuba_params, now):
+            return Response(DetailResponse(detail=time_range_error), status=400)
         has_explicit_range = request.GET.get("start") or request.GET.get("end")
-
-        if has_explicit_range:
-            if snuba_params.start and snuba_params.start < max_retention_cutoff:
-                error = DetailResponse(
-                    detail=f"start time cannot be older than {MAX_RETENTION_DAYS} days"
-                )
-                return Response(error, status=400)
-            if snuba_params.end and snuba_params.end < max_retention_cutoff:
-                error = DetailResponse(
-                    detail=f"end time cannot be older than {MAX_RETENTION_DAYS} days"
-                )
-                return Response(error, status=400)
 
         with handle_query_errors():
             if has_explicit_range:
@@ -360,12 +445,14 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     None,
                 )
                 projects_by_id = {project.id: project for project in resolved_params.projects}
-                project = projects_by_id.get(project_id)
+                project = projects_by_id.get(project_id) if project_id is not None else None
                 return {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),
                     "projects": [serialize_conversation_project(project)] if project else [],
-                    "webUrl": get_conversation_url(organization, conversation_id, project_id),
+                    "webUrl": absolute_url(
+                        get_conversation_url(organization, conversation_id, project_id)
+                    ),
                     "spans": spans,
                     "stats": query_result["stats"],
                 }
@@ -385,11 +472,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         now: datetime,
         conversation_id: str,
     ) -> SnubaParams:
-        """Probe progressively wider windows to find which contains the conversation."""
+        """Probe progressively older, non-overlapping windows for the conversation."""
         candidates = self._build_widening_params(base_params, stats_period, now)
-        for params in candidates:
-            if self._conversation_exists(params, conversation_id):
-                return params
+        probe_end = now
+        for candidate in candidates:
+            assert candidate.start is not None
+            probe_params = replace(candidate, end=probe_end)
+            if self._conversation_exists(probe_params, conversation_id):
+                return candidate
+            probe_end = candidate.start
         return candidates[-1]
 
     def _build_widening_params(
@@ -550,6 +641,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             if (key := self._span_key(row)) in requested_keys
         }
 
+    @traces.trace
     def _repair_parent_links(
         self, spans: list[SpanRow], snuba_params: SnubaParams, conversation_id: str
     ) -> None:
@@ -642,19 +734,21 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 fields_acl=FieldsACL(functions={"collect_unique_if"}),
             ),
         )
-        results = Spans.run_bulk_table_queries(
-            [
-                TableQuery(
-                    name="spans",
-                    query_string=query_string,
-                    selected_columns=AI_CONVERSATION_ATTRIBUTES,
-                    orderby=["precise.start_ts"],
-                    offset=offset,
-                    limit=limit,
-                    referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
-                    sampling_mode="HIGHEST_ACCURACY",
-                    resolver=resolver,
-                ),
+        queries = [
+            TableQuery(
+                name="spans",
+                query_string=query_string,
+                selected_columns=[*AI_CONVERSATION_ATTRIBUTES, *META_COLUMNS],
+                orderby=["precise.start_ts"],
+                offset=offset,
+                limit=limit,
+                referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
+                sampling_mode="HIGHEST_ACCURACY",
+                resolver=resolver,
+            )
+        ]
+        if offset == 0:
+            queries.append(
                 TableQuery(
                     name="aggregates",
                     query_string=query_string,
@@ -671,15 +765,17 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
                     sampling_mode="HIGHEST_ACCURACY",
                     resolver=resolver,
-                ),
-            ],
-            snuba_params.debug,
-        )
-        aggregate_rows = results["aggregates"].get("data", [])
-        return {
-            "data": results["spans"].get("data", []),
-            "stats": _parse_grouped_stats(aggregate_rows),
-        }
+                )
+            )
+
+        results = Spans.run_bulk_table_queries(queries, snuba_params.debug)
+        aggregate_result = results.get("aggregates")
+        stats: AIConversationStats | None = None
+        if aggregate_result is not None:
+            stats = _parse_grouped_stats(aggregate_result.get("data", []))
+        spans = results["spans"].get("data", [])
+        _move_meta_columns(spans)
+        return {"data": spans, "stats": stats}
 
     @traces.trace
     def _conversation_exists(self, snuba_params: SnubaParams, conversation_id: str) -> bool:

@@ -1,56 +1,5 @@
 {% load sentry_helpers %}
 
-{% block css %}
-{% if login_banner_legacy_html or show_partner_login_banner %}
-<style type="text/css">
-  .alert-banner {
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
-    display: flex;
-    justify-content: center;
-    border-radius: 4px;
-    margin-bottom: 4px;
-  }
-
-  .alert-message {
-    margin-left: 1rem;
-    margin-right: 1rem;
-    line-height: 1.5;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-align: left;
-    flex-grow: 1;
-    font-size: 16px;
-    font-family: Rubik;
-    white-space: pre-wrap;
-  }
-
-  /* Default alert banner color */
-  .alert-banner.default {
-    background: #6c5fc7;
-    color: white;
-  }
-  .alert-banner.default a {
-    color: white;
-    text-decoration: underline;
-  }
-
-  /* Partner login banner color */
-  .alert-banner.partner {
-    background: #6c5fc7;
-    color: white;
-  }
-
-  @media only screen and (max-width: 1025px) {
-    .alert-banner.default {
-      display: none;
-    }
-  }
-</style>
-{% endif %}
-{% endblock %}
-
 {% if messages %}
   <div id="messages" class="messages-container">
     {% for message in messages %}
@@ -64,13 +13,5 @@
           </div>
       {% endwith %}
     {% endfor %}
-  </div>
-  {% elif show_partner_login_banner %}
-  <div class="alert-banner partner">
-    <div class="alert-message">Complete your registration by checking your inbox for our email and following the sign-in link.</div>
-  </div>
-  {% elif login_banner_legacy_html %}
-  <div class="alert-banner default">
-    <div class="alert-message">{{ login_banner_legacy_html|safe }}</div>
   </div>
 {% endif %}

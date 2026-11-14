@@ -1,17 +1,23 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 from django.db import router
-from slack_sdk.errors import SlackApiError
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from slack_sdk.models.views import View
 from slack_sdk.web import SlackResponse
 
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.slack.webhooks.action import (
     ARCHIVE_OPTIONS,
     LINK_IDENTITY_MESSAGE,
     UNLINK_IDENTITY_MESSAGE,
+    update_group,
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
@@ -27,18 +33,44 @@ from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.notifications import create_workflow_notification_origin_for_rule
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.users.models.identity import Identity
+from sentry.users.models.user import User
+from sentry.users.services.user.service import user_service
 from sentry.utils.samples import load_data
 
 from . import BaseEventTest
 
 pytestmark = [requires_snuba]
+
+
+class UpdateGroupTest(TestCase):
+    def test_rejects_inaccessible_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        group = self.group
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization)
+        user = user_service.get_user(user_id=member.id)
+        assert user is not None
+
+        with pytest.raises(PermissionDenied) as exc:
+            update_group(
+                group,
+                user,
+                {"status": "ignored", "substatus": "archived_forever"},
+                Request(self.make_request(user=member)),
+            )
+
+        assert exc.value.status_code == 403
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
 
 
 # Prevent flakiness from timestamp mismatch when building linking URL
@@ -69,7 +101,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         self.group = Group.objects.get(id=event.group.id)
         self.tags = {"escape", "foo", "release"}
 
-    def get_original_message(self, group_id):
+    def get_original_message(self, group_id: int) -> dict[str, Any]:
         return {
             "blocks": [
                 {
@@ -88,7 +120,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             ],
         }
 
-    def get_unfurl_data(self, blocks):
+    def get_unfurl_data(self, blocks: list[dict[str, Any]]) -> dict[str, Any]:
         return {
             "container": {
                 "type": "message_attachment",
@@ -103,17 +135,17 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             },
         }
 
-    def get_archive_status_action(self):
+    def get_archive_status_action(self) -> dict[str, Any]:
         return {
             "action_id": "archive_dialog",
             "block_id": "bXwil",
             "text": {"type": "plain_text", "text": "Archive", "emoji": True},
             "value": "archive_dialog",
             "type": "button",
-            "action_ts": before_now(minutes=7).timestamp(),
+            "action_ts": str(before_now(minutes=7).timestamp()),
         }
 
-    def get_assign_status_action(self, type, text, id):
+    def get_assign_status_action(self, type: str, text: str, id: int) -> dict[str, Any]:
         return {
             "type": "external_select",
             "action_id": "assign",
@@ -123,30 +155,35 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
                 "value": f"{type}:{id}",
             },
             "placeholder": {"type": "plain_text", "text": "Select Assignee...", "emoji": True},
-            "action_ts": before_now(minutes=5).timestamp(),
+            "action_ts": str(before_now(minutes=5).timestamp()),
         }
 
-    def get_resolve_status_action(self):
+    def get_resolve_status_action(self) -> dict[str, Any]:
         return {
             "action_id": "resolve_dialog",
             "block_id": "AeGRw",
             "text": {"type": "plain_text", "text": "Resolve", "emoji": True},
             "value": "resolve_dialog",
             "type": "button",
-            "action_ts": before_now(minutes=3).timestamp(),
+            "action_ts": str(before_now(minutes=3).timestamp()),
         }
 
-    def get_mark_ongoing_action(self):
+    def get_mark_ongoing_action(self) -> dict[str, Any]:
         return {
             "action_id": "unresolved:ongoing",
             "block_id": "xPlAm",
             "text": {"type": "plain_text", "text": "Mark as Ongoing", "emoji": True},
             "value": "unresolved:ongoing",
             "type": "button",
-            "action_ts": before_now(minutes=1).timestamp(),
+            "action_ts": str(before_now(minutes=1).timestamp()),
         }
 
-    def archive_issue(self, original_message, selected_option, payload_data=None):
+    def archive_issue(
+        self,
+        original_message: dict[str, Any],
+        selected_option: str,
+        payload_data: dict[str, Any] | None = None,
+    ) -> Any:
         assert selected_option in ARCHIVE_OPTIONS.values()
         status_action = self.get_archive_status_action()
 
@@ -177,7 +214,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         return resp
 
-    def assign_issue(self, original_message, selected_option, payload_data=None):
+    def assign_issue(
+        self,
+        original_message: dict[str, Any],
+        selected_option: Team | User,
+        payload_data: dict[str, Any] | None = None,
+    ) -> Any:
         if isinstance(selected_option, Team):
             status_action = self.get_assign_status_action(
                 "team", selected_option.slug, selected_option.id
@@ -196,7 +238,13 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # resp so that the tests can assert the response blocks looked as expected
         return resp
 
-    def resolve_issue(self, original_message, selected_option, payload_data=None, mock_record=None):
+    def resolve_issue(
+        self,
+        original_message: dict[str, Any],
+        selected_option: str,
+        payload_data: dict[str, Any] | None = None,
+        mock_record: MagicMock | None = None,
+    ) -> None:
         status_action = self.get_resolve_status_action()
         resp = self.post_webhook_block_kit(
             action_data=[status_action], original_message=original_message, data=payload_data
@@ -235,7 +283,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     def test_ask_linking(self) -> None:
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
         associate_url = build_linking_url(
-            self.integration, "invalid-id", "C065W1189", self.response_url
+            serialize_integration(self.integration), "invalid-id", "C065W1189", self.response_url
         )
 
         assert resp.status_code == 200, resp.content
@@ -356,6 +404,34 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.UNRESOLVED
         assert self.group.substatus == GroupSubStatus.NEW
+
+    def test_archive_issue_without_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization)
+        identity = self.create_identity(
+            user=member, identity_provider=self.idp, external_id="slack-limited-user"
+        )
+
+        response = self.post_webhook_block_kit(
+            type="view_submission",
+            private_metadata=orjson.dumps(
+                {
+                    "issue": self.group.id,
+                    "orig_response_url": self.response_url,
+                    "channel_id": "C123",
+                }
+            ).decode(),
+            selected_option="ignored:archived_forever",
+            slack_user={"id": identity.external_id},
+        )
+
+        assert response.status_code == 200
+        self.group.refresh_from_db()
+        assert self.group.status == GroupStatus.UNRESOLVED
+        assert response.data["response_type"] == "ephemeral"
+        assert response.data["text"] == "You do not have access to this project."
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_archive_issue_forever_through_unfurl(self, mock_tags: MagicMock) -> None:
@@ -530,7 +606,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             status_code=200,
         )
 
-        self.mock_post.side_effect = SlackApiError("error", mock_slack_response)
+        self.mock_post.side_effect = TypedSlackApiError("error", mock_slack_response)
 
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
@@ -769,8 +845,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         perf_issue = self.create_performance_issue(
             event_data=event_data_2, fingerprint=group_fingerprint
         )
+        assert perf_issue.group is not None
         self.group = perf_issue.group
-        assert self.group
 
         original_message = self.get_original_message(self.group.id)
         self.resolve_issue(original_message, "resolved", mock_record)
@@ -922,7 +998,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     def test_response_differs_on_bot_message(self, _mock_view_updates_open: MagicMock) -> None:
         status_action = self.get_archive_status_action()
         original_message = self.get_original_message(self.group.id)
-        workflow_id = self.rule.data["actions"][0]["workflow_id"]
+        workflow_id = create_workflow_notification_origin_for_rule(self.rule).workflow_id
+        assert workflow_id is not None
         callback_id = orjson.dumps({"issue": self.group.id, "workflow": workflow_id}).decode()
 
         resp = self.post_webhook_block_kit(
@@ -1235,6 +1312,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_rule_from_same_organization_resolves_workflow(self, mock_tags: MagicMock) -> None:
+        workflow_id = create_workflow_notification_origin_for_rule(self.rule).workflow_id
+        assert workflow_id is not None
         status_action = self.get_mark_ongoing_action()
         original_message = self.get_original_message(self.group.id)
         callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
@@ -1247,7 +1326,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
-        workflow_id = int(self.rule.data["actions"][0]["workflow_id"])
         assert f"workflow_id={workflow_id}" in blocks[0]["text"]["text"]
 
     @patch("sentry.utils.metrics.backend.inner.incr")
@@ -1274,6 +1352,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @patch("sentry.utils.metrics.backend.inner.incr")
     def test_rule_lookup_metric_with_rule(self, metrics_incr: MagicMock) -> None:
+        create_workflow_notification_origin_for_rule(self.rule)
         callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
 
         response = self.post_webhook_block_kit(
@@ -1422,8 +1501,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert OrganizationMember.objects.filter(id=member.id).exists()
         member.refresh_from_db()
         self.assert_org_member_mapping(org_member=member)
-
-        assert resp is not None
+        assert (
+            self.mock_post.call_args.kwargs["text"]
+            == "Member invitation for hello@sentry.io has already been approved."
+        )
 
     def test_invitation_removed(self) -> None:
         other_user = self.create_user()
@@ -1442,7 +1523,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
         assert resp.status_code == 200, resp.content
-        assert resp is not None
+        assert (
+            self.mock_post.call_args.kwargs["text"]
+            == "Member invitation for hello@sentry.io no longer exists."
+        )
 
     def test_invitation_already_accepted(self) -> None:
         other_user = self.create_user()
@@ -1460,7 +1544,32 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
 
         assert resp.status_code == 200, resp.content
-        assert resp is not None
+        assert (
+            self.mock_post.call_args.kwargs["text"]
+            == "Member invitation for hello@sentry.io has already been approved."
+        )
+
+    def test_invitation_already_approved_in_inaccessible_organization(self) -> None:
+        other_user = self.create_user()
+        another_org = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=another_org,
+            email="hello@sentry.io",
+            role="member",
+            inviter_id=other_user.id,
+            invite_status=InviteStatus.APPROVED.value,
+        )
+        callback_id = orjson.dumps(
+            {"member_id": member.id, "member_email": "hello@sentry.io"}
+        ).decode()
+
+        resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id=callback_id)
+
+        assert resp.status_code == 200, resp.content
+        assert (
+            self.mock_post.call_args.kwargs["text"]
+            == "Member invitation for hello@sentry.io no longer exists."
+        )
 
     def test_invitation_validation_error(self) -> None:
         with unguarded_write(using=router.db_for_write(OrganizationMember)):

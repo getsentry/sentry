@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeProps, mergeRefs, useResizeObserver} from '@react-aria/utils';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
@@ -21,15 +22,12 @@ import type {
 } from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {EventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -41,16 +39,18 @@ import {
   useReleaseBubbles,
 } from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/eventGraphWidget';
-import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/hooks/useEventMarkLineSeries';
+
 import {
-  useIssueDetailsDiscoverQuery,
+  issueDetailsEventsApiOptions,
+  issueDetailsEventsStatsApiOptions,
   useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
-import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/hooks/useReleaseMarkLineSeries';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+} from './hooks/issueDetailsEventsQuery';
+import {useCurrentEventMarklineSeries} from './hooks/useEventMarkLineSeries';
+import {useReleaseMarkLineSeries} from './hooks/useReleaseMarkLineSeries';
+import {EVENT_GRAPH_WIDGET_ID} from './constants';
+import {useIssueDetails} from './context';
+import {Tab} from './types';
+import {useGroupDetailsRoute} from './useGroupDetailsRoute';
 
 enum EventGraphSeries {
   EVENT = 'event',
@@ -84,26 +84,11 @@ interface EventGraphProps {
   style?: React.CSSProperties;
 }
 
-function createSeriesAndCount(stats: EventsStats) {
-  return stats?.data?.reduce<{
-    count: number;
-    series: Array<{name: number; value: number}>;
-  }>(
-    (result, [timestamp, countData]) => {
-      const count = countData?.[0]?.count ?? 0;
-      return {
-        series: [
-          ...result.series,
-          {
-            name: timestamp * 1000, // ms -> s
-            value: count,
-          },
-        ],
-        count: result.count + count,
-      };
-    },
-    {series: [], count: 0}
-  );
+function createSeries(stats: EventsStats | undefined) {
+  return (stats?.data ?? []).map(([timestamp, countData]) => ({
+    name: timestamp * 1000, // s -> ms
+    value: countData?.[0]?.count ?? 0,
+  }));
 }
 
 export function EventGraph({
@@ -122,7 +107,6 @@ export function EventGraph({
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const [visibleSeries, setVisibleSeries] = useState(EventGraphSeries.EVENT);
-  const config = getConfigForIssueType(group, group.project);
   const {dispatch} = useIssueDetails();
   const {currentTab} = useGroupDetailsRoute();
   const [isSmallContainer, setIsSmallContainer] = useState(false);
@@ -144,96 +128,76 @@ export function EventGraph({
   const eventView = eventViewProps || eventViewHook;
 
   const {
-    data: groupStats = {},
+    data: groupStats,
     isPending: isLoadingStats,
     error,
-  } = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
-    params: {
-      route: 'events-stats',
+  } = useQuery(
+    issueDetailsEventsStatsApiOptions({
       eventView,
+      group,
+      location,
+      organization,
       referrer: 'issue_details.streamline_graph',
-    },
-  });
+    })
+  );
 
   const shouldShowBubbles = showReleasesAs !== 'line';
 
   const noQueryEventView = eventView.clone();
-  noQueryEventView.query = `issue:${group.shortId}`;
+  noQueryEventView.query = `issue.id:${group.id}`;
   noQueryEventView.environment = [];
 
   const isUnfilteredStatsEnabled =
     eventView.query !== noQueryEventView.query || eventView.environment.length > 0;
-  const {data: unfilteredGroupStats} =
-    useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
-      options: {
-        enabled: isUnfilteredStatsEnabled,
-      },
-      params: {
-        route: 'events-stats',
-        eventView: noQueryEventView,
-        referrer: 'issue_details.streamline_graph',
-      },
-    });
+  const {data: unfilteredGroupStats} = useQuery({
+    ...issueDetailsEventsStatsApiOptions({
+      eventView: noQueryEventView,
+      group,
+      location,
+      organization,
+      referrer: 'issue_details.streamline_graph',
+    }),
+    enabled: isUnfilteredStatsEnabled,
+  });
 
-  const {data: uniqueUsersCount, isPending: isPendingUniqueUsersCount} = useApiQuery<{
-    data: Array<{'count_unique(user)': number}>;
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          ...eventView.getEventsAPIPayload(location),
-          dataset: config.usesIssuePlatform
-            ? DiscoverDatasets.ISSUE_PLATFORM
-            : DiscoverDatasets.ERRORS,
-          field: 'count_unique(user)',
-          per_page: 50,
-          project: group.project.id,
-          query: eventView.query,
-          referrer: 'issue_details.streamline_graph',
-        },
-      },
-    ],
-    {
-      staleTime: 60_000,
-    }
+  // Unique users can't be summed across buckets, so the total is its own query
+  const {data: uniqueUsersCount, isPending: isPendingUniqueUsersCount} = useQuery(
+    issueDetailsEventsApiOptions<{data: Array<{'count_unique(user)': number}>}>({
+      eventView,
+      field: ['count_unique(user)'],
+      group,
+      location,
+      organization,
+      referrer: 'issue_details.streamline_graph',
+    })
   );
   const userCount = uniqueUsersCount?.data[0]?.['count_unique(user)'] ?? 0;
 
-  const {series: eventSeries, count: eventCount} = useMemo(() => {
-    if (!groupStats['count()']) {
-      return {series: [], count: 0};
-    }
-    return createSeriesAndCount(groupStats['count()']);
+  const {eventSeries, eventCount, userSeries} = useMemo(() => {
+    const events = createSeries(groupStats?.['count()']);
+    return {
+      eventSeries: events,
+      eventCount: events.reduce((total, point) => total + point.value, 0),
+      userSeries: createSeries(groupStats?.['count_unique(user)']),
+    };
   }, [groupStats]);
 
-  // Ensure the dropdown can access the new filtered event count
+  const {unfilteredEventSeries, unfilteredUserSeries} = useMemo(
+    () => ({
+      unfilteredEventSeries: createSeries(unfilteredGroupStats?.['count()']),
+      unfilteredUserSeries: createSeries(unfilteredGroupStats?.['count_unique(user)']),
+    }),
+    [unfilteredGroupStats]
+  );
+
+  // Ensure the dropdown can access the new filtered event count. Wait for the
+  // stats so the count doesn't flash to zero while they load.
+  const hasGroupStats = groupStats !== undefined;
   useEffect(() => {
-    dispatch({type: 'UPDATE_EVENT_COUNT', count: eventCount});
-  }, [eventCount, dispatch]);
-
-  const {series: unfilteredEventSeries} = useMemo(() => {
-    if (!unfilteredGroupStats?.['count()']) {
-      return {series: []};
+    if (hasGroupStats) {
+      dispatch({type: 'UPDATE_EVENT_COUNT', count: eventCount});
     }
-
-    return createSeriesAndCount(unfilteredGroupStats['count()']);
-  }, [unfilteredGroupStats]);
-  const {series: unfilteredUserSeries} = useMemo(() => {
-    if (!unfilteredGroupStats?.['count_unique(user)']) {
-      return {series: []};
-    }
-    return createSeriesAndCount(unfilteredGroupStats['count_unique(user)']);
-  }, [unfilteredGroupStats]);
-  const userSeries = useMemo(() => {
-    if (!groupStats['count_unique(user)']) {
-      return [];
-    }
-
-    return createSeriesAndCount(groupStats['count_unique(user)']).series;
-  }, [groupStats]);
+  }, [hasGroupStats, eventCount, dispatch]);
 
   const chartZoomProps = useChartZoom({
     disabled: disableZoomNavigation,
@@ -471,9 +435,12 @@ export function EventGraph({
   );
 
   if (error) {
+    const detail = error instanceof RequestError ? error.responseJSON?.detail : undefined;
+    const message =
+      (typeof detail === 'string' ? detail : detail?.message) ?? error.message;
     return (
       <Alert variant="danger" {...styleProps}>
-        {tct('Graph Query Error: [message]', {message: error.message})}
+        {tct('Graph Query Error: [message]', {message})}
       </Alert>
     );
   }
@@ -594,8 +561,6 @@ function GraphButton({
   label: string;
   count?: string;
 } & Partial<ButtonProps>) {
-  const textVariant = undefined;
-
   return (
     <Container height="unset" padding="xs lg">
       {layoutProps => (
@@ -604,12 +569,8 @@ function GraphButton({
           {...mergeProps(props, layoutProps)}
         >
           <Stack gap="xs">
-            <Text size="sm" variant={textVariant}>
-              {label}
-            </Text>
-            <Text size="lg" variant={textVariant}>
-              {count ? formatAbbreviatedNumber(count) : '-'}
-            </Text>
+            <Text size="sm">{label}</Text>
+            <Text size="lg">{count ? formatAbbreviatedNumber(count) : '-'}</Text>
           </Stack>
         </Button>
       )}

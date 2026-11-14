@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -12,11 +14,14 @@ from sentry.ingest.inbound_filters import (
     _chunk_load_error_filter,
     _custom_error_filter,
     _error_message_condition,
+    _hydration_error_filter,
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
+    get_global_generic_filters,
 )
 from sentry.models.custominboundfilter import LegacyFilter
 from sentry.models.project import Project
+from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
@@ -55,8 +60,7 @@ def message_matches_filters(
 
 
 def test_custom_error_filter_empty() -> None:
-    # With no custom values configured, the filter is a no-op and must be omitted from
-    # the Relay config entirely rather than emitting an empty condition.
+    # No custom values means there is no shared condition to emit.
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
         condition = _custom_error_filter()
 
@@ -152,31 +156,86 @@ def test_error_message_condition_logentry_disabled_by_default() -> None:
     }
 
 
-@django_db_all
-def test_custom_error_filter_omitted_without_custom_values(default_project: Project) -> None:
-    # The option is enabled by default for all projects, but with no configured custom
-    # values the filter must not appear in the Relay config (no empty no-op condition).
-    assert default_project.get_option("filters:custom-error") == "1"
+@override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS)
+def test_global_generic_filters_have_disabled_definitions() -> None:
+    generic_filters = get_global_generic_filters()
 
-    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "chunk-load-error",
+                "isEnabled": False,
+                "condition": _chunk_load_error_filter(),
+            },
+            {
+                "id": "react-hydration-errors",
+                "isEnabled": False,
+                "condition": _hydration_error_filter(),
+            },
+            {
+                "id": "custom-error",
+                "isEnabled": False,
+                "condition": _custom_error_filter(),
+            },
+        ],
+    }
+
+
+@override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[])
+def test_global_generic_filters_omit_custom_error_without_values() -> None:
+    generic_filters = get_global_generic_filters()
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "chunk-load-error",
+                "isEnabled": False,
+                "condition": _chunk_load_error_filter(),
+            },
+            {
+                "id": "react-hydration-errors",
+                "isEnabled": False,
+                "condition": _hydration_error_filter(),
+            },
+        ],
+    }
+
+
+@django_db_all
+@pytest.mark.parametrize("inbound_filters_custom_error_values", [[], CUSTOM_PATTERNS])
+def test_shared_filter_references(
+    default_project: Project,
+    inbound_filters_custom_error_values: list[tuple[str | None, str | None]],
+) -> None:
+    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=inbound_filters_custom_error_values):
         generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
-    # Other default filters keep the config non-empty; only custom-error is omitted.
-    assert generic_filters is not None
-    filter_ids = {f["id"] for f in generic_filters["filters"]}
-    assert "custom-error" not in filter_ids
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {"id": "chunk-load-error", "isEnabled": True, "condition": None},
+            {"id": "react-hydration-errors", "isEnabled": True, "condition": None},
+            {"id": "custom-error", "isEnabled": True, "condition": None},
+        ],
+    }
 
 
 @django_db_all
-def test_custom_error_filter_emitted_with_custom_values(default_project: Project) -> None:
-    assert default_project.get_option("filters:custom-error") == "1"
+@override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS)
+def test_disabled_custom_error_filter_reference_omitted(default_project: Project) -> None:
+    default_project.update_option("filters:custom-error", "0")
 
-    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
-        generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
+    generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
-    assert generic_filters is not None
-    filter_ids = {f["id"] for f in generic_filters["filters"]}
-    assert "custom-error" in filter_ids
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {"id": "chunk-load-error", "isEnabled": True, "condition": None},
+            {"id": "react-hydration-errors", "isEnabled": True, "condition": None},
+        ],
+    }
 
 
 @pytest.mark.parametrize(
@@ -222,7 +281,7 @@ def assert_relay_accepts_condition(condition: object) -> None:
     validate_rule_condition(json.dumps(condition))
 
 
-def error_message_rule_condition(values: list[str]) -> dict:
+def error_message_rule_condition(values: list[str]) -> dict[str, object]:
     return {
         "op": "or",
         "inner": [
@@ -242,7 +301,7 @@ def error_message_rule_condition(values: list[str]) -> dict:
     }
 
 
-def error_type_rule_condition(values: list[str]) -> dict:
+def error_type_rule_condition(values: list[str]) -> dict[str, object]:
     return {
         "op": "any",
         "name": "event.exception.values",
@@ -250,19 +309,37 @@ def error_type_rule_condition(values: list[str]) -> dict:
     }
 
 
-def release_rule_condition(values: list[str]) -> dict:
+RELEASE_FIELDS = [
+    "event.release",
+    "log.attributes.sentry.release.value",
+    "trace_metric.attributes.sentry.release.value",
+    "span.attributes.sentry.release.value",
+]
+
+
+ENVIRONMENT_FIELDS = [
+    "event.environment",
+    "log.attributes.sentry.environment.value",
+    "trace_metric.attributes.sentry.environment.value",
+    "span.attributes.sentry.environment.value",
+]
+
+
+def release_rule_condition(values: list[str]) -> dict[str, object]:
     """The catch-all shape: the release field of every data type, combined with OR."""
     return {
         "op": "or",
+        "inner": [{"op": "glob", "name": name, "value": values} for name in RELEASE_FIELDS],
+    }
+
+
+def release_version_rule_condition(comparator: str, release: str) -> dict[str, object]:
+    """The catch-all shape of a version comparison."""
+    return {
+        "op": "or",
         "inner": [
-            {"op": "glob", "name": "event.release", "value": values},
-            {"op": "glob", "name": "log.attributes.sentry.release.value", "value": values},
-            {
-                "op": "glob",
-                "name": "trace_metric.attributes.sentry.release.value",
-                "value": values,
-            },
-            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": values},
+            {"op": "release", "name": name, "comparator": comparator, "value": release}
+            for name in RELEASE_FIELDS
         ],
     }
 
@@ -385,25 +462,266 @@ def release_rule_condition(values: list[str]) -> dict:
             id="catch_all_release",
         ),
         pytest.param(
+            "error",
+            [{"type": "environment", "operator": "equals", "value": ["staging"]}],
+            {"op": "glob", "name": "event.environment", "value": ["staging"]},
+            id="environment_on_errors",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "environment", "operator": "equals", "value": ["staging"]}],
+            {"op": "glob", "name": "log.attributes.sentry.environment.value", "value": ["staging"]},
+            id="environment_on_logs",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "environment", "operator": "starts_with", "value": ["dev"]}],
+            {
+                "op": "glob",
+                "name": "trace_metric.attributes.sentry.environment.value",
+                "value": ["dev*"],
+            },
+            id="environment_on_metrics",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "environment", "operator": "glob", "value": ["staging-*"]}],
+            {
+                "op": "glob",
+                "name": "span.attributes.sentry.environment.value",
+                "value": ["staging-*"],
+            },
+            id="environment_on_spans",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "environment", "operator": "equals", "value": ["staging", "qa"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": name, "value": ["staging", "qa"]}
+                    for name in ENVIRONMENT_FIELDS
+                ],
+            },
+            id="catch_all_environment",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "environment", "operator": "does_not_start_with", "value": ["prod"]}],
+            {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "or",
+                        "inner": [
+                            {"op": "glob", "name": name, "value": ["*"]}
+                            for name in ENVIRONMENT_FIELDS
+                        ],
+                    },
+                    {
+                        "op": "not",
+                        "inner": {
+                            "op": "or",
+                            "inner": [
+                                {"op": "glob", "name": name, "value": ["prod*"]}
+                                for name in ENVIRONMENT_FIELDS
+                            ],
+                        },
+                    },
+                ],
+            },
+            id="catch_all_environment_negated",
+        ),
+        pytest.param(
             "all",
             [
-                {"type": "release", "value": [">2*"]},
-                {"type": "release", "value": ["<4*"]},
+                {"type": "release", "operator": "gte", "value": ["2.0"]},
+                {"type": "release", "operator": "lt", "value": ["4.0"]},
             ],
             {
                 "op": "and",
                 "inner": [
-                    release_rule_condition([">2*"]),
-                    release_rule_condition(["<4*"]),
+                    release_version_rule_condition("gte", "2.0"),
+                    release_version_rule_condition("lt", "4.0"),
                 ],
             },
             id="catch_all_release_range",
         ),
         pytest.param(
             "error",
+            [
+                {"type": "release", "operator": "gt", "value": ["1.2.0"]},
+                {"type": "release", "operator": "lte", "value": ["myapp@2.0"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "release",
+                        "name": "event.release",
+                        "comparator": "gt",
+                        "value": "1.2.0",
+                    },
+                    {
+                        "op": "release",
+                        "name": "event.release",
+                        "comparator": "lte",
+                        "value": "myapp@2.0",
+                    },
+                ],
+            },
+            id="release_version_comparison_on_errors",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "release", "operator": "lt", "value": ["3.0.0"]}],
+            {
+                "op": "release",
+                "name": "span.attributes.sentry.release.value",
+                "comparator": "lt",
+                "value": "3.0.0",
+            },
+            id="release_version_comparison_on_spans",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "operator": "equals", "value": ["1.0", "2.0"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.0", "2.0"]},
+            id="equals_is_the_literal_glob",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "operator": "starts_with", "value": ["1."]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*"]},
+            id="starts_with",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "log_message", "operator": "contains", "value": ["timeout", "refused"]}],
+            {"op": "glob", "name": "log.body", "value": ["*timeout*", "*refused*"]},
+            id="contains",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "metric_name", "operator": "ends_with", "value": [".count"]}],
+            {"op": "glob", "name": "trace_metric.name", "value": ["*.count"]},
+            id="ends_with",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "operator": "glob", "value": ["1.*", "2.?"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*", "2.?"]},
+            id="glob_passes_the_values_through",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "log_message", "operator": "does_not_contain", "value": ["ok", "[2*"]}],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "log.body", "value": ["*"]},
+                    {
+                        "op": "not",
+                        "inner": {"op": "glob", "name": "log.body", "value": ["*ok*", r"*\[2\**"]},
+                    },
+                ],
+            },
+            id="does_not_contain",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "error_type", "operator": "does_not_start_with", "value": ["Http"]}],
+            {
+                "op": "and",
+                "inner": [
+                    error_type_rule_condition(["*"]),
+                    {"op": "not", "inner": error_type_rule_condition(["Http*"])},
+                ],
+            },
+            id="does_not_start_with_on_error_type",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "release", "operator": "does_not_end_with", "value": ["-rc"]}],
+            {
+                "op": "and",
+                "inner": [
+                    release_rule_condition(["*"]),
+                    {"op": "not", "inner": release_rule_condition(["*-rc"])},
+                ],
+            },
+            id="catch_all_does_not_end_with",
+        ),
+        pytest.param(
+            "error",
+            [
+                {"type": "error_message", "operator": "contains", "value": ["*[401]*"]},
+                {"type": "release", "operator": "equals", "value": ["a?b{c,d}\\e"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    error_message_rule_condition([r"*\*\[401\]\**"]),
+                    {"op": "glob", "name": "event.release", "value": [r"a\?b\{c,d\}\\e"]},
+                ],
+            },
+            id="glob_characters_in_a_value_are_escaped",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "error_type", "operator": "ends_with", "value": ["Error"]}],
+            error_type_rule_condition(["*Error"]),
+            id="text_operator_on_error_type",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]}],
+            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            id="cidr_on_ip_address",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "operator": "not_cidr", "value": ["10.0.0.0/8"]}],
+            {
+                "op": "not",
+                "inner": {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            },
+            id="not_cidr_on_ip_address",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "release", "operator": "starts_with", "value": ["1."]}],
+            release_rule_condition(["1.*"]),
+            id="catch_all_text_operator",
+        ),
+        pytest.param(
+            "error",
+            [
+                {"type": "error_message", "operator": "contains", "value": ["timeout"]},
+                {"type": "release", "operator": "gte", "value": ["2.0"]},
+                {"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    error_message_rule_condition(["*timeout*"]),
+                    {"op": "release", "name": "event.release", "comparator": "gte", "value": "2.0"},
+                    {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+                ],
+            },
+            id="operators_combine_with_and",
+        ),
+        pytest.param(
+            "error",
             [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8", "203.0.113.7"]},
             id="ip_address_reads_the_envelope_client_ip",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "value": ["1.*", "[23].?"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*", "[23].?"]},
+            id="a_condition_without_an_operator_holds_raw_globs",
         ),
         pytest.param(
             "error",
@@ -435,7 +753,11 @@ def release_rule_condition(values: list[str]) -> dict:
     ],
 )
 def test_custom_inbound_filter_condition_translation(
-    default_project, factories, data_type, conditions, expected_condition
+    default_project: Project,
+    factories: Factories,
+    data_type: str,
+    conditions: list[dict[str, object]],
+    expected_condition: dict[str, object],
 ) -> None:
     custom_filter = factories.create_project_custom_inbound_filter(
         default_project, data_type=data_type, conditions=conditions
@@ -450,8 +772,62 @@ def test_custom_inbound_filter_condition_translation(
     assert_relay_accepts_condition(generic_filter["condition"])
 
 
+def relay_matches(condition: Mapping[str, Any], item: Mapping[str, str]) -> bool:
+    """
+    How Relay evaluates a condition against an item. ``item`` maps each field path the
+    item carries to its value. A field the item does not carry matches no glob.
+    """
+    op = condition["op"]
+    if op == "and":
+        return all(relay_matches(inner, item) for inner in condition["inner"])
+    if op == "or":
+        return any(relay_matches(inner, item) for inner in condition["inner"])
+    if op == "not":
+        return not relay_matches(condition["inner"], item)
+    assert op == "glob"
+    value = item.get(condition["name"])
+    return value is not None and any(
+        is_glob_match(value, pattern, case_insensitive=True) for pattern in condition["value"]
+    )
+
+
+RELEASE_FIELD_BY_DATA_TYPE = dict(zip(["error", "log", "metric", "span"], RELEASE_FIELDS))
+
+
 @django_db_all
-def test_custom_inbound_filter_row_becomes_relay_config(default_project, factories) -> None:
+@pytest.mark.parametrize("data_type", ["error", "log", "metric", "span"])
+@pytest.mark.parametrize(
+    "operator", ["does_not_start_with", "does_not_contain", "does_not_end_with"]
+)
+def test_negated_condition_drops_only_items_of_its_data_type(
+    default_project: Project, factories: Factories, data_type: str, operator: str
+) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type=data_type,
+        conditions=[{"type": "release", "operator": operator, "value": ["1.0.0"]}],
+    )
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    condition = generic_filter["condition"]
+    assert condition is not None
+
+    dropped = {
+        item_type
+        for item_type, release_field in RELEASE_FIELD_BY_DATA_TYPE.items()
+        if relay_matches(condition, {release_field: "2.3.4"})
+    }
+    assert dropped == {data_type}
+
+    kept_release = {RELEASE_FIELD_BY_DATA_TYPE[data_type]: "1.0.0"}
+    assert not relay_matches(condition, kept_release)
+    # An item without a release, of any type.
+    assert not relay_matches(condition, {})
+
+
+@django_db_all
+def test_custom_inbound_filter_row_becomes_relay_config(
+    default_project: Project, factories: Factories
+) -> None:
     # Golden test for the whole path: a stored filter row in, the exact generic filters
     # config Relay receives out. Spelled out literally so a change in the emitted JSON
     # has to be made deliberately here.
@@ -462,8 +838,12 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
         default_project,
         data_type="error",
         conditions=[
-            {"type": "error_message", "value": ["*ConnectionError*", "Timeout*"]},
-            {"type": "release", "value": ["1.*"]},
+            {
+                "type": "error_message",
+                "operator": "contains",
+                "value": ["ConnectionError", "Timeout"],
+            },
+            {"type": "release", "operator": "starts_with", "value": ["1."]},
         ],
     )
 
@@ -495,13 +875,13 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
                                                 "name": "ty",
                                                 "value": ["*ConnectionError*"],
                                             },
-                                            {"op": "glob", "name": "ty", "value": ["Timeout*"]},
+                                            {"op": "glob", "name": "ty", "value": ["*Timeout*"]},
                                             {
                                                 "op": "glob",
                                                 "name": "value",
                                                 "value": ["*ConnectionError*"],
                                             },
-                                            {"op": "glob", "name": "value", "value": ["Timeout*"]},
+                                            {"op": "glob", "name": "value", "value": ["*Timeout*"]},
                                         ],
                                     },
                                 },
@@ -513,7 +893,7 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
                                 {
                                     "op": "glob",
                                     "name": "event.logentry.formatted",
-                                    "value": ["Timeout*"],
+                                    "value": ["*Timeout*"],
                                 },
                             ],
                         },
@@ -527,7 +907,9 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
 
 
 @django_db_all
-def test_custom_inbound_filter_skips_inactive_filters(default_project, factories) -> None:
+def test_custom_inbound_filter_skips_inactive_filters(
+    default_project: Project, factories: Factories
+) -> None:
     factories.create_project_custom_inbound_filter(
         default_project,
         active=False,
@@ -538,7 +920,9 @@ def test_custom_inbound_filter_skips_inactive_filters(default_project, factories
 
 
 @django_db_all
-def test_custom_inbound_filter_skips_untranslatable_filters(default_project, factories) -> None:
+def test_custom_inbound_filter_skips_untranslatable_filters(
+    default_project: Project, factories: Factories
+) -> None:
     # A condition that cannot be translated must disable the whole filter: conditions
     # are combined with AND, so dropping just the broken condition would filter more
     # data than the user configured.
@@ -582,6 +966,29 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
             {"type": "log_message", "value": ["*DEBUG*"]},
         ],
     )
+    # An operator this revision does not know, e.g. one a newer deploy wrote.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "operator": "matches", "value": ["1.*"]}],
+    )
+    # An IP address is no text, and only a release compares as a version, against exactly
+    # one value.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "ip_address", "operator": "starts_with", "value": ["10."]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "ip_address", "operator": "glob", "value": ["10.*"]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "error_type", "operator": "gt", "value": ["1.0"]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "operator": "gt", "value": ["1.0", "2.0"]}],
+    )
     factories.create_project_custom_inbound_filter(default_project, conditions=[])
     valid_filter = factories.create_project_custom_inbound_filter(
         default_project,
@@ -593,7 +1000,9 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
 
 
 @django_db_all
-def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) -> None:
+def test_custom_inbound_filters_are_ordered_by_id(
+    default_project: Project, factories: Factories
+) -> None:
     created = [
         factories.create_project_custom_inbound_filter(
             default_project,
@@ -610,7 +1019,9 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
 
 @django_db_all
 @patch("sentry.ingest.inbound_filters.MAX_FILTERS_PER_PROJECT", 2)
-def test_custom_inbound_filters_stop_at_the_project_cap(default_project, factories) -> None:
+def test_custom_inbound_filters_stop_at_the_project_cap(
+    default_project: Project, factories: Factories
+) -> None:
     # The API refuses to create a filter past the cap, so rows past it exist only if they
     # were made some other way. Relay still gets at most the cap, oldest first.
     factories.create_project_custom_inbound_filter(
@@ -681,7 +1092,10 @@ def test_custom_inbound_filters_stop_at_the_project_cap(default_project, factori
     ],
 )
 def test_get_generic_filters_gates_each_source_on_its_feature(
-    default_project, factories, filter_features, expected_ids
+    default_project: Project,
+    factories: Factories,
+    filter_features: InboundFilterFeatures,
+    expected_ids: list[str],
 ) -> None:
     for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
@@ -706,7 +1120,9 @@ def test_get_generic_filters_gates_each_source_on_its_feature(
 
 
 @django_db_all
-def test_get_generic_filters_omits_gated_sources_without_configuration(default_project) -> None:
+def test_get_generic_filters_omits_gated_sources_without_configuration(
+    default_project: Project,
+) -> None:
     for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
 
@@ -717,7 +1133,9 @@ def test_get_generic_filters_omits_gated_sources_without_configuration(default_p
 
 
 @django_db_all
-def test_ip_denylist_becomes_a_generic_filter_with_the_native_reason(default_project) -> None:
+def test_ip_denylist_becomes_a_generic_filter_with_the_native_reason(
+    default_project: Project,
+) -> None:
     for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
     default_project.update_option("sentry:blacklisted_ips", ["10.0.0.0/8", "2001:db8::1"])

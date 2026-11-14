@@ -18,9 +18,13 @@ from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
+from sentry.testutils.helpers.options import override_options
 
 
 class ApiClientTest(TestCase):
+    def setUp(self) -> None:
+        self.enterContext(override_options({"integrations.client.disable_retries": False}))
+
     @responses.activate
     def test_get(self) -> None:
         responses.add(responses.GET, "http://example.com", json={})
@@ -66,7 +70,7 @@ class ApiClientTest(TestCase):
     def test_cache_mocked(self, cache: mock.MagicMock) -> None:
         cache.get.return_value = None
         responses.add(responses.GET, "http://example.com", json={"key": "value1"})
-        resp = ApiClient().get_cached("http://example.com")
+        resp = ApiClient().get_cached_mapping("http://example.com")
         assert resp == {"key": "value1"}
 
         key = "integration.undefined.client:41c2952996340270af611f0d7fad7286"
@@ -77,18 +81,18 @@ class ApiClientTest(TestCase):
     def test_get_cached_basic(self) -> None:
         responses.add(responses.GET, "http://example.com", json={"key": "value1"})
 
-        resp = ApiClient().get_cached("http://example.com")
+        resp = ApiClient().get_cached_mapping("http://example.com")
         assert resp == {"key": "value1"}
         assert len(responses.calls) == 1
 
         # should still return old value
         responses.replace(responses.GET, "http://example.com", json={"key": "value2"})
-        resp = ApiClient().get_cached("http://example.com")
+        resp = ApiClient().get_cached_mapping("http://example.com")
         assert resp == {"key": "value1"}
         assert len(responses.calls) == 1
 
         # make sure normal get isn't impacted
-        resp = ApiClient().get("http://example.com")
+        resp = ApiClient().get_mapping("http://example.com")
         assert resp == {"key": "value2"}
         assert len(responses.calls) == 2
 
@@ -138,21 +142,25 @@ class ApiClientTest(TestCase):
         )
 
         resp = ApiClient().head_cached(url)
+        assert resp.headers is not None
         assert resp.headers["x-method"] == "HEAD"
         assert len(responses.calls) == 1
 
         resp = ApiClient().head_cached(url)
+        assert resp.headers is not None
         assert resp.headers["x-method"] == "HEAD"
         assert len(responses.calls) == 1
 
-        resp = ApiClient().get_cached(url, raw_response=True)
-        assert resp.headers["x-method"] == "GET"
-        assert resp.json() == {"key": "response-for-get"}
+        raw_resp = ApiClient().get_cached(url, raw_response=True)
+        assert raw_resp.headers is not None
+        assert raw_resp.headers["x-method"] == "GET"
+        assert raw_resp.json() == {"key": "response-for-get"}
         assert len(responses.calls) == 2
 
-        resp = ApiClient().get_cached(url, raw_response=True)
-        assert resp.headers["x-method"] == "GET"
-        assert resp.json() == {"key": "response-for-get"}
+        raw_resp = ApiClient().get_cached(url, raw_response=True)
+        assert raw_resp.headers is not None
+        assert raw_resp.headers["x-method"] == "GET"
+        assert raw_resp.json() == {"key": "response-for-get"}
         assert len(responses.calls) == 2
 
     @responses.activate

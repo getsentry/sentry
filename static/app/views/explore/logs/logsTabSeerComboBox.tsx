@@ -36,20 +36,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {
-  LOGS_AGGREGATE_CURSOR_KEY,
-  LOGS_CURSOR_KEY,
-  LOGS_FIELDS_KEY,
-  LOGS_QUERY_KEY,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   LOGS_AGGREGATE_SORT_BYS_KEY,
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
-import {
-  defaultVisualizes,
-  LOGS_AGGREGATE_FIELD_KEY,
-} from 'sentry/views/explore/logs/logsQueryParams';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -57,6 +48,12 @@ import {
   getSeerExploreQuery,
   getSeerWritableAggregateFields,
 } from 'sentry/views/explore/seerQuery';
+
+import {
+  defaultVisualizes,
+  getTargetWithReadableQueryParams,
+  LOGS_AGGREGATE_FIELD_KEY,
+} from './logsQueryParams';
 
 interface LogsSeerLocationQueryResult {
   query: Location['query'];
@@ -84,7 +81,7 @@ export function getLogsSeerLocationQuery({
     projects,
     result.expandedProjectIds
   );
-  const targetLocation: Location = {
+  let targetLocation: Location = {
     ...currentLocation,
     query: omit(currentLocation.query, ALL_DATE_TIME_QUERY_KEYS),
   };
@@ -93,8 +90,12 @@ export function getLogsSeerLocationQuery({
     targetLocation.query.project = projectIds.map(String);
   }
 
-  updateNullableLocation(targetLocation, LOGS_QUERY_KEY, cleanedQuery);
-  updateNullableLocation(targetLocation, 'mode', seerQuery.mode);
+  targetLocation = getTargetWithReadableQueryParams(targetLocation, {
+    query: cleanedQuery,
+    mode: seerQuery.mode,
+    cursor: null,
+    aggregateCursor: null,
+  });
   updateNullableLocation(
     targetLocation,
     'start',
@@ -116,8 +117,6 @@ export function getLogsSeerLocationQuery({
   if (seerQuery.interval) {
     targetLocation.query.interval = seerQuery.interval;
   }
-  delete targetLocation.query[LOGS_CURSOR_KEY];
-  delete targetLocation.query[LOGS_AGGREGATE_CURSOR_KEY];
 
   // Only touch the samples columns when Seer asked for extra fields, otherwise
   // leave the user's current columns alone.

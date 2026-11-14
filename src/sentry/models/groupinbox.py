@@ -3,12 +3,13 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Annotated, TypedDict
 
 from django.db import models
 from django.utils import timezone
 from sentry_sdk import traces
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
@@ -136,17 +137,37 @@ def bulk_remove_groups_from_inbox(
 
 
 class InboxReasonDetails(TypedDict):
-    until: str | None  # datetime str
-    count: int | None
-    window: int | None
-    user_count: int | None
-    user_window: int | None
+    until: Annotated[
+        str | None, ApiDescription("When the ignore that ended was set to expire (ISO 8601)")
+    ]
+    count: Annotated[
+        int | None,
+        ApiDescription("Number of occurrences the ignore that ended was set to wait for"),
+    ]
+    window: Annotated[int | None, ApiDescription("Window in minutes for count")]
+    user_count: Annotated[
+        int | None,
+        ApiDescription("Number of affected users the ignore that ended was set to wait for"),
+    ]
+    user_window: Annotated[int | None, ApiDescription("Window in minutes for user_count")]
 
 
 class InboxDetails(TypedDict):
-    reason: int
-    reason_details: InboxReasonDetails | None
-    date_added: datetime
+    reason: Annotated[
+        int,
+        ApiDescription(
+            "Why the issue is in the inbox: 0 new, 1 unignored, 2 regression, 3 manual, 4 reprocessed, 5 escalating or 6 ongoing"
+        ),
+    ]
+    reason_details: Annotated[
+        InboxReasonDetails | None,
+        ApiDescription(
+            "Details of the ignore that ended when the issue came back to the inbox. Null otherwise"
+        ),
+    ]
+    date_added: Annotated[
+        datetime, ApiDescription("When the issue was added to the inbox (ISO 8601)")
+    ]
 
 
 def get_inbox_details(group_list: Iterable[Group]) -> dict[int, InboxDetails]:

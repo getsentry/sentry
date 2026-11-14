@@ -1,77 +1,96 @@
 import {useCallback, useEffect, useRef} from 'react';
-import {parseAsBoolean, useQueryState} from 'nuqs';
+import isEqual from 'lodash/isEqual';
+import {createLoader, parseAsString, useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
-import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
-import {t} from 'sentry/locale';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
+import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
+import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {DiscoverDatasetToUrlParam} from 'sentry/utils/discover/types';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
-const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
+import {buildAskSeerPrompt} from './askSeer';
+import {DroppedDataDrawer} from './droppedDataDrawer';
 
-interface UseDroppedDataDrawerParams {
-  dataset: DiscoverDatasets;
-  interval?: string;
-}
+const DROPPED_DATA_DRAWER_PARSERS = {droppedData: parseAsString};
+
+const loadDroppedDataQuery = createLoader(DROPPED_DATA_DRAWER_PARSERS);
 
 interface UseDroppedDataDrawerOptions {
   enabled?: boolean;
 }
 
 export function useDroppedDataDrawer(
-  {dataset, interval}: UseDroppedDataDrawerParams,
+  {dataset, interval, projects}: UseDroppedDataParams,
   {enabled = true}: UseDroppedDataDrawerOptions = {}
 ) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
   const {pathname} = useLocation();
-  const [isDrawerInUrl, setIsDrawerInUrl] = useQueryState(
-    DROPPED_DATA_DRAWER_QUERY_KEY,
-    parseAsBoolean.withDefault(false)
-  );
-  const renderedIntervalRef = useRef(interval);
+  // The param carries the dataset so a page with several charts opens the drawer
+  // for the chart whose dataset matches, not whichever mounts first.
+  const paramValue = DiscoverDatasetToUrlParam[dataset];
+  const [{droppedData}, setDrawerQuery] = useQueryStates(DROPPED_DATA_DRAWER_PARSERS);
+  const isDrawerInUrl = droppedData === paramValue;
+  const renderedQueryRef = useRef({interval, projects});
 
-  // TODO: switch this to openChatPrompt, as well as handleInvestigate,
-  // to supply prompt context.
   const {openSeerExplorer} = useSeerExplorerContext();
   const openSeerExplorerRef = useRef(openSeerExplorer);
   useEffect(() => {
     openSeerExplorerRef.current = openSeerExplorer;
   });
-  const handleInvestigate = useCallback(() => openSeerExplorerRef.current(), []);
-  const onInvestigate = isSeerExplorerEnabled(organization)
-    ? handleInvestigate
-    : undefined;
+  const handleAskSeer = useCallback(
+    (row: ReasonRow) => {
+      trackAnalytics('explore.dropped_data.ask_seer_clicked', {
+        organization,
+        dataset,
+        outcome: row.outcome,
+        reason: row.reason,
+      });
+      openSeerExplorerRef.current({
+        initialQuery: buildAskSeerPrompt({
+          dataset,
+          outcome: row.outcome,
+          reason: row.reason,
+        }),
+      });
+    },
+    [dataset, organization]
+  );
+  const onAskSeer = isSeerExplorerEnabled(organization) ? handleAskSeer : undefined;
 
   useEffect(() => {
     if (!enabled || !isDrawerInUrl) {
       return;
     }
-    const isStale = isDrawerOpen && renderedIntervalRef.current !== interval;
+    const query = {interval, projects};
+    const isStale = isDrawerOpen && !isEqual(renderedQueryRef.current, query);
     if (isAnyDrawerOpen && !isStale) {
       return;
     }
-    renderedIntervalRef.current = interval;
+    renderedQueryRef.current = query;
     openDrawer(
       () => (
         <DroppedDataDrawer
           dataset={dataset}
           interval={interval}
-          onInvestigate={onInvestigate}
+          projects={projects}
+          onAskSeer={onAskSeer}
         />
       ),
       {
-        ariaLabel: t('Dropped Data'),
+        ariaLabel: droppedAndFilteredLabel(dataset),
+        drawerKey: 'dropped-data-drawer',
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
-          decodeScalar(nextLocation.query[DROPPED_DATA_DRAWER_QUERY_KEY]) !== 'true',
+          loadDroppedDataQuery(nextLocation.search ?? '').droppedData !== paramValue,
         onClose: () => {
-          void setIsDrawerInUrl(null, {history: 'replace'});
+          void setDrawerQuery({droppedData: null}, {history: 'replace'});
         },
       }
     );
@@ -82,13 +101,16 @@ export function useDroppedDataDrawer(
     isAnyDrawerOpen,
     openDrawer,
     dataset,
+    paramValue,
     interval,
-    onInvestigate,
+    projects,
+    onAskSeer,
     pathname,
-    setIsDrawerInUrl,
+    setDrawerQuery,
   ]);
 
   return useCallback(() => {
-    void setIsDrawerInUrl(true, {history: 'push'});
-  }, [setIsDrawerInUrl]);
+    trackAnalytics('explore.dropped_data.drawer_opened', {organization, dataset});
+    void setDrawerQuery({droppedData: paramValue}, {history: 'push'});
+  }, [organization, dataset, paramValue, setDrawerQuery]);
 }

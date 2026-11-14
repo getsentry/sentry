@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import jsonschema
 import sentry_sdk
@@ -14,7 +14,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.fields import empty
 
-from sentry import audit_log, features, quotas
+from sentry import audit_log, quotas
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -25,11 +25,9 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models.environment import Environment
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.project import Project
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
+from sentry.monitors.logic.monitor_status import sync_cron_detector_enabled
 from sentry.monitors.models import (
     MONITOR_CONFIG,
     CheckInStatus,
@@ -45,16 +43,12 @@ from sentry.monitors.models import (
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
 from sentry.monitors.utils import (
-    create_issue_alert_rule,
     ensure_cron_detector,
     get_checkin_margin,
     get_max_runtime,
     get_request_attribution,
     signal_monitor_created,
-    update_issue_alert_rule,
 )
-from sentry.users.services.user.service import user_service
-from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.utils.outcomes import Outcome
@@ -63,6 +57,9 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.models import Detector
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -96,8 +93,8 @@ NONSTANDARD_CRONTAB_SCHEDULES = {
 
 
 @extend_schema_field(OpenApiTypes.ANY)
-class ObjectField(serializers.Field):
-    def to_internal_value(self, data):
+class ObjectField(serializers.Field[Any, Any, Any, Any]):
+    def to_internal_value(self, data: Any) -> Any:
         return data
 
 
@@ -133,69 +130,9 @@ class ScheduleField(ObjectField):
         return super().get_value(dictionary)
 
 
-class MonitorAlertRuleTargetValidator(serializers.Serializer):
-    target_identifier = serializers.IntegerField(help_text="ID of target object")
-    target_type = serializers.ChoiceField(
-        choices=("Member", "Team"), help_text="One of [Member, Team]"
-    )
-
-
-class MonitorAlertRuleValidator(serializers.Serializer):
-    environment = serializers.CharField(
-        max_length=64, required=False, allow_null=True, help_text="Name of the environment"
-    )
-    targets = MonitorAlertRuleTargetValidator(
-        many=True,
-        help_text="Array of dictionaries with information of the user or team to be notified",
-    )
-
-    def validate_environment(self, environment: str | None) -> int | None:
-        if environment is None:
-            return None
-
-        try:
-            return Environment.get_for_organization_id(
-                self.context["organization"].id, environment
-            ).id
-        except Environment.DoesNotExist:
-            raise serializers.ValidationError("This environment has not been created.")
-
-    @staticmethod
-    def validate_targets_for_project(attrs, project: Project) -> None:
-        for index, target in enumerate(attrs.get("targets", [])):
-            target_identifier = target["target_identifier"]
-            target_type = target["target_type"]
-
-            if (
-                target_type == "Team"
-                and not Project.objects.filter(teams__id=target_identifier, id=project.id).exists()
-            ):
-                errors: list[dict[str, str]] = [{} for _ in attrs["targets"]]
-                errors[index] = {"target_identifier": "This team is not part of the project."}
-                raise serializers.ValidationError({"targets": errors})
-
-            if target_type == "Member":
-                is_active_team_member = OrganizationMemberTeam.objects.filter(
-                    is_active=True,
-                    organizationmember__user_id=target_identifier,
-                    organizationmember__teams__projectteam__project_id=project.id,
-                ).exists()
-                if is_active_team_member:
-                    is_active_team_member = bool(
-                        user_service.get_many(
-                            filter={"user_ids": [target_identifier], "is_active": True}
-                        )
-                    )
-
-                if not is_active_team_member:
-                    errors = [{} for _ in attrs["targets"]]
-                    errors[index] = {"target_identifier": "This user is not part of the project."}
-                    raise serializers.ValidationError({"targets": errors})
-
-
 class MissedMarginField(EmptyIntegerField):
-    def to_internal_value(self, value):
-        value = super().to_internal_value(value)
+    def to_internal_value(self, data: float | int | str) -> int:
+        value = super().to_internal_value(data)
 
         # XXX(epurkhiser): As part of GH-56526 we changed the minimum value
         # allowed for the checkin_margin to 1 from 0. Some monitors may still
@@ -281,19 +218,19 @@ class ConfigValidator(serializers.Serializer):
         max_value=MAX_THRESHOLD,
     )
 
-    def bind(self, *args, **kwargs):
+    def bind(self, *args: Any, **kwargs: Any) -> None:
         super().bind(*args, **kwargs)
         # Inherit instance data when used as a nested serializer
         if self.parent.instance:
             self.instance = self.parent.instance.config
         self.partial = self.parent.partial
 
-    def validate_schedule_type(self, value):
+    def validate_schedule_type(self, value: str | None) -> int | str | None:
         if value:
-            value = SCHEDULE_TYPES[value]
+            return SCHEDULE_TYPES[value]
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if "schedule_type" in attrs:
             schedule_type = attrs["schedule_type"]
         elif self.instance:
@@ -372,7 +309,7 @@ class ConfigValidator(serializers.Serializer):
         "alert_rule": "Deprecated issue alert configuration; use the dedicated Workflow APIs.",
     }
 )
-class MonitorValidator(CamelSnakeSerializer):
+class MonitorValidator(CamelSnakeSerializer[Monitor]):
     project = ProjectField(
         scope="project:read",
         id_allowed=True,
@@ -403,12 +340,12 @@ class MonitorValidator(CamelSnakeSerializer):
         help_text="Disable creation of monitor incidents",
     )
     config = ConfigValidator(help_text="The configuration for the monitor.")
-    alert_rule = MonitorAlertRuleValidator(
+    alert_rule = ObjectField(
         required=False,
-        help_text="Alert rule configuration created alongside the monitor.",
+        help_text="Deprecated alert rule configuration.",
     )
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         # When creating a new monitor, check if we would exceed the organization limit
         if not self.instance:
             organization = self.context["organization"]
@@ -421,38 +358,22 @@ class MonitorValidator(CamelSnakeSerializer):
         if alert_rule is not None:
             organization = self.context["organization"]
             request = self.context["request"]
-            if features.has(
-                "organizations:crons-disable-alert-rule",
-                organization,
-                actor=request.user,
-            ):
-                logger.info(
-                    "monitors.validator.alert_rule_rejected",
-                    extra={
-                        "organization_id": organization.id,
-                        "operation": "update" if self.instance else "create",
-                        **get_request_attribution(request),
-                    },
-                )
-                raise serializers.ValidationError(
-                    {"alert_rule": "Cron monitor alert rules are disabled for this organization."}
-                )
-
-            project = attrs.get("project")
-            if project is None:
-                project_id = (
-                    self.instance.project_id if self.instance else self.context["project"].id
-                )
-                project = Project.objects.get(id=project_id)
-            try:
-                MonitorAlertRuleValidator.validate_targets_for_project(alert_rule, project)
-            except serializers.ValidationError as error:
-                raise serializers.ValidationError({"alert_rule": error.detail})
+            logger.info(
+                "monitors.validator.alert_rule_rejected",
+                extra={
+                    "organization_id": organization.id,
+                    "operation": "update" if self.instance else "create",
+                    **get_request_attribution(request),
+                },
+            )
+            raise serializers.ValidationError(
+                {"alert_rule": "Cron monitor alert rules are disabled for this organization."}
+            )
 
         return attrs
 
-    def validate_status(self, value):
-        status = MONITOR_STATUSES.get(value, value)
+    def validate_status(self, value: str | None) -> int | str | None:
+        status = MONITOR_STATUSES[value] if value in MONITOR_STATUSES else value
         monitor = self.context.get("monitor")
 
         # Activating a monitor may only be done if the monitor may be assigned
@@ -468,7 +389,7 @@ class MonitorValidator(CamelSnakeSerializer):
 
         return status
 
-    def validate_slug(self, value):
+    def validate_slug(self, value: str | None) -> str | None:
         if not value:
             return value
 
@@ -483,25 +404,25 @@ class MonitorValidator(CamelSnakeSerializer):
             raise ValidationError(f'The slug "{value}" is already in use.')
         return value
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Monitor:
         project = validated_data.get("project", self.context.get("project"))
         organization = self.context["organization"]
 
         owner = validated_data.get("owner")
-        owner_user_id = None
-        owner_team_id = None
+        owner_user_id: int | None = None
+        owner_team_id: int | None = None
         if owner and owner.is_user:
-            owner_user_id = owner.id
+            owner_user_id = cast("int", owner.id)
         elif owner and owner.is_team:
-            owner_team_id = owner.id
+            owner_team_id = cast("int", owner.id)
 
         monitor = Monitor.objects.create(
             project_id=project.id if project else self.context["project"].id,
             organization_id=organization.id,
             owner_user_id=owner_user_id,
-            owner_team_id=owner_team_id,
+            owner_team_id=cast("int", owner_team_id),
             name=validated_data["name"],
-            slug=validated_data.get("slug"),
+            slug=cast("str", validated_data.get("slug")),
             status=validated_data["status"],
             config=validated_data["config"],
         )
@@ -521,33 +442,10 @@ class MonitorValidator(CamelSnakeSerializer):
                 monitor.update(status=ObjectStatus.DISABLED)
 
         request = self.context["request"]
-        signal_monitor_created(project, request.user, False, monitor, request)
-        validated_issue_alert_rule = validated_data.get("alert_rule")
-        if validated_issue_alert_rule:
-            metrics.incr(
-                "monitors.validator.alert_rule",
-                tags={"operation": "create"},
-                sample_rate=1.0,
-            )
-            logger.info(
-                "monitors.validator.alert_rule",
-                extra={
-                    "organization_id": organization.id,
-                    "operation": "create",
-                    **get_request_attribution(request),
-                },
-            )
-            issue_alert_rule_id = create_issue_alert_rule(
-                request, project, monitor, validated_issue_alert_rule
-            )
-
-            if issue_alert_rule_id:
-                config = monitor.config
-                config["alert_rule_id"] = issue_alert_rule_id
-                monitor.update(config=config)
+        signal_monitor_created(cast("Project", project), request.user, False, monitor, request)
         return monitor
 
-    def update(self, instance, validated_data):
+    def update(self, instance: Monitor, validated_data: dict[str, Any]) -> Monitor:
         """
         Update an existing Monitor instance.
         """
@@ -591,6 +489,8 @@ class MonitorValidator(CamelSnakeSerializer):
                 raise serializers.ValidationError({"config": f"Invalid config: {e.message}"})
 
             params["config"] = merged_config
+            # The config is now managed here, until a check-in upserts it again
+            params["is_upserting"] = False
 
         if "status" in params:
             # Attempt to assign a monitor seat
@@ -617,6 +517,8 @@ class MonitorValidator(CamelSnakeSerializer):
 
         if params:
             instance.update(**params)
+            if "status" in params:
+                sync_cron_detector_enabled(instance)
             create_audit_entry(
                 request=self.context["request"],
                 organization_id=instance.organization_id,
@@ -642,7 +544,12 @@ class MonitorValidator(CamelSnakeSerializer):
             max_runtime = updated_config.get("max_runtime")
             if max_runtime != existing_max_runtime:
                 MonitorCheckIn.objects.filter(
-                    monitor_id=instance.id, status=CheckInStatus.IN_PROGRESS
+                    monitor_environment_id__in=list(
+                        MonitorEnvironment.objects.filter(monitor_id=instance.id).values_list(
+                            "id", flat=True
+                        )
+                    ),
+                    status=CheckInStatus.IN_PROGRESS,
                 ).update(timeout_at=TruncMinute(F("date_added")) + get_max_runtime(max_runtime))
 
             # If the schedule changed, recompute next_checkin and next_checkin_latest for all environments
@@ -654,48 +561,6 @@ class MonitorValidator(CamelSnakeSerializer):
                     # Use last_checkin if available, otherwise use current time
                     last_checkin = monitor_env.last_checkin or now
                     update_monitor_environment(monitor_env, last_checkin, now)
-
-        # Update alert rule after in case slug or name changed
-        if "alert_rule" in validated_data:
-            metrics.incr(
-                "monitors.validator.alert_rule",
-                tags={"operation": "update"},
-                sample_rate=1.0,
-            )
-            alert_rule_data = validated_data["alert_rule"]
-            request = self.context.get("request")
-            if not request:
-                return instance
-            logger.info(
-                "monitors.validator.alert_rule",
-                extra={
-                    "organization_id": instance.organization_id,
-                    "operation": "update",
-                    **get_request_attribution(request),
-                },
-            )
-
-            project = Project.objects.get(id=instance.project_id)
-
-            # Check to see if rule exists
-            issue_alert_rule = instance.get_issue_alert_rule()
-            # If rule exists, update as necessary
-            if issue_alert_rule:
-                issue_alert_rule_id = update_issue_alert_rule(
-                    request, project, instance, issue_alert_rule, alert_rule_data
-                )
-            # If rule does not exist, create
-            else:
-                # Type assertion for mypy - create_issue_alert_rule expects AuthenticatedHttpRequest
-                # but in tests we might have a regular Request object
-                issue_alert_rule_id = create_issue_alert_rule(
-                    request, project, instance, alert_rule_data
-                )
-
-            if issue_alert_rule_id:
-                # If config is not sent, use existing config to update alert_rule_id
-                instance.config["alert_rule_id"] = issue_alert_rule_id
-                instance.update(config=instance.config)
 
         return instance
 
@@ -742,7 +607,7 @@ class MonitorBulkEditValidator(MonitorValidator):
         required=True,
     )
 
-    def validate_ids(self, value):
+    def validate_ids(self, value: list[str]) -> list[str]:
         if Monitor.objects.filter(
             guid__in=value, organization_id=self.context["organization"].id
         ).count() != len(value):
@@ -774,12 +639,12 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
         model = Monitor
         fields = ["name", "slug", "status", "owner", "is_muted", "config"]
 
-    def validate_status(self, value):
+    def validate_status(self, value: str | int | None) -> str | int | None:
         if isinstance(value, str) and value.isdigit():
             return MONITOR_STATUSES_REVERSE[int(value)]
         return value
 
-    def validate_config(self, value):
+    def validate_config(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
         if value and "schedule_type" in value:
             schedule_type = value["schedule_type"]
             if isinstance(schedule_type, int):
@@ -845,7 +710,9 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
     def update(self, instance: Monitor, validated_data: dict[str, Any]) -> Monitor:
         monitor_validator = validated_data.pop("_monitor_validator")
         with in_test_hide_transaction_boundary():
-            return monitor_validator.update(instance, monitor_validator.validated_data)
+            return cast(
+                "Monitor", monitor_validator.update(instance, monitor_validator.validated_data)
+            )
 
 
 class MonitorDataSourceListField(serializers.ListField):
@@ -856,7 +723,7 @@ class MonitorDataSourceListField(serializers.ListField):
     knows about the existing Monitor so slug validation works correctly.
     """
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: list[Any]) -> list[Any]:
         # If we're updating (parent has instance), bind the Monitor instance to child validator
         if hasattr(self.parent, "instance") and self.parent.instance:
             detector = self.parent.instance
@@ -893,7 +760,7 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError(result.reason)
         return value
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Detector:
         detector = super().create(validated_data)
 
         with in_test_hide_transaction_boundary():
@@ -902,8 +769,9 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
         # Try to assign a seat for the monitor
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
-            detector.update(enabled=False)
             monitor.update(status=ObjectStatus.DISABLED)
+        if monitor.status != ObjectStatus.ACTIVE:
+            detector.update(enabled=False)
 
         return detector
 

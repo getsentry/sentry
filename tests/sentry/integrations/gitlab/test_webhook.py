@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -33,6 +34,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 
 ISSUE_KEY = "example.gitlab.com/group-x:cool-group/sentry#23"
 
@@ -85,7 +87,7 @@ class WebhookTest(GitLabWebhookTestCase):
         assert pull.head_commit_sha == "ba3e0d8ff79c80d5b0bbb4f3e2e343e0aaa662b7"
         assert pull.draft is False
 
-    def assert_group_link(self, group, pull):
+    def assert_group_link(self, group: Group, pull: PullRequest) -> None:
         link = GroupLink.objects.get()
         assert link.group_id == group.id
         assert link.linked_type == GroupLink.LinkedType.pull_request
@@ -508,6 +510,23 @@ class WebhookTest(GitLabWebhookTestCase):
             assert author.name
             assert author.organization_id == self.organization.id
 
+    def test_push_event_preloads_users_once_per_author(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        push_event = orjson.loads(PUSH_EVENT)
+        first_commit = push_event["commits"][0]
+        repeat_commit = dict(first_commit, id="f" * 40)
+        push_event["commits"] = [first_commit, repeat_commit, push_event["commits"][1]]
+
+        with patch.object(
+            CommitAuthor, "preload_users", autospec=True, return_value=[]
+        ) as mock_preload:
+            self._post_push_event(orjson.dumps(push_event))
+
+        assert Commit.objects.count() == 3
+        assert CommitAuthor.objects.count() == 2
+        preloaded_emails = sorted(call.args[0].email for call in mock_preload.call_args_list)
+        assert preloaded_emails == ["gitlabdev@example.org", "jordi@example.org"]
+
     def test_push_event_ignore_commit(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
         response = self.client.post(
@@ -764,7 +783,7 @@ class WebhookTest(GitLabWebhookTestCase):
         assert pull.merged_at == merged_at
         assert pull.closed_at == closed_at
 
-    def _post_merge_event(self, payload: dict) -> None:
+    def _post_merge_event(self, payload: dict[str, Any]) -> None:
         response = self.client.post(
             self.url,
             data=orjson.dumps(payload),
@@ -985,7 +1004,7 @@ class WebhookTest(GitLabWebhookTestCase):
         "organizations:integrations-gitlab-project-management",
     ]
 
-    def _post_issue_event(self, event: dict) -> None:
+    def _post_issue_event(self, event: dict[str, Any]) -> None:
         response = self.client.post(
             self.url,
             data=orjson.dumps(event),
@@ -1002,7 +1021,7 @@ class WebhookTest(GitLabWebhookTestCase):
             ).update(config={"sync_reverse_assignment": True})
         return self.link_issue()
 
-    def _create_gitlab_member(self, username: str, external_id: int):
+    def _create_gitlab_member(self, username: str, external_id: int) -> User:
         member = self.create_user(email=f"{username}@example.com")
         self.create_member(organization=self.organization, user=member, teams=[self.team])
         self.create_external_user(
@@ -1015,8 +1034,10 @@ class WebhookTest(GitLabWebhookTestCase):
         )
         return member
 
-    def _assigned_event(self, username: str, external_id: int, updated_at: str) -> dict:
+    def _assigned_event(self, username: str, external_id: int, updated_at: str) -> dict[str, Any]:
         event = orjson.loads(ISSUE_ASSIGNED_EVENT)
+        if not isinstance(event, dict):
+            raise TypeError("Issue assigned event is not a JSON object")
         event["object_attributes"]["updated_at"] = updated_at
         event["assignees"] = [{"id": external_id, "username": username}]
         return event

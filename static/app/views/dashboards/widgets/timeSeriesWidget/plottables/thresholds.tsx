@@ -4,10 +4,11 @@ import type {
   SeriesOption,
 } from 'echarts';
 
+import type {Theme} from '@sentry/scraps/theme';
+
 import {MarkArea} from 'sentry/components/charts/components/markArea';
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {Theme} from 'sentry/utils/theme';
 import {normalizeUnit} from 'sentry/views/dashboards/utils/normalizeUnit';
 import {
   NEGATIVE_POLARITY_COLOR_ORDER,
@@ -17,10 +18,12 @@ import type {
   Thresholds as ThresholdsConfig,
   TimeSeriesValueUnit,
 } from 'sentry/views/dashboards/widgets/common/types';
+
 import type {
   Plottable,
+  PlottableConfidence,
   PlottableTimeSeriesValueType,
-} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+} from './plottable';
 
 type ThresholdPlottableOptions = {
   thresholds: ThresholdsConfig;
@@ -42,6 +45,11 @@ export class Thresholds implements Plottable {
   maxOffset = 5; // The offset from the top of the chart (in pixels), of the max threshold
   thresholds: ThresholdsConfig;
   showLabels: boolean;
+
+  /**
+   * Thresholds are user-defined values, so they're never extrapolated.
+   */
+  confidence: PlottableConfidence = 'full';
 
   /** State variables required for Plottable interface */
   dataType: PlottableTimeSeriesValueType = 'duration';

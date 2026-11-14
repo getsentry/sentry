@@ -11,6 +11,8 @@ By default account id and token expiration time are stored in extra_data
 field, check OAuthBackend class for details on how to extend it.
 """
 
+from collections.abc import Mapping
+from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request
 
@@ -40,7 +42,7 @@ class GithubBackend(OAuthBackend):
     # Default extra data to store
     EXTRA_DATA = [("id", "id"), ("expires", "expires")]
 
-    def _fetch_emails(self, access_token):
+    def _fetch_emails(self, access_token: Any) -> list[Any]:
         """Fetch private emails from Github account"""
         req = Request(
             GITHUB_USER_DATA_URL + "/emails", headers={"Authorization": "token %s" % access_token}
@@ -52,7 +54,7 @@ class GithubBackend(OAuthBackend):
             data = []
         return data
 
-    def get_user_details(self, response):
+    def get_user_details(self, response: Mapping[str, Any]) -> dict[str, Any]:
         """Return user details from Github account"""
         name = response.get("name") or ""
         details = {"username": response.get("login")}
@@ -89,14 +91,15 @@ class GithubAuth(BaseOAuth2):
 
     GITHUB_ORGANIZATION = settings.GITHUB_ORGANIZATION
 
-    def user_data(self, access_token, *args, **kwargs):
+    def user_data(self, access_token: str, *args: Any, **kwargs: Any) -> dict[str, Any] | None:
         """Loads user data from service"""
         req = Request(GITHUB_USER_DATA_URL, headers={"Authorization": "token %s" % access_token})
 
         try:
-            data = json.load(dsa_urlopen(req))
+            loaded = json.load(dsa_urlopen(req))
         except ValueError:
-            data = None
+            loaded = None
+        data = loaded
 
         # if we have a github organization defined, test that the current users
         # is a member of that organization.

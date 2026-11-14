@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -8,14 +8,13 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {MonitorForm} from 'sentry/views/insights/crons/components/monitorForm';
 import type {Monitor} from 'sentry/views/insights/crons/types';
-import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
+import {monitorDetailsApiOptions} from 'sentry/views/insights/crons/utils';
 
 type Props = {
   onChangeTitle: (data: string) => void;
@@ -33,16 +32,19 @@ export function CronRulesEdit({onChangeTitle, project, organization}: Props) {
   const {selection} = usePageFilters();
   const queryClient = useQueryClient();
 
-  const queryKey = makeMonitorDetailsQueryKey(organization, project.slug, monitorSlug, {
-    expand: ['alertRule'],
-  });
+  const monitorOptions = monitorDetailsApiOptions(
+    organization,
+    project.slug,
+    monitorSlug
+  );
 
   const {
     isPending,
     isError,
     data: monitor,
     refetch,
-  } = useApiQuery<Monitor>(queryKey, {
+  } = useQuery({
+    ...monitorOptions,
     gcTime: 0,
     staleTime: 0,
   });
@@ -53,7 +55,11 @@ export function CronRulesEdit({onChangeTitle, project, organization}: Props) {
   );
 
   function onSubmitSuccess(data: Monitor) {
-    setApiQueryData(queryClient, queryKey, data);
+    queryClient.setQueryData(monitorOptions.queryKey, previous => ({
+      ...previous,
+      json: data,
+      headers: previous?.headers ?? {},
+    }));
     navigate(
       normalizeUrl({
         pathname: makeAlertsPathname({

@@ -1,0 +1,178 @@
+/* stylelint-disable selector-no-qualifying-type, selector-max-type */
+
+/*
+//
+// Navs
+// --------------------------------------------------
+
+// Base class
+// --------------------------------------------------
+*/
+
+.nav {
+  padding-left: 0; /* Override default ul/ol */
+  margin-bottom: 0;
+  list-style: none;
+
+  > li {
+    position: relative;
+    display: block;
+
+    > a {
+      position: relative;
+      display: block;
+      padding: 10px 15px;
+      &:hover,
+      &:focus {
+        text-decoration: none;
+        background-color: #afa3bb;
+      }
+    }
+
+    /*
+    // Disabled state sets text to gray and nukes hover/tab effects
+    */
+    &.disabled > a {
+      color: #968ba0;
+
+      &:hover,
+      &:focus {
+        color: #968ba0;
+        text-decoration: none;
+        cursor: not-allowed;
+        background-color: transparent;
+      }
+    }
+  }
+
+  /*
+  // Open dropdowns
+  */
+  .open > a {
+    &,
+    &:hover,
+    &:focus {
+      background-color: #afa3bb;
+      border-color: #3b6ecc;
+    }
+  }
+
+  /*
+  // Prevent IE8 from misplacing imgs
+  //
+  // See https://github.com/h5bp/html5-boilerplate/issues/984#issuecomment-3985989
+  */
+  > li > a > img {
+    max-width: none;
+  }
+}
+
+/*
+// Tabs
+// -------------------------
+
+// Give the tabs something to sit on
+*/
+.nav-tabs {
+  border-bottom: 1px solid #ddd;
+  > li {
+    float: left;
+    /*
+    // Make the list-items overlay the bottom border
+    */
+    margin-bottom: -1px;
+
+    /*
+    // Actual tabs (as links)
+    */
+    > a {
+      margin-right: 2px;
+      line-height: 1.42857143;
+      border: 1px solid transparent;
+      border-radius: 4px 4px 0 0;
+      &:hover {
+        border-color: #afa3bb #afa3bb #ddd;
+      }
+    }
+
+    /*
+    // Active state, and its :hover to override normal :hover
+    */
+    &.active > a {
+      &,
+      &:hover,
+      &:focus {
+        color: #625471;
+        cursor: default;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-bottom-color: transparent;
+      }
+    }
+  }
+}
+
+/*
+// Pills
+// -------------------------
+*/
+.nav-pills {
+  > li {
+    float: left;
+
+    /*
+    // Links rendered as pills
+    */
+    > a {
+      border-radius: 4px;
+    }
+    + li {
+      margin-left: 2px;
+    }
+
+    /*
+    // Active state
+    */
+    &.active > a {
+      &,
+      &:hover,
+      &:focus {
+        color: #fff;
+        background-color: #337ab7;
+      }
+    }
+  }
+}
+
+/*
+// Tabbable tabs
+// -------------------------
+
+// Hide tabbable panes to start, show them when `.active`
+*/
+.tab-content {
+  > .tab-pane {
+    display: none;
+  }
+  > .active {
+    display: block;
+  }
+}
+
+/*
+// Dropdowns
+// -------------------------
+
+// Specific dropdowns
+*/
+.nav-tabs .dropdown-menu {
+  /*
+  // make dropdown border overlap tab border
+  */
+  margin-top: -1px;
+  /*
+  // Remove the top rounded corners here since there is a hard edge above the menu
+  */
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}

@@ -80,6 +80,7 @@ describe('EventNavigation', () => {
       eventNavigationHeight: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
+      scrollContext: 'page',
       dispatch: jest.fn(),
     });
     MockApiClient.addMockResponse({
@@ -172,6 +173,42 @@ describe('EventNavigation', () => {
     });
   });
 
+  describe('open period count', () => {
+    const metricGroup = GroupFixture({
+      id: group.id,
+      issueCategory: IssueCategory.METRIC,
+      issueType: IssueType.METRIC_ISSUE,
+    });
+
+    function renderMetricNav(org: typeof organization) {
+      return render(
+        <GroupDataContextProvider group={metricGroup} project={metricGroup.project}>
+          <IssueEventNavigation {...defaultProps} group={metricGroup} />
+        </GroupDataContextProvider>,
+        {initialRouterConfig: routerConfigForTab(Tab.DETAILS), organization: org}
+      );
+    }
+
+    it('shows the open period count reported by the chart on the first tab', () => {
+      const issueDetailsContext = jest.mocked(useIssueDetails)();
+
+      jest
+        .mocked(useIssueDetails)
+        .mockReturnValue({...issueDetailsContext, eventCount: 3});
+
+      renderMetricNav(
+        OrganizationFixture({
+          features: ['discover-basic', 'autofix-page'],
+          hideAiFeatures: false,
+        })
+      );
+
+      const openPeriodsTab = screen.getByRole('tab', {name: /Open Periods/});
+
+      expect(within(openPeriodsTab).getByText('3')).toBeInTheDocument();
+    });
+  });
+
   describe('issue content navigation', () => {
     const seerOrganization = OrganizationFixture({
       features: ['discover-basic', 'autofix-page'],
@@ -208,9 +245,8 @@ describe('EventNavigation', () => {
         within(screen.getByRole('tab', {name: 'Autofix'})).queryByText('0')
       ).not.toBeInTheDocument();
 
-      // The tab is the <li role="tab">; the anchor it navigates through is nested.
       const autofixTab = screen.getByRole('tab', {name: 'Autofix'});
-      expect(within(autofixTab).getByRole('link')).toHaveAttribute(
+      expect(autofixTab).toHaveAttribute(
         'href',
         expect.stringContaining(
           `/organizations/${seerOrganization.slug}/issues/${group.id}/${

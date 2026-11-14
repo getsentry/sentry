@@ -7,7 +7,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
-import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
+import {useStagedCompactSelect} from './useStagedCompactSelect';
 
 function useTestOptions(
   toggleOptionRef: React.MutableRefObject<((val: string) => void) | undefined>
@@ -688,6 +688,64 @@ describe('useStagedCompactSelect', () => {
       expect(onChange).toHaveBeenLastCalledWith(['two']);
     });
 
+    it('selects range when shift-clicking after a checkbox click', async () => {
+      const onChange = jest.fn();
+
+      function TestComponent() {
+        const [value, setValue] = useState<string[]>([]);
+        const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+        const options = useTestOptions(toggleOptionRef);
+        const handleChange = (newValue: string[]) => {
+          onChange(newValue);
+          setValue(newValue);
+        };
+        const stagedSelect = useStagedCompactSelect({
+          value,
+          options,
+          onChange: handleChange,
+          multiple: true,
+        });
+        // oxlint-disable-next-line react/refs
+        toggleOptionRef.current = stagedSelect.toggleOption;
+
+        return (
+          <CompactSelect
+            mode="grid"
+            multiple
+            search
+            {...stagedSelect.compactSelectProps}
+            menuFooter={
+              xor(stagedSelect.value, value).length > 0 ? (
+                <Flex>
+                  <MenuComponents.ApplyButton
+                    onClick={() => {
+                      stagedSelect.dispatch({type: 'remove staged'});
+                      handleChange(stagedSelect.value);
+                    }}
+                  />
+                </Flex>
+              ) : null
+            }
+          />
+        );
+      }
+
+      render(<TestComponent />);
+
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+      // Clicking the checkbox focuses it. Its wrapper stops keydown propagation, so
+      // the Shift press must still be detected from the focused checkbox.
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+      await userEvent.keyboard('{Shift>}');
+      await userEvent.click(screen.getByRole('row', {name: 'Option Three'}));
+      await userEvent.keyboard('{/Shift}');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      expect(onChange).toHaveBeenLastCalledWith(['one', 'two', 'three']);
+    });
+
     it('deselects range when shift-clicking already selected item', async () => {
       const onChange = jest.fn();
 
@@ -1056,7 +1114,7 @@ describe('useStagedCompactSelect', () => {
       await userEvent.keyboard('{/Control}');
 
       // Type in the search box — this should clear the shift-click anchor
-      await userEvent.type(screen.getByRole('textbox'), 'Three');
+      await userEvent.type(screen.getByRole('searchbox'), 'Three');
 
       // Shift-click Option Three — anchor was cleared so this acts as a single select
       await userEvent.keyboard('{Shift>}');
@@ -1193,7 +1251,7 @@ describe('useStagedCompactSelect', () => {
       await userEvent.click(screen.getByRole('button', {expanded: false}));
 
       // Search 'e' — matches 'Option One' and 'Option Three', but not 'Option Two'
-      await userEvent.type(screen.getByRole('textbox'), 'e');
+      await userEvent.type(screen.getByRole('searchbox'), 'e');
 
       // Ctrl-click Option One to set the anchor within the filtered list
       await userEvent.keyboard('{Control>}');

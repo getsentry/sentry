@@ -5,6 +5,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
@@ -113,6 +114,24 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         self.create_member(user=member, organization=self.organization, role="member")
         self.login_as(member)
         self.get_success_response(self.organization.slug)
+
+    def test_org_ci_token_cannot_access(self) -> None:
+        token_str = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            name="ci",
+            organization_id=self.organization.id,
+            token_hashed=hash_token(token_str),
+            token_last_characters=token_str[-4:],
+            scope_list=["org:ci"],
+        )
+        self.create_codeowners(self.project_1, self.code_mapping_1, raw=self.data_1["raw"])
+
+        self.get_error_response(
+            self.organization.slug,
+            project="-1",
+            status_code=status.HTTP_403_FORBIDDEN,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token_str}"},
+        )
 
     def test_query_by_provider(self) -> None:
         """

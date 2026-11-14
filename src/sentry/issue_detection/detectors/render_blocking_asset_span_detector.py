@@ -12,6 +12,7 @@ from ..detectors.utils import (
     fingerprint_resource_span,
     get_notification_attachment_body,
     get_numeric_value_from_span,
+    get_span_description,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -64,6 +65,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         if self._is_blocking_render(span):
             span_id = span.get("span_id", None)
             fingerprint = self._fingerprint(span)
+            description = get_span_description(span)
+
             if span_id and fingerprint:
                 evidence_data = {
                     "op": op,
@@ -71,7 +74,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                     "cause_span_ids": [],
                     "offender_span_ids": [span_id],
                     "transaction_name": self.event().get("transaction", ""),
-                    "slow_span_description": span.get("description", ""),
+                    "slow_span_description": description,
                     "slow_span_duration": self._get_duration(span),
                     "transaction_duration": self._get_duration(self._event),
                     "fcp": self.fcp_value,
@@ -84,7 +87,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                 self.stored_problems[fingerprint] = PerformanceProblem(
                     fingerprint=fingerprint,
                     op=op,
-                    desc=span.get("description", ""),
+                    desc=description,
                     type=PerformanceRenderBlockingAssetSpanGroupType,
                     offender_span_ids=[span_id],
                     parent_span_ids=[],
@@ -93,10 +96,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                     evidence_display=[
                         IssueEvidence(
                             name="Offending Spans",
-                            value=get_notification_attachment_body(
-                                op,
-                                span.get("description") or "",
-                            ),
+                            value=get_notification_attachment_body(op, description),
                             # Has to be marked important to be displayed in the notifications
                             important=True,
                         )

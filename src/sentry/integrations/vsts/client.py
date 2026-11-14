@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from time import time
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Union, cast
 from urllib.parse import quote
 
 from requests import PreparedRequest
@@ -130,7 +130,14 @@ class VstsSetupApiClient(ApiClient):
         self.oauth_redirect_url = oauth_redirect_url
         self.access_token = access_token
 
-    def request(self, method, path, data=None, params=None, api_preview: bool = False) -> Any:
+    def request(
+        self,
+        method: str,
+        path: str,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
+        api_preview: bool = False,
+    ) -> Any:
         headers = prepare_headers(
             api_version=self.api_version,
             method=method,
@@ -140,7 +147,7 @@ class VstsSetupApiClient(ApiClient):
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def create_subscription(self, shared_secret: str) -> dict[str, Any]:
-        return self.post(
+        return self.post_mapping(
             VstsApiPath.subscriptions.format(instance=self.base_url),
             data=_create_subscription_data(shared_secret),
         )
@@ -165,7 +172,7 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         super().__init__(org_integration_id=org_integration_id)
 
     @property
-    def identity(self):
+    def identity(self) -> Identity:
         if self._identity:
             return self._identity
         if self.identity_id is None:
@@ -230,7 +237,7 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         return prepared_request
 
     def create_subscription(self, shared_secret: str) -> dict[str, Any]:
-        return self.post(
+        return self.post_mapping(
             VstsApiPath.subscriptions.format(instance=self.base_url),
             data=_create_subscription_data(shared_secret),
         )
@@ -251,7 +258,7 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         if comment:
             data.append({"op": "add", "path": FIELD_MAP["comment"], "value": comment})
 
-        return self.patch(
+        return self.patch_mapping(
             VstsApiPath.work_items_create.format(
                 instance=self.base_url, project=project, type=item_type
             ),
@@ -297,17 +304,19 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         if comment is not UNSET and comment:
             data.append({"op": "add", "path": FIELD_MAP["comment"], "value": comment})
 
-        return self.patch(VstsApiPath.work_items.format(instance=self.base_url, id=id), data=data)
+        return self.patch_mapping(
+            VstsApiPath.work_items.format(instance=self.base_url, id=id), data=data
+        )
 
     def get_work_item(self, id: int) -> dict[str, Any]:
-        return self.get(VstsApiPath.work_items.format(instance=self.base_url, id=id))
+        return self.get_mapping(VstsApiPath.work_items.format(instance=self.base_url, id=id))
 
     def get_work_item_states(self, project: str) -> dict[str, Any]:
         # XXX: Until we add the option to enter the 'WorkItemType' for syncing status changes from
         # Sentry to Azure DevOps, we need will attempt to use the sequence below. There are certain
         # ADO configurations which don't have 'Bug' or 'Issue', hence iterating until we find a match.
         for check_type in ("Bug", "Issue", "Task"):
-            response = self.get(
+            response = self.get_mapping(
                 VstsApiPath.work_item_states.format(
                     instance=self.base_url,
                     project=project,
@@ -320,12 +329,12 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         return response
 
     def get_work_item_categories(self, project: str) -> dict[str, Any]:
-        return self.get(
+        return self.get_mapping(
             VstsApiPath.work_item_categories.format(instance=self.base_url, project=project)
         )
 
     def get_repo(self, name_or_id: str, project: str | None = None) -> dict[str, Any]:
-        return self.get(
+        return self.get_mapping(
             VstsApiPath.repository.format(
                 instance=self.base_url,
                 project=f"{project}/" if project else "",
@@ -334,7 +343,7 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         )
 
     def get_repos(self, project: str | None = None) -> dict[str, Any]:
-        return self.get(
+        return self.get_mapping(
             VstsApiPath.repositories.format(
                 instance=self.base_url, project=f"{project}/" if project else ""
             ),
@@ -342,27 +351,26 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         )
 
     def get_commits(self, repo_id: str, commit: str, limit: int = 100) -> dict[str, Any]:
-        return self.get(
+        return self.get_mapping(
             VstsApiPath.commits.format(instance=self.base_url, repo_id=repo_id),
             params={"commit": commit, "$top": limit},
         )
 
     def get_commit(self, repo_id: str, commit: str) -> dict[str, Any]:
-        return self.get(
+        return self.get_mapping(
             VstsApiPath.commit.format(instance=self.base_url, repo_id=repo_id, commit_id=commit)
         )
 
     def get_commit_filechanges(self, repo_id: str, commit: str) -> list[dict[str, Any]]:
-        resp = self.get(
+        resp = self.get_mapping(
             VstsApiPath.commits_changes.format(
                 instance=self.base_url, repo_id=repo_id, commit_id=commit
             )
         )
-        changes = resp["changes"]
-        return changes
+        return resp["changes"]
 
     def get_commit_range(self, repo_id: str, start_sha: str, end_sha: str) -> dict[str, Any]:
-        return self.post(
+        return self.post_mapping(
             VstsApiPath.commits_batch.format(instance=self.base_url, repo_id=repo_id),
             data={
                 "itemVersion": {"versionType": "commit", "version": start_sha},
@@ -371,7 +379,7 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         )
 
     def get_project(self, project_id: str) -> dict[str, Any]:
-        return self.get(
+        return self.get_mapping(
             VstsApiPath.project.format(instance=self.base_url, project_id=project_id),
             params={"stateFilter": "WellFormed"},
         )
@@ -399,46 +407,49 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         Gets Users with access to a given account/organization
         https://docs.microsoft.com/en-us/rest/api/azure/devops/graph/users/list?view=azure-devops-rest-4.1
         """
-        return self.get(
+        return self.get_mapping(
             VstsApiPath.users.format(account_name=account_name),
             api_preview=True,
             params={"continuationToken": continuation_token},
         )
 
     def get_subscription(self, subscription_id: str) -> dict[str, Any]:
-        return self.get(
+        return self.get_mapping(
             VstsApiPath.subscription.format(instance=self.base_url, subscription_id=subscription_id)
         )
 
     def delete_subscription(self, subscription_id: str) -> dict[str, Any]:
-        return self.delete(
+        return self.delete_mapping(
             VstsApiPath.subscription.format(instance=self.base_url, subscription_id=subscription_id)
         )
 
     def update_subscription(self, subscription_id: str) -> dict[str, Any]:
-        return self.put(
+        return self.put_mapping(
             VstsApiPath.subscription.format(instance=self.base_url, subscription_id=subscription_id)
         )
 
     def search_issues(self, account_name: str, query: str | None = None) -> dict[str, Any]:
-        return self.post(
+        return self.post_mapping(
             VstsApiPath.work_item_search.format(account_name=account_name),
             data={"searchText": query, "$top": 1000},
             api_preview=True,
         )
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
-        return self.get_cached(
-            path=VstsApiPath.items.format(
-                instance=repo.config["instance"],
-                project=quote(repo.config["project"]),
-                repo_id=quote(repo.config["name"]),
+        return cast(
+            "object | None",
+            self.get_cached(
+                path=VstsApiPath.items.format(
+                    instance=repo.config["instance"],
+                    project=quote(repo.config["project"]),
+                    repo_id=quote(repo.config["name"]),
+                ),
+                params={
+                    "path": path,
+                    "api-version": "7.0",
+                    "versionDescriptor.version": version,
+                },
             ),
-            params={
-                "path": path,
-                "api-version": "7.0",
-                "versionDescriptor.version": version,
-            },
         )
 
     def get_file(

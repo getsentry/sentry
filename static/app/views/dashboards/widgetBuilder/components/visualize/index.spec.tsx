@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -9,17 +10,20 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {
   useSpanItemAttributes,
   useTraceItemDatasetAttributes,
   useTraceMetricItemAttributes,
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
+jest.mock('sentry/utils/analytics');
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
 
@@ -27,6 +31,11 @@ const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
 const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/widget/new/';
 const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
+
+function TraceMetricsVisualize() {
+  const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
+  return <Visualize traceMetricsVisualizeMode={traceMetricsVisualizeMode} />;
+}
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
@@ -119,6 +128,249 @@ describe('Visualize', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  it.each([
+    {dataset: WidgetType.SPANS, aggregate: 'avg(span.duration)'},
+    {
+      dataset: WidgetType.TRACEMETRICS,
+      aggregate: 'sum(value,alpha_metric,counter,none)',
+    },
+  ])(
+    'edits and persists transformations for $dataset series',
+    async ({dataset, aggregate}) => {
+      organization.features.push('explore-interpolation-and-smoothing');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {data: []},
+      });
+      const {router} = render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                dataset,
+                displayType: DisplayType.LINE,
+                yAxis: [aggregate, aggregate],
+              },
+            },
+            route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+          },
+        }
+      );
+
+      await userEvent.click(
+        (await screen.findAllByRole('button', {name: 'Add Transformation'}))[1]!
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fill'}));
+      await waitFor(() => {
+        expect(router.location.query.transformations).toBe('[{"1":["fill(zero)"]}]');
+      });
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'explore.visualize.transformation.added',
+        expect.objectContaining({source: 'dashboards', transformation_index: 0})
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Remove transformation'}));
+      await waitFor(() => {
+        expect(router.location.query.transformations).toBe('[{}]');
+      });
+    }
+  );
+
+  it.each([
+    {
+      name: 'disabled feature',
+      enabled: false,
+      dataset: WidgetType.SPANS,
+      displayType: DisplayType.LINE,
+    },
+    {
+      name: 'table',
+      enabled: true,
+      dataset: WidgetType.SPANS,
+      displayType: DisplayType.TABLE,
+    },
+    {
+      name: 'transactions',
+      enabled: true,
+      dataset: WidgetType.TRANSACTIONS,
+      displayType: DisplayType.LINE,
+    },
+  ])('hides transformations for $name', async ({enabled, dataset, displayType}) => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: OrganizationFixture({
+          features: enabled ? ['explore-interpolation-and-smoothing'] : [],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset,
+              displayType,
+              yAxis: ['avg(span.duration)'],
+              field: ['avg(span.duration)'],
+              transformations: '[{"0":["fill(zero)"]}]',
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', {name: 'Transformation 1'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('edits transformations for span equation series', async () => {
+    organization.features.push('explore-interpolation-and-smoothing');
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['count(span.duration)', 'equation|count(span.duration) * 2'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    const addButtons = await screen.findAllByRole('button', {
+      name: 'Add Transformation',
+    });
+    expect(addButtons).toHaveLength(2);
+    await userEvent.click(addButtons[1]!);
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"1":["smooth(sma,3)"]}]');
+    });
+  });
+
+  it('keeps separate transformations for metric series and equation modes', async () => {
+    organization.features.push('explore-interpolation-and-smoothing');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <TraceMetricsVisualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+              yAxis: ['sum(value,alpha_metric,counter,none)'],
+              transformations: '[{"0":["fill(zero)"]}]',
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    expect(await screen.findByRole('button', {name: 'Fill method'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Add Transformation'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"0":["smooth(sma,3)"]}]');
+    });
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Series'}));
+    expect(await screen.findByRole('button', {name: 'Fill method'})).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"0":["fill(zero)"]}]');
+    });
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
+    expect(
+      await screen.findByRole('button', {name: 'Smoothing method'})
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"0":["smooth(sma,3)"]}]');
+    });
+  });
+
+  it('restores per-filter transformations after switching through metric equation mode', async () => {
+    organization.features.push('explore-interpolation-and-smoothing');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <TraceMetricsVisualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+              yAxis: ['sum(value,alpha_metric,counter,none)'],
+              query: ['environment:production', 'environment:development'],
+              transformations: '[{"0":["fill(zero)"]},{"0":["smooth(sma,3)"]}]',
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+    expect(await screen.findByRole('button', {name: 'Add Transformation'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Fill method'})).toHaveTextContent('Zero');
+    await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
+    expect(
+      await screen.findByRole('button', {name: 'Add Transformation'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', {name: 'Transformation 1'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', {name: 'Series'}));
+    expect(await screen.findByRole('button', {name: 'Fill method'})).toHaveTextContent(
+      'Zero'
+    );
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe(
+        '[{"0":["fill(zero)"]},{"0":["smooth(sma,3)"]}]'
+      );
+      expect(router.location.query.query).toEqual([
+        'environment:production',
+        'environment:development',
+      ]);
+    });
   });
 
   it('renders basic aggregates correctly from the URL params', async () => {
@@ -885,6 +1137,37 @@ describe('Visualize', () => {
     expect(screen.queryByText('this field has an error')).not.toBeInTheDocument();
   });
 
+  it('does not throw when error.queries is a string instead of an array', async () => {
+    // flattenErrors() flattens array-of-string API errors into a plain string,
+    // so error.queries may arrive as a string. The component must not call .find()
+    // on it.
+    render(
+      <WidgetBuilderProvider>
+        <Visualize
+          error={{
+            queries: 'some validation error' as any,
+          }}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    // The component should render without throwing a 'not a function' TypeError.
+    // Verify no query-level error text is rendered from the string value.
+    await waitFor(() => {
+      expect(screen.queryByText('some validation error')).not.toBeInTheDocument();
+    });
+  });
+
   it('shows radio buttons for big number widgets when there are multiple aggregates', async () => {
     render(
       <WidgetBuilderProvider>
@@ -1158,6 +1441,56 @@ describe('Visualize', () => {
     expect(await screen.findAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(
       2
     );
+  });
+
+  it('moves transformations with their series when series are reordered', async () => {
+    // dnd-kit's keyboard sensor needs distinct element positions to find a drop target
+    const rectSpy = jest
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: Element) {
+        const siblings = this.parentElement
+          ? Array.from(this.parentElement.children)
+          : [];
+        const top = Math.max(siblings.indexOf(this), 0) * 50;
+        return DOMRect.fromRect({x: 0, y: top, width: 300, height: 40});
+      });
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.duration)', 'count(span.duration)'],
+              transformations: '[{"0":["fill(zero)"]}]',
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    const [firstHandle] = await screen.findAllByRole('button', {
+      name: 'Drag to reorder',
+    });
+    act(() => firstHandle!.focus());
+    await userEvent.keyboard(' ');
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+    await userEvent.keyboard(' ');
+
+    await waitFor(() => {
+      expect(router.location.query.yAxis).toEqual([
+        'count(span.duration)',
+        'avg(span.duration)',
+      ]);
+    });
+    expect(router.location.query.transformations).toBe('[{"1":["fill(zero)"]}]');
+    rectSpy.mockRestore();
   });
 
   it('allows for selecting a column from the aggregate dropdown', async () => {

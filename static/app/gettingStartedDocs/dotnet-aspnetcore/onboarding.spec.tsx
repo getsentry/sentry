@@ -46,6 +46,22 @@ describe('aspnetcore onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders minimal hosting snippets', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/builder\.WebHost\.UseSentry/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/app\.MapGet\("\/person\/\{id\}"/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/CreateHostBuilder/))
+    ).not.toBeInTheDocument();
+  });
+
   it('renders logs onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.LOGS],

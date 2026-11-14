@@ -27,6 +27,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializerResponse,
 )
 from sentry.sentry_apps.external_requests.utils import validate_sentry_app_uri
+from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
 from sentry.users.services.user.serial import serialize_generic_user
@@ -62,9 +63,12 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
     SentryAppInstallationExternalIssueBaseEndpoint
 ):
     owner = ApiOwner.INTEGRATION_PLATFORM
+    # The app's request names the acting user.
+    requires_user = True
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="executeSentryAppInstallationExternalIssueAction",
@@ -89,7 +93,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
         },
     )
     def post(
-        self, request: Request, installation
+        self, request: Request, installation: RpcSentryAppInstallation
     ) -> (
         Response[PlatformExternalIssueSerializerResponse]
         | Response[DetailResponse]
@@ -99,6 +103,8 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
         """
         Invoke the installed app's issue-link callback and store the returned association.
         Submit the app-specific form fields alongside `groupId`, `action`, and `uri`.
+        The installation UUID, form fields, and `uri` come from the organization's
+        `issue-link` Sentry App components.
 
         For `action=link`, the optional `expectedExternalIssueUrl` query parameter
         requires an exact canonical `webUrl` match. An existing matching link is
