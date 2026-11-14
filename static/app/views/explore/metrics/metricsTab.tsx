@@ -177,6 +177,7 @@ function MetricsTabBodySection({
       metric: q.metric?.name,
       label: q.label,
       query: q.queryParams.search.formatString(),
+      visualizes: q.queryParams.visualizes.map(v => v.serialize()),
     })),
     interval,
     currentSelectedDateRange: pageFilters.selection.datetime,

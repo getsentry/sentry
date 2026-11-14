@@ -206,6 +206,7 @@ function SpanTabContentSectionInner({
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
+  const [interval] = useChartInterval();
 
   // In aggregate mode the table is driven by aggregateSortBys, not the
   // samples sort (which falls back to `-timestamp`), so pick accordingly.
@@ -221,7 +222,8 @@ function SpanTabContentSectionInner({
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery: query,
     activeTab: tab,
-    visualizes: visualizes.map(v => v.yAxis),
+    visualizes: visualizes.map(v => v.serialize()),
+    interval,
     groupBys: groupBys.filter(g => g !== ''),
     sortBys: activeSortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     currentSelectedDateRange: selection.datetime,
@@ -283,8 +285,6 @@ function SpanTabContentSectionInner({
         ...crossEventQueries,
       },
     });
-
-  const [interval] = useChartInterval();
 
   useAnalytics({
     queryType,

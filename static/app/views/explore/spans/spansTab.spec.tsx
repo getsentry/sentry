@@ -7,6 +7,7 @@ import {
   act,
   render,
   renderGlobalModal,
+  renderHookWithProviders,
   screen,
   userEvent,
   waitFor,
@@ -29,12 +30,23 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 
 import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
 import {SpansTabContent} from './spansTab';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
+}
+
+function PageContextWrapper({children}: {children: ReactNode}) {
+  return (
+    <Wrapper>
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />
+      {children}
+    </Wrapper>
+  );
 }
 
 jest.mock('sentry/utils/analytics');
@@ -370,6 +382,59 @@ describe('SpansTabContent', () => {
       'trace.explorer.metadata',
       expect.objectContaining({result_mode: 'aggregates'})
     );
+  });
+
+  it('captures per-axis transformations and the selected chart interval', async () => {
+    const visualizes = [
+      {yAxes: ['avg(span.duration)'], transformations: ['fill(zero)', 'smooth(sma,5)']},
+      {yAxes: ['avg(span.duration)'], transformations: ['fill(locf)']},
+      {yAxes: ['avg(span.duration)']},
+    ];
+    const {result} = renderHookWithProviders(usePageContextCapture, {
+      organization,
+      additionalWrapper: PageContextWrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            query: 'span.op:http.client',
+            aggregateField: [
+              JSON.stringify({groupBy: 'span.op'}),
+              ...visualizes.map(visualize => JSON.stringify(visualize)),
+            ],
+            interval: '3h',
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      const captured = result.current({
+        route: '/explore/traces/',
+        allowStructured: true,
+      });
+      expect(captured.isStructured).toBe(true);
+      const snapshot: LLMContextSnapshot = JSON.parse(captured.screenshot!);
+      expect(
+        snapshot.nodes.find(node => node.nodeType === 'traces-explorer')?.data
+      ).toEqual(
+        expect.objectContaining({
+          visualizes,
+          interval: '3h',
+          searchQuery: 'span.op:http.client',
+          groupBys: ['span.op'],
+          projectIds: [project.id],
+          projectSlugs: [project.slug],
+          projectSelectionMode: 'explicit',
+          currentSelectedDateRange: {
+            period: '7d',
+            start: null,
+            end: null,
+            utc: null,
+          },
+        })
+      );
+    });
   });
 
   it('publishes the aggregate sort to the LLM context in aggregate mode', async () => {

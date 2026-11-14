@@ -8,6 +8,7 @@ import {
 import {
   render,
   renderGlobalModal,
+  renderHookWithProviders,
   screen,
   userEvent,
   waitFor,
@@ -25,6 +26,8 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 
 import {defaultMetricQuery, encodeMetricQueryParams} from './metricQuery';
 import {MetricsTabContent} from './metricsTab';
@@ -94,6 +97,15 @@ describe('MetricsTabContent', () => {
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
     return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
+  }
+
+  function PageContextWrapper({children}: {children: React.ReactNode}) {
+    return (
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        {children}
+      </ProviderWrapper>
+    );
   }
 
   const initialRouterConfig = {
@@ -195,6 +207,65 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/stats_v2/`,
       method: 'GET',
       body: {},
+    });
+  });
+
+  it('captures per-axis transformations and the default chart interval', async () => {
+    const visualizes = [
+      {
+        yAxes: ['p50(value,bar,distribution,none)'],
+        transformations: ['fill(zero)', 'smooth(sma,5)'],
+      },
+      {yAxes: ['p50(value,bar,distribution,none)'], transformations: ['fill(locf)']},
+      {yAxes: ['p50(value,bar,distribution,none)']},
+    ];
+    const {result} = renderHookWithProviders(usePageContextCapture, {
+      organization,
+      additionalWrapper: PageContextWrapper,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialLocation,
+          query: {
+            ...initialLocation.query,
+            metric: [
+              JSON.stringify({
+                metric: {name: 'bar', type: 'distribution'},
+                query: 'host:api',
+                aggregateFields: visualizes,
+              }),
+            ],
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      const captured = result.current({
+        route: '/explore/metrics/',
+        allowStructured: true,
+      });
+      expect(captured.isStructured).toBe(true);
+      const snapshot: LLMContextSnapshot = JSON.parse(captured.screenshot!);
+      expect(
+        snapshot.nodes.find(node => node.nodeType === 'metrics-explorer')?.data
+      ).toEqual(
+        expect.objectContaining({
+          metricQueries: [
+            expect.objectContaining({metric: 'bar', query: 'host:api', visualizes}),
+          ],
+          interval: '1h',
+          projectIds: [project.id],
+          projectSlugs: [project.slug],
+          projectSelectionMode: 'explicit',
+          currentSelectedDateRange: {
+            period: '14d',
+            start: null,
+            end: null,
+            utc: null,
+          },
+        })
+      );
     });
   });
 
