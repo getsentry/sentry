@@ -10,6 +10,7 @@ from snuba_sdk import (
     Direction,
     Entity,
     Flags,
+    Function,
     Join,
     Op,
     OrderBy,
@@ -86,6 +87,24 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
     ) -> None:
         super().resolve_query(query, selected_columns, groupby_columns, equations, orderby)
         self.resolve_match()
+
+    def resolve_orderby(self, orderby: list[str] | str | None) -> list[OrderBy]:
+        validated = super().resolve_orderby(orderby)
+        if len(self.entities) < 2 or not self.aggregates:
+            return validated
+        # In a join, Snuba pushes unaliased expressions (such as the project slug
+        # `transform`) into the entity subquery under a generated alias that is not a
+        # GROUP BY key, which ClickHouse rejects. In an aggregate query these expressions
+        # can only be derived from GROUP BY keys, so `any()` returns the same value and
+        # keeps the expression in the outer query.
+        return [
+            (
+                OrderBy(Function("any", [order.exp]), order.direction)
+                if isinstance(order.exp, Function) and order.exp.alias is None
+                else order
+            )
+            for order in validated
+        ]
 
     def aliased_column(self, name: str) -> SelectType:
         aliased_col: SelectType = super().aliased_column(name)
