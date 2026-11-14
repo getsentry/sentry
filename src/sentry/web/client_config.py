@@ -22,6 +22,7 @@ from sentry.auth.services.auth import AuthenticationContext
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
+from sentry.features.frontend import ClientFeature
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import (
@@ -222,15 +223,15 @@ class _ClientConfig:
         }
 
     @property
-    def enabled_features(self) -> Iterable[str]:
+    def enabled_features(self) -> Iterable[ClientFeature]:
         if features.has("organizations:create", actor=self.user):
-            yield "organizations:create"
+            yield ClientFeature.CREATE_ORGANIZATION
         if auth.has_user_registration():
-            yield "auth:register"
+            yield ClientFeature.REGISTER
         if features.has("relocation:enabled", actor=self.user):
-            yield "relocation:enabled"
+            yield ClientFeature.RELOCATION
         if features.has("system:multi-region"):
-            yield "system:multi-region"
+            yield ClientFeature.MULTI_REGION
 
     @property
     def needs_upgrade(self) -> bool:
