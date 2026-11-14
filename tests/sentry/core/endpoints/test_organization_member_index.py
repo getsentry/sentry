@@ -19,6 +19,7 @@ from sentry.roles.manager import OrganizationRole
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
@@ -1063,4 +1064,27 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         assert (
             response.data["email"]
             == "The user with a 'member' role cannot have team-level permissions."
+        )
+
+
+class OrganizationMemberListMembershipScopeTest(OrganizationMemberListTestBase):
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_list_members(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.get_success_response(self.organization.slug)
+        assert {m["email"] for m in response.data} >= {self.user.email, self.user2.email}
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_cannot_invite_members(self) -> None:
+        self._use_token(["membership:read"])
+        self.get_error_response(
+            self.organization.slug, method="post", email="new@example.com", status_code=403
         )

@@ -1970,6 +1970,7 @@ SENTRY_SCOPES = {
     "alerts:write",
     "dashboard:read",
     "dashboard:write",
+    "membership:read",
     "saved_query:read",
     "saved_query:write",
     "seer:read",
@@ -1993,6 +1994,7 @@ SENTRY_READONLY_SCOPES = {
     "event:read",
     "alerts:read",
     "dashboard:read",
+    "membership:read",
     "saved_query:read",
     "seer:read",
     "service_account:read",
@@ -2027,6 +2029,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     # Granular scopes are explicit: write does not imply read, so a token that reads
     # and writes needs both scopes.
     "dashboard:write": {"dashboard:write"},
+    "membership:read": {"membership:read"},
     "saved_query:read": {"saved_query:read"},
     "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
@@ -2064,6 +2067,8 @@ GRANULAR_SCOPES = frozenset(
         "saved_query:write",
         "user_preference:read",
         "user_preference:write",
+        # Accepted by endpoints, but not granted by any role yet.
+        "membership:read",
     ]
 )
 
@@ -2089,6 +2094,8 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
         [
             # Removed once member:read has a full 1:1 translation to granular scopes.
             "member:read",
+            # Org and team membership reads.
+            "membership:read",
             "user_preference:read",
             "user_preference:write",
         ]
@@ -2159,6 +2166,7 @@ SENTRY_SCOPE_SETS = (
         ("dashboard:write", "Write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
+    (("membership:read", "Read access to organization and team membership."),),
     (
         ("saved_query:write", "Write access to saved queries."),
         ("saved_query:read", "Read access to saved queries."),

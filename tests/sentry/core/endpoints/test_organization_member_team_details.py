@@ -16,11 +16,14 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
@@ -1211,3 +1214,20 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
         assert resp.status_code == 400
         assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
+
+
+class OrganizationMemberTeamMembershipScopeTest(OrganizationMemberTeamTestBase):
+    method = "get"
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_get_team_membership(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.get_success_response(self.org.slug, self.member_on_team.id, self.team.slug)
+        assert response.data["isActive"] is True

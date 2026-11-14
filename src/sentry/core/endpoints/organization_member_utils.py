@@ -63,7 +63,7 @@ class MemberConflictValidationError(serializers.ValidationError):
 
 class RelaxedMemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
+        "GET": ["member:read", "member:write", "member:admin", "membership:read"],
         "POST": ["member:write", "member:admin"],
         "PUT": ["member:invite", "member:write", "member:admin"],
         # DELETE checks for role comparison as you can either remove a member

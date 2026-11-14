@@ -26,8 +26,15 @@ def test_translate_org_read_adds_granular_scopes() -> None:
     assert translate_deprecated_scopes(["org:read"]) == {"org:read"} | ORG_READ_GRANULAR_SCOPES
 
 
-def test_translate_member_read_adds_user_preference_scopes() -> None:
-    assert translate_deprecated_scopes(["member:read"]) == {"member:read"} | USER_PREFERENCE_SCOPES
+def test_translate_member_read_adds_granular_scopes() -> None:
+    assert (
+        translate_deprecated_scopes(["member:read"])
+        == {
+            "member:read",
+            "membership:read",
+        }
+        | USER_PREFERENCE_SCOPES
+    )
 
 
 def test_translate_org_read_keeps_org_read() -> None:

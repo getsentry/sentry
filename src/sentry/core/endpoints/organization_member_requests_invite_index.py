@@ -41,7 +41,7 @@ from sentry.notifications.utils.tasks import async_send_notification
 
 class InviteRequestPermissions(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
+        "GET": ["member:read", "member:write", "member:admin", "membership:read"],
         "POST": ["member:read", "member:write", "member:admin"],
     }
 
