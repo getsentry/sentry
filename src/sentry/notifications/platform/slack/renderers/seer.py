@@ -234,7 +234,6 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 organization.absolute_url(f"/settings/{organization.slug}/billing/overview/")
             )
         else:
-            # TODO(alexsohn): this click does nothing until the handler emails the admins.
             text = "Contact Admin"
             action = SlackAction.SEER_REQUEST_CREDITS
             style = None
