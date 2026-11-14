@@ -133,3 +133,29 @@ python -m sentry.apidocs.response_coverage --prune
 ```
 
 Don't add entries to the baseline; describe and type new fields instead.
+
+# Responses seen in tests
+
+API tests also check what public endpoints actually return. Every response that
+`APITestCase.get_response`, `get_success_response`, or `get_error_response` gets
+from a `PUBLIC` method is compared with `tests/apidocs/openapi-derefed.json`:
+
+- its status must be a key in the operation's `responses`, unless it is a 5xx;
+- a JSON body must match the schema documented for that status. A status
+  documented without a body, such as `RESPONSE_NOT_FOUND`, is only checked for
+  the status.
+
+The check is report-only for now. After the run, pytest prints a summary and
+writes every mismatch to `.artifacts/api-response-schema.json`. Known mismatches
+are listed in `tests/apidocs/response-schema-baseline.txt`. Without the schema,
+nothing is checked, so build it first:
+
+```shell
+make build-api-docs
+SENTRY_API_RESPONSE_SCHEMA=strict pytest tests/path/to/test_endpoint.py
+```
+
+`SENTRY_API_RESPONSE_SCHEMA` is `report` by default. `strict` fails a test whose
+response has a mismatch that isn't in the baseline, `update` adds the mismatches
+a run sees to the baseline, and `off` turns the check off. When you fix a listed
+mismatch, remove its line from the baseline.

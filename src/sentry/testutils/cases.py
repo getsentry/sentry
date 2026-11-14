@@ -151,6 +151,7 @@ from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import SpanMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
+from sentry.testutils import api_response_schema
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eap import EAPClient
@@ -662,6 +663,7 @@ class APITestCaseMixin:
         method = params.pop("method", self.method).lower()
 
         response: Response = getattr(self.client, method)(url, format=format, data=data, **headers)
+        api_response_schema.observe(response)
         return response
 
     def get_success_response(self, *args: Any, **params: Any) -> Response:
