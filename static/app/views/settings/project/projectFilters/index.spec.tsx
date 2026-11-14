@@ -1484,6 +1484,143 @@ describe('ProjectFilters', () => {
     expect(createMock).not.toHaveBeenCalled();
   });
 
+  describe('transaction name condition', () => {
+    const transactionNameOrg = OrganizationFixture({
+      ...inboundFiltersV2Org,
+      features: [...inboundFiltersV2Org.features, 'inbound-filters-transaction-name'],
+    });
+
+    async function openSpanFilterModal() {
+      await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.click(within(dialog).getByRole('textbox', {name: 'Data Type'}));
+      await userEvent.click(within(dialog).getByRole('menuitemradio', {name: 'Spans'}));
+      return dialog;
+    }
+
+    it('creates a span filter on the transaction name', async () => {
+      renderInboundFilters([], businessProject, transactionNameOrg);
+      const createMock = MockApiClient.addMockResponse({
+        url: CUSTOM_INBOUND_FILTERS_URL,
+        method: 'POST',
+        body: CustomInboundFilterFixture({id: '10', name: 'Health checks'}),
+      });
+
+      const dialog = await openSpanFilterModal();
+      await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
+      await userEvent.paste('Health checks');
+      await enterConditions('transaction_name:*/health*');
+      await userEvent.click(within(dialog).getByRole('button', {name: 'Create Filter'}));
+
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith(
+          CUSTOM_INBOUND_FILTERS_URL,
+          expect.objectContaining({
+            method: 'POST',
+            data: {
+              name: 'Health checks',
+              dataType: 'span',
+              conditions: [
+                {type: 'transaction_name', operator: 'glob', value: ['*/health*']},
+              ],
+            },
+          })
+        )
+      );
+    });
+
+    it('offers the condition on spans only with the feature', async () => {
+      renderInboundFilters([], businessProject, transactionNameOrg);
+
+      const dialog = await openSpanFilterModal();
+      await userEvent.click(
+        within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'transaction_name'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not offer the condition without the feature', async () => {
+      renderInboundFilters([]);
+
+      const dialog = await openSpanFilterModal();
+      await userEvent.click(
+        within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+      );
+
+      expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'transaction_name'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('round-trips a negated transaction name', async () => {
+      const conditions = [
+        {type: 'transaction_name', operator: 'does_not_start_with', value: ['/api']},
+      ];
+      renderInboundFilters(
+        [
+          CustomInboundFilterFixture({
+            id: '1',
+            name: 'Everything but the API',
+            dataType: 'span',
+            conditions,
+          }),
+        ],
+        businessProject,
+        transactionNameOrg
+      );
+      const editMock = MockApiClient.addMockResponse({
+        url: `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+        method: 'PUT',
+        body: CustomInboundFilterFixture({id: '1', name: 'Everything but the API'}),
+      });
+
+      expect(await screen.findByText('does not start with')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
+      const dialog = await screen.findByRole('dialog');
+      expect(
+        within(dialog).getByRole('button', {
+          name: 'Edit operator for filter: transaction_name',
+        })
+      ).toHaveTextContent('does not start with');
+
+      await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+      await waitFor(() =>
+        expect(editMock).toHaveBeenCalledWith(
+          `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {name: 'Everything but the API', dataType: 'span', conditions},
+          })
+        )
+      );
+    });
+
+    it('shows the condition label in the table', async () => {
+      renderInboundFilters(
+        [
+          CustomInboundFilterFixture({
+            id: '1',
+            name: 'Health checks',
+            dataType: 'span',
+            conditions: [
+              {type: 'transaction_name', operator: 'glob', value: ['*/health*']},
+            ],
+          }),
+        ],
+        businessProject,
+        transactionNameOrg
+      );
+
+      expect(await screen.findByText('Health checks')).toBeInTheDocument();
+      expect(screen.getByText('Transaction Name')).toBeInTheDocument();
+    });
+  });
+
   it('warns in the modal when an error condition targets an obfuscated platform', async () => {
     const warningLink = {name: 'Learn how to match the incoming error.'};
     renderInboundFilters(
