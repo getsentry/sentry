@@ -301,11 +301,21 @@ jobs:
       MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
-      XDIST_PER_WORKER_SNUBA: '1'
+      # Full runs: shards [0, BACKEND_SNUBA_SHARDS) run the tests that need Snuba,
+      # Kafka or Symbolicator, the rest run without them. 0 runs every shard with
+      # every service and records what each test file uses. Pick-shard sets
+      # XDIST_PER_WORKER_SNUBA. See .github/workflows/scripts/backend-test-services.py.
+      BACKEND_SNUBA_SHARDS: '23'
       XDIST_WORKERS: '4'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Pick shard services
+        env:
+          SELECTIVE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' }}
+          MATRIX_INSTANCE: ${{ matrix.instance }}
+        run: python3 .github/workflows/scripts/backend-test-services.py pick-shard
 
       - name: Start resource monitor
         run: python3 .github/workflows/scripts/monitor-resources.py --start
@@ -321,7 +331,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: backend-ci
+          mode: ${{ env.BACKEND_DEVSERVICES_MODE }}
           early-devservices: 'true'
 
       # Restart postgres with a Unix socket mount. Django's postgres driver uses TCP by
@@ -451,6 +461,16 @@ jobs:
           path: |
             .artifacts/resource-usage.jsonl
             .artifacts/resource-usage-summary.json
+          retention-days: 30
+
+      # backend-test-services.py builds backend-test-services.json from these.
+      - name: Upload service usage
+        if: ${{ !cancelled() && env.BACKEND_TEST_SERVICE_GUARD != '' && hashFiles('.artifacts/service-usage/*.json') != '' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-service-usage-${{ github.run_id }}-${{ matrix.instance }}
+          path: .artifacts/service-usage/*.json
           retention-days: 30
 
       - name: Report failures
