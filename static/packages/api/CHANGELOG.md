@@ -1,3 +1,9 @@
+## Unreleased
+
+### Bug Fixes
+
+- (api) Trim trailing slashes from the base URL before appending the API base path, so `https://sentry.io/` no longer requests `https://sentry.io//api/0` in [#130472](https://github.com/getsentry/sentry/pull/130472)
+
 ## 2.3.1
 
 ### Internal Changes

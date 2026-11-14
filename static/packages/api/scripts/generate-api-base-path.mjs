@@ -1,6 +1,7 @@
 /**
  * Export the API base path the spec's server URL declares, and put it between
- * the configured base URL, the Sentry origin, and each operation's path.
+ * the configured base URL, the Sentry origin, and each operation's path
+ * (`withApiBasePath` in lib/api-client/api-base-url.ts).
  */
 import { writeFileSync } from "node:fs";
 import { replaceOnce, srcPath, update } from "../lib/generated-source.mjs";
@@ -22,9 +23,9 @@ export function emit({ apiBasePath }) {
   update("client/utils.gen.ts", source => {
     source = replaceOnce(source,
       "import { getUrl } from '../core/utils.gen';",
-      "import { API_BASE_PATH } from '../api-base-path.gen';\nimport { getUrl } from '../core/utils.gen';");
+      "import { withApiBasePath } from '../api-client/api-base-url';\nimport { getUrl } from '../core/utils.gen';");
     return replaceOnce(source,
       "    baseUrl: options.baseUrl as string,\n",
-      "    baseUrl: `${(options.baseUrl as string | undefined) ?? ''}${API_BASE_PATH}`,\n");
+      "    baseUrl: withApiBasePath(options.baseUrl as string | undefined),\n");
   });
 }
