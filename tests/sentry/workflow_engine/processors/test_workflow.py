@@ -634,6 +634,20 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert WorkflowFireHistory.objects.count() == 3
         assert mock_trigger_action.call_count == 1
 
+    @patch("sentry.workflow_engine.processors.workflow.enqueue_alert_triggered_webhooks")
+    @patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
+    def test_enqueues_alert_triggered_webhooks(
+        self, mock_trigger_action: MagicMock, mock_enqueue: MagicMock
+    ) -> None:
+        self.create_workflow_action(workflow=self.error_workflow)
+
+        process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+
+        mock_enqueue.assert_called_once()
+        fire_histories, event_data = mock_enqueue.call_args.args
+        assert [h.workflow_id for h in fire_histories] == [self.error_workflow.id]
+        assert event_data == self.event_data
+
     def test_uses_issue_stream_workflows(self) -> None:
         issue_occurrence = self.build_occurrence()
         self.group_event.occurrence = issue_occurrence

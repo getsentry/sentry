@@ -12,6 +12,9 @@ class SentryAppEventType(StrEnum):
     EVENT_ALERT_TRIGGERED = "event_alert.triggered"
     ACTIVITY_ALERT_TRIGGERED = "activity_alert.triggered"
 
+    # alert (workflow) webhooks, sent to every subscribed app
+    ALERT_TRIGGERED = "alert.triggered"
+
     # external request webhooks
     EXTERNAL_ISSUE_CREATED = "external_issue.created"
     EXTERNAL_ISSUE_LINKED = "external_issue.linked"

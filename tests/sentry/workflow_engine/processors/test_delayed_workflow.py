@@ -1314,6 +1314,34 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             event_id=self.event1.event_id,
         ).exists()
 
+    @patch("sentry.workflow_engine.processors.delayed_workflow.enqueue_alert_triggered_webhooks")
+    @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
+    def test_fire_actions_for_groups__alert_webhooks(
+        self, mock_process: MagicMock, mock_enqueue: MagicMock
+    ) -> None:
+        mock_process.return_value = (
+            DataConditionGroupEvaluation(
+                result=False,
+                triggered=False,
+                data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
+            ),
+            [],
+        )
+        self.groups_to_dcgs = {self.group1.id: {self.workflow1_if_dcgs[0]}}
+
+        fire_actions_for_groups(
+            self.project.organization,
+            self.groups_to_dcgs,
+            self.group_to_groupevent,
+        )
+
+        histories = WorkflowFireHistory.objects.filter(group_id=self.group1.id)
+        calls_with_fires = [call for call in mock_enqueue.call_args_list if call.args[0]]
+        assert len(calls_with_fires) == 1
+        fire_histories, event_data = calls_with_fires[0].args
+        assert {h.id for h in fire_histories} == {h.id for h in histories}
+        assert event_data.group == self.group1
+
     @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_fire_actions_notification_uuid_propagation(
