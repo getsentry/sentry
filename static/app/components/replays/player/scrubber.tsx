@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useThrottledCallback} from '@tanstack/react-pacer';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
@@ -21,6 +22,16 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
 
   const [currentHoverTime] = useCurrentHoverTime();
 
+  // Seeking inside the `input` event makes every drag step a synchronous
+  // commit. On a busy page React's scheduled work can't run between steps, so
+  // each commit leaves work pending, and React counts the run as nested updates
+  // until it throws "Maximum update depth exceeded". `leading: false` moves the
+  // seek out of the event and coalesces a drag to about one seek per frame.
+  const throttledSetCurrentTime = useThrottledCallback(setCurrentTime, {
+    wait: 16,
+    leading: false,
+  });
+
   const durationMs = replay?.getDurationMs() ?? 0;
   const percentComplete = divide(currentTime, durationMs);
   const hoverPlace = divide(currentHoverTime || 0, durationMs);
@@ -41,7 +52,7 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
           min={0}
           max={durationMs}
           value={Math.round(currentTime)}
-          onChange={e => setCurrentTime(e.currentTarget.valueAsNumber || 0)}
+          onChange={e => throttledSetCurrentTime(e.currentTarget.valueAsNumber || 0)}
           aria-label={t('Seek slider')}
         />
       </RangeWrapper>
