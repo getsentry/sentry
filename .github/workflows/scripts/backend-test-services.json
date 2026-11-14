@@ -7,12 +7,24 @@
     "tests/integration/test_api.py": ["snuba"],
     "tests/integration/test_service.py": [],
     "tests/integration/test_sso.py": [],
-    "tests/relay_integration/lang/java/test_plugin.py": ["kafka", "symbolicator"],
-    "tests/relay_integration/lang/javascript/test_example.py": ["kafka", "symbolicator"],
-    "tests/relay_integration/lang/javascript/test_plugin.py": ["kafka", "symbolicator"],
+    "tests/relay_integration/lang/java/test_plugin.py": [
+      "kafka",
+      "snuba",
+      "symbolicator"
+    ],
+    "tests/relay_integration/lang/javascript/test_example.py": [
+      "kafka",
+      "snuba",
+      "symbolicator"
+    ],
+    "tests/relay_integration/lang/javascript/test_plugin.py": [
+      "kafka",
+      "snuba",
+      "symbolicator"
+    ],
     "tests/relay_integration/test_integration.py": ["kafka", "snuba"],
-    "tests/relay_integration/test_message_filters.py": ["kafka"],
-    "tests/relay_integration/test_sdk.py": ["kafka"],
+    "tests/relay_integration/test_message_filters.py": ["kafka", "snuba"],
+    "tests/relay_integration/test_sdk.py": ["kafka", "snuba"],
     "tests/sentry/agent_handoff/endpoints/test_organization_agent_handoff.py": [],
     "tests/sentry/agent_handoff/test_codes.py": [],
     "tests/sentry/agent_handoff/test_runbook.py": [],
@@ -505,7 +517,7 @@
     "tests/sentry/event_manager/grouping/test_assign_to_group.py": ["snuba"],
     "tests/sentry/event_manager/grouping/test_group_creation_lock.py": ["snuba"],
     "tests/sentry/event_manager/grouping/test_grouphash_metadata.py": ["snuba"],
-    "tests/sentry/event_manager/grouping/test_seer_grouping.py": ["kafka"],
+    "tests/sentry/event_manager/grouping/test_seer_grouping.py": ["kafka", "snuba"],
     "tests/sentry/event_manager/interfaces/test_breadcrumbs.py": [],
     "tests/sentry/event_manager/interfaces/test_contexts.py": [],
     "tests/sentry/event_manager/interfaces/test_csp.py": [],
@@ -526,7 +538,7 @@
     "tests/sentry/event_manager/test_auto_tags.py": [],
     "tests/sentry/event_manager/test_ensure_has_ip.py": [],
     "tests/sentry/event_manager/test_event_manager.py": ["kafka", "snuba"],
-    "tests/sentry/event_manager/test_event_manager_grouping.py": ["kafka"],
+    "tests/sentry/event_manager/test_event_manager_grouping.py": ["kafka", "snuba"],
     "tests/sentry/event_manager/test_first_seen_action_log.py": ["snuba"],
     "tests/sentry/event_manager/test_generate_culprit.py": [],
     "tests/sentry/event_manager/test_normalization.py": [],
@@ -558,7 +570,7 @@
     "tests/sentry/explore/translation/test_discover_translation.py": [],
     "tests/sentry/features/test_flagpole_context.py": [],
     "tests/sentry/features/test_manager.py": [],
-    "tests/sentry/feedback/endpoints/test_error_page_embed.py": ["kafka"],
+    "tests/sentry/feedback/endpoints/test_error_page_embed.py": ["kafka", "snuba"],
     "tests/sentry/feedback/endpoints/test_organization_feedback_categories.py": [
       "kafka",
       "snuba"
@@ -574,11 +586,11 @@
     "tests/sentry/feedback/endpoints/test_project_user_reports.py": ["kafka", "snuba"],
     "tests/sentry/feedback/lib/test_feedback_utils.py": [],
     "tests/sentry/feedback/lib/test_label_query.py": ["kafka", "snuba"],
-    "tests/sentry/feedback/tasks/test_update_user_reports.py": ["kafka"],
+    "tests/sentry/feedback/tasks/test_update_user_reports.py": ["kafka", "snuba"],
     "tests/sentry/feedback/usecases/ingest/test_create_feedback.py": ["kafka", "snuba"],
     "tests/sentry/feedback/usecases/ingest/test_save_event_feedback.py": ["snuba"],
-    "tests/sentry/feedback/usecases/ingest/test_shim_to_feedback.py": ["kafka"],
-    "tests/sentry/feedback/usecases/ingest/test_userreport.py": ["kafka"],
+    "tests/sentry/feedback/usecases/ingest/test_shim_to_feedback.py": ["kafka", "snuba"],
+    "tests/sentry/feedback/usecases/ingest/test_userreport.py": ["kafka", "snuba"],
     "tests/sentry/feedback/usecases/test_label_generation.py": [],
     "tests/sentry/feedback/usecases/test_spam_detection.py": [],
     "tests/sentry/feedback/usecases/test_title_generation.py": [],
@@ -593,7 +605,7 @@
     "tests/sentry/grouping/enhancements/test_hints.py": [],
     "tests/sentry/grouping/seer_similarity/test_get_seer_similar_issues.py": ["snuba"],
     "tests/sentry/grouping/seer_similarity/test_seer.py": [],
-    "tests/sentry/grouping/seer_similarity/test_seer_eligibility.py": ["kafka"],
+    "tests/sentry/grouping/seer_similarity/test_seer_eligibility.py": ["kafka", "snuba"],
     "tests/sentry/grouping/seer_similarity/test_training_mode.py": ["snuba"],
     "tests/sentry/grouping/test_benchmark.py": [],
     "tests/sentry/grouping/test_builtin_fingerprinting.py": ["snuba"],
@@ -681,13 +693,19 @@
     "tests/sentry/incidents/utils/test_subscription_limits.py": [],
     "tests/sentry/ingest/ingest_consumer/test_attachment_event.py": [],
     "tests/sentry/ingest/ingest_consumer/test_dlq.py": [],
-    "tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py": ["kafka"],
+    "tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py": [
+      "kafka",
+      "snuba"
+    ],
     "tests/sentry/ingest/ingest_consumer/test_ingest_consumer_processing.py": [
       "kafka",
       "snuba",
       "symbolicator"
     ],
-    "tests/sentry/ingest/ingest_consumer/test_ingest_consumer_transactions.py": ["kafka"],
+    "tests/sentry/ingest/ingest_consumer/test_ingest_consumer_transactions.py": [
+      "kafka",
+      "snuba"
+    ],
     "tests/sentry/ingest/test_inbound_filters.py": [],
     "tests/sentry/ingest/test_legacy_filter_lists.py": [],
     "tests/sentry/ingest/test_transaction_clusterer.py": [],
@@ -1088,7 +1106,7 @@
     "tests/sentry/issues/endpoints/test_actionable_items.py": ["snuba"],
     "tests/sentry/issues/endpoints/test_debug_group_derived_data.py": ["snuba"],
     "tests/sentry/issues/endpoints/test_event_grouping_info.py": ["snuba"],
-    "tests/sentry/issues/endpoints/test_event_owners.py": ["kafka"],
+    "tests/sentry/issues/endpoints/test_event_owners.py": ["kafka", "snuba"],
     "tests/sentry/issues/endpoints/test_event_reprocessable.py": ["snuba"],
     "tests/sentry/issues/endpoints/test_group.py": ["snuba"],
     "tests/sentry/issues/endpoints/test_group_activities.py": ["snuba"],
@@ -1398,7 +1416,8 @@
     "tests/sentry/notebooks/endpoints/serializers/test_notebook.py": [],
     "tests/sentry/notebooks/endpoints/test_base.py": [],
     "tests/sentry/notebooks/endpoints/test_organization_notebook_action_request_apply.py": [
-      "kafka"
+      "kafka",
+      "snuba"
     ],
     "tests/sentry/notebooks/endpoints/test_organization_notebook_block_details.py": [],
     "tests/sentry/notebooks/endpoints/test_organization_notebook_block_execution_details.py": [],
@@ -2168,7 +2187,7 @@
     "tests/sentry/snuba/test_profiles.py": [],
     "tests/sentry/snuba/test_query_subscription_consumer.py": ["snuba"],
     "tests/sentry/snuba/test_rpc_dataset_common.py": [],
-    "tests/sentry/snuba/test_subscriptions.py": ["kafka"],
+    "tests/sentry/snuba/test_subscriptions.py": ["kafka", "snuba"],
     "tests/sentry/snuba/test_tasks.py": ["snuba"],
     "tests/sentry/snuba/test_transactions.py": ["snuba"],
     "tests/sentry/snuba/test_transactions_timeseries_query.py": ["snuba"],
@@ -2336,7 +2355,7 @@
     "tests/sentry/uptime/autodetect/test_url_extraction.py": [],
     "tests/sentry/uptime/consumers/test_eap_converter.py": [],
     "tests/sentry/uptime/consumers/test_eap_producer.py": [],
-    "tests/sentry/uptime/consumers/test_results_consumer.py": ["kafka"],
+    "tests/sentry/uptime/consumers/test_results_consumer.py": ["kafka", "snuba"],
     "tests/sentry/uptime/consumers/test_tasks.py": ["kafka"],
     "tests/sentry/uptime/endpoints/test_detector.py": [],
     "tests/sentry/uptime/endpoints/test_organization_uptime_alert_index.py": [],
@@ -2422,7 +2441,7 @@
     "tests/sentry/utils/locking/backends/test_migration.py": [],
     "tests/sentry/utils/locking/backends/test_redis.py": [],
     "tests/sentry/utils/locking/test_lock.py": [],
-    "tests/sentry/utils/mockdata/test_core.py": ["snuba"],
+    "tests/sentry/utils/mockdata/test_core.py": ["kafka", "snuba"],
     "tests/sentry/utils/sdk_crashes/test_build_sdk_crash_detection_configs.py": [],
     "tests/sentry/utils/sdk_crashes/test_event_stripper.py": ["snuba"],
     "tests/sentry/utils/sdk_crashes/test_path_replacer.py": [],
@@ -2598,7 +2617,8 @@
     "tests/sentry/workflow_engine/endpoints/test_organization_deduplicate_workflows.py": [],
     "tests/sentry/workflow_engine/endpoints/test_organization_detector_count.py": [],
     "tests/sentry/workflow_engine/endpoints/test_organization_detector_details.py": [
-      "kafka"
+      "kafka",
+      "snuba"
     ],
     "tests/sentry/workflow_engine/endpoints/test_organization_detector_index.py": [
       "kafka",
@@ -2768,7 +2788,7 @@
     "tests/sentry/workflow_engine/tasks/test_health_check.py": [],
     "tests/sentry/workflow_engine/tasks/test_utils.py": ["snuba"],
     "tests/sentry/workflow_engine/tasks/test_workflows.py": [],
-    "tests/sentry/workflow_engine/test_integration.py": ["snuba"],
+    "tests/sentry/workflow_engine/test_integration.py": ["kafka", "snuba"],
     "tests/sentry/workflow_engine/test_task.py": ["snuba"],
     "tests/sentry/workflow_engine/test_task_integration.py": ["snuba"],
     "tests/sentry/workflow_engine/test_transformers.py": [],
@@ -2890,7 +2910,7 @@
     "tests/snuba/tsdb/test_tsdb_backend.py": ["snuba"],
     "tests/social_auth/test_utils.py": [],
     "tests/symbolicator/test_minidump_full.py": ["kafka", "snuba", "symbolicator"],
-    "tests/symbolicator/test_payload_full.py": ["kafka", "symbolicator"],
-    "tests/symbolicator/test_unreal_full.py": ["kafka", "symbolicator"]
+    "tests/symbolicator/test_payload_full.py": ["kafka", "snuba", "symbolicator"],
+    "tests/symbolicator/test_unreal_full.py": ["kafka", "snuba", "symbolicator"]
   }
 }

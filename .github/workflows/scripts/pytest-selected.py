@@ -272,6 +272,10 @@ def run_colored_shard(args: list[str], total: int, group: int, color: str) -> in
         f"{snuba_seconds:.0f} of {sum(weights.values()):.0f} test-seconds need Snuba",
         file=sys.stderr,
     )
+    # Like TOTAL_TEST_GROUPS below: tests that run pytest-selected.py
+    # themselves must not inherit this shard's plan.
+    os.environ.pop("BACKEND_TEST_SERVICE_COLOR")
+    os.environ.pop("BACKEND_SNUBA_SHARDS", None)
     if color == "lite":
         # A guard failure is deterministic, so don't rerun it.
         os.environ["PYTEST_ADDOPTS"] = (

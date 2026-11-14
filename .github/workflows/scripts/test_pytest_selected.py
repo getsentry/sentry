@@ -380,6 +380,9 @@ def run_colored_main(
 
     def fake_main(args: list[str]) -> pytest.ExitCode:
         addopts.append(os.environ["PYTEST_ADDOPTS"])
+        # Tests that run pytest-selected.py themselves mustn't inherit the plan.
+        assert "BACKEND_TEST_SERVICE_COLOR" not in os.environ
+        assert "BACKEND_SNUBA_SHARDS" not in os.environ
         return pytest.ExitCode.OK
 
     env = {
