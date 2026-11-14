@@ -159,6 +159,21 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_performance_metrics_disables_without_snuba(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            subscription_id=f"1/{uuid4().hex}",
+            dataset=Dataset.PerformanceMetrics,
+            query='http.url:"http://example.com/*"',
+            aggregate="p90(transaction.duration)",
+        )
+        with patch.object(_snuba_pool, "urlopen") as urlopen:
+            create_subscription_in_snuba(sub.id)
+        urlopen.assert_not_called()
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.DISABLED.value
+        assert sub.subscription_id is None
+
     def test_broken_query(self) -> None:
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING,
@@ -444,6 +459,44 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         )
         update_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+        assert sub.subscription_id != subscription_id
+
+    def test_performance_metrics_disables_without_snuba(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING,
+            subscription_id=f"1/{uuid4().hex}",
+            dataset=Dataset.PerformanceMetrics,
+            query='http.url:"http://example.com/*"',
+            aggregate="p90(transaction.duration)",
+        )
+        with patch.object(_snuba_pool, "urlopen") as urlopen:
+            update_subscription_in_snuba(sub.id)
+        urlopen.assert_not_called()
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.DISABLED.value
+        assert sub.subscription_id is None
+
+    def test_from_performance_metrics_skips_snuba_delete(self) -> None:
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING,
+            subscription_id=subscription_id,
+            dataset=Dataset.Transactions,
+            query="",
+            aggregate="p90(transaction.duration)",
+        )
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+            update_subscription_in_snuba(
+                sub.id,
+                old_query_type=SnubaQuery.Type.PERFORMANCE.value,
+                old_dataset=Dataset.PerformanceMetrics.value,
+                old_aggregate="p90(transaction.duration)",
+                old_query='http.url:"http://example.com/*"',
+            )
+        assert [call.args[0] for call in urlopen.call_args_list] == ["POST"]
+        sub.refresh_from_db()
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
         assert sub.subscription_id != subscription_id
