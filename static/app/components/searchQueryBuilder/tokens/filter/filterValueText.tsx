@@ -137,7 +137,29 @@ function TruncatedFilterDisplayValue({
       return;
     }
 
+    // Observe the search bar (or viewport) — not the value itself. After
+    // truncating the chip is content-sized, so it won't grow on window expand
+    // unless we re-fit from an ancestor that actually resized.
+    const observed =
+      element.closest('[data-test-id="search-query-builder"]') ??
+      document.documentElement;
+
     let isFitting = false;
+    // The measurement expands the value to its full text, which lets
+    // content-sized ancestors (and sibling values sharing the same row) reflow.
+    // That can make consecutive fits alternate between the full and truncated
+    // value forever (each committed value re-triggering the next fit), which
+    // React aborts with "Maximum update depth exceeded". Track the last two
+    // results (and the observed container width each was measured at) so we can
+    // detect an A -> B -> A flip that happens without the container resizing,
+    // and pin the shorter value until the observed container actually grows.
+    // A flip that follows a genuine resize (shrink then grow) is not pinned.
+    let previousResult: string | undefined;
+    let previousObservedWidth: number | undefined;
+    let lastResult: string | undefined;
+    let lastObservedWidth: number | undefined;
+    let pinned: {observedWidth: number; result: string} | undefined;
+
     const update = () => {
       if (isFitting) {
         return;
@@ -145,7 +167,41 @@ function TruncatedFilterDisplayValue({
       isFitting = true;
       // oxlint-disable-next-line react/todo
       try {
-        const next = fitMiddleEllipsisToElement(value, fallbackMaxLength, element, multi);
+        const observedWidth = observed.clientWidth;
+        if (pinned && observedWidth > pinned.observedWidth) {
+          // The container genuinely grew, so allow re-fitting from scratch.
+          pinned = undefined;
+          previousResult = undefined;
+          previousObservedWidth = undefined;
+          lastResult = undefined;
+          lastObservedWidth = undefined;
+        }
+
+        let next = fitMiddleEllipsisToElement(value, fallbackMaxLength, element, multi);
+
+        if (pinned) {
+          if (next.length > pinned.result.length) {
+            next = pinned.result;
+          } else {
+            pinned = {observedWidth, result: next};
+          }
+        } else if (
+          previousResult !== undefined &&
+          lastResult !== undefined &&
+          next === previousResult &&
+          next !== lastResult &&
+          observedWidth === previousObservedWidth &&
+          observedWidth === lastObservedWidth
+        ) {
+          const shorter = next.length <= lastResult.length ? next : lastResult;
+          pinned = {observedWidth, result: shorter};
+          next = shorter;
+        }
+
+        previousResult = lastResult;
+        previousObservedWidth = lastObservedWidth;
+        lastResult = next;
+        lastObservedWidth = observedWidth;
         setDisplayValue(prev => (prev === next ? prev : next));
       } finally {
         isFitting = false;
@@ -157,13 +213,6 @@ function TruncatedFilterDisplayValue({
     if (typeof ResizeObserver === 'undefined') {
       return;
     }
-
-    // Observe the search bar (or viewport) — not the value itself. After
-    // truncating the chip is content-sized, so it won't grow on window expand
-    // unless we re-fit from an ancestor that actually resized.
-    const observed =
-      element.closest('[data-test-id="search-query-builder"]') ??
-      document.documentElement;
 
     const observer = new ResizeObserver(update);
     observer.observe(observed);
