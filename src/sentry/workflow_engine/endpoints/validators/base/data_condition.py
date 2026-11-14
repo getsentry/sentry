@@ -10,7 +10,12 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     validate_json_primitive,
     validate_json_schema,
 )
-from sentry.workflow_engine.models.data_condition import CONDITION_OPS, Condition, DataCondition
+from sentry.workflow_engine.models.data_condition import (
+    CONDITION_OPS,
+    Condition,
+    DataCondition,
+    get_internal_condition_types,
+)
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler
 
@@ -56,6 +61,13 @@ class AbstractDataConditionValidator(
 class BaseDataConditionValidator(
     AbstractDataConditionValidator[Any, Any],
 ):
+    def validate_type(self, value: str) -> str:
+        if value in get_internal_condition_types():
+            raise serializers.ValidationError(
+                "Internal conditions cannot be configured through the API."
+            )
+        return value
+
     @property
     def condition_type(self) -> Condition:
         if isinstance(self.initial_data, list) and self.initial_data:

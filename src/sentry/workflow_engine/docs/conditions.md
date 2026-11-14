@@ -465,8 +465,11 @@ the buffered condition cannot fire.
 
 Once registered, the handler appears in
 [`OrganizationDataConditionIndexEndpoint`](../endpoints/organization_data_condition_index.py)
-under its `group`, unless it is in `LEGACY_CONDITIONS`. The endpoint exposes the type,
-group, optional subgroup, and comparison schema.
+under its `group`, unless it is in `LEGACY_CONDITIONS` or sets `is_internal = True`.
+The endpoint exposes the type, group, optional subgroup, and comparison schema.
+
+Internal conditions also reject API configuration, including group reuse by ID.
+Provision them through model saves, which still validate the comparison schema.
 
 Stored conditions serialize through
 [`DataConditionSerializer`](../endpoints/serializers/data_condition_serializer.py).

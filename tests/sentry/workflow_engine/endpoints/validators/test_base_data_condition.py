@@ -11,6 +11,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionValidator,
 )
 from sentry.workflow_engine.models import Condition
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler
 
 
@@ -59,6 +60,18 @@ class TestBaseDataConditionValidator(TestCase):
 
 
 class TestRegisteredComparisonSchemas(TestCase):
+    def test_internal_condition_rejected_but_model_provisioning_allowed(self) -> None:
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            validator = self._validator(Condition.FIRST_SEEN_EVENT, True)
+            assert not validator.is_valid()
+            assert "Internal conditions" in str(validator.errors["type"])
+            condition = self.create_data_condition(
+                type=Condition.FIRST_SEEN_EVENT, comparison=True, condition_result=True
+            )
+            condition.refresh_from_db()
+            assert condition.comparison is True
+
     def _validator(self, condition: Condition, comparison: Any) -> BaseDataConditionValidator:
         return BaseDataConditionValidator(
             data={

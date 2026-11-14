@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from sentry.apidocs.extensions import (
     WorkflowActionSerializerExtension,
@@ -7,7 +7,12 @@ from sentry.apidocs.extensions import (
     _metric_config_schema,
 )
 from sentry.incidents.grouptype import MetricIssueDetectorSettings
+from sentry.workflow_engine.endpoints.serializers.response_schemas import (
+    condition_comparison_sources,
+)
 from sentry.workflow_engine.endpoints.validators.base.action import BaseActionValidator
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler
 
 
@@ -81,3 +86,18 @@ def test_workflow_condition_openapi_schema_documents_registered_conditions() -> 
     assert "issue_priority_greater_or_equal" in filter_types
     assert "issue_priority_equals" not in filter_types
     assert "issue_open_duration" not in filter_types
+
+
+def test_condition_schemas_exclude_internal_handlers() -> None:
+    handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+    with patch.object(handler, "is_internal", True):
+        trigger_schema = _condition_schema(DataConditionHandler.Group.WORKFLOW_TRIGGER)
+        comparison_sources = dict(condition_comparison_sources())
+
+    trigger_types = {
+        variant["properties"]["type"]["enum"][0] for variant in trigger_schema["oneOf"]
+    }
+    assert Condition.FIRST_SEEN_EVENT not in trigger_types
+    assert Condition.FIRST_SEEN_EVENT not in comparison_sources
+    assert Condition.SEER_ACTIVITY_TRIGGER in trigger_types
+    assert Condition.SEER_ACTIVITY_TRIGGER in comparison_sources
