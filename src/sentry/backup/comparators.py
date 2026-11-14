@@ -1016,6 +1016,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "replays.organizationmemberreplayaccess": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "replays.teamreplayaccess": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.projectrepository": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],

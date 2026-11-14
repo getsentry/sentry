@@ -116,7 +116,7 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
-from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.replays.models import OrganizationMemberReplayAccess, TeamReplayAccess
 from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
@@ -503,6 +503,7 @@ class ExhaustiveFixtures(Fixtures):
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
         self.create_team_membership(user=owner, team=team)
+        TeamReplayAccess.objects.create(team=team)
         OrganizationAccessRequest.objects.create(member=invited, team=team, requester_id=owner_id)
 
         # Project*

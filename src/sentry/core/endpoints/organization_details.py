@@ -87,6 +87,7 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team, TeamStatus
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -94,7 +95,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteState,
 )
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
-from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.replays.models import OrganizationMemberReplayAccess, TeamReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.services.organization.provisioning import organization_provisioning_service
@@ -362,6 +363,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         allow_null=True,
         help_text="List of user IDs that have access to replay data. Only modifiable by owners and managers.",
     )
+    replayAccessTeams = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_null=True,
+        help_text="List of team IDs whose members have access to replay data. Only modifiable by owners and managers.",
+    )
 
     def _has_sso_enabled(self) -> bool:
         org = self.context["organization"]
@@ -500,6 +507,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_replayAccessMembers(self, value: list[int] | None) -> list[int] | None:
+        self._validate_granular_replay_permissions()
+        return value
+
+    def validate_replayAccessTeams(self, value: list[int] | None) -> list[int] | None:
         self._validate_granular_replay_permissions()
         return value
 
@@ -682,6 +693,51 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     changes.append(f"removed {len(to_remove)} user(s)")
                 changed_data["replayAccessMembers"] = (
                     f"{' and '.join(changes)} (total: {len(new_user_ids)} user(s) with access)"
+                )
+
+        if "replayAccessTeams" in data:
+            team_ids = set(data["replayAccessTeams"] or [])
+
+            current_team_ids = set(
+                TeamReplayAccess.objects.filter(team__organization=org).values_list(
+                    "team_id", flat=True
+                )
+            )
+            teams_to_add = team_ids - current_team_ids
+            teams_to_remove = current_team_ids - team_ids
+
+            if teams_to_add:
+                valid_team_ids = set(
+                    Team.objects.filter(
+                        organization=org, id__in=teams_to_add, status=TeamStatus.ACTIVE
+                    ).values_list("id", flat=True)
+                )
+                invalid_team_ids = teams_to_add - valid_team_ids
+                if invalid_team_ids:
+                    raise serializers.ValidationError(
+                        {
+                            "replayAccessTeams": f"Invalid team IDs (not teams of this organization): {sorted(invalid_team_ids)}"
+                        }
+                    )
+
+                TeamReplayAccess.objects.bulk_create(
+                    [TeamReplayAccess(team_id=team_id) for team_id in teams_to_add],
+                    ignore_conflicts=True,
+                )
+
+            if teams_to_remove:
+                TeamReplayAccess.objects.filter(
+                    team__organization=org, team_id__in=teams_to_remove
+                ).delete()
+
+            if teams_to_add or teams_to_remove:
+                changes = []
+                if teams_to_add:
+                    changes.append(f"added {len(teams_to_add)} team(s)")
+                if teams_to_remove:
+                    changes.append(f"removed {len(teams_to_remove)} team(s)")
+                changed_data["replayAccessTeams"] = (
+                    f"{' and '.join(changes)} (total: {len(team_ids)} team(s) with access)"
                 )
 
         if "openMembership" in data:
@@ -891,6 +947,12 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     replayAccessMembers = serializers.ListField(
         child=serializers.IntegerField(),
         help_text="A list of user IDs who have permission to access replay data. Requires the hasGranularReplayPermissions flag to be true to be enforced.",
+        required=False,
+        allow_null=True,
+    )
+    replayAccessTeams = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="A list of team IDs whose members have permission to access replay data. Membership is evaluated on each request, so access follows team membership, including membership provisioned through SCIM. Requires the hasGranularReplayPermissions flag to be true to be enforced.",
         required=False,
         allow_null=True,
     )

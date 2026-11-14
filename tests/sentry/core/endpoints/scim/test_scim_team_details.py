@@ -8,9 +8,11 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
+from sentry.replays.models import TeamReplayAccess
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SCIMTestCase
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
@@ -573,6 +575,39 @@ class SCIMDetailPatchTest(SCIMTestCase):
             team_id=self.team.id, organizationmember_id=self.member_on_team.id
         ).exists()
         assert Team.objects.get(id=self.team.id).idp_provisioned
+
+    def test_remove_member_revokes_team_replay_access(self) -> None:
+        user = self.create_user()
+        member = self.create_member(
+            user=user,
+            organization=self.organization,
+            teams=[self.team],
+            flags=OrganizationMember.flags["sso:linked"],
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthIdentity.objects.create(
+                user_id=user.id, auth_provider=self.auth_provider_inst, ident="replay_ident"
+            )
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:granular-replay-permissions", value=True
+        )
+        TeamReplayAccess.objects.create(team=self.team)
+        replays_url = f"/api/0/organizations/{self.organization.slug}/replays/"
+
+        with self.feature("organizations:session-replay"):
+            self.login_as(user=user, organization_id=self.organization.id)
+            assert self.client.get(replays_url).status_code == 200
+
+            self.login_as(user=self.scim_user)
+            self.base_data["Operations"] = [
+                {"op": "remove", "path": f'members[value eq "{member.id}"]'}
+            ]
+            self.get_success_response(
+                self.organization.slug, self.team.id, **self.base_data, status_code=204
+            )
+
+            self.login_as(user=user, organization_id=self.organization.id)
+            assert self.client.get(replays_url).status_code == 403
 
     def test_remove_member_not_on_team(self) -> None:
         self.base_data["Operations"] = [
