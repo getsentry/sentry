@@ -707,11 +707,43 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
         assert len(open_periods) == 2
         open_period = open_periods[0]
-        assert open_period.date_started == regression_activity.datetime
+        assert open_period.date_started == event2.datetime
+        assert open_period.date_started < regression_activity.datetime
         assert open_period.date_ended is None
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
         assert open_period.date_ended == resolved_at
+
+    def test_regression_open_period_starts_after_previous_end(self) -> None:
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32, checksum="a" * 32, timestamp=before_now(minutes=5).isoformat()
+            )
+        )
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        assert event.group_id is not None
+        group = Group.objects.get(id=event.group_id)
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+        resolved_at = before_now(minutes=2)
+        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).close_open_period(
+            resolution_time=resolved_at,
+        )
+
+        # Event time is before the previous open period ended.
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
+            )
+        )
+        event2 = manager.save(self.project.id)
+        assert event2.group_id == group.id
+
+        latest = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        assert latest is not None
+        assert latest.date_started == resolved_at + timedelta(microseconds=1)
+        assert latest.date_ended is None
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
