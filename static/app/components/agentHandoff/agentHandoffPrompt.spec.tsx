@@ -18,6 +18,7 @@ describe('AgentHandoffPrompt', () => {
   const context = {runId: 'a'.repeat(32)};
   const feedbackSource = 'agent-handoff-prompt-test';
   const code = 'sntryh_example';
+  const handoffId = 'a'.repeat(32);
   const prompt =
     'Follow the instructions verbatim at https://sentry-jest-tests.example.com/agent-handoff/. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
@@ -43,7 +44,7 @@ describe('AgentHandoffPrompt', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     const onCopySuccess = jest.fn();
 
@@ -67,6 +68,7 @@ describe('AgentHandoffPrompt', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
 
     await waitFor(() => expect(onCopySuccess).toHaveBeenCalledTimes(1));
+    expect(onCopySuccess).toHaveBeenCalledWith(handoffId);
     expect(mint).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
@@ -89,7 +91,7 @@ describe('AgentHandoffPrompt', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     render(
       <AgentHandoffPrompt

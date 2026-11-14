@@ -8,6 +8,7 @@ export type ProjectCreationVariant = 'scm' | 'legacy';
 
 export type ProjectCreationEventParameters = {
   'project_creation.agent_setup_command_copied': {
+    handoff_id: string;
     source: 'install_command' | 'prompt';
     variant: ProjectCreationVariant;
     run_id?: string;

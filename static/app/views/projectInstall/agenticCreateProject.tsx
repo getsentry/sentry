@@ -83,11 +83,12 @@ export function AgenticCreateProject({
     onSessionChange: setSession,
   });
 
-  const handleCopyCommand = (source: AgentSetupCopySource) => {
+  const handleCopyCommand = (source: AgentSetupCopySource, handoffId: string) => {
     trackAnalytics('project_creation.agent_setup_command_copied', {
       organization,
       variant: 'scm',
       source,
+      handoff_id: handoffId,
       run_id: run?.runId,
     });
   };
