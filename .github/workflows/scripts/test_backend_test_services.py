@@ -59,6 +59,7 @@ GUARDED_TESTS = """
 import socket
 
 import confluent_kafka
+import confluent_kafka.admin
 
 
 def test_swallowed_snuba_error():
@@ -70,6 +71,10 @@ def test_swallowed_snuba_error():
 
 def test_kafka_client():
     confluent_kafka.Producer({"bootstrap.servers": "127.0.0.1:9092"})
+
+
+def test_kafka_admin_client():
+    confluent_kafka.admin.AdminClient({"bootstrap.servers": "127.0.0.1:9092"})
 
 
 def test_other_port():
@@ -96,6 +101,7 @@ def test_guard(tmp_path: Path, mode: str) -> None:
         assert result.returncode == 0, result.stdout
     else:
         assert result.returncode == 1, result.stdout
-        assert "2 failed, 1 passed" in result.stdout
+        assert "3 failed, 1 passed" in result.stdout
         assert "test_swallowed_snuba_error used snuba on a lite shard" in result.stdout
         assert "test_kafka_client used kafka on a lite shard" in result.stdout
+        assert "test_kafka_admin_client used kafka on a lite shard" in result.stdout

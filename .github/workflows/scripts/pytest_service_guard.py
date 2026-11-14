@@ -103,13 +103,21 @@ def _install_kafka_hook() -> None:
         Guarded.__module__ = base.__module__
         return Guarded
 
-    for module, name in (
-        (confluent_kafka, "Producer"),
-        (confluent_kafka, "Consumer"),
-        (confluent_kafka.admin, "AdminClient"),
-    ):
-        setattr(module, name, guarded(getattr(module, name)))
-    confluent_kafka.AdminClient = confluent_kafka.admin.AdminClient  # type: ignore[attr-defined]
+    # Producer and Consumer are C types, so wrap them in subclasses.
+    for name in ("Producer", "Consumer"):
+        setattr(confluent_kafka, name, guarded(getattr(confluent_kafka, name)))
+
+    # AdminClient.__init__ calls super(AdminClient, self) by its module global
+    # name, so a subclass under that name would recurse. Wrap it in place.
+    admin = confluent_kafka.admin.AdminClient
+    admin_init = admin.__init__
+
+    def guarded_admin_init(self: Any, *args: Any, **kwargs: Any) -> None:
+        _hit("kafka")
+        admin_init(self, *args, **kwargs)
+
+    admin.__init__ = guarded_admin_init  # type: ignore[method-assign]
+    admin._guarded = True  # type: ignore[attr-defined]
 
 
 if MODE:
