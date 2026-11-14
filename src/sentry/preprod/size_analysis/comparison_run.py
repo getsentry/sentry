@@ -14,9 +14,12 @@ from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
 from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
+from sentry.utils import metrics
 from sentry.utils.json import dumps_htmlsafe
 
 logger = logging.getLogger(__name__)
+
+UNREFERENCED_RESULT_FILES_METRIC = "preprod.size_analysis.compare.unreferenced_result_files"
 
 
 @dataclass(frozen=True)
@@ -360,7 +363,7 @@ def _store_size_comparison_results(name: str, comparison_results: ComparisonResu
 
 
 def _delete_unreferenced_result_files(files: Sequence[File]) -> None:
-    for file in files:
+    for index, file in enumerate(files):
         try:
             referencing_comparisons = PreprodArtifactSizeComparison.objects.filter(file_id=file.id)
             if not referencing_comparisons.exists():
@@ -370,6 +373,13 @@ def _delete_unreferenced_result_files(files: Sequence[File]) -> None:
                 "preprod.size_analysis.compare.result_file_cleanup_failed",
                 extra={"file_id": file.id},
             )
+            metrics.incr(UNREFERENCED_RESULT_FILES_METRIC, sample_rate=1.0)
+        except BaseException:
+            unchecked_files = files[index:]
+            metrics.incr(
+                UNREFERENCED_RESULT_FILES_METRIC, amount=len(unchecked_files), sample_rate=1.0
+            )
+            raise
 
 
 def _get_analysis_files(

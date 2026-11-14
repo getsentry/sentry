@@ -17,6 +17,7 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.comparison_run import (
+    UNREFERENCED_RESULT_FILES_METRIC,
     _delete_unreferenced_result_files,
     _record_size_analysis_comparison,
     run_size_analysis_comparisons,
@@ -271,6 +272,49 @@ class ComparePreprodArtifactSizeAnalysisTest(_CompareTaskHelpers, TestCase):
         _delete_unreferenced_result_files([*recorded_files, stray_file])
 
         assert self._result_files() == recorded_files
+
+    @patch("sentry.preprod.size_analysis.comparison_run.metrics")
+    def test_cleanup_counts_the_result_files_it_leaves_behind(self, metrics: MagicMock) -> None:
+        unreferenced = UNREFERENCED_RESULT_FILES_METRIC
+        deleted_files = [self.create_file(name="deleted", type="size_analysis_comparison.json")]
+        _delete_unreferenced_result_files(deleted_files)
+        metrics.incr.assert_not_called()
+
+        failing_file, deleted_file = [
+            self.create_file(name=name, type="size_analysis_comparison.json")
+            for name in ("failing", "deleted")
+        ]
+        real_delete = File.delete
+
+        def delete_failing_once(self_: File, *args: Any, **kwargs: Any) -> Any:
+            if self_.id == failing_file.id:
+                raise OSError("database unreachable")
+            return real_delete(self_, *args, **kwargs)
+
+        with patch.object(File, "delete", delete_failing_once):
+            _delete_unreferenced_result_files([failing_file, deleted_file])
+        assert self._result_files() == [failing_file]
+        metrics.incr.assert_called_once_with(unreferenced, sample_rate=1.0)
+
+        failing_file.delete()
+        metrics.reset_mock()
+        files = [
+            self.create_file(name=name, type="size_analysis_comparison.json")
+            for name in ("deleted", "interrupted", "unchecked")
+        ]
+        deleted: list[int] = []
+
+        def delete_then_hit_deadline(self_: File, *args: Any, **kwargs: Any) -> Any:
+            if deleted:
+                raise ProcessingDeadline()
+            deleted.append(self_.id)
+            return real_delete(self_, *args, **kwargs)
+
+        with patch.object(File, "delete", delete_then_hit_deadline):
+            with pytest.raises(ProcessingDeadline):
+                _delete_unreferenced_result_files(files)
+        assert self._result_files() == files[1:]
+        metrics.incr.assert_called_once_with(unreferenced, amount=2, sample_rate=1.0)
 
     def test_rows_are_recorded_in_one_order_whatever_the_input_order(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
