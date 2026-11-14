@@ -9,6 +9,7 @@ from sentry.seer.smart_assignment.models import SMART_ASSIGNMENT_ACTIVITIES
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.detector import get_preferred_detector
 from sentry.workflow_engine.registry import workflow_activity_registry
 from sentry.workflow_engine.tasks.workflows import process_workflow_activity
@@ -48,6 +49,11 @@ SUPPORTED_ACTIVITIES = [
     # We omit SET_RESOLVED_IN_PULL_REQUEST because it's a misnomer.
     # When it fires, it means the issue was referenced in a pull request, not resolved.
 ]
+
+ACTIVITY_TRIGGER_ACTIVITY_TYPES: dict[Condition, list[ActivityType]] = {
+    Condition.SEER_ACTIVITY_TRIGGER: SEER_WORKFLOW_ACTIVITIES,
+    Condition.ISSUE_RESOLVED_TRIGGER: SUPPORTED_ACTIVITIES,
+}
 
 
 @workflow_activity_registry.register("seer_activity")
