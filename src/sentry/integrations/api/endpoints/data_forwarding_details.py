@@ -322,6 +322,9 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
           - 'is_enabled': To enable/disable the forwarder for events on the specific project.
 
         Overrides can be performed with `project:write` permissions on the project being modified.
+        Without `org:write`, overriding a destination (Splunk `instance_url`, or SQS `queue_url`,
+        `region` or `s3_bucket`) also requires overriding that provider's credentials (Splunk
+        `token`, or SQS `access_key` and `secret_key`).
         """
         # Determine operation type based on request body
         has_project_ids = "project_ids" in request.data

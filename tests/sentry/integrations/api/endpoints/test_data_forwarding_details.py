@@ -327,6 +327,162 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert other_config["overrides"] == {}
         assert other_config["effectiveConfig"] == {}
 
+    def _login_as_team_admin(self) -> None:
+        team_admin = self.create_user()
+        self.create_member(
+            user=team_admin,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+            teamRole="admin",
+        )
+        self.login_as(user=team_admin)
+
+    def test_project_write_cannot_redirect_splunk_without_token(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SPLUNK,
+            config={
+                "instance_url": "https://splunk.example.com",
+                "index": "main",
+                "source": "sentry",
+                "token": "org-token",
+            },
+        )
+        project = self.create_project(organization=self.organization, teams=[self.team])
+        self.create_data_forwarder_project(data_forwarder=data_forwarder, project=project)
+        self._login_as_team_admin()
+
+        response = self.get_error_response(
+            self.organization.slug,
+            data_forwarder.id,
+            status_code=400,
+            project_id=project.id,
+            overrides={"instance_url": "https://attacker.example.com"},
+            is_enabled=True,
+        )
+
+        assert "overrides" in response.data
+        project_config = DataForwarderProject.objects.get(
+            data_forwarder=data_forwarder, project=project
+        )
+        assert project_config.overrides == {}
+        assert project_config.get_config()["instance_url"] == "https://splunk.example.com"
+
+    def test_project_write_can_redirect_splunk_with_own_token(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SPLUNK,
+            config={
+                "instance_url": "https://splunk.example.com",
+                "index": "main",
+                "source": "sentry",
+                "token": "org-token",
+            },
+        )
+        project = self.create_project(organization=self.organization, teams=[self.team])
+        self._login_as_team_admin()
+
+        overrides = {"instance_url": "https://team-splunk.example.com", "token": "team-token"}
+        self.get_success_response(
+            self.organization.slug,
+            data_forwarder.id,
+            status_code=200,
+            project_id=project.id,
+            overrides=overrides,
+            is_enabled=True,
+        )
+
+        project_config = DataForwarderProject.objects.get(
+            data_forwarder=data_forwarder, project=project
+        )
+        assert project_config.overrides == overrides
+        assert project_config.get_config()["token"] == "team-token"
+
+    def test_project_write_can_override_splunk_index_only(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SPLUNK,
+            config={
+                "instance_url": "https://splunk.example.com",
+                "index": "main",
+                "source": "sentry",
+                "token": "org-token",
+            },
+        )
+        project = self.create_project(organization=self.organization, teams=[self.team])
+        self._login_as_team_admin()
+
+        self.get_success_response(
+            self.organization.slug,
+            data_forwarder.id,
+            status_code=200,
+            project_id=project.id,
+            overrides={"index": "team-index"},
+            is_enabled=True,
+        )
+
+        project_config = DataForwarderProject.objects.get(
+            data_forwarder=data_forwarder, project=project
+        )
+        assert project_config.overrides == {"index": "team-index"}
+
+    def test_project_write_cannot_redirect_sqs_without_credentials(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SQS,
+            config={
+                "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/org-queue",
+                "region": "us-east-1",
+                "access_key": "org-access-key",
+                "secret_key": "org-secret-key",
+            },
+        )
+        project = self.create_project(organization=self.organization, teams=[self.team])
+        self._login_as_team_admin()
+
+        for overrides in (
+            {"queue_url": "https://sqs.us-east-1.amazonaws.com/210987654321/other-queue"},
+            {"region": "eu-west-1"},
+            {"s3_bucket": "other-bucket"},
+            {"s3_bucket": "other-bucket", "access_key": "team-access-key"},
+        ):
+            response = self.get_error_response(
+                self.organization.slug,
+                data_forwarder.id,
+                status_code=400,
+                project_id=project.id,
+                overrides=overrides,
+                is_enabled=True,
+            )
+            assert "overrides" in response.data
+
+        assert not DataForwarderProject.objects.filter(
+            data_forwarder=data_forwarder, project=project
+        ).exists()
+
+    def test_org_write_can_redirect_splunk_with_org_token(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SPLUNK,
+            config={
+                "instance_url": "https://splunk.example.com",
+                "index": "main",
+                "source": "sentry",
+                "token": "org-token",
+            },
+        )
+        project = self.create_project(organization=self.organization, teams=[self.team])
+
+        self.get_success_response(
+            self.organization.slug,
+            data_forwarder.id,
+            status_code=200,
+            project_id=project.id,
+            overrides={"instance_url": "https://other-splunk.example.com"},
+            is_enabled=True,
+        )
+
+        project_config = DataForwarderProject.objects.get(
+            data_forwarder=data_forwarder, project=project
+        )
+        assert project_config.get_config()["token"] == "org-token"
+
     def test_update_unenroll_projects_with_project_write(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
