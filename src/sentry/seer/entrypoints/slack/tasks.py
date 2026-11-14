@@ -171,7 +171,7 @@ def process_mention_for_slack(
 
         # Check credits up front so an org without them gets an answer right away.
         if not can_run_seer_operation(
-            organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+            organization, SeerFeature.SEER_AGENT_SLACK, SeerOperation.AGENT_CHAT_MESSAGE
         ):
             lifecycle.record_halt(ProcessMentionHaltReason.OUT_OF_SEER_CREDITS)
             _send_out_of_credits_message(

@@ -180,6 +180,7 @@ class SeerAutofixOperator[CachePayloadT]:
             check_autofix_billing(
                 group.organization,
                 SeerOperation.AUTOFIX_ROOT_CAUSE,
+                referrer=AutofixReferrer.SLACK,
                 is_new_run=True,
                 # Free cohort orgs have no subscription, so the quota check always fails for them.
                 skip_quota_for_free_cohort=True,

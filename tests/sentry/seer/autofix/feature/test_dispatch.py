@@ -14,6 +14,7 @@ from sentry.seer.autofix.feature.dispatch import (
     AutofixFeatureArgs,
     continue_single_run,
     continue_single_run_from_pr_feedback,
+    seer_feature_for_referrer,
     trigger_autofix_feature,
 )
 from sentry.seer.autofix.feature.models import (
@@ -32,7 +33,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.credits import SeerOperation
+from sentry.seer.credits import SeerFeature, SeerOperation
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -394,6 +395,30 @@ class TestTriggerAutofixFeature(TestCase):
 
         MockClient.return_value.continue_feature_run.assert_not_called()
 
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    def test_agentic_triage_checks_credits_with_free_label(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+
+        with patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient:
+            MockClient.return_value.start_feature_run.return_value = fake_run
+            trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
+                    allow_free_cohort=True,
+                ),
+            )
+
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "autofix_agentic_triage"
+
     def test_allows_async_dispatch(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
 
@@ -526,6 +551,25 @@ class TestTriggerAutofixFeature(TestCase):
                     existing_run_id=123,
                 ),
             )
+
+
+@pytest.mark.parametrize(
+    ("referrer", "feature"),
+    [
+        (AutofixReferrer.AGENTIC_TRIAGE, SeerFeature.AUTOFIX_AGENTIC_TRIAGE),
+        (
+            AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+            SeerFeature.AUTOFIX_POST_PROCESS,
+        ),
+        (AutofixReferrer.SLACK, SeerFeature.AUTOFIX_INTEGRATIONS),
+        (AutofixReferrer.WEB, SeerFeature.AUTOFIX_WEB),
+        (AutofixReferrer.GROUP_AUTOFIX_ENDPOINT, SeerFeature.AUTOFIX_WEB),
+        (AutofixReferrer.CLI, SeerFeature.AUTOFIX_HEADLESS),
+        (AutofixReferrer.ON_COMPLETION_HOOK, SeerFeature.AUTOFIX_HEADLESS),
+    ],
+)
+def test_seer_feature_for_referrer(referrer: AutofixReferrer, feature: SeerFeature) -> None:
+    assert seer_feature_for_referrer(referrer) == feature
 
 
 @django_db_all

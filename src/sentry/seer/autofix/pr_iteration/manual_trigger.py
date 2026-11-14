@@ -88,7 +88,7 @@ def handle_ui_feedback(
 
     # Check credits here, since the queued feedback is consumed after this request returns.
     if not can_run_seer_operation(
-        group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+        group.organization, SeerFeature.AUTOFIX_WEB, SeerOperation.AUTOFIX_PR_ITERATION
     ):
         return Response(
             {

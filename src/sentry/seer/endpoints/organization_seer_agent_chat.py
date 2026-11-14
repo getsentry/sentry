@@ -453,7 +453,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             raise PermissionDenied(error)
         # Do not bill for dashboard generation.
         if not is_dashboard_generate_run and not can_run_seer_operation(
-            organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+            organization, SeerFeature.SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
         ):
             return Response(
                 {"detail": SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, "code": SEER_OUT_OF_CREDITS_CODE},

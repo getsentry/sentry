@@ -451,7 +451,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         )
 
         mock_can_run.assert_called_once_with(
-            self.organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+            self.organization, SeerFeature.SEER_AGENT_SLACK, SeerOperation.AGENT_CHAT_MESSAGE
         )
         mock_operator_cls.assert_not_called()
         self.mock_entrypoint.install.get_thread_history.assert_not_called()
