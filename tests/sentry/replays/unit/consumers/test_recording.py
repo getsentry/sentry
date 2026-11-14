@@ -22,8 +22,11 @@ from sentry.replays.consumers.recording import (
 from sentry.replays.usecases.ingest import ProcessedEvent
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
 from sentry.replays.usecases.pack import pack
+from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+
+MAX_SIZE = 100 * 1024 * 1024
 
 
 def test_decompress_segment_success() -> None:
@@ -31,11 +34,11 @@ def test_decompress_segment_success() -> None:
     data = b"[hello, world!]"
     compressed_data = zlib.compress(data)
 
-    compressed, decompressed = decompress_segment(compressed_data)
+    compressed, decompressed = decompress_segment(compressed_data, MAX_SIZE)
     assert compressed == compressed_data
     assert decompressed == data
 
-    compressed, decompressed = decompress_segment(data)
+    compressed, decompressed = decompress_segment(data, MAX_SIZE)
     assert compressed == compressed_data
     assert decompressed == data
 
@@ -45,7 +48,7 @@ def test_decompress_segment_already_decompressed() -> None:
     data = b"[hello, world!]"
     compressed_data = zlib.compress(data)
 
-    compressed, decompressed = decompress_segment(data)
+    compressed, decompressed = decompress_segment(data, MAX_SIZE)
     assert compressed == compressed_data
     assert decompressed == data
 
@@ -53,13 +56,89 @@ def test_decompress_segment_already_decompressed() -> None:
 def test_decompress_segment_unexpected_start_character() -> None:
     """Test handling of invalid data that can't be decompressed"""
     with pytest.raises(DropSilently):
-        decompress_segment(b"hello, world!")
+        decompress_segment(b"hello, world!", MAX_SIZE)
 
 
 def test_decompress_segment_empty_data() -> None:
     """Test handling of empty data"""
     with pytest.raises(DropSilently):
-        decompress_segment(b"")
+        decompress_segment(b"", MAX_SIZE)
+
+
+def test_decompress_segment_truncated_stream() -> None:
+    """Test a truncated zlib stream is dropped rather than returning partial output"""
+    compressed_data = zlib.compress(b"[" + b"hello, world!" * 100 + b"]")
+
+    for cut in (1, 4, len(compressed_data) // 2):
+        with pytest.raises(DropSilently):
+            decompress_segment(compressed_data[:-cut], MAX_SIZE)
+
+
+def test_decompress_segment_invalid_checksum() -> None:
+    """Test a zlib stream with a corrupted Adler-32 checksum is dropped"""
+    compressed_data = bytearray(zlib.compress(b"[hello, world!]"))
+    compressed_data[-1] ^= 0xFF
+
+    with pytest.raises(DropSilently):
+        decompress_segment(bytes(compressed_data), MAX_SIZE)
+
+
+def test_decompress_segment_exceeds_max_size() -> None:
+    """Test a segment which inflates past the limit is dropped"""
+    payload = b"[" + b" " * (1024 * 1024) + b"]"
+    bomb = zlib.compress(payload, 9)
+    # A kilobyte of stored input, a megabyte of output on every read.
+    assert len(payload) // len(bomb) > 500
+
+    with pytest.raises(DropSilently):
+        decompress_segment(bomb, 1024)
+
+
+def test_decompress_segment_at_max_size() -> None:
+    """Test a segment which inflates to exactly the limit is accepted"""
+    data = b"[hello, world!]"
+    compressed_data = zlib.compress(data)
+
+    compressed, decompressed = decompress_segment(compressed_data, len(data))
+    assert compressed == compressed_data
+    assert decompressed == data
+
+    with pytest.raises(DropSilently):
+        decompress_segment(compressed_data, len(data) - 1)
+
+
+def test_decompress_segment_uncompressed_exceeds_max_size() -> None:
+    """Test an uncompressed segment larger than the limit is dropped"""
+    data = b"[" + b" " * 1024 + b"]"
+
+    with pytest.raises(DropSilently):
+        decompress_segment(data, 512)
+
+
+@django_db_all
+def test_process_message_oversized_segment() -> None:
+    """Test "process_message" function drops a segment which inflates past the limit."""
+    bomb = zlib.compress(b"[" + b" " * (1024 * 1024) + b"]", 9)
+    message = {
+        "type": "replay_recording_not_chunked",
+        "org_id": 3,
+        "project_id": 4,
+        "replay_id": "1",
+        "received": 2,
+        "retention_days": 30,
+        "payload": json.dumps({"segment_id": 42}).encode() + b"\n" + bomb,
+        "key_id": 1,
+        "replay_event": b"{}",
+        "replay_video": b"",
+        "version": 0,
+    }
+
+    kafka_message = make_kafka_message(message)
+    with override_options({"replay.consumer.max-segment-decompressed-size": 1024}):
+        assert process_message(kafka_message) is None
+
+    # The same message is accepted under the default limit.
+    assert process_message(kafka_message) is not None
 
 
 def test_parse_headers_success() -> None:
@@ -125,6 +204,7 @@ def test_parse_request_message_validation_error() -> None:
         parse_request_message(msgpack.packb(b"invalid"))
 
 
+@django_db_all
 def test_parse_recording_event_success() -> None:
     """Test successful parsing of recording event end-to-end"""
     # Create real compressed data
@@ -172,6 +252,7 @@ def test_parse_recording_event_success() -> None:
     assert result == expected
 
 
+@django_db_all
 def test_parse_recording_event_with_replay_event() -> None:
     """Test parsing recording event with replay_event JSON"""
     # Create real compressed data
@@ -236,6 +317,7 @@ def test_parse_recording_event_missing_payload() -> None:
         parse_recording_event(msgpack.packb(message))
 
 
+@django_db_all
 def test_parse_recording_event_invalid_compression() -> None:
     """Test that invalid compression in payload causes DropSilently"""
     message = {
