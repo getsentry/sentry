@@ -126,16 +126,6 @@ const PillValue = styled(PillName)`
     display: inline-block;
     vertical-align: text-bottom;
   }
-
-  .pill-icon,
-  .external-icon {
-    display: inline;
-    margin: 0 0 0 ${p => p.theme.space.md};
-    color: ${p => p.theme.tokens.content.secondary};
-    &:hover {
-      color: ${p => p.theme.tokens.content.primary};
-    }
-  }
 `;
 
 const StyledPill = styled('li')<{type?: PillType}>`
