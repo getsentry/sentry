@@ -94,7 +94,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
             </Text>
             <Text size="xs" variant="muted">
               {autoTopUp.enabled
-                ? tct('Adds [credits] credits when below [threshold]', {
+                ? tct('Adds [credits] credits when at or below [threshold]', {
                     credits: autoTopUp.topUpCredits.toLocaleString(),
                     threshold: autoTopUp.thresholdCredits.toLocaleString(),
                   })
