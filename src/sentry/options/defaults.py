@@ -4219,13 +4219,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "releases.no_snuba_for_release_creation",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Maximum number of commits associated with a release in one set_commits call.
 # Longer lists keep only the newest commits.
 register(
