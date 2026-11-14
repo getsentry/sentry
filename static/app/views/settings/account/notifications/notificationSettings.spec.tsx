@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -39,6 +41,31 @@ describe('NotificationSettings', () => {
       ).toBeInTheDocument();
     }
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();
+  });
+
+  it('shows inbox notifications when the organization has the inbox', async () => {
+    renderMockRequests();
+
+    render(<NotificationSettings />, {
+      organization: OrganizationFixture({features: ['universal-inbox']}),
+    });
+
+    expect(
+      await screen.findByText(String(NOTIFICATION_SETTING_FIELDS.inbox.label))
+    ).toBeInTheDocument();
+  });
+
+  it('hides inbox notifications without the inbox feature', async () => {
+    renderMockRequests();
+
+    render(<NotificationSettings />);
+
+    expect(
+      await screen.findByText(String(NOTIFICATION_SETTING_FIELDS.alerts.label))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(String(NOTIFICATION_SETTING_FIELDS.inbox.label))
+    ).not.toBeInTheDocument();
   });
 
   it('hides quota notifications on self-hosted', async () => {

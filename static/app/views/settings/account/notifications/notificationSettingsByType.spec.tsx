@@ -1,7 +1,8 @@
 import {NotificationDefaultsFixture} from 'sentry-fixture/notificationDefaults';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -269,6 +270,102 @@ describe('NotificationSettingsByType', () => {
     await selectEvent.select(multiSelect, ['Email']);
     await userEvent.tab();
     expect(changeProvidersMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders inbox categories as toggles without org or project overrides', async () => {
+    renderComponent({
+      notificationType: 'inbox',
+      notificationOptions: [
+        {
+          id: '1',
+          scopeIdentifier: '1',
+          scopeType: 'user',
+          type: 'inboxMentions',
+          value: 'never',
+        },
+      ],
+    });
+
+    expect(await screen.findByRole('checkbox', {name: 'Assignments'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Mentions'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Pull Requests Ready'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Completion Status'})).toBeChecked();
+    expect(screen.getByRole('button', {name: 'Send notifications to'})).toHaveTextContent(
+      'Email'
+    );
+    expect(screen.queryByText('Value\u2026')).not.toBeInTheDocument();
+  });
+
+  it('saves the inbox delivery method from the dropdown', async () => {
+    renderComponent({
+      notificationType: 'inbox',
+      notificationProviders: [
+        {
+          id: '1',
+          type: 'inbox',
+          scopeType: 'user',
+          scopeIdentifier: '1',
+          provider: 'email',
+          value: 'never',
+        },
+      ],
+    });
+    const changeProvidersMock = MockApiClient.addMockResponse({
+      url: '/users/me/notification-providers/',
+      method: 'PUT',
+      body: [],
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Send notifications to'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Email'}));
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() =>
+      expect(changeProvidersMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'inbox',
+            scopeType: 'user',
+            providers: ['email'],
+          }),
+        })
+      )
+    );
+  });
+
+  it('saves an inbox category toggle as a user setting', async () => {
+    ConfigStore.set('user', UserFixture({id: '1'}));
+    renderComponent({notificationType: 'inbox'});
+    const saveSettingMock = MockApiClient.addMockResponse({
+      url: '/users/me/notification-options/',
+      method: 'PUT',
+      body: {
+        id: '7',
+        scopeIdentifier: '1',
+        scopeType: 'user',
+        type: 'inboxAssignments',
+        value: 'never',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Assignments'}));
+
+    await waitFor(() =>
+      expect(saveSettingMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            type: 'inboxAssignments',
+            scopeType: 'user',
+            scopeIdentifier: '1',
+            value: 'never',
+          },
+        })
+      )
+    );
   });
 
   it('hides quota notifications on self-hosted', () => {

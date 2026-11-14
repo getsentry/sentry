@@ -19,6 +19,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {NotificationSettingsType} from './constants';
@@ -47,11 +48,22 @@ const notificationsOptions = apiOptions.as<NotificationFields>()(
 
 export function NotificationSettings() {
   const queryClient = useQueryClient();
+  const organization = useOrganization({allowNull: true});
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const notificationFields = NOTIFICATION_SETTINGS_TYPES.filter(
-    type => !(type === 'quota' && isSelfHosted)
-  );
+  // Inbox settings apply to all of the user's organizations, but the feature flag is
+  // per organization, so the entry follows whichever organization is active.
+  const hasInbox = organization?.features.includes('universal-inbox') ?? false;
+  const isVisible = (type: NotificationSettingsType) => {
+    if (type === 'quota') {
+      return !isSelfHosted;
+    }
+    if (type === 'inbox') {
+      return hasInbox;
+    }
+    return true;
+  };
+  const notificationFields = NOTIFICATION_SETTINGS_TYPES.filter(isVisible);
 
   const renderOneSetting = (type: NotificationSettingsType) => {
     const field = NOTIFICATION_SETTING_FIELDS[type];

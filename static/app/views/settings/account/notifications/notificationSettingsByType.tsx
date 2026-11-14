@@ -10,6 +10,9 @@ import {z} from 'zod';
 import {useStore} from 'zustand';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -36,6 +39,7 @@ import type {
 import {SUPPORTED_PROVIDERS} from './constants';
 import {
   ACCOUNT_NOTIFICATION_FIELDS,
+  INBOX_FIELDS,
   NOTIFICATION_SETTING_FIELDS,
   QUOTA_FIELDS,
 } from './fields';
@@ -51,6 +55,7 @@ type Props = {
 
 const typeMappedChildren: Record<string, string[]> = {
   quota: QUOTA_FIELDS.map(field => field.name),
+  inbox: INBOX_FIELDS.map(field => field.name),
 };
 
 // Ideally, we could just use SUPPORTED_PROVIDERS here, but 'msteams' is not widely tested.
@@ -123,6 +128,49 @@ function DefaultNotificationField({
       )}
     </AutoSaveForm>
   );
+}
+
+/**
+ * Warns that Slack notifications fall back to email for organizations where the
+ * user hasn't linked their Slack account.
+ */
+function UnlinkedSlackAlerts({
+  providers,
+  unlinkedSlackOrgs,
+  unlinkedSlackStagingOrgs,
+}: {
+  providers: string[];
+  unlinkedSlackOrgs: OrganizationSummary[];
+  unlinkedSlackStagingOrgs: OrganizationSummary[];
+}) {
+  return (
+    <Fragment>
+      {providers.includes('slack') && unlinkedSlackOrgs.length > 0 ? (
+        <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+      ) : null}
+      {providers.includes('slack_staging') && unlinkedSlackStagingOrgs.length > 0 ? (
+        <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
+      ) : null}
+    </Fragment>
+  );
+}
+
+/**
+ * Label for the delivery method dropdown, e.g. "Email & Slack", or "None" when
+ * nothing is selected.
+ */
+function getProviderTriggerLabel(
+  providerChoices: Array<{label: string; value: string}>,
+  selectedProviders: string[]
+): string {
+  const labels = providerChoices
+    .filter(choice => selectedProviders.includes(choice.value))
+    .map(choice => choice.label);
+
+  if (labels.length === 0) {
+    return t('None');
+  }
+  return labels.reduce((joined, label) => t('%s & %s', joined, label));
 }
 
 export function NotificationSettingsByType({notificationType}: Props) {
@@ -389,6 +437,8 @@ export function NotificationSettingsByType({notificationType}: Props) {
     .map(([value, label]) => ({value, label}));
 
   const providerSchema = z.object({provider: z.array(z.string()).min(1)});
+  // Inbox items always show up in the Inbox, so email and Slack are both optional.
+  const inboxProviderSchema = z.object({provider: z.array(z.string())});
 
   const providerMutationOptions = mutationOptions({
     mutationFn: (data: {provider: string[]}) =>
@@ -410,6 +460,90 @@ export function NotificationSettingsByType({notificationType}: Props) {
       });
     },
   });
+
+  if (notificationType === 'inbox') {
+    // Inbox settings only allow user scope, so unlike the other types there are no
+    // org or project overrides.
+    return (
+      <Fragment>
+        <SentryDocumentTitle title={t('Inbox Notifications')} />
+        <SettingsPageHeader title={title} />
+        <Stack gap="xs" marginBottom="xl">
+          <Heading as="h2" size="xl">
+            {t('Personal notifications')}
+          </Heading>
+          <Text variant="muted">{description}</Text>
+        </Stack>
+        <FieldGroup>
+          {INBOX_FIELDS.map(field => {
+            // Toggles save the same always/never values as the other settings.
+            const schema = z.object({
+              [field.name]: z.boolean().transform(on => (on ? 'always' : 'never')),
+            });
+            return (
+              <AutoSaveForm
+                key={field.name}
+                name={field.name}
+                schema={schema}
+                initialValue={initialTopOptionData[field.name] !== 'never'}
+                mutationOptions={optionMutationOptions(field.name)}
+              >
+                {fieldApi => (
+                  <fieldApi.Layout.Row
+                    label={<Text bold>{field.label}</Text>}
+                    hintText={field.help}
+                  >
+                    <Flex justify="end">
+                      <fieldApi.Switch
+                        checked={fieldApi.state.value}
+                        onChange={fieldApi.handleChange}
+                      />
+                    </Flex>
+                  </fieldApi.Layout.Row>
+                )}
+              </AutoSaveForm>
+            );
+          })}
+        </FieldGroup>
+        <FieldGroup>
+          <AutoSaveForm
+            name="provider"
+            schema={inboxProviderSchema}
+            initialValue={initialProviders}
+            mutationOptions={providerMutationOptions}
+          >
+            {field => (
+              <Fragment>
+                <UnlinkedSlackAlerts
+                  providers={field.state.value}
+                  unlinkedSlackOrgs={unlinkedSlackOrgs}
+                  unlinkedSlackStagingOrgs={unlinkedSlackStagingOrgs}
+                />
+                <field.Layout.Row
+                  label={<Text bold>{t('Send notifications to')}</Text>}
+                  hintText={t('Where notifications are delivered')}
+                >
+                  <Flex justify="end">
+                    <field.CompactSelect
+                      multiple
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={providerChoices}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.Button {...triggerProps} style={{width: 'auto'}}>
+                          {getProviderTriggerLabel(providerChoices, field.state.value)}
+                        </OverlayTrigger.Button>
+                      )}
+                    />
+                  </Flex>
+                </field.Layout.Row>
+              </Fragment>
+            )}
+          </AutoSaveForm>
+        </FieldGroup>
+      </Fragment>
+    );
+  }
 
   return (
     <Fragment>
@@ -466,14 +600,11 @@ export function NotificationSettingsByType({notificationType}: Props) {
           >
             {field => (
               <Fragment>
-                {(field.state.value ?? initialProviders).includes('slack') &&
-                unlinkedSlackOrgs.length > 0 ? (
-                  <UnlinkedAlert organizations={unlinkedSlackOrgs} />
-                ) : null}
-                {(field.state.value ?? initialProviders).includes('slack_staging') &&
-                unlinkedSlackStagingOrgs.length > 0 ? (
-                  <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
-                ) : null}
+                <UnlinkedSlackAlerts
+                  providers={field.state.value ?? initialProviders}
+                  unlinkedSlackOrgs={unlinkedSlackOrgs}
+                  unlinkedSlackStagingOrgs={unlinkedSlackStagingOrgs}
+                />
                 <field.Layout.Row
                   label={t('Delivery Method')}
                   hintText={t('Where personal notifications will be sent.')}
