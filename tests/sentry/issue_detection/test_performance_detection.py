@@ -785,6 +785,13 @@ class WFEDetectorConfigTest(TestCase):
 
         assert settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 1000
 
+    def test_legacy_mode_does_not_check_feature_flag(self) -> None:
+        with patch("sentry.issue_detection.performance_detection.features.has") as mock_has:
+            settings = get_detection_settings(self.project)
+
+        mock_has.assert_not_called()
+        assert settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 1000
+
     def test_all_wfe_detector_types_are_registered_group_types(self) -> None:
         for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
             group_type = registry.get_by_slug(mapping.wfe_detector_type)
