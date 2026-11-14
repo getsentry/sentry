@@ -70,7 +70,9 @@ def _resolve_available_organizations(
     """
     available_organizations = []
     for organization_id in organization_ids:
-        ctx = organization_service.get_organization_by_id(id=organization_id, user_id=user_id)
+        ctx = organization_service.get_organization_by_id(
+            id=organization_id, user_id=user_id, include_projects=False, include_teams=False
+        )
         logging_ctx["current_organization_id"] = organization_id
         if ctx is None:
             logger.info("_resolve_available_organizations.no_rpc_response", extra=logging_ctx)
@@ -225,8 +227,19 @@ def resolve_seer_organization(
     organization_ids = [oi.organization_id for oi in ois]
     logging_ctx["organization_ids"] = organization_ids
 
+    # A workspace can be connected to dozens of organizations, and each one checked below costs a
+    # cross-silo call from CONTROL. Narrowing to the user's memberships first keeps the call count
+    # proportional to the user rather than the workspace, so routing stays inside the task deadline.
+    member_organization_ids = {org.id for org in user_service.get_organizations(user_id=user.id)}
+    candidate_organization_ids = [
+        organization_id
+        for organization_id in organization_ids
+        if organization_id in member_organization_ids
+    ]
+    logging_ctx["candidate_organization_ids"] = candidate_organization_ids
+
     available_organizations = _resolve_available_organizations(
-        user_id=user.id, organization_ids=organization_ids, logging_ctx=logging_ctx
+        user_id=user.id, organization_ids=candidate_organization_ids, logging_ctx=logging_ctx
     )
     logging_ctx["organization_slugs"] = [ctx.organization.slug for ctx in available_organizations]
     if not available_organizations:
