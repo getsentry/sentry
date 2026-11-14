@@ -1201,6 +1201,25 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         with pytest.raises(IncompatibleMetricsQuery):
             parse_search_query("!has:[release]", config=config)
 
+    def test_issue_short_id_keys_accept_short_ids(self) -> None:
+        config = SearchConfig.create_from(default_config, issue_short_id_keys={"issue.id"})
+
+        assert parse_search_query("issue.id:PROJ-1", config=config) == [
+            SearchFilter(key=SearchKey(name="issue.id"), operator="=", value=SearchValue("PROJ-1"))
+        ]
+        assert parse_search_query("issue.id:[123,PROJ-1]", config=config) == [
+            SearchFilter(
+                key=SearchKey(name="issue.id"), operator="IN", value=SearchValue(["123", "PROJ-1"])
+            )
+        ]
+        assert parse_search_query("issue.id:123", config=config) == [
+            SearchFilter(key=SearchKey(name="issue.id"), operator="=", value=SearchValue(123.0))
+        ]
+
+    def test_issue_short_id_keys_default_to_numbers_only(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="issue.id: Invalid number"):
+            parse_search_query("issue.id:PROJ-1")
+
 
 @pytest.mark.parametrize(
     "raw,result",

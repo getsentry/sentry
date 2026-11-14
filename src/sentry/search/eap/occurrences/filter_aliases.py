@@ -2,7 +2,7 @@ from typing import Any
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.filter import to_list
+from sentry.search.events.filter import resolve_issue_ids, to_list
 from sentry.search.events.types import SnubaParams
 
 
@@ -10,19 +10,25 @@ def issue_filter_converter(
     params: SnubaParams, search_filter: SearchFilter, resolver: Any
 ) -> list[SearchFilter]:
     """
-    Map ``issue`` search filters onto ``group_id``.
+    Map ``issue`` and ``issue.id`` search filters onto ``group_id``. Both accept numeric group
+    IDs and qualified short IDs.
     """
     if params.organization_id is None:
         raise InvalidSearchQuery("filter: issue required organization id")
 
     group_id_key = SearchKey("group_id")
-    raw_values = to_list(search_filter.value.value)
-    short_ids = [v for v in raw_values if v]
+    # `has:` filters parse to None or "". Numbers come from the `issue.id` parser and can be 0.
+    identifiers = [v for v in to_list(search_filter.value.value) if v is not None and v != ""]
 
-    if not short_ids:
+    if not identifiers:
         return _convert_has_issue_filter(search_filter, group_id_key)
 
-    resolved_ids = _get_group_ids(params, short_ids, resolver)
+    # resolve_query primes the cache in one lookup; other callers such as collect_terms don't.
+    cache: dict[str, int] = resolver.issue_id_to_group_id_cache
+    missing = [v for v in identifiers if isinstance(v, str) and v not in cache]
+    if missing:
+        cache.update(resolve_issue_ids(params.organization_id, params.project_ids, missing))
+    resolved_ids = sorted(cache[v] if isinstance(v, str) else int(v) for v in identifiers)
     mapped_value: list[int] | int
     if search_filter.is_in_filter:
         mapped_value = resolved_ids
@@ -36,16 +42,6 @@ def issue_filter_converter(
             value=SearchValue(mapped_value),
         )
     ]
-
-
-def _get_group_ids(params: SnubaParams, issue_identifiers: list[str], resolver: Any) -> list[int]:
-    cache: dict[int, dict[str, int]] = resolver.qualified_short_id_to_group_id_cache
-    group_id_issue_map = {}
-    for project_id in params.project_ids:
-        # All project_ids will exist.
-        group_id_issue_map.update(cache.get(project_id, {}))
-
-    return sorted(group_id_issue_map[issue_id] for issue_id in issue_identifiers)
 
 
 def _convert_has_issue_filter(
@@ -65,4 +61,5 @@ def _convert_has_issue_filter(
 
 OCCURRENCE_FILTER_ALIASES = {
     "issue": issue_filter_converter,
+    "issue.id": issue_filter_converter,
 }
