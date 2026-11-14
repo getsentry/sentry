@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconPause} from '@sentry/icons/pause';
+import {IconSlashForward} from '@sentry/icons/slashForward';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -49,8 +50,12 @@ interface InputSectionProps {
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   isSingleRun?: boolean;
+  /** Whether the slash command menu is showing, so its toolbar button can close it again. */
+  isSlashCommandMenuOpen?: boolean;
   /** Shown right above the composer, for example to say why sending is blocked. */
   notice?: React.ReactNode;
+  /** Opens the slash command menu, or closes it when it is open. */
+  onToggleSlashCommandMenu?: () => void;
   questionActions?: QuestionActions;
   runId?: SeerExplorerRunId | null;
   /**
@@ -78,6 +83,8 @@ export function InputSection({
   questionActions,
   runId,
   isSingleRun,
+  isSlashCommandMenuOpen = false,
+  onToggleSlashCommandMenu,
   toolbarItems,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
@@ -270,6 +277,10 @@ export function InputSection({
     );
   }
 
+  // Opening the menu starts the input with `/`, and running a command clears the input,
+  // so the button waits for an empty input rather than replace a draft.
+  const isSlashCommandDisabled = !isSlashCommandMenuOpen && !!inputValue.text.trim();
+
   return (
     <Container background="primary" width="100%" position="sticky" bottom="0">
       {prLinksBar}
@@ -296,7 +307,7 @@ export function InputSection({
             data-test-id="seer-explorer-input"
           />
           <Flex
-            justify="end"
+            justify="between"
             align="center"
             gap="md"
             padding="xs"
@@ -304,32 +315,52 @@ export function InputSection({
             background="primary"
             radius="0 0 lg lg"
           >
-            {toolbarItems}
-            {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
-              <Button
-                icon={<IconPause />}
-                onClick={onInterrupt}
-                size="zero"
-                variant="primary"
-                disabled={interruptState === 'requested'}
-                aria-label={t('Interrupt button')}
-                tooltipProps={{
-                  title:
-                    interruptState === 'requested'
-                      ? t('Winding down...')
-                      : t('Interrupt'),
-                }}
-              />
-            ) : (
-              <Button
-                icon={<IconArrow />}
-                onClick={onSend}
-                size="zero"
-                variant="secondary"
-                disabled={!canSendMessage}
-                aria-label={t('Send message')}
-              />
-            )}
+            <Flex align="center" gap="xs">
+              {onToggleSlashCommandMenu && (
+                <Button
+                  icon={<IconSlashForward />}
+                  onClick={onToggleSlashCommandMenu}
+                  size="zero"
+                  variant="transparent"
+                  disabled={isSlashCommandDisabled}
+                  aria-label={t('Slash commands')}
+                  aria-expanded={isSlashCommandMenuOpen}
+                  tooltipProps={{
+                    title: isSlashCommandDisabled
+                      ? t('Clear your message to use commands')
+                      : t('Commands'),
+                  }}
+                />
+              )}
+            </Flex>
+            <Flex align="center" gap="md">
+              {toolbarItems}
+              {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
+                <Button
+                  icon={<IconPause />}
+                  onClick={onInterrupt}
+                  size="zero"
+                  variant="primary"
+                  disabled={interruptState === 'requested'}
+                  aria-label={t('Interrupt button')}
+                  tooltipProps={{
+                    title:
+                      interruptState === 'requested'
+                        ? t('Winding down...')
+                        : t('Interrupt'),
+                  }}
+                />
+              ) : (
+                <Button
+                  icon={<IconArrow />}
+                  onClick={onSend}
+                  size="zero"
+                  variant="secondary"
+                  disabled={!canSendMessage}
+                  aria-label={t('Send message')}
+                />
+              )}
+            </Flex>
           </Flex>
         </ComposerFrame>
       </Stack>

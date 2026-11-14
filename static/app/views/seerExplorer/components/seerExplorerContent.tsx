@@ -647,7 +647,7 @@ export function SeerExplorerContent({
   );
 
   // Menu component
-  const {menu, closeMenu} = useExplorerMenu({
+  const {menu, isMenuOpen, closeMenu} = useExplorerMenu({
     clearInput,
     completeInput,
     inputValue: inputValue.text,
@@ -670,6 +670,15 @@ export function SeerExplorerContent({
   const handleBlocksClick = useCallback(() => {
     closeMenu();
   }, [closeMenu]);
+
+  const handleToggleSlashCommandMenu = useCallback(() => {
+    if (isMenuOpen) {
+      closeMenu();
+      focusInput();
+      return;
+    }
+    completeInput('/');
+  }, [isMenuOpen, closeMenu, focusInput, completeInput]);
 
   // - Input section handlers -------------------------------------------------
   const canSendMessage =
@@ -1002,6 +1011,8 @@ export function SeerExplorerContent({
           repoPRStates={repoPRStates}
           runId={runId}
           isSingleRun={featureId === SINGLE_RUN_FEATURE_ID}
+          isSlashCommandMenuOpen={isMenuOpen}
+          onToggleSlashCommandMenu={handleToggleSlashCommandMenu}
           composerRef={composerRef}
           fileApprovalActions={
             showFileApprovalBar

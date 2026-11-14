@@ -937,6 +937,70 @@ describe('SeerExplorerContent', () => {
       expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
     });
 
+    it('opens and closes the slash command menu from the toolbar button', async () => {
+      HTMLElement.prototype.scrollIntoView = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue(defaultHookReturn);
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      const button = screen.getByRole('button', {name: 'Slash commands'});
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+
+      await userEvent.click(button);
+      expect(await screen.findByText('Start a new session')).toBeVisible();
+      expect(await getSeerExplorerInput()).toHaveTextContent('/');
+      expect(button).toHaveAttribute('aria-expanded', 'true');
+
+      await userEvent.keyboard('{Enter}');
+      expect(defaultHookReturn.startNewSession).toHaveBeenCalled();
+      expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
+
+      await userEvent.click(button);
+      expect(button).toHaveAttribute('aria-expanded', 'true');
+      await userEvent.click(button);
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+      expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
+    });
+
+    it('keeps a draft instead of opening the slash command menu over it', async () => {
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue(defaultHookReturn);
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      await userEvent.type(await getSeerExplorerInput(), 'Draft');
+      expect(screen.getByRole('button', {name: 'Slash commands'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(await getSeerExplorerInput()).toHaveTextContent('Draft');
+    });
+
     it('[Integration] sends message to the API when Enter is pressed', async () => {
       // e2e flow of sending a message to the API and receiving an updated response
       // Restore the spy so the real useSeerExplorer hook runs against mock API responses
