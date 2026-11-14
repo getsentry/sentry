@@ -266,6 +266,39 @@ describe('Request entry', () => {
       );
     });
 
+    it('skips form body entries without a key instead of crashing', () => {
+      const data: EntryRequest['data'] = {
+        apiTarget: null,
+        query: [],
+        // Malformed payload: entries without a key must be skipped
+        data: [['b', '2'], [], {}, ['a', '1']] as unknown as Array<[string, string]>,
+        headers: [],
+        cookies: [],
+        env: {},
+        inferredContentType: 'application/x-www-form-urlencoded',
+        method: 'POST',
+        url: '/Home/PostIndex',
+        fragment: null,
+      };
+
+      const event = EventFixture({
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data,
+          },
+        ],
+      });
+
+      render(<Request event={event} data={event.entries[0]!.data} />, {
+        organization: {
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
+        },
+      });
+
+      expect(screen.getByText('Body').parentElement).toHaveTextContent('Bodya1b2');
+    });
+
     it('should return a ContextData element when inferred Content-Type is application/json', () => {
       const data: EntryRequest['data'] = {
         apiTarget: null,
