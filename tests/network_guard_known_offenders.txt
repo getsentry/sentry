@@ -1,0 +1,4 @@
+# Tests that are known to reach hosts outside the CI runner and still need a fix.
+# See src/sentry/testutils/pytest/network_guard.py. One entry per line: a test file,
+# a class, or a test nodeid. The network guard records these tests separately from
+# new offenders, and strict mode does not block them. Remove an entry once it's fixed.

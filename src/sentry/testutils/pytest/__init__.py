@@ -14,6 +14,7 @@ pytest_plugins = [
     "sentry.testutils.pytest.show_flaky_failures",
     "sentry.testutils.thread_leaks.pytest",
     "sentry.testutils.pytest.timeout_info",
+    "sentry.testutils.pytest.network_guard",
 ]
 
 if os.environ.get("SENTRY_SKIP_SELENIUM_PLUGIN") != "1":
