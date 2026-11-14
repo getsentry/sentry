@@ -23,7 +23,7 @@ class StarViewSerializer(serializers.Serializer):
         return data
 
 
-class MemberPermission(OrganizationPermission):
+class GroupSearchViewDetailsStarredPermission(OrganizationPermission):
     scope_map = {
         "POST": ["member:read", "member:write", "user_preference:write"],
     }
@@ -39,7 +39,7 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ISSUES
     max_acceptable_duration = DEFAULT_DURATION_BUDGET
-    permission_classes = (MemberPermission,)
+    permission_classes = (GroupSearchViewDetailsStarredPermission,)
 
     def post(self, request: Request, organization: Organization, view_id: str) -> Response:
         """

@@ -602,10 +602,10 @@ OPTED_IN_PERMISSIONS: list[type[OrganizationPermission]] = [
     explore_saved_query_starred.MemberPermission,
     saved_query_starred_order.MemberPermission,
     starred_segments.MemberPermission,
-    organization_group_search_view_details_starred.MemberPermission,
-    organization_group_search_view_starred_order.MemberPermission,
-    organization_group_search_view_visit.MemberPermission,
-    organization_group_search_views_starred.MemberPermission,
+    organization_group_search_view_details_starred.GroupSearchViewDetailsStarredPermission,
+    organization_group_search_view_starred_order.GroupSearchViewStarredOrderPermission,
+    organization_group_search_view_visit.GroupSearchViewVisitPermission,
+    organization_group_search_views_starred.GroupSearchViewsStarredPermission,
 ]
 
 

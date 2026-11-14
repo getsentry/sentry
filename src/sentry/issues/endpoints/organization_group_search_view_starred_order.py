@@ -12,7 +12,7 @@ from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 
 
-class MemberPermission(OrganizationPermission):
+class GroupSearchViewStarredOrderPermission(OrganizationPermission):
     scope_map = {
         "PUT": ["member:read", "member:write", "user_preference:write"],
     }
@@ -36,7 +36,7 @@ class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.ISSUES
     max_acceptable_duration = DEFAULT_DURATION_BUDGET
-    permission_classes = (MemberPermission,)
+    permission_classes = (GroupSearchViewStarredOrderPermission,)
 
     def put(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:
