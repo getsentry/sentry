@@ -221,10 +221,14 @@ def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferre
             return AutofixReferrer.MCP
         return AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
     try:
-        return AutofixReferrer(raw)
+        referrer = AutofixReferrer(raw)
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
+    # Agentic triage runs aren't billed, so a client can't claim to be one.
+    if referrer == AutofixReferrer.AGENTIC_TRIAGE:
+        return AutofixReferrer.UNKNOWN
+    return referrer
 
 
 def _record_user_context_length(request_data: Any) -> None:
