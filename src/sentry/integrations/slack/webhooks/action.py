@@ -63,6 +63,7 @@ from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.platform.registry import template_registry
+from sentry.notifications.platform.templates.seer import SeerAutofixOutOfCredits
 from sentry.notifications.platform.tracking import (
     NotificationEngagementMechanism,
     NotificationTrackingContext,
@@ -73,9 +74,15 @@ from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.rules import get_notification_origins
+from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.slack.entrypoint import SlackAutofixEntrypoint
-from sentry.seer.entrypoints.slack.messaging import send_not_org_member_message
+from sentry.seer.entrypoints.slack.messaging import (
+    send_not_org_member_message,
+    send_thread_update,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
@@ -163,6 +170,17 @@ def get_notification_origin(
         legacy_rule_ids=[rule_id] if rule_id else [],
     )
     return origins[0] if origins else None
+
+
+def get_autofix_seer_operation(
+    *, stopping_point: AutofixStoppingPoint, is_continuation: bool
+) -> SeerOperation:
+    """The credit operation an autofix button click will be charged for."""
+    if not is_continuation:
+        return SeerOperation.AUTOFIX_ROOT_CAUSE
+    if stopping_point == AutofixStoppingPoint.OPEN_PR:
+        return SeerOperation.AUTOFIX_OPEN_PR
+    return AutofixStep.from_autofix_stopping_point(stopping_point).seer_operation
 
 
 def get_group(slack_request: SlackActionRequest) -> Group | None:
@@ -671,6 +689,22 @@ class SlackActionEndpoint(Endpoint):
             "is_continuation": is_continuation,
             "user_id": user.id,
         }
+        seer_operation = get_autofix_seer_operation(
+            stopping_point=stopping_point, is_continuation=is_continuation
+        )
+        if not can_run_seer_operation(group.organization, SeerFeature.AUTOFIX, seer_operation):
+            _logger.info("seer.slack.trigger_autofix.out_of_credits", extra=logging_ctx)
+            send_thread_update(
+                install=entrypoint.install,
+                thread=entrypoint.thread,
+                data=SeerAutofixOutOfCredits(
+                    organization_id=group.organization.id,
+                    has_billing_access=from_user(user, group.organization).has_scope("org:billing"),
+                ),
+                ephemeral_user_id=slack_request.user_id,
+            )
+            return
+
         _logger.info("seer.slack.trigger_autofix.start", extra=logging_ctx)
         lock_key = SlackAutofixEntrypoint.get_autofix_lock_key(
             group_id=group.id,
