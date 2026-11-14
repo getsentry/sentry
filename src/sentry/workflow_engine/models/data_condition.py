@@ -72,6 +72,7 @@ class Condition(StrEnum):
     PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
 
     # Activity trigger conditions
+    ACTIVITY_TYPE_IN = "activity_type_in"
     SEER_ACTIVITY_TRIGGER = "seer_activity_trigger"
 
 

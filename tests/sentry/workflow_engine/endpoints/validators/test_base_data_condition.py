@@ -60,6 +60,11 @@ class TestBaseDataConditionValidator(TestCase):
 
 
 class TestRegisteredComparisonSchemas(TestCase):
+    def test_activity_type_in_is_internal(self) -> None:
+        validator = self._validator(Condition.ACTIVITY_TYPE_IN, ["issue.assigned"])
+        assert not validator.is_valid()
+        assert "Internal conditions" in str(validator.errors["type"])
+
     def test_internal_condition_rejected_but_model_provisioning_allowed(self) -> None:
         handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
         with mock.patch.object(handler, "is_internal", True):

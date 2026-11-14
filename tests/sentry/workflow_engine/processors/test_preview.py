@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from sentry.issues.action_log.types import GroupActionType
@@ -18,12 +19,36 @@ from sentry.workflow_engine.handlers.condition.regression_event_handler import (
 )
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.preview import PreviewCondition, PreviewConditionGroup
+from sentry.workflow_engine.preview import (
+    InvalidPreviewConfiguration,
+    PreviewCondition,
+    PreviewConditionGroup,
+)
 from sentry.workflow_engine.processors.preview import build_alert_preview_plan
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import WorkflowTriggerDataConditionHandler
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class TestAlertPreview(BaseWorkflowTest):
+    def test_internal_activity_condition_is_not_previewable(self) -> None:
+        handler = condition_handler_registry.get(Condition.ACTIVITY_TYPE_IN)
+        assert issubclass(handler, WorkflowTriggerDataConditionHandler)
+        with pytest.raises(InvalidPreviewConfiguration, match="activity_type_in cannot be used"):
+            build_alert_preview_plan(
+                triggers=PreviewConditionGroup(
+                    logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+                    conditions=(
+                        PreviewCondition(
+                            type=Condition.ACTIVITY_TYPE_IN,
+                            comparison=["issue.assigned"],
+                            handler=handler,
+                        ),
+                    ),
+                ),
+                action_filters=(),
+            )
+
     def test_unconditional_group_candidate_filter(self) -> None:
         end = timezone.now()
         low_priority_group = self.create_group(

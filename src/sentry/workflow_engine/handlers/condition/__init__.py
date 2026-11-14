@@ -1,4 +1,5 @@
 __all__ = [
+    "ActivityTypeInHandler",
     "AgeComparisonConditionHandler",
     "AssignedToConditionHandler",
     "EventAttributeConditionHandler",
@@ -30,6 +31,7 @@ __all__ = [
     "TaggedEventConditionHandler",
 ]
 
+from .activity_type_in_handler import ActivityTypeInHandler
 from .age_comparison_handler import AgeComparisonConditionHandler
 from .assigned_to_handler import AssignedToConditionHandler
 from .event_attribute_handler import EventAttributeConditionHandler
