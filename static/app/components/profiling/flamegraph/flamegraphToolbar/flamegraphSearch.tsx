@@ -114,6 +114,19 @@ function searchSpanRegExp(
   return match;
 }
 
+/**
+ * Compiles a user provided regular expression. Users type their query one
+ * character at a time, so intermediate states (e.g. `^(?` while writing a
+ * lookahead) are frequently invalid. Returns null instead of throwing.
+ */
+export function compileSearchRegExp(pattern: string, flags: string): RegExp | null {
+  try {
+    return new RegExp(pattern, flags);
+  } catch {
+    return null;
+  }
+}
+
 function findBestMatchFromRegexpMatchArray(
   matches: IterableIterator<RegExpMatchArray>
 ): [number, number] | null {
@@ -174,6 +187,13 @@ function yieldingRafFrameSearch(
   const searchFramesFunction = isRegExpSearch ? searchFrameRegExp : searchFrameFzf;
   const searchSpansFunction = isRegExpSearch ? searchSpanRegExp : searchSpanFzf;
   const searchQuery = isRegExpSearch ? lookup! : lowercaseQuery;
+
+  // An invalid (e.g. partially typed) regular expression cannot match anything,
+  // so resolve with empty results instead of throwing on every frame.
+  if (isRegExpSearch && compileSearchRegExp(searchQuery, forcedGlobalFlags) === null) {
+    cb(results);
+    return raf;
+  }
 
   function searchFramesAndSpans() {
     const start = performance.now();
