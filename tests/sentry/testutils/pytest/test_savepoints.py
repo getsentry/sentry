@@ -21,9 +21,11 @@ OPENED_IN = "src/sentry/example/loop.py:process_all"
 OPENED_LINE = 20
 OTHER_OPENER = "src/sentry/example/other.py:write_one"
 NO_BASELINE: frozenset[str] = frozenset()
+OVERFLOWING_PEAK = SUBTRANSACTION_CACHE_SIZE + 1
 
-RAW_WRITE_SQL = """
-WITH target AS (SELECT id FROM sentry_project WHERE id = %s)
+RAW_WRITE_INDENT = " " * 40
+RAW_WRITE_SQL = f"""
+{RAW_WRITE_INDENT}WITH target AS (SELECT id FROM sentry_project WHERE id = %s)
 UPDATE sentry_project SET name = %s WHERE id IN (SELECT id FROM target) RETURNING id
 """
 
@@ -52,10 +54,11 @@ class SavepointCountTest(TestCase):
 
         written_savepoints = 1
         nested_savepoints = 2
-        loop_savepoints = 10
+        loop_savepoints = 12
         locked_savepoints = 1
         raw_write_savepoints = 1
-        savepoints_without_id = 3
+        rolled_back_savepoints = 3
+        savepoints_without_id = 2
 
         with transaction.atomic(using=using):
             with transaction.atomic(using=using):
@@ -66,7 +69,10 @@ class SavepointCountTest(TestCase):
 
             try:
                 with transaction.atomic(using=using):
-                    Project.objects.filter(id=project_id).update(name="rolled-back")
+                    with transaction.atomic(using=using):
+                        Project.objects.filter(id=project_id).update(name="rolled-back-a")
+                    with transaction.atomic(using=using):
+                        Project.objects.filter(id=project_id).update(name="rolled-back-b")
                     raise ValueError("roll back this savepoint")
             except ValueError:
                 pass
@@ -75,7 +81,7 @@ class SavepointCountTest(TestCase):
                 with transaction.atomic(using=using):
                     Project.objects.filter(id=project_id).update(name="nested")
 
-            for _ in range(5):
+            for _ in range(6):
                 open_two_savepoints(using, project_id)
 
             with transaction.atomic(using=using):
@@ -98,7 +104,7 @@ class SavepointCountTest(TestCase):
             + locked_savepoints
             + raw_write_savepoints
         )
-        expected_opened = expected_held + savepoints_without_id
+        expected_opened = expected_held + savepoints_without_id + rolled_back_savepoints
         assert txn.peak_held_ids == expected_held
         assert len(txn.savepoints) == expected_opened
         assert (
@@ -130,24 +136,24 @@ class SavepointCountTest(TestCase):
 
 
 def test_fails_at_overflow_and_clear_suppresses() -> None:
-    at_limit = make_usage(peak_held_ids=SUBTRANSACTION_CACHE_SIZE, savepoints_opened=40)
-    below_limit = make_usage(peak_held_ids=SUBTRANSACTION_CACHE_SIZE - 1, savepoints_opened=1)
+    past_limit = make_usage(peak_held_ids=OVERFLOWING_PEAK, savepoints_opened=40)
+    at_limit = make_usage(peak_held_ids=SUBTRANSACTION_CACHE_SIZE, savepoints_opened=1)
 
     with pytest.raises(pytest.fail.Exception) as excinfo:
-        evaluate_usage(at_limit, NODEID, [], NO_BASELINE)
+        evaluate_usage(past_limit, NODEID, [], NO_BASELINE)
 
     message = str(excinfo.value)
     assert FORMATTED_CALL_SITE in message
     assert f"{OPENED_IN} (line {OPENED_LINE})" in message
 
-    evaluate_usage(below_limit, NODEID, [], NO_BASELINE)
-
-    at_limit.clear()
     evaluate_usage(at_limit, NODEID, [], NO_BASELINE)
+
+    past_limit.clear()
+    evaluate_usage(past_limit, NODEID, [], NO_BASELINE)
 
 
 def test_baseline_reports_known_overflows_instead_of_failing() -> None:
-    overflowing = make_usage(peak_held_ids=SUBTRANSACTION_CACHE_SIZE, savepoints_opened=2)
+    overflowing = make_usage(peak_held_ids=OVERFLOWING_PEAK, savepoints_opened=2)
 
     by_call_site: list[tuple[str, object]] = []
     evaluate_usage(overflowing, NODEID, by_call_site, frozenset({CALL_SITE.opened_in}))
@@ -157,7 +163,7 @@ def test_baseline_reports_known_overflows_instead_of_failing() -> None:
             {
                 "nodeid": NODEID,
                 "entry": CALL_SITE.opened_in,
-                "peak_held_ids": SUBTRANSACTION_CACHE_SIZE,
+                "peak_held_ids": OVERFLOWING_PEAK,
                 "call_site": FORMATTED_CALL_SITE,
             },
         )
@@ -168,7 +174,7 @@ def test_baseline_reports_known_overflows_instead_of_failing() -> None:
     assert by_top_opener[0][1] == {
         "nodeid": NODEID,
         "entry": OPENED_IN,
-        "peak_held_ids": SUBTRANSACTION_CACHE_SIZE,
+        "peak_held_ids": OVERFLOWING_PEAK,
         "call_site": FORMATTED_CALL_SITE,
     }
 

@@ -297,7 +297,8 @@ class SavepointTracker:
             return execute(sql, params, many, context)
         state = self.connection_state(context["connection"].alias)
         text = str(sql)
-        head = text[:STATEMENT_HEAD_CHARS].lstrip().upper()
+        statement = text.lstrip()
+        head = statement[:STATEMENT_HEAD_CHARS].upper()
         if head.startswith("SAVEPOINT"):
             self.on_savepoint(state, text)
         txn = state.current_txn()
@@ -476,7 +477,7 @@ def evaluate_usage(
     for txn in usage.transactions:
         top = txn.top_opener()
         call_site = format_call_site(txn)
-        if txn.peak_held_ids >= SUBTRANSACTION_CACHE_SIZE:
+        if txn.peak_held_ids > SUBTRANSACTION_CACHE_SIZE:
             entry = matching_baseline_entry(txn, top, baseline)
             if entry is None:
                 pytest.fail(format_overflow_message(txn))
