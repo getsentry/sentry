@@ -89,12 +89,17 @@ async function app() {
   const registerOverridesImport = import('../gsApp/registerOverrides');
   // eslint-disable-next-line import/no-relative-parent-imports, import-js/no-relative-packages -- getsentry entrypoint
   const initalizeBundleMetricsImport = import('../gsApp/initializeBundleMetrics');
+  // eslint-disable-next-line import/no-relative-parent-imports, import-js/no-relative-packages -- getsentry entrypoint
+  const scopeTagsImport = import('../gsApp/registerSubscriptionScopeTags');
 
   // getsentry augments Sentry's application through a 'hook' mechanism. Sentry
   // provides various hooks into parts of its application. Thus all getsentry
   // functionality is initialized by registering its hook functions.
   const {registerGsAppOverrides} = await registerOverridesImport;
   registerGsAppOverrides();
+
+  const {registerSubscriptionScopeTags} = await scopeTagsImport;
+  registerSubscriptionScopeTags();
 
   const {initializeMain} = await initalizeMainImport;
   initializeMain(config);
