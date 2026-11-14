@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -16,9 +16,33 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json
 
+AgenticOnboardingStageValue = Literal[
+    "connect_agent",
+    "analyze_project",
+    "create_project",
+    "instrument_app",
+    "plan_test_error",
+    "send_verification_error",
+    "receive_verification_error",
+    "prepare_production",
+    "check_stack_trace_quality",
+]
+
+STAGE_RESPONSE_VALUES: Mapping[Stage, AgenticOnboardingStageValue] = {
+    Stage.CONNECT_MCP: "connect_agent",
+    Stage.ANALYZE_PROJECT: "analyze_project",
+    Stage.CREATE_PROJECT: "create_project",
+    Stage.INSTRUMENT_APP: "instrument_app",
+    Stage.PLAN_TEST_ERROR: "plan_test_error",
+    Stage.SEND_VERIFICATION_ERROR: "send_verification_error",
+    Stage.RECEIVE_VERIFICATION_ERROR: "receive_verification_error",
+    Stage.PREPARE_PRODUCTION: "prepare_production",
+    Stage.CHECK_STACK_TRACE_QUALITY: "check_stack_trace_quality",
+}
+
 
 class AgenticOnboardingStageResponse(TypedDict):
-    stage: Stage
+    stage: AgenticOnboardingStageValue
     status: StageStatus | None
     eventNote: str | None
     extra: dict[str, Any] | None
@@ -70,7 +94,7 @@ class AgenticOnboardingRunSerializer(Serializer[AgenticOnboardingRunResponse]):
             runStatus=obj.run_status,
             stages=[
                 AgenticOnboardingStageResponse(
-                    stage=state.stage,
+                    stage=STAGE_RESPONSE_VALUES[state.stage],
                     status=state.status,
                     eventNote=state.event_note,
                     extra=serialize_stage_extra(state.extra),
