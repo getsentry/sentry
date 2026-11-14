@@ -41,7 +41,7 @@ function useMonitorAlertTargets(monitorIds: string[]) {
 
   return useQuery({
     ...automationsApiOptions(organization, {
-      detector: [...monitorIds].sort(),
+      detector: monitorIds.toSorted(),
       limit: 100,
     }),
     enabled: monitorIds.length > 0,
@@ -228,7 +228,7 @@ export function MonitorTable({
               <Hovercard
                 header={monitor.name}
                 body={<MetricDetectorDetailsDetect detector={monitor} />}
-                position="bottom-start"
+                position="right-start"
                 containerDisplayMode="block"
                 style={{minWidth: 0}}
               >

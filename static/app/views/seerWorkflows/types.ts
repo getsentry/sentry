@@ -46,8 +46,17 @@ type MonitorTrigger = {
    * The monitor may have since been deleted
    */
   detectorId: string;
+  /**
+   * Null when the monitor is deleted, moved out of the trigger's project, or the
+   * viewer can't access it
+   */
+  detectorName: string | null;
   environment: string | null;
   eventId: string;
+  /**
+   * False once the triggering issue is deleted
+   */
+  groupExists: boolean;
   groupId: string;
   observedAt: string;
   occurrenceId: string;
@@ -70,6 +79,10 @@ type WorkflowTrigger = MonitorTrigger | CronTrigger;
 
 type SeerAutomationRunBase = {
   configId: string;
+  /**
+   * The automation's user-supplied name. Null when unnamed
+   */
+  configName: string | null;
   dateAdded: string;
   dateCompleted: string | null;
   dateUpdated: string;
@@ -192,6 +205,7 @@ export type SeerWorkflowConfigCreateRequest = {
 export type SeerWorkflowConfigUpdateRequest = {
   enabled?: boolean;
   monitorIds?: number[];
+  name?: string;
   /**
    * [-1] for all projects, otherwise selected project IDs
    */

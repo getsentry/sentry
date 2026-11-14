@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from copy import deepcopy
 from typing import Any
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Max
 from django.utils import timezone
 
@@ -21,60 +21,61 @@ from sentry.notebooks.models import (
     NotebookSourceType,
     NotebookStatus,
 )
+from sentry.notebooks.services.producer_sources import ProducerSource
 
-UPDATABLE_INVESTIGATION_FIELDS = frozenset({"title", "status", "filters"})
-MAX_INVESTIGATION_TITLE_LENGTH = 255
+UPDATABLE_NOTEBOOK_FIELDS = frozenset({"title", "status", "filters"})
+MAX_NOTEBOOK_TITLE_LENGTH = 255
 # Placeholder used before titles were derived from the investigation type.
-DEFAULT_INVESTIGATION_TITLE = "Untitled investigation"
+DEFAULT_NOTEBOOK_TITLE = "Untitled investigation"
 
 CREATABLE_BLOCK_FIELDS = frozenset({"kind", "title", "content", "prompt", "config", "display"})
 UPDATABLE_BLOCK_FIELDS = CREATABLE_BLOCK_FIELDS - {"kind"}
 
 
-_INVESTIGATION_TYPE_LABELS: dict[str, str] = {
+_NOTEBOOK_TYPE_LABELS: dict[str, str] = {
     NotebookSourceType.MANUAL: "manual",
     NotebookSourceType.METRIC_OPEN_PERIOD: "breached metrics",
 }
 
 
-def default_investigation_title(source_type: str) -> str:
+def default_notebook_title(source_type: str) -> str:
     """Placeholder title shown until Seer names the investigation."""
 
-    label = _INVESTIGATION_TYPE_LABELS.get(source_type, "manual")
+    label = _NOTEBOOK_TYPE_LABELS.get(source_type, "manual")
     return f"New {label} investigation"
 
 
-def has_default_investigation_title(investigation: Notebook) -> bool:
-    return investigation.title in {
-        DEFAULT_INVESTIGATION_TITLE,
-        default_investigation_title(investigation.source_type),
+def has_default_notebook_title(notebook: Notebook) -> bool:
+    return notebook.title in {
+        DEFAULT_NOTEBOOK_TITLE,
+        default_notebook_title(notebook.source_type),
     }
 
 
 def _reject_unsupported_fields(values: dict[str, Any], allowed: frozenset[str]) -> None:
     unsupported = sorted(set(values) - allowed)
     if unsupported:
-        raise InvestigationValidationError({"fields": f"Cannot be set: {', '.join(unsupported)}."})
+        raise NotebookValidationError({"fields": f"Cannot be set: {', '.join(unsupported)}."})
 
 
 BLOCK_EXECUTION_INPUT_FIELDS = frozenset({"content", "prompt", "config"})
 
 
-class InvestigationServiceError(Exception):
+class NotebookServiceError(Exception):
     pass
 
 
-class InvestigationValidationError(InvestigationServiceError):
+class NotebookValidationError(NotebookServiceError):
     def __init__(self, errors: dict[str, Any]):
         super().__init__(str(errors))
         self.errors = errors
 
 
-class InvestigationConflictError(InvestigationServiceError):
+class NotebookConflictError(NotebookServiceError):
     pass
 
 
-class InvestigationSourceNotFound(InvestigationServiceError):
+class NotebookSourceNotFound(NotebookServiceError):
     pass
 
 
@@ -88,18 +89,18 @@ def _validate_project_ids(organization_id: int, project_ids: Iterable[int]) -> l
         ).values_list("id", flat=True)
     )
     if not set(requested).issubset(known):
-        raise InvestigationValidationError({"projectIds": "One or more projects are inaccessible."})
+        raise NotebookValidationError({"projectIds": "One or more projects are inaccessible."})
     return requested
 
 
-def _create_project_links(investigation: Notebook, project_ids: Iterable[int]) -> None:
-    requested = _validate_project_ids(investigation.organization_id, project_ids)
+def _create_project_links(notebook: Notebook, project_ids: Iterable[int]) -> None:
+    requested = _validate_project_ids(notebook.organization_id, project_ids)
     NotebookProject.objects.bulk_create(
-        [NotebookProject(notebook=investigation, project_id=project_id) for project_id in requested]
+        [NotebookProject(notebook=notebook, project_id=project_id) for project_id in requested]
     )
 
 
-def create_manual_investigation(
+def create_manual_notebook(
     *,
     organization: Organization,
     creator: CreatorReference,
@@ -108,14 +109,14 @@ def create_manual_investigation(
     filters: dict[str, Any],
 ) -> Notebook:
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        investigation = Notebook.objects.create(
+        notebook = Notebook.objects.create(
             organization=organization,
             **creator,
             title=title,
             filters=filters,
         )
-        _create_project_links(investigation, project_ids)
-    return investigation
+        _create_project_links(notebook, project_ids)
+    return notebook
 
 
 def create_notebook(
@@ -132,7 +133,7 @@ def create_notebook(
     project_ids: list[int],
 ) -> Notebook:
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        investigation = Notebook.objects.create(
+        notebook = Notebook.objects.create(
             organization=organization,
             created_by_id=created_by_id,
             created_by_service_account_id=created_by_service_account_id,
@@ -143,25 +144,97 @@ def create_notebook(
             source_revision=source_revision,
             filters=deepcopy(filters),
         )
-        _create_project_links(investigation, project_ids)
-    return investigation
+        _create_project_links(notebook, project_ids)
+    return notebook
+
+
+def get_or_create_source_notebook(
+    *, organization: Organization, source_key: str, create: Callable[[int], Notebook]
+) -> tuple[Notebook, bool]:
+    """The active notebook for source_key, or the one create() makes at the next revision.
+    The bool is True when create() ran.
+    """
+    # Uniqueness on the active source and revision arbitrates concurrent launches.
+    for attempt in range(3):
+        active = (
+            Notebook.objects.filter(
+                organization=organization,
+                source_key=source_key,
+                status=NotebookStatus.ACTIVE,
+            )
+            .order_by("-source_revision", "-id")
+            .first()
+        )
+        if active is not None:
+            return active, False
+        latest_revision = Notebook.objects.filter(
+            organization=organization,
+            source_key=source_key,
+        ).aggregate(latest=Max("source_revision"))["latest"]
+        try:
+            with transaction.atomic(using=router.db_for_write(Notebook)):
+                return create((latest_revision or 0) + 1), True
+        except IntegrityError:
+            if attempt == 2:
+                active = Notebook.objects.filter(
+                    organization=organization,
+                    source_key=source_key,
+                    status=NotebookStatus.ACTIVE,
+                ).first()
+                if active is not None:
+                    return active, False
+                raise
+    raise AssertionError("unreachable")
+
+
+def create_producer_notebook(
+    *,
+    organization: Organization,
+    creator: CreatorReference,
+    title: str,
+    source: ProducerSource,
+    filters: dict[str, Any],
+) -> tuple[Notebook, bool]:
+    """The active notebook for the producer's source, or a new revision of it.
+    The bool is True when it was created.
+    """
+    source_type, resolved = source.source_type, source.resolved
+    source_key = source_type.source_key(resolved)
+
+    def create(revision: int) -> Notebook:
+        return create_notebook(
+            organization=organization,
+            created_by_id=creator["created_by_id"],
+            created_by_service_account_id=creator["created_by_service_account_id"],
+            title=title,
+            source_type=source_type.name,
+            source_key=source_key,
+            source=source_type.notebook_source(resolved),
+            source_revision=revision,
+            filters=filters,
+            project_ids=resolved.project_ids,
+        )
+
+    return get_or_create_source_notebook(
+        organization=organization, source_key=source_key, create=create
+    )
 
 
 def _copy_title(title: str) -> str:
     prefix = "Copy of "
-    return prefix + title[: MAX_INVESTIGATION_TITLE_LENGTH - len(prefix)]
+    return prefix + title[: MAX_NOTEBOOK_TITLE_LENGTH - len(prefix)]
 
 
-def duplicate_investigation(*, investigation: Notebook, creator: CreatorReference) -> Notebook:
+def duplicate_notebook(*, notebook: Notebook, creator: CreatorReference) -> Notebook:
     """Copy notebook structure without executions, comments, or collaboration state."""
 
     user_id = creator["created_by_id"]
 
     with transaction.atomic(using=router.db_for_write(Notebook)):
         try:
-            source = Notebook.objects.select_for_update().get(id=investigation.id)
+            source = Notebook.objects.select_for_update().get(id=notebook.id)
         except Notebook.DoesNotExist:
-            raise InvestigationSourceNotFound
+            raise NotebookSourceNotFound
         duplicate = Notebook.objects.create(
             organization=source.organization,
             **creator,
@@ -191,43 +264,43 @@ def duplicate_investigation(*, investigation: Notebook, creator: CreatorReferenc
     return duplicate
 
 
-def lock_investigation(investigation: Notebook, expected_version: int) -> Notebook:
+def lock_notebook(notebook: Notebook, expected_version: int) -> Notebook:
     """Lock the aggregate root before subordinate rows in an Investigation-routed transaction."""
     try:
-        locked = Notebook.objects.select_for_update().get(id=investigation.id)
+        locked = Notebook.objects.select_for_update().get(id=notebook.id)
     except Notebook.DoesNotExist:
-        raise InvestigationSourceNotFound
+        raise NotebookSourceNotFound
     if locked.version != expected_version:
-        raise InvestigationConflictError("Investigation has changed.")
+        raise NotebookConflictError("Investigation has changed.")
     return locked
 
 
-def bump_investigation_version(investigation: Notebook) -> None:
-    investigation.version += 1
-    investigation.save()
+def bump_notebook_version(notebook: Notebook) -> None:
+    notebook.version += 1
+    notebook.save()
 
 
-def update_investigation(
+def update_notebook_row(
     *,
-    investigation: Notebook,
+    notebook: Notebook,
     expected_version: int,
     fields: dict[str, Any],
     project_ids: list[int] | None,
 ) -> Notebook:
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        locked = lock_investigation(investigation, expected_version)
-        restoring_source_investigation = (
+        locked = lock_notebook(notebook, expected_version)
+        restoring_source_notebook = (
             locked.status == NotebookStatus.ARCHIVED
             and fields.get("status") == NotebookStatus.ACTIVE
             and locked.source_key is not None
         )
-        if restoring_source_investigation:
-            raise InvestigationConflictError(
+        if restoring_source_notebook:
+            raise NotebookConflictError(
                 "Archived source investigations cannot be reactivated; create a new revision."
             )
-        unsupported = sorted(set(fields) - UPDATABLE_INVESTIGATION_FIELDS)
+        unsupported = sorted(set(fields) - UPDATABLE_NOTEBOOK_FIELDS)
         if unsupported:
-            raise InvestigationValidationError(
+            raise NotebookValidationError(
                 {"fields": f"Cannot be updated: {', '.join(unsupported)}."}
             )
         for field, value in fields.items():
@@ -235,13 +308,13 @@ def update_investigation(
         if project_ids is not None:
             NotebookProject.objects.filter(notebook=locked).delete()
             _create_project_links(locked, project_ids)
-        bump_investigation_version(locked)
+        bump_notebook_version(locked)
     return locked
 
 
-def archive_investigation(*, investigation: Notebook, expected_version: int) -> Notebook:
+def archive_notebook_row(*, notebook: Notebook, expected_version: int) -> Notebook:
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        locked = lock_investigation(investigation, expected_version)
+        locked = lock_notebook(notebook, expected_version)
         if locked.status == NotebookStatus.ARCHIVED:
             return locked
         if NotebookBlockExecution.objects.filter(
@@ -254,25 +327,25 @@ def archive_investigation(*, investigation: Notebook, expected_version: int) -> 
                 NotebookBlockExecutionStatus.STOPPING,
             ),
         ).exists():
-            raise InvestigationValidationError(
+            raise NotebookValidationError(
                 {"detail": "Stop active block runs before archiving this investigation."}
             )
         locked.status = NotebookStatus.ARCHIVED
-        bump_investigation_version(locked)
+        bump_notebook_version(locked)
     return locked
 
 
 def create_block(
     *,
-    investigation: Notebook,
-    expected_investigation_version: int,
-    user_id: int,
+    notebook: Notebook,
+    expected_notebook_version: int,
+    user_id: int | None,
     values: dict[str, Any],
 ) -> NotebookBlock:
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        locked = lock_investigation(investigation, expected_investigation_version)
+        locked = lock_notebook(notebook, expected_notebook_version)
         if locked.status != NotebookStatus.ACTIVE:
-            raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
+            raise NotebookValidationError({"detail": "Archived investigations are read-only."})
         _reject_unsupported_fields(values, CREATABLE_BLOCK_FIELDS)
         maximum = NotebookBlock.objects.filter(notebook=locked, deleted_at__isnull=True).aggregate(
             maximum=Max("position")
@@ -285,28 +358,28 @@ def create_block(
             position=position,
             **values,
         )
-        bump_investigation_version(locked)
+        bump_notebook_version(locked)
     return block
 
 
 def update_block(
     *,
     block: NotebookBlock,
-    expected_investigation_version: int,
+    expected_notebook_version: int,
     expected_block_version: int,
-    user_id: int,
+    user_id: int | None,
     values: dict[str, Any],
 ) -> NotebookBlock:
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        investigation = lock_investigation(block.notebook, expected_investigation_version)
+        notebook = lock_notebook(block.notebook, expected_notebook_version)
         try:
             locked = NotebookBlock.objects.select_for_update().get(id=block.id)
         except NotebookBlock.DoesNotExist:
-            raise InvestigationSourceNotFound
-        if investigation.status != NotebookStatus.ACTIVE:
-            raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
+            raise NotebookSourceNotFound
+        if notebook.status != NotebookStatus.ACTIVE:
+            raise NotebookValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
-            raise InvestigationConflictError("Block has changed.")
+            raise NotebookConflictError("Block has changed.")
         _reject_unsupported_fields(values, UPDATABLE_BLOCK_FIELDS)
         changed_values = {
             field: value for field, value in values.items() if getattr(locked, field) != value
@@ -322,23 +395,23 @@ def update_block(
         locked.last_edited_by_id = user_id
         locked.version += 1
         locked.save()
-        bump_investigation_version(investigation)
+        bump_notebook_version(notebook)
     return locked
 
 
 def delete_block(
-    *, block: NotebookBlock, expected_investigation_version: int, expected_block_version: int
+    *, block: NotebookBlock, expected_notebook_version: int, expected_block_version: int
 ) -> None:
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        investigation = lock_investigation(block.notebook, expected_investigation_version)
+        notebook = lock_notebook(block.notebook, expected_notebook_version)
         try:
             locked = NotebookBlock.objects.select_for_update().get(id=block.id)
         except NotebookBlock.DoesNotExist:
-            raise InvestigationSourceNotFound
-        if investigation.status != NotebookStatus.ACTIVE:
-            raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
+            raise NotebookSourceNotFound
+        if notebook.status != NotebookStatus.ACTIVE:
+            raise NotebookValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
-            raise InvestigationConflictError("Block has changed.")
+            raise NotebookConflictError("Block has changed.")
         if locked.executions.filter(
             status__in=(
                 NotebookBlockExecutionStatus.PENDING,
@@ -347,7 +420,7 @@ def delete_block(
                 NotebookBlockExecutionStatus.STOPPING,
             )
         ).exists():
-            raise InvestigationValidationError(
+            raise NotebookValidationError(
                 {"detail": "Stop the active run before deleting this block."}
             )
         locked.deleted_at = timezone.now()
@@ -355,22 +428,20 @@ def delete_block(
         locked.save(update_fields=["deleted_at", "version", "date_updated"])
         active_blocks = list(
             NotebookBlock.objects.select_for_update()
-            .filter(notebook=investigation, deleted_at__isnull=True)
+            .filter(notebook=notebook, deleted_at__isnull=True)
             .order_by("position", "id")
         )
         for position, active_block in enumerate(active_blocks):
             active_block.position = position
         NotebookBlock.objects.bulk_update(active_blocks, ["position"])
-        bump_investigation_version(investigation)
+        bump_notebook_version(notebook)
 
 
-def reorder_blocks(
-    *, investigation: Notebook, expected_version: int, block_ids: list[int]
-) -> Notebook:
+def reorder_blocks(*, notebook: Notebook, expected_version: int, block_ids: list[int]) -> Notebook:
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        locked = lock_investigation(investigation, expected_version)
+        locked = lock_notebook(notebook, expected_version)
         if locked.status != NotebookStatus.ACTIVE:
-            raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
+            raise NotebookValidationError({"detail": "Archived investigations are read-only."})
         blocks = list(
             NotebookBlock.objects.select_for_update().filter(
                 notebook=locked, deleted_at__isnull=True
@@ -378,14 +449,14 @@ def reorder_blocks(
         )
         existing = {block.id: block for block in blocks}
         if len(block_ids) != len(set(block_ids)):
-            raise InvestigationValidationError({"blockIds": "Block IDs must be unique."})
+            raise NotebookValidationError({"blockIds": "Block IDs must be unique."})
         if set(block_ids) != set(existing):
-            raise InvestigationValidationError(
+            raise NotebookValidationError(
                 {"blockIds": "Must contain every active block exactly once."}
             )
         ordered = [existing[block_id] for block_id in block_ids]
         for position, block in enumerate(ordered):
             block.position = position
         NotebookBlock.objects.bulk_update(ordered, ["position"])
-        bump_investigation_version(locked)
+        bump_notebook_version(locked)
     return locked

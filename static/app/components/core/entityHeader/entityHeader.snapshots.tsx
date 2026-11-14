@@ -85,6 +85,34 @@ describe('EntityHeader', () => {
     {viewport: 900, tags: {area: 'core'}}
   );
 
+  // An empty value keeps the value's typography, so it should sit on the same
+  // baseline and row height as the populated stats beside it.
+  it.snapshot(
+    'empty stats',
+    () => (
+      <MemoryRouter>
+        <EntityHeader
+          title={props.title}
+          stats={{
+            label: 'Build stats',
+            items: [
+              {type: 'text', label: 'Install Size', value: '12 MB'},
+              {type: 'text', label: 'Cost', value: null},
+              {type: 'link', label: 'Errors', value: null, to: '/replays/1/'},
+              {
+                type: 'text',
+                label: 'Download Size',
+                value: null,
+                valueTooltip: 'Not reported for this platform',
+              },
+            ],
+          }}
+        />
+      </MemoryRouter>
+    ),
+    {viewport: 900, tags: {state: 'empty', area: 'core'}}
+  );
+
   describe.each([480, 900])('late metadata at %s', viewport => {
     it.snapshot.each([true, false])(
       'loading %s',

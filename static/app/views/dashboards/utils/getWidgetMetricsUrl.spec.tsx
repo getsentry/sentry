@@ -8,6 +8,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {getWidgetMetricsUrl} from './getWidgetMetricsUrl';
+import {PERFORMANCE_SCORE_FIELD} from './webVitalTraceMetricFields';
 
 function parseMetricsUrl(url: string) {
   const [pathname, search] = url.split('?');
@@ -130,6 +131,40 @@ describe('getWidgetMetricsUrl', () => {
         {groupBy: 'transaction'},
         {groupBy: 'http.status_code'},
       ]);
+    });
+
+    it('runs a score formula as an equation', () => {
+      const widget = WidgetFixture({
+        title: 'Pages',
+        displayType: DisplayType.TABLE,
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: '',
+            fields: ['transaction', PERFORMANCE_SCORE_FIELD],
+            aggregates: [PERFORMANCE_SCORE_FIELD],
+            columns: ['transaction'],
+            conditions: 'release:1.0.0',
+            orderby: `-${PERFORMANCE_SCORE_FIELD}`,
+          },
+        ],
+      });
+
+      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+      expect(metrics).toHaveLength(1);
+      const metricQuery = JSON.parse(metrics[0]!);
+      const equation = `equation|${PERFORMANCE_SCORE_FIELD}`;
+      expect(metricQuery.metric).toEqual({name: '', type: ''});
+      expect(metricQuery.mode).toBe('aggregate');
+      expect(metricQuery.query).toBe('release:1.0.0');
+      expect(metricQuery.aggregateFields).toEqual([
+        {chartType: ChartType.LINE, yAxes: [equation]},
+        {groupBy: 'transaction'},
+      ]);
+      expect(metricQuery.aggregateSortBys).toEqual([{field: equation, kind: 'desc'}]);
     });
 
     it('applies dashboard filters to query conditions', () => {

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from typing import Any
 from uuid import UUID, uuid4, uuid5
+
+from django.db.models import Q
 
 from sentry.investigations.endpoints.serializers.orchestration import (
     orchestration_summaries_by_investigation,
@@ -13,6 +15,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
+    InvestigationOrchestrationStatus,
 )
 from sentry.investigations.seer_client import CommandRejectionCode
 from sentry.investigations.services.orchestration import (
@@ -26,10 +29,10 @@ from sentry.investigations.services.orchestration import (
     update_investigation_with_orchestration,
 )
 from sentry.notebooks.endpoints.serializers.action_request import (
-    InvestigationActionRequestFollowUpResponse,
+    NotebookActionRequestFollowUpResponse,
 )
-from sentry.notebooks.endpoints.serializers.investigation import (
-    InvestigationOrchestrationSerializerResponse,
+from sentry.notebooks.endpoints.serializers.notebook import (
+    NotebookOrchestrationSerializerResponse,
 )
 from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.notebooks.services.action_kinds.base import (
@@ -38,6 +41,7 @@ from sentry.notebooks.services.action_kinds.base import (
     FollowUpCommand,
 )
 from sentry.notebooks.services.producer import NotebookProducer, NotebookProducerRun
+from sentry.viewer_context import ActorId
 
 _OUTCOME_NAMESPACE = UUID("3d84e9e2-ed0b-4707-8dfc-8fce87c899ae")
 
@@ -217,6 +221,7 @@ class OrchestrationProducerRun(NotebookProducerRun):
             command_type=command.type,
             payload=command.payload,
             actor_id=command.actor_id,
+            service_account_id=command.requested_by_service_account_id,
         )
 
 
@@ -226,6 +231,7 @@ class OrchestrationProducer(NotebookProducer):
     follow_up_status_hint = InvestigationOrchestrationCommandStatus
     follow_up_reason_hint = CommandRejectionCode | None
     follow_up_rerun_hint = InvestigationOrchestrationRerun | None
+    run_statuses = InvestigationOrchestrationStatus.values
 
     def lock_run(self, notebook: Notebook, *, lock: bool) -> OrchestrationProducerRun:
         runs = InvestigationOrchestrationRun.objects.all()
@@ -235,7 +241,7 @@ class OrchestrationProducer(NotebookProducer):
 
     def follow_ups(
         self, item_list: Sequence[NotebookActionRequest]
-    ) -> dict[tuple[int, UUID], InvestigationActionRequestFollowUpResponse]:
+    ) -> dict[tuple[int, UUID], NotebookActionRequestFollowUpResponse]:
         request_ids = {
             item.followup_request_id for item in item_list if item.followup_request_id is not None
         }
@@ -268,26 +274,29 @@ class OrchestrationProducer(NotebookProducer):
 
     def orchestration_summaries(
         self, notebooks: Sequence[Notebook]
-    ) -> dict[int, InvestigationOrchestrationSerializerResponse]:
+    ) -> dict[int, NotebookOrchestrationSerializerResponse]:
         return orchestration_summaries_by_investigation(notebooks)
 
+    def has_run_status(self, statuses: Collection[str]) -> Q:
+        return Q(orchestration_run__status__in=statuses)
+
     def archive_notebook(
-        self, *, investigation: Notebook, expected_version: int, actor_id: int | None
+        self, *, notebook: Notebook, expected_version: int, actor: ActorId
     ) -> Notebook:
         return archive_investigation_with_orchestration(
-            investigation=investigation, expected_version=expected_version, actor_id=actor_id
+            investigation=notebook, expected_version=expected_version, actor=actor
         )
 
     def update_notebook(
         self,
         *,
-        investigation: Notebook,
+        notebook: Notebook,
         expected_version: int,
         fields: dict[str, Any],
         project_ids: list[int] | None,
     ) -> Notebook:
         return update_investigation_with_orchestration(
-            investigation=investigation,
+            investigation=notebook,
             expected_version=expected_version,
             fields=fields,
             project_ids=project_ids,

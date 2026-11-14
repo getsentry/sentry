@@ -25,7 +25,7 @@ type Props = ModalRenderProps & {
 
 export function CustomIgnoreCountModal(props: Props) {
   const [count, setCount] = useState(100);
-  const [window, setWindow] = useState<number | null>(null);
+  const [countWindow, setCountWindow] = useState<number | null>(null);
   const {
     Header,
     Footer,
@@ -41,8 +41,8 @@ export function CustomIgnoreCountModal(props: Props) {
 
   const handleSubmit = () => {
     const statusDetails: IgnoredStatusDetails = {[countName]: count};
-    if (window) {
-      statusDetails[windowName] = window;
+    if (countWindow) {
+      statusDetails[windowName] = countWindow;
     }
     onSelected(statusDetails);
     closeModal();
@@ -70,9 +70,9 @@ export function CustomIgnoreCountModal(props: Props) {
           flexibleControlStateSize
           stacked
           label={t('Time window')}
-          value={window}
+          value={countWindow}
           name="window"
-          onChange={setWindow}
+          onChange={setCountWindow}
           options={windowOptions}
           placeholder={t('e.g. per hour')}
           allowClear

@@ -57,10 +57,6 @@ describe('useSaveAsMetricItems', () => {
     });
   });
 
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
-
   it('should open save query modal when save as new query is clicked', () => {
     const {result} = renderHookWithProviders(useSaveAsMetricItems, {
       organization,

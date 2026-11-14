@@ -19,10 +19,10 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -102,7 +102,7 @@ function AccountNotificationsByProject({
 }
 
 export function AccountNotificationFineTuning() {
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
   const customerDomain = useStore(ConfigStore, state => state.customerDomain);
 
   const [orgIdParam, setOrgId] = useQueryState('organizationId', parseAsString);
@@ -231,7 +231,7 @@ export function AccountNotificationFineTuning() {
           )}
         </Stack>
       </Panel>
-      {projects && <Pagination pageLinks={projectsResp?.headers.Link} />}
+      {projects && <Pagination {...getPaginationProps(projectsResp?.headers.Link)} />}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
+
 import type {ViewerProps} from './utils';
 import {getAttachmentUrl} from './utils';
 
@@ -12,7 +14,7 @@ export function ImageViewer({onLoad, onError, className, ...props}: Props) {
     <img
       className={className}
       data-test-id="image-viewer"
-      src={`/api/0${getAttachmentUrl(props)}?download`}
+      src={resolveHostname(`/api/0${getAttachmentUrl(props)}?download`)}
       onLoad={onLoad}
       onError={onError}
     />

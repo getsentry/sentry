@@ -1,5 +1,7 @@
 import logging
 
+from django.db import router, transaction
+
 from sentry import features
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus
@@ -10,9 +12,11 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.integrations.metric_alerts import build_workflow_link, incident_attachment_info
+from sentry.investigations.services import agentic_breached_metric_source_key
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
-from sentry.notebooks.access import has_investigations_access
+from sentry.notebooks.access import has_notebooks_access
+from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notifications.notification_action.registry import (
     activity_handler_registry,
     group_type_notification_registry,
@@ -55,13 +59,13 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
         # Else we can use the activity.send_notification() method to send the notification.
         if (
             invocation.event_data.event.type in BaseMetricAlertHandler.ACTIVITIES_TO_INVOKE_ON
-            and invocation.event_data.group.type == MetricIssue.type_id
+            and invocation.event_data.require_group().type == MetricIssue.type_id
         ):
             return execute_via_metric_alert_handler(invocation)
 
         try:
             return execute_via_activity_type_registry(invocation=invocation)
-        except Exception:
+        except (NoRegistrationExistsError, ActivityHandlerValidationError):
             logger.exception(
                 "Error executing via activity type registry",
                 extra={
@@ -161,16 +165,48 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
     )
 
     return IssueNotificationData(
-        organization_id=event_data.group.project.organization_id,
+        organization_id=event_data.require_group().project.organization_id,
         tags=tag_list,
         notes=notes,
         event_id=event_id,
         occurrence_id=occurrence_id,
-        group_id=event_data.group.id,
+        group_id=event_data.require_group().id,
         integration_id=action.integration_id,
         notification_uuid=invocation.notification_uuid,
         rule=rule,
     )
+
+
+def _get_metric_alert_investigation_url(
+    *, organization: Organization, group_id: int, open_period_id: int
+) -> str | None:
+    try:
+        # Roll back lookup errors before continuing the notification's database work.
+        database = router.db_for_read(Notebook)
+        with transaction.atomic(using=database):
+            investigation = (
+                Notebook.objects.using(database)
+                .filter(
+                    organization=organization,
+                    source_key=agentic_breached_metric_source_key(
+                        {"ref": {"groupId": group_id, "openPeriodId": open_period_id}}
+                    ),
+                    status=NotebookStatus.ACTIVE,
+                )
+                .select_related("organization")
+                .first()
+            )
+            return investigation.get_absolute_url() if investigation is not None else None
+    except Exception:
+        logger.exception(
+            "notifications.metric_alert.investigation_lookup_failed",
+            extra={
+                "organization_id": organization.id,
+                "group_id": group_id,
+                "open_period_id": open_period_id,
+            },
+        )
+        return None
 
 
 def metric_alert_notification_data_factory(
@@ -203,9 +239,16 @@ def metric_alert_notification_data_factory(
         action_type == Action.Type.SLACK
         and metric_issue_context.group is not None
         and metric_issue_context.new_status != IncidentStatus.CLOSED
-        and has_investigations_access(organization)
+        and has_notebooks_access(organization)
         and features.has("organizations:investigations-slack", organization)
     )
+    investigation_url = None
+    if show_investigation_button:
+        investigation_url = _get_metric_alert_investigation_url(
+            organization=organization,
+            group_id=metric_issue_context.id,
+            open_period_id=open_period_context.id,
+        )
 
     workflow_link = None
     if notification_context.workflow_id is not None:
@@ -226,6 +269,7 @@ def metric_alert_notification_data_factory(
         workflow_name=notification_context.workflow_name,
         workflow_link=workflow_link,
         show_investigation_button=show_investigation_button,
+        investigation_url=investigation_url,
     )
 
 

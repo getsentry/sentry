@@ -40,7 +40,7 @@ def _schema_from(hint: Callable[[], object]) -> ApiSchema:
     return ApiSchema(lambda: resolve_type_hint(hint()))
 
 
-class InvestigationActionRequestAnchorResponse(TypedDict):
+class NotebookActionRequestAnchorResponse(TypedDict):
     """`id` is Seer's ID: a block's agent key or a hypothesis ID. `blockId` is the live block
     it points to, if there is one.
     """
@@ -50,7 +50,7 @@ class InvestigationActionRequestAnchorResponse(TypedDict):
     blockId: str | None
 
 
-class InvestigationActionRequestFollowUpResponse(TypedDict):
+class NotebookActionRequestFollowUpResponse(TypedDict):
     """The re-check or re-run Sentry sent Seer for this request. `reason` is Seer's code when it
     turned it down or dropped it. `rerun` is what Seer did with a re-run, and null for a
     re-check. `retryable` says whether the user can try it again.
@@ -62,7 +62,7 @@ class InvestigationActionRequestFollowUpResponse(TypedDict):
     retryable: bool
 
 
-class InvestigationActionRequestSerializerResponse(TypedDict):
+class NotebookActionRequestSerializerResponse(TypedDict):
     """
     A step Seer suggests. `primary` marks the recommended next step after a run, and `anchor`
     puts a request under a block or hypothesis. `action` is Seer's payload, or null when it's
@@ -76,7 +76,7 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     key: str
     reportRevision: int
     primary: bool
-    anchor: InvestigationActionRequestAnchorResponse | None
+    anchor: NotebookActionRequestAnchorResponse | None
     title: str
     rationale: str
     impact: str | None
@@ -89,49 +89,45 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     appliedDetails: Annotated[Mapping[str, object] | None, _schema_from(applied_details_hint)]
     dateApplied: datetime | None
     error: ActionRequestError | None
-    followUp: InvestigationActionRequestFollowUpResponse | None
+    followUp: NotebookActionRequestFollowUpResponse | None
     dateCreated: datetime
 
 
 @register(NotebookActionRequest)
-class InvestigationActionRequestSerializer(
-    Serializer[InvestigationActionRequestSerializerResponse]
-):
+class NotebookActionRequestSerializer(Serializer[NotebookActionRequestSerializerResponse]):
     def __init__(
         self,
         access: Access | None = None,
-        investigations: Sequence[Notebook] | None = None,
+        notebooks: Sequence[Notebook] | None = None,
         **kwargs: Any,
     ) -> None:
         self.access = access
-        self.investigations = investigations
+        self.notebooks = notebooks
         super().__init__(**kwargs)
 
-    def _investigations(self, item_list: Sequence[NotebookActionRequest]) -> dict[int, Notebook]:
-        investigation_ids = {item.notebook_id for item in item_list}
+    def _notebooks(self, item_list: Sequence[NotebookActionRequest]) -> dict[int, Notebook]:
+        notebook_ids = {item.notebook_id for item in item_list}
         return {
-            investigation.id: investigation
-            for investigation in (
-                self.investigations
-                if self.investigations is not None
-                else Notebook.objects.filter(id__in=investigation_ids).select_related(
-                    "organization"
-                )
+            notebook.id: notebook
+            for notebook in (
+                self.notebooks
+                if self.notebooks is not None
+                else Notebook.objects.filter(id__in=notebook_ids).select_related("organization")
             )
         }
 
     def _cannot_apply_reasons(
         self,
         item_list: Sequence[NotebookActionRequest],
-        investigations: dict[int, Notebook],
+        notebooks: dict[int, Notebook],
         user: User | RpcUser | AnonymousUser,
     ) -> dict[int, CannotApplyReason | None]:
         access = self.access
         reasons: dict[int, CannotApplyReason | None] = {}
         by_kind: dict[str, list[NotebookActionRequest]] = defaultdict(list)
         for item in item_list:
-            investigation = investigations[item.notebook_id]
-            reason = shared_cannot_apply_reason(investigation, item)
+            notebook = notebooks[item.notebook_id]
+            reason = shared_cannot_apply_reason(notebook, item)
             if reason is not None:
                 reasons[item.id] = reason
             elif access is None:
@@ -144,9 +140,7 @@ class InvestigationActionRequestSerializer(
             kind = get_action_kind(kind_name)
             assert kind is not None
             reasons.update(
-                kind.cannot_apply_reasons(
-                    items, investigations=investigations, access=access, user=user
-                )
+                kind.cannot_apply_reasons(items, notebooks=notebooks, access=access, user=user)
             )
         return reasons
 
@@ -161,8 +155,8 @@ class InvestigationActionRequestSerializer(
         if not keys:
             return {}
         return {
-            (investigation_id, key): str(block_id)
-            for investigation_id, key, block_id in NotebookBlock.objects.filter(
+            (notebook_id, key): str(block_id)
+            for notebook_id, key, block_id in NotebookBlock.objects.filter(
                 notebook_id__in={item.notebook_id for item in item_list},
                 producer_key__in=keys,
                 deleted_at__isnull=True,
@@ -177,10 +171,10 @@ class InvestigationActionRequestSerializer(
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> MutableMapping[NotebookActionRequest, dict[str, Any]]:
-        investigations = self._investigations(item_list)
-        reasons = self._cannot_apply_reasons(item_list, investigations, user)
+        notebooks = self._notebooks(item_list)
+        reasons = self._cannot_apply_reasons(item_list, notebooks, user)
         anchored_blocks = self._anchored_block_ids(item_list)
-        item_follow_ups = follow_ups(item_list, investigations)
+        item_follow_ups = follow_ups(item_list, notebooks)
         applier_ids = {item.applied_by_id for item in item_list if item.applied_by_id is not None}
         appliers = (
             {
@@ -217,7 +211,7 @@ class InvestigationActionRequestSerializer(
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> InvestigationActionRequestSerializerResponse:
+    ) -> NotebookActionRequestSerializerResponse:
         return {
             "id": str(obj.id),
             "key": obj.key,

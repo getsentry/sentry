@@ -23,7 +23,10 @@ import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits
 import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {seerCreditCheckApiOptions} from 'sentry/utils/seer/useSeerCreditCheck';
+import {
+  seerCreditCheckApiOptions,
+  type SeerCreditDenialReason,
+} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
@@ -1804,7 +1807,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1863,7 +1866,7 @@ describe('SeerExplorerContent', () => {
         .mockReturnValue({...defaultHookReturn, sendMessage});
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1899,7 +1902,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1932,7 +1935,7 @@ describe('SeerExplorerContent', () => {
         ProjectFixture({id: '2', slug: 'second', isMember: false}),
       ]);
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1953,7 +1956,7 @@ describe('SeerExplorerContent', () => {
 
     it('leaves out the screen capture where the page has structured context', async () => {
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1978,7 +1981,7 @@ describe('SeerExplorerContent', () => {
       // A pinned project that isn't loaded, e.g. one from a stale URL.
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [99]}));
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -2008,7 +2011,7 @@ describe('SeerExplorerContent', () => {
         })
       );
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -2038,7 +2041,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         statusCode: 400,
         body: {source: 'Investigation context is too large.'},
@@ -2063,7 +2066,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, isPolling: true, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -2136,11 +2139,14 @@ describe('SeerExplorerContent', () => {
       hideAiFeatures: false,
     });
 
-    function mockCreditCheck(hasEnoughCredits: boolean) {
+    function mockCreditCheck(
+      hasEnoughCredits: boolean,
+      denialReason: SeerCreditDenialReason | null = null
+    ) {
       return MockApiClient.addMockResponse({
         url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
         match: [MockApiClient.matchQuery({operation: 'agent_chat_message'})],
-        body: {hasEnoughCredits},
+        body: {hasEnoughCredits, denialReason},
       });
     }
 
@@ -2186,6 +2192,26 @@ describe('SeerExplorerContent', () => {
 
       expect(sendMessage).not.toHaveBeenCalled();
       expect(textarea).toHaveTextContent('Test message');
+    });
+
+    it('tells the CTA why the chat was denied credit', async () => {
+      // getsentry fills in the CTA; this stand-in shows what it was asked for.
+      registerOverride(
+        'component:seer-out-of-credits-cta',
+        () =>
+          function StubOutOfCreditsCta({reason, denialReason}: SeerOutOfCreditsCtaProps) {
+            return (
+              <div data-test-id="seer-out-of-credits-cta">{`${reason} ${denialReason}`}</div>
+            );
+          }
+      );
+      mockCreditCheck(false, 'daily_cap_exceeded');
+
+      renderContent();
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'agent-chat daily_cap_exceeded'
+      );
     });
 
     it('hides the suggested questions', async () => {
@@ -2477,6 +2503,29 @@ describe('SeerExplorerContent', () => {
         expect(
           screen.queryByTestId('seer-explorer-out-of-credits')
         ).not.toBeInTheDocument();
+      });
+
+      it('tells the autofix CTA why the card was denied credit', async () => {
+        registerOverride(
+          'component:seer-out-of-credits-cta',
+          () =>
+            function DenialReasonCta({reason, denialReason}: SeerOutOfCreditsCtaProps) {
+              return (
+                <div data-test-id="seer-out-of-credits-cta">{`${reason} ${denialReason}`}</div>
+              );
+            }
+        );
+        mockCreditCheck(true);
+        MockApiClient.addMockResponse({
+          url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+          match: [MockApiClient.matchQuery({operation: 'autofix_solution'})],
+          body: {hasEnoughCredits: false, denialReason: 'daily_cap_exceeded'},
+        });
+
+        renderContent();
+
+        const cta = await screen.findByTestId('seer-explorer-autofix-out-of-credits');
+        expect(cta).toHaveTextContent('autofix-continue daily_cap_exceeded');
       });
 
       it('shows only the chat CTA when the chat is out of credits too', async () => {

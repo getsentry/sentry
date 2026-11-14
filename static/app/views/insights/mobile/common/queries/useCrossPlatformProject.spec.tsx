@@ -33,7 +33,6 @@ describe('useCrossPlatformProject', () => {
 
   afterEach(() => {
     PageFiltersStore.reset();
-    ProjectsStore.reset();
   });
 
   it('returns null for project if >1 project is selected', () => {

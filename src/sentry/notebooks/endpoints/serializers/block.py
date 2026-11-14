@@ -8,12 +8,18 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer
-from sentry.notebooks.models import NotebookBlock, NotebookBlockExecutionStatus, NotebookBlockKind
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlock,
+    NotebookBlockExecutionStatus,
+    NotebookBlockKind,
+)
+from sentry.notebooks.services.producer_sources import get_producer_source_type
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
-class InvestigationBlockExecutionSerializerResponse(TypedDict):
+class NotebookBlockExecutionSerializerResponse(TypedDict):
     id: str
     status: str
     executor: str
@@ -23,12 +29,13 @@ class InvestigationBlockExecutionSerializerResponse(TypedDict):
     error: Any
 
 
-class InvestigationBlockSerializerResponse(TypedDict):
+class NotebookBlockSerializerResponse(TypedDict):
     """
     Notebook block. version is the block concurrency token; dependencies are block IDs and
     parameterKeys reference notebook parameters. output is the latest successful result and may
     remain available during a rerun; currentExecution describes the latest attempt. Poll
-    execution details for transcript and pending input.
+    execution details for transcript and pending input. producerKey and producerRevision are
+    set on blocks a producer wrote.
     """
 
     id: str
@@ -40,7 +47,7 @@ class InvestigationBlockSerializerResponse(TypedDict):
     generatedContent: str
     output: Any
     outputStatus: str
-    currentExecution: InvestigationBlockExecutionSerializerResponse | None
+    currentExecution: NotebookBlockExecutionSerializerResponse | None
     config: dict[str, Any]
     display: dict[str, Any]
     dependencies: list[str]
@@ -49,9 +56,11 @@ class InvestigationBlockSerializerResponse(TypedDict):
     staleAt: datetime | None
     createdBy: str | None
     lastEditedBy: str | None
+    producerKey: str | None
+    producerRevision: int | None
 
 
-class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerResponse]):
+class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):
     @override
     def get_attrs(
         self,
@@ -65,7 +74,17 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             "result_execution",
         )
 
-        return {block: {} for block in item_list}
+        source_types = dict(
+            Notebook.objects.filter(
+                id__in={block.notebook_id for block in item_list if block.producer_key}
+            ).values_list("id", "source_type")
+        )
+        return {
+            block: {
+                "source_type": get_producer_source_type(source_types.get(block.notebook_id, ""))
+            }
+            for block in item_list
+        }
 
     @override
     def serialize(
@@ -74,7 +93,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> InvestigationBlockSerializerResponse:
+    ) -> NotebookBlockSerializerResponse:
         execution = obj.current_execution
         if execution is None:
             output = None
@@ -123,4 +142,10 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             "lastEditedBy": (
                 str(obj.last_edited_by_id) if obj.last_edited_by_id is not None else None
             ),
+            "producerKey": (
+                attrs["source_type"].caller_block_key(obj.producer_key)
+                if attrs["source_type"] is not None and obj.producer_key is not None
+                else obj.producer_key
+            ),
+            "producerRevision": obj.producer_revision,
         }

@@ -63,7 +63,6 @@ describe('ProjectAddRepoModal', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   function openAddRepoModal(org = organization) {

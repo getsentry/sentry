@@ -5,10 +5,26 @@ from typing import Any
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
-from sentry.notebooks.contracts import VisualizationSerializer, validate_query_result
-from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
-from sentry.notebooks.models import NotebookBlockKind
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
+from sentry.notebooks.contracts import (
+    MAX_MARKDOWN_CHARS,
+    VisualizationSerializer,
+    validate_query_result,
+)
+from sentry.notebooks.endpoints.validators.base import (
+    NotebookVersionValidator,
+    StrictCamelSnakeValidator,
+)
+from sentry.notebooks.models import Notebook, NotebookBlock, NotebookBlockKind
+from sentry.notebooks.services.notebooks import create_block
+from sentry.notebooks.services.producer_sources import get_producer_source_type
+from sentry.notebooks.services.producer_writes import (
+    MAX_REVISION_STEP,
+    UNSET,
+    write_api_producer_block,
+)
 
 BLOCK_UPDATE_FIELDS = frozenset({"title", "content", "generation_prompt", "config", "display"})
 CHART_DISPLAY_TYPES = frozenset({"line", "bar", "area"})
@@ -127,20 +143,42 @@ def _validate_display_field(kind: str, display: dict[str, Any]) -> dict[str, Any
         raise serializers.ValidationError({"display": error.detail})
 
 
-class BlockCreateValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
+class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]]):
+    """Append a user's block, or write a producer's block by key and revision.
+
+    Needs notebook, user_id and producer_writer in its context.
+    """
+
+    notebook_version_required = False
+
+    key = serializers.CharField(
+        max_length=128,
+        required=False,
+        help_text="The producer's stable key for the block. Writing the same key again updates the block, even if a user edited or deleted it. Send with revision instead of notebookVersion. Only service accounts and Seer agents can send it.",
+    )
+    revision = serializers.IntegerField(
         min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
+        max_value=BoundedPositiveIntegerField.MAX_VALUE,
+        required=False,
+        help_text=f"The producer's revision for the block. A block with a newer revision returns 409, and a write can raise it by at most {MAX_REVISION_STEP}.",
+    )
+    position = serializers.IntegerField(
+        min_value=0,
+        max_value=BoundedPositiveIntegerField.MAX_VALUE,
+        required=False,
+        help_text="Index among the notebook's blocks where a producer's block goes. Later blocks shift down, and a larger index puts it last. A new block goes last when omitted, and an existing block stays put.",
     )
     kind = serializers.ChoiceField(
         choices=NotebookBlockKind.choices,
-        help_text="Block kind: text for Markdown or query for an agent-generated data query.",
+        help_text="Block kind: text for Markdown or query for an agent-generated data query. A producer's block must be text.",
     )
     title = serializers.CharField(
         max_length=255, required=False, allow_blank=True, help_text="Block title. May be empty."
     )
     content = serializers.CharField(
-        required=False, allow_blank=True, help_text="User-authored content. May be empty."
+        required=False,
+        allow_blank=True,
+        help_text="Markdown content. May be empty, except in a producer's block.",
     )
     generation_prompt = serializers.CharField(
         required=False,
@@ -156,6 +194,42 @@ class BlockCreateValidator(StrictCamelSnakeValidator):
     )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        producer_fields = {"key", "revision", "position"}.intersection(attrs)
+        if "notebook_version" in attrs:
+            if producer_fields:
+                raise serializers.ValidationError(
+                    {"detail": "Send notebookVersion, or key and revision, not both."}
+                )
+        elif not {"key", "revision"}.issubset(attrs):
+            raise serializers.ValidationError(
+                {"notebook_version": "Send notebookVersion, or key and revision."}
+            )
+        elif not self.context["producer_writer"]:
+            raise PermissionDenied("Only service accounts and Seer agents write by key.")
+        elif attrs["kind"] != NotebookBlockKind.TEXT:
+            raise serializers.ValidationError({"kind": "A producer's block must be text."})
+        elif not attrs.get("content"):
+            raise serializers.ValidationError({"content": "A producer's block needs content."})
+        elif len(attrs["content"]) > MAX_MARKDOWN_CHARS:
+            raise serializers.ValidationError(
+                {"content": f"Ensure this field has no more than {MAX_MARKDOWN_CHARS} characters."}
+            )
+        elif (
+            source_type := get_producer_source_type(self.context["notebook"].source_type)
+        ) is None:
+            raise serializers.ValidationError(
+                {"detail": "Only a notebook made for a producer source takes key and revision."},
+                code="not_producer_notebook",
+            )
+        else:
+            stored_key = source_type.block_key(attrs["key"])
+            max_length = NotebookBlock._meta.get_field("producer_key").max_length
+            if max_length is not None and len(stored_key) > max_length:
+                limit = max_length - len(source_type.block_key(""))
+                raise serializers.ValidationError(
+                    {"key": f"Ensure this field has no more than {limit} characters."}
+                )
+            attrs["key"] = stored_key
         kind = attrs["kind"]
         display = attrs.get(
             "display",
@@ -172,12 +246,34 @@ class BlockCreateValidator(StrictCamelSnakeValidator):
             raise serializers.ValidationError({"config": "Must be an object."})
         return attrs
 
+    def create(self, validated_data: dict[str, Any]) -> tuple[NotebookBlock, bool]:
+        notebook: Notebook = self.context["notebook"]
+        values = dict(validated_data)
+        if "notebook_version" not in values:
+            return write_api_producer_block(
+                notebook,
+                key=values["key"],
+                revision=values["revision"],
+                kind=values["kind"],
+                position=values.get("position"),
+                title=values.get("title", UNSET),
+                content=values.get("content", UNSET),
+                prompt=values.get("generation_prompt", UNSET),
+                config=values.get("config", UNSET),
+                display=values["display"],
+            )
+        notebook_version = values.pop("notebook_version")
+        values["prompt"] = values.pop("generation_prompt", "")
+        block = create_block(
+            notebook=notebook,
+            expected_notebook_version=notebook_version,
+            user_id=self.context["user_id"],
+            values=values,
+        )
+        return block, True
 
-class BlockUpdateValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+
+class BlockUpdateValidator(NotebookVersionValidator):
     version = serializers.IntegerField(
         min_value=1,
         help_text="Current block version from the latest block response. Stale versions return 409.",
@@ -220,22 +316,14 @@ class BlockUpdateValidator(StrictCamelSnakeValidator):
         return attrs
 
 
-class BlockDeleteValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+class BlockDeleteValidator(NotebookVersionValidator):
     version = serializers.IntegerField(
         min_value=1,
         help_text="Current block version from the latest block response. Stale versions return 409.",
     )
 
 
-class BlockExecutionStartValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+class BlockExecutionStartValidator(NotebookVersionValidator):
     version = serializers.IntegerField(
         min_value=1,
         help_text="Current block version from the latest block response. Stale versions return 409.",
@@ -247,7 +335,7 @@ class BlockExecutionStartValidator(StrictCamelSnakeValidator):
 
 
 @extend_schema_field(OpenApiTypes.ANY)
-class InvestigationInputResponseField(serializers.JSONField):
+class NotebookInputResponseField(serializers.JSONField):
     pass
 
 
@@ -255,17 +343,13 @@ class BlockExecutionResumeValidator(StrictCamelSnakeValidator):
     input_id = serializers.CharField(
         help_text="ID of the pending user input returned by execution polling."
     )
-    response_data = InvestigationInputResponseField(
+    response_data = NotebookInputResponseField(
         allow_null=True,
         help_text="Answer to the pending input. Any JSON value is accepted, including strings, arrays, objects, and null.",
     )
 
 
-class BlockOrderValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+class BlockOrderValidator(NotebookVersionValidator):
     block_ids = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         help_text="Every active block ID exactly once, in the desired order.",

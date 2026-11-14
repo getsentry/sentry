@@ -18,6 +18,7 @@ import {
   organizationRepositoriesInfiniteOptions,
   selectUniqueRepos,
 } from 'sentry/utils/repositories/repoQueryOptions';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {MAX_REPOS_LIMIT} from './constants';
@@ -50,6 +51,9 @@ export function AddAutofixRepoModal({
   closeModal,
 }: Props) {
   const organization = useOrganization();
+  const maxRepos = isSeerTokenBasedBillingOnboardingEnabled(organization)
+    ? Infinity
+    : MAX_REPOS_LIMIT;
 
   const repositoriesQuery = useInfiniteQuery({
     ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
@@ -83,15 +87,16 @@ export function AddAutofixRepoModal({
         if (prev.includes(externalId)) {
           return prev.filter(id => id !== externalId);
         }
-        return hiddenExternalIds.length + prev.length >= MAX_REPOS_LIMIT
+        return hiddenExternalIds.length + prev.length >= maxRepos
           ? prev
           : [...prev, externalId];
       });
     },
-    [hiddenExternalIds.length]
+    [hiddenExternalIds.length, maxRepos]
   );
 
-  const showMaxLimitAlert = selectedExternalIds.length >= MAX_REPOS_LIMIT;
+  const showMaxLimitAlert =
+    hiddenExternalIds.length + selectedExternalIds.length >= maxRepos;
 
   const parentRef = useRef<HTMLDivElement>(null);
 

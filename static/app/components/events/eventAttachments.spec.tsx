@@ -218,6 +218,33 @@ describe('EventAttachments', () => {
     expect(await screen.findByText('file contents')).toBeInTheDocument();
   });
 
+  it('points the download link at the region URL', async () => {
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        features: new Set(['system:multi-region']),
+        links: {
+          organizationUrl: 'https://org-slug.sentry.io',
+          sentryUrl: 'https://sentry.io',
+          regionUrl: 'https://us.sentry.io',
+        },
+      })
+    );
+    const attachment = EventAttachmentFixture();
+    MockApiClient.addMockResponse({
+      url: attachmentsUrl,
+      body: [attachment],
+    });
+
+    render(<EventAttachments {...props} />, {
+      organization,
+    });
+
+    expect(await screen.findByRole('button', {name: 'Download'})).toHaveAttribute(
+      'href',
+      `https://us.sentry.io/api/0/projects/${organization.slug}/${project.slug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+    );
+  });
+
   it('can delete attachments', async () => {
     const attachment1 = EventAttachmentFixture({
       id: '1',

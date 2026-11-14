@@ -13,6 +13,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IntegrationParams
 from sentry.apidocs.response_types import DetailResponse
@@ -79,6 +80,7 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
             200: inline_sentry_response_serializer(
                 "ListOrganizationIntegrationResponse", list[OrganizationIntegrationResponse]
             ),
+            400: RESPONSE_BAD_REQUEST,
         },
         examples=IntegrationExamples.LIST_INTEGRATIONS,
     )

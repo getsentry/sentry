@@ -12,11 +12,11 @@ import {noDigitsInTn} from './noDigitsInTn.ts';
 import {noDynamicTranslations} from './noDynamicTranslations.ts';
 import {noFlagComments} from './noFlagComments.ts';
 import {noGlobalReact} from './noGlobalReact.ts';
-import {noLegacyRouterImports} from './noLegacyRouterImports.ts';
 import {noQueryDataTypeParameters} from './noQueryDataTypeParameters.ts';
 import {noRawCssInStyled} from './noRawCssInStyled.ts';
 import {noRedundantDefaultArgument} from './noRedundantDefaultArgument.ts';
 import {noRelativeImportPaths} from './noRelativeImportPaths.ts';
+import {noShadowDangerousGlobals} from './noShadowDangerousGlobals.ts';
 import {noStaticTranslations} from './noStaticTranslations.ts';
 import {noStyledShortcut} from './noStyledShortcut.ts';
 import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback.ts';
@@ -38,11 +38,11 @@ export const rules = {
   'no-dynamic-translations': noDynamicTranslations,
   'no-flag-comments': noFlagComments,
   'no-global-react': noGlobalReact,
-  'no-legacy-router-imports': noLegacyRouterImports,
   'no-query-data-type-parameters': noQueryDataTypeParameters,
   'no-raw-css-in-styled': noRawCssInStyled,
   'no-redundant-default-argument': noRedundantDefaultArgument,
   'no-relative-import-paths': noRelativeImportPaths,
+  'no-shadow-dangerous-globals': noShadowDangerousGlobals,
   'no-static-translations': noStaticTranslations,
   'no-styled-shortcut': noStyledShortcut,
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,

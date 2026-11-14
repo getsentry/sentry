@@ -275,6 +275,13 @@ class RepositoryDefinitionResponse(BaseModel):
     external_id: str | None
 
 
+class RepositoryDefinitionFailure(BaseModel):
+    failure_reason: Literal[
+        "no_scm_integration", "scm_account_not_connected", "repo_not_in_sentry", "repo_ambiguous"
+    ]
+    connected_accounts: list[str] = []
+
+
 class EventFilterKeyEntry(BaseModel):
     type: str
 

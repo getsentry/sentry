@@ -78,7 +78,6 @@ describe('useSaveAsItems', () => {
 
   afterEach(() => {
     PageFiltersStore.reset();
-    ProjectsStore.reset();
   });
 
   it('should open save query modal when save as new query is clicked', () => {

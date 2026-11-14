@@ -260,8 +260,9 @@ def _maybe_mark_broken(
     subscription: QuerySubscription, action: str, error: SubscriptionError
 ) -> bool:
     """
-    Marks a subscription whose query has failed to build for longer than
-    BROKEN_GRACE_PERIOD as BROKEN, so that `subscription_checker` stops retrying it.
+    Marks a subscription whose query has failed to build, or been rejected by Snuba,
+    for longer than BROKEN_GRACE_PERIOD as BROKEN, so that `subscription_checker` stops
+    retrying it.
     Until then, it's left as is for `subscription_checker` to retry.
     Returns whether the subscription was marked BROKEN.
     """
@@ -386,10 +387,21 @@ def _create_snql_in_snuba(
     )
     if response.status != 202:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
-        raise SnubaError("HTTP %s response from Snuba!" % response.status)
+        error = SnubaError(
+            f"HTTP {response.status} response from Snuba: {_response_text(response.data)}"
+        )
+        # Snuba rejected the subscription itself (e.g. an out-of-range time window), so
+        # retrying won't help. Rate limiting is transient, so it's retried as usual.
+        if 400 <= response.status < 500 and response.status != 429:
+            raise SubscriptionError(error) from error
+        raise error
 
     subscription_id = orjson.loads(response.data)["subscription_id"]
     return subscription_id
+
+
+def _response_text(data: bytes) -> str:
+    return data[:500].decode("utf-8", errors="replace")
 
 
 def _create_rpc_in_snuba(
@@ -406,8 +418,10 @@ def _create_rpc_in_snuba(
 
     try:
         response = snuba_rpc.create_subscription(subscription_request)
-    except snuba_rpc.SnubaRPCError:
+    except snuba_rpc.SnubaRPCError as e:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
+        if isinstance(e, snuba_rpc.SnubaRPCBadRequest):
+            raise SubscriptionError(e) from e
         raise
 
     return response.subscription_id
@@ -418,7 +432,9 @@ def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: Entit
         "DELETE", f"/{dataset.value}/{entity_key.value}/subscriptions/{subscription_id}"
     )
     if response.status != 202:
-        raise SnubaError("HTTP %s response from Snuba!" % response.status)
+        raise SnubaError(
+            f"HTTP {response.status} response from Snuba: {_response_text(response.data)}"
+        )
 
 
 @instrumented_task(
@@ -463,8 +479,9 @@ def subscription_checker(**kwargs: Any) -> None:
 )
 def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> None:
     """
-    Checks whether a BROKEN subscription's query can be built now (e.g. a removed
-    environment was restored), and if so, recreates it in Snuba.
+    Checks whether a BROKEN subscription is valid now (e.g. a removed environment was
+    restored) by creating it in Snuba. If its query still can't be built, or Snuba still
+    rejects it, it stays BROKEN without being reported again.
     """
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
@@ -474,18 +491,29 @@ def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> No
         return
 
     try:
-        _build_snuba_request(subscription)
+        subscription_id = _create_in_snuba(subscription)
     except SubscriptionError:
         metrics.incr("snuba.subscriptions.broken.verified")
         return
 
-    updated = QuerySubscription.objects.filter(
-        id=subscription.id, status=QuerySubscription.Status.BROKEN.value
-    ).update(status=QuerySubscription.Status.CREATING.value, date_updated=timezone.now())
-    if not updated:
-        return
+    with transaction.atomic(router.db_for_write(QuerySubscription)):
+        # Edits and deletes change the status and date_updated, so this only matches if
+        # the subscription wasn't modified during the Snuba call.
+        current = QuerySubscription.objects.select_for_update().get_or_none(
+            id=subscription.id,
+            status=QuerySubscription.Status.BROKEN.value,
+            date_updated=subscription.date_updated,
+        )
+        if current is None:
+            # The new Snuba subscription is unreferenced, so the consumer deletes it when
+            # it sees its results.
+            return
+        current.update(
+            status=QuerySubscription.Status.ACTIVE.value,
+            subscription_id=subscription_id,
+            date_updated=timezone.now(),
+        )
     metrics.incr("snuba.subscriptions.broken.recovered")
-    create_subscription_in_snuba.delay(query_subscription_id=subscription.id)
 
 
 # Re-check regularly so that broken subscriptions get re-enabled automatically once

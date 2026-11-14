@@ -24,13 +24,14 @@ const WARNING_PERCENT = 90;
 
 export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterProps) {
   const organization = useOrganization();
-  // The spec only has copy for billing members, and only they can change auto
-  // reload. Without `seer-credit-checks` the chat looks as it did before, and
-  // only token-billed orgs have a wallet to show.
+  // Without `seer-credit-checks` the chat looks as it did before, and only
+  // token-billed orgs have a wallet to show.
   const isEnabled =
     organization.features.includes('seer-credit-checks') &&
-    organization.features.includes('token-billed-seer-enabled') &&
-    organization.access.includes('org:billing');
+    organization.features.includes('token-billed-seer-enabled');
+  // Every member can read the wallet, but the auto-reload settings need
+  // `org:billing`, so other members see the meter without them.
+  const canReadAutoReload = organization.access.includes('org:billing');
 
   // Credits move outside this page, so recheck on window focus like the chat's
   // credit check does; the app's query client turns that off by default.
@@ -42,14 +43,14 @@ export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterPro
   });
   const {data: autoTopUp} = useQuery({
     ...seerWalletAutoTopUpOptions(organization),
-    enabled: isEnabled,
+    enabled: isEnabled && canReadAutoReload,
     refetchOnWindowFocus: true,
     retry: false,
   });
 
   // The wallet 404s for orgs without token-billed Seer, so the meter only
-  // shows once both answers are in.
-  if (!isEnabled || !wallet || !autoTopUp) {
+  // shows once everything the member can read has loaded.
+  if (!isEnabled || !wallet || (canReadAutoReload && !autoTopUp)) {
     return null;
   }
 
@@ -58,9 +59,9 @@ export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterPro
       percentUsed={wallet.percentUsed}
       remaining={wallet.balance}
       total={wallet.included.total + wallet.purchased.total}
-      autoReloadEnabled={autoTopUp.enabled}
+      autoReloadEnabled={autoTopUp?.enabled ?? null}
       hasEnoughCredits={hasEnoughCredits}
-      // The Seer wallet card on the billing overview is where auto reload is
+      // The Seer wallet card on the billing overview is where auto-reload is
       // configured until there is an in-place modal.
       configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
     />
@@ -68,14 +69,18 @@ export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterPro
 }
 
 interface SeerCreditUsageMeterViewProps {
-  autoReloadEnabled: boolean;
   /**
-   * Where the tooltip links once auto reload has run out of top-ups.
+   * `null` for members without `org:billing`, who can't read the auto-reload
+   * settings.
+   */
+  autoReloadEnabled: boolean | null;
+  /**
+   * Where the tooltip links once auto-reload has run out of auto-reloads.
    */
   configureAutoReloadTo: LinkProps['to'];
   /**
    * Whether the organization can afford the operation next to the meter.
-   * With auto reload on, it can't only once the top-ups have run out.
+   * With auto-reload on, it can't only once the auto-reloads have run out.
    */
   hasEnoughCredits: boolean;
   /**
@@ -115,14 +120,14 @@ export function SeerCreditUsageMeterView({
       title={
         <Stack gap="lg">
           <Text>
-            {autoReloadEnabled
-              ? tct('Your organization has used [percent] of your available credits.', {
-                  percent: `${percent}%`,
-                })
-              : tct(
+            {autoReloadEnabled === false
+              ? tct(
                   'Your organization has used [percent] of your available monthly credits.',
                   {percent: `${percent}%`}
-                )}
+                )
+              : tct('Your organization has used [percent] of your available credits.', {
+                  percent: `${percent}%`,
+                })}
           </Text>
           <Text>
             {tct('[remaining]/[total] credits remaining.', {
@@ -157,17 +162,17 @@ function AutoReloadStatus({
   'autoReloadEnabled' | 'hasEnoughCredits' | 'configureAutoReloadTo'
 >) {
   // The designs only count the month's credits here; the out-of-credits alert is
-  // where billing members turn auto reload on.
+  // where billing members turn auto-reload on.
   if (!autoReloadEnabled) {
     return null;
   }
-  // Auto reload is on and still can't cover a message, so the org has used
-  // every top-up its threshold and daily cap allow.
+  // Auto-reload is on and still can't cover a message, so the org has used
+  // every auto-reload its threshold and daily usage limit allow.
   if (!hasEnoughCredits) {
     return (
       <Text>
         {tct(
-          'You do not have any more reloads available. [link:Configure auto-reload.]',
+          'You do not have any more auto-reloads available. [link:Configure auto-reload.]',
           {link: <Link to={configureAutoReloadTo} />}
         )}
       </Text>

@@ -117,12 +117,26 @@ class TestExecuteViaGroupTypeRegistryActivityPath(ActivityHandlerTest):
         mock_execute.assert_called_once_with(invocation=invocation)
 
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_activity_type_registry")
-    def test_registry_error_falls_through_to_send_notification(
+    def test_validation_error_falls_through_to_send_notification(
         self, mock_execute: mock.MagicMock
     ) -> None:
-        mock_execute.side_effect = RuntimeError("handler failed")
+        mock_execute.side_effect = ActivityHandlerValidationError("unsupported activity")
         activity = self._make_activity()
         invocation = self._make_invocation(activity)
         with mock.patch.object(activity, "send_notification") as mock_send:
             execute_via_group_type_registry(invocation)
             mock_send.assert_called_once_with()
+
+    @mock.patch("sentry.notifications.notification_action.utils.execute_via_activity_type_registry")
+    def test_invocation_error_propagates(self, mock_execute: mock.MagicMock) -> None:
+        mock_execute.side_effect = RuntimeError("handler failed")
+        activity = self._make_activity()
+        invocation = self._make_invocation(activity)
+
+        with (
+            mock.patch.object(activity, "send_notification") as mock_send,
+            pytest.raises(RuntimeError, match="handler failed"),
+        ):
+            execute_via_group_type_registry(invocation)
+
+        mock_send.assert_not_called()

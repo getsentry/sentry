@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from rest_framework import serializers
 from rest_framework.fields import empty
@@ -57,3 +57,31 @@ class StrictCamelSnakeValidator(serializers.Serializer[InstanceT]):
             if unknown:
                 raise serializers.ValidationError({field: "Unknown field." for field in unknown})
         return super().to_internal_value(data)
+
+
+class NotebookVersionValidator(StrictCamelSnakeValidator[InstanceT]):
+    """Takes the notebook version as notebookVersion, or as investigationVersion from older
+    clients. Validated data has it as notebook_version.
+    """
+
+    notebook_version_required: ClassVar[bool] = True
+
+    notebook_version = serializers.IntegerField(
+        min_value=1,
+        required=False,
+        help_text="Current notebook version from the latest detail response. Stale versions return 409.",
+    )
+    investigation_version = serializers.IntegerField(
+        min_value=1, required=False, help_text="Deprecated. Use notebookVersion."
+    )
+
+    def to_internal_value(self, data: Any) -> dict[str, Any]:
+        attrs = super().to_internal_value(data)
+        legacy = attrs.pop("investigation_version", None)
+        if legacy is not None and attrs.setdefault("notebook_version", legacy) != legacy:
+            raise serializers.ValidationError(
+                {"notebook_version": "notebookVersion and investigationVersion differ."}
+            )
+        if self.notebook_version_required and "notebook_version" not in attrs:
+            raise serializers.ValidationError({"notebook_version": "This field is required."})
+        return attrs

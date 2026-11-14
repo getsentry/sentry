@@ -56,11 +56,11 @@ from sentry.seer.autofix.pr_iteration.iterations import (
     PrIterationNoPullRequestException,
     get_open_iteration_index,
 )
-from sentry.seer.autofix.single_run import is_single_run_record
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    get_event_matched_project_repo_ids,
     is_free_cohort_org,
     read_preference_from_sentry_db,
 )
@@ -391,7 +391,11 @@ def _resolve_default_branch(
 
 
 def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None:
-    preference = read_preference_from_sentry_db(group.project)
+    preference = read_preference_from_sentry_db(
+        group.project,
+        limit_repos=True,
+        priority_project_repo_ids=get_event_matched_project_repo_ids(group),
+    )
     # Imported lazily to avoid a circular import: sentry.scm pulls in the
     # github/slack integrations, which import notifications templates that
     # import back into sentry.seer.autofix.
@@ -523,18 +527,15 @@ def trigger_autofix_agent(
             },
         )
 
-        # TEMPORARY: single runs skip "started" notices until they send completion notices too;
-        # otherwise the issue would look stuck in progress. Remove with AIML-3809.
-        if not is_single_run_record(feature_run):
-            _handle_step_started_events(
-                group,
-                step,
-                feature_run_id,
-                str(feature_run.uuid),
-                referrer,
-                iteration_index,
-                actor_user_id=actor_user_id,
-            )
+        _handle_step_started_events(
+            group,
+            step,
+            feature_run_id,
+            str(feature_run.uuid),
+            referrer,
+            iteration_index,
+            actor_user_id=actor_user_id,
+        )
         return feature_run
     except (
         NoSeerQuotaException,
@@ -738,7 +739,11 @@ def trigger_coding_agent_handoff(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    preference = read_preference_from_sentry_db(group.project)
+    preference = read_preference_from_sentry_db(
+        group.project,
+        limit_repos=True,
+        priority_project_repo_ids=get_event_matched_project_repo_ids(group),
+    )
     repo_definitions: list[SeerRepoDefinition] = preference.repositories
     if auto_create_pr is None:
         auto_create_pr = False

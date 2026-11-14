@@ -1,0 +1,96 @@
+/**
+ * Legacy values for the Django-rendered page styles in static/css. These
+ * replace the old Less variables so the compiled output stays the same.
+ *
+ * Do not use these anywhere else. React code should use the theme from
+ * @sentry/scraps instead.
+ * ============================================================================
+ */
+
+:root {
+  /* Palette */
+  --legacy-blue: #3b6ecc;
+  --legacy-blue-light: #638cd7; /* lighten(blue, 10%) */
+  --legacy-green-light: #7ccca5; /* lighten(#57be8c, 10%) */
+  --legacy-red: #e03e2f;
+  --legacy-purple: #6c5fc7;
+  --legacy-gray: var(--legacy-gray-70);
+  --legacy-gray-light: #968ba0; /* desaturate(gray-50, 5%) */
+  --legacy-gray-lighter: var(--legacy-gray-40);
+  --legacy-gray-lightest: var(--legacy-gray-20);
+  --legacy-gray-dark: var(--legacy-gray-80);
+  --legacy-gray-darker: var(--legacy-gray-90);
+  --legacy-gray-darkest: var(--legacy-gray-100);
+  --legacy-white-dark: #fbfbfc;
+  --legacy-white-darker: #f7f8f9;
+  --legacy-white-darkest: #e6e9ec; /* darken(white-darker, 6%) */
+
+  /* Shortcuts */
+  --legacy-link-color: var(--legacy-blue);
+  --legacy-trim: var(--legacy-gray-lightest);
+  --legacy-trim-dark: #d8d2de; /* darken(gray-lightest, 4%) */
+
+  /* Alerts (TODO): Derive these from palette */
+  --legacy-alert-warning-bg-color: #fffdf7;
+  --legacy-alert-warning-border-color: #e1d697;
+  --legacy-alert-danger-bg-color: #fdf6f5;
+  --legacy-alert-danger-border-color: #e7c0bc;
+  --legacy-alert-info-bg-color: #f5fafe;
+  --legacy-alert-info-border-color: #b5d6ed;
+  --legacy-alert-success-bg-color: #f8fcf7;
+  --legacy-alert-success-border-color: #bbd6b3;
+
+  /* Gray scale */
+  --legacy-gray-100: #161319; /* desaturate(#16111b, 8%) */
+  --legacy-gray-90: #2f2936; /* lighten(gray-100, 10%) */
+  --legacy-gray-80: #493e54; /* lighten(gray-100, 20%) */
+  --legacy-gray-70: #625471; /* lighten(gray-100, 30%) */
+  --legacy-gray-60: #7c6a8e; /* lighten(gray-100, 40%) */
+  --legacy-gray-50: #9586a5; /* lighten(gray-100, 50%) */
+  --legacy-gray-40: #afa3bb; /* lighten(gray-100, 60%) */
+  --legacy-gray-20: #e2dee6; /* lighten(gray-100, 80%) */
+
+  /* Tables and form states */
+  --legacy-state-success-text: #244725; /* darken(#3c763d, 14%) */
+  --legacy-state-info-text: #132547; /* darken(darken(blue, 10%), 24%) */
+  --legacy-state-warning-text: #5f4b29; /* darken(#8a6d3b, 12%) */
+  --legacy-state-danger-text: #672928; /* darken(#a94442, 18%) */
+
+  /* Typography */
+  --legacy-font-family-base: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+  --legacy-font-family-code: 'Roboto Mono', Consolas, 'Courier New', monospace;
+
+  /* Bootstrap values used outside of bootstrap/ */
+  --legacy-font-family-monospace:
+    'Roboto Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+  --legacy-font-size-base: 14px;
+  --legacy-line-height-base: 1.42857143;
+  --legacy-line-height-computed: 20px; /* floor((font-size-base * line-height-base)) */
+  --legacy-padding-base-vertical: 6px;
+  --legacy-padding-base-horizontal: 12px;
+  --legacy-border-radius-base: 4px;
+  --legacy-border-radius-small: 3px;
+  --legacy-table-bg: transparent;
+  --legacy-input-bg: #fff;
+  --legacy-input-bg-disabled: var(--legacy-gray-lighter);
+  --legacy-input-color: var(--legacy-gray);
+  --legacy-input-border: #ccc;
+  --legacy-input-border-radius: var(--legacy-border-radius-base);
+  --legacy-input-color-placeholder: #999;
+  --legacy-input-height-base: 34px; /* (line-height-computed + (padding-base-vertical * 2) + 2) */
+  --legacy-input-height-large: 46px; /* (ceil(font-size-large * line-height-large) + (padding-large-vertical * 2) + 2) */
+  --legacy-form-group-margin-bottom: 15px;
+  --legacy-legend-color: var(--legacy-gray-dark);
+  --legacy-legend-border-color: #e5e5e5;
+  --legacy-cursor-disabled: not-allowed;
+  --legacy-alert-padding: 15px;
+  --legacy-alert-border-radius: var(--legacy-border-radius-base);
+  --legacy-code-color: #c7254e;
+  --legacy-code-bg: #f9f2f4;
+  --legacy-kbd-color: #fff;
+  --legacy-kbd-bg: #333;
+  --legacy-text-muted: var(--legacy-gray-light);
+
+  /* Spacing */
+  --legacy-spacer-y: 20px;
+}

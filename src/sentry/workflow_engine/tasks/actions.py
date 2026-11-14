@@ -80,7 +80,7 @@ def build_trigger_action_task_params(
         "workflow_id": workflow_id,
         "event_id": event_id,
         "activity_id": activity_id,
-        "group_id": event_data.event.group_id,
+        "group_id": event_data.require_group().id,
         "occurrence_id": occurrence_id,
         "group_state": event_data.group_state,
         "has_reappeared": False,  # TODO: remove when deployed trigger_action task doesn't expect it
