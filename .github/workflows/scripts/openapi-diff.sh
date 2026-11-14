@@ -9,8 +9,7 @@
 #       DIR/source.txt. Tries, in order:
 #         1. the `api-schemas` artifact of the openapi workflow run for the
 #            merge-base, or for the closest earlier master commit that has one;
-#         2. the newest `api@` GitHub release;
-#         3. getsentry/sentry-api-schema main, while it still receives the spec.
+#         2. the newest `api@` GitHub release.
 #       With BASE_SHA and HEAD_SHA set (CI), the merge-base comes from the
 #       GitHub API. Otherwise it is `git merge-base origin/master HEAD`.
 #   openapi-diff.sh changelog BASE_SPEC PR_SPEC
@@ -27,7 +26,6 @@ set -eu
 repo=${GITHUB_REPOSITORY:-getsentry/sentry}
 artifact=api-schemas
 oasdiff_image=ghcr.io/getsentry/image-mirror-tufin-oasdiff:v1.33.0
-legacy_raw=https://raw.githubusercontent.com/getsentry/sentry-api-schema/main
 # How many master commits before the merge-base to search for an artifact.
 # Every commit that can change the schemas uploads one.
 max_commits=30
@@ -100,20 +98,12 @@ from_release() {
   printf 'the %s release, which can be newer than the merge-base\n' "$tag" > "$dest/source.txt"
 }
 
-from_legacy_repo() {
-  dest=$1
-  for name in openapi-derefed.json rpc_method_schema.json; do
-    timeout 300 curl --fail --silent --show-error --location -o "$dest/$name" "$legacy_raw/$name" || return 1
-  done
-  echo 'getsentry/sentry-api-schema main, which can be newer than the merge-base' > "$dest/source.txt"
-}
-
 baseline() {
   out=$1
   # Each source starts from an empty directory, so a source that fails
   # halfway leaves nothing behind for the next one.
   work="$out.partial"
-  for source in from_artifact from_release from_legacy_repo; do
+  for source in from_artifact from_release; do
     rm -rf "$work"
     mkdir -p "$work"
     if "$source" "$work"; then

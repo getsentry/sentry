@@ -17,16 +17,6 @@ jobs:
     outputs:
       api_client: ${{ steps.changes.outputs.api_client }}
     steps:
-      - name: github app token
-        id: app-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          client-id: ${{ vars.SENTRY_API_SCHEMA_UPDATER_APP_CLIENT_ID }}
-          private-key: ${{ secrets.SENTRY_API_SCHEMA_UPDATER_PRIVATE_KEY }}
-          repositories: |
-            sentry
-            sentry-api-schema
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check for python file changes
@@ -41,17 +31,6 @@ jobs:
         with:
           mode: migrations
         if: steps.changes.outputs.api_client == 'true'
-
-      - name: Checkout getsentry/sentry-api-schema
-        if: steps.changes.outputs.api_client == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: 'main'
-          repository: getsentry/sentry-api-schema
-          path: sentry-api-schema
-          # using app token so that `Git Commit & Push` step has the right permissions
-          # https://github.com/stefanzweifel/git-auto-commit-action/tree/master?tab=readme-ov-file#push-to-protected-branches
-          token: ${{ steps.app-token.outputs.token }}
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -91,28 +70,12 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Copy artifacts into getsentry/sentry-api-schema
-        if: steps.changes.outputs.api_client == 'true'
-        run: cp static/packages/api/spec/* sentry-api-schema
-
-      - name: Git Commit & Push
-        uses: stefanzweifel/git-auto-commit-action@0049e3fa4059ca715255fbbcb7dea4516f02ce0a # v4.15.3
-        if: steps.changes.outputs.api_client == 'true'
-        with:
-          repository: sentry-api-schema
-          branch: main
-          commit_message: Generated
-          commit_user_email: 271575301+sentry-api-schema-updater[bot]@users.noreply.github.com
-          commit_user_name: sentry-api-schema-updater[bot]
-
   # Releases @sentry/api (static/packages/api) when this commit changed what
   # the package ships. The preflight script skips the run until a person has
   # cut the first `api@` release with the Release workflow.
   release-api-package:
     needs: build_and_deref_json
-    # The spec files upload before the push to getsentry/sentry-api-schema, so
-    # a failed push does not hold up the release.
-    if: ${{ !cancelled() && needs.build_and_deref_json.outputs.api_client == 'true' }}
+    if: needs.build_and_deref_json.outputs.api_client == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
