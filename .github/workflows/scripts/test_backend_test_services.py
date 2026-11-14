@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -105,3 +106,47 @@ def test_guard(tmp_path: Path, mode: str) -> None:
         assert "test_swallowed_snuba_error used snuba on a lite shard" in result.stdout
         assert "test_kafka_client used kafka on a lite shard" in result.stdout
         assert "test_kafka_admin_client used kafka on a lite shard" in result.stdout
+
+
+POOL_CONFTEST = """
+import socket
+
+import pytest
+import pytest_service_guard
+
+server = socket.create_server(("127.0.0.1", 0))
+pytest_service_guard.SERVICE_PORTS[server.getsockname()[1]] = "snuba"
+
+
+@pytest.fixture(scope="session")
+def pool():
+    return {}
+
+
+@pytest.fixture
+def snuba(pool):
+    if "conn" not in pool:
+        pool["conn"] = socket.create_connection(server.getsockname())
+    return pool["conn"]
+"""
+
+
+def test_record_counts_requests_on_pooled_connections(tmp_path: Path) -> None:
+    (tmp_path / "conftest.py").write_text(POOL_CONFTEST)
+    (tmp_path / "test_a_connects.py").write_text("def test_a(snuba): pass\n")
+    (tmp_path / "test_b_reuses.py").write_text("def test_b(snuba): snuba.sendall(b'q')\n")
+    (tmp_path / "test_c_idle.py").write_text("def test_c(): pass\n")
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-p", "pytest_service_guard"],
+        cwd=tmp_path,
+        env={"PYTHONPATH": str(SCRIPTS), "BACKEND_TEST_SERVICE_GUARD": "record", "PATH": ""},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout
+    usage = json.loads((tmp_path / ".artifacts/service-usage/main.json").read_text())
+    assert usage["files"] == {
+        "test_a_connects.py": ["snuba"],
+        "test_b_reuses.py": ["snuba"],
+        "test_c_idle.py": [],
+    }

@@ -25,6 +25,7 @@ import os
 import socket
 import sys
 import threading
+import weakref
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any
@@ -77,21 +78,41 @@ def _service_for(address: Any) -> str | None:
     return None
 
 
+# Sockets connected to a service. Clients pool connections across tests (the
+# urllib3 pool in sentry.utils.snuba), so every send counts, not just connects.
+_service_sockets: weakref.WeakKeyDictionary[socket.socket, str] = weakref.WeakKeyDictionary()
+
+
 def _install_socket_hook() -> None:
     connect, connect_ex = socket.socket.connect, socket.socket.connect_ex
+    send, sendall = socket.socket.send, socket.socket.sendall
 
     def guarded_connect(self: socket.socket, address: Any) -> None:
         if service := _service_for(address):
             _hit(service)
+            _service_sockets[self] = service
         return connect(self, address)
 
     def guarded_connect_ex(self: socket.socket, address: Any) -> int:
         if service := _service_for(address):
             _hit(service)
+            _service_sockets[self] = service
         return connect_ex(self, address)
+
+    def guarded_send(self: socket.socket, *args: Any) -> int:
+        if service := _service_sockets.get(self):
+            _hit(service)
+        return send(self, *args)
+
+    def guarded_sendall(self: socket.socket, *args: Any) -> None:
+        if service := _service_sockets.get(self):
+            _hit(service)
+        return sendall(self, *args)
 
     socket.socket.connect = guarded_connect  # type: ignore[method-assign,assignment]
     socket.socket.connect_ex = guarded_connect_ex  # type: ignore[method-assign,assignment]
+    socket.socket.send = guarded_send  # type: ignore[method-assign,assignment]
+    socket.socket.sendall = guarded_sendall  # type: ignore[method-assign,assignment]
 
 
 def _install_kafka_hook() -> None:
@@ -100,19 +121,35 @@ def _install_kafka_hook() -> None:
     import confluent_kafka
     import confluent_kafka.admin
 
+    # Clients are often per-process singletons, so count the calls that talk
+    # to the broker too. Not Producer.poll: arroyo polls from its own thread.
+    calls = {
+        "Producer": ("produce", "flush", "list_topics"),
+        "Consumer": ("poll", "consume", "subscribe", "assign", "commit", "list_topics"),
+    }
+
+    def counted(method: Any) -> Any:
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+            _hit("kafka")
+            return method(self, *args, **kwargs)
+
+        return wrapper
+
     def guarded(base: type) -> type:
         class Guarded(base):  # type: ignore[misc]
             def __init__(self, *args: Any, **kwargs: Any) -> None:
                 _hit("kafka")
                 super().__init__(*args, **kwargs)
 
+        for name in calls[base.__name__]:
+            setattr(Guarded, name, counted(getattr(base, name)))
         Guarded._guarded = True
         Guarded.__name__ = Guarded.__qualname__ = base.__name__
         Guarded.__module__ = base.__module__
         return Guarded
 
     # Producer and Consumer are C types, so wrap them in subclasses.
-    for name in ("Producer", "Consumer"):
+    for name in calls:
         setattr(confluent_kafka, name, guarded(getattr(confluent_kafka, name)))
 
     # AdminClient.__init__ calls super(AdminClient, self) by its module global
@@ -125,6 +162,8 @@ def _install_kafka_hook() -> None:
         admin_init(self, *args, **kwargs)
 
     admin.__init__ = guarded_admin_init  # type: ignore[method-assign]
+    for name in ("create_topics", "delete_topics", "list_topics", "describe_topics"):
+        setattr(admin, name, counted(getattr(admin, name)))
     admin._guarded = True  # type: ignore[attr-defined]
 
 
