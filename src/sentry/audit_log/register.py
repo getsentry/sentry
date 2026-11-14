@@ -325,7 +325,7 @@ default_manager.add(
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
 default_manager.add(events.InternalIntegrationDisabledAuditLogEvent())
 default_manager.add(
-    AuditLogEvent(
+    events.InternalIntegrationTokenAuditLogEvent(
         event_id=135,
         name="INTERNAL_INTEGRATION_ADD_TOKEN",
         api_name="internal-integration.add-token",
@@ -333,7 +333,7 @@ default_manager.add(
     )
 )
 default_manager.add(
-    AuditLogEvent(
+    events.InternalIntegrationTokenAuditLogEvent(
         event_id=136,
         name="INTERNAL_INTEGRATION_REMOVE_TOKEN",
         api_name="internal-integration.remove-token",
