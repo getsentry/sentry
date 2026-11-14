@@ -411,6 +411,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/shared/groups/$shareId/'
   | '/organizations/$organizationIdOrSlug/shared/issues/$shareId/'
   | '/organizations/$organizationIdOrSlug/shortids/$issueId/'
+  | '/organizations/$organizationIdOrSlug/slack/link-team/$signedParams/'
   | '/organizations/$organizationIdOrSlug/starred-service-spans/'
   | '/organizations/$organizationIdOrSlug/stats-summary/'
   | '/organizations/$organizationIdOrSlug/stats/'
