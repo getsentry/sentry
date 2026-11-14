@@ -14,7 +14,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';

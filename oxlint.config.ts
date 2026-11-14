@@ -315,6 +315,7 @@ const config = defineConfig({
     '**/dist/**/*',
     'tests/**/fixtures/**/*',
     '!tests/js/**/*',
+    'static/oxlint/**/fixtures/**/*',
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',

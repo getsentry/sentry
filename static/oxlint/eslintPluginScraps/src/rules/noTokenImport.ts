@@ -6,29 +6,10 @@ import {defineRule} from '@oxlint/plugins';
  * Disallows raw token imports outside theme definitions and token exports.
  */
 
-const TOKEN_PATH = 'utils/theme/scraps';
 const EXCEPT_DIRS = [
-  'static/app/utils/theme/',
   'static/packages/scraps/src/theme/',
   'static/packages/scraps/src/tokens/',
 ];
-
-/**
- *
- * @param {unknown} importPath
- * @returns {boolean}
- */
-function isForbiddenImportPath(importPath: string) {
-  if (typeof importPath !== 'string') {
-    return false;
-  }
-
-  return (
-    importPath.includes(TOKEN_PATH) ||
-    importPath === '@sentry/scraps/tokens' ||
-    importPath.startsWith('@sentry/scraps/tokens/')
-  );
-}
 
 export const noTokenImport = defineRule({
   meta: {
@@ -43,22 +24,18 @@ export const noTokenImport = defineRule({
     },
   },
   create(context) {
-    const importerIsInAllowedDir = EXCEPT_DIRS.some(directory =>
-      context.filename.includes(directory)
-    );
+    if (EXCEPT_DIRS.some(directory => context.filename.includes(directory))) {
+      return {};
+    }
 
     return {
       ImportDeclaration(node) {
-        if (node?.source.type !== 'Literal') {
-          return;
-        }
-        if (importerIsInAllowedDir) {
-          return;
-        }
-
         const value = node.source.value;
 
-        if (isForbiddenImportPath(value)) {
+        if (
+          value === '@sentry/scraps/tokens' ||
+          value.startsWith('@sentry/scraps/tokens/')
+        ) {
           context.report({
             node,
             messageId: 'forbidden',

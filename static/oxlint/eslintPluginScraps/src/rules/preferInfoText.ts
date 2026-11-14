@@ -1,6 +1,7 @@
-import {type Fix, type Fixer, defineRule, type ESTree, type Scope} from '@oxlint/plugins';
+import {type Fix, type Fixer, defineRule, type ESTree} from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
+import {removeJsxAttributes} from '../ast/utils/removeJsxAttributes.ts';
 
 const TOOLTIP_SOURCE = '@sentry/scraps/tooltip';
 const TEXT_SOURCE = '@sentry/scraps/text';
@@ -33,24 +34,11 @@ const TOOLTIP_PROPS_SUPPORTED_BY_INFO_TEXT = new Set([
   'maxWidth',
   'delay',
   'showUnderline',
-  // InfoText always renders its underlying Tooltip as hoverable.
-  'isHoverable',
 ]);
 const TOOLTIP_PROPS_TO_STRIP = new Set(['showUnderline', 'isHoverable', 'skipWrapper']);
 const TOOLTIP_PROPS_TO_RENAME = new Map([['showOnlyOnOverflow', 'mode="overflowOnly"']]);
 const TEXT_PROPS_TO_STRIP = new Set(['underline']);
 const TEXT_PROPS_TO_STRIP_IN_OVERFLOW_ONLY = new Set(['ellipsis']);
-
-function getElementName(nameNode: ESTree.JSXElementName): string {
-  switch (nameNode.type) {
-    case 'JSXIdentifier':
-      return nameNode.name;
-    case 'JSXMemberExpression':
-      return `${getElementName(nameNode.object)}.${nameNode.property.name}`;
-    case 'JSXNamespacedName':
-      return `${nameNode.namespace.name}:${nameNode.name.name}`;
-  }
-}
 
 export const preferInfoText = defineRule({
   meta: {
@@ -72,35 +60,16 @@ export const preferInfoText = defineRule({
     const resolvingConstants = new Set<ESTree.VariableDeclarator>();
 
     function getConstantDeclarator(node: ESTree.IdentifierReference) {
-      let scope: Scope | null = context.sourceCode.getScope(node);
-      while (scope) {
-        const variable = scope.set.get(node.name);
-        if (variable) {
-          const definition = variable.defs[0];
-          if (
-            variable.defs.length !== 1 ||
-            definition?.type !== 'Variable' ||
-            definition.parent?.type !== 'VariableDeclaration' ||
-            definition.parent.kind !== 'const' ||
-            definition.node.type !== 'VariableDeclarator' ||
-            definition.node.id.type !== 'Identifier' ||
-            variable.references.some(reference => reference.isWrite() && !reference.init)
-          ) {
-            return null;
-          }
-          return definition.node;
-        }
-        scope = scope.upper;
+      const definition = importTracker.resolveVariable(node)?.defs[0];
+      if (
+        definition?.parent?.type !== 'VariableDeclaration' ||
+        definition.parent.kind !== 'const' ||
+        definition.node.type !== 'VariableDeclarator' ||
+        definition.node.id.type !== 'Identifier'
+      ) {
+        return null;
       }
-      return null;
-    }
-
-    function isLocaleCall(node: ESTree.Expression): boolean {
-      return (
-        node.type === 'CallExpression' &&
-        node.callee.type === 'Identifier' &&
-        importTracker.resolve(node.callee)?.source === LOCALE_SOURCE
-      );
+      return definition.node;
     }
 
     function isTextLikeExpression(
@@ -125,13 +94,13 @@ export const preferInfoText = defineRule({
         }
         case 'JSXElement':
         case 'JSXFragment':
-          return resolveConstants && isTextLikeChild(expr);
+          return isTextLikeChild(expr, resolveConstants);
         case 'Literal':
           return typeof expr.value === 'string';
         case 'TemplateLiteral':
           return true;
         case 'CallExpression':
-          return isLocaleCall(expr);
+          return importTracker.resolve(expr.callee)?.source === LOCALE_SOURCE;
         case 'ConditionalExpression':
           return (
             isTextLikeExpression(expr.consequent, resolveConstants) &&
@@ -160,13 +129,13 @@ export const preferInfoText = defineRule({
           }
           return isTextLikeExpression(child.expression, resolveConstants);
         case 'JSXElement': {
-          const name = getElementName(child.openingElement.name);
+          const {name} = child.openingElement;
           // Text is intended to render text content, so do not require the
           // expression inside it to be statically recognizable as text.
           if (importTracker.is(child.openingElement.name, TEXT_SOURCE, 'Text')) {
             return true;
           }
-          if (TEXT_LIKE_INTRINSICS.has(name)) {
+          if (name.type === 'JSXIdentifier' && TEXT_LIKE_INTRINSICS.has(name.name)) {
             return allChildrenAreTextLike(child.children, resolveConstants);
           }
           return false;
@@ -182,9 +151,7 @@ export const preferInfoText = defineRule({
       children: ESTree.JSXChild[],
       resolveConstants = true
     ): boolean {
-      const meaningful = children.filter(
-        c => !(c.type === 'JSXText' && c.value.trim() === '')
-      );
+      const meaningful = getMeaningfulChildren(children);
       return (
         meaningful.length > 0 &&
         meaningful.every(child => isTextLikeChild(child, resolveConstants))
@@ -200,15 +167,11 @@ export const preferInfoText = defineRule({
     function getSingleTextElementChild(node: ESTree.JSXElement) {
       const meaningfulChildren = getMeaningfulChildren(node.children);
       const child = meaningfulChildren[0];
-      if (meaningfulChildren.length !== 1 || !child) {
-        return null;
-      }
-
-      if (child.type !== 'JSXElement' || child.closingElement === null) {
-        return null;
-      }
-
-      if (!importTracker.is(child.openingElement.name, TEXT_SOURCE, 'Text')) {
+      if (
+        meaningfulChildren.length !== 1 ||
+        child?.type !== 'JSXElement' ||
+        !importTracker.is(child.openingElement.name, TEXT_SOURCE, 'Text')
+      ) {
         return null;
       }
 
@@ -216,10 +179,6 @@ export const preferInfoText = defineRule({
     }
 
     function canSuggestInfoText(node: ESTree.JSXElement): boolean {
-      if (node.openingElement.selfClosing || node.closingElement === null) {
-        return false;
-      }
-
       // Keep suggestions limited to content directly inside the Tooltip.
       // A referenced element can also be used elsewhere and needs a manual change.
       if (!allChildrenAreTextLike(node.children, false)) {
@@ -252,43 +211,41 @@ export const preferInfoText = defineRule({
       });
     }
 
-    function getInfoTextName() {
-      return importTracker.findLocalNames(INFO_SOURCE, 'InfoText')[0] ?? 'InfoText';
-    }
-
-    function getInfoTextImportFix(fixer: Fixer) {
-      if (importTracker.findLocalNames(INFO_SOURCE, 'InfoText').length > 0) {
-        return null;
+    function getInfoTextFixes(fixer: Fixer) {
+      const [existingName] = importTracker.findLocalNames(INFO_SOURCE, 'InfoText');
+      if (existingName) {
+        return {infoTextName: existingName, importFixes: []};
       }
-
-      const imports = context.sourceCode.ast.body.filter(
+      const lastImport = context.sourceCode.ast.body.findLast(
         node => node.type === 'ImportDeclaration'
       );
-      const infoImport = `import {InfoText} from '${INFO_SOURCE}';\n`;
-      const lastImport = imports.at(-1);
-
-      if (lastImport) {
-        return fixer.insertTextAfter(lastImport, `\n${infoImport}`);
-      }
-      return fixer.insertTextBeforeRange([0, 0], infoImport);
+      return {
+        infoTextName: 'InfoText',
+        importFixes: lastImport
+          ? [
+              fixer.insertTextAfter(
+                lastImport,
+                `\nimport {InfoText} from '${INFO_SOURCE}';\n`
+              ),
+            ]
+          : [],
+      };
     }
 
     function getAttributeText(
       attributes: ESTree.JSXOpeningElement['attributes'],
-      stripNames?: Set<string>,
+      stripNames: Set<string>,
       renameNames?: Map<string, string>
     ) {
       return attributes
-        .filter(attr => {
-          if (!stripNames) {
-            return true;
-          }
-          return !(
-            attr.type === 'JSXAttribute' &&
-            attr.name.type === 'JSXIdentifier' &&
-            stripNames.has(attr.name.name)
-          );
-        })
+        .filter(
+          attr =>
+            !(
+              attr.type === 'JSXAttribute' &&
+              attr.name.type === 'JSXIdentifier' &&
+              stripNames.has(attr.name.name)
+            )
+        )
         .map(attr => {
           if (attr.type === 'JSXAttribute' && attr.name.type === 'JSXIdentifier') {
             return renameNames?.get(attr.name.name) ?? context.sourceCode.getText(attr);
@@ -304,15 +261,13 @@ export const preferInfoText = defineRule({
     }
 
     return {
-      ...importTracker.visitors,
-
       JSXElement(node) {
         if (!importTracker.is(node.openingElement.name, TOOLTIP_SOURCE, 'Tooltip')) {
           return;
         }
         if (allChildrenAreTextLike(node.children)) {
           context.report({
-            node,
+            node: node.openingElement,
             messageId: 'preferInfoText',
             suggest: canSuggestInfoText(node)
               ? [
@@ -322,9 +277,26 @@ export const preferInfoText = defineRule({
                       if (!node.closingElement) {
                         return null;
                       }
-                      const infoTextName = getInfoTextName();
+                      const {infoTextName, importFixes} = getInfoTextFixes(fixer);
                       const textChild = getSingleTextElementChild(node);
-                      if (textChild && textChild.closingElement !== null) {
+                      const childrenRange: [number, number] | null =
+                        textChild?.closingElement
+                          ? [
+                              textChild.openingElement.range[1],
+                              textChild.closingElement.range[0],
+                            ]
+                          : null;
+                      if (
+                        textChild &&
+                        childrenRange &&
+                        context.sourceCode
+                          .getCommentsInside(node)
+                          .every(
+                            comment =>
+                              comment.range[0] >= childrenRange[0] &&
+                              comment.range[1] <= childrenRange[1]
+                          )
+                      ) {
                         const isOverflowOnly = node.openingElement.attributes.some(
                           attr =>
                             attr.type === 'JSXAttribute' &&
@@ -349,22 +321,18 @@ export const preferInfoText = defineRule({
                           ),
                         ];
                         const childrenText = context.sourceCode.text.slice(
-                          textChild.openingElement.range[1],
-                          textChild.closingElement.range[0]
+                          childrenRange[0],
+                          childrenRange[1]
                         );
                         const replacement = `${buildOpeningTag(
                           infoTextName,
                           attributes
                         )}${childrenText}</${infoTextName}>`;
-                        const fixes = [fixer.replaceText(node, replacement)];
-                        const importFix = getInfoTextImportFix(fixer);
-                        if (importFix !== null) {
-                          fixes.push(importFix);
-                        }
-                        return fixes;
+                        return [fixer.replaceText(node, replacement), ...importFixes];
                       }
 
                       const fixes: Fix[] = [
+                        ...importFixes,
                         fixer.replaceText(node.openingElement.name, infoTextName),
                         fixer.replaceText(node.closingElement.name, infoTextName),
                         fixer.insertTextAfter(
@@ -372,31 +340,52 @@ export const preferInfoText = defineRule({
                           ' variant="inherit"'
                         ),
                       ];
+                      let strippedRun: ESTree.JSXAttribute[] = [];
+                      const flushStrippedRun = () => {
+                        const [first] = strippedRun;
+                        if (first) {
+                          fixes.push(
+                            removeJsxAttributes(
+                              fixer,
+                              context.sourceCode,
+                              first,
+                              strippedRun.at(-1)
+                            )
+                          );
+                        }
+                        strippedRun = [];
+                      };
                       for (const attr of node.openingElement.attributes) {
-                        if (attr.type !== 'JSXAttribute') {
+                        if (
+                          attr.type === 'JSXAttribute' &&
+                          attr.name.type === 'JSXIdentifier' &&
+                          TOOLTIP_PROPS_TO_STRIP.has(attr.name.name)
+                        ) {
+                          const previous = strippedRun.at(-1);
+                          if (
+                            previous &&
+                            context.sourceCode.getTokenBefore(attr, {
+                              includeComments: true,
+                            })?.range[1] !== previous.range[1]
+                          ) {
+                            flushStrippedRun();
+                          }
+                          strippedRun.push(attr);
                           continue;
                         }
-
-                        if (attr.name.type !== 'JSXIdentifier') {
+                        flushStrippedRun();
+                        if (
+                          attr.type !== 'JSXAttribute' ||
+                          attr.name.type !== 'JSXIdentifier'
+                        ) {
                           continue;
                         }
-
                         const replacement = TOOLTIP_PROPS_TO_RENAME.get(attr.name.name);
                         if (replacement !== undefined) {
                           fixes.push(fixer.replaceText(attr, replacement));
-                        } else if (TOOLTIP_PROPS_TO_STRIP.has(attr.name.name)) {
-                          const src = context.sourceCode.getText();
-                          let start = attr.range[0];
-                          while (start > 0 && src[start - 1] === ' ') {
-                            start--;
-                          }
-                          fixes.push(fixer.removeRange([start, attr.range[1]]));
                         }
                       }
-                      const importFix = getInfoTextImportFix(fixer);
-                      if (importFix !== null) {
-                        fixes.push(importFix);
-                      }
+                      flushStrippedRun();
                       return fixes;
                     },
                   },

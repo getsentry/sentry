@@ -13,6 +13,13 @@ ruleTester.run('no-restricted-module-mocks', noRestrictedModuleMocks, {
     'jest.mock(moduleName);',
     "const hooks = {useLocation() {}}; jest.spyOn(hooks, 'useLocation');",
     "import * as location from 'sentry/utils/useLocation'; jest.spyOn(location, 'parseLocation');",
+    "jestLike.mock('sentry/utils/useLocation');",
+    'jest.mock();',
+    "import * as location from 'sentry/utils/useLocation'; jest.spyOn(location);",
+    "jest.spyOn(hooks.location, 'useLocation');",
+    "jest.spyOn(load('sentry/utils/useLocation'), 'useLocation');",
+    "jest.spyOn(require(), 'useLocation');",
+    "import * as location from 'sentry/utils/useLocationExtra'; jest.spyOn(location, 'useLocationExtra');",
   ],
   invalid: [
     ...[

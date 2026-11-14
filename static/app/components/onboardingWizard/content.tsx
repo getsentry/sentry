@@ -13,7 +13,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';

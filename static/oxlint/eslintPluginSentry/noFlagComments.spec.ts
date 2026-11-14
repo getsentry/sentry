@@ -13,6 +13,7 @@ ruleTester.run('no-flag-comments', noFlagComments, {
     {code: '// --strict flag enables strict mode'},
     {code: '// =='},
     {code: '// -=-=-=-=-'},
+    {code: '/* ---------- */'},
   ],
   invalid: [
     {

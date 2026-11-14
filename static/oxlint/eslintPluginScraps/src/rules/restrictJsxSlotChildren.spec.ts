@@ -17,8 +17,27 @@ import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
 `;
 
+const ALLOWED = [
+  {
+    source: '@sentry/scraps/compactSelect',
+    names: [
+      'MenuComponents.HeaderButton',
+      'MenuComponents.LinkButton',
+      'MenuComponents.CTAButton',
+      'MenuComponents.CTALinkButton',
+      'MenuComponents.ApplyButton',
+      'MenuComponents.CancelButton',
+      'MenuComponents.Alert',
+    ],
+  },
+  {
+    source: '@sentry/scraps/layout',
+    names: ['Flex', 'Stack', 'Grid', 'Container'],
+  },
+] satisfies Options['slots'][number]['allowed'];
+
 /**
- * The CompactSelect slot configuration exercised in all test cases below.
+ * The CompactSelect slot configuration exercised in the test cases below.
  * Matches the configuration registered in oxlint.config.ts.
  */
 const COMPACT_SELECT_OPTIONS = [
@@ -27,33 +46,20 @@ const COMPACT_SELECT_OPTIONS = [
       {
         componentNames: ['CompactSelect'],
         propNames: ['menuHeaderTrailingItems', 'menuFooter'],
-        allowed: [
-          {
-            source: '@sentry/scraps/compactSelect',
-            names: [
-              'MenuComponents.HeaderButton',
-              'MenuComponents.LinkButton',
-              'MenuComponents.CTAButton',
-              'MenuComponents.CTALinkButton',
-              'MenuComponents.ApplyButton',
-              'MenuComponents.CancelButton',
-              'MenuComponents.Alert',
-            ],
-          },
-          {
-            source: '@sentry/scraps/layout',
-            names: ['Flex', 'Stack', 'Grid', 'Container'],
-          },
-        ],
+        allowed: ALLOWED,
       },
     ],
   },
 ] satisfies [Options];
 
+const ANY_COMPONENT_OPTIONS = [
+  {slots: [{propNames: ['menuFooter'], allowed: ALLOWED}]},
+] satisfies [Options];
+
 // Derive the hint from the config the same way the rule does internally.
-const ALLOWED_HINT = COMPACT_SELECT_OPTIONS[0]?.slots[0]?.allowed
-  .map(entry => `${entry.names.join(', ')} from '${entry.source}'`)
-  .join(', or ');
+const ALLOWED_HINT = ALLOWED.map(
+  entry => `${entry.names.join(', ')} from '${entry.source}'`
+).join(', or ');
 
 /**
  * Shorthand for an expected "forbidden" error for a given element name and prop.
@@ -116,6 +122,11 @@ ruleTester.run('restrict-jsx-slot-children', restrictJsxSlotChildren, {
     {
       options: COMPACT_SELECT_OPTIONS,
       code: `${IMPORTS}<CompactSelect menuFooter={<Flex><Stack><MenuComponents.ApplyButton/></Stack></Flex>} />`,
+      filename: '/static/app/foo.tsx',
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Flex>text<>more text</></Flex>} />`,
       filename: '/static/app/foo.tsx',
     },
 
@@ -206,6 +217,11 @@ ruleTester.run('restrict-jsx-slot-children', restrictJsxSlotChildren, {
       code: `${IMPORTS}<CompactSelect menuFooter={someVar ?? <MenuComponents.ApplyButton/>} />`,
       filename: '/static/app/foo.tsx',
     },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Button/> && null} />`,
+      filename: '/static/app/foo.tsx',
+    },
 
     // ── Falsy / non-JSX prop values are ignored ───────────────────────────────
     {
@@ -221,6 +237,16 @@ ruleTester.run('restrict-jsx-slot-children', restrictJsxSlotChildren, {
     {
       options: COMPACT_SELECT_OPTIONS,
       code: `${IMPORTS}<CompactSelect menuFooter={someVar} />`,
+      filename: '/static/app/foo.tsx',
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter="text" />`,
+      filename: '/static/app/foo.tsx',
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={() => { return <Button />; }} />`,
       filename: '/static/app/foo.tsx',
     },
 
@@ -330,6 +356,36 @@ import {Flex as FlexLayout} from '@sentry/scraps/layout';
       filename: '/static/app/foo.tsx',
       errors: [forbidden('Button', 'menuFooter')],
     },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<><><Button/></></>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<>{condition && <Button/>}</>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Flex><><Button/></></Flex>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<Other.Fragment><MenuComponents.ApplyButton/></Other.Fragment>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Other.Fragment', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<React.Suspense><MenuComponents.ApplyButton/></React.Suspense>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('React.Suspense', 'menuFooter')],
+    },
 
     // ── Custom component directly in slot ─────────────────────────────────────
     {
@@ -337,6 +393,24 @@ import {Flex as FlexLayout} from '@sentry/scraps/layout';
       code: `${IMPORTS}<CompactSelect menuFooter={<CustomFooter />} />`,
       filename: '/static/app/foo.tsx',
       errors: [forbidden('CustomFooter', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<svg:rect />} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('svg:rect', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={<MenuComponents.SearchInput />} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('MenuComponents.SearchInput', 'menuFooter')],
+    },
+    {
+      options: ANY_COMPONENT_OPTIONS,
+      code: `${IMPORTS}<SomeOtherComponent menuFooter={<Button/>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
     },
 
     // ── Multiple invalid elements inside a layout wrapper ─────────────────────
@@ -413,6 +487,12 @@ import {Flex as FlexLayout} from '@sentry/scraps/layout';
     {
       options: COMPACT_SELECT_OPTIONS,
       code: `${IMPORTS}<CompactSelect menuFooter={someVar ?? <Button/>} />`,
+      filename: '/static/app/foo.tsx',
+      errors: [forbidden('Button', 'menuFooter')],
+    },
+    {
+      options: COMPACT_SELECT_OPTIONS,
+      code: `${IMPORTS}<CompactSelect menuFooter={(condition && <Button/>) || null} />`,
       filename: '/static/app/foo.tsx',
       errors: [forbidden('Button', 'menuFooter')],
     },

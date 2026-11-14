@@ -48,8 +48,6 @@ export const noRestrictedModuleMocks = defineRule({
     const importTracker = createImportTracker(context);
 
     return {
-      ...importTracker.visitors,
-
       CallExpression(node) {
         const {callee} = node;
         if (
@@ -82,25 +80,19 @@ export const noRestrictedModuleMocks = defineRule({
           return;
         }
 
-        const moduleObject = node.arguments[0];
-        const property = node.arguments[1];
-        if (
-          !moduleObject ||
-          moduleObject.type === 'SpreadElement' ||
-          property?.type !== 'Literal' ||
-          typeof property.value !== 'string'
-        ) {
+        const [moduleObject, property] = node.arguments;
+        if (property?.type !== 'Literal') {
           return;
         }
 
         let moduleSource: string | undefined;
-        if (moduleObject.type === 'Identifier') {
+        if (moduleObject?.type === 'Identifier') {
           const importedModule = importTracker.resolve(moduleObject);
           if (importedModule?.imported === '*') {
             moduleSource = importedModule.source;
           }
         } else if (
-          moduleObject.type === 'CallExpression' &&
+          moduleObject?.type === 'CallExpression' &&
           moduleObject.callee.type === 'Identifier' &&
           moduleObject.callee.name === 'require'
         ) {

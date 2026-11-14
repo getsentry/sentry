@@ -2,29 +2,15 @@ import {defineRule, type ESTree} from '@oxlint/plugins';
 
 type StyleExpression = ESTree.Expression | ESTree.SpreadElement | null;
 
-function isStringStyle(node: ESTree.TaggedTemplateExpression): boolean {
-  const {tag} = node;
+function isEmotionStyleFunction(node: ESTree.Expression): boolean {
   return (
-    (tag.type === 'Identifier' && tag.name === 'css') ||
-    (tag.type === 'MemberExpression' &&
-      tag.object.type === 'Identifier' &&
-      tag.object.name === 'styled') ||
-    (tag.type === 'CallExpression' &&
-      tag.callee.type === 'Identifier' &&
-      tag.callee.name === 'styled')
-  );
-}
-
-function isObjectStyle(node: ESTree.CallExpression): boolean {
-  const {callee} = node;
-  return (
-    (callee.type === 'Identifier' && callee.name === 'css') ||
-    (callee.type === 'MemberExpression' &&
-      callee.object.type === 'Identifier' &&
-      callee.object.name === 'styled') ||
-    (callee.type === 'CallExpression' &&
-      callee.callee.type === 'Identifier' &&
-      callee.callee.name === 'styled')
+    (node.type === 'Identifier' && node.name === 'css') ||
+    (node.type === 'MemberExpression' &&
+      node.object.type === 'Identifier' &&
+      node.object.name === 'styled') ||
+    (node.type === 'CallExpression' &&
+      node.callee.type === 'Identifier' &&
+      node.callee.name === 'styled')
   );
 }
 
@@ -90,54 +76,35 @@ export const emotionSyntaxPreference = defineRule({
   create(context) {
     const preference = context.options[0];
 
-    function checkPreferringString(node: StyleExpression): void {
-      if (!node) {
-        return;
-      }
-      if (node.type === 'ArrayExpression') {
+    function checkStyle(node: StyleExpression): void {
+      if (node?.type === 'ArrayExpression') {
         for (const element of node.elements) {
-          checkPreferringString(element);
+          checkStyle(element);
         }
-      } else if (node.type === 'ObjectExpression') {
-        context.report({node, messageId: 'preferStringStyle'});
-      } else if (node.type === 'Literal' && typeof node.value === 'string') {
-        context.report({node, messageId: 'preferWrappingWithCSS'});
-      }
-    }
-
-    function checkPreferringObject(node: StyleExpression): void {
-      if (!node) {
-        return;
-      }
-      if (node.type === 'ArrayExpression') {
-        for (const element of node.elements) {
-          checkPreferringObject(element);
+      } else if (preference === 'string') {
+        if (node?.type === 'ObjectExpression') {
+          context.report({node, messageId: 'preferStringStyle'});
+        } else if (node?.type === 'Literal' && typeof node.value === 'string') {
+          context.report({node, messageId: 'preferWrappingWithCSS'});
         }
-      } else if (node.type === 'TemplateLiteral') {
-        context.report({node, messageId: 'preferObjectStyle'});
-      } else if (node.type === 'Literal' && typeof node.value === 'string') {
+      } else if (
+        preference === 'object' &&
+        (node?.type === 'TemplateLiteral' ||
+          (node?.type === 'Literal' && typeof node.value === 'string'))
+      ) {
         context.report({node, messageId: 'preferObjectStyle'});
       }
     }
 
     return {
       TaggedTemplateExpression(node) {
-        if (preference === 'object' && isStringStyle(node)) {
+        if (preference === 'object' && isEmotionStyleFunction(node.tag)) {
           context.report({node, messageId: 'preferObjectStyle'});
         }
       },
       CallExpression(node) {
-        if (!isObjectStyle(node)) {
-          return;
-        }
-        for (const argument of node.arguments) {
-          if (argument.type !== 'SpreadElement') {
-            if (preference === 'string') {
-              checkPreferringString(argument);
-            } else if (preference === 'object') {
-              checkPreferringObject(argument);
-            }
-          }
+        if (isEmotionStyleFunction(node.callee)) {
+          node.arguments.forEach(checkStyle);
         }
       },
       JSXAttribute(node) {
@@ -149,17 +116,13 @@ export const emotionSyntaxPreference = defineRule({
           return;
         }
 
-        const expression =
+        checkStyle(
           node.value.type === 'JSXExpressionContainer'
             ? node.value.expression.type === 'JSXEmptyExpression'
               ? null
               : node.value.expression
-            : node.value;
-        if (preference === 'string') {
-          checkPreferringString(expression);
-        } else if (preference === 'object') {
-          checkPreferringObject(expression);
-        }
+            : node.value
+        );
       },
     };
   },

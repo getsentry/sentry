@@ -1,7 +1,5 @@
 import {defineRule} from '@oxlint/plugins';
 
-const DYNAMIC_TRANSLATION_FNS = ['td'];
-
 export const noStaticTranslations = defineRule({
   meta: {
     type: 'problem',
@@ -18,40 +16,30 @@ export const noStaticTranslations = defineRule({
   create(context) {
     return {
       CallExpression(node) {
-        const callee = node.callee;
-        if (callee?.type !== 'Identifier') {
-          return;
-        }
-        if (!DYNAMIC_TRANSLATION_FNS.includes(callee.name)) {
-          return;
-        }
-        if (node.arguments.length === 0) {
-          return;
-        }
-
-        const translationArg = node.arguments?.[0];
-        if (!translationArg) {
+        const [translationArg] = node.arguments;
+        if (
+          node.callee.type !== 'Identifier' ||
+          node.callee.name !== 'td' ||
+          !translationArg
+        ) {
           return;
         }
 
-        // Check if it's ATTRIBUTE_SEARCH_METADATA[...].brief
-        if (translationArg.type === 'MemberExpression') {
-          const property = translationArg.property;
+        if (
+          translationArg.type === 'MemberExpression' &&
+          !translationArg.computed &&
+          translationArg.property.name === 'brief'
+        ) {
           const object =
             translationArg.object.type === 'TSNonNullExpression'
               ? translationArg.object.expression
               : translationArg.object;
-
-          // Must be accessing .brief
-          if (property.type === 'Identifier' && property.name === 'brief') {
-            // Object must be ATTRIBUTE_SEARCH_METADATA[...]
-            if (
-              object.type === 'MemberExpression' &&
-              object.object.type === 'Identifier' &&
-              object.object.name === 'ATTRIBUTE_SEARCH_METADATA'
-            ) {
-              return; // Valid pattern
-            }
+          if (
+            object.type === 'MemberExpression' &&
+            object.object.type === 'Identifier' &&
+            object.object.name === 'ATTRIBUTE_SEARCH_METADATA'
+          ) {
+            return;
           }
         }
 

@@ -37,35 +37,31 @@ export const noUselessCssInterpolationSemicolon = defineRule({
     },
   },
   create(context) {
-    const sourceCode = context.sourceCode;
-
     return {
-      TemplateLiteral(node) {
-        if (!isStyledOrCssTemplate(node.parent) || node.parent.quasi !== node) {
+      TaggedTemplateExpression(node) {
+        if (!isStyledOrCssTemplate(node)) {
           return;
         }
 
-        node.expressions.forEach((expression, index) => {
+        const {expressions, quasis} = node.quasi;
+        expressions.forEach((expression, index) => {
+          const nextQuasi = quasis[index + 1];
           if (
-            !node.quasis[index + 1]?.value.raw.startsWith(';') ||
+            !nextQuasi?.value.raw.startsWith(';') ||
             !isCssInterpolationExpression(expression)
           ) {
             return;
           }
 
-          const closingBraceIndex = expression.range[1];
-          if (
-            sourceCode.text[closingBraceIndex] !== '}' ||
-            sourceCode.text[closingBraceIndex + 1] !== ';'
-          ) {
-            return;
-          }
-
+          const semicolonIndex = nextQuasi.range[0] + 1;
           context.report({
-            node: expression,
+            loc: {
+              start: context.sourceCode.getLocFromIndex(semicolonIndex),
+              end: context.sourceCode.getLocFromIndex(semicolonIndex + 1),
+            },
             messageId: 'noUselessSemicolon',
             fix(fixer) {
-              return fixer.removeRange([closingBraceIndex + 1, closingBraceIndex + 2]);
+              return fixer.removeRange([semicolonIndex, semicolonIndex + 1]);
             },
           });
         });

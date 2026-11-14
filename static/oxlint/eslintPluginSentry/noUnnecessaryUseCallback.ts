@@ -6,6 +6,36 @@ interface UsageInfo {
   element?: string;
 }
 
+function isStableCallbackArgument(node: ESTree.Node | undefined): boolean {
+  if (!node) {
+    return false;
+  }
+  if (
+    node.type === 'TSAsExpression' ||
+    node.type === 'TSSatisfiesExpression' ||
+    node.type === 'TSNonNullExpression' ||
+    node.type === 'TSInstantiationExpression' ||
+    node.type === 'ChainExpression'
+  ) {
+    return isStableCallbackArgument(node.expression);
+  }
+  if (node.type === 'ConditionalExpression') {
+    return (
+      isStableCallbackArgument(node.consequent) &&
+      isStableCallbackArgument(node.alternate)
+    );
+  }
+  if (node.type === 'LogicalExpression') {
+    return isStableCallbackArgument(node.left) && isStableCallbackArgument(node.right);
+  }
+  return (
+    node.type === 'ArrowFunctionExpression' ||
+    node.type === 'FunctionExpression' ||
+    node.type === 'Identifier' ||
+    node.type === 'MemberExpression'
+  );
+}
+
 function formatUsages(usages: UsageInfo[]): string {
   return usages
     .map(u => {
@@ -36,15 +66,10 @@ export const noUnnecessaryUseCallback = defineRule({
     },
   },
   create(context) {
-    // Maps scope Variable to the useCallback() CallExpression node and its declaring scope
-    const useCallbackBindings = new Map<
-      Variable,
-      {declarator: ESTree.VariableDeclarator; node: ESTree.CallExpression}
-    >();
+    const useCallbackBindings = new Map<Variable, ESTree.CallExpression>();
     // Collected flagged usages per Variable
     const flaggedUsages = new Map<Variable, UsageInfo[]>();
-    // Number of references we've accounted for (flagged) per Variable
-    const flaggedRefCount = new Map<Variable, number>();
+    const flaggedReferences = new Map<Variable, Set<ESTree.Node>>();
     // Local names imported from @sentry/scraps (these components are never memoized)
     const scrapsImports = new Set<string>();
     // Names that are aliased imports of useCallback (e.g. `import {useCallback as uc}`)
@@ -68,60 +93,56 @@ export const noUnnecessaryUseCallback = defineRule({
       return undefined;
     }
 
-    function addFlaggedUsage(variable: Variable, usage: UsageInfo) {
+    function addFlaggedUsage(
+      variable: Variable,
+      usage: UsageInfo,
+      references: ESTree.Node[]
+    ) {
+      let flagged = flaggedReferences.get(variable);
+      if (!flagged) {
+        flagged = new Set();
+        flaggedReferences.set(variable, flagged);
+      }
+      const added = references.filter(reference => !flagged.has(reference));
+      if (added.length === 0) {
+        return;
+      }
+      for (const reference of added) {
+        flagged.add(reference);
+      }
       let usages = flaggedUsages.get(variable);
       if (!usages) {
         usages = [];
         flaggedUsages.set(variable, usages);
       }
       usages.push(usage);
-      flaggedRefCount.set(
-        variable,
-        (flaggedRefCount.get(variable) ?? 0) +
-          1 /* each usage accounts for one reference to the binding */
-      );
     }
 
-    /**
-     * Walks an AST node looking for a CallExpression whose callee is a
-     * tracked useCallback binding. Returns the Variable if found.
-     * Uses visitorKeys to avoid circular parent references.
-     */
-    function findCallToBinding(node: ESTree.Node): Variable | null {
+    // Uses visitorKeys to avoid circular parent references.
+    function findCallsToBindings(
+      node: ESTree.Node,
+      calls: Array<{callee: ESTree.Node; variable: Variable}> = []
+    ): Array<{callee: ESTree.Node; variable: Variable}> {
       if (node.type === 'CallExpression' && node.callee.type === 'Identifier') {
         const variable = resolveVariable(node.callee);
         if (variable && useCallbackBindings.has(variable)) {
-          return variable;
+          calls.push({callee: node.callee, variable});
         }
       }
       const keys = context.sourceCode.visitorKeys[node.type] ?? [];
       for (const key of keys) {
         const child = node[key as keyof typeof node] as
           | ESTree.Node
-          | ESTree.Node[]
+          | Array<ESTree.Node | null>
           | null
           | undefined;
-        if (Array.isArray(child)) {
-          for (const item of child) {
-            if (item) {
-              const result = findCallToBinding(item);
-              if (result) {
-                return result;
-              }
-            }
-          }
-        } else if (child) {
-          const result = findCallToBinding(child);
-          if (result) {
-            return result;
+        for (const item of Array.isArray(child) ? child : [child]) {
+          if (item) {
+            findCallsToBindings(item, calls);
           }
         }
       }
-      return null;
-    }
-
-    function getJSXElementName(nameNode: ESTree.JSXElementName) {
-      return nameNode.type === 'JSXIdentifier' ? nameNode.name : undefined;
+      return calls;
     }
 
     // Scraps components that use memoized callbacks internally
@@ -130,9 +151,6 @@ export const noUnnecessaryUseCallback = defineRule({
     return {
       ImportDeclaration(node) {
         const source = node.source.value;
-        if (typeof source !== 'string') {
-          return;
-        }
 
         // Track aliased useCallback imports
         if (source === 'react') {
@@ -140,8 +158,7 @@ export const noUnnecessaryUseCallback = defineRule({
             if (
               spec.type === 'ImportSpecifier' &&
               spec.imported.type === 'Identifier' &&
-              spec.imported.name === 'useCallback' &&
-              spec.local.name !== 'useCallback'
+              spec.imported.name === 'useCallback'
             ) {
               useCallbackNames.add(spec.local.name);
             }
@@ -158,17 +175,16 @@ export const noUnnecessaryUseCallback = defineRule({
       },
 
       VariableDeclarator(node) {
-        if (node.id.type !== 'Identifier') {
-          return;
-        }
         if (
+          node.id.type === 'Identifier' &&
           node.init?.type === 'CallExpression' &&
           node.init.callee.type === 'Identifier' &&
-          useCallbackNames.has(node.init.callee.name)
+          useCallbackNames.has(node.init.callee.name) &&
+          isStableCallbackArgument(node.init.arguments[0])
         ) {
           const variable = resolveVariable(node.id);
           if (variable) {
-            useCallbackBindings.set(variable, {node: node.init, declarator: node});
+            useCallbackBindings.set(variable, node.init);
           }
         }
       },
@@ -184,16 +200,16 @@ export const noUnnecessaryUseCallback = defineRule({
         // e.g. onClick={() => fn()}, onClick={(e) => fn(e)},
         //      onClick={() => { fn(); doSomethingElse(); }}
         // The arrow wrapper creates a new ref each render, defeating memoization.
-        // The binding is referenced inside the arrow body — count as 1 reference.
         if (expr.type === 'ArrowFunctionExpression') {
-          const calledVariable = findCallToBinding(expr.body);
-          if (calledVariable) {
-            addFlaggedUsage(calledVariable, {
-              reason: 'directlyInvoked',
-              line: node.value.loc.start.line,
-            });
-            return;
+          const calls = findCallsToBindings(expr.body);
+          for (const variable of new Set(calls.map(call => call.variable))) {
+            addFlaggedUsage(
+              variable,
+              {reason: 'directlyInvoked', line: node.value.loc.start.line},
+              calls.filter(call => call.variable === variable).map(call => call.callee)
+            );
           }
+          return;
         }
 
         // Exception: ref props are callback refs that benefit from memoization
@@ -215,46 +231,48 @@ export const noUnnecessaryUseCallback = defineRule({
             return;
           }
           const tagName = openingElement.name;
-          const elementName = getJSXElementName(tagName);
+          if (tagName.type !== 'JSXIdentifier') {
+            return;
+          }
 
-          if (
-            tagName.type === 'JSXIdentifier' &&
-            tagName.name[0] === tagName.name[0]?.toLowerCase()
-          ) {
-            addFlaggedUsage(variable, {
-              reason: 'intrinsicElement',
-              element: tagName.name,
-              line: node.value.loc.start.line,
-            });
-          } else if (elementName && scrapsImports.has(elementName)) {
-            addFlaggedUsage(variable, {
-              reason: 'unmemoizedComponent',
-              element: elementName,
-              line: node.value.loc.start.line,
-            });
+          if (/^[a-z]/.test(tagName.name)) {
+            addFlaggedUsage(
+              variable,
+              {
+                reason: 'intrinsicElement',
+                element: tagName.name,
+                line: node.value.loc.start.line,
+              },
+              [expr]
+            );
+          } else if (scrapsImports.has(tagName.name)) {
+            addFlaggedUsage(
+              variable,
+              {
+                reason: 'unmemoizedComponent',
+                element: tagName.name,
+                line: node.value.loc.start.line,
+              },
+              [expr]
+            );
           }
         }
       },
 
       'Program:exit'() {
         for (const [variable, usages] of flaggedUsages) {
-          const binding = useCallbackBindings.get(variable);
-          if (!binding || binding.node.arguments.length === 0) {
-            continue;
-          }
-
           // Count total references to this binding via scope analysis.
           // If there are references beyond the ones we flagged, the
           // useCallback may be justified (dep arrays, other hooks, etc.)
           const totalRefs = variable.references.filter(r => r.isRead()).length;
-          const flagged = flaggedRefCount.get(variable) ?? 0;
+          const flagged = flaggedReferences.get(variable)?.size ?? 0;
 
           if (totalRefs > flagged) {
             continue;
           }
 
           const name = variable.name;
-          const callNode = binding.node;
+          const callNode = useCallbackBindings.get(variable)!;
           const firstArg = callNode.arguments[0];
           const callbackText = context.sourceCode.getText(firstArg);
           context.report({

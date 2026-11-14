@@ -12,6 +12,8 @@ ruleTester.run('no-query-data-type-parameters', noQueryDataTypeParameters, {
     {code: 'queryClient.invalidateQueries<Foo>({queryKey});'},
     {code: 'getQueryData<Foo>(queryKey);'},
     {code: 'setQueryData<Foo>(queryKey, updater);'},
+    {code: 'queryClient[getQueryData]<Foo>(queryKey);'},
+    {code: 'class Cache { #getQueryData() {} read() { this.#getQueryData<Foo>(); } }'},
   ],
   invalid: [
     {
