@@ -19,7 +19,7 @@ from sentry.utils.json import dumps_htmlsafe
 
 logger = logging.getLogger(__name__)
 
-UNREFERENCED_RESULT_FILES_METRIC = "preprod.size_analysis.compare.unreferenced_result_files"
+RESULT_FILES_LEFT_BEHIND_METRIC = "preprod.size_analysis.compare.result_files_left_behind"
 
 
 @dataclass(frozen=True)
@@ -373,11 +373,12 @@ def _delete_unreferenced_result_files(files: Sequence[File]) -> None:
                 "preprod.size_analysis.compare.result_file_cleanup_failed",
                 extra={"file_id": file.id},
             )
-            metrics.incr(UNREFERENCED_RESULT_FILES_METRIC, sample_rate=1.0)
+            metrics.incr(RESULT_FILES_LEFT_BEHIND_METRIC, sample_rate=1.0)
+        # A deadline can cut the loop short: count the file in flight and every file not reached
         except BaseException:
-            unchecked_files = files[index:]
+            undeleted_files = files[index:]
             metrics.incr(
-                UNREFERENCED_RESULT_FILES_METRIC, amount=len(unchecked_files), sample_rate=1.0
+                RESULT_FILES_LEFT_BEHIND_METRIC, amount=len(undeleted_files), sample_rate=1.0
             )
             raise
 
