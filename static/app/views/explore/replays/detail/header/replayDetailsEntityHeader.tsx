@@ -134,30 +134,27 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
         items: [
           showDeadRageClicks
             ? {
-                type: 'link',
-                label: t('Dead Clicks'),
+                label: {type: 'link', content: t('Dead Clicks'), to: breadcrumbTab},
                 value: deadClicks,
-                to: breadcrumbTab,
                 isLoading: statsLoading,
               }
             : null,
           showDeadRageClicks
             ? {
-                type: 'link',
-                label: t('Rage Clicks'),
+                label: {type: 'link', content: t('Rage Clicks'), to: breadcrumbTab},
                 value: rageClicks,
-                to: breadcrumbTab,
                 isLoading: statsLoading,
               }
             : null,
           {
-            type: 'link',
-            label: t('Errors'),
-            value: nonFeedbackErrors.length,
-            to: errorsTab,
-            valueTooltip: nonFeedbackErrors.length ? (
-              <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
-            ) : undefined,
+            label: {type: 'link', content: t('Errors'), to: errorsTab},
+            value: {
+              type: 'text',
+              content: nonFeedbackErrors.length,
+              tooltip: nonFeedbackErrors.length ? (
+                <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
+              ) : undefined,
+            },
             isLoading: statsLoading,
           },
         ],
