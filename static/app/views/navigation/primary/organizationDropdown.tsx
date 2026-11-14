@@ -471,7 +471,9 @@ function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
     key: org.id,
     label: <OrganizationBadge organization={org} />,
     textValue: org.name,
-    to: resolveRoute(`/organizations/${org.slug}/issues/`, null, org),
+    // The organization root redirects to its home page, which depends on
+    // features that an organization summary does not include.
+    to: resolveRoute(`/organizations/${org.slug}/`, null, org),
   };
 }
 

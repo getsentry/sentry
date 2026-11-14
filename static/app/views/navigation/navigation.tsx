@@ -1,11 +1,4 @@
-import {
-  Fragment,
-  type PropsWithChildren,
-  type RefObject,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import {Fragment, type PropsWithChildren, useEffect} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconCompass} from '@sentry/icons/compass';
@@ -16,21 +9,21 @@ import {IconMail} from '@sentry/icons/mail';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
-import {motion, type MotionProps} from 'framer-motion';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Stack, Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {getInboxPath, getOrganizationHomePath} from 'sentry/utils/organizationHomePath';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {getReturnPath} from 'sentry/utils/useReturnPath';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getClassifiersPath, useClassifiersEnabled} from 'sentry/views/classifiers/utils';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
@@ -56,18 +49,12 @@ import {PrimaryNavigationHelpMenu} from './primary/helpMenu';
 import {PrimaryNavigationOnboarding} from './primary/onboarding';
 import {OrganizationDropdown} from './primary/organizationDropdown';
 import {PrimaryNavigationServiceIncidents} from './primary/serviceIncidents';
-import {useActivateNavigationGroupOnHover} from './primary/useActivateNavigationGroupOnHover';
+import {useActivateNavigationGroup} from './primary/useActivateNavigationGroup';
 import {UserDropdown} from './primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from './primary/whatsNew';
 import {SecondaryNavigation} from './secondary/components';
 import {SecondaryNavigationContent} from './secondary/content';
-import {
-  NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
-  PRIMARY_SIDEBAR_WIDTH,
-  SECONDARY_SIDEBAR_WIDTH,
-  getSettingsLastProjectKey,
-  getSettingsReturnPathKey,
-} from './constants';
+import {getSettingsLastProjectKey, getSettingsReturnPathKey} from './constants';
 import {
   NavigationTour,
   NavigationTourElement,
@@ -76,17 +63,13 @@ import {
 } from './navigationTour';
 import {hasSecondaryNavigation, usePrimaryNavigation} from './primaryNavigationContext';
 import {useSecondaryNavigation} from './secondaryNavigationContext';
-import {useCollapsedNavigation} from './useCollapsedNavigation';
 import {useSettingsNavigation} from './useSettingsNavigation';
 
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
   const isSettingsNavigation = useSettingsNavigation();
   const settingsV3 = useSettingsV3();
-  const collapsedNavigation = useCollapsedNavigation();
   const {view} = useSecondaryNavigation();
-
-  const ref = useRef<HTMLUListElement | null>(null);
 
   const {layout, activeGroup} = usePrimaryNavigation();
 
@@ -95,7 +78,10 @@ function NavigationImpl() {
   const {currentStepId} = useNavigationTour();
   // The tour forces the sidebar open regardless of `view`, so this — not
   // `view !== 'expanded'` alone — is the actual collapsed state on screen.
-  const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
+  const isCollapsed =
+    currentStepId === null
+      ? view !== 'expanded' || !hasSecondaryNavigation(activeGroup)
+      : false;
 
   useLLMContext({
     contextHint: isSettingsNavigation
@@ -112,43 +98,23 @@ function NavigationImpl() {
     isCollapsed,
   });
 
-  const [secondarySidebarWidth] = useSyncedLocalStorageState(
-    NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
-    SECONDARY_SIDEBAR_WIDTH
-  );
-
-  const sidebarAnimationProps = useMemo(
-    () =>
-      makeCollapsedSecondaryWrapperAnimationProps(
-        collapsedNavigation.view === 'peek',
-        secondarySidebarWidth
-      ),
-    [collapsedNavigation.view, secondarySidebarWidth]
-  );
-
-  const secondarySidebar = (
-    <SecondaryNavigation.Sidebar>
-      <SecondaryNavigationContent />
-    </SecondaryNavigation.Sidebar>
-  );
-
   return (
     <Fragment>
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
           {isSettingsNavigation && organization ? (
-            <SettingsNavigationBackButton organizationSlug={organization.slug} />
+            <SettingsNavigationBackButton organization={organization} />
           ) : organization ? (
             <OrganizationDropdown />
           ) : (
             <UserDropdown />
           )}
         </PrimaryNavigation.SidebarHeader>
-        <PrimaryNavigation.List ref={ref}>
+        <PrimaryNavigation.List>
           {isSettingsNavigation && organization ? (
             <SettingsPrimaryNavigationItems organizationSlug={organization.slug} />
           ) : (
-            <PrimaryNavigationItems listRef={ref} />
+            <PrimaryNavigationItems />
           )}
         </PrimaryNavigation.List>
 
@@ -176,23 +142,11 @@ function NavigationImpl() {
         )}
       </PrimaryNavigation.Sidebar>
 
-      {hasSecondaryNavigation(activeGroup) &&
-        (isCollapsed ? (
-          <CollapsedSecondaryWrapper
-            data-visible={collapsedNavigation.view === 'peek'}
-            data-test-id="collapsed-secondary-sidebar"
-            height="100%"
-            left={`${PRIMARY_SIDEBAR_WIDTH}px`}
-            top={0}
-            position="absolute"
-            background="primary"
-            {...sidebarAnimationProps}
-          >
-            {secondarySidebar}
-          </CollapsedSecondaryWrapper>
-        ) : (
-          secondarySidebar
-        ))}
+      {isCollapsed ? null : (
+        <SecondaryNavigation.Sidebar>
+          <SecondaryNavigationContent />
+        </SecondaryNavigation.Sidebar>
+      )}
     </Fragment>
   );
 }
@@ -200,9 +154,9 @@ function NavigationImpl() {
 export const Navigation = registerLLMContext('navigation', NavigationImpl);
 
 export function SettingsNavigationBackButton({
-  organizationSlug,
+  organization,
 }: {
-  organizationSlug: string;
+  organization: Organization;
 }) {
   const {setActiveGroup, layout} = usePrimaryNavigation();
   const {setView} = useSecondaryNavigation();
@@ -215,8 +169,8 @@ export function SettingsNavigationBackButton({
       analyticsEventName="Settings: Back to App Clicked"
       tooltipProps={{title: t('Back to app')}}
       to={getReturnPath(
-        getSettingsReturnPathKey(organizationSlug),
-        `/organizations/${organizationSlug}/issues/`
+        getSettingsReturnPathKey(organization.slug),
+        getOrganizationHomePath(organization)
       )}
       onClick={() => {
         setActiveGroup(null);
@@ -276,22 +230,14 @@ export function SettingsPrimaryNavigationItems({
   ));
 }
 
-interface PrimaryNavigationItemsProps {
-  listRef?: RefObject<HTMLUListElement | null>;
-}
-
-export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
+export function PrimaryNavigationItems() {
   const organization = useOrganization({allowNull: true});
   const investigationsEnabled = useInvestigationsEnabled();
   const automationsEnabled = useAutomationsEnabled();
   const classifiersEnabled = useClassifiersEnabled();
   const settingsV3 = useSettingsV3();
 
-  const fallbackRef = useRef<HTMLUListElement>(null);
-
-  const makeNavigationItemProps = useActivateNavigationGroupOnHover({
-    ref: listRef ?? fallbackRef,
-  });
+  const makeNavigationItemProps = useActivateNavigationGroup();
 
   const settingsPath = organization
     ? `/settings/${organization.slug}/`
@@ -327,16 +273,17 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
       : getClassifiersPath(organization.slug);
 
   const prefix = `organizations/${organization.slug}`;
+  const inboxPath = getInboxPath(organization);
 
   return (
     <Fragment>
-      {organization.features.includes('universal-inbox') && (
+      {inboxPath && (
         <PrimaryNavigation.ListItem>
           <PrimaryNavigation.Link
-            to={`/${prefix}/inbox/`}
+            to={inboxPath}
             analyticsKey="inbox"
             label={t('Inbox')}
-            {...makeNavigationItemProps('inbox', `/${prefix}/inbox/`)}
+            {...makeNavigationItemProps('inbox', inboxPath)}
           >
             <IconMail />
           </PrimaryNavigation.Link>
@@ -506,25 +453,3 @@ export function PrimaryNavigationFooterItems({children}: PropsWithChildren) {
 export function PrimaryNavigationFooterItemsUserDropdown() {
   return <UserDropdown />;
 }
-
-const CollapsedSecondaryWrapper = motion.create(Flex);
-const makeCollapsedSecondaryWrapperAnimationProps = (
-  open: boolean,
-  left: number
-): MotionProps => {
-  return {
-    initial: 'hidden',
-    animate: open ? 'visible' : 'hidden',
-    variants: {
-      visible: {x: 0},
-      hidden: {x: -left - 10},
-    },
-    transition: {
-      type: 'spring',
-      damping: 50,
-      stiffness: 700,
-      bounce: 0,
-      visualDuration: 0.1,
-    },
-  };
-};

@@ -21,7 +21,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Navigation} from 'sentry/views/navigation';
 
 import {
-  NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
   NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
   getSettingsLastProjectKey,
 } from './constants';
@@ -685,8 +684,7 @@ describe('desktop navigation', () => {
       }
     );
 
-    await userEvent.hover(screen.getByRole('link', {name: 'Settings'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await userEvent.click(screen.getByRole('link', {name: 'Settings'}));
 
     expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
       'false'
@@ -1292,7 +1290,11 @@ describe('desktop navigation', () => {
     });
 
     describe('secondary sidebar', () => {
-      it('can collapse the sidebar', async () => {
+      function secondaryNavigation() {
+        return screen.queryByRole('navigation', {name: 'Secondary Navigation'});
+      }
+
+      it('is open by default when no localStorage key exists', () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
@@ -1300,12 +1302,13 @@ describe('desktop navigation', () => {
           navigationContext()
         );
 
-        await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
-
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
+        expect(secondaryNavigation()).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Close'})).toBeInTheDocument();
       });
 
-      it('can expand a collapsed sidebar', async () => {
+      it('restores the closed state from localStorage on mount', () => {
+        localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
@@ -1313,15 +1316,91 @@ describe('desktop navigation', () => {
           navigationContext()
         );
 
-        await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
-        await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
-
-        expect(
-          screen.queryByTestId('collapsed-secondary-sidebar')
-        ).not.toBeInTheDocument();
+        expect(secondaryNavigation()).not.toBeInTheDocument();
       });
 
-      it('can collapse the sidebar via Ctrl+B keyboard shortcut', async () => {
+      it('closes with the close button and persists it', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+
+        expect(secondaryNavigation()).not.toBeInTheDocument();
+        expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+          'true'
+        );
+      });
+
+      it('reopens when a primary nav item is clicked and persists it', async () => {
+        localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
+
+        await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
+
+        expect(router.location.pathname).toMatch(/^\/organizations\/org-slug\/explore\//);
+        expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
+        expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+          'false'
+        );
+      });
+
+      it('does not open when hovering primary navigation while closed', async () => {
+        localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+
+        expect(secondaryNavigation()).not.toBeInTheDocument();
+      });
+
+      it('does not switch content when hovering another primary nav item', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+
+        expect(screen.getByRole('link', {name: 'Feed'})).toBeInTheDocument();
+        expect(screen.queryByRole('link', {name: 'Traces'})).not.toBeInTheDocument();
+      });
+
+      it('does not open when a nav element receives keyboard focus while closed', async () => {
+        localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
+
+        // Tab once to focus the skip link, then again to reach a nav element
+        await userEvent.tab();
+        await userEvent.tab();
+
+        expect(secondaryNavigation()).not.toBeInTheDocument();
+      });
+
+      it('toggles via Ctrl+B keyboard shortcut', async () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
@@ -1330,339 +1409,92 @@ describe('desktop navigation', () => {
         );
 
         await userEvent.keyboard('{Control>}b{/Control}');
+        expect(secondaryNavigation()).not.toBeInTheDocument();
 
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
+        await userEvent.keyboard('{Control>}b{/Control}');
+        expect(secondaryNavigation()).toBeInTheDocument();
       });
+    });
 
-      it('can expand a collapsed sidebar via Ctrl+B keyboard shortcut', async () => {
+    describe('inbox', () => {
+      function secondaryNavigation() {
+        return screen.queryByRole('navigation', {name: 'Secondary Navigation'});
+      }
+
+      it('promotes the Issues inbox to the first primary nav item', () => {
         render(
           <PrimaryNavigationContextProvider>
             <Navigation />
           </PrimaryNavigationContextProvider>,
-          navigationContext()
+          navigationContext({
+            organization: {features: [...ALL_AVAILABLE_FEATURES, 'issue-inbox']},
+          })
         );
 
-        await userEvent.keyboard('{Control>}b{/Control}');
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
+        const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+        const links = within(primaryNav).getAllByRole('link');
+        expect(links[0]).toHaveAccessibleName('Inbox');
+        expect(links[0]).toHaveAttribute('href', '/organizations/org-slug/issues/inbox/');
+        expect(links[1]).toHaveAccessibleName('Issues');
 
-        await userEvent.keyboard('{Control>}b{/Control}');
-        expect(
-          screen.queryByTestId('collapsed-secondary-sidebar')
-        ).not.toBeInTheDocument();
+        const issuesNav = within(
+          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+        );
+        expect(issuesNav.getByRole('link', {name: 'Feed'})).toBeInTheDocument();
+        expect(issuesNav.queryByRole('link', {name: /Inbox/})).not.toBeInTheDocument();
       });
 
-      describe('persistence', () => {
-        it('defaults to expanded when no localStorage key exists', () => {
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext()
-          );
+      it('links to the universal inbox when the Issues inbox is unavailable', () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']},
+          })
+        );
 
-          expect(
-            screen.queryByTestId('collapsed-secondary-sidebar')
-          ).not.toBeInTheDocument();
-          expect(screen.getByRole('button', {name: 'Collapse'})).toBeInTheDocument();
-        });
-
-        it('restores collapsed state from localStorage on mount', async () => {
-          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
-
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext()
-          );
-
-          expect(
-            await screen.findByTestId('collapsed-secondary-sidebar')
-          ).toBeInTheDocument();
-          expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
-        });
-
-        it('persists collapsed state to localStorage when collapsing', async () => {
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext()
-          );
-
-          await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
-
-          expect(
-            localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)
-          ).toBe('true');
-        });
-
-        it('does not update localStorage when peek is triggered by hover', async () => {
-          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
-
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext()
-          );
-
-          await screen.findByTestId('collapsed-secondary-sidebar');
-
-          await userEvent.hover(
-            screen.getByRole('navigation', {name: 'Primary Navigation'})
-          );
-          await waitFor(() => {
-            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-              'data-visible',
-              'true'
-            );
-          });
-
-          expect(
-            localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)
-          ).toBe('true');
-        });
-
-        it('persists expanded state to localStorage when expanding', async () => {
-          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
-
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext()
-          );
-
-          await screen.findByTestId('collapsed-secondary-sidebar');
-
-          await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
-
-          expect(
-            localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)
-          ).toBe('false');
-        });
+        expect(screen.getByRole('link', {name: 'Inbox'})).toHaveAttribute(
+          'href',
+          '/organizations/org-slug/inbox/'
+        );
       });
 
-      describe('peek preview', () => {
-        it('shows the sidebar on hover when collapsed', async () => {
-          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+      it('has no secondary sidebar, and only Inbox is active', () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: {features: [...ALL_AVAILABLE_FEATURES, 'issue-inbox']},
+            initialRouterConfig: {
+              location: {pathname: '/organizations/org-slug/issues/inbox/'},
+            },
+          })
+        );
 
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext()
-          );
+        expect(secondaryNavigation()).not.toBeInTheDocument();
+        assertActivePrimaryNavLink(screen.getByRole('link', {name: 'Inbox'}));
+        assertInactiveNavLink(screen.getByRole('link', {name: 'Issues'}));
+      });
 
-          await screen.findByTestId('collapsed-secondary-sidebar');
-          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-            'data-visible',
-            'false'
-          );
+      it('hides the sidebar when clicked and shows it again from another item', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: {features: [...ALL_AVAILABLE_FEATURES, 'issue-inbox']},
+          })
+        );
 
-          await userEvent.hover(
-            screen.getByRole('navigation', {name: 'Primary Navigation'})
-          );
+        await userEvent.click(screen.getByRole('link', {name: 'Inbox'}));
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/inbox/');
+        expect(secondaryNavigation()).not.toBeInTheDocument();
 
-          await waitFor(() => {
-            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-              'data-visible',
-              'true'
-            );
-          });
-        });
-
-        it('hides the sidebar on mouse leave when collapsed', async () => {
-          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
-
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext()
-          );
-
-          await screen.findByTestId('collapsed-secondary-sidebar');
-
-          await userEvent.hover(
-            screen.getByRole('navigation', {name: 'Primary Navigation'})
-          );
-          await waitFor(() => {
-            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-              'data-visible',
-              'true'
-            );
-          });
-
-          await userEvent.unhover(
-            screen.getByRole('navigation', {name: 'Primary Navigation'})
-          );
-          await waitFor(() => {
-            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-              'data-visible',
-              'false'
-            );
-          });
-        });
-
-        it('hides the sidebar on mouse leave when a collapsible section is expanded', async () => {
-          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
-
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext({
-              organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
-            })
-          );
-
-          await screen.findByTestId('collapsed-secondary-sidebar');
-
-          const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
-          await userEvent.hover(primaryNav);
-          await waitFor(() => {
-            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-              'data-visible',
-              'true'
-            );
-          });
-          expect(screen.getByRole('button', {name: 'Autofix'})).toHaveAttribute(
-            'aria-expanded',
-            'true'
-          );
-
-          await userEvent.unhover(primaryNav);
-          await waitFor(() => {
-            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-              'data-visible',
-              'false'
-            );
-          });
-        });
-
-        it('keeps the sidebar open on mouse leave while a popup is open', async () => {
-          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
-
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext()
-          );
-
-          await screen.findByTestId('collapsed-secondary-sidebar');
-
-          const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
-          await userEvent.hover(primaryNav);
-          await waitFor(() => {
-            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-              'data-visible',
-              'true'
-            );
-          });
-
-          const whatsNewButton = screen.getByRole('button', {name: "What's New"});
-          await userEvent.click(whatsNewButton);
-          expect(whatsNewButton).toHaveAttribute('aria-expanded', 'true');
-
-          await userEvent.unhover(primaryNav);
-          // Wait past the collapse delay so a close would have happened.
-          await new Promise(resolve =>
-            setTimeout(resolve, NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS + 100)
-          );
-          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-            'data-visible',
-            'true'
-          );
-        });
-
-        it('shows the sidebar when a nav element receives keyboard focus while collapsed', async () => {
-          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
-
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext()
-          );
-
-          await screen.findByTestId('collapsed-secondary-sidebar');
-          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-            'data-visible',
-            'false'
-          );
-
-          // Tab once to focus the skip link, then again to reach a nav element
-          await userEvent.tab();
-          await userEvent.tab();
-
-          await waitFor(() => {
-            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-              'data-visible',
-              'true'
-            );
-          });
-        });
-
-        it('shows hovered group content when sidebar is expanded', async () => {
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext({
-              initialRouterConfig: {
-                location: {pathname: '/organizations/org-slug/issues/'},
-              },
-            })
-          );
-
-          const secondaryNav = screen.getByRole('navigation', {
-            name: 'Secondary Navigation',
-          });
-          expect(
-            within(secondaryNav).getByRole('link', {name: 'Feed'})
-          ).toBeInTheDocument();
-
-          await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
-
-          // Re-query secondary nav because AnimatePresence remounts it with a new key
-          expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
-        });
-
-        it('shows hovered group content in the peek view when sidebar is collapsed', async () => {
-          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
-
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext({
-              initialRouterConfig: {
-                location: {pathname: '/organizations/org-slug/issues/'},
-              },
-            })
-          );
-
-          await screen.findByTestId('collapsed-secondary-sidebar');
-
-          await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
-
-          await waitFor(() => {
-            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-              'data-visible',
-              'true'
-            );
-          });
-
-          const secondaryNav = screen.getByRole('navigation', {
-            name: 'Secondary Navigation',
-          });
-          expect(
-            await within(secondaryNav).findByRole('link', {name: 'Traces'})
-          ).toBeInTheDocument();
-        });
+        await userEvent.click(screen.getByRole('link', {name: 'Issues'}));
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+        expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
       });
     });
 

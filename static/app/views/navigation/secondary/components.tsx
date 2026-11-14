@@ -70,10 +70,7 @@ import {
   type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {
-  useNavigationGroupHoverEnabled,
-  usePrimaryNavigation,
-} from 'sentry/views/navigation/primaryNavigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -123,8 +120,6 @@ function SecondarySidebarPanel({
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const {layout, activeGroup} = usePrimaryNavigation();
-  // Group switches only animate to smooth over hover previews.
-  const shouldAnimateGroupSwitch = useNavigationGroupHoverEnabled();
   const isSettingsNavigation = useSettingsNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
@@ -170,9 +165,8 @@ function SecondarySidebarPanel({
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={shouldAnimateGroupSwitch ? {x: -6, opacity: 0} : false}
+          initial={false}
           animate={{x: 0, opacity: 1}}
-          exit={shouldAnimateGroupSwitch ? {x: 6, opacity: 0} : undefined}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -321,7 +315,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       padding={isMobile ? 'md lg' : '0 sm 0 sm'}
     >
       {props.children}
-      <SecondaryNavigationToggle />
+      <SecondaryNavigationCloseButton />
     </Grid>
   );
 }
@@ -343,37 +337,26 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
   );
 }
 
-function SecondaryNavigationToggle() {
-  const {layout} = usePrimaryNavigation();
-  const {collapsible, view, setView} = useSecondaryNavigation();
-  const isCollapsed = view !== 'expanded';
+/**
+ * Closes the sidebar. Clicking a primary nav item is the only way to reopen it.
+ */
+function SecondaryNavigationCloseButton() {
+  const {collapsible, setView} = useSecondaryNavigation();
 
   if (!collapsible) {
     return null;
   }
 
-  if (layout === 'mobile') {
-    return (
-      <Button
-        size="sm"
-        icon={<IconClose />}
-        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-        onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
-        variant="transparent"
-      />
-    );
-  }
-
   return (
     <Button
       size="sm"
-      icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-      aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-      onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
-      variant={isCollapsed ? 'primary' : 'transparent'}
+      icon={<IconClose />}
+      aria-label={t('Close')}
+      onClick={() => setView('collapsed')}
+      variant="transparent"
       analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
       analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-      analyticsParams={{is_collapsed: isCollapsed}}
+      analyticsParams={{is_collapsed: false}}
     />
   );
 }

@@ -127,7 +127,7 @@ describe('mobile navigation', () => {
       );
       expect(screen.getByRole('link', {name: 'General'})).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Close'}));
       expect(
         screen.queryByRole('navigation', {name: 'Primary Navigation'})
       ).not.toBeInTheDocument();

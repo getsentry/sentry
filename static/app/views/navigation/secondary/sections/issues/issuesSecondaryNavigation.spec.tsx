@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextNodeSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
@@ -11,7 +10,6 @@ import type {LLMContextNodeSnapshot} from 'sentry/views/seerExplorer/contexts/ll
 import {IssuesSecondaryNavigation} from './issuesSecondaryNavigation';
 
 describe('IssuesSecondaryNavigation', () => {
-  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned,identified] assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
     features: ['issue-inbox', 'seat-based-seer-enabled'],
   });
@@ -23,13 +21,6 @@ describe('IssuesSecondaryNavigation', () => {
     });
   });
 
-  function mockInboxCount(body: Record<string, number>) {
-    return MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues-count/',
-      body,
-    });
-  }
-
   function renderNavigation(testOrganization = organization) {
     render(
       <SecondaryNavigationContextProvider>
@@ -39,53 +30,14 @@ describe('IssuesSecondaryNavigation', () => {
     );
   }
 
-  it('shows the inbox count for Seer progress sections assigned or suggested to the user or their teams', async () => {
-    const request = mockInboxCount({
-      [inboxCountQuery]: 12,
-    });
-
+  it('does not render Inbox, which is a primary nav item', async () => {
     renderNavigation();
-
-    expect(await screen.findByText('12')).toBeInTheDocument();
-
-    // One query, since a separate Snuba search runs per `query` param.
-    const [[, options]] = request.mock.calls;
-    expect(options.query.query).toHaveLength(1);
-    const [query] = options.query.query;
-    expect(options.query).not.toHaveProperty('project');
-    expect(query).toContain('fix_proposed');
-    expect(query).toContain('diagnosed');
-    expect(query).toContain('assigned');
-    expect(query).toContain('identified');
-    expect(query).toContain('is:unresolved');
-    expect(query).toContain('assigned_or_suggested:[me,my_teams]');
-  });
-
-  it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
-    mockInboxCount({
-      [inboxCountQuery]: 100,
-    });
-
-    renderNavigation();
-
-    expect(await screen.findByText('99+')).toBeInTheDocument();
-  });
-
-  it('does not render Inbox or request its count without the inbox feature', async () => {
-    const request = mockInboxCount({});
-    const organizationWithoutAutofix = OrganizationFixture({
-      features: ['seat-based-seer-enabled'],
-    });
-
-    renderNavigation(organizationWithoutAutofix);
 
     expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: /Inbox/})).not.toBeInTheDocument();
-    expect(request).not.toHaveBeenCalled();
   });
 
   it('renders the Autofix Overview link when the org has seer-night-shift-ui', async () => {
-    mockInboxCount({});
     const organizationWithOverview = OrganizationFixture({
       features: ['issue-inbox', 'seat-based-seer-enabled', 'seer-night-shift-ui'],
     });
@@ -100,8 +52,6 @@ describe('IssuesSecondaryNavigation', () => {
   });
 
   it('does not render the Autofix Overview link without seer-night-shift-ui', async () => {
-    mockInboxCount({});
-
     renderNavigation();
 
     expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
@@ -145,7 +95,11 @@ describe('IssuesSecondaryNavigation', () => {
           }),
         ],
       });
-      mockInboxCount({});
+      // Starred views fetch their own counts.
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-count/',
+        body: {},
+      });
 
       const {ContextCapture, getNodes} = makeContextCapture();
 
@@ -165,9 +119,8 @@ describe('IssuesSecondaryNavigation', () => {
           expect.arrayContaining([expect.objectContaining({key: 'errors-outages'})])
         );
 
-        // The "issues" node also has an InboxCountBadge child in this fixture
-        // (Inbox access is on), so pick the starred-views child by shape
-        // rather than assuming it's the only — or the first — sibling.
+        // Pick the starred-views child by shape rather than assuming it's the
+        // only — or the first — sibling.
         const starredViewsNode = issuesNode!.children.find(
           child =>
             child.nodeType === 'navigation' &&

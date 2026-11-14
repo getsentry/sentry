@@ -52,7 +52,9 @@ export function redirectToRemainingOrganization({
   // Let's be smart and select the best org to redirect to
   const firstRemainingOrg = allOrgs[0]!;
 
-  const route = `/organizations/${firstRemainingOrg.slug}/issues/`;
+  // The organization root redirects to its home page, which depends on
+  // features that an organization summary does not include.
+  const route = `/organizations/${firstRemainingOrg.slug}/`;
   if (USING_CUSTOMER_DOMAIN) {
     const {organizationUrl} = firstRemainingOrg.links;
     window.location.assign(`${organizationUrl}${normalizeUrl(route)}`);

@@ -258,7 +258,7 @@ describe('OrganizationMembersList', () => {
 
     expect(deleteMock).toHaveBeenCalled();
     await waitFor(() => {
-      expect(router.location.pathname).toBe('/organizations/org-two/issues/');
+      expect(router.location.pathname).toBe('/organizations/org-two/');
     });
     expect(OrganizationsStore.getAll()).toEqual([secondOrg]);
   });

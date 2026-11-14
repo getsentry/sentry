@@ -6,12 +6,11 @@ import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from './constants';
 import {useSettingsNavigation} from './useSettingsNavigation';
 
 /**
- * The three possible states of the secondary navigation sidebar:
- * - 'expanded': Sidebar is always visible (user preference)
- * - 'collapsed': Sidebar is hidden (user preference, persisted)
- * - 'peek': Sidebar is temporarily visible via hover/focus while collapsed
+ * The two possible states of the secondary navigation sidebar, persisted:
+ * - 'expanded': Sidebar is open. Opened by clicking a primary nav item.
+ * - 'collapsed': Sidebar is closed. Closed with the sidebar's close button.
  */
-type SecondaryNavState = 'expanded' | 'collapsed' | 'peek';
+type SecondaryNavState = 'expanded' | 'collapsed';
 
 interface SecondaryNavigationContext {
   /**
@@ -52,21 +51,13 @@ export function SecondaryNavigationContextProvider(
   // collapsed preference without overwriting it for the rest of the app.
   const collapsible = !useSettingsNavigation();
 
-  // A peek that was open when the user entered settings must not reopen as an
-  // unhovered peek once they leave.
-  if (!collapsible && view === 'peek') {
-    setViewState('collapsed');
-  }
-
   const setView = useCallback(
     (nextView: SecondaryNavState) => {
       if (!collapsible) {
         return;
       }
       setViewState(nextView);
-      if (nextView !== 'peek') {
-        setIsCollapsedPersisted(nextView === 'collapsed');
-      }
+      setIsCollapsedPersisted(nextView === 'collapsed');
     },
     [collapsible, setIsCollapsedPersisted]
   );
@@ -88,8 +79,7 @@ export function SecondaryNavigationContextProvider(
 
 /**
  * Mobile-only secondary navigation context provider. Unlike the desktop
- * provider, state is stored entirely in memory (no localStorage) and only
- * supports 'expanded' | 'collapsed' — mobile has no hover-based 'peek' state.
+ * provider, state is stored entirely in memory (no localStorage).
  *
  * Rendering the mobile navigation tree inside this provider ensures mobile
  * open/close interactions never bleed into the desktop navigation's persisted
@@ -98,15 +88,9 @@ export function SecondaryNavigationContextProvider(
 export function MobileSecondaryNavigationContextProvider(
   props: SecondaryNavigationContextProviderProps
 ) {
-  const [view, setViewState] = useState<'expanded' | 'collapsed'>('expanded');
+  const [view, setView] = useState<SecondaryNavState>('expanded');
 
-  const setView = useCallback((nextView: SecondaryNavState) => {
-    if (nextView !== 'peek') {
-      setViewState(nextView);
-    }
-  }, []);
-
-  const value = useMemo(() => ({collapsible: true, view, setView}), [view, setView]);
+  const value = useMemo(() => ({collapsible: true, view, setView}), [view]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>
