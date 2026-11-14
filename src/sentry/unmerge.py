@@ -30,6 +30,7 @@ class UnmergeReplacement(abc.ABC):
     def parse_arguments(fingerprints: Any = None, replacement: Any = None) -> "UnmergeReplacement":
         if replacement is not None:
             if isinstance(replacement, dict):
+                replacement = dict(replacement)
                 replacement = _REPLACEMENT_TYPE_LABELS.get_key(replacement.pop("type"))(
                     **replacement
                 )
@@ -153,6 +154,8 @@ class UnmergeArgsBase(abc.ABC):
     replacement: UnmergeReplacement
     actor_id: int | None
     batch_size: int
+    operation_id: str | None = dataclasses.field(default=None, kw_only=True)
+    batch_number: int = dataclasses.field(default=0, kw_only=True)
 
     @staticmethod
     def parse_arguments(
@@ -162,12 +165,14 @@ class UnmergeArgsBase(abc.ABC):
         fingerprints: Sequence[str],
         actor_id: int | None,
         last_event: Mapping[str, Any] | None = None,
-        batch_size: int = 500,
+        batch_size: int = 250,
         source_fields_reset: bool = False,
         eventstream_state: EventstreamState | None = None,
         replacement: UnmergeReplacement | None = None,
         locked_primary_hashes: Collection[str] | None = None,
         destinations: Destinations | None = None,
+        operation_id: str | None = None,
+        batch_number: int = 0,
     ) -> "UnmergeArgs":
         if destinations is None:
             if destination_id is not None:
@@ -186,6 +191,8 @@ class UnmergeArgsBase(abc.ABC):
                 actor_id=actor_id,
                 batch_size=batch_size,
                 destinations=destinations,
+                operation_id=operation_id,
+                batch_number=batch_number,
             )
         else:
             assert locked_primary_hashes is not None or fingerprints is not None
@@ -199,10 +206,15 @@ class UnmergeArgsBase(abc.ABC):
                 destinations=destinations,
                 locked_primary_hashes=locked_primary_hashes or fingerprints or [],
                 source_fields_reset=source_fields_reset,
+                operation_id=operation_id,
+                batch_number=batch_number,
             )
 
     def dump_arguments(self) -> Mapping[str, Any]:
         rv = dataclasses.asdict(self)
+        if self.operation_id is None:
+            for key in ("operation_id", "batch_number"):
+                del rv[key]
         rv["fingerprints"] = None
         rv["destination_id"] = None
         rv["replacement"]["type"] = _REPLACEMENT_TYPE_LABELS[type(self.replacement)]

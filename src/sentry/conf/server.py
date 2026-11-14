@@ -208,6 +208,7 @@ SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
 SENTRY_SCM_REDIS_CLUSTER = "default"
 # Ephemeral dedup markers for self-chaining tasks (e.g. merge_groups, unmerge).
 SENTRY_SELFCHAIN_IDEMPOTENCY_REDIS_CLUSTER = "default"
+SENTRY_UNMERGE_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses

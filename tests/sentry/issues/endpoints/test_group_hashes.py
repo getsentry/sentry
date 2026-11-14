@@ -9,6 +9,7 @@ from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.endpoints.group_hashes import GroupHashesEndpoint
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
@@ -233,6 +234,20 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 sample_rate=1.0,
                 tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
             )
+
+    @with_feature("organizations:unmerge-recovery")
+    def test_unmerge_assigns_operation_before_enqueue(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        fingerprint = "a" * 32
+        Factories.create_group_hash(group=group, hash=fingerprint)
+        with patch("sentry.issues.endpoints.group_hashes.start_unmerge.delay") as enqueue:
+            response = self.client.put(
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/hashes/?id={fingerprint}",
+                format="json",
+            )
+        assert response.status_code == 202
+        assert len(enqueue.call_args.kwargs["operation_id"]) == 32
 
     def test_unmerge_put_member(self) -> None:
         member_user = self.create_user(is_superuser=False)
