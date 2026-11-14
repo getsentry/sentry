@@ -23,7 +23,7 @@ insights: 0001_squashed_0002_backfill_team_starred
 
 investigations: 0018_add_orchestration_run_notebook_fk
 
-monitors: 0023_drop_checkin_monitor
+monitors: 0024_add_monitor_creator
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 

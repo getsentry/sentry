@@ -564,6 +564,7 @@ class ExhaustiveFixtures(Fixtures):
             project_id=project.id,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
             owner_user_id=owner_id,
+            created_by_service_account_id=service_account.id,
         )
 
         # AlertRule*

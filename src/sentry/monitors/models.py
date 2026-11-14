@@ -268,6 +268,26 @@ class Monitor(Model):
     The team assigned as the owner of this model.
     """
 
+    created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    """
+    The user who created this monitor. Unlike the owner, this is never reassigned.
+    """
+
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    """
+    The service account that created this monitor.
+    """
+
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
+    """
+    The org auth token that created this monitor. At most one creator column is set, and
+    monitors created by check-in upserts have none.
+    """
+
     config = models.JSONField(default=dict)
     """
     Stores the monitor configuration. See MONITOR_CONFIG for the schema.
@@ -288,7 +308,16 @@ class Monitor(Model):
                     | models.Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
                 ),
                 name="monitor_owner_team_or_user_check",
-            )
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="monitor_single_creator",
+            ),
         ]
 
     __repr__ = sane_repr("guid", "project_id", "name")
@@ -403,6 +432,9 @@ class Monitor(Model):
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> int | None:
+        # Org auth tokens are imported after every other model, so their new pks can't be mapped
+        # here. Drop the reference rather than dropping the whole monitor.
+        self.created_by_org_auth_token_id = None
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
