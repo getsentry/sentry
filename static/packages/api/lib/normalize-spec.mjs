@@ -15,7 +15,8 @@
  *
  * It also drops `format: uint64`, and `format: int64` from integer schemas
  * whose bounds fit in a JS number, so the generated validators match the
- * generated `number` types.
+ * generated `number` types, and inlines single-member `allOf`s that only add
+ * annotations, so a field keeps its own description.
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -224,11 +225,39 @@ function dropNumberSafeFormats(node) {
   Object.values(node).forEach(dropNumberSafeFormats);
 }
 
+// Keywords that only annotate a schema, so they can sit on the member of a
+// single-member `allOf` without changing what it accepts.
+const ANNOTATION_KEYWORDS = new Set(["default", "deprecated", "description", "example", "nullable", "readOnly", "title", "writeOnly"]);
+
+/**
+ * Inlines the member of a single-member `allOf` whose other keywords only
+ * annotate it, such as `{ allOf: [X], description, nullable }`. Hey API merges
+ * such a member over its wrapper, so the member's own description replaced the
+ * field's. Inlining keeps the wrapper's annotations and the member's schema.
+ */
+function inlineAnnotatedAllOf(node) {
+  if (Array.isArray(node)) {
+    node.forEach(inlineAnnotatedAllOf);
+    return;
+  }
+  if (typeof node !== "object" || node === null) return;
+  const { allOf, ...annotations } = node;
+  if (
+    allOf?.length === 1 && typeof allOf[0] === "object" && allOf[0] !== null && !("$ref" in allOf[0])
+    && Object.keys(annotations).every(key => ANNOTATION_KEYWORDS.has(key))
+  ) {
+    delete node.allOf;
+    Object.assign(node, allOf[0], annotations);
+  }
+  Object.values(node).forEach(inlineAnnotatedAllOf);
+}
+
 /**
  * Reads the spec at `inputPath`, makes its paths relative to the API base path
  * (lib/api-base-path.mjs), rewrites all sentence-style operationIds to
  * short REST-conventional names, drops uint64 formats and int64 formats from
- * integers that fit in a JS number, and writes the result to `outputPath`.
+ * integers that fit in a JS number, inlines annotated single-member `allOf`s,
+ * and writes the result to `outputPath`.
  *
  * Throws on name collisions — two operations normalizing to the same identifier
  * would produce duplicate SDK exports, which must be resolved explicitly via
@@ -282,6 +311,7 @@ export function normalizeSpec(inputPath, outputPath) {
   }
 
   dropNumberSafeFormats(spec);
+  inlineAnnotatedAllOf(spec);
   writeFileSync(outputPath, JSON.stringify(spec));
   return spec;
 }

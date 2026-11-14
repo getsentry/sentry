@@ -54,7 +54,7 @@ Each `createSentryClient` call creates an independent transport configuration. T
 
 Supply the base URL and authentication appropriate for your deployment. See Sentry's [API authentication documentation](https://docs.sentry.io/api/auth/).
 
-The base URL is the Sentry origin, such as `https://sentry.io` or a self-hosted `https://sentry.example.com`. Operation paths are relative to the API base path, which the client adds after the origin. It comes from the server URL in Sentry's OpenAPI spec and is exported as `API_BASE_PATH` (`"/api/0"`) from `@sentry/api`, `@sentry/api/client`, and `@sentry/api/operations`. Raw requests take the same relative paths, such as `sentry.client.get({ url: "/organizations/" })`.
+The base URL is the Sentry origin, such as `https://sentry.io` or a self-hosted `https://sentry.example.com`. Operation paths are relative to the API base path, which the client adds after the origin. It comes from the server URL in Sentry's OpenAPI spec and is exported as `API_BASE_PATH` from `@sentry/api`, `@sentry/api/client`, and `@sentry/api/operations`. Raw requests take the same relative paths, such as `sentry.client.get({ url: "/organizations/" })`.
 
 ### Standalone operations
 
@@ -136,6 +136,31 @@ experimental.has("listOrganizationTraceMetrics"); // true
 `idempotent` tells retrying clients whether resending an identical request after a timeout or 5xx response is safe. It is always `true` for `GET`, `HEAD`, `OPTIONS`, and `TRACE`. Other methods are `true` only when Sentry marks the operation with the `x-sentry-idempotent` OpenAPI extension; `false` means not known to be idempotent, not known to be unsafe.
 
 The catalog is generated from the same schema and SDK output as each release. Consumers own search, grouping, ranking, and command aliases; the catalog does not fetch a live schema or infer undocumented API behavior.
+
+### API reference data
+
+`@sentry/api/docs` exports what an API reference page shows for each operation, so a docs site can render the reference from the package version it pins instead of fetching the spec:
+
+```ts
+import { API_BASE_PATH, operations, tags } from "@sentry/api/docs";
+
+for (const operation of operations) {
+  console.log(operation.method, `${API_BASE_PATH}${operation.path}`, operation.summary);
+  for (const response of operation.responses) console.log(response.status, response.example);
+}
+```
+
+Operation paths are relative to `API_BASE_PATH`, which comes from the spec's server URL, as in the client and `@sentry/api/operations`. Server overrides keep only their origin. A page shows an operation's full path as `${API_BASE_PATH}${operation.path}`.
+
+`tags` lists the categories, with their sidebar names and descriptions. Each `ApiDocsOperation` has the original `operationId`, summary and description as the spec writes them, tags, deprecated and experimental flags, server overrides, security requirements, path and query parameters with their schemas, the request body's first content type with its schema and example, and every response with its schema and examples. The data comes from the same spec as the client in each release, so it is about 3.7 MB; import it only where you render the reference. Its shape follows semver: a breaking change to it is a major release.
+
+To preview a spec that isn't released yet, such as a local `make build-api-docs` output, build the same data from it with `extractDocs`:
+
+```ts
+import { extractDocs } from "@sentry/api/docs";
+
+const { apiBasePath, tags, operations } = extractDocs(JSON.parse(readFileSync("tests/apidocs/openapi-derefed.json", "utf8")));
+```
 
 ### Build-time source analysis
 
@@ -637,10 +662,10 @@ const projects = await core.requestJson("https://sentry.example.com", "/organiza
 Each `api@<version>` release on [GitHub](https://github.com/getsentry/sentry/releases) has the files that version was built from as assets:
 
 - `openapi-derefed.json`: the dereferenced OpenAPI spec.
-- `api_ownership_stats_dont_modify.json`: API ownership stats per team.
+- `api_ownership_stats_dont_modify.json`: API ownership stats per team. They are kept for ad-hoc and future use; no known consumer reads them, so a change to them alone does not cut a release, and they refresh with the next one.
 - `rpc_method_schema.json`: the internal RPC method schema.
 
-For example, `https://github.com/getsentry/sentry/releases/download/api@1.55.0/openapi-derefed.json`. They are not in the npm package.
+For example, `https://github.com/getsentry/sentry/releases/download/api@2.4.0/openapi-derefed.json`. They are not in the npm package.
 
 ## Development
 
@@ -650,6 +675,7 @@ The package lives in [`getsentry/sentry`](https://github.com/getsentry/sentry/tr
 make build-api-docs build-rpc-schema
 pnpm --filter @sentry/api run build
 pnpm --filter @sentry/api run typecheck
+pnpm --filter @sentry/api run lint:js
 pnpm --filter @sentry/api run test:vitest
 ```
 

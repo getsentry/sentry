@@ -59,6 +59,8 @@ const steps = [
   "apply-query-defaults",
   "generate-client",
   "generate-operations",
+  // API reference data (tags, parameters, bodies, responses) for docs sites.
+  "generate-docs",
   // Use Valibot's description action for the descriptions, which getDescription reads.
   "describe-valibot-schemas",
   // Annotate schema constructors as pure and defer the default client so bundlers
@@ -127,6 +129,7 @@ await Promise.all([
   bundle("api-client/index", { external: ["@sentry/api", "http-cache-semantics", "p-limit"] }),
   bundle("api-client/endpoints/index", { external: ["@sentry/api", "@sentry/api/client"] }),
   bundle("operations"),
+  bundle("docs"),
   bundle("source-analysis", { external: ["typescript"], platform: "node" }),
   emitDeclarations([["valibot.ts", "valibot.gen.ts"], ["zod.ts", "zod.gen.ts"]]),
 ]);

@@ -34,6 +34,39 @@ function describeNullableValues(ir) {
   visit(ir);
 }
 
+/** Whether a union keeps two or more non-null members, so it emits a union node. */
+const isUnionOfValues = ({ schemas }) => schemas.filter(schema => schema.type !== "null" && schema.const !== null).length > 1;
+
+/**
+ * Hey API applies `metadata` only to typed schemas, so an `anyOf` or `oneOf`
+ * union loses its own description. Attach it to the union node, the way
+ * `metadata` does for typed schemas. Unions with one non-null member emit that
+ * member, which describeNullableValues has already described.
+ */
+const unionResolvers = {
+  valibot: {
+    union(ctx) {
+      const base = ctx.nodes.base(ctx);
+      if (base) ctx.pipes.push(ctx.pipes.current, base);
+      const { description } = ctx.parentSchema;
+      if (description && isUnionOfValues(ctx)) {
+        const metadata = ctx.$.object().prop("description", ctx.$.literal(description));
+        ctx.pipes.push(ctx.pipes.current, ctx.$(ctx.symbols.v).attr("metadata").call(metadata));
+      }
+      return ctx.pipes.current;
+    },
+  },
+  zod: {
+    union(ctx) {
+      const base = ctx.nodes.base(ctx);
+      const { description } = ctx.parentSchema;
+      if (!description || !isUnionOfValues(ctx)) return base;
+      const metadata = ctx.$.object().pretty().prop("description", ctx.$.literal(description));
+      return base.attr("register").call(ctx.$(ctx.symbols.z).attr("globalRegistry"), metadata);
+    },
+  },
+};
+
 // `metadata: true` attaches each OpenAPI description to its schema, so
 // consumers can read field descriptions at runtime.
 // Since 0.95, validators only compose request schemas when another plugin asks
@@ -57,9 +90,9 @@ const validatorOptions = {
 // longer implicit, so the first group lists them explicitly.
 const PLUGIN_GROUPS = {
   client: ["@hey-api/typescript", "@hey-api/sdk"],
-  valibot: [{ name: "valibot", ...validatorOptions }],
+  valibot: [{ name: "valibot", ...validatorOptions, "~resolvers": unionResolvers.valibot }],
   // Hey API infers Zod 4 output from the `zod` peer range.
-  zod: [{ name: "zod", ...validatorOptions }],
+  zod: [{ name: "zod", ...validatorOptions, "~resolvers": unionResolvers.zod }],
 };
 
 function runGroup(input, output, group) {

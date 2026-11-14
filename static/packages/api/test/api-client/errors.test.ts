@@ -3,6 +3,7 @@ import { narrowError, SentryApiError } from "@sentry/api";
 import {
   ApiError,
   ApiNotFoundError,
+  ApiPermissionError,
   ApiRateLimitError,
   ApiValidationError,
   createApiError,
@@ -40,6 +41,40 @@ describe("ApiError", () => {
 
     expect(error).toBeInstanceOf(ApiRateLimitError);
     expect((error as ApiRateLimitError).retryAfterMs).toBe(2500);
+  });
+
+  test("keeps the scopes an insufficient_scope 403 accepts and says retrying won't help", () => {
+    const detail = "You do not have permission to perform this action.";
+    const error = createApiError(detail, 403, detail, { detail }, undefined, [
+      "event:write",
+      "seer:write",
+    ]);
+
+    expect(error).toBeInstanceOf(ApiPermissionError);
+    const permissionError = error as ApiPermissionError;
+    expect(permissionError.acceptedScopes).toEqual(["event:write", "seer:write"]);
+    expect(permissionError.isInsufficientScopeError()).toBe(true);
+    expect(permissionError.toUserMessage()).toBe(
+      `API error (403): ${detail} The access token is missing the scope this endpoint requires; it needs one of: event:write, seer:write. Retrying with the same token will not help.`,
+    );
+  });
+
+  test("keeps the plain message for a 403 without accepted scopes", () => {
+    const error = createApiError("Forbidden", 403) as ApiPermissionError;
+
+    expect(error.acceptedScopes).toEqual([]);
+    expect(error.isInsufficientScopeError()).toBe(false);
+    expect(error.toUserMessage()).toBe("API error (403): Forbidden");
+  });
+
+  test("ends a scope-less detail with a period before the scope hint", () => {
+    const error = new ApiPermissionError("Forbidden", undefined, undefined, [
+      "org:read",
+    ]);
+
+    expect(error.toUserMessage()).toBe(
+      "API error (403): Forbidden. The access token is missing the scope this endpoint requires; it needs one of: org:read. Retrying with the same token will not help.",
+    );
   });
 
   test("is rethrown unchanged by status narrowing, like other subclasses", () => {

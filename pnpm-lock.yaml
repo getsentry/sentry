@@ -1063,6 +1063,9 @@ importers:
       fast-check:
         specifier: 4.10.2
         version: 4.10.2
+      oxlint:
+        specifier: 1.90.0
+        version: 1.90.0(oxlint-tsgolint@7.0.2005)
       typescript:
         specifier: npm:@typescript/typescript6@6.0.2
         version: '@typescript/typescript6@6.0.2'

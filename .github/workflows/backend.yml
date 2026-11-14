@@ -139,6 +139,9 @@ jobs:
       - name: Typecheck
         run: pnpm --filter @sentry/api run typecheck
 
+      - name: Lint
+        run: pnpm --filter @sentry/api run lint:js
+
       - name: Test
         run: pnpm --filter @sentry/api run test:vitest
 

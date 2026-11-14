@@ -453,3 +453,24 @@ describe("normalizeSpec int64 formats", () => {
     unlinkSync(output);
   });
 });
+
+describe("normalizeSpec single-member allOf", () => {
+  it("inlines a member wrapped only by annotations, keeping the wrapper's annotations", () => {
+    const member = { type: "object", description: "Member description", properties: { id: { type: "string" } } };
+    const schemas = {
+      annotated: { allOf: [member], description: "Field description", nullable: true },
+      constrained: { allOf: [member], description: "Field description", required: ["id"] },
+      composed: { allOf: [member, { type: "object" }], description: "Field description" },
+    };
+    const input = join(tmpdir(), `test-spec-${Date.now()}.json`);
+    writeFileSync(input, JSON.stringify({ paths: {}, components: { schemas } }));
+    const output = join(tmpdir(), `out-${Date.now()}.json`);
+    normalizeSpec(input, output);
+    const result = JSON.parse(readFileSync(output, "utf8")).components.schemas;
+    expect(result.annotated).toEqual({ ...member, description: "Field description", nullable: true });
+    expect(result.constrained).toEqual(schemas.constrained);
+    expect(result.composed).toEqual(schemas.composed);
+    unlinkSync(input);
+    unlinkSync(output);
+  });
+});

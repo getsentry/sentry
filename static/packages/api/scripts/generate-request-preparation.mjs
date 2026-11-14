@@ -40,7 +40,10 @@ export const createClient = (config: Config = {}): PreparedClient => {`);
   // Raw endpoints can already contain a query. Overlay explicitly serialized keys
   // without re-encoding unrelated values or a custom serializer's output.
   update("core/utils.gen.ts", source => replaceOnce(source,
-    "  if (search) {\n    url += `?${search}`;\n  }\n  return url;",
+    `  if (search) {
+    url += \`?\${search}\`;
+  }
+  return url;`,
     `  url = url.split('#', 1)[0]!;
   const queryIndex = url.indexOf('?');
   const pathname = queryIndex === -1 ? url : url.slice(0, queryIndex);

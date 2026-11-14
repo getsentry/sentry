@@ -106,6 +106,8 @@ describe("package entry points", () => {
         }
         const { operations } = await import("@sentry/api/operations");
         assert(operations.some(operation => operation.functionName === "listOrganizations"));
+        const docs = await import("@sentry/api/docs");
+        assert(docs.operations.some(operation => operation.path === "/organizations/"));
         // The root entry creates its default client on first use, not at import.
         const root = await import("@sentry/api");
         assert.equal(typeof root.getOrganization, "function");

@@ -27,6 +27,19 @@ export function update(name, transform) {
   writeFileSync(path, transform(readFileSync(path, "utf8"), name));
 }
 
+/**
+ * Write src/`name` from TypeScript AST `statements`, printed by the compiler,
+ * so generated modules are built from nodes rather than source strings.
+ */
+export function writeSource(name, statements) {
+  const path = srcPath(name);
+  const file = ts.factory.updateSourceFile(
+    ts.createSourceFile(path, "", ts.ScriptTarget.Latest, false, ts.ScriptKind.TS),
+    statements,
+  );
+  writeFileSync(path, ts.createPrinter({ newLine: ts.NewLineKind.LineFeed }).printFile(file));
+}
+
 /** Parse src/`name`, keeping its text for position-based edits. */
 export function parse(name) {
   const path = srcPath(name);

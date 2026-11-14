@@ -19,7 +19,55 @@ export type ErrorResponseBody = {
   isHtml: boolean;
   /** Server-requested wait before retrying, from the rate-limit headers. */
   retryAfterMs?: number;
+  /**
+   * Scopes the endpoint accepts, from a 403's `insufficient_scope` challenge;
+   * see {@link parseInsufficientScopeChallenge}. Unset for other responses.
+   */
+  acceptedScopes?: string[];
 };
+
+const INSUFFICIENT_SCOPE_ERROR_RE = /\berror="insufficient_scope"/i;
+const CHALLENGE_SCOPE_RE = /\bscope="([^"]*)"/i;
+const SCOPE_NAME_RE = /^[a-z_]+:[a-z_]+$/i;
+
+/**
+ * Read the scopes from an RFC 6750 `insufficient_scope` challenge.
+ *
+ * Sentry answers a token that lacks every scope an endpoint accepts with a
+ * 403, DRF's generic `detail`, and
+ * `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."`
+ * (getsentry/sentry#118612). The header lists each scope the endpoint
+ * accepts, and any one of them is enough. Other 403s, such as a token for
+ * another organization, come without it.
+ *
+ * @param header - The `WWW-Authenticate` response header
+ * @returns The accepted scopes in the server's order. Empty when the header
+ *   is missing or is not an `insufficient_scope` challenge.
+ */
+export function parseInsufficientScopeChallenge(
+  header: string | null | undefined,
+): string[] {
+  if (!(header && INSUFFICIENT_SCOPE_ERROR_RE.test(header))) {
+    return [];
+  }
+  const scopes = header.match(CHALLENGE_SCOPE_RE)?.[1] ?? "";
+  return [
+    ...new Set(
+      scopes.split(/\s+/).filter((scope) => SCOPE_NAME_RE.test(scope)),
+    ),
+  ];
+}
+
+/** The scopes a 403's challenge names, or undefined for none. */
+function readAcceptedScopes(response: Response): string[] | undefined {
+  if (response.status !== 403) {
+    return undefined;
+  }
+  const scopes = parseInsufficientScopeChallenge(
+    response.headers.get("www-authenticate"),
+  );
+  return scopes.length > 0 ? scopes : undefined;
+}
 
 function readDetail(json: unknown): string | undefined {
   if (json === null || typeof json !== "object" || !("detail" in json)) {
@@ -37,11 +85,12 @@ export async function readErrorResponse(
   response: Response,
 ): Promise<ErrorResponseBody> {
   const retryAfterMs = parseRetryDelayMs(response.status, response.headers);
+  const acceptedScopes = readAcceptedScopes(response);
   let text: string;
   try {
     text = await response.text();
   } catch {
-    return { text: undefined, isHtml: false, retryAfterMs };
+    return { text: undefined, isHtml: false, retryAfterMs, acceptedScopes };
   }
   try {
     const json: unknown = JSON.parse(text);
@@ -51,6 +100,7 @@ export async function readErrorResponse(
       detail: readDetail(json),
       isHtml: false,
       retryAfterMs,
+      acceptedScopes,
     };
   } catch (error) {
     return {
@@ -58,6 +108,7 @@ export async function readErrorResponse(
       parseError: error instanceof Error ? error.message : String(error),
       isHtml: looksLikeHtml(text),
       retryAfterMs,
+      acceptedScopes,
     };
   }
 }

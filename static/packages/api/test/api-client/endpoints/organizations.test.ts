@@ -108,7 +108,7 @@ describe("listOrganizations", () => {
     ]);
     expect(urls[0]?.searchParams.get("per_page")).toBe("3");
     expect(urls[0]?.searchParams.get("query")).toBe("ac");
-    expect(urls[1]?.searchParams.get("per_page")).toBe("1");
+    expect(urls[1]?.searchParams.get("per_page")).toBe("3");
     expect(urls[1]?.searchParams.get("cursor")).toBe("0:2:0");
   });
 

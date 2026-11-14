@@ -152,12 +152,38 @@ export class ApiClientError extends ApiError {
 /**
  * Permission denied error (403).
  * Includes special handling for multi-project access errors.
+ * `acceptedScopes` comes from the response's `insufficient_scope` challenge,
+ * when it has one: the token lacks every scope the endpoint accepts, and any
+ * one of them is enough.
  */
 export class ApiPermissionError extends ApiClientError {
-  constructor(message: string, detail?: string, responseBody?: unknown) {
+  constructor(
+    message: string,
+    detail?: string,
+    responseBody?: unknown,
+    public readonly acceptedScopes: readonly string[] = [],
+  ) {
     super(message, 403, detail, responseBody);
     this.name = "ApiPermissionError";
     Object.setPrototypeOf(this, ApiPermissionError.prototype);
+  }
+
+  /**
+   * Check if the token lacks the scope the endpoint requires, which retrying
+   * with the same token cannot fix
+   */
+  isInsufficientScopeError(): boolean {
+    return this.acceptedScopes.length > 0;
+  }
+
+  override toUserMessage(): string {
+    if (!this.isInsufficientScopeError()) {
+      return super.toUserMessage();
+    }
+    const base = super.toUserMessage();
+    // Sentry's generic 403 detail already ends with a period.
+    const separator = base.endsWith(".") ? " " : ". ";
+    return `${base}${separator}The access token is missing the scope this endpoint requires; it needs one of: ${this.acceptedScopes.join(", ")}. Retrying with the same token will not help.`;
   }
 
   /**
@@ -291,6 +317,7 @@ export function createApiError(
   detail?: string,
   responseBody?: unknown,
   retryAfterMs?: number,
+  acceptedScopes?: readonly string[],
 ): ApiError {
   // Apply message improvements for known error patterns
   let improvedMessage = message;
@@ -313,7 +340,12 @@ export function createApiError(
       return new ApiAuthenticationError(message, detail, responseBody);
 
     case 403:
-      return new ApiPermissionError(message, detail, responseBody);
+      return new ApiPermissionError(
+        message,
+        detail,
+        responseBody,
+        acceptedScopes,
+      );
 
     case 404:
       // TODO: Could extract resource type/ID from the request context

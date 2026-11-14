@@ -7,6 +7,7 @@ import {
 } from "../../src/api-client/core.ts";
 import {
   ApiNotFoundError,
+  ApiPermissionError,
   ApiRateLimitError,
   ApiServerError,
   ApiValidationError,
@@ -125,6 +126,28 @@ describe("createApiClientCore request", () => {
 
     expect(error).toBeInstanceOf(ApiRateLimitError);
     expect(error).toMatchObject({ retryAfterMs: 3000 });
+  });
+
+  it("carries an insufficient_scope 403's accepted scopes on the error", async () => {
+    const { core } = setup(async () =>
+      jsonResponse(
+        { detail: "You do not have permission to perform this action." },
+        {
+          status: 403,
+          headers: {
+            "WWW-Authenticate":
+              'Bearer error="insufficient_scope", scope="event:write event:admin seer:write"',
+          },
+        },
+      ),
+    );
+
+    const error = await core.request(ORIGIN, "/x/").catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiPermissionError);
+    expect(error).toMatchObject({
+      acceptedScopes: ["event:write", "event:admin", "seer:write"],
+    });
   });
 
   it("reports an HTML error page as a server error and logs it", async () => {
@@ -287,6 +310,72 @@ describe("listPage", () => {
     await expect(
       listPage(async () => page([1], "0:1:0"), rows, 5),
     ).rejects.toThrow("API returned a repeated pagination cursor");
+  });
+
+  /**
+   * Sentry's `OffsetPaginator` (`src/sentry/api/paginator.py`) over `total`
+   * rows. Its cursor is `<page size>:<page>:<is_prev>`; a request whose
+   * `per_page` differs from the cursor's page size reads the cursor's window
+   * and keeps only its last `per_page` rows.
+   */
+  function offsetPaginator(total: number) {
+    const requests: Array<{ perPage: number; cursor: string | undefined }> =
+      [];
+    async function fetchPage(perPage: number, cursor: string | undefined) {
+      requests.push({ perPage, cursor });
+      const [value = 0, pageIndex = 0] = (cursor ?? "0:0:0")
+        .split(":")
+        .map(Number);
+      const start = pageIndex * value;
+      const stop = Math.min(total, start + (value || perPage) + 1);
+      let window = ids(start, stop);
+      if (value !== perPage) {
+        window = window.slice(-(perPage + 1));
+      }
+      return page(
+        window.slice(0, perPage),
+        window.length > perPage ? `${perPage}:${pageIndex + 1}:0` : undefined,
+      );
+    }
+    return { fetchPage, requests };
+  }
+
+  function ids(start: number, stop: number) {
+    return Array.from({ length: stop - start }, (_, index) => start + index);
+  }
+
+  function idsOf(result: { items: Array<{ id: number }> }) {
+    return result.items.map(({ id }) => id);
+  }
+
+  it("keeps per_page stable across an OffsetPaginator walk", async () => {
+    const { fetchPage, requests } = offsetPaginator(300);
+
+    const first = await listPage(fetchPage, rows, 150);
+    const second = await listPage(fetchPage, rows, 150, first.nextCursor);
+
+    expect(idsOf(first)).toEqual(ids(0, 150));
+    expect(idsOf(second)).toEqual(ids(150, 300));
+    expect(second.nextCursor).toBeNull();
+    expect(new Set(requests.map(({ perPage }) => perPage))).toEqual(
+      new Set([75]),
+    );
+  });
+
+  it("resumes an OffsetPaginator cursor with the page size it encodes", async () => {
+    const { fetchPage, requests } = offsetPaginator(300);
+    // Pairing `100:1:0` with per_page=50 reads rows 150-199 and skips 100-149.
+    expect((await fetchPage(50, "100:1:0")).data).toEqual(
+      ids(150, 200).map((id) => ({ id })),
+    );
+    requests.length = 0;
+
+    const first = await listPage(fetchPage, rows, 50, "100:1:0");
+    const second = await listPage(fetchPage, rows, 50, first.nextCursor);
+
+    expect(idsOf(first)).toEqual(ids(100, 150));
+    expect(idsOf(second)).toEqual(ids(150, 200));
+    expect(requests.map(({ perPage }) => perPage)).toEqual([100, 100]);
   });
 
   it("validates each page with the schema", async () => {

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { readErrorResponse, readJsonResponse } from "../../src/api-client/response.ts";
+import {
+  parseInsufficientScopeChallenge,
+  readErrorResponse,
+  readJsonResponse,
+} from "../../src/api-client/response.ts";
 
 function jsonResponse(
   body: unknown,
@@ -62,6 +66,33 @@ describe("readErrorResponse", () => {
     expect(result.retryAfterMs).toBe(3000);
   });
 
+  it("reads the scopes a 403's insufficient_scope challenge accepts", async () => {
+    const result = await readErrorResponse(
+      jsonResponse(
+        { detail: "You do not have permission to perform this action." },
+        {
+          status: 403,
+          headers: {
+            "www-authenticate":
+              'Bearer error="insufficient_scope", scope="event:write event:admin seer:write"',
+          },
+        },
+      ),
+    );
+    expect(result.acceptedScopes).toEqual([
+      "event:write",
+      "event:admin",
+      "seer:write",
+    ]);
+  });
+
+  it("leaves acceptedScopes unset for a 403 without a challenge", async () => {
+    const result = await readErrorResponse(
+      jsonResponse({ detail: "Forbidden" }, { status: 403 }),
+    );
+    expect(result.acceptedScopes).toBeUndefined();
+  });
+
   it("returns no text when the body cannot be read", async () => {
     const response = new Response("ignored", { status: 500 });
     await response.text();
@@ -70,6 +101,28 @@ describe("readErrorResponse", () => {
       isHtml: false,
       retryAfterMs: undefined,
     });
+  });
+});
+
+describe("parseInsufficientScopeChallenge", () => {
+  it("returns the accepted scopes in the server's order, without duplicates", () => {
+    expect(
+      parseInsufficientScopeChallenge(
+        'Bearer realm="api", error="insufficient_scope", scope="org:read org:write org:read"',
+      ),
+    ).toEqual(["org:read", "org:write"]);
+  });
+
+  it("ignores other challenges and malformed scope names", () => {
+    expect(parseInsufficientScopeChallenge(null)).toEqual([]);
+    expect(
+      parseInsufficientScopeChallenge('Bearer error="invalid_token", scope="org:read"'),
+    ).toEqual([]);
+    expect(
+      parseInsufficientScopeChallenge(
+        'Bearer error="insufficient_scope", scope="org:read <script> admin"',
+      ),
+    ).toEqual(["org:read"]);
   });
 });
 

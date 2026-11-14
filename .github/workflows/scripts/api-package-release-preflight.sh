@@ -65,15 +65,17 @@ timeout 300 gh release download "$base" --repo "$GITHUB_REPOSITORY" \
   --pattern '*.json' --dir "$released"
 
 spec_changed=false
-data_changed=false
-for file in "$SPEC_DIR"/*; do
-  name=${file##*/}
+rpc_changed=false
+# The API ownership stats ship as a release asset for ad-hoc use, but nothing
+# reads them on a schedule, so a change to them alone does not cut a release.
+# They refresh with the next spec or package release.
+for name in openapi-derefed.json rpc_method_schema.json; do
   # cmp exits 1 when the files differ and 2 when the release lacks the file.
-  if ! cmp -s "$file" "$released/$name"; then
+  if ! cmp -s "$SPEC_DIR/$name" "$released/$name"; then
     if [ "$name" = openapi-derefed.json ]; then
       spec_changed=true
     else
-      data_changed=true
+      rpc_changed=true
     fi
   fi
 done
@@ -89,13 +91,13 @@ else
 fi
 
 # Spec updates are minor releases, as they were in sentry-api-schema. Package
-# changes take craft's bump from their commits. Ownership or RPC schema
-# changes alone are patches.
+# changes take craft's bump from their commits. RPC schema changes alone are
+# patches.
 if [ "$spec_changed" = true ]; then
   bump='minor'
 elif [ "$package_changed" = true ]; then
   bump='auto'
-elif [ "$data_changed" = true ]; then
+elif [ "$rpc_changed" = true ]; then
   bump='patch'
 else
   skip "Nothing changed since $base."
