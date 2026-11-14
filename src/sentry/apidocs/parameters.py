@@ -1109,9 +1109,8 @@ class EventParams:
         name="event_id",
         type=OpenApiTypes.STR,
         location=OpenApiParameter.PATH,
-        description="The ID of the event to retrieve, or 'latest', 'oldest', or 'recommended'.",
+        description="The ID of the event to retrieve, or `latest`, `oldest`, or `recommended`.",
         required=True,
-        enum=["latest", "oldest", "recommended"],
     )
 
     EVENT_DETAILS_COLLAPSE = OpenApiParameter(
