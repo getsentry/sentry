@@ -14,6 +14,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppBaseEndpoint,
     SentryAppWebhookRequestsPermission,
+    has_webhook_request_detail_access,
 )
 from sentry.sentry_apps.api.serializers.sentry_app_webhook_request import (
     SentryAppWebhookRequestSerializer,
@@ -136,5 +137,11 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
         requests.sort(key=lambda x: parse_date(x.data.date), reverse=True)
 
         return Response(
-            serialize(requests, request.user, SentryAppWebhookRequestSerializer(sentry_app))
+            serialize(
+                requests,
+                request.user,
+                SentryAppWebhookRequestSerializer(
+                    sentry_app, include_details=has_webhook_request_detail_access(request)
+                ),
+            )
         )
