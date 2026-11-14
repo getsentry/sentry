@@ -65,7 +65,6 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import acting_user
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.exceptions import InvalidSearchQuery
@@ -250,24 +249,9 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.DATA_BROWSING
-    feature_flags = [
-        "organizations:ourlogs-enabled",
-        "organizations:visibility-explore-view",
-        "organizations:tracemetrics-enabled",
-    ]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        batch_features = features.batch_has(
-            self.feature_flags, organization=organization, actor=acting_user(request.user)
-        )
-
-        if batch_features is None:
-            return False
-
-        key = f"organization:{organization.id}"
-        org_features = batch_features.get(key, {})
-
-        return any(org_features.get(feature) for feature in self.feature_flags)
+        return True
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):

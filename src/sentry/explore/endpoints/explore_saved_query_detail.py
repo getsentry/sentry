@@ -7,7 +7,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -70,9 +69,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
     }
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
+        return True
 
     @extend_schema(
         operation_id="Retrieve an Organization's Explore Saved Query",
@@ -194,9 +191,7 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
     }
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
+        return True
 
     @extend_schema(
         operation_id="Record a Visit to an Organization's Explore Saved Query",

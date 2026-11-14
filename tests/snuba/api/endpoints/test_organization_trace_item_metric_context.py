@@ -19,7 +19,6 @@ class OrganizationTraceItemMetricContextEndpointTest(
     viewname = "sentry-api-0-organization-trace-item-metric-context"
 
     feature_flags = {
-        "organizations:visibility-explore-view": True,
         "organizations:tracemetrics-enabled": True,
         "organizations:data-browsing-attribute-context": True,
     }
@@ -311,7 +310,7 @@ class OrganizationTraceItemMetricContextEndpointTest(
 
         assert response.status_code == 201, response.data
 
-    def test_requires_feature_flag(self) -> None:
+    def test_requires_attribute_context_feature(self) -> None:
         self.store_metric("checkout.requests")
 
         response = self.do_request(
@@ -320,7 +319,7 @@ class OrganizationTraceItemMetricContextEndpointTest(
                 "metricType": "counter",
                 "brief": "Checkout requests",
             },
-            features={"organizations:visibility-explore-view": True},
+            features={},
         )
 
         assert response.status_code == 404

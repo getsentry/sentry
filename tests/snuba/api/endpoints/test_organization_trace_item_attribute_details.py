@@ -20,7 +20,6 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
     feature_flags = {
         "organizations:attribute-management": True,
         "organizations:ourlogs-enabled": True,
-        "organizations:visibility-explore-view": True,
     }
 
     def setUp(self) -> None:
@@ -69,7 +68,6 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
             query={"attributeName": "cart", "attributeType": "string"},
             features={
                 "organizations:ourlogs-enabled": True,
-                "organizations:visibility-explore-view": True,
             },
         )
 

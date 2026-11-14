@@ -211,7 +211,6 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
     feature_flags = {
         "organizations:attribute-management": True,
         "organizations:ourlogs-enabled": True,
-        "organizations:visibility-explore-view": True,
     }
 
     def setUp(self) -> None:
@@ -266,7 +265,6 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
         response = self.do_request(
             features={
                 "organizations:ourlogs-enabled": True,
-                "organizations:visibility-explore-view": True,
             }
         )
 

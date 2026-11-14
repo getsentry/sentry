@@ -97,20 +97,29 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
         config: dict[str, Any] | None = None,
     ) -> Detector:
         eap = dataset == Dataset.EventsAnalyticsPlatform
+        if eap:
+            query_type = SnubaQuery.Type.PERFORMANCE
+            query = "span.op:http.client"
+            event_type = SnubaQueryEventType.EventType.TRACE_ITEM_SPAN
+        elif dataset == Dataset.Transactions:
+            query_type = SnubaQuery.Type.PERFORMANCE
+            query = ""
+            event_type = SnubaQueryEventType.EventType.TRANSACTION
+        else:
+            query_type = SnubaQuery.Type.ERROR
+            query = "level:error"
+            event_type = SnubaQueryEventType.EventType.ERROR
+
         with self.tasks():
             snuba_query = create_snuba_query(
-                query_type=SnubaQuery.Type.PERFORMANCE if eap else SnubaQuery.Type.ERROR,
+                query_type=query_type,
                 dataset=dataset,
-                query="span.op:http.client" if eap else "level:error",
+                query=query,
                 aggregate="count(span.duration)" if eap else "count()",
                 time_window=timedelta(seconds=time_window),
                 resolution=timedelta(minutes=1),
                 environment=self.environment,
-                event_types=[
-                    SnubaQueryEventType.EventType.TRACE_ITEM_SPAN
-                    if eap
-                    else SnubaQueryEventType.EventType.ERROR
-                ],
+                event_types=[event_type],
                 extrapolation_mode=(ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED if eap else None),
             )
             subscription = create_snuba_subscription(
@@ -298,13 +307,13 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
         assert (serialized["canApply"], serialized["cannotApplyReason"]) == (True, None)
 
     def test_a_dataset_the_plan_no_longer_allows_cannot_apply(self) -> None:
-        self.detector = self.create_metric_detector(dataset=Dataset.EventsAnalyticsPlatform)
+        self.detector = self.create_metric_detector(dataset=Dataset.Transactions)
         self.orchestration_run.update(
             source={"type": "breached_metric", "detectorId": str(self.detector.id)}
         )
         self.suggest()
 
-        with self.feature({"organizations:visibility-explore-view": False}):
+        with self.feature({"organizations:performance-view": False}):
             serialized = self.details_request()
 
         assert (serialized["canApply"], serialized["cannotApplyReason"]) == (
@@ -744,10 +753,10 @@ class OrganizationNotebookActionRequestApplyTest(APITestCase):
         assert self.snuba_query().time_window == 300
 
     def test_a_dataset_the_plan_no_longer_allows_is_not_found(self) -> None:
-        self.set_detector(dataset=Dataset.EventsAnalyticsPlatform)
+        self.set_detector(dataset=Dataset.Transactions)
         action_request = self.suggest()
 
-        with self.feature({"organizations:visibility-explore-view": False}):
+        with self.feature({"organizations:performance-view": False}):
             response = self.apply(action_request)
 
         assert response.status_code == 409

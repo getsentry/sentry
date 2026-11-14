@@ -9,10 +9,6 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class SavedQueryStarredOrderTest(APITestCase):
-    feature_flags = {
-        "organizations:visibility-explore-view": True,
-    }
-
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -81,18 +77,17 @@ class SavedQueryStarredOrderTest(APITestCase):
 
     def test_moves_a_discover_query_above_an_explore_query(self) -> None:
         """The case a single-product reorder cannot express: X crossing A."""
-        with self.feature(self.feature_flags):
-            response = self.client.put(
-                self.url,
-                data={
-                    "queries": [
-                        self.ref(self.discover_x),
-                        self.ref(self.explore_a),
-                        self.ref(self.explore_b),
-                        self.ref(self.discover_y),
-                    ]
-                },
-            )
+        response = self.client.put(
+            self.url,
+            data={
+                "queries": [
+                    self.ref(self.discover_x),
+                    self.ref(self.explore_a),
+                    self.ref(self.explore_b),
+                    self.ref(self.discover_y),
+                ]
+            },
+        )
 
         assert response.status_code == 204
         assert self.current_order() == [
@@ -103,18 +98,17 @@ class SavedQueryStarredOrderTest(APITestCase):
         ]
 
     def test_reverses_the_whole_list(self) -> None:
-        with self.feature(self.feature_flags):
-            response = self.client.put(
-                self.url,
-                data={
-                    "queries": [
-                        self.ref(self.discover_y),
-                        self.ref(self.explore_b),
-                        self.ref(self.discover_x),
-                        self.ref(self.explore_a),
-                    ]
-                },
-            )
+        response = self.client.put(
+            self.url,
+            data={
+                "queries": [
+                    self.ref(self.discover_y),
+                    self.ref(self.explore_b),
+                    self.ref(self.discover_x),
+                    self.ref(self.explore_a),
+                ]
+            },
+        )
 
         assert response.status_code == 204
         assert self.current_order() == [
@@ -126,11 +120,10 @@ class SavedQueryStarredOrderTest(APITestCase):
 
     def test_accepts_a_partial_list(self) -> None:
         """The nav may render a subset of the starred list, so a drag names only those rows"""
-        with self.feature(self.feature_flags):
-            response = self.client.put(
-                self.url,
-                data={"queries": [self.ref(self.discover_y), self.ref(self.discover_x)]},
-            )
+        response = self.client.put(
+            self.url,
+            data={"queries": [self.ref(self.discover_y), self.ref(self.discover_x)]},
+        )
 
         assert response.status_code == 204
         assert self.current_order() == [
@@ -148,16 +141,15 @@ class SavedQueryStarredOrderTest(APITestCase):
             query=[{"fields": ["span.op"], "mode": "samples"}],
         )
 
-        with self.feature(self.feature_flags):
-            response = self.client.put(
-                self.url,
-                data={
-                    "queries": [
-                        self.ref(self.explore_a),
-                        {"type": "explore", "query_id": unstarred.id},
-                    ]
-                },
-            )
+        response = self.client.put(
+            self.url,
+            data={
+                "queries": [
+                    self.ref(self.explore_a),
+                    {"type": "explore", "query_id": unstarred.id},
+                ]
+            },
+        )
 
         assert response.status_code == 400
         assert self.current_order() == [
@@ -168,18 +160,17 @@ class SavedQueryStarredOrderTest(APITestCase):
         ]
 
     def test_rejects_duplicate_refs(self) -> None:
-        with self.feature(self.feature_flags):
-            response = self.client.put(
-                self.url,
-                data={
-                    "queries": [
-                        self.ref(self.discover_x),
-                        self.ref(self.discover_x),
-                        self.ref(self.explore_a),
-                        self.ref(self.explore_b),
-                    ]
-                },
-            )
+        response = self.client.put(
+            self.url,
+            data={
+                "queries": [
+                    self.ref(self.discover_x),
+                    self.ref(self.discover_x),
+                    self.ref(self.explore_a),
+                    self.ref(self.explore_b),
+                ]
+            },
+        )
 
         assert response.status_code == 400
 
@@ -187,8 +178,7 @@ class SavedQueryStarredOrderTest(APITestCase):
         DiscoverSavedQueryStarred.objects.all().delete()
         ExploreSavedQueryStarred.objects.all().delete()
 
-        with self.feature(self.feature_flags):
-            response = self.client.put(self.url, data={"queries": []})
+        response = self.client.put(self.url, data={"queries": []})
 
         assert response.status_code == 204
 
@@ -201,33 +191,31 @@ class SavedQueryStarredOrderTest(APITestCase):
     @with_feature("organizations:granular-permission-scopes")
     def test_user_preference_write_can_reorder(self) -> None:
         self._use_token(["user_preference:write"])
-        with self.feature(self.feature_flags):
-            response = self.client.put(
-                self.url,
-                data={
-                    "queries": [
-                        self.ref(self.discover_x),
-                        self.ref(self.explore_a),
-                        self.ref(self.explore_b),
-                        self.ref(self.discover_y),
-                    ]
-                },
-            )
+        response = self.client.put(
+            self.url,
+            data={
+                "queries": [
+                    self.ref(self.discover_x),
+                    self.ref(self.explore_a),
+                    self.ref(self.explore_b),
+                    self.ref(self.discover_y),
+                ]
+            },
+        )
         assert response.status_code == 204, response.content
 
     @with_feature("organizations:granular-permission-scopes")
     def test_user_preference_read_cannot_reorder(self) -> None:
         self._use_token(["user_preference:read"])
-        with self.feature(self.feature_flags):
-            response = self.client.put(
-                self.url,
-                data={
-                    "queries": [
-                        self.ref(self.discover_x),
-                        self.ref(self.explore_a),
-                        self.ref(self.explore_b),
-                        self.ref(self.discover_y),
-                    ]
-                },
-            )
+        response = self.client.put(
+            self.url,
+            data={
+                "queries": [
+                    self.ref(self.discover_x),
+                    self.ref(self.explore_a),
+                    self.ref(self.explore_b),
+                    self.ref(self.discover_y),
+                ]
+            },
+        )
         assert response.status_code == 403

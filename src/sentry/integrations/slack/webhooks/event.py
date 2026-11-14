@@ -231,14 +231,13 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
                 feature_flag = {
                     LinkType.DISCOVER: "organizations:discover-basic",
-                    LinkType.EXPLORE: "organizations:visibility-explore-view",
                 }.get(link_type)
 
                 if (
                     organization
                     and not slack_request.has_identity
                     and (
-                        link_type == LinkType.DASHBOARDS
+                        link_type in {LinkType.DASHBOARDS, LinkType.EXPLORE}
                         or (
                             feature_flag
                             and features.has(feature_flag, organization, actor=request.user)

@@ -1825,8 +1825,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             "OrganizationProfilingChunksEndpoint": "organizations:continuous-profiling",
             "OrganizationProfilingFlamegraphEndpoint": "organizations:profiling",
             "OrganizationStarredServiceSpansEndpoint": "organizations:insights-modules-use-eap",
-            "OrganizationTraceItemAttributesEndpoint": "organizations:visibility-explore-view",
-            "OrganizationTraceItemMetricsEndpoint": "organizations:visibility-explore-view",
             "ProjectProfilingProfileEndpoint": "organizations:profiling",
             "ProjectCodeOwnersDetailsEndpoint": "organizations:integrations-codeowners",
             "ProjectCodeOwnersEndpoint": "organizations:integrations-codeowners",

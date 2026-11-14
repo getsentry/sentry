@@ -361,9 +361,7 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
     permission_classes = (ExploreSavedQueryPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
+        return True
 
     @extend_schema(
         operation_id="List an Organization's Explore and Discover Saved Queries",

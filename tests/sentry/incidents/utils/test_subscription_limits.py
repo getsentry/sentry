@@ -32,21 +32,9 @@ class TestIsMetricSubscriptionAllowed:
         with self.fake_features({"organizations:performance-view"}):
             assert is_metric_subscription_allowed(Dataset.Transactions.value, self.org) is True
 
-    # -- EAP: requires :visibility-explore-view --
-
-    def test_eap_without_any_features(self) -> None:
+    def test_eap_always_allowed(self) -> None:
         with self.fake_features(set()):
-            assert (
-                is_metric_subscription_allowed(Dataset.EventsAnalyticsPlatform.value, self.org)
-                is False
-            )
-
-    def test_eap_with_explore_view(self) -> None:
-        with self.fake_features({"organizations:visibility-explore-view"}):
-            assert (
-                is_metric_subscription_allowed(Dataset.EventsAnalyticsPlatform.value, self.org)
-                is True
-            )
+            assert is_metric_subscription_allowed(Dataset.EventsAnalyticsPlatform.value, self.org)
 
     # -- Unknown / other datasets: always allowed --
 

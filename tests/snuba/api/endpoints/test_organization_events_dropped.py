@@ -64,8 +64,7 @@ class OrganizationEventsDroppedEndpointTest(
             data["outcome"] = outcome
         if reason is not None:
             data["reason"] = reason
-        with self.feature({"organizations:visibility-explore-view": True}):
-            return self.client.get(self.url, data=data, format="json")
+        return self.client.get(self.url, data=data, format="json")
 
     def test_serves_dropped_and_accepted_events(self) -> None:
         self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
