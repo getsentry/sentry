@@ -177,10 +177,10 @@ def get_release_project_first_last_seen(
     ],
 ) -> tuple[dict[int, datetime | None], dict[int, datetime | None]]:
     """
-    Returns a tuple of first_seen and last_seen dictionaries where the key is the release version
+    Returns a tuple of first_seen and last_seen dictionaries where the key is the release id
     and the value is a datetime representing the first or last seen timestamp.
 
-    Example: ({package@2.0.0: 2025-01-01T00:00:00}, {package@2.0.0: 2025-12-17T11:00:51})
+    Example: ({42: 2025-01-01T00:00:00}, {42: 2025-12-17T11:00:51})
     """
     first_seen: dict[int, datetime | None] = {
         rid: None for rid in release_version_and_id_map.values()
@@ -205,8 +205,10 @@ def get_release_project_first_last_seen(
         assert tv.first_seen is not None
         assert tv.last_seen is not None
         release_id = release_version_and_id_map[tv.value]
-        first_seen[release_id] = tv.first_seen
-        last_seen[release_id] = tv.last_seen
+        first_val = first_seen[release_id]
+        last_val = last_seen[release_id]
+        first_seen[release_id] = min(tv.first_seen, first_val) if first_val else tv.first_seen
+        last_seen[release_id] = max(tv.last_seen, last_val) if last_val else tv.last_seen
 
     return first_seen, last_seen
 
