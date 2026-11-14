@@ -36,8 +36,12 @@ function getLocationAggregate(
     return undefined;
   }
 
-  if (datasetConfig.supportsEquations && isEquation(raw)) {
-    return raw;
+  if (isEquation(raw)) {
+    const canCreateEquations =
+      datasetConfig.supportsEquations &&
+      (dataset !== DetectorDataset.SPANS ||
+        organization.features.includes('spans-monitor-equations'));
+    return canCreateEquations ? raw : undefined;
   }
 
   if (dataset === DetectorDataset.METRICS) {

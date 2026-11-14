@@ -6,13 +6,20 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {
+  EQUATION_PREFIX,
+  generateFieldAsString,
+  isEquation,
+  parseFunction,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -28,6 +35,7 @@ import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetC
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
@@ -220,6 +228,8 @@ function buildAggregateFunction(aggregate: string, parameters: string[]): string
   return `${aggregate}(${validParameters.join(',')})`;
 }
 
+type VisualizeMode = 'function' | 'equation';
+
 export function Visualize() {
   const organization = useOrganization();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
@@ -359,13 +369,16 @@ function GenericVisualize() {
     return aggregate ? getAggregateOptionMetadata(aggregate, aggregateOptions) : null;
   }, [aggregate, aggregateOptions]);
 
-  // Helper to update the aggregateFunction field in the form model
-  const updateAggregateFunction = (newAggregate: string, newParameters: string[]) => {
-    const newAggregateFunction = buildAggregateFunction(newAggregate, newParameters);
+  const setAggregateFunction = (newAggregateFunction: string) => {
     formContext.form?.setValue(
       METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
       newAggregateFunction
     );
+  };
+
+  // Helper to update the aggregateFunction field in the form model
+  const updateAggregateFunction = (newAggregate: string, newParameters: string[]) => {
+    setAggregateFunction(buildAggregateFunction(newAggregate, newParameters));
   };
 
   /**
@@ -403,20 +416,72 @@ function GenericVisualize() {
   // Get locked option if applicable, with proper type narrowing
   const lockedOption = lockSpanOptions ? LOCKED_SPAN_AGGREGATES[aggregate] : null;
 
+  const isSpansDataset = dataset === DetectorDataset.SPANS;
+  // Stored span equations always load, but only orgs with the flag can create or edit them.
+  const isEquationAggregate = isSpansDataset && isEquation(aggregateFunction);
+  const canEditEquations =
+    isSpansDataset && organization.features.includes('spans-monitor-equations');
+
+  const handleModeChange = (mode: VisualizeMode) => {
+    setAggregateFunction(
+      mode === 'equation'
+        ? `${EQUATION_PREFIX}${aggregateFunction}`
+        : generateFieldAsString(datasetConfig.defaultField)
+    );
+  };
+
+  const visualizeLabel = (
+    <Flex gap="md" align="center" justify="between">
+      <Tooltip
+        title={t(
+          'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
+        )}
+        showUnderline
+      >
+        <SectionLabel>{t('Visualize')}</SectionLabel>
+      </Tooltip>
+      {canEditEquations && (
+        <SegmentedControl<VisualizeMode>
+          aria-label={t('Visualize type')}
+          size="xs"
+          value={isEquationAggregate ? 'equation' : 'function'}
+          onChange={handleModeChange}
+        >
+          <SegmentedControl.Item key="function">{t('Function')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="equation">{t('Equation')}</SegmentedControl.Item>
+        </SegmentedControl>
+      )}
+    </Flex>
+  );
+
+  if (isEquationAggregate) {
+    const expression = stripEquationPrefix(aggregateFunction);
+    return (
+      <Stack gap="xs">
+        {visualizeLabel}
+        {canEditEquations ? (
+          <ExploreEquationArithmeticBuilder
+            expression={expression}
+            setExpression={newExpression => {
+              setAggregateFunction(`${EQUATION_PREFIX}${newExpression.text}`);
+            }}
+            traceItemType={TraceItemDataset.SPANS}
+            numberTags={numericSpanTags}
+            stringTags={stringSpanTags}
+            booleanTags={booleanSpanTags}
+          />
+        ) : (
+          <Input size="md" aria-label={t('Equation')} value={expression} readOnly />
+        )}
+      </Stack>
+    );
+  }
+
   return (
     <Stack gap="md">
       <Flex gap="md" align="end">
         <Stack flex="1" gap="xs" maxWidth="425px">
-          <div>
-            <Tooltip
-              title={t(
-                'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
-              )}
-              showUnderline
-            >
-              <SectionLabel>{t('Visualize')}</SectionLabel>
-            </Tooltip>
-          </div>
+          {visualizeLabel}
           <StyledAggregateSelect
             search
             trigger={triggerProps => (
