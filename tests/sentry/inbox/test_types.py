@@ -12,6 +12,7 @@ from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
 from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
+from sentry.inbox.item_retention import cleanup_inbox_items
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import (
     InboxCountResponse,
@@ -26,6 +27,7 @@ from sentry.inbox.types import (
     InboxEventType,
     InboxItemType,
 )
+from sentry.issues.comments import create_comment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
@@ -276,6 +278,96 @@ class InboxEventRetentionTest(TestCase):
         assert not item.events.filter(id__in=[event.id for event in events]).exists()
 
 
+class InboxItemRetentionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(self.options({"cleanup.inbox-items.enabled": True}))
+
+    def test_cleanup_trims_only_the_target_inbox_in_batches(self) -> None:
+        timestamp = before_now(days=1)
+        overflow = self.create_inbox_item(subject_id="overflow", last_activity_at=timestamp)
+        newest = self.create_inbox_item(subject_id="newest", last_activity_at=timestamp)
+        oldest = self.create_inbox_item(subject_id="oldest", last_activity_at=before_now(days=2))
+        event = self.create_inbox_item_event(overflow)
+        other_user = self.create_inbox_item(user=self.create_user())
+        other_org = self.create_inbox_item(organization=self.create_organization())
+        pending = self.create_inbox_item(subject_id="pending", status=ObjectStatus.PENDING_DELETION)
+
+        with (
+            patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1),
+            patch("sentry.inbox.item_retention.ITEM_BATCH_SIZE", 1),
+            BurstTaskRunner() as drain,
+        ):
+            cleanup_inbox_items(organization_id=self.organization.id, user_id=self.user.id)
+            assert InboxItem.objects.filter(id=oldest.id).exists()
+            drain()
+
+        assert set(InboxItem.objects.values_list("id", flat=True)) == {
+            newest.id,
+            other_user.id,
+            other_org.id,
+            pending.id,
+        }
+        assert not InboxItemEvent.objects.filter(id=event.id).exists()
+
+    @override_options({"cleanup.inbox-items.enabled": False})
+    def test_disabled_cleanup_preserves_items(self) -> None:
+        old = self.create_inbox_item(subject_id="old", last_activity_at=before_now(days=1))
+        self.create_inbox_item(subject_id="recent")
+        with patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1):
+            cleanup_inbox_items(organization_id=self.organization.id, user_id=self.user.id)
+        assert InboxItem.objects.filter(id=old.id).exists()
+
+    def test_candidate_with_new_activity_is_preserved(self) -> None:
+        old = self.create_inbox_item(subject_id="old", last_activity_at=before_now(days=1))
+        self.create_inbox_item(subject_id="recent")
+        queryset_type = type(InboxItem.objects.all())
+        select_for_update = queryset_type.select_for_update
+
+        def record_new_activity(queryset: Any, **kwargs: Any) -> Any:
+            old.update(last_activity_at=before_now(days=-1))
+            return select_for_update(queryset, **kwargs)
+
+        with (
+            patch.object(
+                queryset_type, "select_for_update", autospec=True, side_effect=record_new_activity
+            ),
+            patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1),
+        ):
+            cleanup_inbox_items(organization_id=self.organization.id, user_id=self.user.id)
+
+        assert InboxItem.objects.filter(id=old.id, status=ObjectStatus.ACTIVE).exists()
+
+
+class InboxItemRetentionConcurrencyTest(TransactionTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(self.options({"cleanup.inbox-items.enabled": True}))
+
+    def test_skips_locked_item(self) -> None:
+        old = self.create_inbox_item(subject_id="old", last_activity_at=before_now(days=1))
+        event = self.create_inbox_item_event(old)
+        self.create_inbox_item(subject_id="recent")
+        organization_id, user_id = self.organization.id, self.user.id
+
+        def run_cleanup() -> None:
+            try:
+                cleanup_inbox_items(organization_id=organization_id, user_id=user_id)
+            finally:
+                connections.close_all()
+
+        with (
+            patch("sentry.inbox.item_retention.MAX_ITEMS_PER_INBOX", 1),
+            transaction.atomic(using=router.db_for_write(InboxItem)),
+            ContextPropagatingThreadPoolExecutor(max_workers=1) as executor,
+        ):
+            InboxItem.objects.select_for_update().get(id=old.id)
+            executor.submit(run_cleanup).result(timeout=20)
+
+        assert InboxItem.objects.filter(id=old.id).exists()
+        assert InboxItemEvent.objects.filter(id=event.id).exists()
+
+
 @with_feature("organizations:universal-inbox-recording")
 class RecordTest(TestCase):
     @override_options(
@@ -301,13 +393,49 @@ class RecordTest(TestCase):
 
         enqueue.assert_called_once_with(item_id=InboxItem.objects.get(user_id=first).id)
 
+    @override_options({"cleanup.inbox-items.enabled": True, "cleanup.inbox-items.sample-rate": 0.5})
+    def test_item_retention_samples_each_recipient_after_commit(self) -> None:
+        group = self.group
+        other = self.create_user()
+        self.create_member(user=other, organization=self.organization)
+        actor = self.create_user()
+        self.create_member(user=actor, organization=self.organization)
+        with (
+            patch("sentry.inbox.types.random", side_effect=[0.1, 0.9]),
+            patch.object(cleanup_inbox_items, "delay") as enqueue,
+        ):
+            with transaction.atomic(using=router.db_for_write(InboxItem)):
+                create_comment(
+                    group=group,
+                    user=actor,
+                    data={
+                        "text": "Please take a look",
+                        "mentions": [
+                            {"id": self.user.id, "actor_type": "User"},
+                            {"id": other.id, "actor_type": "User"},
+                        ],
+                    },
+                    source="web",
+                )
+                enqueue.assert_not_called()
+
+        enqueue.assert_called_once_with(
+            organization_id=self.organization.id, user_id=min(self.user.id, other.id)
+        )
+
     @override_options(
-        {"cleanup.inbox-events.enabled": True, "cleanup.inbox-events.sample-rate": 1.0}
+        {
+            "cleanup.inbox-items.enabled": True,
+            "cleanup.inbox-items.sample-rate": 1.0,
+            "cleanup.inbox-events.enabled": True,
+            "cleanup.inbox-events.sample-rate": 1.0,
+        }
     )
     def test_rolled_back_write_does_not_enqueue_cleanup(self) -> None:
         group, user = self.group, self.user
         with (
-            patch.object(cleanup_inbox_item_events, "delay") as enqueue,
+            patch.object(cleanup_inbox_items, "delay") as enqueue_items,
+            patch.object(cleanup_inbox_item_events, "delay") as enqueue_events,
             pytest.raises(RuntimeError, match="rollback"),
             transaction.atomic(using=router.db_for_write(InboxItem)),
         ):
@@ -319,7 +447,8 @@ class RecordTest(TestCase):
             )
             raise RuntimeError("rollback")
 
-        enqueue.assert_not_called()
+        enqueue_items.assert_not_called()
+        enqueue_events.assert_not_called()
 
     def test_user_actor_and_multiple_recipients(self) -> None:
         actor = self.create_user()
@@ -365,7 +494,7 @@ class RecordTest(TestCase):
                 )
             assert recorded == []
 
-    @override_options({"cleanup.inbox-events.enabled": False})
+    @override_options({"cleanup.inbox-items.enabled": False, "cleanup.inbox-events.enabled": False})
     def test_query_count_for_multiple_recipients(self) -> None:
         group = self.group
         recipients = [self.user.id, *[self.create_user().id for _ in range(19)]]
