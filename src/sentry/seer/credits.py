@@ -26,10 +26,15 @@ class SeerOperation(StrEnum):
 
 
 class SeerFeature(StrEnum):
-    """Seer features as tagged on LLM proxy calls, which billing maps to data categories."""
+    """Seer billing labels, which billing maps to data categories."""
 
-    AUTOFIX = "autofix"
-    EXPLORER = "explorer"
+    AUTOFIX_WEB = "autofix_web"
+    AUTOFIX_HEADLESS = "autofix_headless"
+    AUTOFIX_INTEGRATIONS = "autofix_integrations"
+    AUTOFIX_POST_PROCESS = "autofix_post_process"
+    AUTOFIX_AGENTIC_TRIAGE = "autofix_agentic_triage"
+    SEER_AGENT = "seer_agent"
+    SEER_AGENT_SLACK = "seer_agent_slack"
 
 
 # Credits an operation is expected to use, about the p90 of what one costs. A credit is one cent.

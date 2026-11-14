@@ -31,7 +31,7 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(
-            self.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
+            self.organization, SeerFeature.AUTOFIX_WEB, SeerOperation.AUTOFIX_ROOT_CAUSE
         )
         mock_check_seer_credits.assert_not_called()
 
@@ -44,7 +44,7 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(
-            self.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
+            self.organization, SeerFeature.AUTOFIX_WEB, SeerOperation.AUTOFIX_ROOT_CAUSE
         )
         mock_check_seer_credits.assert_not_called()
 
@@ -57,12 +57,12 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert not can_run_seer_operation(
-            self.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
+            self.organization, SeerFeature.AUTOFIX_WEB, SeerOperation.AUTOFIX_ROOT_CAUSE
         )
         mock_check_seer_credits.assert_called_once_with(
             CheckSeerCreditsRequest(
                 organization_id=self.organization.id,
-                feature_id="autofix",
+                feature_id="autofix_web",
                 predicted_credit_usage=SEER_OPERATION_ESTIMATES[SeerOperation.AUTOFIX_ROOT_CAUSE](),
                 take_lease=False,
             )
@@ -77,5 +77,5 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(
-            self.organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+            self.organization, SeerFeature.SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
         )

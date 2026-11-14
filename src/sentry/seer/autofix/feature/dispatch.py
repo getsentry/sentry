@@ -158,10 +158,25 @@ def _org_allows_coding(group: Group) -> bool:
     )
 
 
+def seer_feature_for_referrer(referrer: AutofixReferrer) -> SeerFeature:
+    match referrer:
+        case AutofixReferrer.AGENTIC_TRIAGE:
+            return SeerFeature.AUTOFIX_AGENTIC_TRIAGE
+        case AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY:
+            return SeerFeature.AUTOFIX_POST_PROCESS
+        case AutofixReferrer.SLACK:
+            return SeerFeature.AUTOFIX_INTEGRATIONS
+        case AutofixReferrer.WEB | AutofixReferrer.GROUP_AUTOFIX_ENDPOINT:
+            return SeerFeature.AUTOFIX_WEB
+        case _:
+            return SeerFeature.AUTOFIX_HEADLESS
+
+
 def check_autofix_billing(
     organization: Organization,
     operation: SeerOperation,
     *,
+    referrer: AutofixReferrer,
     is_new_run: bool,
     skip_quota_for_free_cohort: bool = False,
 ) -> bool:
@@ -174,7 +189,9 @@ def check_autofix_billing(
     if features.has("organizations:token-billed-seer-enabled", organization):
         if features.has(
             "organizations:seer-credit-checks", organization
-        ) and not has_enough_seer_credits(organization, SeerFeature.AUTOFIX, operation):
+        ) and not has_enough_seer_credits(
+            organization, seer_feature_for_referrer(referrer), operation
+        ):
             raise SeerOutOfCreditsException()
         return False
 
@@ -203,6 +220,7 @@ def continue_single_run(
     check_autofix_billing(
         group.organization,
         SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
+        referrer=referrer,
         is_new_run=False,
     )
     enable_coding = _org_allows_coding(group)
@@ -234,6 +252,7 @@ def continue_single_run_from_pr_feedback(
     check_autofix_billing(
         group.organization,
         SeerOperation.AUTOFIX_PR_ITERATION,
+        referrer=referrer,
         is_new_run=False,
     )
     enable_coding = _org_allows_coding(group)
@@ -327,6 +346,7 @@ def trigger_autofix_feature(
         uses_quota = check_autofix_billing(
             group.organization,
             args.step.seer_operation,
+            referrer=args.referrer,
             is_new_run=is_new_run,
             # Free cohort orgs bypass quota only when called from agentic triage
             # (allow_free_cohort=True). Not exposed via the API.

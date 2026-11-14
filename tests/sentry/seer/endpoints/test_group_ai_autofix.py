@@ -1746,7 +1746,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "code": "seer_out_of_credits",
         }
         mock_can_run.assert_called_once_with(
-            group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+            group.organization, SeerFeature.AUTOFIX_WEB, SeerOperation.AUTOFIX_PR_ITERATION
         )
         mock_enqueue.assert_not_called()
 

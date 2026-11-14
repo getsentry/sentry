@@ -58,9 +58,9 @@ class OrganizationSeerCreditCheckEndpoint(OrganizationEndpoint):
         operation = SeerOperation(serializer.validated_data["operation"])
         # TODO: Let the UI pass the feature once it can tell agentic triage runs apart.
         feature = (
-            SeerFeature.EXPLORER
+            SeerFeature.SEER_AGENT
             if operation == SeerOperation.AGENT_CHAT_MESSAGE
-            else SeerFeature.AUTOFIX
+            else SeerFeature.AUTOFIX_WEB
         )
         credits = check_seer_operation(organization, feature, operation)
         return Response(
