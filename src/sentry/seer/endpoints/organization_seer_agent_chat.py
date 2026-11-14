@@ -61,6 +61,10 @@ _CODE_MODE_VALUES = frozenset({"off", "only"})
 
 _DASHBOARD_GENERATE_RUN_SOURCE = "dashboard_generate"
 
+# UI entry points that can start a chat, recorded as SeerRun.referrer. Unknown values are
+# dropped rather than rejected so a frontend that ships a new one first never fails a chat.
+_CHAT_REFERRERS = frozenset({"command_palette.tab", "command_palette.no_results"})
+
 
 class SeerAgentChatStateResponse(BaseModel):
     session: SeerRunState
@@ -188,6 +192,14 @@ class SeerAgentChatSerializer(serializers.Serializer):
         allow_blank=True,
         default=None,
         help_text="JSON-encoded context for the chat prompt: what the entry point was about.",
+    )
+    referrer = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        default=None,
+        max_length=64,
+        help_text="The UI entry point that started a new chat. Ignored when continuing a run.",
     )
 
 
@@ -405,6 +417,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         ui_tools = validated_data.get("ui_tools")
         chat_prompt = validated_data.get("chat_prompt")
         chat_prompt_context = validated_data.get("chat_prompt_context")
+        referrer = validated_data.get("referrer")
 
         # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
         if on_page_context:
@@ -528,6 +541,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 sent_at=sent_at,
                 ui_tools=ui_tools,
                 override_ce_enable=override_ce_enable,
+                metadata={"referrer": referrer} if referrer in _CHAT_REFERRERS else None,
                 request=request,
             )
             return Response({"run_id": run.seer_run_state_id, "sentry_run_id": str(run.uuid)})

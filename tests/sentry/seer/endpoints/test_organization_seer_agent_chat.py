@@ -369,8 +369,39 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             sent_at=None,
             ui_tools=None,
             override_ce_enable=True,
+            metadata=None,
             request=ANY,
         )
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_new_conversation_records_referrer(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(
+            self.url, {"query": "dsn", "referrer": "command_palette.tab"}, format="json"
+        )
+
+        assert response.status_code == 200
+        assert mock_client.start_run.call_args.kwargs["metadata"] == {
+            "referrer": "command_palette.tab"
+        }
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_new_conversation_drops_unknown_referrer(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(
+            self.url, {"query": "dsn", "referrer": "somewhere_new"}, format="json"
+        )
+
+        assert response.status_code == 200
+        assert mock_client.start_run.call_args.kwargs["metadata"] is None
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_forwards_page_location(self, mock_client_class: MagicMock) -> None:
