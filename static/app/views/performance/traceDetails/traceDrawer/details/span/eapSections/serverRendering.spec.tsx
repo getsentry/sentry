@@ -93,7 +93,7 @@ describe('ServerRenderingSection', () => {
       links: [makeLink('cache_origin')],
     });
 
-    expect(screen.getByText('Server Rendering')).toBeInTheDocument();
+    expect(screen.getByText('Server rendering')).toBeInTheDocument();
     expect(screen.getByText('Static')).toBeInTheDocument();
     expect(screen.getByText('Whole page')).toBeInTheDocument();
     expect(screen.getByText('Rendered earlier and reused')).toBeInTheDocument();
