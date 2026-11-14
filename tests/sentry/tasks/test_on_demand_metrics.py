@@ -8,6 +8,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks import on_demand_metrics
 from sentry.tasks.on_demand_metrics import (
+    DASHBOARD_QUERY_PERIOD,
     get_field_cardinality_cache_key,
     process_widget_specs,
     schedule_on_demand_check,
@@ -546,6 +547,36 @@ def test_process_widget_specs(
                 expected_state=OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
                 expected_hashes=None,
             )
+
+
+@django_db_all
+def test_check_field_cardinality_duplicate_columns_cached(project: Project) -> None:
+    cache.clear()
+    organization = project.organization
+    with (
+        mock.patch(
+            "sentry.tasks.on_demand_metrics._query_cardinality",
+            return_value=(
+                {"data": [{"count_unique(issue)": 5, "count_unique(boundaryId)": 5}]},
+                ["issue", "boundaryId"],
+            ),
+        ) as _query_cardinality,
+        Feature(_WIDGET_EXTRACTION_FEATURES),
+    ):
+        first = on_demand_metrics.check_field_cardinality(
+            ["issue", "boundaryId", "issue"], organization, 100
+        )
+        assert first == {"issue": True, "boundaryId": True}
+        _query_cardinality.assert_called_once_with(
+            ["issue", "boundaryId"], organization, DASHBOARD_QUERY_PERIOD
+        )
+
+        # All columns are now cached, so no further (empty) cardinality query is issued.
+        second = on_demand_metrics.check_field_cardinality(
+            ["issue", "boundaryId", "issue"], organization, 100
+        )
+        assert second == {"issue": True, "boundaryId": True}
+        assert _query_cardinality.call_count == 1
 
 
 def assert_on_demand_model(
