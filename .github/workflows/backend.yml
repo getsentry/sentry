@@ -401,6 +401,10 @@ jobs:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/
 
+      - name: Attribute resource usage to the tests from here
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/monitor-resources.py --phase tests
+
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
@@ -422,6 +426,13 @@ jobs:
         if: always()
         continue-on-error: true
         run: python3 .github/workflows/scripts/monitor-resources.py --stop
+
+      # bootstrap-snuba.py turns off ClickHouse's query log for the per-worker
+      # databases, so they should log no queries.
+      - name: ClickHouse queries logged
+        if: ${{ !cancelled() && env.XDIST_PER_WORKER_SNUBA == '1' }}
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --query-log
 
       # pytest-selected.py balances full-run shards with these. See
       # .github/workflows/scripts/backend-test-durations.py to refresh them.
