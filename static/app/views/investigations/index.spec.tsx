@@ -523,7 +523,7 @@ describe('Explore Investigations', () => {
     await waitFor(() =>
       expect(deleteRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/notebooks/1/',
-        expect.objectContaining({data: {investigationVersion: 3}})
+        expect.objectContaining({data: {notebookVersion: 3}})
       )
     );
     await waitFor(() =>

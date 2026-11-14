@@ -413,7 +413,7 @@ type FavoriteVariables = {
 
 type DeleteBlockVariables = {
   block: InvestigationBlock;
-  investigationVersion: number;
+  notebookVersion: number;
 };
 
 type StopExecutionVariables = {
@@ -530,7 +530,7 @@ export function useRenameInvestigationMutation(
           },
         }),
         method: 'PUT',
-        data: {title, investigationVersion: current.version},
+        data: {title, notebookVersion: current.version},
       });
     },
     onSuccess: async (updated, savedTitle, onMutateResult, context) => {
@@ -573,7 +573,7 @@ export function useDeleteInvestigationBlockMutation(
 
   return useMutation({
     ...options,
-    mutationFn: ({block, investigationVersion}) => {
+    mutationFn: ({block, notebookVersion}) => {
       return fetchMutation<void>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/notebooks/$notebookId/blocks/$blockId/',
@@ -587,7 +587,7 @@ export function useDeleteInvestigationBlockMutation(
         ),
         method: 'DELETE',
         data: {
-          investigationVersion,
+          notebookVersion,
           version: block.version,
         },
       });
@@ -1004,7 +1004,7 @@ export function useDeleteInvestigationMutation(
           },
         }),
         method: 'DELETE',
-        data: {investigationVersion: investigation.version},
+        data: {notebookVersion: investigation.version},
       }),
     options,
     {invalidateCandidates: true}
