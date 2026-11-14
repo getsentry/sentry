@@ -3603,6 +3603,55 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         assert result["metadata"]["profile_id"] == full_profiler_id
         assert result["metadata"]["is_continuous"] is True
 
+    def _store_span_with_both_profile_ids(self) -> tuple[str, str]:
+        transaction_profile_id = "d1e2f3a4" + "b" * 24
+        continuous_profiler_id = "e1f2a3b4" + "c" * 24
+        span = self.create_span(
+            {
+                "description": "span with both ids",
+                "profile_id": transaction_profile_id,
+                "sentry_tags": {"profiler_id": continuous_profiler_id},
+            },
+            start_ts=self.ten_mins_ago,
+            duration=100,
+        )
+        self.store_spans([span])
+        return transaction_profile_id, continuous_profiler_id
+
+    @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.agent.tools.fetch_profile_data")
+    def test_rpc_get_profile_flamegraph_fetches_the_transaction_profile_asked_for(
+        self, mock_fetch_profile: MagicMock, mock_convert_tree: MagicMock
+    ) -> None:
+        transaction_profile_id, _ = self._store_span_with_both_profile_ids()
+        mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
+        mock_convert_tree.return_value = ([{"function": "main", "module": "app"}], "1")
+
+        result = rpc_get_profile_flamegraph(transaction_profile_id[:8], self.organization.id)
+
+        assert result["metadata"]["profile_id"] == transaction_profile_id
+        assert result["metadata"]["is_continuous"] is False
+        assert mock_fetch_profile.call_args.kwargs["profile_id"] == transaction_profile_id
+        assert mock_fetch_profile.call_args.kwargs["is_continuous"] is False
+
+    @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.agent.tools.fetch_profile_data")
+    def test_rpc_get_profile_flamegraph_fetches_the_continuous_profile_asked_for(
+        self, mock_fetch_profile: MagicMock, mock_convert_tree: MagicMock
+    ) -> None:
+        _, continuous_profiler_id = self._store_span_with_both_profile_ids()
+        mock_fetch_profile.return_value = {
+            "chunk": {"profile": {"frames": [], "stacks": [], "samples": []}}
+        }
+        mock_convert_tree.return_value = ([{"function": "worker", "module": "tasks"}], "2")
+
+        result = rpc_get_profile_flamegraph(continuous_profiler_id[:8], self.organization.id)
+
+        assert result["metadata"]["profile_id"] == continuous_profiler_id
+        assert result["metadata"]["is_continuous"] is True
+        assert mock_fetch_profile.call_args.kwargs["profile_id"] == continuous_profiler_id
+        assert mock_fetch_profile.call_args.kwargs["is_continuous"] is True
+
     @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
     @patch("sentry.seer.agent.tools.fetch_profile_data")
     def test_rpc_get_profile_flamegraph_aggregates_timestamps_across_spans(
