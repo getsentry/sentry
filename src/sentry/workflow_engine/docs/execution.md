@@ -362,6 +362,9 @@ before event-level deduplication and task execution. A tuple is suppressed when 
 passed within `Workflow.config.frequency` minutes, even if a later equivalent action was
 deduplicated or an external handler failed.
 
+Only alert workflows use group-frequency suppression; Inbox workflows bypass it,
+including when both match the same issue Activity.
+
 ### Event-level deduplication
 
 `get_unique_active_actions` first removes actions whose status is not active, then keeps
@@ -373,11 +376,12 @@ imply Workflow execution order.
 ### History and task dispatch
 
 The processor updates frequency statuses and creates
-[`WorkflowFireHistory`](../models/workflow_fire_history.py) rows before `fire_actions`
+[`WorkflowFireHistory`](../models/workflow_fire_history.py) rows for eligible workflows before `fire_actions`
 removes inactive actions and deduplicates by key. It then schedules
 [`trigger_action`](../tasks/actions.py) for retained actions. Fire-history rows describe
 scheduling, not successful external delivery, and can exist for actions that are later
-filtered or deduplicated.
+filtered or deduplicated. Sharing an action with an eligible workflow does not create
+history for a suppressed workflow.
 
 The action task:
 

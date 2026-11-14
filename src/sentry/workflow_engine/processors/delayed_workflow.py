@@ -848,8 +848,8 @@ def fire_actions_for_groups(
                 )
 
                 dcgs_for_group = groups_to_fire.get(group.id, set())
-                filtered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
-                    dcgs_for_group, workflow_event_data
+                filtered_actions, action_to_workflow_id, eligible_workflow_ids = (
+                    filter_recently_fired_workflow_actions(dcgs_for_group, workflow_event_data)
                 )
                 # TODO: trigger service hooks from here
 
@@ -864,6 +864,7 @@ def fire_actions_for_groups(
                     workflow_event_data,
                     is_delayed=True,
                     start_timestamp=start_timestamp,
+                    eligible_workflow_ids=eligible_workflow_ids,
                 )
 
                 # Create mapping: workflow_id -> notification_uuid for propagation
