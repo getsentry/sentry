@@ -764,7 +764,7 @@ const base = defineConfig({
     'unicorn/no-accessor-recursion': 'error',
     'unicorn/no-anonymous-default-export': 'error',
     'unicorn/no-await-in-promise-methods': 'error',
-    'unicorn/no-console-spaces': 'off',
+    'unicorn/no-console-spaces': 'error',
     'unicorn/no-empty-file': 'error',
     'unicorn/no-instanceof-builtins': 'error',
     'unicorn/no-invalid-fetch-options': 'error',

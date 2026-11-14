@@ -20,8 +20,7 @@ export function printConsoleBanner(color: string, fontFamily: string) {
 
       Like poking around in dev tools? We like that about you.
       We're hiring: https://sentry.io/careers/
-      (We have snacks. And opinions about error handling.)
-    `,
+      (We have snacks. And opinions about error handling.)`,
     `color: ${color}; font-family: ${fontFamily};`
   );
 }
