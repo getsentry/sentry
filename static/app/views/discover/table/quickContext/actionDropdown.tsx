@@ -91,6 +91,7 @@ export function ActionDropDown(props: Props) {
       ...location,
       query: {
         ...location?.query,
+        cursor: undefined,
         query: newFilters.formatString(),
       },
     });

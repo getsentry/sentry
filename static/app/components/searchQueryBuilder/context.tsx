@@ -42,6 +42,7 @@ export const DEFAULT_FILTER_KEY_MENU_WIDTH = 460;
 interface SearchQueryBuilderStateContextData {
   clearSearchQuery: (options?: {reopenDropdown?: boolean}) => void;
   committedQuery: string;
+  committedQueryFromInitialQuery: boolean;
   dispatch: Dispatch<QueryBuilderActions>;
   focusOverride: FocusOverride | null;
   handleSearch: (query: string) => void;
@@ -405,6 +406,7 @@ export function SearchQueryBuilderProvider({
     return {
       clearSearchQuery,
       committedQuery: state.committedQuery,
+      committedQueryFromInitialQuery: state.committedQueryFromInitialQuery,
       dispatch,
       focusOverride: state.focusOverride,
       handleSearch,
@@ -419,6 +421,7 @@ export function SearchQueryBuilderProvider({
     parseQuery,
     parsedQuery,
     state.committedQuery,
+    state.committedQueryFromInitialQuery,
     state.focusOverride,
     state.query,
   ]);
