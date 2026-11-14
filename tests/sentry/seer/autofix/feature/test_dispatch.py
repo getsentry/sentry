@@ -346,7 +346,10 @@ class TestTriggerAutofixFeature(TestCase):
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+        return_value=CheckSeerCreditsResponse(
+            has_enough_credits=False,
+            denial_reason=CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED,
+        ),
     )
     def test_raises_when_out_of_credits(self, mock_check_seer_credits: MagicMock) -> None:
         with (
@@ -355,7 +358,7 @@ class TestTriggerAutofixFeature(TestCase):
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
 
-            with pytest.raises(SeerOutOfCreditsException):
+            with pytest.raises(SeerOutOfCreditsException) as excinfo:
                 trigger_autofix_feature(
                     self.group,
                     AutofixFeatureArgs(
@@ -365,6 +368,7 @@ class TestTriggerAutofixFeature(TestCase):
                     ),
                 )
 
+        assert excinfo.value.denial_reason == "daily_cap_exceeded"
         MockClient.return_value.start_feature_run.assert_not_called()
         mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
