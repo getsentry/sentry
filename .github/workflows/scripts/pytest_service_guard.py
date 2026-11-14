@@ -24,6 +24,7 @@ import json
 import os
 import socket
 import sys
+import threading
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any
@@ -53,12 +54,19 @@ class ServiceGuardError(ConnectionRefusedError):
 
 
 _current: str = "<outside a test>"
+_current_test: str = _current
 _hits: list[tuple[str, str]] = []
 _ran: set[str] = set()
+# For debugging attribution: per test, services used, and the thread when it
+# isn't the main one (a thread can outlive the test that started it).
+_test_hits: dict[str, set[str]] = {}
 
 
 def _hit(service: str) -> None:
     _hits.append((_current, service))
+    thread = threading.current_thread()
+    where = "" if thread is threading.main_thread() else f" (thread {thread.name})"
+    _test_hits.setdefault(_current_test, set()).add(service + where)
     if MODE == "enforce":
         raise ServiceGuardError(f"{service} is not available on this shard")
 
@@ -166,8 +174,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 
 def _guard_phase(item: pytest.Item) -> Generator[None, Any, Any]:
-    global _current
-    _current = _file(item)
+    global _current, _current_test
+    _current, _current_test = _file(item), item.nodeid
     _ran.add(_current)
     start = len(_hits)
     try:
@@ -207,5 +215,11 @@ def pytest_sessionfinish(session: pytest.Session) -> None:
     out.mkdir(parents=True, exist_ok=True)
     worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
     (out / f"{worker}.json").write_text(
-        json.dumps({"mode": MODE, "files": {p: sorted(s) for p, s in sorted(used.items())}})
+        json.dumps(
+            {
+                "mode": MODE,
+                "files": {p: sorted(s) for p, s in sorted(used.items())},
+                "tests": {t: sorted(s) for t, s in sorted(_test_hits.items())},
+            }
+        )
     )

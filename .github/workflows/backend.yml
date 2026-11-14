@@ -256,7 +256,7 @@ jobs:
       # Kafka or Symbolicator, the rest run without them. 0 runs every shard with
       # every service and records what each test file uses. Pick-shard sets
       # XDIST_PER_WORKER_SNUBA. See .github/workflows/scripts/backend-test-services.py.
-      BACKEND_SNUBA_SHARDS: '0'
+      BACKEND_SNUBA_SHARDS: '16'
       XDIST_WORKERS: '4'
 
     steps:
