@@ -260,7 +260,97 @@ describe('Explore Investigations', () => {
     expect(listRequest).toHaveBeenCalledWith(
       listUrl,
       expect.objectContaining({
-        query: {status: 'active', query: 'latency', cursor: '123:0:0'},
+        query: {
+          status: 'active',
+          query: 'latency',
+          cursor: '123:0:0',
+          sort: 'dateUpdated',
+          trigger: 'me',
+        },
+      })
+    );
+  });
+
+  it('shows investigations you triggered by default', async () => {
+    const listRequest = MockApiClient.addMockResponse({url: listUrl, body: []});
+
+    renderView();
+    await screen.findByText('Sorry, no investigations match your filters.');
+
+    expect(screen.getByRole('button', {name: 'Trigger Me'})).toBeInTheDocument();
+    expect(listRequest).toHaveBeenLastCalledWith(
+      listUrl,
+      expect.objectContaining({
+        query: {status: 'active', sort: 'dateUpdated', trigger: 'me'},
+      })
+    );
+  });
+
+  it('filters by trigger and clears the cursor', async () => {
+    const listRequest = MockApiClient.addMockResponse({url: listUrl, body: []});
+
+    const {router} = renderView({query: {cursor: '123:0:0'}});
+    await userEvent.click(await screen.findByRole('button', {name: 'Trigger Me'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Breached metrics'}));
+
+    expect(router.location.query).toEqual({trigger: 'breached_metric_investigation'});
+    expect(listRequest).toHaveBeenLastCalledWith(
+      listUrl,
+      expect.objectContaining({
+        query: {
+          status: 'active',
+          sort: 'dateUpdated',
+          strategy: 'breached_metric_investigation',
+        },
+      })
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Trigger Breached metrics'}));
+    await userEvent.click(screen.getByRole('option', {name: 'All'}));
+
+    expect(router.location.query).toEqual({trigger: 'all'});
+    expect(listRequest).toHaveBeenLastCalledWith(
+      listUrl,
+      expect.objectContaining({query: {status: 'active', sort: 'dateUpdated'}})
+    );
+  });
+
+  it('filters by run status', async () => {
+    const listRequest = MockApiClient.addMockResponse({url: listUrl, body: []});
+
+    const {router} = renderView();
+    await userEvent.click(await screen.findByRole('button', {name: 'Status All'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Running'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Needs input'}));
+
+    expect(router.location.query).toEqual({runStatus: 'processing,awaiting_input'});
+    expect(listRequest).toHaveBeenLastCalledWith(
+      listUrl,
+      expect.objectContaining({
+        query: {
+          status: 'active',
+          sort: 'dateUpdated',
+          trigger: 'me',
+          runStatus: ['processing', 'awaiting_input'],
+        },
+      })
+    );
+  });
+
+  it('sorts by creation date', async () => {
+    const listRequest = MockApiClient.addMockResponse({url: listUrl, body: []});
+
+    const {router} = renderView({query: {cursor: '123:0:0'}});
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Sort By Last Modified'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Date Created'}));
+
+    expect(router.location.query).toEqual({sort: 'dateCreated'});
+    expect(listRequest).toHaveBeenLastCalledWith(
+      listUrl,
+      expect.objectContaining({
+        query: {status: 'active', sort: 'dateCreated', trigger: 'me'},
       })
     );
   });
@@ -349,7 +439,11 @@ describe('Explore Investigations', () => {
       expect(completedRequest).toHaveBeenCalled();
       expect(
         queryClient.getQueryData(
-          investigationListQueryOptions({organizationSlug: 'org-slug'}).queryKey
+          investigationListQueryOptions({
+            organizationSlug: 'org-slug',
+            sort: 'dateUpdated',
+            trigger: 'me',
+          }).queryKey
         )?.json[0]
       ).toEqual(
         expect.objectContaining({
