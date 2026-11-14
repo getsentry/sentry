@@ -449,7 +449,7 @@ class GroupSerializerDerivedDataTest(TestCase):
         invalidated_group = self.create_group(project=fresh_group.project)
         self.create_group_derived_data(group=invalidated_group, pipeline_hash=None)
 
-        get_bulk_group_derived_data({fresh_group.id, stale_group.id, invalidated_group.id})
+        get_bulk_group_derived_data([fresh_group, stale_group, invalidated_group])
 
         mock_metrics_incr.assert_has_calls(
             [
@@ -474,6 +474,20 @@ class GroupSerializerDerivedDataTest(TestCase):
             ],
             any_order=True,
         )
+
+    @patch("sentry.issues.derived.serialization.regenerate_stale_projects")
+    def test_stale_hash_regenerates_its_project(self, mock_regenerate: MagicMock) -> None:
+        fresh_group = self.create_group()
+        self.create_group_derived_data(group=fresh_group, pipeline_hash=PIPELINE.pipeline_hash)
+        invalidated_group = self.create_group(project=self.create_project())
+        self.create_group_derived_data(group=invalidated_group, pipeline_hash=None)
+        stale_project = self.create_project()
+        stale_group = self.create_group(project=stale_project)
+        self.create_group_derived_data(group=stale_group, pipeline_hash="stale")
+
+        get_bulk_group_derived_data([fresh_group, invalidated_group, stale_group])
+
+        mock_regenerate.assert_called_once_with({stale_project.id})
 
     def test_derived_data_included(self) -> None:
         group = self.create_group()

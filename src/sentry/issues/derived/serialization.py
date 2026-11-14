@@ -2,11 +2,13 @@
 API serialization for derived issue data.
 
 Reads the materialized ``GroupDerivedData`` for a set of groups and produces the
-camelCase response shape consumed by the group serializer. Read-only: this never
-triggers pipeline processing, so callers see whatever the last processing pass
-materialized (possibly stale), mirroring every other derived-data consumer.
+camelCase response shape consumed by the group serializer. It never processes the
+pipeline inline, so callers see whatever the last processing pass materialized
+(possibly stale), mirroring every other derived-data consumer. Serving a row with an
+outdated ``pipeline_hash`` can schedule a rate-limited regeneration of its project.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Annotated, NotRequired, TypedDict
 
@@ -26,10 +28,12 @@ from sentry.issues.derived.features import (
 from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.processing import PIPELINE
 from sentry.issues.derived.reporting import report_derived_data_error
+from sentry.issues.derived.stale_regen import regenerate_stale_projects
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.impact.types import ImpactDerivedData
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
+from sentry.models.group import Group
 from sentry.utils import metrics
 
 
@@ -75,14 +79,16 @@ class GroupDerivedDataResponse(TypedDict):
     ]
 
 
-def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDataResponse]:
+def get_bulk_group_derived_data(groups: Sequence[Group]) -> dict[int, GroupDerivedDataResponse]:
     """Bulk-load derived action log data for a set of groups, keyed by group id."""
-    if not group_ids:
+    if not groups:
         return {}
 
+    project_id_by_group_id = {group.id: group.project_id for group in groups}
     result: dict[int, GroupDerivedDataResponse] = {}
     served_by_status = {"fresh": 0, "stale_hash": 0, "invalidated": 0}
-    for derived in GroupDerivedData.objects.filter(group_id__in=group_ids):
+    stale_project_ids: set[int] = set()
+    for derived in GroupDerivedData.objects.filter(group_id__in=project_id_by_group_id):
         try:
             state = GroupDerivedDataStore.load(PIPELINE, derived)
             progress = state[PROGRESS]
@@ -109,6 +115,7 @@ def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDa
                 served_by_status["fresh"] += 1
             else:
                 served_by_status["stale_hash"] += 1
+                stale_project_ids.add(project_id_by_group_id[derived.group_id])
 
     for status, count in served_by_status.items():
         if count:
@@ -119,4 +126,5 @@ def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDa
                 tags={"status": status},
             )
 
+    regenerate_stale_projects(stale_project_ids)
     return result

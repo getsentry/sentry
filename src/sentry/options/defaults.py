@@ -4819,6 +4819,36 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, serving a GroupDerivedData row with an outdated pipeline_hash schedules
+# a stale_only regeneration of that row's project, so data people look at heals ahead
+# of the background sweep.
+register(
+    "issues.derived.stale-regen-on-read-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Seconds a project waits after one on-read stale regeneration before another.
+register(
+    "issues.derived.stale-regen-on-read-project-window",
+    default=3600,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Projects that on-read stale regeneration may schedule per global window.
+register(
+    "issues.derived.stale-regen-on-read-global-limit",
+    default=10,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Length in seconds of the window for issues.derived.stale-regen-on-read-global-limit.
+register(
+    "issues.derived.stale-regen-on-read-global-window",
+    default=3600,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # When enabled, check_fresh_derived_data_batch also observes status consistency
 # for projects where derived data should cover full history.
 register(

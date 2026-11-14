@@ -546,9 +546,7 @@ class GroupSerializerBase(Serializer, ABC):
         snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
         derived_data_by_group_id = (
-            get_bulk_group_derived_data({item.id for item in item_list})
-            if self._expand("derivedData")
-            else {}
+            get_bulk_group_derived_data(item_list) if self._expand("derivedData") else {}
         )
         if not features.has(
             "organizations:seer-impact-assessment", organization=item_list[0].organization
