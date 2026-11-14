@@ -11,6 +11,17 @@ import {ARTWORK_LAYERS} from 'sentry/components/brandPageLayout/artworkLayers';
 const MOBILE_ASSETS = [critterImage];
 const DESKTOP_ASSETS = [...MOBILE_ASSETS, nebulaImage, ...ARTWORK_LAYERS.map(l => l.src)];
 
+/**
+ * Async so a missing or throwing `decode` (e.g. stubbed browser runtimes)
+ * becomes a rejection that `Promise.allSettled` absorbs instead of throwing
+ * synchronously out of the effect.
+ */
+async function decodeImage(src: string) {
+  const image = new Image();
+  image.src = src;
+  await image.decode();
+}
+
 /** Loads and decodes artwork while authentication data is still loading. */
 export function useBrandedArtworkLoading() {
   const theme = useTheme();
@@ -29,11 +40,7 @@ export function useBrandedArtworkLoading() {
     }
 
     let cancelled = false;
-    const decoding = pendingSources.map(src => {
-      const image = new Image();
-      image.src = src;
-      return image.decode();
-    });
+    const decoding = pendingSources.map(decodeImage);
 
     // Failed assets settle too, so a broken image cannot hold the auth loader.
     Promise.allSettled(decoding).then(() => {
