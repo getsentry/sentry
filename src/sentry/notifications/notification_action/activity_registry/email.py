@@ -10,6 +10,7 @@ from sentry.notifications.notification_action.activity_registry.base import (
 )
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.types import ActivityHandler
+from sentry.notifications.platform.inbox import get_inbox_notified_user_ids
 from sentry.notifications.platform.strategies.actor_routing import (
     TeamRoutingStrategy,
     UserRoutingStrategy,
@@ -83,5 +84,12 @@ class EmailActivityHandler(ActivityHandler):
                 )
                 return
 
+        inbox_notified_user_ids = (
+            get_inbox_notified_user_ids(activity)
+            if target_type == ActionTarget.ISSUE_OWNERS
+            else set()
+        )
         for target in strategy.get_targets():
+            if (target.specific_data or {}).get("user_id") in inbox_notified_user_ids:
+                continue
             send_activity_notification(invocation, activity, target)

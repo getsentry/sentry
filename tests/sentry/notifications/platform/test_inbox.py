@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 from sentry.inbox.issue import (
     ISSUE,
     ISSUE_PR_READY_FOR_REVIEW,
-    ISSUE_TEAM_MENTIONED,
     ISSUE_USER_MENTIONED,
     IssueMentionedData,
     IssuePRReadyForReviewData,
@@ -13,6 +12,7 @@ from sentry.inbox.issue import (
 from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
 from sentry.integrations.types import ExternalProviders
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwnerType
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
@@ -184,68 +184,28 @@ class InboxNotificationsTest(TestCase):
                 ]
             },
         )
-        for pr_url in pr_urls:
-            create_inbox_items(
-                event_type=ISSUE_PR_READY_FOR_REVIEW,
-                subject=self.group,
-                data=IssuePRReadyForReviewData(
-                    activity_id=activity.id,
-                    pr_url=pr_url,
-                    seer_run_id=1,
-                ),
-                user_ids=[self.recipient.id],
-                actor=SYSTEM_ACTOR,
-            )
+        create_inbox_items(
+            event_type=ISSUE_PR_READY_FOR_REVIEW,
+            subject=self.group,
+            data=IssuePRReadyForReviewData(
+                activity_id=activity.id,
+                pr_urls=list(pr_urls),
+                seer_run_id=1,
+            ),
+            user_ids=[self.recipient.id],
+            actor=SYSTEM_ACTOR,
+        )
 
     @with_feature(INBOX_FEATURES)
     def test_pr_ready_notifies_recipient(self, notify_async: MagicMock) -> None:
-        self._pr_ready(["https://github.com/example/repo/pull/1"])
-
-        assert _sent(notify_async) == [
-            (NotificationSource.ACTIVITY_SEER_PR_READY_FOR_REVIEW, "recipient@example.com")
-        ]
-
-    @with_feature(INBOX_FEATURES)
-    def test_several_pull_requests_notify_once(self, notify_async: MagicMock) -> None:
         self._pr_ready(
             ["https://github.com/example/repo/pull/1", "https://github.com/example/repo/pull/2"]
         )
 
-        assert InboxItemEvent.objects.count() == 2
+        assert InboxItemEvent.objects.count() == 1
         assert _sent(notify_async) == [
             (NotificationSource.ACTIVITY_SEER_PR_READY_FOR_REVIEW, "recipient@example.com")
         ]
-        first_event = InboxItemEvent.objects.earliest("id")
-        assert notify_async.call_args.args[0].data.issue_url.endswith(f"&event={first_event.id}")
-
-    @with_feature(INBOX_FEATURES)
-    def test_user_and_team_mention_notify_once(self, notify_async: MagicMock) -> None:
-        team = self.create_team(organization=self.organization, members=[self.recipient])
-        note = self.create_group_activity(
-            type=ActivityType.NOTE.value,
-            user_id=self.user.id,
-            data={
-                "text": "hi",
-                "mentions": [
-                    {"id": self.recipient.id, "actor_type": ActorType.USER.value},
-                    {"id": team.id, "actor_type": ActorType.TEAM.value},
-                ],
-            },
-        )
-        for event_type, recipients in (
-            (ISSUE_USER_MENTIONED, {"user_ids": [self.recipient.id]}),
-            (ISSUE_TEAM_MENTIONED, {"team_ids": [team.id]}),
-        ):
-            create_inbox_items(
-                event_type=event_type,
-                subject=self.group,
-                data=IssueMentionedData(comment_id=note.id),
-                actor=InboxActor.user(self.user.id),
-                **recipients,
-            )
-
-        assert InboxItemEvent.objects.count() == 2
-        assert _sent(notify_async) == [(NotificationSource.ACTIVITY_NOTE, "recipient@example.com")]
 
     @with_feature(INBOX_FEATURES)
     def test_links_to_inbox_event_and_inbox_settings(self, notify_async: MagicMock) -> None:
@@ -324,6 +284,23 @@ class GetInboxNotifiedUserIdsTest(TestCase):
                 ],
             },
         ) == {mentioned.id, self.user.id, self.recipient.id}
+
+    @with_feature(INBOX_FEATURES)
+    def test_pr_ready_for_review(self) -> None:
+        owner = self.create_user()
+        self.create_member(organization=self.organization, user=owner)
+        self.create_group_owner(
+            group=self.group, type=GroupOwnerType.SEER_SUGGESTED.value, user_id=owner.id
+        )
+        self.create_group_owner(
+            group=self.group, type=GroupOwnerType.CODEOWNERS.value, team=self.team
+        )
+
+        assert self._activity(ActivityType.SEER_PR_READY_FOR_REVIEW, {}) == {
+            owner.id,
+            self.user.id,
+            self.recipient.id,
+        }
 
     @with_feature(INBOX_FEATURES)
     def test_other_activity_types(self) -> None:

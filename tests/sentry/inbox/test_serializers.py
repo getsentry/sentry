@@ -275,7 +275,10 @@ class InboxItemEventSerializerTest(TestCase):
             inbox_item=item,
             actor=actor,
             type="issue.pr_ready_for_review",
-            data={"pr_url": "https://example.com/pr/1", "seer_run_id": 12},
+            data={
+                "pr_urls": ["https://example.com/pr/1"],
+                "seer_run_id": 12,
+            },
         )
         system = self.create_inbox_item_event(inbox_item=item, data={})
 
@@ -291,7 +294,7 @@ class InboxItemEventSerializerTest(TestCase):
         assert results[0]["actor"]["id"] == str(actor.id)
         assert results[0]["isUnread"] is False
         assert results[1]["isUnread"] is True
-        assert results[1]["data"] == {"prUrl": "https://example.com/pr/1", "seerRunId": "12"}
+        assert results[1]["data"] == {"prUrls": ["https://example.com/pr/1"], "seerRunId": "12"}
         assert results[2]["actor"] == {
             "type": "system",
             "id": None,

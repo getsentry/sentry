@@ -35,7 +35,7 @@ interface InboxIssueAssignedData {
 }
 
 interface InboxEventDataByType {
-  'issue.pr_ready_for_review': {prUrl: string; seerRunId: string};
+  'issue.pr_ready_for_review': {prUrls: string[]; seerRunId: string};
   'issue.team_assigned': InboxIssueAssignedData;
   'issue.team_mentioned': {commentId: string};
   'issue.user_assigned': InboxIssueAssignedData;

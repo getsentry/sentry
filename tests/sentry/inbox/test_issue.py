@@ -306,7 +306,7 @@ class IssueProducerRecordingTest(TestCase):
             "activity_id": Activity.objects.get(
                 group=self.group, type=ActivityType.SEER_PR_READY_FOR_REVIEW.value
             ).id,
-            "pr_url": "https://github.com/example/repo/pull/1",
+            "pr_urls": ["https://github.com/example/repo/pull/1"],
             "seer_run_id": 123,
         }
         assert event.actor_type == InboxActorType.SYSTEM
@@ -335,14 +335,12 @@ class IssueProducerRecordingTest(TestCase):
                 },
             )
 
-        events = InboxItemEvent.objects.values_list("inbox_item__user_id", "data__pr_url")
-        assert len(events) == 4
-        assert set(events) == {
-            (self.user.id, "https://github.com/example/repo/pull/1"),
-            (self.user.id, "https://github.com/example/repo/pull/2"),
-            (teammate.id, "https://github.com/example/repo/pull/1"),
-            (teammate.id, "https://github.com/example/repo/pull/2"),
-        }
+        pr_urls = [
+            "https://github.com/example/repo/pull/1",
+            "https://github.com/example/repo/pull/2",
+        ]
+        events = InboxItemEvent.objects.values_list("inbox_item__user_id", "data__pr_urls")
+        assert sorted(events) == sorted([(self.user.id, pr_urls), (teammate.id, pr_urls)])
 
     def test_pr_ready_skips_missing_pull_request_urls(self) -> None:
         self.create_group_owner(
@@ -373,7 +371,7 @@ class IssueProducerRecordingTest(TestCase):
             )
 
         event = InboxItemEvent.objects.get()
-        assert event.data["pr_url"] == "https://github.com/example/repo/pull/1"
+        assert event.data["pr_urls"] == ["https://github.com/example/repo/pull/1"]
 
     def test_pr_ready_without_pull_request_list(self) -> None:
         with (

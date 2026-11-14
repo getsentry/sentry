@@ -53,7 +53,7 @@ class IssueMentionedData(InboxEventData):
 @dataclass(frozen=True, kw_only=True)
 class IssuePRReadyForReviewData(InboxEventData):
     activity_id: int
-    pr_url: str
+    pr_urls: list[str]
     seer_run_id: int  # Seer DbRunState ID.
 
     def get_activity_id(self) -> int:
