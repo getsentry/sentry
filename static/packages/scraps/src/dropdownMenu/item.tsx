@@ -327,8 +327,48 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     // oxlint-disable-next-line react/refs
     {ref: mergeRefs(menuItemRef, innerWrapRef), 'data-test-id': key}
   );
-  const {onPointerEnter, onPointerMove, onPointerLeave} = mergedMenuItemContentProps;
+  const {onPointerEnter, onPointerMove, onPointerLeave, ...menuItemContentProps} =
+    mergedMenuItemContentProps;
   const itemLabel = node.rendered ?? label;
+
+  // The row, not the item, handles pointer and arrow key events, so they cover the
+  // trailing action that sits beside the item.
+  const rowEventProps = {
+    onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+      lastPointerPosition.current = {x: event.clientX, y: event.clientY};
+      // React clears currentTarget after dispatch, but hover may be deferred.
+      const savedEvent = {...event, currentTarget: event.currentTarget};
+      const enter = () => onPointerEnter?.(savedEvent);
+      if (safetyTriangle) {
+        safetyTriangle.defer(event, enter);
+      } else {
+        enter();
+      }
+    },
+    onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+      lastPointerPosition.current = {x: event.clientX, y: event.clientY};
+      onPointerMove?.(event);
+    },
+    onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+      safetyTriangle?.leave(event.currentTarget);
+      if (
+        event.pointerType === 'mouse' &&
+        submenuRef?.current &&
+        lastPointerPosition.current
+      ) {
+        safetyTriangle?.start(lastPointerPosition.current, submenuRef.current);
+      }
+      onPointerLeave?.(event);
+    },
+    onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+      // ArrowLeft returns from the trailing action to its item.
+      if (event.key === 'ArrowLeft' && event.target === trailingActionRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        innerWrapRef.current?.focus();
+      }
+    },
+  };
 
   return (
     <ListItem
@@ -356,48 +396,11 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       }
       disabled={isDisabled}
       isFocused={isFocused}
-      innerWrapProps={{
-        ...mergedMenuItemContentProps,
-        onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
-          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
-          // React clears currentTarget after dispatch, but hover may be deferred.
-          const savedEvent = {...event, currentTarget: event.currentTarget};
-          const enter = () => onPointerEnter?.(savedEvent);
-          if (safetyTriangle) {
-            safetyTriangle.defer(event, enter);
-          } else {
-            enter();
-          }
-        },
-        onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
-          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
-          onPointerMove?.(event);
-        },
-        onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
-          safetyTriangle?.leave(event.currentTarget);
-          if (
-            event.pointerType === 'mouse' &&
-            submenuRef?.current &&
-            lastPointerPosition.current
-          ) {
-            safetyTriangle?.start(lastPointerPosition.current, submenuRef.current);
-          }
-          onPointerLeave?.(event);
-        },
-      }}
+      innerWrapProps={menuItemContentProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingAction={trailingAction}
       trailingActionRef={trailingActionRef}
-      trailingActionWrapperProps={{
-        onKeyDown: event => {
-          if (event.key === 'ArrowLeft') {
-            event.preventDefault();
-            event.stopPropagation();
-            innerWrapRef.current?.focus();
-          }
-        },
-      }}
       trailingItems={
         isSubmenu ? (
           <Fragment>
@@ -409,6 +412,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
         )
       }
       size={size}
+      {...rowEventProps}
       {...itemProps}
     />
   );

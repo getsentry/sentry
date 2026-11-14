@@ -406,8 +406,6 @@ interface OtherProps<T extends React.ElementType> {
   trailingAction?: MenuItemTrailingAction;
   /** Ref to the trailing action's button. */
   trailingActionRef?: React.Ref<HTMLButtonElement>;
-  /** Props for the wrapper around the trailing action. */
-  trailingActionWrapperProps?: React.ComponentPropsWithRef<'div'>;
 }
 
 interface MenuListItemProps<T extends React.ElementType = 'li'>
@@ -438,7 +436,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   tooltipOptions,
   ref,
   trailingActionRef,
-  trailingActionWrapperProps,
   ...props
 }: MenuListItemProps<T>) {
   const [itemElement, setItemElement] = useState<HTMLElement | null>(null);
@@ -611,7 +608,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           top="0"
           height="100%"
           align="center"
-          {...trailingActionWrapperProps}
         >
           <Button
             ref={trailingActionRef}

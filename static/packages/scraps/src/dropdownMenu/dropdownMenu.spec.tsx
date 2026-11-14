@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {useMenuItem} from '@react-aria/menu';
 import {IconStar} from '@sentry/icons/star';
 import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
@@ -10,13 +9,24 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {lightTheme} from '@sentry/scraps/theme';
 
-// Wraps useMenuItem so a test can count how often menu items render.
-jest.mock('@react-aria/menu', () => {
-  const actual = jest.requireActual('@react-aria/menu');
-  return {...actual, useMenuItem: jest.fn(actual.useMenuItem)};
-});
-
 describe('DropdownMenu', () => {
+  beforeEach(() => {
+    const getBoundingClientRect = Element.prototype.getBoundingClientRect;
+    jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: Element
+    ) {
+      const boxes = [...layout].filter(([element]) => this.contains(element));
+      return boxes.length
+        ? unionRect(boxes.map(([, rect]) => rect))
+        : getBoundingClientRect.call(this);
+    });
+  });
+
+  afterEach(() => {
+    layout.clear();
+    jest.mocked(Element.prototype.getBoundingClientRect).mockRestore();
+  });
+
   it.each(['default', 'custom'])(
     'identifies the menu popup on the %s trigger',
     async trigger => {
@@ -119,6 +129,85 @@ describe('DropdownMenu', () => {
         value: originalPointerEvent,
       });
     }
+  });
+
+  it('treats hovering a trailing action as hovering its item', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {key: 'other', label: 'Other'},
+          {
+            key: 'project',
+            label: 'Project',
+            trailingAction: {icon: <IconStar />, label: 'Bookmark', onAction: jest.fn()},
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await user.click(screen.getByRole('button', {name: 'Projects'}));
+    await user.hover(screen.getByRole('menuitemradio', {name: 'Other'}));
+    await user.hover(screen.getByRole('button', {name: 'Bookmark'}));
+
+    // The focused item is the highlighted one.
+    expect(screen.getByRole('menuitemradio', {name: 'Project'})).toHaveFocus();
+  });
+
+  it('closes a sibling submenu when a trailing action reached diagonally is pressed', async () => {
+    const user = userEvent.setup();
+    const onTrailingClick = jest.fn();
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'all-projects',
+            label: 'All Projects',
+            submenu: true,
+            children: [{key: 'other-project', label: 'Other Project'}],
+          },
+          {
+            key: 'project',
+            label: 'Project',
+            trailingAction: {
+              icon: <IconStar />,
+              label: 'Bookmark',
+              onAction: onTrailingClick,
+            },
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await user.click(screen.getByRole('button', {name: 'Projects'}));
+    await user.pointer({
+      target: screen.getByRole('menuitemradio', {name: 'All Projects'}),
+      coords: {clientX: 80, clientY: 20},
+    });
+    const child = screen.getByRole('menuitemradio', {name: 'Other Project'});
+    layOut(
+      screen.getByRole('menu', {name: 'All Projects'}),
+      new DOMRect(200, 0, 200, 240)
+    );
+
+    // Moving toward the submenu defers the item and trailing action hovers.
+    await user.pointer({
+      target: screen.getByRole('menuitemradio', {name: 'Project'}),
+      coords: {clientX: 150, clientY: 60},
+    });
+    const star = screen.getByRole('button', {name: 'Bookmark'});
+    await user.pointer({target: star, coords: {clientX: 180, clientY: 60}});
+    expect(child).toBeInTheDocument();
+
+    await user.pointer({keys: '[MouseLeft]', target: star});
+
+    expect(onTrailingClick).toHaveBeenCalledTimes(1);
+    expect(child).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Project'})).toBeInTheDocument();
   });
 
   it('keeps keyboard activation of a trailing action from selecting its menu item', async () => {
@@ -706,12 +795,10 @@ describe('DropdownMenu', () => {
       const x = side === 'right' ? 80 : 320;
       await user.pointer({target: parent, coords: {clientX: x, clientY: 20}});
       const child = screen.getByRole('menuitemradio', {name: 'Child'});
-      // Geometry belongs to the floating position wrapper around the submenu.
-      // oxlint-disable-next-line testing-library/no-node-access
-      const submenu = screen.getAllByRole('menu')[1]!.parentElement!.parentElement!;
-      jest
-        .spyOn(submenu, 'getBoundingClientRect')
-        .mockReturnValue(new DOMRect(side === 'right' ? 200 : 0, 0, 200, 240));
+      layOut(
+        screen.getByRole('menu', {name: 'Parent'}),
+        new DOMRect(side === 'right' ? 200 : 0, 0, 200, 240)
+      );
 
       await user.pointer({
         target: sibling,
@@ -756,12 +843,7 @@ describe('DropdownMenu', () => {
       const sibling = screen.getByRole('menuitemradio', {name: 'Sibling'});
       await user.pointer({target: parent, coords: {clientX: 80, clientY: 20}});
       const child = screen.getByRole('menuitemradio', {name: 'Child'});
-      // Geometry belongs to the floating position wrapper around the submenu.
-      // oxlint-disable-next-line testing-library/no-node-access
-      const submenu = screen.getAllByRole('menu')[1]!.parentElement!.parentElement!;
-      jest
-        .spyOn(submenu, 'getBoundingClientRect')
-        .mockReturnValue(new DOMRect(200, 0, 200, 240));
+      layOut(screen.getByRole('menu', {name: 'Parent'}), new DOMRect(200, 0, 200, 240));
       await user.pointer({
         target: sibling,
         coords: {clientX: action === 'away' ? 70 : 150, clientY: 60},
@@ -780,9 +862,7 @@ describe('DropdownMenu', () => {
         expect(sibling).toHaveFocus();
       } else if (action === 'click' || action === 'touch') {
         if (action === 'touch') {
-          jest
-            .spyOn(sibling, 'getBoundingClientRect')
-            .mockReturnValue(new DOMRect(0, 40, 200, 40));
+          layOut(sibling, new DOMRect(0, 40, 200, 40));
           await user.pointer({
             keys: '[TouchA]',
             target: sibling,
@@ -1193,18 +1273,24 @@ describe('DropdownMenu', () => {
     });
 
     it('does not re-render mounted items when the menu scrolls', async () => {
-      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
-        wrapper: ThemeWrapper,
-      });
+      // Item content renders with its row, so counting calls counts row renders.
+      const renderLeadingItems = jest.fn(() => null);
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          items={manyItems.map(item => ({...item, leadingItems: renderLeadingItems}))}
+        />,
+        {wrapper: ThemeWrapper}
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
       const mountedCount = screen.getAllByRole('menuitemradio').length;
-      jest.mocked(useMenuItem).mockClear();
+      renderLeadingItems.mockClear();
 
       scrollMenuTo(10);
 
       // Only rows that newly scrolled into view render, not every mounted row.
-      expect(jest.mocked(useMenuItem).mock.calls.length).toBeLessThan(mountedCount);
+      expect(renderLeadingItems.mock.calls.length).toBeLessThan(mountedCount);
     });
 
     it('reaches items outside the window with the keyboard', async () => {
@@ -1452,7 +1538,7 @@ describe('DropdownMenu', () => {
       ['virtualized', undefined],
       ['regular', Infinity],
     ])(
-      'measures the separator after a section with the next item in a %s menu',
+      'keeps the separator after a section in the same row as the next item in a %s menu',
       async (_, virtualizeThreshold) => {
         render(
           <DropdownMenu
@@ -1473,20 +1559,17 @@ describe('DropdownMenu', () => {
 
         await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
 
-        // The separator and the item share one row element: the innermost
-        // element that holds both. Ancestors come first in document order.
-        const row = screen.getAllByRole('presentation').findLast(
-          element =>
-            within(element).queryByRole('menuitemradio', {
-              name: 'After the section',
-            }) && within(element).queryByRole('separator')
-        );
+        // A row holds exactly one item. The separator above an item must be in
+        // that item's row, so the two scroll and are measured together.
+        const row = screen.getAllByRole('presentation').find(element => {
+          const items = within(element).queryAllByRole('menuitemradio');
+          return (
+            items.length === 1 &&
+            items[0] === screen.getByRole('menuitemradio', {name: 'After the section'}) &&
+            within(element).queryByRole('separator')
+          );
+        });
         expect(row).toBeInTheDocument();
-        if (virtualizeThreshold === undefined) {
-          expect(row).toHaveAttribute('data-index');
-        } else {
-          expect(row).not.toHaveAttribute('data-index');
-        }
       }
     );
   });
@@ -1494,4 +1577,21 @@ describe('DropdownMenu', () => {
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
+
+// jsdom does not lay out. Tests place elements here, and every element reports
+// the box around the placed elements it contains, as an element does in a
+// browser.
+const layout = new Map<Element, DOMRect>();
+
+function layOut(element: Element, rect: DOMRect) {
+  layout.set(element, rect);
+}
+
+function unionRect(rects: DOMRect[]) {
+  const left = Math.min(...rects.map(rect => rect.left));
+  const top = Math.min(...rects.map(rect => rect.top));
+  const right = Math.max(...rects.map(rect => rect.right));
+  const bottom = Math.max(...rects.map(rect => rect.bottom));
+  return new DOMRect(left, top, right - left, bottom - top);
 }
