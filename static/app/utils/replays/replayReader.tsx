@@ -806,7 +806,12 @@ export class ReplayReader {
   );
 
   getMemoryFrames = memoize(() =>
-    this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
+    this._sortedSpanFrames.filter(
+      // Raw SDK payloads aren't guaranteed to match the type: skip memory frames
+      // without `data.memory` (reported in hydrateSpans) so consumers can rely on it.
+      (frame): frame is MemoryFrame =>
+        frame.op === 'memory' && Boolean((frame as MemoryFrame).data?.memory)
+    )
   );
 
   getCustomFrames = memoize(() =>

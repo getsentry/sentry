@@ -234,6 +234,39 @@ describe('ReplayReader', () => {
     });
   });
 
+  it('excludes memory frames without memory data from getMemoryFrames', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+    const validMemory = ReplayMemoryEventFixture({
+      startTimestamp: timestamp,
+      endTimestamp: timestamp,
+    });
+    const memoryWithoutData = {
+      type: EventType.Custom,
+      timestamp: timestamp.getTime(),
+      data: {
+        tag: 'performanceSpan',
+        payload: {
+          op: 'memory',
+          description: 'memory',
+          startTimestamp: timestamp.getTime() / 1000,
+          endTimestamp: timestamp.getTime() / 1000,
+          data: {},
+        },
+      },
+    };
+
+    const replay = ReplayReader.factory({
+      attachments: [validMemory, memoryWithoutData],
+      errors: [],
+      fetching: false,
+      replayRecord,
+    });
+
+    const memoryFrames = replay?.getMemoryFrames();
+    expect(memoryFrames).toHaveLength(1);
+    expect(memoryFrames?.[0]?.data?.memory.usedJSHeapSize).toBe(0);
+  });
+
   it('excludes a slow click from the chapter frames when its node has no tagName', () => {
     const timestamp = new Date('2023-12-25T00:02:00');
 
