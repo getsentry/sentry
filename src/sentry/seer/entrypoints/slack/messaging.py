@@ -445,7 +445,11 @@ def update_investigation_alert_message(
     message_ts: str,
     data: SeerInvestigationStarted,
 ) -> None:
-    link_decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
+    link_decorator = (
+        NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
+        if data.notification_uuid
+        else None
+    )
     link_button = SeerSlackRenderer.render_investigation_link_button(
         investigation_url=data.investigation_url, link_decorator=link_decorator
     )
@@ -481,16 +485,17 @@ def update_investigation_alert_message(
             lifecycle.record_halt(halt_reason=e)
             return
 
-        record_sent(
-            NotificationTrackingContext(
-                source=data.source,
-                provider=NotificationProviderKey.SLACK,
-                category=template_registry.get(data.source).category,
-                notification_uuid=data.notification_uuid,
-                organization_id=data.organization_id,
-            ),
-            links=link_decorator.links,
-        )
+        if link_decorator is not None:
+            record_sent(
+                NotificationTrackingContext(
+                    source=data.source,
+                    provider=NotificationProviderKey.SLACK,
+                    category=template_registry.get(data.source).category,
+                    notification_uuid=data.notification_uuid,
+                    organization_id=data.organization_id,
+                ),
+                links=link_decorator.links,
+            )
 
 
 @all_silo_function

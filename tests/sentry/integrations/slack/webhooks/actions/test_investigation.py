@@ -8,7 +8,7 @@ from slack_sdk.web import SlackResponse
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.integrations.slack.message_builder.routing import encode_action_id
+from sentry.integrations.slack.message_builder.routing import SlackActionTracking, encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.slack.webhooks.actions.investigation import (
@@ -121,12 +121,15 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         self.create_detector_group(detector=detector, group=group)
         return group, open_period
 
-    def get_action(self, group_id: int | None = None) -> dict[str, Any]:
+    def get_action(
+        self, group_id: int | None = None, tracking: SlackActionTracking | None = None
+    ) -> dict[str, Any]:
         return {
             "action_id": encode_action_id(
                 action=SlackAction.SEER_INVESTIGATION_START,
                 organization_id=self.organization.id,
                 project_id=self.project.id,
+                tracking=tracking,
             ),
             "block_id": "investigation",
             "text": {"type": "plain_text", "text": "Investigate with Seer", "emoji": True},
@@ -337,23 +340,150 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         mock_record_sent.assert_called_once_with(ANY, links=set())
 
     @with_feature(FEATURES)
+    @override_options({"notifications.tracking.sources": [NotificationSource.METRIC_ALERT]})
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
     @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
-    def test_existing_investigation_replies_with_link(self, mock_count: MagicMock) -> None:
+    def test_existing_investigation_replies_with_link(
+        self, mock_count: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
         self.click()
-        response = self.click()
-
         (investigation,) = self.investigations()
+        cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            entrypoint_key="slack", investigation_id=investigation.id
+        )
+
+        tracking = SlackActionTracking(
+            notification_uuid="00000000-0000-4000-8000-000000000001",
+            source=NotificationSource.METRIC_ALERT,
+        )
+        action = self.get_action(tracking=tracking)
+        original_message = self.get_original_message()
+        original_message["attachments"][0]["blocks"][1]["elements"] = [action]
+
+        response = self.post_webhook_block_kit(
+            action_data=[action], original_message=original_message
+        )
+
         link = investigation.get_absolute_url()
-        assert response.data["response_type"] == "ephemeral"
-        assert response.data["text"] == (
-            f"Seer is already investigating this alert. <{link}|View investigation>"
+        assert response.status_code == 200
+        assert response.data is None
+        self.mock_post_ephemeral.assert_called_once_with(
+            channel=CHANNEL_ID,
+            user=self.external_id,
+            thread_ts=MESSAGE_TS,
+            blocks=None,
+            attachments=None,
+            text=f"Seer is already investigating this alert. <{link}|View investigation>",
+        )
+        assert self.mock_update.call_count == 2
+        update_kwargs = self.mock_update.call_args.kwargs
+        assert update_kwargs["channel"] == CHANNEL_ID
+        assert update_kwargs["ts"] == MESSAGE_TS
+        assert update_kwargs["text"] == original_message["text"]
+        attachment = update_kwargs["attachments"][0]
+        assert attachment["color"] == original_message["attachments"][0]["color"]
+        assert attachment["blocks"][0] == original_message["attachments"][0]["blocks"][0]
+        (button,) = attachment["blocks"][1]["elements"]
+        assert button["text"]["text"] == "Open investigation"
+        assert button["url"] == (
+            f"{link}?referrer=metric-alert-slack&notification_uuid={tracking.notification_uuid}"
+        )
+        assert mock_record_sent.call_args.args[0].source == NotificationSource.METRIC_ALERT
+        assert mock_record_sent.call_args.args[0].notification_uuid == tracking.notification_uuid
+
+        repeated_response = self.post_webhook_block_kit(
+            action_data=[action], original_message=original_message
+        )
+        assert repeated_response.status_code == 200
+        assert repeated_response.data is None
+        assert self.mock_update.call_count == 3
+        assert self.mock_update.call_args.kwargs == update_kwargs
+        assert self.investigations() == [investigation]
+        assert (
+            SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+                entrypoint_key="slack", investigation_id=investigation.id
+            )
+            == cache_payload
         )
         started_calls = [
             call for call in mock_count.call_args_list if call.args[0] == "investigations.started"
         ]
         assert len(started_calls) == 1
-        assert self.mock_update.call_count == 1
         assert self.mock_post_message.call_count == 1
+
+    @with_feature(FEATURES)
+    @override_options({"notifications.tracking.sources": [NotificationSource.METRIC_ALERT]})
+    def test_existing_investigation_replies_in_parent_thread(self) -> None:
+        self.click()
+        parent_thread_ts = "1702424300.000100"
+
+        response = self.post_webhook_block_kit(
+            action_data=[self.get_action()],
+            original_message={**self.get_original_message(), "thread_ts": parent_thread_ts},
+        )
+
+        assert response.status_code == 200
+        assert response.data is None
+        self.mock_post_ephemeral.assert_called_once()
+        assert self.mock_post_ephemeral.call_args.kwargs["thread_ts"] == parent_thread_ts
+        assert self.mock_update.call_count == 2
+        assert self.mock_update.call_args.kwargs["ts"] == MESSAGE_TS
+        (investigation,) = self.investigations()
+        (button,) = self.mock_update.call_args.kwargs["attachments"][0]["blocks"][1]["elements"]
+        assert button["url"] == investigation.get_absolute_url()
+
+    @with_feature(FEATURES)
+    def test_existing_investigation_reply_failure_is_acknowledged(self) -> None:
+        self.click()
+        (investigation,) = self.investigations()
+        cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            entrypoint_key="slack", investigation_id=investigation.id
+        )
+        self.mock_post_ephemeral.side_effect = TypedSlackApiError(
+            "error", _slack_response({"ok": False, "error": "channel_not_found"})
+        )
+
+        response = self.click()
+
+        assert response.status_code == 200
+        assert response.data is None
+        self.mock_post_ephemeral.assert_called_once()
+        assert self.investigations() == [investigation]
+        assert self.mock_update.call_count == 2
+        assert self.mock_update.call_args.kwargs["ts"] == MESSAGE_TS
+        assert self.mock_post_message.call_count == 1
+        assert (
+            SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+                entrypoint_key="slack", investigation_id=investigation.id
+            )
+            == cache_payload
+        )
+
+    @with_feature(FEATURES)
+    def test_existing_investigation_update_timeout_still_replies(self) -> None:
+        self.click()
+        (investigation,) = self.investigations()
+        cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            entrypoint_key="slack", investigation_id=investigation.id
+        )
+        self.mock_update.side_effect = TimeoutError()
+
+        response = self.click()
+
+        assert response.status_code == 200
+        assert response.data is None
+        assert self.mock_update.call_count == 2
+        self.mock_post_ephemeral.assert_called_once()
+        assert self.mock_post_ephemeral.call_args.kwargs["thread_ts"] == MESSAGE_TS
+        assert investigation.get_absolute_url() in self.mock_post_ephemeral.call_args.kwargs["text"]
+        assert self.investigations() == [investigation]
+        assert self.mock_post_message.call_count == 1
+        assert (
+            SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+                entrypoint_key="slack", investigation_id=investigation.id
+            )
+            == cache_payload
+        )
 
     @with_feature(FEATURES)
     def test_slack_error_during_update_still_creates_investigation(self) -> None:

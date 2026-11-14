@@ -219,7 +219,8 @@ def handle_seer_investigation_start(
 
     investigation, created = result
     if not created:
-        return _respond_ephemeral(
-            INVESTIGATION_EXISTS_MESSAGE.format(link=investigation.get_absolute_url())
+        entrypoint.send_existing_investigation_reply(
+            text=INVESTIGATION_EXISTS_MESSAGE.format(link=investigation.get_absolute_url())
         )
+        entrypoint.update_existing_investigation_alert(investigation=investigation)
     return Response()
