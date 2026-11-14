@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 import {useTimezone} from '@sentry/scraps/datetime';
 import {toast} from '@sentry/scraps/toast';
 
+import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -24,12 +25,13 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {
-  Block,
-  RepoPRState,
-  RespondToUserInputOptions,
-  SeerExplorerResponse,
-  SeerExplorerRunId,
+import {
+  isOutOfCreditsPRState,
+  type Block,
+  type RepoPRState,
+  type RespondToUserInputOptions,
+  type SeerExplorerResponse,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {
   makeSeerExplorerQueryKey,
@@ -640,7 +642,11 @@ export const useSeerExplorer = () => {
         currentState.pr_creation_status === 'error' &&
         currentState.pr_creation_error
       ) {
-        toast.error(currentState.pr_creation_error ?? 'Failed to create PR');
+        toast.error(
+          isOutOfCreditsPRState(currentState)
+            ? getOutOfCreditsPRMessage(currentState)
+            : (currentState.pr_creation_error ?? 'Failed to create PR')
+        );
       }
     }
 

@@ -4,6 +4,11 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
+import {
+  getOutOfCreditsPRMessage,
+  OUT_OF_CREDITS_OPEN_PRS_MESSAGE,
+  OUT_OF_CREDITS_START_STEP_MESSAGE,
+} from 'sentry/components/seer/outOfCredits/messages';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
@@ -12,6 +17,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -25,6 +31,7 @@ import {
   type Artifact,
   type Block,
   type ExplorerCodingAgentState,
+  type ExplorerFailureReason,
   type ExplorerFilePatch,
   type RepoPRState,
   type SeerExplorerRunId,
@@ -216,6 +223,7 @@ export interface ExplorerAutofixState {
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
   updated_at: string;
   coding_agents?: Record<string, ExplorerCodingAgentState>;
+  failure_reason?: ExplorerFailureReason | null;
   feature_id?: string | null;
   pending_user_input?: {
     data: Record<string, unknown>;
@@ -326,6 +334,19 @@ function isAutofixSetupRequiredError(
   );
 }
 
+/**
+ * A step or PR the backend refused because the organization is out of Seer
+ * credits. The triggers' credit checks fail open and can be out of date, so
+ * the backend has the final say.
+ */
+function isOutOfCreditsError(e: unknown): boolean {
+  const error = e as
+    | {responseJSON?: {code?: unknown}; status?: number}
+    | null
+    | undefined;
+  return error?.status === 402 && error.responseJSON?.code === 'seer_out_of_credits';
+}
+
 const makeErrorExplorerAutofixData = (errorMessage: string): ExplorerAutofixResponse => ({
   autofix: {
     run_id: 0,
@@ -415,6 +436,10 @@ export interface AutofixSection {
   blocks: Block[];
   status: 'processing' | 'completed' | 'error';
   step: string;
+  /**
+   * Why the run stopped, on the section it stopped in.
+   */
+  failureReason?: ExplorerFailureReason | null;
   index?: number;
 }
 
@@ -460,6 +485,7 @@ function buildSection(
 
   if (currentStep && runState?.status === 'error') {
     section.status = 'error';
+    section.failureReason = runState.failure_reason;
   } else if (
     (!currentStep && runState?.status !== 'processing') ||
     isLastBlockOfSection(blocks[blocks.length - 1]) ||
@@ -670,6 +696,15 @@ export function isPullRequestsSection(section: AutofixSection): boolean {
 
 export function isCodingAgentsSection(section: AutofixSection): boolean {
   return section.step === 'coding_agents';
+}
+
+/**
+ * The step stopped because the organization ran out of Seer credits. Running it
+ * again fails the same way until someone adds credits, and the blocks it wrote
+ * before stopping are still worth showing.
+ */
+export function isOutOfCreditsSection(section: AutofixSection): boolean {
+  return section.status === 'error' && section.failureReason === 'out_of_credits';
 }
 
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
@@ -998,6 +1033,18 @@ export function useExplorerAutofix(
           return {runId: getAutofixRunId(e.responseJSON)!, isSingleRun: false};
         }
 
+        // Recheck every credit check, so the credit gates bring up the
+        // out-of-credits CTA and hold their buttons back, and say why the step
+        // didn't start. A refused kickoff paints no failed run: the start card
+        // offers the CTA instead.
+        if (isOutOfCreditsError(e)) {
+          queryClient.invalidateQueries({
+            queryKey: seerCreditChecksQueryKey(organization),
+          });
+          toast.error(OUT_OF_CREDITS_START_STEP_MESSAGE[step]);
+          throw e;
+        }
+
         // The kickoff was refused because Seer setup is incomplete. There is no
         // failed run to paint, and unlike the in-flight race there is nothing to
         // recover by refetching — surface the backend's setup copy (it names the
@@ -1063,11 +1110,30 @@ export function useExplorerAutofix(
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
-        toast.error(getApiErrorMessage(e, 'Failed to create PR'));
+        if (!isOutOfCreditsError(e)) {
+          toast.error(getApiErrorMessage(e, 'Failed to create PR'));
+          throw e;
+        }
+
+        // Recheck every credit check, so the credit gates bring up the
+        // out-of-credits CTA and hold their buttons back.
+        queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+        // A retry for a repo whose PR exists pushes to it rather than opening one.
+        const repoState = repoName
+          ? queryClient.getQueryData(explorerAutofixApiOptions(orgSlug, groupId).queryKey)
+              ?.json?.autofix?.repo_pr_states?.[repoName]
+          : undefined;
+        toast.error(
+          repoName
+            ? getOutOfCreditsPRMessage(
+                repoState ?? {repo_name: repoName, pr_number: null}
+              )
+            : OUT_OF_CREDITS_OPEN_PRS_MESSAGE
+        );
         throw e;
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [api, orgSlug, groupId, organization, queryClient]
   );
 
   /**
