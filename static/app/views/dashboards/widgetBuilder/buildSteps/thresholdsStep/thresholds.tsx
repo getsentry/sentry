@@ -282,7 +282,6 @@ const ThresholdsContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
-  margin-top: ${p => p.theme.space.md};
 
   ${FieldWrapper} {
     padding: 0;

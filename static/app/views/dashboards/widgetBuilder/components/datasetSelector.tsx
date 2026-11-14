@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -75,7 +74,7 @@ export function WidgetBuilderDatasetSelector() {
 
   return (
     <Fragment>
-      <StyledSectionHeader
+      <SectionHeader
         title={t('Dataset')}
         tooltipText={tct(
           'This reflects the type of information you want to use. To learn more, [link: read the docs].',
@@ -117,7 +116,3 @@ export function WidgetBuilderDatasetSelector() {
     </Fragment>
   );
 }
-
-const StyledSectionHeader = styled(SectionHeader)`
-  margin-bottom: ${p => p.theme.space.md};
-`;
