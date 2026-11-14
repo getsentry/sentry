@@ -185,6 +185,53 @@ describe('IssueList -> Polling', () => {
     expect(screen.getByText(textWithMarkupMatcher('1-2 of 2'))).toBeInTheDocument();
   });
 
+  it('polls with the current filters after the filters change', async () => {
+    const {router} = render(<IssueList />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {query: 'is:unresolved'},
+        },
+      },
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await jest.runAllTimersAsync();
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
+
+    const filteredCursor = '1443579999';
+    const filteredLinksHeader =
+      `<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${filteredCursor}:0:1&project=2>; rel="previous"; results="false"; cursor="${filteredCursor}:0:1", ` +
+      '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0&project=2>; rel="next"; results="true"; cursor="1443575000:0:0"';
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [group],
+      headers: {Link: filteredLinksHeader, 'X-Hits': '1'},
+    });
+    const filteredPollRequest = MockApiClient.addMockResponse({
+      url: `/api/0/organizations/org-slug/issues/?cursor=${filteredCursor}:0:1&project=2`,
+      body: [],
+      headers: {Link: filteredLinksHeader, 'X-Hits': '1'},
+    });
+    pollRequest.mockClear();
+
+    act(() =>
+      router.navigate(
+        '/organizations/org-slug/issues/?query=is%3Aunresolved%20level%3Aerror'
+      )
+    );
+    await act(() => jest.advanceTimersByTimeAsync(10));
+    await act(() => jest.advanceTimersByTimeAsync(20000));
+
+    expect(filteredPollRequest).toHaveBeenCalled();
+    expect(pollRequest).not.toHaveBeenCalled();
+  });
+
   it('stops polling for new issues when endpoint returns a 401', async () => {
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,

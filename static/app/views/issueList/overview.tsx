@@ -310,19 +310,25 @@ function IssueListOverviewInner({
     return true;
   }, [requestParams]);
 
-  const resumePolling = useCallback(() => {
-    if (!pageLinks) {
-      return;
-    }
+  // Takes the links explicitly because `fetchData` resumes from a closure
+  // created before its request, where `pageLinks` still has the previous
+  // filters. Polling those links adds issues that don't match the current filters.
+  const resumePolling = useCallback(
+    (currentPageLinks: string) => {
+      if (!currentPageLinks) {
+        return;
+      }
 
-    // Only resume polling if we're on the first page of results
-    const links = parseLinkHeader(pageLinks);
-    const previousHref = links?.previous?.href;
-    if (links && !links.previous?.results && realtimeActive && previousHref) {
-      pollerRef.current?.setEndpoint(previousHref);
-      pollerRef.current?.enable();
-    }
-  }, [pageLinks, realtimeActive]);
+      // Only resume polling if we're on the first page of results
+      const links = parseLinkHeader(currentPageLinks);
+      const previousHref = links?.previous?.href;
+      if (links && !links.previous?.results && realtimeActive && previousHref) {
+        pollerRef.current?.setEndpoint(previousHref);
+        pollerRef.current?.enable();
+      }
+    },
+    [realtimeActive]
+  );
 
   const fetchStats = useCallback(
     async (newGroupIds: string[]) => {
@@ -415,6 +421,10 @@ function IssueListOverviewInner({
     api.clear();
     pollerRef.current?.disable();
 
+    // Only set once this request succeeds, so a failed request doesn't
+    // resume polling with links from the previous filters.
+    let fetchedPageLinks: string | null = null;
+
     try {
       const [data, _, resp] = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
@@ -483,7 +493,8 @@ function IssueListOverviewInner({
       setIssuesSuccessfullyLoaded(true);
       setQueryCount(newQueryCount);
       setQueryMaxCount(newQueryMaxCount);
-      setPageLinks(newPageLinks === null ? '' : newPageLinks);
+      fetchedPageLinks = newPageLinks ?? '';
+      setPageLinks(fetchedPageLinks);
 
       // AI query analytics
       const aiQueryRunId = getRunIdForAnalytics();
@@ -530,7 +541,9 @@ function IssueListOverviewInner({
         });
       }
     } finally {
-      resumePolling();
+      if (fetchedPageLinks !== null) {
+        resumePolling(fetchedPageLinks);
+      }
 
       if (!realtimeActive) {
         actionTakenRef.current = false;
@@ -568,11 +581,11 @@ function IssueListOverviewInner({
   // Update polling status
   useEffect(() => {
     if (realtimeActive) {
-      resumePolling();
+      resumePolling(pageLinks);
     } else {
       pollerRef.current?.disable();
     }
-  }, [realtimeActive, resumePolling]);
+  }, [realtimeActive, resumePolling, pageLinks]);
 
   // Fetch data on mount if necessary
   useEffect(() => {
