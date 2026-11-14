@@ -78,3 +78,24 @@ export function isAttributeType(
 ): value is TraceItemAttributeType {
   return value !== undefined && Object.hasOwn(ATTRIBUTE_VALUE_TYPES, value);
 }
+
+interface AttributeDetailsTargetOptions {
+  attributeName: string;
+  attributeType: TraceItemAttributeType;
+  organizationSlug: string;
+  projectSlug: string;
+  attributeSource?: TraceItemAttribute['attributeSource']['source_type'];
+}
+
+export function getAttributeDetailsTarget({
+  attributeName,
+  attributeSource,
+  attributeType,
+  organizationSlug,
+  projectSlug,
+}: AttributeDetailsTargetOptions) {
+  return {
+    pathname: `/settings/${organizationSlug}/projects/${projectSlug}/attributes/${attributeType}/${encodeURIComponent(attributeName)}/`,
+    query: attributeSource ? {source: attributeSource} : {},
+  };
+}
