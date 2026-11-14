@@ -10,7 +10,9 @@ from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
@@ -440,6 +442,14 @@ class Dashboard(Model):
         ]
 
     __repr__ = sane_repr("organization", "title")
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # Org auth tokens are imported after every other model, so their new pks can't be mapped
+        # here. Drop the reference rather than dropping the whole dashboard.
+        self.created_by_org_auth_token_id = None
+        return super().normalize_before_relocation_import(pk_map, scope, flags)
 
     @property
     def favorited_by(self) -> Iterable[int]:
