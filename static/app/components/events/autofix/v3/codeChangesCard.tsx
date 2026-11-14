@@ -16,13 +16,17 @@ import {
   isCodeChangesArtifact,
   isOutOfCreditsSection,
   isPrIterationBlock,
+  isPrIterationOutOfCredits,
   isPrIterationPaused,
   isSingleRunAutofix,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {
+  OUT_OF_CREDITS_START_STEP_MESSAGE,
+  OUT_OF_CREDITS_STEP_MESSAGE,
+} from 'sentry/components/seer/outOfCredits/messages';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -30,6 +34,7 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
+import {isOutOfCreditsPRState} from 'sentry/views/seerExplorer/types';
 
 import {ArtifactCard} from './artifactCard';
 import {ArtifactDetails} from './artifactDetails';
@@ -136,6 +141,16 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
   const isPaused = isPrIterationPaused(autofix.runState);
+
+  // Sentry refused to start the next iteration or push its changes.
+  const isPrIterationStoppedForCredits =
+    !isOutOfCredits &&
+    !isPaused &&
+    hasPRs &&
+    section.status !== 'processing' &&
+    isPrIterationOutOfCredits(autofix.runState) &&
+    // When Seer refused the push, the Pull Requests card already says so.
+    !Object.values(autofix.runState?.repo_pr_states ?? {}).some(isOutOfCreditsPRState);
 
   // Once a PR exists, reset opens the PR iteration form, so it stays available
   // while an iteration is processing.
@@ -442,6 +457,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     >
       <FeedbackList items={feedback} />
       {content}
+      {isPrIterationStoppedForCredits && (
+        <OutOfCreditsStatus message={OUT_OF_CREDITS_START_STEP_MESSAGE.pr_iteration} />
+      )}
     </ArtifactCard>
   );
 }

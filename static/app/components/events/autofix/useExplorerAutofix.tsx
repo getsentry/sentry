@@ -711,6 +711,20 @@ export function isPrIterationPaused(runState: ExplorerAutofixState | null): bool
   return runState?.pr_iteration_paused === true;
 }
 
+/**
+ * PR iteration stopped because the organization ran out of Seer credits, and
+ * nothing has run since.
+ */
+export function isPrIterationOutOfCredits(
+  runState: ExplorerAutofixState | null
+): boolean {
+  return (
+    runState?.warnings?.some(
+      warning => warning.warning_type === 'pr_iteration_out_of_credits'
+    ) ?? false
+  );
+}
+
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
   // pr_iteration is always the last work to run, so if the most recent block
   // with a step came from one, the run is in the pr_iteration phase (whether it
