@@ -1142,6 +1142,65 @@ class CocoaSDKCPPExceptionTerminateTestMixin(BaseSDKCrashDetectionMixin):
         )
 
 
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+class CocoaSDKMetricKitMechanismTestMixin(BaseSDKCrashDetectionMixin):
+    """Tests for the MetricKit diagnostics the Cocoa SDK reports as handled.
+
+    Hangs, CPU exceptions, disk write exceptions, and app launch diagnostics don't terminate the
+    app, so the SDK reports them as handled with a warning level. They are only detected because
+    their mechanism types are allowed explicitly.
+    """
+
+    def test_metric_kit_hang_diagnostic_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
+        self.execute_test(
+            self._get_metric_kit_event("mx_hang_diagnostic"), True, mock_sdk_crash_reporter
+        )
+
+    def test_metric_kit_cpu_exception_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
+        self.execute_test(
+            self._get_metric_kit_event("mx_cpu_exception"), True, mock_sdk_crash_reporter
+        )
+
+    def test_metric_kit_disk_write_exception_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        self.execute_test(
+            self._get_metric_kit_event("mx_disk_write_exception"), True, mock_sdk_crash_reporter
+        )
+
+    def test_metric_kit_app_launch_diagnostic_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        self.execute_test(
+            self._get_metric_kit_event("mx_app_launch_diagnostic"), True, mock_sdk_crash_reporter
+        )
+
+    def test_metric_kit_diagnostic_without_sdk_frame_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        self.execute_test(
+            self._get_metric_kit_event("mx_hang_diagnostic", function="-[AppDelegate launch]"),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
+    def test_handled_event_with_other_mechanism_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        self.execute_test(
+            self._get_metric_kit_event("mx_unknown_diagnostic"), False, mock_sdk_crash_reporter
+        )
+
+    def _get_metric_kit_event(
+        self, mechanism_type: str, function: str = "-[SentryHub getScope]"
+    ) -> dict[str, Collection[str]]:
+        event = get_crash_event(handled=True, function=function)
+        set_path(event, "level", value="warning")
+        set_path(event, "exception", "values", -1, "mechanism", "type", value=mechanism_type)
+        set_path(event, "exception", "values", -1, "mechanism", "synthetic", value=True)
+        return event
+
+
 class SDKCrashDetectionCocoaTest(
     TestCase,
     CococaSDKFilenameTestMixin,
@@ -1150,6 +1209,7 @@ class SDKCrashDetectionCocoaTest(
     CocoaSDKSwizzleWrapperTestMixin,
     CocoaSDKCoreDataTrackerTestMixin,
     CocoaSDKCPPExceptionTerminateTestMixin,
+    CocoaSDKMetricKitMechanismTestMixin,
 ):
     def create_event(
         self, data: dict[str, Any], project_id: int, assert_no_errors: bool = True
