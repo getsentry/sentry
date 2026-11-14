@@ -1,5 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {annotate, hasAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {EmptySpanTab, SpanTabContent} from './spanTabContent';
 
 describe('SpanTabContent', () => {
@@ -24,6 +26,16 @@ describe('SpanTabContent', () => {
 
     expect(screen.getByText('preference')).toBeInTheDocument();
     expect(screen.getByText('"concise answers"')).toBeInTheDocument();
+  });
+
+  it('marks scrubbed values in structured content', () => {
+    const rule = JSON.stringify({ruleId: '@email:replace', remark: 's'});
+    const {container} = render(
+      <SpanTabContent content={{email: annotate('[email]', rule)}} />
+    );
+
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
   });
 
   it.each(['A system prompt', {prompt: 'A system prompt'}])(

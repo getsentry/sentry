@@ -17,6 +17,7 @@ type Config = {
   renderNull?: (value: unknown) => React.ReactNode;
   renderObjectKeys?: (value: string) => string;
   renderString?: (value: string) => string;
+  renderStringNode?: (value: string) => React.ReactNode;
 };
 
 interface Props {
@@ -123,7 +124,7 @@ export function RecursiveStructuredData({
           <ValueString data-test-id="value-string">
             {'"'}
             <AnnotatedValue
-              value={stringValue}
+              value={config.renderStringNode?.(stringValue) ?? stringValue}
               meta={meta}
               withAnnotatedText={withAnnotatedText}
               withOnlyFormattedText={withOnlyFormattedText}

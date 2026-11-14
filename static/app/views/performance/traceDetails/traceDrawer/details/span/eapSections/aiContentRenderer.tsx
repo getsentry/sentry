@@ -2,13 +2,23 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
+import {
+  hasAnnotations,
+  Markdown,
+  stripAnnotations,
+  type MarkdownProps,
+} from '@sentry/scraps/markdown';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
+import {
+  renderScrubbedText,
+  ScrubbedAnnotation,
+  ScrubbedText,
+} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {parseJsonWithFix} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 
@@ -31,6 +41,7 @@ const STRUCTURED_DATA_CONFIG = {
   isString: (v: unknown) => typeof v === 'string',
   isBoolean: (v: unknown) => typeof v === 'boolean',
   isNumber: (v: unknown) => typeof v === 'number',
+  renderStringNode: renderScrubbedText,
 };
 
 /**
@@ -89,13 +100,19 @@ const markdownComponents: MarkdownProps['components'] = {
         return <JsonTree value={parsed} />;
       }
     }
-    return <Default lang={lang}>{children}</Default>;
+    return <Default lang={lang}>{stripAnnotations(children)}</Default>;
   },
+  InlineCode: ({children, Default}) => <Default>{stripAnnotations(children)}</Default>,
+  Annotation: ScrubbedAnnotation,
   Heading: ({children, level}) => (
     <Heading as={`h${level}`} size={HEADING_SIZES[level - 1]}>
       {children}
     </Heading>
   ),
+};
+
+const plainTextMarkdownComponents: MarkdownProps['components'] = {
+  Annotation: ScrubbedAnnotation,
 };
 
 /** Fences raw AI content and renders it. Memoized since fencing scans the whole string. */
@@ -256,6 +273,7 @@ export function AIContentRenderer({
           maxDefaultDepth={maxJsonDepth}
           autoCollapseLimit={autoCollapseLimit}
           clip={clipJson}
+          renderString={renderScrubbedText}
         />
       );
 
@@ -290,10 +308,21 @@ export function AIContentRenderer({
     case 'plain-text':
     default:
       if (inline) {
-        return <Fragment>{text}</Fragment>;
+        return <ScrubbedText>{text}</ScrubbedText>;
       }
       return (
-        <TraceDrawerComponents.MultilineText clip={clipText}>
+        <TraceDrawerComponents.MultilineText
+          clip={clipText}
+          // A custom formatter skips the fallback for markdown that renders blank,
+          // so only take over when there are scrubbed values to mark.
+          renderFormatted={
+            hasAnnotations(text)
+              ? rawText => (
+                  <Markdown raw={rawText} components={plainTextMarkdownComponents} />
+                )
+              : undefined
+          }
+        >
           {text}
         </TraceDrawerComponents.MultilineText>
       );
