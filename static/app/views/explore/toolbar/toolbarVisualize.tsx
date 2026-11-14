@@ -518,7 +518,6 @@ function AggregateMultiSelect({
                   label: stripNamePrefix(formula.name),
                   value: formula.name,
                   textValue: formula.name,
-                  details: formula.description,
                   disabled:
                     buildFormulaYAxis(formula, DEFAULT_VISUALIZATION_FIELD) === null,
                   trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
