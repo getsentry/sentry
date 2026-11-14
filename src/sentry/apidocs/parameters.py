@@ -489,7 +489,17 @@ class IssueParams:
 
     GROUP_INDEX_COLLAPSE = OpenApiParameter(
         name="collapse",
-        description="Fields to remove from the response to improve query performance.",
+        description=(
+            "Fields to remove from the response to improve query performance. When listing an "
+            "organization's issues, `stats` removes `stats`, `lifetime`, `filtered`, `count`, "
+            "`userCount`, `firstSeen`, and `lastSeen`, as well as `sessionCount` when "
+            "`expand=sessions` is set. `lifetime` removes `lifetime`, `filtered` removes "
+            "`filtered`, and `unhandled` removes `isUnhandled`. `base` keeps only `id`, `count`, "
+            "`userCount`, `firstSeen`, `lastSeen`, `isUnhandled`, `stats`, `lifetime`, "
+            "`filtered`, `matchingEventId`, and fields added by `expand`, and removes all other "
+            "fields, such as `title`, `shortId`, `status`, and `project`. Passing several values "
+            "removes the fields of each."
+        ),
         enum=["stats", "lifetime", "base", "unhandled", "filtered"],
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
