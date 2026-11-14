@@ -141,7 +141,7 @@ const SuggestionButton = styled(Button)`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   line-height: 16px;
 
-  > span:last-child {
+  && > [data-button-label] {
     white-space: normal;
     text-wrap: balance;
   }
