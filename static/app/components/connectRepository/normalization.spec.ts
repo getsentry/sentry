@@ -29,6 +29,11 @@ describe('normalizeRoot', () => {
   it('leaves URI schemes with a trailing slash in place', () => {
     expect(normalizeRoot('app:///')).toBe('app:///');
   });
+
+  it('treats a missing root as empty', () => {
+    expect(normalizeRoot(undefined)).toBe('');
+    expect(normalizeRoot(null)).toBe('');
+  });
 });
 
 describe('resolveBranch', () => {
