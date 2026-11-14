@@ -24,8 +24,11 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixSolutionStartedEvent,
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.analytics import record_autofix_event
@@ -582,6 +585,7 @@ def generate_autofix_handoff_prompt(
     short_id: str | None = None,
     issue_url: str | None = None,
     pr_description_links: Sequence[str] = (),
+    jira_issue_keys: Sequence[str] = (),
 ) -> str:
     """
     Generate a prompt for coding agents from autofix run state.
@@ -606,6 +610,15 @@ def generate_autofix_handoff_prompt(
             )
         else:
             parts.append(f"Include 'Fixes {short_id}' in the commit message.")
+
+    if jira_issue_keys:
+        keys = ", ".join(jira_issue_keys)
+        parts.append(
+            f"This issue is linked to these Jira work items: {keys}. Jira links work to a"
+            " work item only through its key in the branch name, commit message, or pull"
+            " request title, so include each key in the name of any branch you create, in"
+            " every commit message, and in the pull request title."
+        )
 
     parts.append(
         " ".join(
@@ -772,6 +785,7 @@ def trigger_coding_agent_handoff(
         short_id=short_id,
         issue_url=issue_url,
         pr_description_links=_build_issue_reference_lines(group),
+        jira_issue_keys=_get_linked_jira_issue_keys(group),
     )
 
     coding_agents = client.launch_coding_agents(
@@ -931,6 +945,54 @@ def _build_issue_reference_lines(group: Group) -> list[str]:
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
 
     return lines
+
+
+JIRA_ISSUE_KEY_RE = re.compile(r"^[A-Z][A-Z0-9_]*-\d+$")
+
+
+def _get_linked_jira_issue_keys(group: Group) -> list[str]:
+    external_issue_ids = GroupLink.objects.filter(
+        project_id=group.project_id,
+        group_id=group.id,
+        linked_type=GroupLink.LinkedType.issue,
+    ).values_list("linked_id", flat=True)
+    external_issues = list(
+        ExternalIssue.objects.filter(
+            id__in=external_issue_ids, organization_id=group.organization.id
+        )
+    )
+    if not external_issues:
+        return []
+
+    jira_integration_ids = {
+        integration.id
+        for integration in integration_service.get_integrations(
+            organization_id=group.organization.id,
+            integration_ids=list({issue.integration_id for issue in external_issues}),
+            providers=[
+                IntegrationProviderSlug.JIRA.value,
+                IntegrationProviderSlug.JIRA_SERVER.value,
+            ],
+        )
+    }
+
+    keys = set()
+    for external_issue in external_issues:
+        if external_issue.integration_id not in jira_integration_ids:
+            continue
+        if not JIRA_ISSUE_KEY_RE.match(external_issue.key):
+            logger.warning(
+                "autofix.jira.unknown-key",
+                extra={
+                    "group": group.id,
+                    "project": group.project_id,
+                    "jira_key": external_issue.key,
+                },
+            )
+            continue
+        keys.add(external_issue.key)
+
+    return sorted(keys)
 
 
 def build_pr_description_suffix(group: Group, referrer: str | None) -> str | None:
