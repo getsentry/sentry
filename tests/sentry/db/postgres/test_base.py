@@ -1,9 +1,11 @@
+from unittest import mock
+
 import pytest
-from django.db import connection
+from django.db import connection, transaction
 from django.db.utils import DataError
 
 from sentry.constants import MAX_CULPRIT_LENGTH
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -63,6 +65,50 @@ class CursorWrapperTestCase(TestCase):
         cursor.execute("SELECT %(bad_str)s", {"bad_str": bad_str})
         bad_str_from_db = cursor.fetchone()[0]
         assert bad_str_from_db == "HelloWorld🇦🇹!"
+
+
+def _open_savepoints(count: int) -> None:
+    for _ in range(count):
+        with transaction.atomic(using="default"):
+            pass
+
+
+class SavepointMetricsTest(TransactionTestCase):
+    @mock.patch("sentry.db.postgres.base.current_task")
+    @mock.patch("sentry.db.postgres.base.metrics")
+    def test_reports_savepoints_per_transaction(
+        self, metrics: mock.MagicMock, current_task: mock.MagicMock
+    ) -> None:
+        current_task.return_value = mock.Mock(taskname="sentry.tasks.example")
+        tags = {"taskname": "sentry.tasks.example", "alias": "default"}
+        overflow = mock.call("db.transaction.savepoint_overflow", tags=tags)
+
+        with transaction.atomic(using="default"):
+            _open_savepoints(64)
+            assert metrics.incr.call_args_list == []
+            _open_savepoints(1)
+            assert metrics.incr.call_args_list == [overflow]
+            _open_savepoints(5)
+
+        with transaction.atomic(using="default"):
+            _open_savepoints(9)
+
+        with pytest.raises(ValueError):
+            with transaction.atomic(using="default"):
+                _open_savepoints(10)
+                raise ValueError
+
+        transaction.set_autocommit(False, using="default")
+        for _ in range(10):
+            transaction.savepoint(using="default")
+        connection.close()
+
+        assert metrics.incr.call_args_list == [overflow]
+        assert metrics.distribution.call_args_list == [
+            mock.call("db.transaction.savepoints", 70, tags=tags),
+            mock.call("db.transaction.savepoints", 10, tags=tags),
+            mock.call("db.transaction.savepoints", 10, tags=tags),
+        ]
 
 
 @django_db_all
