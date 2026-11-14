@@ -75,6 +75,7 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	pnpm run deref-api-docs
 
 # The internal RPC method schema, which CI's openapi-diff checks for breaking changes.
+# It also ships with @sentry/api releases (static/packages/api) next to the API spec.
 build-rpc-schema:
 	@mkdir -p .artifacts
 	sentry rpcschema --loglevel=WARNING > .artifacts/rpc_method_schema.json

@@ -14,18 +14,20 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: read
+    outputs:
+      api_client: ${{ steps.changes.outputs.api_client }}
     steps:
       - name: github app token
         id: app-token
-        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          app-id: ${{ vars.SENTRY_API_SCHEMA_UPDATER_APP_CLIENT_ID }}
+          client-id: ${{ vars.SENTRY_API_SCHEMA_UPDATER_APP_CLIENT_ID }}
           private-key: ${{ secrets.SENTRY_API_SCHEMA_UPDATER_PRIVATE_KEY }}
           repositories: |
             sentry
             sentry-api-schema
 
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check for python file changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -38,11 +40,11 @@ jobs:
         uses: ./.github/actions/setup-sentry
         with:
           mode: migrations
-        if: steps.changes.outputs.api_docs == 'true'
+        if: steps.changes.outputs.api_client == 'true'
 
       - name: Checkout getsentry/sentry-api-schema
-        if: steps.changes.outputs.api_docs == 'true'
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        if: steps.changes.outputs.api_client == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: 'main'
           repository: getsentry/sentry-api-schema
@@ -54,41 +56,119 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Build OpenAPI Derefed JSON
-        if: steps.changes.outputs.api_docs == 'true'
+        if: steps.changes.outputs.api_client == 'true'
         run: |
           make build-api-docs
 
       - name: Build RPC method schema
-        if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          sentry rpcschema --loglevel=WARNING > rpc_method_schema.json
+        if: steps.changes.outputs.api_client == 'true'
+        run: make build-rpc-schema
+
+      - name: Collect the @sentry/api spec files
+        if: steps.changes.outputs.api_client == 'true'
+        run: pnpm --filter @sentry/api run build:spec
+
+      - name: Upload the @sentry/api spec files
+        if: steps.changes.outputs.api_client == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: api-spec
+          path: static/packages/api/spec/
+          if-no-files-found: error
+          retention-days: 1
 
       # openapi-diff compares each pull request with these, from the master
-      # commit it branched off.
+      # commit it branched off. The RPC schema comes from spec/ because
+      # upload-artifact skips hidden directories such as .artifacts/.
       - name: Upload the API schemas
         if: steps.changes.outputs.api_docs == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: api-schemas
           path: |
             tests/apidocs/openapi-derefed.json
-            rpc_method_schema.json
+            static/packages/api/spec/rpc_method_schema.json
           if-no-files-found: error
           retention-days: 30
 
       - name: Copy artifacts into getsentry/sentry-api-schema
-        if: steps.changes.outputs.api_docs == 'true'
-        run: |
-          cp tests/apidocs/openapi-derefed.json sentry-api-schema
-          cp src/sentry/apidocs/api_ownership_stats_dont_modify.json sentry-api-schema
-          cp rpc_method_schema.json sentry-api-schema
+        if: steps.changes.outputs.api_client == 'true'
+        run: cp static/packages/api/spec/* sentry-api-schema
 
       - name: Git Commit & Push
         uses: stefanzweifel/git-auto-commit-action@0049e3fa4059ca715255fbbcb7dea4516f02ce0a # v4.15.3
-        if: steps.changes.outputs.api_docs == 'true'
+        if: steps.changes.outputs.api_client == 'true'
         with:
           repository: sentry-api-schema
           branch: main
           commit_message: Generated
           commit_user_email: 271575301+sentry-api-schema-updater[bot]@users.noreply.github.com
           commit_user_name: sentry-api-schema-updater[bot]
+
+  # Releases @sentry/api (static/packages/api) when this commit changed what
+  # the package ships. The preflight script skips the run until a person has
+  # cut the first `api@` release with the Release workflow.
+  release-api-package:
+    needs: build_and_deref_json
+    # The spec files upload before the push to getsentry/sentry-api-schema, so
+    # a failed push does not hold up the release.
+    if: ${{ !cancelled() && needs.build_and_deref_json.outputs.api_client == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    # One release at a time, and never cancel a running one: it may have
+    # pushed its release branch already. A newer run replaces the one waiting,
+    # so a burst of merges releases once.
+    concurrency:
+      group: api-package-release
+      cancel-in-progress: false
+    steps:
+      - name: Get auth token
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+          owner: getsentry
+          repositories: |
+            sentry
+            publish
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ steps.token.outputs.token }}
+          # Tags and history for the preflight and craft, without the blobs.
+          fetch-depth: 0
+          filter: blob:none
+
+      # Craft prepares from the current branch and expects the default one.
+      - name: Put master on this commit
+        run: git checkout -B master
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: '.node-version'
+
+      - name: Download the @sentry/api spec files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: api-spec
+          path: ${{ runner.temp }}/api-spec
+
+      - name: Check what to release
+        id: preflight
+        env:
+          SPEC_DIR: ${{ runner.temp }}/api-spec
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: .github/workflows/scripts/api-package-release-preflight.sh
+
+      - name: Prepare release
+        if: steps.preflight.outputs.version != ''
+        uses: getsentry/craft@v3
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        with:
+          workspace: static/packages/api
+          version: ${{ steps.preflight.outputs.version }}
+          publish_repo: getsentry/publish

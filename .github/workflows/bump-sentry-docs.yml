@@ -1,0 +1,34 @@
+name: Bump @sentry/api in sentry-docs
+
+# Each published api@ release asks sentry-docs to pin the new @sentry/api
+# version. Craft publishes to npm before it publishes the GitHub release, so
+# the version is already on npm when this runs.
+on:
+  release:
+    types:
+      - published
+
+# The dispatch uses the app token below, not GITHUB_TOKEN.
+permissions: {}
+
+jobs:
+  dispatch:
+    if: startsWith(github.event.release.tag_name, 'api@')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Get auth token
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.SENTRY_API_SCHEMA_UPDATER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_API_SCHEMA_UPDATER_PRIVATE_KEY }}
+          owner: getsentry
+          repositories: sentry-docs
+          permission-actions: write
+
+      # Dispatch by file name: the workflow's display name has changed before.
+      - name: Dispatch the sentry-docs bump
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: gh workflow run bump-api-schema-sha.yml --repo getsentry/sentry-docs --ref master
