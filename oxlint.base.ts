@@ -798,7 +798,7 @@ const base = defineConfig({
     'unicorn/prefer-date-now': 'error',
     'unicorn/prefer-default-parameters': 'error',
     'unicorn/prefer-event-target': 'error',
-    'unicorn/prefer-includes': 'off',
+    'unicorn/prefer-includes': 'error',
     'unicorn/prefer-keyboard-event-key': 'error',
     'unicorn/prefer-math-trunc': 'error',
     'unicorn/prefer-modern-dom-apis': 'error',
