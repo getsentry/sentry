@@ -31,7 +31,11 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from './seerExplorerChatStateContext';
-import type {SeerExplorerRunId, SeerExplorerSidebarPosition} from './types';
+import type {
+  SeerExplorerChatReferrer,
+  SeerExplorerRunId,
+  SeerExplorerSidebarPosition,
+} from './types';
 import {
   SeerExplorerContext,
   type SeerExplorerContextValue,
@@ -78,6 +82,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const [sidebarInitialQuery, setSidebarInitialQuery] = useState<string | undefined>(
     undefined
   );
+  const [sidebarInitialQueryReferrer, setSidebarInitialQueryReferrer] = useState<
+    SeerExplorerChatReferrer | undefined
+  >(undefined);
   const [sidebarKey, setSidebarKey] = useState(0);
   const [sidebarPosition, setSidebarPositionState] =
     useLocalStorageState<SeerExplorerSidebarPosition>(
@@ -198,7 +205,12 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         // Mirror `useSeerExplorerDrawer`'s option handling so deep links
         // (runId), the command palette (initialQuery), and session switching
         // behave the same in sidebar mode as in the drawer.
-        const {runId: openRunId, initialQuery, appendToOpenRun} = drawerOptions ?? {};
+        const {
+          runId: openRunId,
+          initialQuery,
+          initialQueryReferrer,
+          appendToOpenRun,
+        } = drawerOptions ?? {};
         if (initialQuery) {
           // A forwarded query starts a fresh session unless the caller asked to
           // add to the open run. Bump the nonce either way so re-forwarding the
@@ -213,6 +225,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           dispatch({type: 'set run id', payload: openRunId});
         }
         setSidebarInitialQuery(initialQuery);
+        setSidebarInitialQueryReferrer(initialQueryReferrer);
         setSidebarAppendInitialQuery(!!appendToOpenRun);
         openSidebar();
         return;
@@ -407,6 +420,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       sidebarContainerRef,
       sidebarAppendInitialQuery,
       sidebarInitialQuery,
+      sidebarInitialQueryReferrer,
       sidebarKey,
       sidebarPosition,
       setSidebarPosition,
@@ -421,6 +435,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       sessionState,
       sidebarAppendInitialQuery,
       sidebarInitialQuery,
+      sidebarInitialQueryReferrer,
       sidebarKey,
       sidebarPosition,
       setSidebarPosition,
@@ -479,6 +494,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
                   key={sidebarKey}
                   getPageReferrer={getPageReferrer}
                   initialQuery={sidebarInitialQuery}
+                  initialQueryReferrer={sidebarInitialQueryReferrer}
                   appendInitialQuery={sidebarAppendInitialQuery}
                   onClose={closeSeerExplorer}
                   sidebarPosition={sidebarPosition}

@@ -28,6 +28,7 @@ import type {
   Block,
   RepoPRState,
   RespondToUserInputOptions,
+  SeerExplorerChatReferrer,
   SeerExplorerResponse,
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
@@ -266,6 +267,7 @@ export const useSeerExplorer = () => {
       /** The pending prompt this send took from chat state, put back if it fails. */
       pendingChatPrompt: ChatPrompt | null;
       query: string;
+      referrer: SeerExplorerChatReferrer | undefined;
       requestId: string;
       runId: SeerExplorerRunId | null;
       screenshot: string | undefined;
@@ -294,6 +296,7 @@ export const useSeerExplorer = () => {
           override_code_mode_enable: params.overrideCodeModeEnable,
           chat_prompt: params.chatPrompt?.text,
           chat_prompt_context: params.chatPrompt?.context,
+          referrer: params.referrer,
         },
       });
     },
@@ -489,7 +492,8 @@ export const useSeerExplorer = () => {
       query: string,
       explicitInsertIndex?: number,
       explicitRunId?: SeerExplorerRunId | null,
-      explicitChatPrompt?: ChatPrompt | null
+      explicitChatPrompt?: ChatPrompt | null,
+      referrer?: SeerExplorerChatReferrer
     ) => {
       if (!orgSlug) {
         return;
@@ -528,6 +532,7 @@ export const useSeerExplorer = () => {
       if (effectiveRunId === null) {
         trackAnalytics('seer.explorer.session_created', {
           referrer: pageName,
+          entry_point: referrer,
           surface: 'global_panel',
           organization,
         });
@@ -559,6 +564,8 @@ export const useSeerExplorer = () => {
       // Send POST request
       sendMessageMutate({
         query,
+        // Only a new run records where it started.
+        referrer: effectiveRunId === null ? referrer : undefined,
         chatPrompt,
         pendingChatPrompt: usesPendingChatPrompt ? pendingChatPrompt : null,
         requestId,
