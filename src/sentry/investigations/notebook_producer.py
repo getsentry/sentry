@@ -41,6 +41,7 @@ from sentry.notebooks.services.action_kinds.base import (
     FollowUpCommand,
 )
 from sentry.notebooks.services.producer import NotebookProducer, NotebookProducerRun
+from sentry.viewer_context import ActorId
 
 _OUTCOME_NAMESPACE = UUID("3d84e9e2-ed0b-4707-8dfc-8fce87c899ae")
 
@@ -220,6 +221,7 @@ class OrchestrationProducerRun(NotebookProducerRun):
             command_type=command.type,
             payload=command.payload,
             actor_id=command.actor_id,
+            service_account_id=command.requested_by_service_account_id,
         )
 
 
@@ -279,10 +281,10 @@ class OrchestrationProducer(NotebookProducer):
         return Q(orchestration_run__status__in=statuses)
 
     def archive_notebook(
-        self, *, notebook: Notebook, expected_version: int, actor_id: int | None
+        self, *, notebook: Notebook, expected_version: int, actor: ActorId
     ) -> Notebook:
         return archive_investigation_with_orchestration(
-            investigation=notebook, expected_version=expected_version, actor_id=actor_id
+            investigation=notebook, expected_version=expected_version, actor=actor
         )
 
     def update_notebook(

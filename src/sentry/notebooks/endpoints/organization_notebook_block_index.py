@@ -15,7 +15,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookEndpoint,
-    require_authenticated_user,
+    require_notebook_writer,
     service_error,
 )
 from sentry.notebooks.endpoints.serializers import (
@@ -24,7 +24,8 @@ from sentry.notebooks.endpoints.serializers import (
 )
 from sentry.notebooks.endpoints.validators import BlockCreateValidator
 from sentry.notebooks.models import Notebook
-from sentry.notebooks.services import create_block
+from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.auth import is_service_account_auth
 
 
 @extend_schema(tags=["Investigations"])
@@ -38,6 +39,9 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
         parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=BlockCreateValidator,
         responses={
+            200: inline_sentry_response_serializer(
+                "InvestigationBlockResponse", NotebookBlockSerializerResponse
+            ),
             201: inline_sentry_response_serializer(
                 "InvestigationBlockResponse", NotebookBlockSerializerResponse
             ),
@@ -51,36 +55,49 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
             OpenApiExample(
                 "Example request",
                 value={
-                    "investigationVersion": 1,
+                    "notebookVersion": 1,
                     "kind": "text",
                     "content": "Initial observations",
                 },
                 request_only=True,
-            )
+            ),
+            OpenApiExample(
+                "Example producer request",
+                value={
+                    "key": "summary",
+                    "revision": 1,
+                    "kind": "text",
+                    "content": "Root cause: a slow database query.",
+                },
+                request_only=True,
+            ),
         ],
     )
     def post(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
         """
-        Append a text or query block to an active investigation. Uses investigationVersion for
-        concurrency. Returns the new block; fetch investigation details for the updated notebook
-        version. Requires an authenticated user. Requires the organizations:investigations
-        feature and open organization membership.
+        Append a text or query block to an active investigation, using notebookVersion for
+        concurrency. A producer sends key and revision instead to write its text block: the
+        same key updates the block, overwriting user edits and bringing back a deleted block,
+        and a block with a newer revision returns 409. Returns 201 with the new block, or 200
+        when a producer's write updates one; fetch investigation details for the updated
+        notebook version. Requires a user or service account; key and revision require a
+        service account or Seer agent token. Requires the
+        organizations:investigations feature and open organization membership.
         """
-        actor_id = require_authenticated_user(request)
-        validator = BlockCreateValidator(data=request.data)
+        actor_id = require_notebook_writer(request, notebook)
+        validator = BlockCreateValidator(
+            data=request.data,
+            context={
+                "notebook": notebook,
+                "user_id": actor_id,
+                "producer_writer": is_service_account_auth(request.auth)
+                or is_agent_auth(request.auth),
+            },
+        )
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        values = dict(validator.validated_data)
-        notebook_version = values.pop("investigation_version")
-        values["prompt"] = values.pop("generation_prompt", "")
         try:
-            block = create_block(
-                notebook=notebook,
-                expected_notebook_version=notebook_version,
-                user_id=actor_id,
-                values=values,
-            )
+            block, created = validator.save()
         except Exception as error:
             response = service_error(error)
             if response is not None:
@@ -93,5 +110,5 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
                 request.user,
                 NotebookBlockSerializer(),
             ),
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )

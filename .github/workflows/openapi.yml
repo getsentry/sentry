@@ -77,6 +77,19 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      # openapi-diff compares each pull request with these, from the master
+      # commit it branched off.
+      - name: Upload the API schemas
+        if: steps.changes.outputs.api_docs == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: api-schemas
+          path: |
+            tests/apidocs/openapi-derefed.json
+            rpc_method_schema.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Copy artifacts into getsentry/sentry-api-schema
         if: steps.changes.outputs.api_client == 'true'
         run: cp static/packages/api/spec/* sentry-api-schema

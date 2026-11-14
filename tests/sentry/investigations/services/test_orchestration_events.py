@@ -1209,7 +1209,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         archive_investigation_with_orchestration(
             investigation=self.investigation,
             expected_version=original_version,
-            actor_id=self.user.id,
+            actor=ActorId(ActorType.USER, self.user.id),
         )
 
         with pytest.raises(NotebookConflictError):
@@ -1236,7 +1236,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         archived = archive_investigation_with_orchestration(
             investigation=self.investigation,
             expected_version=self.investigation.version,
-            actor_id=self.user.id,
+            actor=ActorId(ActorType.USER, self.user.id),
         )
         assert archived.status == NotebookStatus.ARCHIVED
         delayed_projection = self.projection(
@@ -3133,7 +3133,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         archive_investigation_with_orchestration(
             investigation=self.investigation,
             expected_version=self.investigation.version,
-            actor_id=self.user.id,
+            actor=ActorId(ActorType.USER, self.user.id),
         )
 
         requested = self.deliver_request(1, self.action_request("late", reportRevision=0))
@@ -3661,7 +3661,6 @@ class InvestigationCompletedInboxTest(InvestigationOrchestrationEventTestBase):
         assert event.actor_type == InboxActorType.SYSTEM
         assert event.actor_id is None
         assert event.data == {
-            "summary": "Investigation completed",
             "seer_run_id": self.seer_run_id,
         }
 

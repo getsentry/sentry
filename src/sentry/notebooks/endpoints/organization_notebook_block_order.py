@@ -15,7 +15,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookEndpoint,
-    require_authenticated_user,
+    require_notebook_writer,
     service_error,
 )
 from sentry.notebooks.endpoints.serializers import (
@@ -50,7 +50,7 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
         examples=[
             OpenApiExample(
                 "Example request",
-                value={"investigationVersion": 3, "blockIds": [2, 1]},
+                value={"notebookVersion": 3, "blockIds": [2, 1]},
                 request_only=True,
             )
         ],
@@ -58,18 +58,18 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
     def put(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
         """
         Set the order of all active blocks. Supply every active block ID exactly once and the
-        current notebook version. Returns the updated notebook with ordered blocks. Requires an
-        authenticated user. Requires the organizations:investigations feature and open
+        current notebook version. Returns the updated notebook with ordered blocks. Requires a
+        user or service account. Requires the organizations:investigations feature and open
         organization membership.
         """
-        require_authenticated_user(request)
+        require_notebook_writer(request, notebook)
         validator = BlockOrderValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         try:
             updated = reorder_blocks(
                 notebook=notebook,
-                expected_version=validator.validated_data["investigation_version"],
+                expected_version=validator.validated_data["notebook_version"],
                 block_ids=validator.validated_data["block_ids"],
             )
         except Exception as error:

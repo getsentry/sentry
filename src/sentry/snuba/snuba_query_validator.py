@@ -10,6 +10,7 @@ from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 
 from sentry import features
+from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import (
     IncompatibleMetricsQuery,
     InvalidSearchQuery,
@@ -26,6 +27,7 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.search.eap.constants import VALID_GRANULARITIES
+from sentry.search.eap.spans.validator import validate_spans_equation_aggregate
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -272,8 +274,26 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types
         )
 
+        is_spans = (
+            dataset == Dataset.EventsAnalyticsPlatform
+            and event_types
+            and SnubaQueryEventType.EventType.TRACE_ITEM_SPAN in event_types
+        )
+
         if is_trace_metrics:
             validate_trace_metrics_aggregate(aggregate)
+        elif is_spans and is_equation(aggregate):
+            if not features.has(
+                "organizations:spans-monitor-equations",
+                self.context["organization"],
+                actor=self.context.get("user", None),
+            ):
+                raise serializers.ValidationError(
+                    {"aggregate": _("Invalid Metric: Span monitors do not support equations.")}
+                )
+            validate_spans_equation_aggregate(
+                aggregate, self.context["organization"], [self.context["project"]]
+            )
         else:
             try:
                 if not check_aggregate_column_support(

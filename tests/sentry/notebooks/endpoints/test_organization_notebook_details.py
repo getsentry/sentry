@@ -16,11 +16,8 @@ from sentry.notebooks.models import (
     NotebookSourceType,
     NotebookStatus,
 )
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 FEATURE = "organizations:investigations"
 
@@ -88,48 +85,33 @@ class OrganizationNotebookDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data["status"] == "active"
 
-    def test_org_token_can_archive_a_legacy_notebook(self) -> None:
+    def test_update_takes_notebook_version(self) -> None:
         notebook = self.create_notebook(
-            organization=self.organization, created_by=self.user, title="Legacy investigation"
+            organization=self.organization, created_by=self.user, title="Versioned"
         )
-        token = generate_token(self.organization.slug, "")
-        self.create_org_auth_token(
-            organization_id=self.organization.id,
-            name="investigation token",
-            token_hashed=hash_token(token),
-            token_last_characters=token[-4:],
-            scope_list=["org:read"],
-        )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.client.logout()
 
-        response = self.client.put(
+        mismatched = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "status": "archived"},
+            data={"notebookVersion": 1, "investigationVersion": 2, "title": "Renamed"},
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        assert response.status_code == 200, response.data
-        notebook.refresh_from_db()
-        assert notebook.status == NotebookStatus.ARCHIVED
+        assert mismatched.status_code == 400
+        assert "notebookVersion" in mismatched.data
 
-        restored = self.client.put(
+        renamed = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "status": "active"},
+            data={"notebookVersion": 1, "title": "Renamed"},
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        assert restored.status_code == 200, restored.data
-        notebook.refresh_from_db()
-        deleted = self.client.delete(
+        assert renamed.status_code == 200, renamed.data
+        assert renamed.data["version"] == 2
+
+        stale = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version},
+            data={"notebookVersion": 1, "title": "Again"},
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        assert deleted.status_code == 204, deleted.data
-        notebook.refresh_from_db()
-        assert notebook.status == NotebookStatus.ARCHIVED
+        assert stale.status_code == 409
 
     def test_archive_rejects_an_active_block_run(self) -> None:
         created = self.client.post(

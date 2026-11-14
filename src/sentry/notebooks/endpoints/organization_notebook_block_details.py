@@ -16,7 +16,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookBlockEndpoint,
-    require_authenticated_user,
+    require_notebook_writer,
     service_error,
 )
 from sentry.notebooks.endpoints.serializers import (
@@ -55,7 +55,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         examples=[
             OpenApiExample(
                 "Example request",
-                value={"investigationVersion": 2, "version": 1, "content": "Revised observations"},
+                value={"notebookVersion": 2, "version": 1, "content": "Revised observations"},
                 request_only=True,
             )
         ],
@@ -70,10 +70,10 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         """
         Update at least one of title, content, generationPrompt, config, or display. Send both
         notebook and block versions. The block kind cannot change. Returns the updated block.
-        Requires an authenticated user. Requires the organizations:investigations feature and
-        open organization membership.
+        Requires a user or service account. Requires the organizations:investigations feature
+        and open organization membership.
         """
-        actor_id = require_authenticated_user(request)
+        actor_id = require_notebook_writer(request, notebook)
         if block.deleted_at is not None:
             raise ResourceDoesNotExist
 
@@ -82,7 +82,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         values = dict(validator.validated_data)
-        expected_notebook_version = values.pop("investigation_version")
+        expected_notebook_version = values.pop("notebook_version")
         expected_block_version = values.pop("version")
         if "generation_prompt" in values:
             values["prompt"] = values.pop("generation_prompt")
@@ -127,7 +127,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         examples=[
             OpenApiExample(
                 "Example request",
-                value={"investigationVersion": 2, "version": 1},
+                value={"notebookVersion": 2, "version": 1},
                 request_only=True,
             )
         ],
@@ -141,10 +141,10 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
     ) -> Response:
         """
         Soft-delete an active block using notebook and block versions. Active executions and
-        other state conflicts return 409. Returns no body. Requires an authenticated user.
+        other state conflicts return 409. Returns no body. Requires a user or service account.
         Requires the organizations:investigations feature and open organization membership.
         """
-        require_authenticated_user(request)
+        require_notebook_writer(request, notebook)
         if block.deleted_at is not None:
             raise ResourceDoesNotExist
 
@@ -154,7 +154,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         try:
             delete_block(
                 block=block,
-                expected_notebook_version=validator.validated_data["investigation_version"],
+                expected_notebook_version=validator.validated_data["notebook_version"],
                 expected_block_version=validator.validated_data["version"],
             )
         except Exception as error:
