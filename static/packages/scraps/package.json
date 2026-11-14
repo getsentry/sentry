@@ -406,7 +406,7 @@
     "@types/react-dom": "19.3.0",
     "expect-type": "1.4.0",
     "jest": "30.5.1",
-    "jsdom": "31.0.0",
+    "jsdom": "31.0.1",
     "oxlint": "1.90.0",
     "oxlint-tsgolint": "7.0.2005",
     "stylelint": "16.26.1",

@@ -167,7 +167,6 @@ overrides:
   '@testing-library/jest-dom>aria-query': 5.3.0
   diff@>=4.0.0 <4.0.4: 4.0.4
   diff@>=5.0.0 <5.2.2: 5.2.2
-  parse5-parser-stream>parse5: 8.1.0
 
 packageExtensionsChecksum: sha256-6PS6R18fJ3norQM6zPf1GwKmYhVhDpKxYHExT1Wjj6M=
 
@@ -1052,7 +1051,7 @@ importers:
         version: 30.5.1
       '@jest/environment-jsdom-abstract':
         specifier: 30.5.1
-        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0))
+        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.1(@noble/hashes@1.8.0))
       '@rsbuild/plugin-react':
         specifier: 2.1.1
         version: 2.1.1(@rsbuild/core@2.3.2(core-js@3.45.0))(@rspack/core@2.3.2(@swc/helpers@0.5.23))
@@ -1093,8 +1092,8 @@ importers:
         specifier: 30.5.1
         version: 30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2))
       jsdom:
-        specifier: 31.0.0
-        version: 31.0.0(@noble/hashes@1.8.0)
+        specifier: 31.0.1
+        version: 31.0.1(@noble/hashes@1.8.0)
       oxlint:
         specifier: 1.90.0
         version: 1.90.0(oxlint-tsgolint@7.0.2005)
@@ -1275,7 +1274,7 @@ importers:
         version: 30.5.1
       '@jest/environment-jsdom-abstract':
         specifier: 30.5.1
-        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0))
+        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.1(@noble/hashes@1.8.0))
       '@rsbuild/plugin-react':
         specifier: 2.1.1
         version: 2.1.1(@rsbuild/core@2.3.2(core-js@3.45.0))(@rspack/core@2.3.2(@swc/helpers@0.5.23))
@@ -1325,8 +1324,8 @@ importers:
         specifier: 30.5.1
         version: 30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2))
       jsdom:
-        specifier: 31.0.0
-        version: 31.0.0(@noble/hashes@1.8.0)
+        specifier: 31.0.1
+        version: 31.0.1(@noble/hashes@1.8.0)
       oxlint:
         specifier: 1.90.0
         version: 1.90.0(oxlint-tsgolint@7.0.2005)
@@ -1395,7 +1394,7 @@ importers:
         version: 30.5.1
       '@jest/environment-jsdom-abstract':
         specifier: 30.5.1
-        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0))
+        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.1(@noble/hashes@1.8.0))
       '@jest/test-result':
         specifier: 30.5.1
         version: 30.5.1
@@ -1410,7 +1409,7 @@ importers:
         version: 11.12.0
       '@sentry/jest-environment':
         specifier: 8.1.0
-        version: 8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0)))(@sentry/node@11.12.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@31.0.0(@noble/hashes@1.8.0))
+        version: 8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.1(@noble/hashes@1.8.0)))(@sentry/node@11.12.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@31.0.1(@noble/hashes@1.8.0))
       '@sentry/node':
         specifier: 11.12.0
         version: 11.12.0
@@ -1493,8 +1492,8 @@ importers:
         specifier: 30.5.1
         version: 30.5.1(patch_hash=f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f)
       jsdom:
-        specifier: 31.0.0
-        version: 31.0.0(@noble/hashes@1.8.0)
+        specifier: 31.0.1
+        version: 31.0.1(@noble/hashes@1.8.0)
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
@@ -2262,15 +2261,6 @@ packages:
   '@eslint/plugin-kit@0.7.3':
     resolution: {integrity: sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
-
-  '@exodus/bytes@1.15.1':
-    resolution: {integrity: sha512-S6mL0yNB/Abt9Ei4tq8gDhcczc4S3+vQ4ra7vxnAf+YHC02srtqxKKZghx2Dq6p0e66THKwR6r8N6P95wEty7Q==}
-    engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
-    peerDependencies:
-      '@noble/hashes': ^1.8.0 || ^2.0.0
-    peerDependenciesMeta:
-      '@noble/hashes':
-        optional: true
 
   '@exodus/bytes@1.16.0':
     resolution: {integrity: sha512-IcpW84uEn3N7ETtNZMlxKhfl6Pec8rUNGOTBtWbK1FKhJxIFAptZyVrvVRVBimAJxJCgc3PxepxkdWWG4DVzfA==}
@@ -7066,8 +7056,8 @@ packages:
     resolution: {integrity: sha512-/2uqY7x6bsrpi3i9LVU6J89352C0rpMk0as8trXxCtvd4kPk1ke/Eyif6wqfSLvoNJqcDG9Vk4UsXgygzCt2xA==}
     engines: {node: '>=20.0.0'}
 
-  jsdom@31.0.0:
-    resolution: {integrity: sha512-xAkhD9z1eyFC5+QUi9K24CaZJgdCQ2GOGLW1GdVDoQvkp/AxEH9TQ0pAplPOlIiV92hfcgnFOADZypbjgbBT6Q==}
+  jsdom@31.0.1:
+    resolution: {integrity: sha512-CbhJL8ZQg3eKswxSZth4QO9tW0jPIhmR0vtSXQSbKSfWbwIT6hoRc17wdHIVTQ43KI0mdV5iTJr3281IDgVZ5g==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
     peerDependencies:
       '@napi-rs/canvas': ^1.0.13
@@ -7785,9 +7775,6 @@ packages:
 
   parse5@8.0.1:
     resolution: {integrity: sha512-z1e/HMG90obSGeidlli3hj7cbocou0/wa5HacvI3ASx34PecNjNQeaHNo5WIZpWofN9kgkqV1q5YvXe3F0FoPw==}
-
-  parse5@8.1.0:
-    resolution: {integrity: sha512-sq3qBFpee5jeocbFbO48VHlGr8sT7mbXS0vxlKN6sottBtJzrOG3998sr0llSZcQAGgfpdmEYAIZE0P9z0dE8w==}
 
   parse5@8.1.1:
     resolution: {integrity: sha512-EcR/6WDcU7b2N3vQSxKALCk9lXGtUMQxXio008OEMBE0kavu/7JLfBEeFPzi43nMqVDSbEn3QCK+BMCc9zO//w==}
@@ -9902,10 +9889,6 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@exodus/bytes@1.15.1(@noble/hashes@1.8.0)':
-    optionalDependencies:
-      '@noble/hashes': 1.8.0
-
   '@exodus/bytes@1.16.0(@noble/hashes@1.8.0)':
     optionalDependencies:
       '@noble/hashes': 1.8.0
@@ -10085,7 +10068,7 @@ snapshots:
 
   '@jest/diff-sequences@30.5.0': {}
 
-  '@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0))':
+  '@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.1(@noble/hashes@1.8.0))':
     dependencies:
       '@jest/environment': 30.5.1
       '@jest/fake-timers': 30.5.1
@@ -10094,7 +10077,7 @@ snapshots:
       '@types/node': 26.6.4
       jest-mock: 30.5.1
       jest-util: 30.5.1
-      jsdom: 31.0.0(@noble/hashes@1.8.0)
+      jsdom: 31.0.1(@noble/hashes@1.8.0)
 
   '@jest/environment@30.5.1':
     dependencies:
@@ -11468,14 +11451,14 @@ snapshots:
     dependencies:
       '@sentry/core': 11.12.0
 
-  '@sentry/jest-environment@8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0)))(@sentry/node@11.12.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@31.0.0(@noble/hashes@1.8.0))':
+  '@sentry/jest-environment@8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.1(@noble/hashes@1.8.0)))(@sentry/node@11.12.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@31.0.1(@noble/hashes@1.8.0))':
     dependencies:
       '@sentry/node': 11.12.0
       jest: 30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.22(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2))
     optionalDependencies:
-      '@jest/environment-jsdom-abstract': 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.0(@noble/hashes@1.8.0))
+      '@jest/environment-jsdom-abstract': 30.5.1(@types/jsdom@21.1.7)(jsdom@31.0.1(@noble/hashes@1.8.0))
       jest-environment-node: 30.5.1
-      jsdom: 31.0.0(@noble/hashes@1.8.0)
+      jsdom: 31.0.1(@noble/hashes@1.8.0)
 
   '@sentry/node@11.12.0':
     dependencies:
@@ -14206,7 +14189,7 @@ snapshots:
 
   html-encoding-sniffer@7.0.0(@noble/hashes@1.8.0):
     dependencies:
-      '@exodus/bytes': 1.15.1(@noble/hashes@1.8.0)
+      '@exodus/bytes': 1.16.0(@noble/hashes@1.8.0)
     transitivePeerDependencies:
       - '@noble/hashes'
 
@@ -14872,7 +14855,7 @@ snapshots:
 
   jsdoc-type-pratt-parser@7.1.1: {}
 
-  jsdom@31.0.0(@noble/hashes@1.8.0):
+  jsdom@31.0.1(@noble/hashes@1.8.0):
     dependencies:
       '@exodus/bytes': 1.16.0(@noble/hashes@1.8.0)
       bcp-47: 2.1.2
@@ -15973,7 +15956,7 @@ snapshots:
 
   parse5-parser-stream@8.1.1:
     dependencies:
-      parse5: 8.1.0
+      parse5: 8.1.1
 
   parse5@7.3.0:
     dependencies:
@@ -15982,10 +15965,6 @@ snapshots:
   parse5@8.0.1:
     dependencies:
       entities: 8.1.0
-
-  parse5@8.1.0:
-    dependencies:
-      entities: 9.0.0
 
   parse5@8.1.1:
     dependencies:

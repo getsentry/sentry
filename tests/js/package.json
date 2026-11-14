@@ -216,7 +216,7 @@
     "jest-fail-on-console": "3.3.4",
     "jest-fetch-mock": "4.2.0",
     "jest-resolve": "30.5.1",
-    "jsdom": "31.0.0",
+    "jsdom": "31.0.1",
     "lodash": "^4.18.1",
     "mockdate": "3.0.5",
     "moment-timezone": "0.6.2",
