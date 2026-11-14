@@ -13,7 +13,7 @@ import {SeerCreditCheckStub} from 'sentry/components/seer/outOfCredits/__stories
 import * as Storybook from 'sentry/stories';
 import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
-import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 import {CodeChangesCard} from './codeChangesCard';
 
@@ -132,6 +132,18 @@ const SEER_OUT_OF_CREDITS_BLOCK: AutofixSection['blocks'][number] = {
     content:
       "Your organization doesn't have enough Seer credits for this, so I stopped here. Add credits to continue.",
   },
+};
+
+const OPEN_PR: RepoPRState = {
+  repo_name: 'org/repo',
+  branch_name: 'seer/fix-null-user',
+  commit_sha: 'abc1234',
+  pr_number: 42,
+  pr_id: 42,
+  pr_url: 'https://github.com/org/repo/pull/42',
+  title: 'Guard against a null user',
+  pr_creation_status: 'completed',
+  pr_creation_error: null,
 };
 
 function makeSection(
@@ -535,6 +547,67 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
             }}
           />
         </SeerCreditCheckStub>
+      </Fragment>
+    );
+  });
+
+  story('PR iteration Sentry stopped for credits', () => {
+    const user = useUser();
+    return (
+      <Fragment>
+        <Text size="sm" variant="muted">
+          Sentry's credit check refused the next PR iteration, so the run only has the{' '}
+          <code>pr_iteration_out_of_credits</code> warning. The finished step stays, the
+          refused feedback waits in the queue, and a line says the PR update stopped.
+        </Text>
+        <CodeChangesCard
+          groupId="1"
+          autofix={makeAutofix(
+            [
+              userUiFeedback(
+                'Add a regression test for an unauthenticated request',
+                user
+              ),
+            ],
+            {
+              repo_pr_states: {'org/repo': OPEN_PR},
+              warnings: [{warning_type: 'pr_iteration_out_of_credits'}],
+            }
+          )}
+          section={makeSection('completed', [
+            makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+          ])}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Branch-moved retry Sentry stopped for credits', () => {
+    const user = useUser();
+    return (
+      <Fragment>
+        <Text size="sm" variant="muted">
+          The PR branch moved, and Sentry's credit check refused the retry. The failed
+          feedback item uses the out-of-credits copy (hover the red icon).
+        </Text>
+        <CodeChangesCard
+          groupId="1"
+          autofix={makeAutofix([], {
+            repo_pr_states: {
+              'org/repo': {
+                ...OPEN_PR,
+                pr_creation_status: 'error',
+                pr_creation_error_code: 'branch_moved',
+                pr_creation_error:
+                  "The pull request's branch has commits newer than the code Seer edited, so pushing would have to force-push over them.",
+              },
+            },
+            warnings: [{warning_type: 'pr_iteration_out_of_credits'}],
+          })}
+          section={makeSection('completed', [
+            makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+          ])}
+        />
       </Fragment>
     );
   });
