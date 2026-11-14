@@ -156,7 +156,6 @@ CUSTOM_ERROR_MESSAGE_MATCHERS = [
 HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 
 MAX_PER_PROJECT_QUERIES = 10
-_EXPLICIT_MAPPING_REMOVALS_FEATURE = "organizations:jira-explicit-mapping-removals"
 
 
 class _ProjectStatusMapping(TypedDict):
@@ -498,25 +497,16 @@ class JiraIntegration(IssueSyncIntegration):
         """
         Update the configuration field for an organization integration.
 
-        With explicit removals enabled, an object upserts, `null` removes, and absence is a
-        no-op. Otherwise, the payload replaces all stored project mappings.
+        In the `sync_status_forward` payload an object upserts, `null` removes, and absence is a
+        no-op.
         """
         config = self.org_integration.config
         audit_data: dict[str, Any] = {}
 
         if self.outbound_status_key in data:
-            supports_explicit_removals = features.has(
-                _EXPLICIT_MAPPING_REMOVALS_FEATURE, self.organization
-            )
             raw_project_mappings = data.pop(self.outbound_status_key)
-            mapping_diff = self._validate_project_status_mapping_diff(
-                raw_project_mappings,
-                allow_explicit_removals=supports_explicit_removals,
-            )
-            result = self._reconcile_project_status_mappings(
-                mapping_diff,
-                remove_omitted=not supports_explicit_removals,
-            )
+            mapping_diff = self._validate_project_status_mapping_diff(raw_project_mappings)
+            result = self._reconcile_project_status_mappings(mapping_diff)
             if result.audit is not None:
                 audit_data[self.outbound_status_key] = result.audit
 
@@ -565,13 +555,11 @@ class JiraIntegration(IssueSyncIntegration):
     @staticmethod
     def _validate_project_status_mapping_diff(
         project_mappings: object,
-        allow_explicit_removals: bool,
     ) -> _ProjectMappingDiff:
         """
         Validate and normalize the `sync_status_forward` payload into a mapping diff.
 
-        With explicit removals, keyed by Jira project id: an object upserts and `null` value removes.
-        Otherwise, keyed by Jira project id: an object upserts and absence deletes.
+        Keyed by Jira project id: an object upserts and a `null` value removes.
         """
         # Since the parent endpoint doesn't have a validator we have a guard
         if not isinstance(project_mappings, Mapping):
@@ -590,8 +578,6 @@ class JiraIntegration(IssueSyncIntegration):
                 )
 
             if statuses is None:
-                if not allow_explicit_removals:
-                    raise IntegrationError("Resolve and unresolve status are required.")
                 removals.add(external_id)
                 continue
 
@@ -610,14 +596,12 @@ class JiraIntegration(IssueSyncIntegration):
     def _reconcile_project_status_mappings(
         self,
         mapping_diff: _ProjectMappingDiff,
-        remove_omitted: bool,
     ) -> _MappingReconcileResult:
         """
         Apply a mapping diff to create/update/delete `IntegrationExternalProject` rows.
 
-        Omitted mappings are removed in legacy replacement mode and preserved when explicit
-        removals are enabled. Returns the audit detail for the change plus the number of mappings
-        left behind, which is what the config bool is derived from.
+        Omitted mappings are preserved. Returns the audit detail for the change plus the number
+        of mappings left behind, which is what the config bool is derived from.
         """
         upserts = mapping_diff.upserts
         requested_removals = mapping_diff.removals
@@ -633,12 +617,9 @@ class JiraIntegration(IssueSyncIntegration):
                 external_id: _stored_statuses(iep) for external_id, iep in existing.items()
             }
 
-            if remove_omitted:
-                removals = [external_id for external_id in existing if external_id not in upserts]
-            else:
-                removals = [
-                    external_id for external_id in requested_removals if external_id in existing
-                ]
+            removals = [
+                external_id for external_id in requested_removals if external_id in existing
+            ]
             additions = [external_id for external_id in upserts if external_id not in existing]
             updates = [
                 external_id
@@ -648,13 +629,9 @@ class JiraIntegration(IssueSyncIntegration):
             ]
 
             # only used for tracking rollout of feature
-            omitted_count = (
-                0
-                if remove_omitted
-                else sum(
-                    external_id not in upserts and external_id not in requested_removals
-                    for external_id in existing
-                )
+            omitted_count = sum(
+                external_id not in upserts and external_id not in requested_removals
+                for external_id in existing
             )
 
             # Built before the writes below, while the existing rows still hold their prior
