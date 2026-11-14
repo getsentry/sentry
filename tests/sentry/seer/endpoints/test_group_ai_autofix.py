@@ -1259,6 +1259,24 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert mock_trigger_explorer.call_args.kwargs["referrer"] == AutofixReferrer.SEER_EXPLORER
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_cannot_claim_agentic_triage_referrer(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause", "referrer": AutofixReferrer.AGENTIC_TRIAGE.value},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert mock_trigger_explorer.call_args.kwargs["referrer"] == AutofixReferrer.UNKNOWN
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_stopping_point(self, mock_trigger_explorer: MagicMock) -> None:
         """Stopping point forces the step to be root_cause"""
         group = self.create_group()
