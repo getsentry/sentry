@@ -34,3 +34,12 @@ class OrganizationAuthProviders(APITestCase):
         assert "dummy" in providers
         assert ChannelName.FLY_IO.value not in providers
         assert ChannelName.FLY_NON_PARTNER.value not in providers
+
+    def test_oidc_is_hidden_without_its_feature(self) -> None:
+        with self.feature({"organizations:sso-basic": True, "organizations:sso-oidc": False}):
+            response = self.get_success_response(self.organization.slug)
+        assert "oidc" not in {d["key"] for d in response.data}
+
+        with self.feature(["organizations:sso-basic", "organizations:sso-oidc"]):
+            response = self.get_success_response(self.organization.slug)
+        assert "oidc" in {d["key"] for d in response.data}
