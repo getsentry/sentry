@@ -1,3 +1,5 @@
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -12,6 +14,7 @@ import {
   modifyFilterValue,
   multiSelectTokenValue,
   replaceFreeTextTokens,
+  useQueryBuilderState,
 } from './useQueryBuilderState';
 
 function getFirstFilterToken(
@@ -572,5 +575,79 @@ describe('syntax-bearing filter keys', () => {
         value: 'alternate_fictional_value',
       }).query
     ).toBe('tags[imaginary_tag]:[fictional_value,alternate_fictional_value]');
+  });
+});
+
+describe('replacing tokens with text', () => {
+  const parseQuery = (query: string) => parseQueryBuilderValue(query, () => null);
+
+  function setup(initialQuery: string) {
+    const token = parseQuery(initialQuery)?.find(
+      t => t.type === Token.FILTER && t.text.startsWith('custom_tag_name')
+    );
+    if (token?.type !== Token.FILTER) {
+      throw new Error(`No custom_tag_name filter in query: ${initialQuery}`);
+    }
+    const {result} = renderHookWithProviders(() =>
+      useQueryBuilderState({
+        disabled: false,
+        displayAskSeerFeedback: false,
+        getFieldDefinition: () => null,
+        initialQuery,
+        parseQuery,
+        searchSource: 'test',
+        setDisplayAskSeerFeedback: jest.fn(),
+      })
+    );
+    return {result, token};
+  }
+
+  it.each([
+    [
+      'browser.name:firefox (custom_tag_name:123) browser.name:chrome',
+      'browser.name:firefox browser.name:chrome',
+    ],
+    ['browser.name:firefox (custom_tag_name:123)', 'browser.name:firefox'],
+    ['browser.name:firefox ( ( custom_tag_name:123 ) )', 'browser.name:firefox'],
+    ['browser.name:firefox custom_tag_name:123', 'browser.name:firefox'],
+    [
+      'browser.name:firefox   custom_tag_name:123   browser.name:chrome',
+      'browser.name:firefox browser.name:chrome',
+    ],
+  ])(
+    'focuses the free text where the filter was when deleting it from %s',
+    (initialQuery, expectedQuery) => {
+      const {result, token} = setup(initialQuery);
+
+      act(() => result.current.dispatch({type: 'DELETE_TOKEN', token}));
+
+      expect(result.current.state).toEqual(
+        expect.objectContaining({
+          query: expectedQuery,
+          focusOverride: {itemKey: 'freeText:1'},
+        })
+      );
+    }
+  );
+
+  it('focuses the free text after pasted text when it replaces a filter after extra spaces', () => {
+    const {result, token} = setup(
+      'browser.name:firefox   custom_tag_name:123 browser.name:chrome'
+    );
+
+    act(() =>
+      result.current.dispatch({
+        type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
+        tokens: [token],
+        text: 'os.name:linux',
+      })
+    );
+
+    expect(result.current.state).toEqual(
+      expect.objectContaining({
+        query: 'browser.name:firefox os.name:linux browser.name:chrome',
+        focusOverride: {itemKey: 'freeText:2'},
+      })
+    );
   });
 });

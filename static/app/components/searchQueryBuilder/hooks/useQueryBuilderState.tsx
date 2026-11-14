@@ -630,6 +630,34 @@ function updateFreeText(
   };
 }
 
+function getQueryAroundTokens(
+  query: string,
+  tokens: Array<TokenResult<Token>>,
+  text: string
+): {after: string; before: string} | null {
+  const firstToken = tokens[0];
+  if (!firstToken) {
+    return null;
+  }
+
+  const lastToken = tokens.at(-1);
+  if (!lastToken) {
+    return null;
+  }
+
+  let before = query.slice(0, firstToken.location.start.offset);
+  let after = query.slice(lastToken.location.end.offset);
+  const countOf = (type: Token) => tokens.filter(token => token.type === type).length;
+  if (text === '' && countOf(Token.L_PAREN) === countOf(Token.R_PAREN)) {
+    while (before.trimEnd().endsWith('(') && after.trimStart().startsWith(')')) {
+      before = before.trimEnd().slice(0, -1);
+      after = after.trimStart().slice(1);
+    }
+  }
+
+  return {before, after};
+}
+
 function replaceTokensWithText(
   state: QueryBuilderState,
   {
@@ -646,7 +674,13 @@ function replaceTokensWithText(
     focusOverride?: FocusOverride;
   }
 ): QueryBuilderState {
-  const newQuery = replaceTokensWithPadding(state.query, tokens, text);
+  const surroundingQuery = getQueryAroundTokens(state.query, tokens, text);
+  if (!surroundingQuery) {
+    return state;
+  }
+
+  const {before, after} = surroundingQuery;
+  const newQuery = removeExcessWhitespaceFromParts(before, text, after);
 
   if (newQuery === state.query) {
     return state;
@@ -667,7 +701,7 @@ function replaceTokensWithText(
     };
   }
 
-  const cursorPosition = (tokens[0]?.location.start.offset ?? 0) + text.length; // TODO: Ensure this is sorted
+  const cursorPosition = removeExcessWhitespaceFromParts(before, text).length; // TODO: Ensure this is sorted
   const newParsedQuery = parseQuery(newQuery);
 
   const focusedToken = newParsedQuery?.find(

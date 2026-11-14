@@ -1633,6 +1633,53 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
 
+    it.each([
+      ['browser.name:firefox (custom_tag_name:123)', 'browser.name:firefox'],
+      ['browser.name:firefox ( ( custom_tag_name:123 ) )', 'browser.name:firefox'],
+      ['(browser.name:firefox custom_tag_name:123)', '(browser.name:firefox )'],
+    ])(
+      'removes only parens left empty when removing a filter from %s',
+      async (initialQuery, expectedQuery) => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery={initialQuery}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Remove filter: custom_tag_name'})
+        );
+
+        expect(mockOnChange).toHaveBeenCalledWith(expectedQuery, expect.anything());
+      }
+    );
+
+    it('focuses where the parens were when removing the only filter inside them', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="browser.name:firefox (custom_tag_name:123) browser.name:chrome"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Remove filter: custom_tag_name'})
+      );
+
+      expect(mockOnChange).toHaveBeenCalledWith(
+        'browser.name:firefox browser.name:chrome',
+        expect.anything()
+      );
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'})[1]
+      ).toHaveFocus();
+    });
+
     describe('logic ops', () => {
       it('can remove logic selector by clicking the delete button', async () => {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
@@ -2549,6 +2596,34 @@ describe('SearchQueryBuilder', () => {
       await userEvent.keyboard('{backspace}{backspace}');
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
+
+    it('removes enclosing parens when the only selected filter inside them is deleted', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="browser.name:firefox (custom_tag_name:123)"
+        />
+      );
+
+      await userEvent.click(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-2)!
+      );
+      await userEvent.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'custom_tag_name:123'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+      await userEvent.keyboard('{backspace}');
+
+      expect(mockOnChange).toHaveBeenCalledWith(
+        'browser.name:firefox',
+        expect.anything()
+      );
     });
 
     it('can remove logic ops with the keyboard', async () => {
