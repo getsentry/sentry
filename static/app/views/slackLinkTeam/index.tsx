@@ -1,7 +1,9 @@
+import {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -13,9 +15,43 @@ import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestEr
 import {useParams} from 'sentry/utils/useParams';
 
 import {LinkTeamForm} from './linkTeamForm';
-import type {LinkTeamContext} from './types';
+import type {LinkResult, LinkTeamContext} from './types';
+
+interface LinkResultViewProps {
+  context: LinkTeamContext;
+  result: LinkResult;
+}
+
+function LinkResultView({context, result}: LinkResultViewProps) {
+  const isLinked = result.kind === 'linked';
+
+  return (
+    <Stack gap="xl">
+      <Heading as="h3" size="xl">
+        {isLinked ? t('Team linked') : t('Team already linked')}
+      </Heading>
+      <Alert variant={isLinked ? 'success' : 'info'}>
+        {isLinked
+          ? tct(
+              'The [team] team will now receive issue alert notifications in the [channel] channel.',
+              {
+                team: <strong>#{result.team.slug}</strong>,
+                channel: <strong>#{context.channelName}</strong>,
+              }
+            )
+          : result.detail}
+      </Alert>
+      <Flex justify="end">
+        <LinkButton variant="primary" href={context.channelUrl}>
+          {t('Go back to Slack')}
+        </LinkButton>
+      </Flex>
+    </Stack>
+  );
+}
 
 function SlackLinkTeamBody({signedParams}: {signedParams: string}) {
+  const [result, setResult] = useState<LinkResult | null>(null);
   const {
     data: context,
     isPending,
@@ -35,6 +71,10 @@ function SlackLinkTeamBody({signedParams}: {signedParams: string}) {
 
   if (isError) {
     return <Alert variant="danger">{getRequestErrorUserMessage(error)}</Alert>;
+  }
+
+  if (result) {
+    return <LinkResultView context={context} result={result} />;
   }
 
   const heading = (
@@ -66,7 +106,11 @@ function SlackLinkTeamBody({signedParams}: {signedParams: string}) {
           )}
         </Text>
       </Stack>
-      <LinkTeamForm organizations={context.organizations} signedParams={signedParams} />
+      <LinkTeamForm
+        organizations={context.organizations}
+        signedParams={signedParams}
+        onLinked={setResult}
+      />
     </Stack>
   );
 }
