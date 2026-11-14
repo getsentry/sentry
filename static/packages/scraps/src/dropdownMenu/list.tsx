@@ -8,7 +8,6 @@ import {useMenu, useMenuTrigger} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {Item, Section} from '@react-stately/collections';
 import type {TreeProps, TreeState} from '@react-stately/tree';
-import {useTreeState} from '@react-stately/tree';
 import type {Key, Node} from '@react-types/shared';
 
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -47,6 +46,7 @@ import {DropdownMenuSeparator} from './separator';
 import {useDropdownMenuKeyboard} from './useDropdownMenuKeyboard';
 import {useDropdownMenuRowLayout} from './useDropdownMenuRowLayout';
 import {useSafetyTriangle} from './useSafetyTriangle';
+import {useStableTreeState} from './useStableTreeState';
 import {
   countMenuItems,
   filterMenuItems,
@@ -307,7 +307,7 @@ function DropdownMenuList({
   const theme = useTheme();
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
   const safetyTriangle = useSafetyTriangle();
-  const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
+  const state = useStableTreeState({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
   const flatNodes = useMemo(() => flattenSections(stateCollection), [stateCollection]);
   const items = useMemo(
