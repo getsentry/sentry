@@ -17,6 +17,7 @@ from sentry.agent_handoff.codes import (
     revoke_handoff,
 )
 from sentry.analytics.events.agent_handoff import AgentHandoffClaimedEvent
+from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeIssuedEvent
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
@@ -24,7 +25,11 @@ from sentry.onboarding.agentic_progress.model import ProgressUpdate, Stage, Stag
 from sentry.onboarding.agentic_progress.service import get_onboarding_progress_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+    assert_not_analytics_event,
+)
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -74,7 +79,8 @@ class AgentHandoffViewTest(TestCase):
             REMOTE_ADDR=ip_address,
         )
 
-    def test_claim_mints_once_and_returns_the_private_guide(self) -> None:
+    @patch("sentry.analytics.record")
+    def test_claim_mints_once_and_returns_the_private_guide(self, mock_record: MagicMock) -> None:
         code = self.issue()
         response = self.client.post(
             "/agent-handoff.md",
@@ -100,6 +106,16 @@ class AgentHandoffViewTest(TestCase):
         )
         assert self.claim(code).status_code == 410
         assert ApiSetupCode.objects.filter(user_id=self.user.id).count() == 1
+        assert_any_analytics_event(
+            mock_record,
+            OAuthSetupCodeIssuedEvent(
+                user_id=self.user.id,
+                organization_id=None,
+                application_id=self.application.id,
+                setup_code_id=setup.id,
+                flow=HandoffFlow.ONBOARDING.value,
+            ),
+        )
 
     def test_claim_activates_existing_onboarding_run(self) -> None:
         progress = get_onboarding_progress_service()
@@ -124,7 +140,10 @@ class AgentHandoffViewTest(TestCase):
         assert retried.status_code == 200
         assert f"onboarding run code is `{code}`" in retried.content.decode()
 
-    def test_foreign_run_prevents_claim_and_setup_code_minting(self) -> None:
+    @patch("sentry.analytics.record")
+    def test_foreign_run_prevents_claim_and_setup_code_minting(
+        self, mock_record: MagicMock
+    ) -> None:
         run, _ = get_onboarding_progress_service().create_or_resume(
             user_id=self.create_user().id,
             organization_id=self.organization.id,
@@ -134,6 +153,7 @@ class AgentHandoffViewTest(TestCase):
         assert response.status_code == 410
         assert not ApiSetupCode.objects.exists()
         assert not ApiAuthorization.objects.exists()
+        assert_not_analytics_event(mock_record, OAuthSetupCodeIssuedEvent)
 
     def test_claim_dispatches_flow_with_authorized_handoff_context(self) -> None:
         with patch(
