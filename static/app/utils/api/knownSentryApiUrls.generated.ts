@@ -45,6 +45,7 @@ export type KnownSentryApiUrls =
   | '/doc-integrations/$docIntegrationIdOrSlug/'
   | '/doc-integrations/$docIntegrationIdOrSlug/avatar/'
   | '/integration-features/'
+  | '/integrations/slack/link-team/$signedParams/'
   | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/'
   | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/assemble-generic/'
   | '/internal/$organizationIdOrSlug/$projectIdOrSlug/files/preprodartifacts/$headArtifactId/size/'

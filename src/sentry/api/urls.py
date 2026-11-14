@@ -307,6 +307,7 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
+from sentry.integrations.slack.endpoints.link_team_context import SlackLinkTeamContextEndpoint
 from sentry.investigations.endpoints.organization_investigation_candidates import (
     OrganizationInvestigationCandidatesEndpoint,
 )
@@ -4016,6 +4017,11 @@ urlpatterns = [
         r"^integration-features/$",
         IntegrationFeaturesEndpoint.as_view(),
         name="sentry-api-0-integration-features",
+    ),
+    re_path(
+        r"^integrations/slack/link-team/(?P<signed_params>[^/]+)/$",
+        SlackLinkTeamContextEndpoint.as_view(),
+        name="sentry-api-0-slack-link-team-context",
     ),
     # Project Wizard
     re_path(
