@@ -7,7 +7,7 @@ from typing import Any
 import orjson
 import sentry_sdk
 from django.conf import settings
-from django.db import router
+from django.db import IntegrityError, router
 from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
 from sentry_redis_tools.clients import RedisCluster
@@ -184,38 +184,47 @@ def index_urls_in_bundle(
 
     # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
     # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.
-    with atomic_transaction(
-        using=(
-            router.db_for_write(ArtifactBundle),
-            router.db_for_write(ArtifactBundleIndex),
-        )
-    ):
-        # Since we use read committed isolation, the value we read here can change after query execution,
-        # but we have this check in place for analytics purposes.
-        bundle_was_indexed = ArtifactBundle.objects.filter(
-            id=artifact_bundle.id,
-            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
-        ).exists()
-        # If the bundle was already indexed, we will skip insertion into the database.
-        if bundle_was_indexed:
-            metrics.incr("artifact_bundle_indexing.bundle_was_already_indexed")
-            return
+    try:
+        with atomic_transaction(
+            using=(
+                router.db_for_write(ArtifactBundle),
+                router.db_for_write(ArtifactBundleIndex),
+            )
+        ):
+            # Since we use read committed isolation, the value we read here can change after query execution,
+            # but we have this check in place for analytics purposes.
+            bundle_was_indexed = ArtifactBundle.objects.filter(
+                id=artifact_bundle.id,
+                indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
+            ).exists()
+            # If the bundle was already indexed, we will skip insertion into the database.
+            if bundle_was_indexed:
+                metrics.incr("artifact_bundle_indexing.bundle_was_already_indexed")
+                return
 
-        # Insert the index
-        # NOTE: The django ORM by default tries to batch *all* the inserts into a single query,
-        # which is not quite that efficient. We want to have a fixed batch size,
-        # which will result in a fixed number of unique `INSERT` queries.
-        ArtifactBundleIndex.objects.bulk_create(urls_to_index, batch_size=50)
+            # Insert the index
+            # NOTE: The django ORM by default tries to batch *all* the inserts into a single query,
+            # which is not quite that efficient. We want to have a fixed batch size,
+            # which will result in a fixed number of unique `INSERT` queries.
+            ArtifactBundleIndex.objects.bulk_create(urls_to_index, batch_size=50)
 
-        # Mark the bundle as indexed
-        ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
-            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
-        )
+            # Mark the bundle as indexed
+            ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
+                indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
+            )
+    except IntegrityError:
+        # The foreign key from `ArtifactBundleIndex` to `ArtifactBundle` is deferred, so it is only
+        # checked on commit. An upload of the same bundle can delete this one as a duplicate in the
+        # meantime, which leaves nothing to index.
+        if ArtifactBundle.objects.filter(id=artifact_bundle.id).exists():
+            raise
+        metrics.incr("artifact_bundle_indexing.bundle_deleted_during_indexing")
+        return
 
-        metrics.incr("artifact_bundle_indexing.bundles_indexed")
-        metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls_to_index))
-        if skipped_urls:
-            metrics.incr("artifact_bundle_indexing.urls_skipped", skipped_urls)
+    metrics.incr("artifact_bundle_indexing.bundles_indexed")
+    metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls_to_index))
+    if skipped_urls:
+        metrics.incr("artifact_bundle_indexing.urls_skipped", skipped_urls)
 
 
 # ===== Renewal of Artifact Bundles =====
