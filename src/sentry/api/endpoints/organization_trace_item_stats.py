@@ -12,8 +12,9 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_sdk import traces
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -40,6 +41,7 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.cache import default_cache
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions
@@ -62,13 +64,19 @@ from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils import metrics, snuba
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.hashlib import hash_values
 
 logger = logging.getLogger(__name__)
 
 
 MAX_THREADS = 4
+
+# Long enough to cover paging through the attribute breakdowns. The key list is already
+# a sample of the most recent items, so a few minutes of staleness doesn't matter.
+ATTRIBUTE_KEYS_CACHE_TTL = int(timedelta(minutes=5).total_seconds())
 
 SupportedItemType = Literal["spans", "occurrences"]
 SUPPORTED_ITEM_TYPES: tuple[SupportedItemType, ...] = get_args(SupportedItemType)
@@ -115,6 +123,74 @@ def _find_aggregate_filters(terms: Sequence[QueryToken]) -> list[AggregateFilter
         elif isinstance(term, ParenExpression):
             found.extend(_find_aggregate_filters(term.children))
     return found
+
+
+def get_attribute_keys_cache_key(
+    snuba_params: SnubaParams,
+    serialized: dict[str, Any],
+    include_internal: bool,
+    include_internal_convention_attributes: bool,
+) -> str:
+    """
+    Every input that changes which attribute keys are discovered must be in this
+    key. The visibility flags are included so users who can see internal
+    attributes never share an entry with users who can't.
+    """
+    filters_hash = hash_values(
+        [
+            snuba_params.organization_id,
+            sorted(snuba_params.project_ids),
+            sorted(snuba_params.environment_names),
+            snuba_params.sampling_mode,
+            snuba_params.case_insensitive,
+            # Queries can resolve per-user values, such as is_starred_transaction.
+            snuba_params.user.id if snuba_params.user else None,
+            serialized.get("itemType", "spans"),
+            serialized.get("query", ""),
+            sorted(serialized.get("statsType", [])),
+            serialized.get("traceItemsLimit", 1000),
+            include_internal,
+            include_internal_convention_attributes,
+        ]
+    )
+    # A relative range like statsPeriod=24h resolves to a new end on every request.
+    # Rounding the end to a 5-minute window lets later pages reuse the entry. The
+    # rounding is jittered by the md5, not hash(), because hash() is salted per
+    # process and every web worker has to land on the same window.
+    duration = (snuba_params.end_date - snuba_params.start_date).total_seconds()
+    quantized_end = snuba.quantize_time(snuba_params.end_date, int(filters_hash, 16))
+    return f"trace-item-stats:keys:{filters_hash}:{duration}@{quantized_end.isoformat()}"
+
+
+def get_cached_attribute_keys(cache_key: str, item_type: str) -> list[list[str]] | None:
+    with traces.start_span(
+        name="sentry.api.trace_item_stats.cache.attribute_keys",
+        attributes={"sentry.op": "cache.get"},
+    ) as span:
+        result = cast("list[list[str]] | None", default_cache.get(cache_key))
+        span.set_attribute("cache.key", [cache_key])
+        if result is not None:
+            span.set_attribute("cache.hit", True)
+            span.set_attribute("cache.item_size", len(str(result)))
+            metrics.incr(
+                "api.trace_item_stats.attribute_keys_cache.hit", tags={"item_type": item_type}
+            )
+        else:
+            span.set_attribute("cache.hit", False)
+            metrics.incr(
+                "api.trace_item_stats.attribute_keys_cache.miss", tags={"item_type": item_type}
+            )
+        return result
+
+
+def set_cached_attribute_keys(cache_key: str, attribute_keys: list[list[str]]) -> None:
+    with traces.start_span(
+        name="sentry.api.trace_item_stats.cache.attribute_keys",
+        attributes={"sentry.op": "cache.put"},
+    ) as span:
+        default_cache.set(cache_key, attribute_keys, ATTRIBUTE_KEYS_CACHE_TTL)
+        span.set_attribute("cache.key", [cache_key])
+        span.set_attribute("cache.item_size", len(str(attribute_keys)))
 
 
 class TraceItemStatsPaginator:
@@ -324,10 +400,14 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     attributes=attributes,
                 )
 
-        def data_fn(offset: int, limit: int) -> tuple[dict[str, Any], int]:
+        def discover_attribute_keys() -> list[list[str]]:
+            """
+            Returns [internal name, public alias] pairs. substringMatch is applied by
+            the caller, so key searches can reuse the cached list.
+            """
             table_results = get_table_results()
             if not table_results["data"]:
-                return {"data": []}, 0
+                return []
 
             item_ids = [row[stats_config.id_column] for row in table_results["data"]]
             item_id_list = ",".join(item_ids)
@@ -340,9 +420,9 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     preflight_stats[0]["attributeDistributions"]["data"].keys()
                 )
             except (IndexError, KeyError):
-                return {"data": []}, 0
+                return []
 
-            sanitized_keys = []
+            discovered_keys: list[list[str]] = []
             visited_public_keys = []
             for internal_name in internal_alias_attr_keys:
                 public_alias = stats_config.alias_mappings.get("string", {}).get(
@@ -363,14 +443,45 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                 ):
                     continue
 
-                if value_substring_match:
-                    if value_substring_match in public_alias:
-                        visited_public_keys.append(public_alias)
-                        sanitized_keys.append(internal_name)
-                    continue
-
                 visited_public_keys.append(public_alias)
-                sanitized_keys.append(internal_name)
+                discovered_keys.append([internal_name, public_alias])
+
+            return discovered_keys
+
+        use_key_cache = (
+            features.has(
+                "organizations:explore-trace-item-stats-key-cache",
+                organization,
+                actor=request.user,
+            )
+            and request.GET.get("skipCache") != "1"
+        )
+
+        def get_attribute_keys() -> list[list[str]]:
+            if not use_key_cache:
+                return discover_attribute_keys()
+
+            item_type = serialized.get("itemType", "spans")
+            cache_key = get_attribute_keys_cache_key(
+                snuba_params,
+                serialized,
+                include_internal,
+                include_internal_convention_attributes,
+            )
+            discovered_keys = get_cached_attribute_keys(cache_key, item_type)
+            if discovered_keys is None:
+                discovered_keys = discover_attribute_keys()
+                set_cached_attribute_keys(cache_key, discovered_keys)
+            return discovered_keys
+
+        def data_fn(offset: int, limit: int) -> tuple[dict[str, Any], int]:
+            discovered_keys = get_attribute_keys()
+
+            sanitized_keys = [
+                internal_name
+                for internal_name, public_alias in discovered_keys
+                if value_substring_match in public_alias
+            ]
 
             # The number of attributes available across all pages drives pagination
             # (see TraceItemStatsPaginator), so capture the total before slicing.
