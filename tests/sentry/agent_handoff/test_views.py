@@ -101,6 +101,33 @@ class AgentHandoffViewTest(TestCase):
         assert self.claim(code).status_code == 410
         assert ApiSetupCode.objects.filter(user_id=self.user.id).count() == 1
 
+    def test_claim_returns_dynamic_content_as_json(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.onboarding.OnboardingFlow.render",
+            return_value="Follow the onboarding guide.",
+        ):
+            response = self.client.post(
+                "/agent-handoff.md",
+                urlencode({"handoff_code": self.issue()}),
+                content_type="application/x-www-form-urlencoded",
+                HTTP_ACCEPT="application/json",
+            )
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+        body = response.json()
+        assert body == {
+            "sentryUrl": "http://testserver",
+            "userEmail": self.user.email,
+            "organizationName": self.organization.name,
+            "organizationSlug": self.organization.slug,
+            "clientId": self.application.client_id,
+            "setupCode": body["setupCode"],
+            "flowInstructions": "Follow the onboarding guide.",
+        }
+        assert body["setupCode"].startswith("sntryc_")
+        assert "no-store" in response["Cache-Control"]
+
     def test_claim_activates_existing_onboarding_run(self) -> None:
         progress = get_onboarding_progress_service()
         run, _ = progress.create_or_resume(
@@ -239,6 +266,17 @@ class AgentHandoffViewTest(TestCase):
 
     def test_malformed_code_is_rejected(self) -> None:
         assert self.claim("invalid").status_code == 400
+
+    def test_json_claim_errors_return_json(self) -> None:
+        response = self.client.post(
+            "/agent-handoff.md",
+            urlencode({"handoff_code": "invalid"}),
+            content_type="application/x-www-form-urlencoded",
+            HTTP_ACCEPT="application/json",
+        )
+
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Invalid handoff code."}
 
     def test_oversized_code_is_rejected(self) -> None:
         assert self.claim("sntryh_" + "a" * 2000).status_code == 400

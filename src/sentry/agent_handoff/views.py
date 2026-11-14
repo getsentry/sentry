@@ -1,6 +1,6 @@
 import re
 
-from django.http import HttpRequest, HttpResponse, HttpResponseBase
+from django.http import HttpRequest, HttpResponse, HttpResponseBase, JsonResponse
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -17,6 +17,8 @@ from sentry.agent_handoff.runbook import (
     render_claim_runbook,
     render_ip_mismatch_runbook,
 )
+from sentry.agent_handoff.serializers import AgentHandoffClaimSerializer
+from sentry.api.serializers import serialize
 from sentry.ratelimits import backend as ratelimiter
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -33,6 +35,19 @@ _UNAVAILABLE = (
 
 def _markdown(body: str, *, status: int = 200) -> HttpResponse:
     return HttpResponse(body, status=status, content_type="text/markdown; charset=utf-8")
+
+
+def _wants_json(request: HttpRequest) -> bool:
+    return request.get_preferred_type(("text/markdown", "application/json")) == "application/json"
+
+
+def _error_response(
+    request: HttpRequest, *, markdown: str, detail: str, status: int
+) -> HttpResponse:
+    if _wants_json(request):
+        return JsonResponse({"detail": detail}, status=status)
+
+    return _markdown(markdown, status=status)
 
 
 @control_silo_view
@@ -86,8 +101,10 @@ class AgentHandoffView(View):
             limit=10,
             window=_CLAIM_WINDOW,
         ):
-            response = _markdown(
-                "# Try Again Shortly\n\nWait 60 seconds, then retry the same handoff code.\n",
+            response = _error_response(
+                request,
+                markdown="# Try Again Shortly\n\nWait 60 seconds, then retry the same handoff code.\n",
+                detail="Wait 60 seconds, then retry the same handoff code.",
                 status=429,
             )
             response["Retry-After"] = str(_CLAIM_WINDOW)
@@ -95,21 +112,39 @@ class AgentHandoffView(View):
 
         content_length = request.META.get("CONTENT_LENGTH", "0")
         if not content_length.isdigit() or int(content_length) > _MAX_CLAIM_BYTES:
-            return _markdown(_UNAVAILABLE, status=400)
+            return _error_response(
+                request, markdown=_UNAVAILABLE, detail="Invalid handoff code.", status=400
+            )
         if (
             request.content_type != "application/x-www-form-urlencoded"
             or len(request.body) > _MAX_CLAIM_BYTES
         ):
-            return _markdown(_UNAVAILABLE, status=400)
+            return _error_response(
+                request, markdown=_UNAVAILABLE, detail="Invalid handoff code.", status=400
+            )
         code = request.POST.get("handoff_code", "")
         if not _HANDOFF_CODE.fullmatch(code):
-            return _markdown(_UNAVAILABLE, status=400)
+            return _error_response(
+                request, markdown=_UNAVAILABLE, detail="Invalid handoff code.", status=400
+            )
 
         try:
-            guide = claim_handoff(code, ip_address=request.META.get("REMOTE_ADDR"))
+            claim = claim_handoff(code, ip_address=request.META.get("REMOTE_ADDR"))
         except HandoffIPMismatch:
             metrics.incr("agent_handoff.claim.ip_mismatch", sample_rate=1.0)
-            return _markdown(render_ip_mismatch_runbook(), status=403)
-        if guide is None:
-            return _markdown(_UNAVAILABLE, status=410)
-        return _markdown(guide)
+            return _error_response(
+                request,
+                markdown=render_ip_mismatch_runbook(),
+                detail="The handoff code was claimed from a different network.",
+                status=403,
+            )
+        if claim is None:
+            return _error_response(
+                request, markdown=_UNAVAILABLE, detail="Handoff code unavailable.", status=410
+            )
+        if _wants_json(request):
+            return JsonResponse(
+                serialize(claim, request.user, serializer=AgentHandoffClaimSerializer())
+            )
+
+        return _markdown(claim.render_runbook())
