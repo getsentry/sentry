@@ -1196,8 +1196,11 @@ class CocoaSDKMetricKitMechanismTestMixin(BaseSDKCrashDetectionMixin):
     ) -> dict[str, Collection[str]]:
         event = get_crash_event(handled=True, function=function)
         set_path(event, "level", value="warning")
-        set_path(event, "exception", "values", -1, "mechanism", "type", value=mechanism_type)
-        set_path(event, "exception", "values", -1, "mechanism", "synthetic", value=True)
+        # set_path doesn't traverse lists, so the mechanism is changed in place.
+        mechanism = get_path(event, "exception", "values", -1, "mechanism")
+        assert isinstance(mechanism, dict)
+        mechanism["type"] = mechanism_type
+        mechanism["synthetic"] = True
         return event
 
 
