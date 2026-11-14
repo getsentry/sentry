@@ -1,10 +1,12 @@
-import {useState} from 'react';
+import {useContext, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
+import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
@@ -28,18 +30,22 @@ export function visitExternalLinkAction(value: KeyValueTreeValue): MenuItemProps
 export function KeyValueTreeRowActions({
   ariaLabel,
   items,
-  usePortal,
 }: {
   ariaLabel: string;
   items: MenuItemProps[];
-  usePortal?: boolean;
 }) {
+  const theme = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const {container} = useContext(TooltipContext);
 
   return (
     <RevealOnHover.Action visible={isMenuOpen}>
       <TreeValueDropdown
-        usePortal={usePortal}
+        // Inline, the menu is clipped by scroll containers and trapped in the focused row's stacking context.
+        usePortal
+        // Drawers and modals sit above the dropdown z-index, so join their container and layer.
+        portalContainerRef={{current: container}}
+        zIndex={container ? theme.zIndex.modal : undefined}
         preventOverflowOptions={{padding: 4}}
         position="bottom-end"
         size="xs"

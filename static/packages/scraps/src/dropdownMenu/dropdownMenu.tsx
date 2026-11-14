@@ -63,7 +63,7 @@ interface BaseDropdownMenuProps
   /**
    * Reference to the container element that the portal should be rendered into.
    */
-  portalContainerRef?: React.RefObject<HTMLElement | null>;
+  portalContainerRef?: React.RefObject<Element | DocumentFragment | null>;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */

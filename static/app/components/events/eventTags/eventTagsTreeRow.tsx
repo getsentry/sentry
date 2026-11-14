@@ -283,15 +283,7 @@ function EventTagsTreeRowDropdown({
     visitExternalLinkAction(content.value),
   ];
 
-  return (
-    <KeyValueTreeRowActions
-      ariaLabel={t('Tag Actions Menu')}
-      items={items}
-      // Inline, the menu is trapped in the focused row's stacking context and
-      // renders under positioned content further down the page.
-      usePortal
-    />
-  );
+  return <KeyValueTreeRowActions ariaLabel={t('Tag Actions Menu')} items={items} />;
 }
 
 function EventTagsTreeValue({
