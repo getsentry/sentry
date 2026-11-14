@@ -203,8 +203,11 @@ export const GuideStore = {
     const {anchors, guides, forceShow, currentGuide, currentStep, prevGuideKey} =
       store.getState();
 
-    let guideOptions = guides
-      .toSorted(guidePrioritySort)
+    // Copy before sorting instead of using toSorted (ES2023): this runs on every
+    // route change, including logged-out pages, and toSorted crashes iOS 15.
+    // oxlint-disable-next-line e18e/prefer-array-to-sorted
+    let guideOptions = [...guides]
+      .sort(guidePrioritySort)
       .filter(guide => guide.requiredTargets.every(target => anchors.has(target)));
 
     const user = ConfigStore.get('user');

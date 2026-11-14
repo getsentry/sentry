@@ -131,4 +131,22 @@ describe('GuideStore', () => {
     const state = GuideStore.getState();
     expect(Object.is(state, GuideStore.getState())).toBe(true);
   });
+
+  it('picks the current guide without Array.prototype.toSorted', () => {
+    // iOS 15 and other pre-ES2023 browsers do not implement toSorted
+    const originalToSorted = Array.prototype.toSorted;
+    // @ts-expect-error simulating a browser without toSorted
+    delete Array.prototype.toSorted;
+    try {
+      GuideStore.fetchSucceeded(data);
+      const guidesBefore = GuideStore.getState().guides.map(g => g.guide);
+      GuideStore.onURLChange();
+      expect(GuideStore.getState().currentGuide?.guide).toBe('trace_view');
+      // Sorting must not mutate the stored guides
+      expect(GuideStore.getState().guides.map(g => g.guide)).toEqual(guidesBefore);
+    } finally {
+      // oxlint-disable-next-line no-extend-native
+      Array.prototype.toSorted = originalToSorted;
+    }
+  });
 });
