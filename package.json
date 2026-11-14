@@ -39,7 +39,6 @@
     "dev-ui-storybook": "pnpm run dev-ui",
     "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development rsbuild build --watch",
     "build-deprecated-docs": "node api-docs/index.ts api-docs/openapi.json tests/apidocs/openapi-deprecated.json",
-    "diff-docs": "node api-docs/openapi-diff.ts",
     "deref-api-docs": "node api-docs/index.ts tests/apidocs/openapi-spectacular.json tests/apidocs/openapi-derefed.json",
     "build-chartcuterie-config": "node config/build-chartcuterie.ts",
     "build-acceptance": "IS_ACCEPTANCE_TEST=1 NODE_ENV=production pnpm run build",
