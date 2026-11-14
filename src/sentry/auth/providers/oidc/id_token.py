@@ -24,8 +24,16 @@ def fetch_jwks(jwks_uri: str) -> pyjwt.PyJWKSet:
     if response.status_code != 200:
         raise IDTokenError(f"JWKS returned HTTP {response.status_code}")
     try:
-        return pyjwt.PyJWKSet.from_dict(response.json())
-    except (ValueError, pyjwt.PyJWKSetError) as e:
+        document = response.json()
+    except ValueError:
+        raise IDTokenError("JWKS is not JSON") from None
+    # PyJWT assumes this shape and raises AttributeError on anything else.
+    keys = document.get("keys") if isinstance(document, dict) else None
+    if not isinstance(keys, list) or not all(isinstance(k, dict) for k in keys):
+        raise IDTokenError("JWKS must be an object with a list of keys")
+    try:
+        return pyjwt.PyJWKSet(keys)
+    except pyjwt.PyJWKSetError as e:
         raise IDTokenError(f"invalid JWKS: {e}") from None
 
 

@@ -5,8 +5,9 @@ from typing import Any
 
 import jwt as pyjwt
 import pytest
+import responses
 
-from sentry.auth.providers.oidc.id_token import IDTokenError, validate_id_token
+from sentry.auth.providers.oidc.id_token import IDTokenError, fetch_jwks, validate_id_token
 
 from . import CLIENT_ID, ISSUER, FakeIdP
 
@@ -93,3 +94,31 @@ def test_multiple_audiences_require_matching_azp() -> None:
 def test_malformed_token() -> None:
     with pytest.raises(IDTokenError, match="malformed"):
         validate("not-a-jwt")
+
+
+@responses.activate
+def test_fetch_jwks() -> None:
+    idp.add_jwks()
+    assert [k.key_id for k in fetch_jwks(f"{ISSUER}/jwks").keys] == ["key-1"]
+
+
+@pytest.mark.parametrize("body", [[], {"keys": "nope"}, {"keys": ["nope"]}, {}, "nope"])
+@responses.activate
+def test_fetch_jwks_rejects_malformed_documents(body: object) -> None:
+    responses.add(responses.GET, f"{ISSUER}/jwks", json=body)
+    with pytest.raises(IDTokenError, match="list of keys"):
+        fetch_jwks(f"{ISSUER}/jwks")
+
+
+@responses.activate
+def test_fetch_jwks_without_usable_keys() -> None:
+    responses.add(responses.GET, f"{ISSUER}/jwks", json={"keys": [{"kty": "unknown"}]})
+    with pytest.raises(IDTokenError, match="invalid JWKS"):
+        fetch_jwks(f"{ISSUER}/jwks")
+
+
+@responses.activate
+def test_fetch_jwks_not_json() -> None:
+    responses.add(responses.GET, f"{ISSUER}/jwks", body="<html>")
+    with pytest.raises(IDTokenError, match="not JSON"):
+        fetch_jwks(f"{ISSUER}/jwks")
