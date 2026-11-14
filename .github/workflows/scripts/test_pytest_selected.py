@@ -355,3 +355,109 @@ def test_per_file_plan_applies(
 ) -> None:
     with mock.patch.dict(os.environ, {"PYTEST_ADDOPTS": addopts}):
         assert _mod.per_file_plan_applies(args, files) is applies
+
+
+def run_colored_main(
+    tmp_path: Path,
+    sources: dict[str, str],
+    services: dict[str, list[str]] | None,
+    group: int,
+    color: str,
+    guard: str = "enforce",
+) -> tuple[int, list[str], str]:
+    """Run shard `group` of 3, with shard 0 the only Snuba shard."""
+    for path, source in sources.items():
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / path).write_text(source)
+    durations_file = tmp_path / "durations.json"
+    durations_file.write_text(
+        json.dumps({"seconds_per_test": 1.0, "files": {path: 1.0 for path in sources}})
+    )
+    services_file = tmp_path / "services.json"
+    if services is not None:
+        services_file.write_text(json.dumps({"files": services}))
+    addopts: list[str] = []
+
+    def fake_main(args: list[str]) -> pytest.ExitCode:
+        addopts.append(os.environ["PYTEST_ADDOPTS"])
+        return pytest.ExitCode.OK
+
+    env = {
+        "SELECTED_TESTS_FILE": "",
+        "TOTAL_TEST_GROUPS": "3",
+        "TEST_GROUP": str(group),
+        "BACKEND_SNUBA_SHARDS": "1",
+        "BACKEND_TEST_SERVICE_COLOR": color,
+        "BACKEND_TEST_SERVICE_GUARD": guard,
+        "PYTEST_ADDOPTS": "",
+    }
+    with (
+        contextlib.chdir(tmp_path),
+        mock.patch.dict(os.environ, env),
+        mock.patch.object(_mod, "DURATIONS_FILE", durations_file),
+        mock.patch.object(_mod, "SERVICES_FILE", services_file),
+        mock.patch.object(pytest, "main", fake_main),
+    ):
+        exit_code = main(["tests"])
+    shard_file = tmp_path / f".artifacts/full-tests.shard-{group}.txt"
+    files = shard_file.read_text().split() if shard_file.exists() else []
+    return exit_code, files, "".join(addopts)
+
+
+class TestServiceColoredMain:
+    sources = {
+        "tests/test_lite_a.py": "def test_a(): pass\n",
+        "tests/test_lite_b.py": "def test_b(): pass\n",
+        "tests/test_snuba.py": "def test_s(): pass\n",
+        "tests/test_new.py": "def test_n(): pass\n",
+        "tests/test_pragma.py": "# backend-ci: snuba\ndef test_p(): pass\n",
+        "tests/test_relay.py": "def test_r(relay_server): pass\n",
+    }
+    services = {
+        "tests/test_lite_a.py": [],
+        "tests/test_lite_b.py": [],
+        "tests/test_snuba.py": ["snuba"],
+        "tests/test_pragma.py": [],
+        "tests/test_relay.py": [],
+    }
+
+    def test_snuba_shard_gets_measured_new_and_marked_files(self, tmp_path: Path) -> None:
+        exit_code, files, addopts = run_colored_main(
+            tmp_path, self.sources, self.services, 0, "snuba", "record"
+        )
+        assert exit_code == 0
+        assert files == [
+            "tests/test_new.py",
+            "tests/test_pragma.py",
+            "tests/test_relay.py",
+            "tests/test_snuba.py",
+        ]
+        assert "--rerun-except" not in addopts
+
+    def test_lite_shards_get_only_files_measured_without_services(self, tmp_path: Path) -> None:
+        runs = [run_colored_main(tmp_path, self.sources, self.services, g, "lite") for g in (1, 2)]
+        assert [exit_code for exit_code, _, _ in runs] == [0, 0]
+        # Both are split across both lite shards.
+        assert {f for _, files, _ in runs for f in files} == {
+            "tests/test_lite_a.py",
+            "tests/test_lite_b.py",
+        }
+        assert all("--rerun-except=ServiceGuardError" in addopts for _, _, addopts in runs)
+
+    @pytest.mark.parametrize(
+        ("group", "color", "guard"),
+        [(0, "lite", "enforce"), (1, "snuba", "record"), (1, "lite", "record"), (1, "lite", "")],
+    )
+    def test_refuses_mismatched_shard_setup(
+        self, tmp_path: Path, group: int, color: str, guard: str
+    ) -> None:
+        exit_code, files, _ = run_colored_main(
+            tmp_path, self.sources, self.services, group, color, guard
+        )
+        assert exit_code == pytest.ExitCode.USAGE_ERROR
+        assert files == []
+
+    def test_refuses_a_missing_inventory(self, tmp_path: Path) -> None:
+        exit_code, files, _ = run_colored_main(tmp_path, self.sources, None, 1, "lite")
+        assert exit_code == pytest.ExitCode.USAGE_ERROR
+        assert files == []
