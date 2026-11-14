@@ -110,14 +110,19 @@ export function getSpansQueryHref(
   data: SpansQueryData,
   organization: Organization
 ): string {
-  const {query, mode, sort, fields, groupBy, yAxes} = data;
+  const {query, mode, sort, fields, groupBy, yAxes, transformations, interval} = data;
   const aggregateYAxes =
-    mode === 'aggregate' && !yAxes?.length ? [DEFAULT_AGGREGATE] : yAxes;
+    !yAxes?.length &&
+    (mode === 'aggregate' ||
+      transformations?.some(axisTransformations => axisTransformations.length))
+      ? [DEFAULT_AGGREGATE]
+      : yAxes;
 
   return getExploreUrl({
     organization,
     selection: toPageFilters(data),
     query,
+    interval,
     mode: toMode(mode),
     field: fields,
     sort: mode === 'samples' ? sort : undefined,
@@ -128,7 +133,11 @@ export function getSpansQueryHref(
             ...(aggregateYAxes ?? []),
           ])
         : undefined,
-    aggregateField: toAggregateFields({groupBy, yAxes: aggregateYAxes}),
+    aggregateField: toAggregateFields({
+      groupBy,
+      yAxes: aggregateYAxes,
+      transformations,
+    }),
   });
 }
 

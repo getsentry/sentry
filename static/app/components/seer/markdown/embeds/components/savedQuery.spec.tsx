@@ -36,6 +36,47 @@ function savedQueryResponse(overrides: Record<string, unknown> = {}) {
 }
 
 describe('saved query embed', () => {
+  it.each(['visualize', 'aggregateField'])(
+    'shows stored transformations from %s without merging duplicate axes',
+    async field => {
+      const visualizes = [
+        {yAxes: ['p95(span.duration)']},
+        {
+          yAxes: ['p95(span.duration)'],
+          transformations: ['fill(locf)', 'smooth(sma,3)'],
+        },
+      ];
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/explore/saved/312/',
+        body: savedQueryResponse({
+          query: [
+            {
+              query: '',
+              fields: [],
+              mode: 'aggregate',
+              orderby: '-p95_span_duration',
+              groupby: [],
+              [field]: visualizes,
+            },
+          ],
+        }),
+      });
+
+      renderEmbed({name: 'savedQuery', data: {id: '312', dataset: 'spans'}});
+
+      expect(
+        await screen.findByText('p95(span.duration) · fill(locf) · smooth(sma,3)')
+      ).toBeInTheDocument();
+      expect(screen.getByText('p95(span.duration)')).toBeInTheDocument();
+      const href = screen.getByRole('link', {name: 'View Query'}).getAttribute('href')!;
+      const params = new URL(href, 'https://sentry.io').searchParams;
+      expect(params.getAll('aggregateField').map(value => JSON.parse(value))).toEqual(
+        visualizes
+      );
+      expect(params.get('interval')).toBe('1h');
+    }
+  );
+
   it('links inline without fetching the saved query', () => {
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/saved/312/',

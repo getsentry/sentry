@@ -2,19 +2,26 @@ import {IconSpan} from '@sentry/icons/span';
 
 import {t} from 'sentry/locale';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
 import {
   QueryEmbedChart,
+  chartUnitFromTimeSeries,
   seriesFromEventsStats,
+  seriesFromTimeSeries,
   toChartUnit,
 } from './queryEmbed/queryEmbedChart';
+import {QUERY_EMBED_ROW_LIMIT} from './queryEmbed/queryEmbedConstants';
 import {
+  useHasUnsupportedQueryTransformations,
   useQueryEmbedEventsStats,
   useQueryEmbedEventsTable,
 } from './queryEmbed/queryEmbedQueries';
 import {eventColumns, eventRowKey, QueryEmbedTable} from './queryEmbed/queryEmbedTable';
+import {toPageFilters} from './queryEmbedParams';
 import {getSpansQueryTitle} from './spansQueryLink';
 import {
   buildSpansChartQuery,
@@ -35,19 +42,57 @@ function SpansQueryChart({
   hasTable: boolean;
 }) {
   const yAxisFields = resolveChartYAxes(data);
+  const unsupportedTransformations = useHasUnsupportedQueryTransformations(
+    data.transformations
+  );
+  const hasTransformations =
+    data.transformations?.some(axisTransformations => axisTransformations.length) ??
+    false;
   const query = useQueryEmbedEventsStats(
-    buildSpansChartQuery(eventView, data, yAxisFields)
+    buildSpansChartQuery(eventView, data, yAxisFields),
+    !hasTransformations
+  );
+  const groupBy = data.mode === 'aggregate' ? data.groupBy?.filter(Boolean) : undefined;
+  const transformedQuery = useFetchEventsTimeSeries(
+    DiscoverDatasets.SPANS,
+    {
+      enabled: hasTransformations && !unsupportedTransformations,
+      yAxis: yAxisFields,
+      transformations: data.transformations,
+      interval: data.interval,
+      query: data.query,
+      pageFilters: toPageFilters(data),
+      groupBy: groupBy?.length ? groupBy : undefined,
+      topEvents: groupBy?.length ? QUERY_EMBED_ROW_LIMIT : undefined,
+      sort: groupBy?.length ? eventView.sorts[0] : undefined,
+    },
+    'seer-spans-query-embed'
+  );
+  const chartQuery = hasTransformations ? transformedQuery : query;
+  const timeSeries = (transformedQuery.data?.timeSeries ?? []).filter(
+    series => !series.meta.isOther
   );
 
   return (
     <QueryEmbedChart
       emptyMessage={t('No matching spans')}
       hasTable={hasTable}
-      isError={query.isError}
-      isPending={query.isPending}
-      series={query.data ? seriesFromEventsStats(query.data, yAxisFields) : []}
+      isError={chartQuery.isError}
+      isPending={chartQuery.isPending}
+      series={
+        hasTransformations
+          ? seriesFromTimeSeries(timeSeries, data)
+          : query.data
+            ? seriesFromEventsStats(query.data, yAxisFields)
+            : []
+      }
       title={data.title ?? t('Spans over time')}
-      unit={toChartUnit(aggregateOutputType(yAxisFields[0]))}
+      unit={
+        hasTransformations
+          ? chartUnitFromTimeSeries(timeSeries)
+          : toChartUnit(aggregateOutputType(yAxisFields[0]))
+      }
+      unsupportedTransformations={unsupportedTransformations}
     />
   );
 }

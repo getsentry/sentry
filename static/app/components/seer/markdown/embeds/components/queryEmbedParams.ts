@@ -1,5 +1,7 @@
 import type {PageFilters} from 'sentry/types/core';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
 
 interface PageFilterParams {
   end?: string;
@@ -45,13 +47,23 @@ export function toMode(mode: 'samples' | 'aggregate'): Mode {
 export function toAggregateFields({
   groupBy,
   yAxes,
+  transformations,
 }: {
   groupBy?: string[];
+  transformations?: ReadonlyArray<readonly string[]>;
   yAxes?: string[];
-}): Array<{groupBy: string} | {yAxes: string[]}> | undefined {
-  const fields = [
-    ...(groupBy ?? []).map(field => ({groupBy: field})),
-    ...(yAxes?.length ? [{yAxes}] : []),
-  ];
+}): Array<{groupBy: string} | BaseVisualize> | undefined {
+  const visualizes = transformations?.some(
+    axisTransformations => axisTransformations.length
+  )
+    ? (yAxes ?? []).map((yAxis, index) =>
+        new VisualizeFunction(yAxis, {
+          transformations: transformations[index],
+        }).serialize()
+      )
+    : yAxes?.length
+      ? [{yAxes}]
+      : [];
+  const fields = [...(groupBy ?? []).map(field => ({groupBy: field})), ...visualizes];
   return fields.length > 0 ? fields : undefined;
 }
