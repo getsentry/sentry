@@ -14,6 +14,7 @@ class AlertSentEvent(analytics.Event):
     # User_id if sent via email, channel id if sent via slack, etc.
     external_id: str | None = None
     notification_uuid: str | None = None
+    workflow_id: int | None = None
 
 
 analytics.register(AlertSentEvent)

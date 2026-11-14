@@ -253,9 +253,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule: Rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(
-            event=event, rule=create_workflow_notification_origin_for_rule(rule)
-        )
+        origin = create_workflow_notification_origin_for_rule(rule)
+        notification = Notification(event=event, rule=origin)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -282,6 +281,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 actor_type="User",
                 notification_uuid="",
                 alert_id=rule.id,
+                workflow_id=origin.workflow_id,
             ),
             exclude_fields=[
                 "id",
@@ -299,6 +299,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 project_id=self.project.id,
                 provider="email",
                 alert_id=rule.id,
+                workflow_id=origin.workflow_id,
                 alert_type="issue_alert",
                 external_id="ANY",
                 notification_uuid="ANY",
