@@ -1,9 +1,8 @@
-import {Fragment, useEffect, useEffectEvent, useLayoutEffect, useState} from 'react';
+import {Fragment, useEffect, useEffectEvent} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -12,7 +11,6 @@ import {ClippedBox} from 'sentry/components/clippedBox';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {isRecord} from 'sentry/utils/object/isRecord';
-import {usePrevious} from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {AIMessage} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {normalizeToMessages} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
@@ -31,6 +29,7 @@ import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModel
 
 import {tryParsePythonDict} from './aiContentDetection';
 import {AIContentRenderer} from './aiContentRenderer';
+import {CollapsiblePreviousTurns} from './collapsiblePreviousTurns';
 
 const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 
@@ -276,10 +275,6 @@ function useInvalidRoleDetection(roles: string[]) {
   }, [hasInvalidRoles]);
 }
 
-const MAX_MESSAGES_AT_START = 2;
-const MAX_MESSAGES_AT_END = 1;
-const MAX_MESSAGES_TO_SHOW = MAX_MESSAGES_AT_START + MAX_MESSAGES_AT_END;
-
 function AIMessageContent({message}: {message: AIMessage}) {
   return typeof message.content === 'string' ? (
     <AIContentRenderer text={message.content} />
@@ -299,6 +294,19 @@ function AISystemMessageContent({message}: {message: AIMessage}) {
   );
 }
 
+function AIMessageItem({message}: {message: AIMessage}) {
+  return (
+    <Fragment>
+      <RoleLabel>{message.role}</RoleLabel>
+      {message.role === 'system' ? (
+        <AISystemMessageContent message={message} />
+      ) : (
+        <AIMessageContent message={message} />
+      )}
+    </Fragment>
+  );
+}
+
 function MessagesArrayRenderer({
   messages,
   originalLength,
@@ -308,61 +316,19 @@ function MessagesArrayRenderer({
   messages: AIMessage[];
   originalLength?: number;
 }) {
-  const [isExpanded, setIsExpanded] = useState(messages.length <= MAX_MESSAGES_TO_SHOW);
   const truncatedMessages = originalLength ? originalLength - messages.length : 0;
-  const isTruncated = truncatedMessages > 0;
-
-  const previousMessagesLength = usePrevious(messages.length);
-  useLayoutEffect(() => {
-    if (previousMessagesLength !== messages.length) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setIsExpanded(messages.length <= MAX_MESSAGES_TO_SHOW);
-    }
-  }, [messages.length, previousMessagesLength]);
-
-  const renderMessage = (message: AIMessage, index: number) => {
-    if (message.role === 'system') {
-      return (
-        <Fragment key={index}>
-          <RoleLabel>{message.role}</RoleLabel>
-          <AISystemMessageContent message={message} />
-        </Fragment>
-      );
-    }
-
-    return (
-      <Fragment key={index}>
-        <RoleLabel>{message.role}</RoleLabel>
-        <AIMessageContent message={message} />
-      </Fragment>
-    );
-  };
-
-  if (isExpanded) {
-    return (
-      <Fragment>
-        <TruncationAlert
-          areOldMessagesTruncated={isTruncated}
-          fixedInvalidJson={fixedInvalidJson}
-        />
-        {messages.map(renderMessage)}
-      </Fragment>
-    );
-  }
 
   return (
     <Fragment>
       <TruncationAlert
-        areOldMessagesTruncated={isTruncated}
+        areOldMessagesTruncated={truncatedMessages > 0}
         fixedInvalidJson={fixedInvalidJson}
       />
-      {messages.slice(0, MAX_MESSAGES_AT_START).map(renderMessage)}
-      <ButtonDivider>
-        <Button onClick={() => setIsExpanded(true)} size="xs">
-          {t('+%s more messages', messages.length - MAX_MESSAGES_TO_SHOW)}
-        </Button>
-      </ButtonDivider>
-      {messages.slice(-MAX_MESSAGES_AT_END).map(renderMessage)}
+      <CollapsiblePreviousTurns messages={messages}>
+        {messages.map((message, index) => (
+          <AIMessageItem key={index} message={message} />
+        ))}
+      </CollapsiblePreviousTurns>
     </Fragment>
   );
 }
@@ -408,14 +374,4 @@ const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
 const SystemMessageClippedBox = styled(ClippedBox)`
   padding: 0;
   margin-bottom: ${p => p.theme.space.lg};
-`;
-
-const ButtonDivider = styled('div')`
-  height: 1px;
-  width: 100%;
-  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: ${p => p.theme.space['3xl']} 0;
 `;

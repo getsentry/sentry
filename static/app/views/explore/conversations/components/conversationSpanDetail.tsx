@@ -58,6 +58,7 @@ import {
   getAIToolOutput,
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
+import {CollapsiblePreviousTurns} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/collapsiblePreviousTurns';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
@@ -440,19 +441,23 @@ function InputTab({
 
   return (
     <Fragment>
-      {messages?.map((message, index) => (
-        <Fragment key={index}>
-          <TraceDrawerComponents.MultilineTextLabel>
-            {capitalize(message.role)}
-          </TraceDrawerComponents.MultilineTextLabel>
-          {/* System prompts are usually long, repetitive, and sit on top, so keep them clipped */}
-          <SpanTabContent
-            key={`${node.id}:message:${index}`}
-            content={message.content}
-            clip={message.role === 'system'}
-          />
-        </Fragment>
-      ))}
+      {messages && messages.length > 0 ? (
+        <CollapsiblePreviousTurns key={node.id} messages={messages}>
+          {messages.map((message, index) => (
+            <Fragment key={index}>
+              <TraceDrawerComponents.MultilineTextLabel>
+                {capitalize(message.role)}
+              </TraceDrawerComponents.MultilineTextLabel>
+              {/* System prompts are usually long, repetitive, and sit on top, so keep them clipped */}
+              <SpanTabContent
+                key={`${node.id}:message:${index}`}
+                content={message.content}
+                clip={message.role === 'system'}
+              />
+            </Fragment>
+          ))}
+        </CollapsiblePreviousTurns>
+      ) : null}
       {toolArgs ? (
         <TraceDrawerComponents.MultilineJSON
           key={`${node.id}:tool-input`}
