@@ -426,6 +426,20 @@ def _schedule_invalidate_project_config(
             check_debounce_keys["project_id"] = proj_id
             check_debounce_keys["organization_id"] = org_id
     elif project_id:
+        # Check the project-level debounce key first: if an invalidation for this
+        # project is already queued we can skip the organization lookup entirely.
+        # This avoids an N+1 query when many project options are written in a
+        # single transaction (e.g. during project creation).
+        with quiet_redis_noise():
+            if projectconfig_debounce_cache.invalidation.is_debounced(
+                public_key=None, project_id=project_id, organization_id=None
+            ):
+                metrics.incr(
+                    "relay.projectconfig_cache.skipped",
+                    tags={"reason": "debounce", "update_reason": trigger, "task": "invalidation"},
+                )
+                return
+
         try:
             (org_id,) = Project.objects.values_list("organization__id").get(id=project_id)
         except Project.DoesNotExist:
