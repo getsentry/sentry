@@ -1,7 +1,8 @@
 name: Bump @sentry/api in sentry-docs
 
 # Each published api@ release asks sentry-docs to pin the new @sentry/api
-# version.
+# version. Craft publishes to npm before it publishes the GitHub release, so
+# the version is already on npm when this runs.
 on:
   release:
     types:
@@ -14,22 +15,8 @@ jobs:
   dispatch:
     if: startsWith(github.event.release.tag_name, 'api@')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          persist-credentials: false
-          sparse-checkout: .github/workflows/scripts/wait-for-npm-version.sh
-          sparse-checkout-cone-mode: false
-
-      # Craft publishes the GitHub release before npm, so wait for npm first.
-      - name: Wait for the npm version
-        env:
-          PACKAGE: '@sentry/api'
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          TAG_PREFIX: api@
-        run: .github/workflows/scripts/wait-for-npm-version.sh
-
       - name: Get auth token
         id: token
         uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
