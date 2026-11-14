@@ -50,7 +50,6 @@ from sentry.seer.agent.coding_agent_handoff import (
     CodingAgentHandoffResult,
     launch_coding_agents,
 )
-from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
 from sentry.seer.agent.embed_widgets import get_embed_widgets
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.agent.on_completion_hook import (
@@ -213,32 +212,6 @@ class SeerAgentClient:
         state = client.get_run(run_id, blocking=True)
         solution = state.get_artifact("solution", Solution)
 
-        # WITH CUSTOM TOOLS
-        from pydantic import BaseModel, Field
-        from sentry.seer.agent.custom_tool_utils import AgentTool
-
-        class DeploymentStatusParams(BaseModel):
-            environment: str = Field(description="Environment name (e.g., 'production', 'staging')")
-            service: str = Field(description="Service name")
-
-        class DeploymentStatusTool(AgentTool[DeploymentStatusParams]):
-            params_model = DeploymentStatusParams
-
-            @classmethod
-            def get_description(cls) -> str:
-                return "Check if a service is deployed in an environment"
-
-            @classmethod
-            def execute(cls, organization, params: DeploymentStatusParams) -> str:
-                return "deployed" if check_deployment(organization, params.environment, params.service) else "not deployed"
-
-        client = SeerAgentClient(
-            organization,
-            user,
-            custom_tools=[DeploymentStatusTool]
-        )
-        run_id = client.start_run("Check if payment-service is deployed in production").seer_run_state_id
-
         # WITH ON-COMPLETION HOOK
         from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 
@@ -302,7 +275,6 @@ class SeerAgentClient:
             group: Optional group/issue for issue-scoped runs (e.g. autofix for an issue)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
-            custom_tools: Optional list of `AgentTool` classes to make available as tools to the agent. Each tool must inherit from AgentTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
             on_completion_hook: Optional `AgentOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. By default this is called only when the run succeeds; see hook_call_on_failure. Hook classes must be module-level (not nested classes).
             hook_call_on_failure: Also call the hook when the run errors or times out, including when Seer's stale-run sweep ends a run whose worker died. The hook is told nothing about which outcome it was called for, so it must read the run status itself. Seer pins this when the run is created, so it cannot be varied per step of an existing run. Default is False.
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
@@ -324,7 +296,6 @@ class SeerAgentClient:
         group: Group | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
-        custom_tools: list[type[AgentTool[Any]]] | None = None,
         on_completion_hook: type[AgentOnCompletionHook] | None = None,
         hook_call_on_failure: bool = False,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
@@ -348,7 +319,6 @@ class SeerAgentClient:
         self._user_id = acting_user_id(user) if user is not None else None
         self.project = project
         self.group = group
-        self.custom_tools = custom_tools or []
         self.on_completion_hook = on_completion_hook
         self.hook_call_on_failure = hook_call_on_failure
         self.intelligence_level = intelligence_level
@@ -498,12 +468,6 @@ class SeerAgentClient:
         if artifact_key and artifact_schema:
             chat_body["artifact_key"] = artifact_key
             chat_body["artifact_schema"] = artifact_schema.schema()
-
-        # Extract and add custom tool definitions
-        if self.custom_tools:
-            chat_body["custom_tools"] = [
-                extract_tool_schema(tool).dict() for tool in self.custom_tools
-            ]
 
         # Add on-completion hook if provided
         if self.on_completion_hook:

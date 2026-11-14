@@ -1,8 +1,7 @@
-import logging
 from datetime import datetime, timezone
 from time import time
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from uuid import uuid4
 
 import orjson
@@ -28,7 +27,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationEventStatus,
 )
 from sentry.investigations.services.orchestration import create_agentic_manual_investigation
-from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
@@ -36,7 +34,6 @@ from sentry.seer.autofix.utils import MAX_SEER_REPOS_PER_PROJECT
 from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
-    get_github_enterprise_integration_config,
     get_monitoring_provider_connections,
     get_organization_features,
     get_project_preferences,
@@ -48,16 +45,11 @@ from sentry.seer.endpoints.seer_rpc import (
 )
 from sentry.seer.models.run import SeerRunType
 from sentry.seer.sentry_data_models import (
-    GitHubEnterpriseConfigErrorResponse,
-    GitHubEnterpriseConfigSuccessResponse,
     HeaderAuthConnectionData,
-    SendSeerWebhookSuccessResponse,
 )
-from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
-from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.viewer_context import Actor, ActorId, ActorType, ViewerContext, encode_viewer_context
@@ -224,10 +216,6 @@ class TestSeerRpcMethods(APITestCase):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
 
-    @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
-        self._caplog = caplog
-
     def test_get_attributes_for_span(self) -> None:
         project = self.create_project(organization=self.organization)
 
@@ -255,361 +243,6 @@ class TestSeerRpcMethods(APITestCase):
         assert span_attribute.value == "example"
         assert span_attribute.name in {"span.description", "tags[span.description,string]"}
         mock_rpc.assert_called_once()
-
-    @responses.activate
-    @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_github_enterprise_integration_config(self, mock_get_jwt: MagicMock) -> None:
-        """Test when organization has github enterprise integration"""
-
-        installation_id = 1234
-        private_key = "private_key_1"
-        access_token = "access_token_1"
-        responses.add(
-            responses.POST,
-            f"https://github.example.org/api/v3/app/installations/{installation_id}/access_tokens",
-            json={
-                "token": access_token,
-                "expires_at": "3000-01-01T00:00:00Z",
-                "permissions": {
-                    "administration": "read",
-                    "contents": "read",
-                    "issues": "write",
-                    "metadata": "read",
-                    "pull_requests": "read",
-                },
-            },
-        )
-
-        # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
-                },
-                "installation_id": installation_id,
-            },
-        )
-
-        result = get_github_enterprise_integration_config(
-            organization_id=self.organization.id,
-            integration_id=integration.id,
-        )
-
-        assert isinstance(result, GitHubEnterpriseConfigSuccessResponse)
-        assert result.base_url == "https://github.example.org/api/v3"
-        assert result.verify_ssl
-        assert result.encrypted_access_token
-        assert result.permissions == {
-            "administration": "read",
-            "contents": "read",
-            "issues": "write",
-            "metadata": "read",
-            "pull_requests": "read",
-        }
-
-        # Test that the access token is encrypted correctly
-        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
-        decrypted_access_token = fernet.decrypt(
-            result.encrypted_access_token.encode("utf-8")
-        ).decode("utf-8")
-
-        assert decrypted_access_token == access_token
-
-        mock_get_jwt.assert_called_once_with(github_id=1, github_private_key=private_key)
-
-    @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    def test_get_github_enterprise_integration_config_invalid_integration_id(self) -> None:
-        # Test with invalid integration_id
-        with self._caplog.at_level(logging.ERROR):
-            result = get_github_enterprise_integration_config(
-                organization_id=self.organization.id,
-                integration_id=-1,
-            )
-
-        assert isinstance(result, GitHubEnterpriseConfigErrorResponse)
-        assert "Integration -1 does not exist" in self._caplog.text
-
-    @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    def test_get_github_enterprise_integration_config_invalid_organization_id(self) -> None:
-        installation_id = 1234
-        private_key = "private_key_1"
-
-        # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
-                },
-                "installation_id": installation_id,
-            },
-        )
-
-        # Test with invalid organization_id
-        with self._caplog.at_level(logging.ERROR):
-            result = get_github_enterprise_integration_config(
-                organization_id=-1,
-                integration_id=integration.id,
-            )
-
-        assert isinstance(result, GitHubEnterpriseConfigErrorResponse)
-        assert f"Integration {integration.id} does not exist" in self._caplog.text
-
-    @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    def test_get_github_enterprise_integration_config_disabled_integration(self) -> None:
-        installation_id = 1234
-        private_key = "private_key_1"
-
-        # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
-                },
-                "installation_id": installation_id,
-            },
-        )
-
-        with assume_test_silo_mode_of(Integration):
-            # Test with disabled integration
-            integration.status = ObjectStatus.DISABLED
-            integration.save()
-
-        with self._caplog.at_level(logging.ERROR):
-            result = get_github_enterprise_integration_config(
-                organization_id=self.organization.id,
-                integration_id=integration.id,
-            )
-
-        assert isinstance(result, GitHubEnterpriseConfigErrorResponse)
-        assert f"Integration {integration.id} does not exist" in self._caplog.text
-
-    @responses.activate
-    @override_settings(SEER_GHE_ENCRYPT_KEY="invalid")
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_github_enterprise_integration_config_invalid_encrypt_key(
-        self, mock_get_jwt: MagicMock
-    ) -> None:
-        installation_id = 1234
-        private_key = "private_key_1"
-        access_token = "access_token_1"
-        responses.add(
-            responses.POST,
-            f"https://github.example.org/api/v3/app/installations/{installation_id}/access_tokens",
-            json={"token": access_token, "expires_at": "3000-01-01T00:00:00Z"},
-        )
-
-        # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
-                },
-                "installation_id": installation_id,
-            },
-        )
-
-        with self._caplog.at_level(logging.ERROR):
-            result = get_github_enterprise_integration_config(
-                organization_id=self.organization.id,
-                integration_id=integration.id,
-            )
-
-        assert isinstance(result, GitHubEnterpriseConfigErrorResponse)
-        assert "Failed to encrypt access token" in self._caplog.text
-
-    def test_send_seer_webhook_invalid_event_name(self) -> None:
-        """Test that send_seer_webhook returns error for invalid event names"""
-        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        # Test with an invalid event name
-        result = send_seer_webhook(
-            event_name="invalid_event_name",
-            organization_id=self.organization.id,
-            payload={"test": "data"},
-        )
-
-        assert result.dict() == {
-            "success": False,
-            "error": "Invalid event type: seer.invalid_event_name",
-        }
-
-    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_rejects_internal_errored_event(
-        self, mock_broadcast: MagicMock, mock_process_autofix_updates: MagicMock
-    ) -> None:
-        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        group = self.create_group(project=self.project)
-        with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
-            result = send_seer_webhook(
-                event_name="errored",
-                organization_id=self.organization.id,
-                payload={"run_id": 123, "group_id": group.id},
-            )
-
-        assert result.dict() == {"success": False, "error": "Invalid event type: seer.errored"}
-        mock_process_autofix_updates.apply_async.assert_not_called()
-        mock_broadcast.assert_not_called()
-
-    def test_send_seer_webhook_organization_does_not_exist(self) -> None:
-        """Test that send_seer_webhook returns error for non-existent organization"""
-        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        # Test with a non-existent organization ID
-        result = send_seer_webhook(
-            event_name="root_cause_started",
-            organization_id=99999,
-            payload={"test": "data"},
-        )
-
-        assert result.dict() == {
-            "success": False,
-            "error": "Organization not found or not active",
-        }
-
-    def test_send_seer_webhook_organization_inactive(self) -> None:
-        """Test that send_seer_webhook returns error for inactive organization"""
-        from sentry.models.organization import OrganizationStatus
-        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        # Create an inactive organization
-        inactive_org = self.create_organization(status=OrganizationStatus.PENDING_DELETION)
-
-        result = send_seer_webhook(
-            event_name="root_cause_started",
-            organization_id=inactive_org.id,
-            payload={"test": "data"},
-        )
-
-        assert result.dict() == {
-            "success": False,
-            "error": "Organization not found or not active",
-        }
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_success(self, mock_delay: MagicMock) -> None:
-        """Test that send_seer_webhook successfully enqueues webhook when all conditions are met"""
-        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        result = send_seer_webhook(
-            event_name="root_cause_started",
-            organization_id=self.organization.id,
-            payload={"test": "data"},
-        )
-
-        assert result.dict() == {"success": True}
-        mock_delay.assert_called_once_with(
-            resource_name="seer",
-            event_name="root_cause_started",
-            organization_id=self.organization.id,
-            payload={"test": "data"},
-        )
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_all_valid_event_names(self, mock_delay: MagicMock) -> None:
-        """Test that send_seer_webhook works with all valid seer event names"""
-        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-        from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
-
-        # Get all seer event types
-        seer_events = [
-            event_type.value.split(".", 1)[1]  # Remove "seer." prefix
-            for event_type in SentryAppEventType
-            if event_type.value.startswith("seer.") and event_type not in INTERNAL_SEER_EVENT_TYPES
-        ]
-
-        for event_name in seer_events:
-            result = send_seer_webhook(
-                event_name=event_name,
-                organization_id=self.organization.id,
-                payload={"test": "data"},
-            )
-            assert result.dict() == {"success": True}
-
-        # Verify that the task was called for each valid event
-        assert mock_delay.call_count == len(seer_events)
-
-    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_operator_no_feature_flag(
-        self, mock_broadcast: MagicMock, mock_process_autofix_updates: MagicMock
-    ) -> None:
-        """Slack workflows flag should not affect broadcasting the webhooks."""
-        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
-            result = send_seer_webhook(
-                event_name="root_cause_completed",
-                organization_id=self.organization.id,
-                payload={"run_id": 123},
-            )
-
-        assert isinstance(result, SendSeerWebhookSuccessResponse)
-        mock_process_autofix_updates.assert_not_called()
-        mock_broadcast.assert_called_once()
-
-    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_operator(
-        self, mock_broadcast: MagicMock, mock_process_autofix_updates: MagicMock
-    ) -> None:
-        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-
-        group = self.create_group(project=self.project)
-        event_payload = {"run_id": 123, "group_id": group.id}
-        event_name = "root_cause_completed"
-
-        def assert_activity_exists(**_kwargs: object) -> None:
-            assert Activity.objects.filter(
-                group=group,
-                type=ActivityType.SEER_RCA_COMPLETED.value,
-            ).exists()
-
-        mock_process_autofix_updates.apply_async.side_effect = assert_activity_exists
-
-        with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
-            result = send_seer_webhook(
-                event_name=event_name,
-                organization_id=self.organization.id,
-                payload=event_payload,
-            )
-
-        assert isinstance(result, SendSeerWebhookSuccessResponse)
-        mock_process_autofix_updates.apply_async.assert_called_once_with(
-            kwargs={
-                "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
-                "event_payload": event_payload,
-                "organization_id": self.organization.id,
-                "activity_already_recorded": True,
-            },
-        )
-        mock_broadcast.assert_called_once()
 
     def test_has_repo_code_mappings_repo_not_found(self) -> None:
         """Test when repository does not exist"""
