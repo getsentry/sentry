@@ -1,0 +1,312 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import argparse
+import os
+import subprocess
+import sys
+import time
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any
+
+from django.db.models import Max, Min
+
+from sentry import features, options
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.tasks.deliver_from_outbox import drain_outbox_shards
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    ProcessedSubscriptionUpdate,
+)
+from sentry.models.apitoken import ApiToken
+from sentry.models.organization import Organization
+from sentry.models.team import Team
+from sentry.search.events.types import SnubaParams
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowConfigExtras,
+    SeerWorkflowRun,
+    SeerWorkflowRunStatus,
+    SeerWorkflowStrategy,
+)
+from sentry.seer.workflows.base import SeerServiceAccountGrant, SelectedMonitors
+from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.snuba import errors
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.entity_subscription import apply_dataset_query_conditions
+from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.referrer import Referrer
+from sentry.users.models.user import User
+from sentry.utils import json
+from sentry.workflow_engine.models import DataPacket, DataSourceDetector, Detector, DetectorGroup
+from sentry.workflow_engine.processors.data_packet import process_data_packet
+
+AUTOMATION_NAME = "Script-triggered metric breaches"
+SERVICE_ACCOUNT_SCOPES = ("event:read", "member:read", "org:read", "project:read", "team:read")
+SEED_TOKEN_SCOPES = (
+    "alerts:read",
+    "alerts:write",
+    "event:read",
+    "org:read",
+    "project:admin",
+    "project:read",
+    "project:releases",
+    "project:write",
+    "team:read",
+    "team:write",
+)
+RUN_WAIT = timedelta(seconds=90)
+
+
+@dataclass(frozen=True)
+class MetricBreachTrigger:
+    """Seeds a Seer eval scenario into this Sentry, then breaches its monitor for an automation."""
+
+    organization: Organization
+    scenario: str
+    seer_path: Path
+    user: User
+
+    def run(self) -> None:
+        if not features.has("organizations:seer-automations", self.organization):
+            sys.exit("> organizations:seer-automations is not enabled for this organization.")
+
+        workflow = self._automation()
+        source = self._seed()["children"][self.scenario]["data"]["source"]
+        monitor = Detector.objects.get(
+            id=int(source["detectorId"]), project__organization_id=self.organization.id
+        )
+        self._write(f"> Seeded monitor {monitor.id} ({monitor.name}) in {monitor.project.slug}.")
+        with workflow.update_config() as update:
+            update.set_enabled(True)
+            update.set_scope(SelectedMonitors((monitor.id,)))
+
+        subscription = self._subscription(monitor)
+        evaluated_at = datetime.fromisoformat(source["analysisWindow"]["end"])
+        value = self._monitor_value(monitor, subscription, evaluated_at)
+        self._write(
+            f"> Evaluating the monitor with {subscription.snuba_query.aggregate} = {value}..."
+        )
+        process_data_packet(
+            DataPacket[ProcessedSubscriptionUpdate](
+                source_id=str(subscription.id),
+                packet=ProcessedSubscriptionUpdate(
+                    entity="events",
+                    subscription_id=subscription.subscription_id or str(subscription.id),
+                    values={"value": value},
+                    timestamp=evaluated_at,
+                ),
+            ),
+            DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+        self._drain_outbox()
+        self._report(workflow, monitor)
+
+    def _seed(self) -> dict[str, Any]:
+        team = Team.objects.filter(organization=self.organization).first()
+        if team is None:
+            sys.exit("> The organization needs a team for the seeded project.")
+        token = ApiToken.objects.create(user_id=self.user.id, scope_list=list(SEED_TOKEN_SCOPES))
+        self._write(f"> Seeding {self.scenario} from {self.seer_path}...")
+        try:
+            seeded = subprocess.run(
+                [
+                    "direnv",
+                    "exec",
+                    ".",
+                    "python",
+                    "-m",
+                    "evals.investigation.seeds.local",
+                    self.scenario,
+                    "--base-url",
+                    options.get("system.url-prefix"),
+                    "--organization-id",
+                    str(self.organization.id),
+                    "--org-slug",
+                    self.organization.slug,
+                    "--team-slug",
+                    team.slug,
+                ],
+                cwd=self.seer_path,
+                env={
+                    **{
+                        key: value
+                        for key, value in os.environ.items()
+                        if key
+                        not in (
+                            "VIRTUAL_ENV",
+                            "PYTHONPATH",
+                            "SENTRY_CONF",
+                            "DJANGO_SETTINGS_MODULE",
+                        )
+                    },
+                    "EVALS_SENTRY_WRITE_TOKEN": token.token,
+                    "EVALS_SENTRY_READ_TOKEN": token.token,
+                },
+                stdout=subprocess.PIPE,
+                text=True,
+            )
+        finally:
+            token.delete()
+        if seeded.returncode != 0:
+            sys.exit("> The Seer seed failed.")
+        return json.loads(seeded.stdout.splitlines()[-1])
+
+    def _monitor_value(
+        self, monitor: Detector, subscription: QuerySubscription, end: datetime
+    ) -> float:
+        snuba_query = subscription.snuba_query
+        if snuba_query.dataset != Dataset.Events.value:
+            sys.exit(f"> Only error monitors are supported, not {snuba_query.dataset} ones.")
+        result = errors.query(
+            selected_columns=[snuba_query.aggregate],
+            query=apply_dataset_query_conditions(
+                SnubaQuery.Type(snuba_query.type),
+                snuba_query.query,
+                snuba_query.event_types,
+                discover=True,
+            ),
+            snuba_params=SnubaParams(
+                start=end - timedelta(seconds=snuba_query.time_window),
+                end=end,
+                projects=[monitor.project],
+                organization=self.organization,
+                environments=[snuba_query.environment] if snuba_query.environment else [],
+            ),
+            referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+        )
+        value = next(iter(result["data"][0].values()), None) if result["data"] else None
+        if value is None:
+            sys.exit("> The monitor's query returned no value for its latest window.")
+        return value
+
+    def _automation(self) -> SeerWorkflow:
+        config = SeerWorkflowConfig.objects.filter(
+            organization_id=self.organization.id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            extras__name=AUTOMATION_NAME,
+        ).first()
+        if config is not None:
+            workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)
+        else:
+            workflow = SeerWorkflow.create(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+                enabled=True,
+                scope=SelectedMonitors(()),
+                extras=SeerWorkflowConfigExtras(name=AUTOMATION_NAME, created_by=self.user.id),
+                service_account_grant=SeerServiceAccountGrant(
+                    scopes=SERVICE_ACCOUNT_SCOPES, all_projects=True
+                ),
+            )
+            self._write(f'> Created automation "{AUTOMATION_NAME}".')
+
+        if workflow.get_config().service_account_id is None:
+            self._drain_outbox()
+        if workflow.get_config().service_account_id is None:
+            sys.exit("> The automation has no service account; its outbox has not delivered.")
+        return workflow
+
+    def _subscription(self, monitor: Detector) -> QuerySubscription:
+        source = DataSourceDetector.objects.select_related("data_source").get(
+            detector=monitor, data_source__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+        return QuerySubscription.objects.get(id=int(source.data_source.source_id))
+
+    def _drain_outbox(self) -> None:
+        bounds = CellOutbox.objects.aggregate(Min("id"), Max("id"))
+        if bounds["id__min"] is None:
+            return
+        drain_outbox_shards(
+            outbox_identifier_low=bounds["id__min"], outbox_identifier_hi=bounds["id__max"] + 1
+        )
+
+    def _report(self, workflow: SeerWorkflow, monitor: Detector) -> None:
+        base = f"{options.get('system.url-prefix')}/organizations/{self.organization.slug}"
+        self._write(f"> Automation: {base}/seer/automations/{workflow.config_id}/")
+
+        link = DetectorGroup.objects.filter(detector=monitor).first()
+        if link is None:
+            self._write("> The monitor did not open an issue.")
+            return
+        self._write(f"> Issue: {base}/issues/{link.group_id}/")
+
+        self._write("> Waiting for the automation run...")
+        run = self._await_run(workflow, link.group_id)
+        if run is None:
+            self._write(
+                f"> No automation run started within {int(RUN_WAIT.total_seconds())} seconds. "
+                "Is the devserver running?"
+            )
+            return
+        self._write(f"> Run {run.id}: {run.status}")
+        error = run.extras.get("error")
+        if error:
+            self._write(f">   {error}")
+        for execution in run.executions.all():
+            self._write(f">   Execution {execution.id}: {execution.status}")
+            execution_error = execution.extras.get("error")
+            if execution_error:
+                self._write(f">     {execution_error}")
+            for output in execution.output_links.all():
+                self._write(
+                    f">     Investigation: {base}/seer/investigations/{output.notebook_id}/"
+                )
+
+    def _await_run(self, workflow: SeerWorkflow, group_id: int) -> SeerWorkflowRun | None:
+        deadline = time.monotonic() + RUN_WAIT.total_seconds()
+        while True:
+            run = (
+                SeerWorkflowRun.objects.filter(
+                    workflow_config_id=workflow.config_id,
+                    trigger_key=f"issue_created:{group_id}",
+                )
+                .prefetch_related("executions__output_links")
+                .first()
+            )
+            dispatched = run is not None and (
+                run.status not in (SeerWorkflowRunStatus.QUEUED, SeerWorkflowRunStatus.RUNNING)
+                or any(execution.output_links.all() for execution in run.executions.all())
+            )
+            if dispatched or time.monotonic() >= deadline:
+                return run
+            time.sleep(2)
+
+    def _write(self, message: str) -> None:
+        sys.stdout.write(f"{message}\n")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Seed a Seer eval scenario and breach its monitor to start an automation run."
+    )
+    parser.add_argument(
+        "org_id", nargs="?", default=1, type=int, help="Organization ID (default: 1)"
+    )
+    parser.add_argument(
+        "--scenario",
+        default="noisy_error_monitor",
+        help="A seed from Seer's evals.investigation.seeds.local (default: noisy_error_monitor)",
+    )
+    parser.add_argument(
+        "--seer-path",
+        type=Path,
+        default=Path(__file__).resolve().parents[3] / "seer",
+        help="Seer checkout to seed from (default: next to this repository)",
+    )
+    args = parser.parse_args()
+
+    superuser = User.objects.filter(is_superuser=True).first()
+    if superuser is None:
+        sys.exit("> No superuser exists (run `sentry createuser --superuser`).")
+    MetricBreachTrigger(
+        organization=Organization.objects.get(id=args.org_id),
+        scenario=args.scenario,
+        seer_path=args.seer_path,
+        user=superuser,
+    ).run()
