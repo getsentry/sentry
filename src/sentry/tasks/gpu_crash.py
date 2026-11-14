@@ -19,6 +19,7 @@ from sentry import options
 from sentry.ingest.event_payload import load_event_payload
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.gpu import apply_gpu_crash_symbolication
+from sentry.lang.native.sources import get_internal_source
 from sentry.lang.native.teapot import TeapotAttachment, TeapotUnavailable, submit_to_teapot
 from sentry.lang.native.utils import (
     find_all_shader_debug_attachments,
@@ -142,6 +143,9 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
             metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "project_missing"})
             return False
 
+        sources = (
+            [get_internal_source(project)] if options.get("teapot.shader-sources.enabled") else None
+        )
         try:
             with metrics.timer("tasks.gpu_crash.teapot"):
                 response = submit_to_teapot(
@@ -149,6 +153,7 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
                     event_id,
                     cast(TeapotAttachment, dump),
                     cast(Sequence[TeapotAttachment], shaders),
+                    sources=sources,
                 )
         except TeapotUnavailable:
             # A genuine outage — feed the breaker so repeated failures trip it.

@@ -13,7 +13,7 @@ import hashlib
 import hmac
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, Protocol
 
 import orjson
@@ -56,10 +56,18 @@ class TeapotAttachment(Protocol):
 
 
 # Fallbacks for the `teapot.timeout-seconds` / `teapot.max-attempts` options.
-# The timeout is tight on purpose: decode is sub-second, so a slow teapot should
-# fail fast (the circuit breaker then takes over) rather than hold a worker.
-DEFAULT_TIMEOUT = 5
+# Most decodes take milliseconds, but a page fault dump can take a few seconds,
+# and the request also covers teapot's shader binary lookups. A teapot that is
+# down still fails well inside the task's deadline, and the breaker takes over.
+DEFAULT_TIMEOUT = 15
 DEFAULT_MAX_ATTEMPTS = 2
+
+# Teapot's budget for the decode and the shader binary lookups ends before the
+# timeout: it stops the lookups early and answers with what it has, instead of
+# being cut off. A decode that alone outlasts the budget gets a 504.
+# `MIN_DECODE_BUDGET_MS` is teapot's lower limit.
+DECODE_BUDGET_MARGIN_MS = 2000
+MIN_DECODE_BUDGET_MS = 1000
 
 RETRYABLE_STATUS = (502, 503, 504)
 
@@ -73,6 +81,10 @@ def _timeout() -> int:
         return int(options.get("teapot.timeout-seconds")) or DEFAULT_TIMEOUT
     except Exception:
         return DEFAULT_TIMEOUT
+
+
+def _max_decode_ms() -> int:
+    return max(MIN_DECODE_BUDGET_MS, _timeout() * 1000 - DECODE_BUDGET_MARGIN_MS)
 
 
 def _max_attempts() -> int:
@@ -109,6 +121,13 @@ def _redact_urls(text: str) -> str:
     return _URL_QUERY_RE.sub(r"\1?<redacted>", text)
 
 
+def _redact(text: str, secrets: Sequence[str]) -> str:
+    """Presigned URL tokens and the given secrets (the sources' tokens) removed."""
+    for secret in secrets:
+        text = text.replace(secret, "<redacted>")
+    return _redact_urls(text)
+
+
 def _resolve_url() -> str | None:
     base = getattr(settings, "SENTRY_TEAPOT_URL", None)
     return base.rstrip("/") if base else None
@@ -139,6 +158,7 @@ class TeapotClient:
         self,
         dump: TeapotAttachment,
         shader_debug_info: Sequence[TeapotAttachment] | None = None,
+        sources: Sequence[Mapping[str, Any]] | None = None,
     ) -> dict[str, Any]:
         shader_debug_info = shader_debug_info or []
         url = f"{self.base_url}/symbolicate"
@@ -156,7 +176,15 @@ class TeapotClient:
                 }
                 for att in shader_debug_info
             ],
+            "options": {"max_decode_ms": _max_decode_ms()},
         }
+        secrets: list[str] = []
+        if sources:
+            # Carries the system token; never log the body.
+            body["sources"] = list(sources)
+            secrets = [
+                s["token"] for s in sources if isinstance(s.get("token"), str) and s["token"]
+            ]
         data = orjson.dumps(body)
         headers = {
             "X-Teapot-Version": "1",
@@ -165,7 +193,7 @@ class TeapotClient:
             "Idempotency-Key": self.event_id,
             **_auth_headers(data),
         }
-        return self._send(url, headers=headers, data=data)
+        return self._send(url, headers=headers, data=data, secrets=secrets)
 
     def _storage_url(self, session: Any, att: TeapotAttachment) -> str:
         """Short-lived self-authenticating (presigned) GET URL for the attachment —
@@ -174,7 +202,9 @@ class TeapotClient:
             raise TeapotRequestError(f"attachment {att.name!r} is not in objectstore")
         return get_internal_download_url(session, att.stored_id)
 
-    def _send(self, url: str, headers: dict[str, str], data: bytes) -> dict[str, Any]:
+    def _send(
+        self, url: str, headers: dict[str, str], data: bytes, secrets: Sequence[str] = ()
+    ) -> dict[str, Any]:
         def attempt() -> dict[str, Any]:
             try:
                 resp = requests.post(url, data=data, headers=headers, timeout=_timeout())
@@ -185,7 +215,8 @@ class TeapotClient:
                 raise _RetryableTeapotError(f"teapot returned {resp.status_code}")
 
             if resp.status_code >= 400:
-                safe_body = _redact_urls(resp.text[:512])
+                # Redact before truncating, so a cut can't leave part of a secret.
+                safe_body = _redact(resp.text, secrets)[:512]
                 logger.warning(
                     "teapot.request_failed",
                     extra={
@@ -226,6 +257,7 @@ def submit_to_teapot(
     event_id: str,
     dump: TeapotAttachment,
     shader_debug_info: Sequence[TeapotAttachment] | None = None,
+    sources: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     """Best-effort teapot invocation.
 
@@ -233,11 +265,13 @@ def submit_to_teapot(
     URL, missing attachment, 4xx) — teapot is healthy, so the caller should not
     trip the circuit breaker. Raises ``TeapotUnavailable`` on a genuine outage
     (network, timeout, 5xx) so the caller can.
+
+    ``sources`` tells teapot where to fetch the shader binaries itself.
     """
 
     try:
         client = TeapotClient(project=project, event_id=event_id)
-        return client.symbolicate(dump, shader_debug_info or [])
+        return client.symbolicate(dump, shader_debug_info or [], sources=sources)
     except TeapotRequestError as e:
         logger.info("teapot.request_error", extra={"event_id": event_id, "error": str(e)})
         return None

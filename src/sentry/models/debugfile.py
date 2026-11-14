@@ -69,6 +69,20 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
+_DXIL_HEADER = b"DXBC"
+_SHADER_CODE_ID_RE = re.compile(r"^[0-9a-f]{16}$")
+
+
+def normalize_shader_code_id(code_id: str | None) -> str | None:
+    """The `code_id` of a `dxil` file in lower case, or None unless it is 16 hex characters."""
+    if code_id is None:
+        return None
+    code_id = code_id.lower()
+    return code_id if _SHADER_CODE_ID_RE.match(code_id) else None
+
+
+SHADER_GROUP_MAX_LENGTH = 512
+
 
 def _dif_file_extension(file_format: str, file_type: str | None) -> str:
     if file_format == "breakpad":
@@ -95,6 +109,8 @@ def _dif_file_extension(file_format: str, file_type: str | None) -> str:
         return ".json"
     if file_format == "dartsymbolmap":
         return ".json"
+    if file_format == "dxil":
+        return ".dxil"
 
     return ""
 
@@ -452,6 +468,7 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
     bcsymbolmap_seen = False
     uuidmap_seen = False
     il2cpp_seen = False
+    dxil_seen = False
     for i, dif in enumerate(difs):
         mime_type = dif.get_content_type()
         if mime_type == DIF_MIMETYPES["bcsymbolmap"]:
@@ -469,6 +486,11 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
                 il2cpp_seen = True
             else:
                 dif.delete()
+        elif mime_type == DIF_MIMETYPES["dxil"]:
+            if not dxil_seen:
+                dxil_seen = True
+            else:
+                dif.delete()
         else:
             # We always keep the latest file. If it has no features, likely the
             # previous files did not have features either and will be removed, or we
@@ -483,9 +505,13 @@ def detect_single_dif_from_path(
     path: str,
     name: str | None = None,
     debug_id: str | None = None,
+    code_id: str | None = None,
+    shader_group: str | None = None,
 ) -> DifMeta:
     """Like :func:`detect_dif_from_path`, but requires exactly one architecture."""
-    result = detect_dif_from_path(path, name=name, debug_id=debug_id)
+    result = detect_dif_from_path(
+        path, name=name, debug_id=debug_id, code_id=code_id, shader_group=shader_group
+    )
 
     if len(result) != 1:
         raise BadDif("Object contains %s architectures (1 expected)" % len(result))
@@ -508,6 +534,7 @@ def _get_dif_object_name(meta: DifMeta) -> str:
         "uuidmap",
         "il2cpp",
         "dartsymbolmap",
+        "dxil",
     ):
         return meta.name
     if meta.file_format == "breakpad":
@@ -872,6 +899,7 @@ class DifKind(enum.Enum):
     UuidMap = enum.auto()
     Il2Cpp = enum.auto()
     DartSymbolMap = enum.auto()
+    Dxil = enum.auto()
     # TODO(flub): should we include proguard?  The tradeoff is that we'd be matching the
     # regex of it twice.  That cost is probably not too great to worry about.
 
@@ -891,8 +919,19 @@ def determine_dif_kind(path: str) -> DifKind:
             return DifKind.Il2Cpp
         elif data.startswith(b"["):
             return DifKind.DartSymbolMap
+        elif data.startswith(_DXIL_HEADER):
+            return DifKind.Dxil
         else:
             return DifKind.Object
+
+
+def _shader_debug_id(debug_id: str | None) -> str:
+    if debug_id is None:
+        raise BadDif("Missing debug_id for dxil")
+    try:
+        return normalize_debug_id(debug_id)
+    except SymbolicError as e:
+        raise BadDif(f"Invalid debug_id for dxil: {e}")
 
 
 def detect_dif_from_path(
@@ -900,6 +939,8 @@ def detect_dif_from_path(
     name: str | None = None,
     debug_id: str | None = None,
     accept_unknown: bool = False,
+    code_id: str | None = None,
+    shader_group: str | None = None,
 ) -> list[DifMeta]:
     """Detects which kind of Debug Information File (DIF) the file at `path` is.
 
@@ -1014,6 +1055,31 @@ def detect_dif_from_path(
                     data=data,
                 )
             ]
+    elif dif_kind == DifKind.Dxil:
+        if code_id is not None:
+            code_id = normalize_shader_code_id(code_id)
+            if code_id is None:
+                raise BadDif("Invalid code_id for dxil (expected 16 hex characters)")
+        shader_group = (shader_group or "").strip()
+        if len(shader_group) > SHADER_GROUP_MAX_LENGTH:
+            raise BadDif(
+                f"Invalid shader_group for dxil (max {SHADER_GROUP_MAX_LENGTH} characters)"
+            )
+        logger.debug("File loaded as dxil: %s", path)
+        dxil_data: dict[str, Any] = {"features": ["symtab"]}
+        if shader_group:
+            dxil_data["shader_group"] = shader_group
+        return [
+            DifMeta(
+                file_format="dxil",
+                arch="any",
+                debug_id=_shader_debug_id(debug_id),
+                code_id=code_id,
+                name=name,
+                path=path,
+                data=dxil_data,
+            )
+        ]
     else:
         # native debug information files (MachO, ELF or Breakpad)
         try:

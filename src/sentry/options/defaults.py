@@ -543,10 +543,18 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Tight timeout: decode is sub-second, so a slow teapot should fail fast.
+# Covers the decode (seconds for a page fault dump) and the shader binary lookups;
+# teapot gets this minus 2 s as its budget (`sentry.lang.native.teapot`).
 register(
     "teapot.timeout-seconds",
-    default=5,
+    default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Sends teapot the project's debug-files source, so that it looks up the shader
+# binaries of a GPU crash itself (with the system token).
+register(
+    "teapot.shader-sources.enabled",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Retries only on transient 5xx; low so a slow teapot can't pile up work.

@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Iterable, Iterator, Mapping, Sequence, Set
 from contextlib import closing
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, NotRequired, TypedDict, TypeGuard, cast
+from typing import TYPE_CHECKING, Annotated, Any, NotRequired, TypedDict, TypeGuard, cast
 
 import jsonschema
 import orjson
@@ -55,6 +55,7 @@ from sentry.debug_files.debug_files import maybe_renew_debug_files
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.lang.native.sources import record_last_upload
 from sentry.models.debugfile import (
+    SHADER_GROUP_MAX_LENGTH,
     ProguardArtifactRelease,
     ProjectDebugFile,
     build_proguard_reupload_dif_meta,
@@ -63,6 +64,7 @@ from sentry.models.debugfile import (
     find_existing_dif,
     get_debug_id_from_dif_request,
     get_dif_download_filename,
+    normalize_shader_code_id,
     wasm_legacy_code_id,
     wasm_legacy_debug_id,
 )
@@ -484,7 +486,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             difs: Sequence[ProjectDebugFile],
         ) -> list[DebugFileSerializerResponse]:
             # NOTE: we are only refreshing files if there is direct query for specific files
-            if debug_id and not query and not file_formats:
+            if (debug_id or code_id) and not query and not file_formats:
                 maybe_renew_debug_files(difs)
 
             serialized: list[DebugFileSerializerResponse] = serialize(difs, request.user)
@@ -588,6 +590,8 @@ class AssembleRequestFile(TypedDict):
     name: str
     chunks: list[str]
     debug_id: NotRequired[str]
+    code_id: NotRequired[str]
+    shader_group: NotRequired[str]
 
 
 AssembleRequestPayload = dict[str, AssembleRequestFile]
@@ -609,6 +613,16 @@ _ASSEMBLE_REQUEST_FILE_SCHEMA: dict[str, object] = {
             "type": "string",
             "pattern": "^[A-Fa-f0-9-]+$",
             "description": "The debug ID to store the file under, overriding the one read from the file.",
+        },
+        "code_id": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]+$",
+            "description": "The code ID to store the file under, for file types the server cannot read it from.",
+        },
+        "shader_group": {
+            "type": "string",
+            "maxLength": SHADER_GROUP_MAX_LENGTH,
+            "description": "For `dxil` files: the shader group the binary belongs to, as recorded by the engine's shader symbol export.",
         },
         "chunks": {
             "type": "array",
@@ -674,6 +688,19 @@ def get_file_info(file: AssembleRequestFile) -> tuple[str, str | None, list[str]
     return name, debug_id, chunks
 
 
+def _cached_dif_lacks_shader_metadata(file: AssembleRequestFile, detail: object) -> bool:
+    """The request has a shader group or a shader code id that the cached file does not."""
+    cached = detail if isinstance(detail, Mapping) else {}
+    data = cached.get("data")
+    lacks_group = bool(file.get("shader_group")) and not (
+        isinstance(data, Mapping) and data.get("shader_group")
+    )
+    lacks_code_id = normalize_shader_code_id(file.get("code_id")) is not None and not cached.get(
+        "codeId"
+    )
+    return lacks_group or lacks_code_id
+
+
 def batch_assemble(
     project: Project, files: AssembleRequestPayload
 ) -> dict[str, DifAssembleFileResponse]:
@@ -692,10 +719,16 @@ def batch_assemble(
         requested_debug_id = _get_requested_debug_id(file)
         cached_debug_id = detail.get("uuid") if isinstance(detail, Mapping) else None
 
-        if state == ChunkFileState.OK and not _is_proguard_reupload_clone_request(
-            file=file,
-            requested_debug_id=requested_debug_id,
-            selected_debug_id=cached_debug_id,
+        # A shader group or code id the cached file lacks goes through the database
+        # lookup below, so it can be stored on the already assembled file.
+        if (
+            state == ChunkFileState.OK
+            and not _cached_dif_lacks_shader_metadata(file, detail)
+            and not _is_proguard_reupload_clone_request(
+                file=file,
+                requested_debug_id=requested_debug_id,
+                selected_debug_id=cached_debug_id,
+            )
         ):
             file_response[checksum] = {
                 "state": state,
@@ -736,6 +769,20 @@ def batch_assemble(
                 is_proguard_clone_source=bool(debug_file.proguard_clone_source_match),
             )
             continue
+
+        # A file first uploaded without a manifest entry gets its shader group and
+        # code id when it is uploaded again with one; without the code id the
+        # shader binary lookup can never find it.
+        if debug_file.file_format == "dxil":
+            updates: dict[str, Any] = {}
+            shader_group = file.get("shader_group")
+            if shader_group and not (debug_file.data or {}).get("shader_group"):
+                updates["data"] = {**(debug_file.data or {}), "shader_group": shader_group}
+            code_id = normalize_shader_code_id(file.get("code_id"))
+            if code_id and not debug_file.code_id:
+                updates["code_id"] = code_id
+            if updates:
+                debug_file.update(**updates)
 
         file_response[checksum] = {
             "state": ChunkFileState.OK,
@@ -786,15 +833,17 @@ def batch_assemble(
         set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.CREATED)
 
         name, debug_id, chunks = get_file_info(file)
-        assemble_dif.apply_async(
-            kwargs={
-                "project_id": project.id,
-                "name": name,
-                "debug_id": debug_id,
-                "checksum": checksum,
-                "chunks": chunks,
-            }
-        )
+        kwargs: dict[str, Any] = {
+            "project_id": project.id,
+            "name": name,
+            "debug_id": debug_id,
+            "checksum": checksum,
+            "chunks": chunks,
+        }
+        for key in ("code_id", "shader_group"):
+            if key in file:
+                kwargs[key] = file[key]
+        assemble_dif.apply_async(kwargs=kwargs)
 
         file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
 
