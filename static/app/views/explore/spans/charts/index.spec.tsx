@@ -11,6 +11,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import * as chartVisualization from 'sentry/views/explore/components/chart/chartVisualization';
@@ -363,6 +364,10 @@ describe('ExploreCharts', () => {
   });
 
   describe('expand/collapse', () => {
+    afterEach(() => {
+      localStorageWrapper.clear();
+    });
+
     function ControlledExploreCharts() {
       const [serialized, setSerialized] = useState<BaseVisualize[]>(() =>
         defaultVisualizes().map(visualize => visualize.serialize())
@@ -410,6 +415,23 @@ describe('ExploreCharts', () => {
 
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
       expect(screen.queryByLabelText('Expand chart')).not.toBeInTheDocument();
+    });
+
+    it('toggles a taller chart and remembers the choice', async () => {
+      const {unmount} = render(<ControlledExploreCharts />, {
+        organization: OrganizationFixture(),
+      });
+
+      await userEvent.click(await screen.findByLabelText('Increase chart height'));
+
+      expect(await screen.findByLabelText('Decrease chart height')).toBeInTheDocument();
+
+      unmount();
+      render(<ControlledExploreCharts />, {organization: OrganizationFixture()});
+
+      await userEvent.click(await screen.findByLabelText('Decrease chart height'));
+
+      expect(await screen.findByLabelText('Increase chart height')).toBeInTheDocument();
     });
   });
 
