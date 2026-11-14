@@ -30,6 +30,7 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedba
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits import get_out_of_credits, mark_out_of_credits
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.credits import SeerOperation
@@ -726,6 +727,13 @@ class TestContinueSingleRun(TestCase):
         assert kwargs["agent_run_options"]["enable_write_pull_request"] is False
         assert kwargs["payload"]["pr_internal_settings"] is None
 
+    def test_a_reply_clears_an_out_of_credits_stop(self) -> None:
+        mark_out_of_credits(run_id=123, organization_id=self.organization.id)
+
+        self._reply()
+
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) is None
+
     def test_respects_org_coding_opt_out(self) -> None:
         self.organization.update_option("sentry:enable_seer_coding", False)
 
@@ -741,6 +749,8 @@ class TestContinueSingleRun(TestCase):
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
     )
     def test_raises_when_out_of_credits(self, mock_check_seer_credits: MagicMock) -> None:
+        mark_out_of_credits(run_id=123, organization_id=self.organization.id)
+
         with (
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
             pytest.raises(SeerOutOfCreditsException),
@@ -755,6 +765,7 @@ class TestContinueSingleRun(TestCase):
             )
 
         mock_client_cls.return_value.continue_feature_run.assert_not_called()
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) is not None
 
 
 @django_db_all

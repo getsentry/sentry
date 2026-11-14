@@ -56,6 +56,7 @@ from sentry.seer.autofix.pr_iteration.iterations import (
     PrIterationNoPullRequestException,
     get_open_iteration_index,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits import take_out_of_credits
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
@@ -839,6 +840,7 @@ def trigger_push_changes(
         raise PermissionDenied("Code generation is disabled for this organization")
 
     check_autofix_billing(group.organization, SeerOperation.AUTOFIX_OPEN_PR, is_new_run=False)
+    take_out_of_credits(run_id=run_id, organization_id=group.organization.id)
 
     client = get_autofix_agent_client(group, user=user)
 

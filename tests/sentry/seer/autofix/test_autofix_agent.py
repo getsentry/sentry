@@ -36,6 +36,11 @@ from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    StrandedAction,
+    get_out_of_credits,
+    mark_out_of_credits,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import MAX_SEER_REPOS_PER_PROJECT
 from sentry.seer.models import SeerApiError, SeerPermissionError
@@ -1737,6 +1742,9 @@ class TestTriggerPushChanges(TestCase):
     def test_raises_when_out_of_credits(
         self, mock_post: MagicMock, mock_check_seer_credits: MagicMock
     ) -> None:
+        mirror_autofix_run(self, self.group, 123)
+        mark_out_of_credits(run_id=123, organization_id=self.organization.id)
+
         with pytest.raises(SeerOutOfCreditsException):
             trigger_push_changes(
                 group=self.group,
@@ -1745,6 +1753,18 @@ class TestTriggerPushChanges(TestCase):
             )
 
         mock_post.assert_not_called()
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) is not None
+
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_a_push_clears_an_out_of_credits_stop(self, mock_post: MagicMock) -> None:
+        mirror_autofix_run(self, self.group, 123)
+        mark_out_of_credits(
+            run_id=123, organization_id=self.organization.id, stranded_action=StrandedAction.PUSH
+        )
+
+        self._push(mock_post)
+
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) is None
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_passes_pr_description_suffix_ready_state_and_author(

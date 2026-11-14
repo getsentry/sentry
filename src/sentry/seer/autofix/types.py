@@ -22,6 +22,7 @@ class PrIterationOutOfCreditsWarning(BaseModel):
     """PR iteration stopped when the organization ran out of credits."""
 
     warning_type: Literal["pr_iteration_out_of_credits"] = "pr_iteration_out_of_credits"
+    stranded_action: Literal["push", "branch_moved_retry"] | None = None
 
 
 # Discriminated on `warning_type`; add new warning models to this union.

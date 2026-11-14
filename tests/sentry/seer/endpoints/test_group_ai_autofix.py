@@ -30,7 +30,10 @@ from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.out_of_credits import mark_out_of_credits
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    StrandedAction,
+    mark_out_of_credits,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -335,7 +338,30 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(self._get_url(group.id), format="json")
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["warnings"] == [
-            {"warning_type": "pr_iteration_out_of_credits"}
+            {"warning_type": "pr_iteration_out_of_credits", "stranded_action": None}
+        ]
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_warns_which_action_an_out_of_credits_stop_left_undone(
+        self, mock_get_explorer_state: MagicMock
+    ) -> None:
+        group = self.create_group()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=888)
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        mark_out_of_credits(
+            run_id=888, organization_id=self.organization.id, stranded_action=StrandedAction.PUSH
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(self._get_url(group.id), format="json")
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["warnings"] == [
+            {"warning_type": "pr_iteration_out_of_credits", "stranded_action": "push"}
         ]
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
