@@ -24,14 +24,6 @@ const chartPointSchema = z.object({
     .describe('Whether a smoothing transformation produced this value'),
 });
 
-// The point Seer is told to produce. Readers accept `chartPointSchema`, which
-// is wider, so every deployed frontend reads nulls and transformation flags
-// before the agent contract lets Seer send them.
-const chartGenerationPointSchema = z.object({
-  x: z.union([z.string(), z.number()]),
-  y: z.number(),
-});
-
 const chartSeriesDataSchema = z.array(chartPointSchema).min(1).max(200);
 
 const chartSeriesSchema = z.union([
@@ -309,7 +301,12 @@ export const SEER_EMBED_SCHEMAS = {
       'Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, ' +
       'prefer at least three points. Use x_axis "time" with ISO 8601 timestamps; ' +
       'timestamps without an offset are read as UTC. Category axes always render as bars. ' +
-      'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
+      'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes. ' +
+      'Use y null for a bucket with no data and copy a null value as null; never write 0 for ' +
+      'missing data. A count of 0 is data, so keep it as 0. When values come from a transformed ' +
+      "time series, copy each row's filled and smoothed flags onto its point (comparisonFilled and " +
+      'comparisonSmoothed for a comparison series) so the chart tooltip can say they were derived ' +
+      'rather than observed.',
     level: ['block'],
     schema: z
       .object({
@@ -359,6 +356,28 @@ export const SEER_EMBED_SCHEMAS = {
                 {x: '2026-07-30T15:00:00Z', y: 31},
                 {x: '2026-07-30T16:00:00Z', y: 46},
                 {x: '2026-07-30T17:00:00Z', y: 38},
+              ],
+            },
+          ],
+        },
+      },
+      {
+        label: 'Gaps and filled values',
+        data: {
+          title: 'p95 latency',
+          subtitle: 'Linear fill; the latest bucket has no data yet',
+          visualization: 'line',
+          x_axis: 'time',
+          y_axis_unit: 'duration',
+          series: [
+            {
+              label: 'p95(span.duration)',
+              data: [
+                {x: '2026-07-30T12:00:00Z', y: 120},
+                {x: '2026-07-30T13:00:00Z', y: 135, filled: true},
+                {x: '2026-07-30T14:00:00Z', y: 150},
+                {x: '2026-07-30T15:00:00Z', y: 142},
+                {x: '2026-07-30T16:00:00Z', y: null},
               ],
             },
           ],
@@ -1181,23 +1200,7 @@ export function seerEmbedsToJsonSchemas(): Array<{
 }> {
   return Object.entries(SEER_EMBED_SCHEMAS).map(([name, entry]) => {
     const def: SeerEmbedSchema = entry;
-    const body = z.toJSONSchema(def.schema, {
-      io: 'input',
-      override: ({zodSchema, jsonSchema}) => {
-        if (zodSchema !== chartPointSchema) {
-          return;
-        }
-        // The override edits this node in place; its parent already holds it.
-        for (const key of Object.keys(jsonSchema)) {
-          delete jsonSchema[key];
-        }
-        const {$schema: _, ...generationPoint} = z.toJSONSchema(
-          chartGenerationPointSchema,
-          {io: 'input'}
-        );
-        Object.assign(jsonSchema, generationPoint);
-      },
-    });
+    const body = z.toJSONSchema(def.schema, {io: 'input'});
     if (name === 'chart') {
       // superRefine is not exported. Apply its rules to new generation without
       // changing the reader used by historical conversations.

@@ -183,7 +183,7 @@ describe('SEER_EMBED_SCHEMAS chart gaps and provenance', () => {
     }
   );
 
-  it('keeps the agent contract on observed numeric points until readers ship', () => {
+  it('exports gaps and provenance to the agent contract', () => {
     const chart = seerEmbedsToJsonSchemas().find(widget => widget.name === 'chart');
     const series = chart?.body.properties as {
       series: {items: {anyOf: Array<{properties: {data: {items: unknown}}}>}};
@@ -194,8 +194,11 @@ describe('SEER_EMBED_SCHEMAS chart gaps and provenance', () => {
         expect.objectContaining({
           properties: {
             x: expect.anything(),
-            y: {type: 'number'},
+            y: expect.objectContaining({type: ['number', 'null']}),
+            filled: expect.objectContaining({type: 'boolean'}),
+            smoothed: expect.objectContaining({type: 'boolean'}),
           },
+          required: ['x', 'y'],
         })
       );
     }
