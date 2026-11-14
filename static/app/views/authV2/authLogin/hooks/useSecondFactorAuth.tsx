@@ -1,6 +1,8 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
+import type {AuthConfigResponse} from 'sentry/types/auth';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -129,17 +131,22 @@ export function useCancelSecondFactorAuth() {
       // MFA session. A later session must not render them while refetching or if the
       // refetch fails.
       queryClient.removeQueries({queryKey: secondFactorMethodsQueryOptions.queryKey});
-      queryClient.setQueryData(authConfigQueryOptions.queryKey, cachedResponse => {
-        if (!cachedResponse || 'nextUri' in cachedResponse.json) {
-          return cachedResponse;
-        }
+      queryClient.setQueriesData<ApiResponse<AuthConfigResponse>>(
+        {queryKey: [authConfigQueryOptions.queryKey[0]]},
+        cachedResponse => {
+          if (!cachedResponse || 'nextUri' in cachedResponse.json) {
+            return cachedResponse;
+          }
 
-        return {
-          ...cachedResponse,
-          json: {...cachedResponse.json, pendingMfa: null},
-        };
+          return {
+            ...cachedResponse,
+            json: {...cachedResponse.json, pendingMfa: null},
+          };
+        }
+      );
+      void queryClient.invalidateQueries({
+        queryKey: [authConfigQueryOptions.queryKey[0]],
       });
-      void queryClient.invalidateQueries({queryKey: authConfigQueryOptions.queryKey});
     },
   });
 

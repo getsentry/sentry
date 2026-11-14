@@ -265,6 +265,9 @@ describe('AuthLogin', () => {
     expect(
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
   });
 
   it('requires SSO without offering another org in single-org mode', async () => {
@@ -443,6 +446,9 @@ describe('AuthLogin', () => {
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Clear organization login context'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
     ).not.toBeInTheDocument();
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
   });
@@ -899,5 +905,230 @@ describe('AuthLogin', () => {
     expect(
       screen.queryByRole('textbox', {name: 'One-time password'})
     ).not.toBeInTheDocument();
+  });
+
+  it('shows membership warning and account switch for a signed-in non-member without SSO', async () => {
+    const authConfigRequest = MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {nextUri: '/organizations/acme/issues/?query=is:unresolved'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: true,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: null,
+        warnings: [
+          'Your account (ada@example.com) is not a member of the Acme organization.',
+        ],
+      },
+    });
+    const logoutDelay = Promise.withResolvers<void>();
+    const logoutRequest = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      asyncDelay: logoutDelay.promise,
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/auth/login/acme/',
+          query: {next: '/organizations/acme/issues/?query=is:unresolved'},
+        },
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(
+      await screen.findByText(
+        'Your account (ada@example.com) is not a member of the Acme organization.'
+      )
+    ).toBeVisible();
+    expect(authConfigRequest).toHaveBeenCalledWith(
+      '/auth/config/',
+      expect.objectContaining({
+        query: {next: '/organizations/acme/issues/?query=is:unresolved'},
+      })
+    );
+    expect(screen.getByRole('button', {name: 'SSO'})).toBeDisabled();
+    expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+
+    const switchButton = screen.getByRole('button', {
+      name: 'Sign in with a different account',
+    });
+    await userEvent.click(switchButton);
+    await waitFor(() => expect(logoutRequest).toHaveBeenCalledTimes(1));
+    expect(switchButton).toBeDisabled();
+    expect(switchButton).toHaveAttribute('aria-busy', 'true');
+
+    await userEvent.click(switchButton);
+    expect(logoutRequest).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+
+    await act(async () => {
+      logoutDelay.resolve();
+      await logoutDelay.promise;
+    });
+
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        '/auth/login/acme/?next=%2Forganizations%2Facme%2Fissues%2F%3Fquery%3Dis%3Aunresolved'
+      )
+    );
+  });
+
+  it('shows a retryable error when switching accounts fails and follows sloUrl on retry', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {nextUri: '/organizations/acme/issues/'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: true,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: null,
+        warnings: [
+          'Your account (ada@example.com) is not a member of the Acme organization.',
+        ],
+      },
+    });
+    const failedLogout = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      statusCode: 500,
+      body: {detail: 'Logout failed'},
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Sign in with a different account'})
+    );
+
+    expect(
+      await screen.findByText('Unable to sign in with a different account. Try again.')
+    ).toBeVisible();
+    expect(failedLogout).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+
+    MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      body: {sloUrl: 'https://idp.example.com/logout'},
+    });
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Sign in with a different account'})
+    );
+
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        'https://idp.example.com/logout'
+      )
+    );
+  });
+
+  it('offers account switch for a signed-in non-member when SSO is optional', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {nextUri: '/organizations/acme/issues/'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: true,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'sso',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: {key: 'saml2', name: 'SAML'},
+        warnings: [
+          'Your account (ada@example.com) is not a member of the Acme organization.',
+        ],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'SSO'})).toBeEnabled();
+    expect(
+      screen.getByRole('button', {name: 'Sign in with a different account'})
+    ).toBeEnabled();
+  });
+
+  it('renders plain-text organization warnings once ahead of login banner', async () => {
+    const membershipWarning =
+      'Your account (ada@example.com) is not a member of <b>Acme</b> [docs](https://example.com).';
+    const sessionExpired = 'Your session has expired.';
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        canRegister: true,
+        githubLoginLink: '',
+        googleLoginLink: '',
+        hasNewsletter: false,
+        loginBannerMarkdown:
+          'Try agent monitoring. [Learn more](https://example.com/agents).',
+        pendingMfa: null,
+        serverHostname: 'sentry.example.com',
+        vstsLoginLink: '',
+        warning: sessionExpired,
+      } satisfies AuthConfig,
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: null,
+        warnings: [membershipWarning, sessionExpired],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    const membership = await screen.findByText(membershipWarning);
+    const bannerLink = screen.getByRole('link', {name: 'Learn more'});
+
+    expect(screen.getAllByText(sessionExpired)).toHaveLength(1);
+    expect(membership.compareDocumentPosition(bannerLink)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(screen.queryByRole('link', {name: 'docs'})).not.toBeInTheDocument();
+    expect(document.querySelector('b')).not.toBeInTheDocument();
   });
 });
