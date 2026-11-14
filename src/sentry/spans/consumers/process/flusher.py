@@ -12,7 +12,6 @@ from functools import partial
 from multiprocessing.sharedctypes import Synchronized
 from typing import Any
 
-import orjson
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
@@ -247,7 +246,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                             )
 
                         for message in flushed_segment.to_messages():
-                            kafka_payload = KafkaPayload(None, orjson.dumps(message), [])
+                            kafka_payload = KafkaPayload(None, message.payload, [])
                             metrics.timing(
                                 "spans.buffer.segment_size_bytes",
                                 len(kafka_payload.value),
@@ -260,7 +259,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                     produce_to_pipe(
                                         flushed_segment.project_id,
                                         kafka_payload,
-                                        len(message["spans"]),
+                                        message.num_spans,
                                     )
                                     pipe_future.set_result(None)
                                 except Exception as e:
@@ -269,7 +268,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                     (
                                         flushed_segment.project_id,
                                         pipe_future,
-                                        len(message["spans"]),
+                                        message.num_spans,
                                     )
                                 )
                                 continue
@@ -283,7 +282,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                     (
                                         flushed_segment.project_id,
                                         task_produce_future,
-                                        len(message["spans"]),
+                                        message.num_spans,
                                     )
                                 )
 

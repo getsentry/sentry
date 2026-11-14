@@ -3817,6 +3817,18 @@ register(
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Fraction of flushed segments for which the flusher forwards span payloads
+# unmodified and lets the process_segment task attach `sentry.segment.id` and
+# `is_segment`, instead of parsing and re-serializing every span itself. Only
+# raise this once every process_segment worker runs code that understands the
+# `segment_span_id` message field, and set it back to 0 before rolling workers
+# back to code that predates it.
+register(
+    "spans.buffer.flusher.defer-segment-metadata",
+    type=Float,
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "spans.process-segments.schema-validation",
     default=0.0,

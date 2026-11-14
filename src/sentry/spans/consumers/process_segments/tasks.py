@@ -8,6 +8,7 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
 from redis.client import StrictRedis
 from redis.exceptions import TimeoutError as RedisTimeoutError
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_redis_tools.clients import RedisCluster
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
@@ -18,7 +19,7 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.message import process_segment
-from sentry.spans.consumers.process_segments.types import CompatibleSpan
+from sentry.spans.consumers.process_segments.types import CompatibleSpan, attach_segment_metadata
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import spans_process_segments_tasks
 from sentry.utils import metrics, redis
@@ -100,11 +101,29 @@ def _serialize_payload(span: CompatibleSpan) -> KafkaPayload:
     )
 
 
-def _process_segment_bytes(segment_bytes: bytes) -> list[KafkaPayload]:
+def _decode_segment(segment_bytes: bytes) -> tuple[list[SpanEvent], bool]:
+    """
+    Decode a message produced by the span buffer flusher into its spans and
+    the `skip_enrichment` flag.
+    """
     segment = orjson.loads(segment_bytes)
-    skip_enrichment = segment.get("skip_enrichment", False)
+    spans: list[SpanEvent] = segment["spans"]
+
+    # Set when the flusher forwarded the stored span payloads without
+    # attaching segment metadata (`spans.buffer.flusher.defer-segment-metadata`).
+    # Messages without it already have the metadata attached.
+    segment_span_id = segment.get("segment_span_id")
+    if segment_span_id is not None:
+        for span in spans:
+            attach_segment_metadata(span, segment_span_id)
+
+    return spans, segment.get("skip_enrichment", False)
+
+
+def _process_segment_bytes(segment_bytes: bytes) -> list[KafkaPayload]:
+    spans, skip_enrichment = _decode_segment(segment_bytes)
     processed = process_segment(
-        segment["spans"],
+        spans,
         skip_enrichment=skip_enrichment,
     )
     processed = _check_span_duplicates(processed)
