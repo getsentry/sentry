@@ -58,7 +58,19 @@ def load_config(app: App) -> None:
     app.config.AsyncPG.pool_size = int(os.environ.get("APIGW_DB_POOL_SIZE", 4))
 
     app.config.endpoints.control = os.environ.get("APIGW_ENDPOINT_CONTROL", "http://localhost:8002")
+    app.config.endpoints.control_resolve = bool(os.environ.get("APIGW_ENDPOINT_CONTROL_RESOLVE"))
     app.config.endpoints.use_cell_gw = bool(os.environ.get("APIGW_USE_CELL_GW_ENDPOINTS"))
+    app.config.endpoints.protos = {}
+    for item in os.environ.get("APIGW_ENDPOINT_PROTOS", "").split(","):
+        try:
+            target, proto = item.strip().split(":")
+            assert proto in ["h1", "h2"]
+        except Exception:
+            continue
+        app.config.endpoints.protos[target] = proto
+
+    if app.config.endpoints.control_resolve:
+        app.config.Resolver.addrs = [app.config.endpoints.control]
 
     app.config.proxy.timeout = None
     app.config.proxy.max_concurrency = int(os.environ.get("APIGW_PROXY_MAX_CONCURRENCY", 512))

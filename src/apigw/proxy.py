@@ -9,7 +9,7 @@ import punkreq
 from emmett55 import Pipe, current, response
 from punkreq.asyncio import Client
 
-from . import app
+from . import app, resolver
 from .circuitbreaker import (
     CircuitBreakerManager,
     CircuitBreakerOverflow,
@@ -19,7 +19,7 @@ from .dsl import Cell
 from .utils import abort_with_json
 
 CHUNK_SIZE = 1024 * 256
-REQUEST_HEADERS_FILTERED = {"host", "connection"}
+REQUEST_HEADERS_FILTERED = {"host", "connection", "x-forwarded-host"}
 RESPONSE_HEADERS_FILTERED = {
     "connection",
     "server",
@@ -51,7 +51,7 @@ class ResponseCookieGlue:
         return f"set-cookie: {self._raw}"
 
 
-proxy_client = Client(
+proxy_client_h1 = Client(
     limits=punkreq.Limits(
         keepalive_expiry=app.config.proxy.client_keepalive_timeout,
         max_connections=app.config.proxy.client_max_connections,
@@ -59,8 +59,24 @@ proxy_client = Client(
     ),
     timeout=punkreq.Timeout(connect=5.0, read=60.0, pool=5.0, total=None),
     follow_redirects=False,
+    http1=True,
     http2=False,
 )
+proxy_client_h2 = Client(
+    limits=punkreq.Limits(
+        keepalive_expiry=app.config.proxy.client_keepalive_timeout,
+        max_connections=app.config.proxy.client_max_connections,
+        max_keepalive_connections=app.config.proxy.client_keepalive_max_connections,
+    ),
+    timeout=punkreq.Timeout(connect=5.0, read=60.0, pool=5.0, total=None),
+    follow_redirects=False,
+    http1=False,
+    http2=True,
+)
+proxy_clients_by_proto: dict[str, Client] = {
+    "h1": proxy_client_h1,
+    "h2": proxy_client_h2,
+}
 circuitbreakers = CircuitBreakerManager()
 
 metric_abort = prometheus_client.Counter(
@@ -115,6 +131,8 @@ def build_proxied_url(target: str, path: str) -> str:
     url = urljoin(target, path)
     if urlsplit(target).netloc != urlsplit(url).netloc:
         abort_with_json(400, {"error": "apigateway", "detail": "Bad request"})
+    if upstream := resolver.get_upstream(target):
+        return urljoin(upstream, path)
     return url
 
 
@@ -141,6 +159,8 @@ def build_proxied_headers(
             rv.append((key, val))
     if not forwarded_added:
         rv.append(("x-forwarded-for", client_host))
+    if pass_host:
+        rv.append(("x-forwarded-host", server_host))
     return rv
 
 
@@ -186,6 +206,11 @@ def get_cell_address(cell: Cell) -> str:
     return cell.address
 
 
+def get_proxy_client_for_target(target: str) -> Client:
+    proto = app.config.endpoints.protos.get(target, "h1")
+    return proxy_clients_by_proto[proto]
+
+
 def adapt_response(presp: punkreq.Response) -> Any:
     response.status = presp.status_code
     headers: dict[str, list[str]] = defaultdict(list)
@@ -210,6 +235,7 @@ async def proxy_request(
 ) -> Any:
     try:
         async with circuitbreakers.get(target_label) as circuitbreaker:
+            proxy_client = get_proxy_client_for_target(target_label)
             try:
                 req = build_proxied_request(
                     proxy_client,
