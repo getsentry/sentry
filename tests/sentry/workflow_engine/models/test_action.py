@@ -7,14 +7,23 @@ from jsonschema import ValidationError
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.types import ActionHandler, ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    ActionInvocation,
+    UnsupportedActionEvent,
+    WorkflowEventData,
+)
+from tests.sentry.workflow_engine.test_base import OrganizationEvent
 
 
 class TestAction(TestCase):
     def setUp(self) -> None:
         mock_group_event = Mock(spec=GroupEvent)
         self.group = self.create_group()
+        mock_group_event.project = self.group.project
+        mock_group_event.project_id = self.group.project_id
+        self.detector = self.create_detector(project=self.group.project)
 
         self.mock_event = WorkflowEventData(event=mock_group_event, group=self.group)
         self.action = Action(type=Action.Type.SLACK)
@@ -87,7 +96,7 @@ class TestAction(TestCase):
     @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
     def test_trigger_calls_handler_execute(self, mock_get_detector: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
-        mock_detector = Mock(spec=Detector, type="error")
+        mock_detector = self.detector
         mock_get_detector.return_value = mock_detector
 
         notification_uuid = str(uuid.uuid4())
@@ -110,7 +119,7 @@ class TestAction(TestCase):
     def test_trigger_with_failing_handler(self) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.execute.side_effect = Exception("Handler failed")
-        detector = Mock(spec=Detector, type="error")
+        detector = self.detector
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             with pytest.raises(Exception, match="Handler failed"):
@@ -124,7 +133,7 @@ class TestAction(TestCase):
     @patch("sentry.utils.metrics.incr")
     def test_trigger_metrics(self, mock_incr: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
-        detector = Mock(spec=Detector, type="error")
+        detector = self.detector
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             self.action.trigger(
@@ -185,3 +194,57 @@ class TestAction(TestCase):
                 params = self.valid_params.copy()
                 params["data"] = {"baz": 42}
                 Action.objects.create(**params)
+
+    def test_group_less_invocation(self) -> None:
+        source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid.uuid4())
+        event_data = WorkflowEventData(event=source, organization=self.organization)
+        detector = self.create_all_projects_detector(self.organization)
+        notification_uuid = str(uuid.uuid4())
+        with (
+            patch.object(ActionHandler, "supports_group_less", True),
+            patch.object(self.action.get_handler(), "execute") as execute,
+        ):
+            self.action.trigger(event_data, notification_uuid, self.workflow.id, detector=detector)
+        execute.assert_called_once_with(
+            ActionInvocation(event_data, self.action, detector, notification_uuid, self.workflow.id)
+        )
+
+    def test_rejects_project_less_detector_for_issue_action(self) -> None:
+        detector = self.create_all_projects_detector(self.organization)
+        with pytest.raises(UnsupportedActionEvent, match="project-scoped detector"):
+            self.action.trigger(
+                self.mock_event, str(uuid.uuid4()), self.workflow.id, detector=detector
+            )
+
+    def test_rejects_detector_from_another_organization(self) -> None:
+        detector = self.create_detector(
+            project=self.create_project(organization=self.create_organization())
+        )
+        with pytest.raises(ValueError, match="same organization"):
+            self.action.trigger(
+                self.mock_event, str(uuid.uuid4()), self.workflow.id, detector=detector
+            )
+
+    def test_group_less_detector_organization_must_match(self) -> None:
+        source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid.uuid4())
+        event_data = WorkflowEventData(event=source, organization=self.organization)
+        detector = self.create_all_projects_detector(self.create_organization())
+        with (
+            patch.object(ActionHandler, "supports_group_less", True),
+            pytest.raises(ValueError, match="same organization"),
+        ):
+            self.action.trigger(event_data, str(uuid.uuid4()), self.workflow.id, detector=detector)
+
+    def test_issue_handler_rejects_group_less_event(self) -> None:
+        event_data = WorkflowEventData(
+            event=OrganizationEvent(organization_id=self.organization.id, event_id=uuid.uuid4()),
+            organization=self.organization,
+        )
+        with (
+            patch.object(self.action.get_handler(), "execute") as execute,
+            pytest.raises(UnsupportedActionEvent, match="issue group"),
+        ):
+            self.action.trigger(
+                event_data, str(uuid.uuid4()), self.workflow.id, detector=self.detector
+            )
+        execute.assert_not_called()

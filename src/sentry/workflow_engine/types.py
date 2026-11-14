@@ -234,10 +234,16 @@ class ConfigTransformer(ABC):
         raise NotImplementedError
 
 
+class UnsupportedActionEvent(ValueError):
+    """The action handler cannot execute with the supplied event context."""
+
+
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
     required_features: ClassVar[tuple[FeatureGate, ...]] = ()
+    # Existing alert handlers require an issue and a project-scoped detector.
+    supports_group_less: ClassVar[bool] = False
 
     class Group(StrEnum):
         NOTIFICATION = "notification"

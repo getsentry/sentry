@@ -13,7 +13,7 @@ from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import UnsupportedActionEvent, WorkflowEventData
 
 
 class TestBuildTriggerActionTaskParams(TestCase):
@@ -204,3 +204,9 @@ class TestTriggerAction(TestCase):
             self.call_trigger_action(action, retry_state=SECOND_ATTEMPT)
 
         mock_capture_exception.assert_not_called()
+
+    def test_unsupported_event_is_not_retried(self) -> None:
+        action = Mock(id=1, type=Action.Type.SLACK)
+        action.trigger.side_effect = UnsupportedActionEvent("This action requires an issue group")
+        self.call_trigger_action(action, retry_state=FIRST_ATTEMPT)
+        action.trigger.assert_called_once()

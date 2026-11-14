@@ -1,3 +1,6 @@
+from unittest.mock import patch
+from uuid import uuid4
+
 from django.db import models
 from django.db.models import Value
 
@@ -9,7 +12,9 @@ from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.processors.action import get_unique_active_actions
+from sentry.workflow_engine.processors.action import fire_actions, get_unique_active_actions
+from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from tests.sentry.workflow_engine.test_base import OrganizationEvent
 
 
 @cell_silo_test
@@ -628,3 +633,42 @@ class TestActionDeduplication(TestCase):
         # Only one action should remain; we don't take workflow into account for deduplication
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
+
+    def test_group_less_dispatch_excludes_unsupported_handlers(self) -> None:
+        source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid4())
+        event_data = WorkflowEventData(event=source, organization=self.organization)
+        with patch(
+            "sentry.workflow_engine.processors.action.trigger_action.apply_async"
+        ) as enqueue:
+            fire_actions(
+                Action.objects.filter(id=self.slack_action.id),
+                event_data,
+                {},
+                {self.slack_action.id: 1},
+            )
+        enqueue.assert_not_called()
+
+    def test_group_less_dispatch_deduplicates_supported_actions(self) -> None:
+        source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid4())
+        event_data = WorkflowEventData(event=source, organization=self.organization)
+        duplicate = self.create_action(
+            type=self.slack_action.type,
+            integration_id=self.slack_action.integration_id,
+            config=self.slack_action.config,
+        )
+        with (
+            patch.object(ActionHandler, "supports_group_less", True),
+            # Investigation serialization belongs to the subsequent task-transport change.
+            patch(
+                "sentry.workflow_engine.processors.action.build_trigger_action_task_params",
+                return_value={},
+            ),
+            patch("sentry.workflow_engine.processors.action.trigger_action.apply_async") as enqueue,
+        ):
+            fire_actions(
+                Action.objects.filter(id__in=[self.slack_action.id, duplicate.id]),
+                event_data,
+                {},
+                {self.slack_action.id: 1, duplicate.id: 1},
+            )
+        enqueue.assert_called_once()

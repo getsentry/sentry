@@ -21,6 +21,7 @@ from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import (
     ActionHandler,
     ActionInvocation,
+    UnsupportedActionEvent,
     WorkflowEventData,
     WorkflowId,
 )
@@ -137,12 +138,24 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         *,
         detector: Detector,
     ) -> None:
+        organization = event_data.get_organization()
+        handler = self.get_handler()
+        self.validate_event_data(event_data)
+        detector_organization_id = (
+            detector.project.organization_id
+            if detector.project is not None
+            else detector.config.get("organization_id")
+        )
+        if detector_organization_id != organization.id:
+            raise ValueError("Action detector and event must belong to the same organization")
+        if detector.project_id is None and not handler.supports_group_less:
+            raise UnsupportedActionEvent("This action requires a project-scoped detector")
+
         with metrics.timer(
             "workflow_engine.action.trigger.execution_time",
             tags={"action_type": self.type, "detector_type": detector.type},
             sample_rate=1.0,
         ):
-            handler = self.get_handler()
             invocation = ActionInvocation(
                 event_data=event_data,
                 action=self,
@@ -163,8 +176,14 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             extra={
                 "detector_id": detector.id,
                 "action_id": self.id,
+                "organization_id": organization.id,
+                "group_id": event_data.group_id,
             },
         )
+
+    def validate_event_data(self, event_data: WorkflowEventData) -> None:
+        if event_data.group is None and not self.get_handler().supports_group_less:
+            raise UnsupportedActionEvent("This action requires an issue group")
 
     def get_dedup_key(self) -> str:
         return self.get_handler().get_dedup_key(self)
