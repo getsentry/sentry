@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
+import escapeRegExp from 'lodash/escapeRegExp';
 import {parseAsString, useQueryStates} from 'nuqs';
 import qs from 'query-string';
 
@@ -14,7 +15,12 @@ import {
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {Token} from 'sentry/components/searchSyntax/parser';
+import {
+  BooleanOperator,
+  TermOperator,
+  Token,
+  type TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import type {PageFilters} from 'sentry/types/core';
@@ -558,24 +564,18 @@ function useConflictingFilterWarning({
       return [];
     }
 
-    const widgetFilterKeys = widget.queries.flatMap(query => {
-      const parseResult = parseQueryBuilderValue(query.conditions, key =>
-        getFieldDefinition(key)
-      );
-      if (!parseResult) {
-        return [];
-      }
-      return parseResult
-        .filter(token => token.type === Token.FILTER)
-        .map(token => token.key.text);
-    });
-    const globalFilterKeys =
-      dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER]
+    const widgetFilters = widget.queries.flatMap(query =>
+      getRequiredFilters(query.conditions)
+    );
+    return (
+      dashboardFilters[DashboardFilterKeys.GLOBAL_FILTER]
         ?.filter(filter => filter.dataset === widget.widgetType && filter.value !== '')
-        .map(filter => filter.tag.key) ?? [];
-
-    const widgetFilterKeySet = new Set(widgetFilterKeys);
-    return globalFilterKeys.filter(key => widgetFilterKeySet.has(key));
+        .flatMap(filter => getRequiredFilters(filter.value))
+        .filter(globalFilter =>
+          widgetFilters.some(widgetFilter => filtersConflict(widgetFilter, globalFilter))
+        )
+        .map(filter => filter.key.text) ?? []
+    );
   }, [widget.queries, widget.widgetType, dashboardFilters]);
 
   if (conflictingFilterKeys.length > 0) {
@@ -586,6 +586,70 @@ function useConflictingFilterWarning({
   }
 
   return null;
+}
+
+function getRequiredFilters(query: string) {
+  const tokens = parseQueryBuilderValue(query, key => getFieldDefinition(key)) ?? [];
+  // With a top-level OR no single filter has to match, so none can conflict alone
+  if (
+    tokens.some(
+      token => token.type === Token.LOGIC_BOOLEAN && token.value === BooleanOperator.OR
+    )
+  ) {
+    return [];
+  }
+  return tokens.filter(token => token.type === Token.FILTER);
+}
+
+// Two filters on the same key conflict when one only allows exact values and
+// none of those values pass the other filter, so the widget can only be empty.
+function filtersConflict(a: TokenResult<Token.FILTER>, b: TokenResult<Token.FILTER>) {
+  const pinsOutsideOf = (pinned: TokenResult<Token.FILTER>, other: typeof pinned) => {
+    const values = getTextValues(pinned);
+    if (
+      !values ||
+      pinned.negated ||
+      pinned.operator !== TermOperator.DEFAULT ||
+      values.some(value => value.includes('*'))
+    ) {
+      return false;
+    }
+    return !values.some(value => matchesFilter(value, other));
+  };
+  return a.key.text === b.key.text && (pinsOutsideOf(a, b) || pinsOutsideOf(b, a));
+}
+
+function getTextValues(token: TokenResult<Token.FILTER>) {
+  if (token.value.type === Token.VALUE_TEXT) {
+    return [token.value.value];
+  }
+  if (token.value.type === Token.VALUE_TEXT_LIST) {
+    return token.value.items.map(item => item.value?.value ?? '');
+  }
+  return null;
+}
+
+const WILDCARD_PATTERNS: Partial<Record<TermOperator, (value: string) => string>> = {
+  [TermOperator.DEFAULT]: value => value,
+  [TermOperator.CONTAINS]: value => `*${value}*`,
+  [TermOperator.STARTS_WITH]: value => `${value}*`,
+  [TermOperator.ENDS_WITH]: value => `*${value}`,
+};
+
+// Unsupported operators (numeric, dates, ...) count as a match so they never warn
+function matchesFilter(value: string, token: TokenResult<Token.FILTER>) {
+  const toPattern = WILDCARD_PATTERNS[token.operator];
+  const patterns = getTextValues(token);
+  if (!toPattern || !patterns) {
+    return true;
+  }
+  // Case-insensitive so that an uncertain match errs on the side of not warning
+  const matches = patterns.some(pattern =>
+    new RegExp(`^${escapeRegExp(toPattern(pattern)).replaceAll('\\*', '.*')}$`, 'i').test(
+      value
+    )
+  );
+  return matches !== token.negated;
 }
 
 export const WidgetDescription = styled('small')`
