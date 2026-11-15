@@ -6,7 +6,7 @@ from subprocess import check_output
 
 # Bumped by scripts/bump-version.sh. Not read from package metadata, so that
 # pyproject.toml and uv.lock don't change on every release.
-VERSION = "26.11.0"
+VERSION = "26.12.0.dev0"
 
 
 def _get_git_revision(path: str) -> str | None:
