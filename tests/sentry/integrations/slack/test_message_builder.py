@@ -930,6 +930,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             data={
                 "type": "default",
                 "title": "User Feedback: first line\nsecond line",
+                # build_attachment_text() reads group.data["metadata"]
+                "metadata": {},
             },
         )
         ret = SlackIssuesMessageBuilder(group, None).build()
