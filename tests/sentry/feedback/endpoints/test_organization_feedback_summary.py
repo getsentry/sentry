@@ -9,6 +9,7 @@ from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import cell_silo_test
 from tests.sentry.feedback import MockSeerResponse, mock_feedback_event
 
@@ -126,6 +127,31 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         mock_cache.get.assert_called_once()
         mock_cache.set.assert_not_called()
+
+    def test_get_feedback_summary_cache_reused_across_hours_for_long_range(self) -> None:
+        request_time = before_now(days=1).replace(hour=10, minute=30, second=0, microsecond=0)
+
+        with freeze_time(request_time):
+            self.save_feedback(self.project1, "hello")
+            self.get_success_response(self.org.slug, statsPeriod="7d")
+
+        with freeze_time(request_time + timedelta(hours=1)):
+            response = self.get_success_response(self.org.slug, statsPeriod="7d")
+
+        assert response.data["summary"] == "Test summary of feedback"
+        assert self.mock_get_summary_from_seer.call_count == 1
+
+    def test_get_feedback_summary_cache_not_reused_across_hours_for_short_range(self) -> None:
+        request_time = before_now(days=1).replace(hour=10, minute=30, second=0, microsecond=0)
+
+        with freeze_time(request_time):
+            self.save_feedback(self.project1, "hello")
+            self.get_success_response(self.org.slug, statsPeriod="24h")
+
+        with freeze_time(request_time + timedelta(hours=1)):
+            self.get_success_response(self.org.slug, statsPeriod="24h")
+
+        assert self.mock_get_summary_from_seer.call_count == 2
 
     def test_get_feedback_summary_with_date_filter(self) -> None:
         # Created immediately
