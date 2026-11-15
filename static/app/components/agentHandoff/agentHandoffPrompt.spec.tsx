@@ -17,8 +17,9 @@ describe('AgentHandoffPrompt', () => {
   const url = `/organizations/${organization.slug}/agent-handoff/prompts/`;
   const context = {runId: 'a'.repeat(32)};
   const feedbackSource = 'agent-handoff-prompt-test';
+  const code = 'sntryh_example';
   const prompt =
-    'Fetch and follow the instructions at https://sentry.io/agent-handoff/. Your secret token is `sntryh_example`.';
+    'Follow the instructions verbatim at https://sentry-jest-tests.example.com/agent-handoff/. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
 
   beforeEach(() => {
@@ -38,11 +39,11 @@ describe('AgentHandoffPrompt', () => {
     Reflect.deleteProperty(globalThis, 'ClipboardItem');
   });
 
-  it('copies a private prompt with IP pinning enabled', async () => {
+  it('copies an agent prompt with IP pinning enabled', async () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     const onCopySuccess = jest.fn();
 
@@ -59,6 +60,9 @@ describe('AgentHandoffPrompt', () => {
     expect(screen.getByRole('link', {name: 'See the full instructions'})).toHaveAttribute(
       'href',
       'https://sentry.io/agent-handoff/?preview=1&flow=onboarding'
+    );
+    expect(screen.getByText(/Follow the instructions verbatim/)).toHaveTextContent(
+      'Follow the instructions verbatim at https://sentry-jest-tests.example.com/agent-handoff/. Your handoff code is sntryh_****.'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
 
@@ -85,7 +89,7 @@ describe('AgentHandoffPrompt', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     render(
       <AgentHandoffPrompt
@@ -100,7 +104,7 @@ describe('AgentHandoffPrompt', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: /Use IP pinning/}));
 
     expect(
-      screen.getByText(/Without IP pinning, anyone with this prompt can use it/)
+      screen.getByText(/anyone with this prompt can use its handoff code/)
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
 
@@ -140,6 +144,11 @@ describe('AgentHandoffPrompt', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(document.activeElement?.textContent).toContain('sntryh_****');
     expect(window.getSelection()?.toString()).toContain('sntryh_****');
+    expect(screen.getByText('sntryh_****')).toHaveAttribute('data-selected', 'true');
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Prior input'}));
+
+    expect(screen.getByText('sntryh_****')).not.toHaveAttribute('data-selected');
   });
 
   it('shows prompt creation errors', async () => {
@@ -161,7 +170,7 @@ describe('AgentHandoffPrompt', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
 
     expect(
-      await screen.findByText('Unable to create your agent prompt. Please try again.')
+      await screen.findByText('Unable to create your agent prompt. Try again.')
     ).toBeInTheDocument();
   });
 

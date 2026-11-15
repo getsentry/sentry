@@ -43,6 +43,26 @@
 
 Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecated `useApiQuery`/`getApiQueryData`/`setApiQueryData`. `staleTime` is required. For the full guide (conditional fetching, no call-site generics, response headers/pagination) → use the **`frontend-data-fetching`** skill.
 
+### API URLs the Browser Loads Directly
+
+Wrap the URL of any API endpoint that the browser requests without the API client in `resolveHostname()` from `sentry/utils/api/resolveHostname`. That covers download links, `<img>`/`<video>` sources, `window.location`/`window.open` targets, and bare `fetch()` calls. Pass the full `/api/0/...` path directly to `resolveHostname()`. **Never** leave a relative `/api/0/...` URL, and never build one from `api.baseUrl`.
+
+In multi-region SaaS a relative API URL resolves against the organization subdomain, so the control silo's API gateway proxies every request to the cell. `resolveHostname()` picks the host the same way the API client does: the cell host for cell endpoints, the control host for control silo endpoints, and a relative URL without multi-region.
+
+```tsx
+// ❌ Goes through the API gateway
+<LinkButton href={`/api/0/organizations/${organization.slug}/data-export/${id}/?download=true`} />
+
+// ✅ Goes to the right host
+<LinkButton
+  href={resolveHostname(
+    `/api/0/organizations/${organization.slug}/data-export/${id}/?download=true`
+  )}
+/>
+```
+
+The cell host is cross-origin. A bare `fetch()` needs `credentials: 'include'`, and browsers ignore `<a download>` filenames, so the endpoint must set `Content-Disposition`.
+
 ## General Frontend Rules
 
 1. NO new Reflux stores

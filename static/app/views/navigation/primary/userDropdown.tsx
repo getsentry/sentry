@@ -102,7 +102,7 @@ export function UserDropdown() {
             analyticsParams={{item: 'account'}}
           />
         )}
-        menuTitle={<NavigationMenuHeader user={user} />}
+        menuTitle={<NavigationMenuHeader user={user} organization={organization} />}
         items={[
           {
             key: 'account-actions',

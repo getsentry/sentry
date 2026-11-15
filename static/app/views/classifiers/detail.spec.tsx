@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TelemetryClassifierFixture} from 'sentry-fixture/telemetryClassifier';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
   render,
@@ -21,6 +22,7 @@ const DISABLED_MESSAGE =
 describe('ClassifierDetail', () => {
   const organization = OrganizationFixture({features: ['classifiers-ui']});
   const detailUrl = `/organizations/${organization.slug}/classifiers/10/`;
+  const timeSeriesUrl = `/organizations/${organization.slug}/events-timeseries/`;
 
   function renderDetail(org: Organization = organization) {
     return render(<ClassifierDetail />, {
@@ -35,6 +37,7 @@ describe('ClassifierDetail', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'frontend'})]);
+    MockApiClient.addMockResponse({url: timeSeriesUrl, body: {timeSeries: []}});
   });
 
   it('renders the classifier name and dataset', async () => {
@@ -54,8 +57,73 @@ describe('ClassifierDetail', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Dataset:')).toBeInTheDocument();
     expect(screen.getAllByText('Conversations')).toHaveLength(2);
-    expect(screen.getByText('Users impacted')).toBeInTheDocument();
-    expect(screen.getAllByText('Coming soon')).toHaveLength(2);
+    expect(screen.getAllByText('Coming soon')).toHaveLength(1);
+  });
+
+  it('charts the count of the classifier result attribute', async () => {
+    const yAxis = 'count(tags[sentry.enrichment.user_frustration,number])';
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({
+        id: '10',
+        projectId: '1',
+        resultAttribute: 'user_frustration',
+      }),
+    });
+    const timeSeriesRequest = MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {timeSeries: [TimeSeriesFixture({yAxis})]},
+    });
+
+    renderDetail();
+
+    expect(await screen.findByText('Instances')).toBeInTheDocument();
+    expect(timeSeriesRequest).toHaveBeenCalledWith(
+      timeSeriesUrl,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'enrichment_attributes',
+          yAxis,
+          project: [1],
+          statsPeriod: '24h',
+          interval: '30m',
+        }),
+      })
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: '30 minutes'}));
+    await userEvent.click(screen.getByRole('option', {name: '10 minutes'}));
+
+    expect(timeSeriesRequest).toHaveBeenLastCalledWith(
+      timeSeriesUrl,
+      expect.objectContaining({
+        query: expect.objectContaining({interval: '10m'}),
+      })
+    );
+  });
+
+  it('shows an empty state when the classifier has no instances', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            values: [
+              {value: 0, timestamp: 1729796400000},
+              {value: 0, timestamp: 1729798200000},
+            ],
+          }),
+        ],
+      },
+    });
+
+    renderDetail();
+
+    expect(await screen.findByText('No data to plot.')).toBeInTheDocument();
   });
 
   it('shows a not found message when the classifier does not exist', async () => {

@@ -1556,6 +1556,65 @@ describe('Customer Details', () => {
     });
   });
 
+  describe('enable restricted members', () => {
+    const restrictedOrg = OrganizationFixture({slug: 'restricted-members-org'});
+
+    function renderCustomerDetails() {
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${restrictedOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: restrictedOrg,
+      });
+    }
+
+    it('enables restricted members', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(restrictedOrg);
+      const enableMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${restrictedOrg.slug}/members/enable-restricted/`,
+        method: 'POST',
+        statusCode: 204,
+      });
+
+      renderCustomerDetails();
+      await openCustomerActions();
+      await userEvent.click(
+        screen.getByRole('option', {name: /Enable Restricted Members/})
+      );
+      renderGlobalModal();
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Notes'}),
+        'Trial workaround'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Enable Members'}));
+
+      await waitFor(() => {
+        expect(enableMock).toHaveBeenCalledWith(
+          `/_admin/customers/${restrictedOrg.slug}/members/enable-restricted/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: {notes: 'Trial workaround'},
+          })
+        );
+      });
+    });
+
+    it('requires billing admin permissions', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set()}));
+      setUpMocks(restrictedOrg);
+
+      renderCustomerDetails();
+      await openCustomerActions();
+
+      expect(screen.getByTestId('enableRestrictedMembers')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+  });
+
   describe('billing platform migration', () => {
     const migrationOrg = OrganizationFixture();
 

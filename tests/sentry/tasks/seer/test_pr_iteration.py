@@ -2,7 +2,7 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
 from typing import Any, Literal
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from django.utils import timezone
@@ -20,6 +20,8 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
 from sentry.seer.autofix.pr_iteration.emit import (
@@ -49,6 +51,12 @@ from sentry.seer.autofix.pr_iteration.logs import (
     LogCtxIteration,
     PrIterationLogContext,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    OutOfCredits,
+    StrandedAction,
+    get_out_of_credits,
+    mark_out_of_credits,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -63,7 +71,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.models.run import SeerRun, SeerRunPrIteration
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import (
     ALREADY_PAUSED_PR_ITERATION_COMMENT,
     STOP_PR_ITERATION_FAILED_COMMENT,
@@ -856,11 +864,13 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         status: Literal["processing", "completed", "error", "awaiting_user_input"] = "completed",
         metadata: dict[str, Any] | None = None,
         blocks: list[MemoryBlock] | None = None,
+        failure_reason: str | None = None,
     ) -> SeerRunState:
         return SeerRunState(
             run_id=67890,
             blocks=blocks or [],
             status=status,
+            failure_reason=failure_reason,
             updated_at="2024-01-01T00:00:00Z",
             metadata={"group_id": self.group.id} if metadata is None else metadata,
         )
@@ -960,6 +970,25 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
     def _call(self) -> None:
         consume_queued_autofix_feedback(run_id=67890, organization_id=self.organization.id)
+
+    def _unpushed_block(self) -> MemoryBlock:
+        return MemoryBlock(
+            id="iter0",
+            message=Message(role="assistant"),
+            timestamp="2024-01-01T00:00:00Z",
+            merged_file_patches=[
+                AgentFilePatch(
+                    repo_name="owner/repo",
+                    patch=FilePatch(path="src/sentry/foo.py", type="M", added=1, removed=0),
+                )
+            ],
+        )
+
+    def _strand(self, action: StrandedAction) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mark_out_of_credits(
+            run_id=67890, organization_id=self.organization.id, stranded_action=action
+        )
 
     def _state_with_open_pr(self) -> SeerRunState:
         state = self._state()
@@ -1196,27 +1225,91 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
-        state = self._state(
-            blocks=[
-                MemoryBlock(
-                    id="iter0",
-                    message=Message(role="assistant"),
-                    timestamp="2024-01-01T00:00:00Z",
-                    merged_file_patches=[
-                        AgentFilePatch(
-                            repo_name="owner/repo",
-                            patch=FilePatch(path="src/sentry/foo.py", type="M", added=1, removed=0),
-                        )
-                    ],
-                )
-            ]
-        )
-        mock_fetch.return_value = state
+        mock_fetch.return_value = self._state(blocks=[self._unpushed_block()])
 
         self._call()
 
         mock_pop.assert_not_called()
         mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_drains_when_the_run_stopped_on_credits(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # Its partial changes are unpushed, but no push is coming: the next iteration pushes them.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state(
+            status="error", failure_reason="out_of_credits", blocks=[self._unpushed_block()]
+        )
+        mock_pop.return_value = [self._ui_queued()]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert get_out_of_credits(run_id=67890, organization_id=self.organization.id) is None
+
+    @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_redoes_the_stranded_action_instead_of_draining(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_redo: MagicMock,
+    ) -> None:
+        self._strand(StrandedAction.PUSH)
+        mock_fetch.return_value = self._state(blocks=[self._unpushed_block()])
+
+        self._call()
+
+        mock_redo.assert_called_once_with(ANY, ANY, 67890, ANY, StrandedAction.PUSH)
+        # The redo's completion hook drains the queue.
+        mock_pop.assert_not_called()
+        mock_trigger.assert_not_called()
+        assert get_out_of_credits(run_id=67890, organization_id=self.organization.id) is None
+
+    @patch("sentry.seer.autofix.pr_iteration.completion.redo_stranded_action")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_drains_when_the_stranded_action_is_no_longer_needed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_redo: MagicMock,
+    ) -> None:
+        self._strand(StrandedAction.BRANCH_MOVED_RETRY)
+        # Nothing left unpushed: Seer pushed the changes since, for example through Retry PR.
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._ui_queued()]
+
+        self._call()
+
+        mock_redo.assert_not_called()
+        mock_trigger.assert_called_once()
+        assert get_out_of_credits(run_id=67890, organization_id=self.organization.id) is None
+
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_empty_queue_leaves_the_out_of_credits_marker(self, mock_fetch: MagicMock) -> None:
+        # Only a step that starts clears the marker.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state()
+
+        self._call()
+
+        assert get_out_of_credits(
+            run_id=67890, organization_id=self.organization.id
+        ) == OutOfCredits(stranded_action=None)
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -1634,6 +1727,55 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         assert peek_queued_autofix_feedback(67890) == []
 
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=SeerOutOfCreditsException())
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_trigger_refused_for_credits_requeues_the_batch(
+        self,
+        mock_fetch: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        # The batch waits for a top-up instead of being dropped.
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state()
+        self._open_iteration_row()
+        self._enqueue_ui_feedback("fix it")
+
+        self._call()
+
+        assert [item.feedback.text for item in peek_queued_autofix_feedback(67890)] == ["fix it"]
+        assert get_out_of_credits(
+            run_id=67890, organization_id=self.organization.id
+        ) == OutOfCredits(stranded_action=None)
+        (row,) = open_iterations(seer_run)
+        assert row.triggered is False
+        assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_run_stopped_on_credits_drains_again_after_a_trigger_that_cannot_succeed(
+        self,
+        mock_fetch: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # Seer's run stays errored until an iteration starts, as on the normal path's retry.
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mark_out_of_credits(run_id=67890, organization_id=self.organization.id)
+        mock_fetch.return_value = self._state(
+            status="error", failure_reason="out_of_credits", blocks=[self._unpushed_block()]
+        )
+        mock_trigger.side_effect = [SeerPermissionError("denied"), None]
+
+        self._enqueue_ui_feedback("fix it")
+        self._call()
+
+        assert get_out_of_credits(run_id=67890, organization_id=self.organization.id) is None
+        assert get_pause_reason(run_id=67890, organization_id=self.organization.id) is None
+
+        self._enqueue_ui_feedback("fix it again")
+        self._call()
+
+        assert mock_trigger.call_count == 2
+
     @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -1811,6 +1953,132 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._call()
 
         assert _step_feedback_kinds(mock_metrics) == ["mixed", "mixed"]
+
+    def _single_run_state(self, **kwargs: Any) -> SeerRunState:
+        state = self._state(
+            metadata={"group_id": self.group.id, "feature_id": SINGLE_RUN_FEATURE_ID}, **kwargs
+        )
+        state.repo_pr_states = {
+            "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="abc")
+        }
+        return state
+
+    def _single_run_record(self) -> SeerAgentRun:
+        return self.create_seer_agent_run(
+            run=self.create_seer_run(organization=self.organization, seer_run_state_id=67890),
+            source=SINGLE_RUN_FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_continues_the_single_run(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        agent_run = self._single_run_record()
+        mock_fetch.return_value = self._single_run_state(blocks=[self._iteration_block(1)])
+        mock_pop.return_value = [self._queued(self._review_feedback(777))]
+
+        self._call()
+
+        mock_trigger.assert_not_called()
+        (called_run, called_group), kwargs = mock_continue.call_args
+        assert called_run == agent_run
+        assert called_group.id == self.group.id
+        assert [f.feedback_id for f in kwargs["feedback"]] == ["777"]
+        assert kwargs["iteration_index"] == 2
+
+    def _unpushed_edits_block(self) -> MemoryBlock:
+        return MemoryBlock(
+            id="edits",
+            message=Message(role="assistant", content="edited"),
+            timestamp="2024-01-01T00:00:00Z",
+            merged_file_patches=[
+                AgentFilePatch(
+                    repo_name="owner/repo",
+                    patch=FilePatch(path="a.py", type="M", added=1, removed=1),
+                )
+            ],
+        )
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_is_not_blocked_by_edits_the_agent_left_unpushed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        self._single_run_record()
+        mock_fetch.return_value = self._single_run_state(blocks=[self._unpushed_edits_block()])
+        mock_pop.return_value = [self._queued(self._review_feedback(777))]
+
+        self._call()
+
+        mock_continue.assert_called_once()
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_waits_while_a_push_is_running(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        self._single_run_record()
+        state = self._single_run_state(blocks=[self._unpushed_edits_block()])
+        state.repo_pr_states["owner/repo"].pr_creation_status = "creating"
+        mock_fetch.return_value = state
+        mock_pop.return_value = [self._queued(self._review_feedback(777))]
+
+        self._call()
+
+        mock_continue.assert_not_called()
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_without_this_issues_run_is_skipped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._single_run_state()
+        mock_pop.return_value = [self._queued(self._review_feedback(777))]
+
+        self._call()
+
+        mock_continue.assert_not_called()
+
+    @patch(f"{TASK_PATH}.continue_single_run_from_pr_feedback")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_single_run_feedback_counts_toward_the_automated_cap(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_continue: MagicMock,
+    ) -> None:
+        self._single_run_record()
+        mock_fetch.return_value = self._single_run_state(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_continue.assert_not_called()
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

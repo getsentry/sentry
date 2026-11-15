@@ -115,6 +115,7 @@ export function SeerExplorerHeader({
     isPoppedOut,
     sidebarPosition,
     onSidebarPositionChange,
+    hasNoChats: !search && !debouncedSearch && !isError && data?.length === 0,
     sessionOptions,
     sessionsLoading: isFetching || isSearchPending,
     sessionsError: isError,

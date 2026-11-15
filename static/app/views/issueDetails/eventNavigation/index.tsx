@@ -37,11 +37,11 @@ import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDetailsEventsQuery';
 import {
   issueAndEventToMarkdown,
   useActiveThreadId,
 } from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,

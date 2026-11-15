@@ -6,6 +6,9 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.test import override_settings
 from django.utils import timezone
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsResponse,
+)
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
@@ -41,6 +44,7 @@ from sentry.seer.entrypoints.operator import (
     SeerAutofixOperator,
     SeerInvestigationOperator,
     SeerOperatorCompletionHook,
+    _create_seer_activity,
     get_autofix_explorer_status,
     process_autofix_updates,
     process_investigation_updates,
@@ -59,6 +63,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 from sentry.utils.locking import UnableToAcquireLock
@@ -619,6 +624,47 @@ class SeerOperatorTest(TestCase):
     def test_can_trigger_autofix_returns_false_without_quota(self, mock_quota: MagicMock) -> None:
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    def test_can_trigger_autofix_returns_false_without_root_cause_credits(
+        self, _mock_quota: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
+        mock_check_seer_credits.assert_called_once()
+
+    @patch("sentry.seer_credit.backend.check_seer_credits")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    def test_can_trigger_autofix_skips_credit_check_when_flag_off(
+        self, _mock_quota: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        mock_check_seer_credits.assert_not_called()
+
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    def test_can_trigger_autofix_skips_quota_check_for_token_billed_orgs(
+        self, mock_quota: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        mock_check_seer_credits.assert_called_once()
+        mock_quota.assert_not_called()
+
+    @patch("sentry.seer.autofix.feature.dispatch.is_free_cohort_org", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    def test_can_trigger_autofix_skips_quota_check_for_free_cohort_orgs(
+        self, mock_quota: MagicMock, _mock_free_cohort: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        mock_quota.assert_not_called()
+
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_seer_event_creates_activity_rca_completed(self, _mock_has_access: MagicMock) -> None:
         event_payload = {
@@ -759,6 +805,20 @@ class SeerOperatorTest(TestCase):
             type=ActivityType.SEER_ITERATION_STARTED.value,
             user_id=self.user.id,
         ).exists()
+
+    def test_create_seer_activity_seer_stopped(self) -> None:
+        _create_seer_activity(
+            self.group,
+            SentryAppEventType.SEER_STOPPED,
+            {
+                "run_id": 1,
+                "group_id": self.group.id,
+                "stop": {"reason": "R", "suggestion": "S"},
+            },
+        )
+
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_STOPPED.value)
+        assert activity.data == {"run_id": 1, "reason": "R", "suggestion": "S"}
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_skips_non_seer_events(self, _mock_has_access: MagicMock) -> None:

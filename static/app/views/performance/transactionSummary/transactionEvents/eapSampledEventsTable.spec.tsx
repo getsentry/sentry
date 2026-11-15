@@ -89,7 +89,6 @@ describe('EAP SampledEventsTable', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('renders the table with data', async () => {

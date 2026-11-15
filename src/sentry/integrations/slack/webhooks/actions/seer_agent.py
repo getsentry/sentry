@@ -249,6 +249,7 @@ def handle_seer_agent_write_approval(
             integration_id=slack_request.integration.id,
             thread={"channel_id": channel_id, "thread_ts": cached_message["thread_ts"]},
             slack_user_id=slack_user_id,
+            user_id=identity_user.id,
         ),
     )
     # Replace the card only after Seer accepts the input so a failed resume remains retryable.

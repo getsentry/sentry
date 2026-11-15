@@ -12,6 +12,7 @@ from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
+from sentry.seer.autofix.issue_summary import get_automation_stopping_point
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import get_automation_handoff
 from sentry.seer.models import SeerPermissionError
@@ -58,10 +59,12 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
             user = None
             actor = Actor(type=ActorType.SYSTEM)
             referrer = AutofixReferrer.ADMIN_AUTOMATED
+            stopping_point = get_automation_stopping_point(group)
         else:
             user = require_user(request)
             actor = Actor(type=ActorType.USER, actor_id=user.id)
             referrer = AutofixReferrer.ADMIN
+            stopping_point = None
 
         with viewer_context_scope(ViewerContext(actor=actor, organization_id=organization.id)):
             try:
@@ -71,6 +74,7 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
                     referrer=referrer,
                     user=user,
                     actor_user_id=actor.user_id,
+                    stopping_point=stopping_point,
                     single_run=True,
                 )
             except NoSeerQuotaException:

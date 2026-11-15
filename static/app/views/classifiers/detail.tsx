@@ -11,6 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import {ClassifierInstancesChart} from './components/classifierInstancesChart';
 import {
   ClassifierDisabledAlert,
   ClassifierStatusToggle,
@@ -56,14 +57,13 @@ function ClassifierDetailContent({classifier}: {classifier: TelemetryClassifier}
         </Heading>
         <Flex align="center" gap="2xl">
           <HeaderStat label={t('Conversations')} />
-          <HeaderStat label={t('Users impacted')} />
           <ClassifierStatusToggle classifier={classifier} />
         </Flex>
       </Flex>
       <ClassifierDisabledAlert classifier={classifier} />
       <Grid columns={{zero: '1fr', lg: 'minmax(0, 1fr) 350px'}} gap="xl" align="start">
         <Stack gap="xl" minWidth="0">
-          <ComingSoon height="240px" />
+          <ClassifierInstancesChart classifier={classifier} />
           <Stack gap="md">
             <Heading as="h3" size="md">
               {t('Matched conversations')}

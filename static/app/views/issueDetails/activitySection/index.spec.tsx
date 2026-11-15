@@ -2342,6 +2342,36 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Autofix triggered from Slack')).toBeInTheDocument();
   });
 
+  it('renders a Seer early stop', async () => {
+    const seerGroup = GroupFixture({
+      id: '1342',
+      activity: [
+        {
+          type: GroupActivityType.SEER_STOPPED,
+          id: 'seer-stop-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            run_id: 123,
+            reason: 'The API key expired.',
+            suggestion: 'Rotate the key.',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
+        <ActivitySection group={seerGroup} />
+      </GroupDataContextProvider>
+    );
+    expect(await screen.findByText('Seer stopped early')).toBeInTheDocument();
+    expect(
+      screen.getByText('The API key expired. Suggestion: Rotate the key.')
+    ).toBeInTheDocument();
+  });
+
   it('collapses Seer activity pairs across other activity', async () => {
     const seerGroup = GroupFixture({
       id: '1343',

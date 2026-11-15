@@ -6,6 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -401,11 +402,33 @@ describe('desktop navigation', () => {
         })
       );
 
-      expect(screen.getByText('Org Settings')).toBeInTheDocument();
+      expect(screen.getByText('Organization Settings')).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Organization Tokens'})).toBeInTheDocument();
       expect(
         screen.queryByRole('link', {name: 'Personal Tokens'})
       ).not.toBeInTheDocument();
+    });
+
+    it('keeps the settings sidebar expanded when the app sidebar is collapsed', () => {
+      localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      expect(screen.queryByTestId('collapsed-secondary-sidebar')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Organization Tokens'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Collapse'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
+      expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+        'true'
+      );
     });
 
     it('shows account settings under the account scope', async () => {
@@ -645,7 +668,7 @@ describe('desktop navigation', () => {
       expect(
         await screen.findByRole('link', {name: 'Organizations'})
       ).toBeInTheDocument();
-      expect(screen.queryByText('Org Settings')).not.toBeInTheDocument();
+      expect(screen.queryByText('Organization Settings')).not.toBeInTheDocument();
     });
   });
 
@@ -1640,6 +1663,120 @@ describe('desktop navigation', () => {
             await within(secondaryNav).findByRole('link', {name: 'Traces'})
           ).toBeInTheDocument();
         });
+      });
+    });
+
+    describe('universal inbox', () => {
+      const universalInbox = {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']};
+
+      it('does not render a secondary navigation on the inbox', () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {
+              location: {pathname: '/organizations/org-slug/inbox/'},
+            },
+          })
+        );
+
+        assertActivePrimaryNavLink(screen.getByRole('link', {name: 'Inbox'}));
+        expect(
+          screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId('collapsed-secondary-sidebar')
+        ).not.toBeInTheDocument();
+      });
+
+      it('does not render a collapsed secondary navigation on the inbox', async () => {
+        localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {
+              location: {pathname: '/organizations/org-slug/inbox/'},
+            },
+          })
+        );
+
+        await userEvent.hover(
+          screen.getByRole('navigation', {name: 'Primary Navigation'})
+        );
+        expect(
+          screen.queryByTestId('collapsed-secondary-sidebar')
+        ).not.toBeInTheDocument();
+      });
+
+      describe('hover', () => {
+        beforeEach(() => {
+          jest.useFakeTimers();
+        });
+
+        afterEach(() => {
+          try {
+            act(() => jest.runOnlyPendingTimers());
+          } finally {
+            jest.useRealTimers();
+          }
+        });
+
+        it('does not preview groups on hover', async () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({organization: universalInbox})
+          );
+
+          const secondaryNav = screen.getByRole('navigation', {
+            name: 'Secondary Navigation',
+          });
+          expect(
+            within(secondaryNav).getByRole('link', {name: 'Feed'})
+          ).toBeInTheDocument();
+
+          await userEvent.hover(screen.getByRole('link', {name: 'Explore'}), {
+            delay: null,
+          });
+          // Advance past the longest hover activation delay.
+          act(() => jest.advanceTimersByTime(250));
+
+          expect(
+            within(secondaryNav).getByRole('link', {name: 'Feed'})
+          ).toBeInTheDocument();
+          expect(screen.queryByRole('link', {name: 'Traces'})).not.toBeInTheDocument();
+        });
+      });
+
+      it('shows the secondary navigation after navigating away from the inbox', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {
+              location: {pathname: '/organizations/org-slug/inbox/'},
+            },
+          })
+        );
+
+        await userEvent.click(screen.getByRole('link', {name: 'Issues'}));
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+
+        const secondaryNav = screen.getByRole('navigation', {
+          name: 'Secondary Navigation',
+        });
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Feed'})
+        ).toBeInTheDocument();
       });
     });
   });

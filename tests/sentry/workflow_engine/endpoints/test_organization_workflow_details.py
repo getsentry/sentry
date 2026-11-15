@@ -282,6 +282,20 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update_ignores_id_in_payload(self) -> None:
+        original_id = self.workflow.id
+        unused_id = original_id + 1000
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "id": str(unused_id), "name": "Updated Workflow"},
+        )
+
+        assert response.data["id"] == str(original_id)
+        assert Workflow.objects.get(id=original_id).name == "Updated Workflow"
+        assert not Workflow.objects.filter(id=unused_id).exists()
+
     def test_update_rejects_non_object_actions(self) -> None:
         self.valid_workflow["actionFilters"] = [
             {
@@ -2042,3 +2056,44 @@ class OrganizationWorkflowDetailsProjectAccessTest(APITestCase, ProjectAccessTes
         assert DetectorWorkflow.objects.filter(
             workflow=multi_project_workflow, detector=self.other_detector
         ).exists()
+
+    def create_mixed_project_workflow(self) -> Workflow:
+        workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Mixed Workflow", enabled=True
+        )
+        self.create_detector_workflow(workflow=workflow, detector=self.user_detector)
+        self.create_detector_workflow(workflow=workflow, detector=self.other_detector)
+        return workflow
+
+    def test_member_cannot_update_workflow_with_inaccessible_project(self) -> None:
+        workflow = self.create_mixed_project_workflow()
+        self.login_as(self.limited_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            workflow.id,
+            method="PUT",
+            raw_data={
+                "name": "Updated Workflow",
+                "enabled": False,
+                "config": {},
+                "triggers": {"logicType": "any", "conditions": []},
+                "actionFilters": [],
+            },
+            status_code=403,
+        )
+
+        workflow.refresh_from_db()
+        assert workflow.name == "Mixed Workflow"
+        assert workflow.enabled is True
+
+    def test_member_cannot_delete_workflow_with_inaccessible_project(self) -> None:
+        workflow = self.create_mixed_project_workflow()
+        self.login_as(self.limited_user)
+
+        self.get_error_response(
+            self.organization.slug, workflow.id, method="DELETE", status_code=403
+        )
+
+        workflow.refresh_from_db()
+        assert workflow.status == ObjectStatus.ACTIVE

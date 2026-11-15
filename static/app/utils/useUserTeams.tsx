@@ -1,10 +1,10 @@
 import {useEffect, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
 
 import {apiOptions} from './api/apiOptions';
@@ -34,7 +34,14 @@ function buildUserTeamsApiOptions(orgSlug: string) {
  */
 export function useUserTeams(): UseTeamsResult {
   const organization = useStore(OrganizationStore, state => state.organization);
-  const storeState = useLegacyStore(TeamStore);
+  const storeState = useStore(
+    TeamStore,
+    useShallow(state => ({
+      loadedUserTeams: state.loadedUserTeams,
+      loading: state.loading,
+      teams: state.teams,
+    }))
+  );
 
   // Wait until the store has loaded to start fetching
   const shouldConsiderFetching = !!organization?.slug && !storeState.loading;

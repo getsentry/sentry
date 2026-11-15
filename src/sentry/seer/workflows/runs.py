@@ -49,6 +49,20 @@ class SeerWorkflowRunLifecycle:
     run_id: int
     organization_id: int
 
+    @classmethod
+    def create(
+        cls, config: SeerWorkflowConfig, *, trigger_key: str, extras: SeerWorkflowRunExtras
+    ) -> SeerWorkflowRunLifecycle:
+        """Record a queued run of ``config``. Callers must hold the config's row lock."""
+        run = SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun)).create(
+            organization_id=config.organization_id,
+            workflow_config=config,
+            trigger_key=trigger_key,
+            status=SeerWorkflowRunStatus.QUEUED,
+            extras=json.loads(extras.json()),
+        )
+        return cls(run_id=run.id, organization_id=run.organization_id)
+
     def get_run(self) -> SeerWorkflowRun:
         """Fetch the run without acquiring a lock."""
         return self._run_queryset().get()

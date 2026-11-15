@@ -56,10 +56,12 @@ workspaces:
         artifacts:
           Package pack:
             - '{{workspaceName}}-tarball'
+    # npm goes first so a published GitHub release means the package is
+    # already on npm (bump-sentry-docs.yml relies on that).
     targets:
-      - name: github
-        tagPrefix: '{{workspaceName}}@'
       - name: npm
         access: public
+      - name: github
+        tagPrefix: '{{workspaceName}}@'
     versioning:
       policy: auto

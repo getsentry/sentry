@@ -6,21 +6,29 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {getHandoffPrompt} from './handoffPrompt';
+
+function formatPrompt(code: string) {
+  return getHandoffPrompt(code, handoffCode => `\`${handoffCode}\``);
+}
+
 export enum AgentHandoffFlow {
+  CREATE_PROJECT = 'create_project',
   ONBOARDING = 'onboarding',
 }
 
-interface HandoffPrompt {
+interface Handoff {
+  code: string;
   expiresAt: string;
-  prompt: string;
 }
 
-interface OnboardingHandoffContext {
+interface ProjectSetupContext {
   runId: string;
 }
 
 interface HandoffContexts {
-  [AgentHandoffFlow.ONBOARDING]: OnboardingHandoffContext;
+  [AgentHandoffFlow.CREATE_PROJECT]: ProjectSetupContext;
+  [AgentHandoffFlow.ONBOARDING]: ProjectSetupContext;
 }
 
 export type AgentHandoffContext<Flow extends AgentHandoffFlow = AgentHandoffFlow> =
@@ -38,8 +46,8 @@ interface PromptContext<
   organizationSlug: string;
 }
 
-interface CachedHandoffPrompt<Flow extends AgentHandoffFlow>
-  extends PromptContext<Flow>, HandoffPrompt {}
+interface CachedHandoff<Flow extends AgentHandoffFlow>
+  extends PromptContext<Flow>, Handoff {}
 
 interface CopyPromptOptions {
   disableIpPinning: boolean;
@@ -47,16 +55,16 @@ interface CopyPromptOptions {
 
 const PROMPT_EXPIRATION_BUFFER_MS = 60_000;
 
-function isPromptStale<Flow extends AgentHandoffFlow>(
-  prompt: CachedHandoffPrompt<Flow>,
+function isHandoffStale<Flow extends AgentHandoffFlow>(
+  handoff: CachedHandoff<Flow>,
   context: PromptContext<Flow>
 ) {
   return (
-    prompt.organizationSlug !== context.organizationSlug ||
-    prompt.flow !== context.flow ||
-    prompt.context.runId !== context.context.runId ||
-    prompt.disableIpPinning !== context.disableIpPinning ||
-    Date.parse(prompt.expiresAt) <= Date.now() + PROMPT_EXPIRATION_BUFFER_MS
+    handoff.organizationSlug !== context.organizationSlug ||
+    handoff.flow !== context.flow ||
+    handoff.context.runId !== context.context.runId ||
+    handoff.disableIpPinning !== context.disableIpPinning ||
+    Date.parse(handoff.expiresAt) <= Date.now() + PROMPT_EXPIRATION_BUFFER_MS
   );
 }
 
@@ -67,8 +75,8 @@ function clipboardError() {
 }
 
 /**
- * Mints short-lived handoff prompts and copies them without exposing their secret token
- * in the UI. Valid prompts are cached until their context changes or they approach
+ * Mints short-lived handoff codes and copies a prompt containing them without exposing
+ * the code in the UI. Valid codes are cached until their context changes or they approach
  * expiration, and concurrent copy requests share the same operation. Call copyPrompt
  * directly from the user gesture that authorizes clipboard access.
  */
@@ -77,7 +85,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
   context: AgentHandoffContext<Flow> | null
 ) {
   const organization = useOrganization();
-  const prompt = useRef<CachedHandoffPrompt<Flow> | null>(null);
+  const handoff = useRef<CachedHandoff<Flow> | null>(null);
   const copyOperation = useRef<Promise<void> | null>(null);
   const mutation = useMutation({
     gcTime: 0,
@@ -92,13 +100,13 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       organizationSlug: organization.slug,
     };
 
-    const cachedPrompt = prompt.current;
-    if (cachedPrompt && !isPromptStale(cachedPrompt, promptContext)) {
-      return cachedPrompt.prompt;
+    const cachedHandoff = handoff.current;
+    if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
+      return formatPrompt(cachedHandoff.code);
     }
 
     try {
-      const minted = await fetchMutation<HandoffPrompt>({
+      const minted = await fetchMutation<Handoff>({
         method: 'POST',
         url: getApiUrl('/organizations/$organizationIdOrSlug/agent-handoff/prompts/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -109,11 +117,11 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
           disableIpPinning: options.disableIpPinning,
         },
       });
-      prompt.current = {...minted, ...promptContext};
+      handoff.current = {...minted, ...promptContext};
 
-      return minted.prompt;
+      return formatPrompt(minted.code);
     } catch {
-      throw new Error(t('Unable to create your agent prompt. Please try again.'));
+      throw new Error(t('Unable to create your agent prompt. Try again.'));
     }
   }
 

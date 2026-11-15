@@ -33,7 +33,6 @@ import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -84,7 +83,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const isProjectTourActive = settingsTour?.currentStepId === 'projects';
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
 
   const [activeOrgs, inactiveOrgs] = partition(
     organizations.filter(org => org.slug !== organization.slug),

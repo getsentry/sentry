@@ -7,7 +7,7 @@ from django.db.models import Count, F, Q, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.inbox.registry import inbox_item_type_registry
+from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import (
     InboxActorResponse,
     InboxItemEventResponse,
@@ -36,7 +36,13 @@ class InboxItemEventSerializer(Serializer[InboxItemEventResponse]):
                 filter={"user_ids": list(user_ids)}, as_user=serialize_generic_user(user)
             )
         users = {serialized["id"]: serialized for serialized in serialized_users}
-        return {event: {"user": users.get(str(event.actor_id))} for event in item_list}
+        return {
+            event: {
+                "user": users.get(str(event.actor_id)),
+                "summary": inbox_item_event_type_registry.get(event.type).summary.value,
+            }
+            for event in item_list
+        }
 
     def serialize(
         self, obj: InboxItemEvent, attrs: Mapping[str, Any], user: Any, **kwargs: Any
@@ -64,7 +70,7 @@ class InboxItemEventSerializer(Serializer[InboxItemEventResponse]):
             "type": obj.type,
             "actor": actor,
             "data": data,
-            "summary": obj.data["summary"],
+            "summary": attrs["summary"],
             "isUnread": last_read_at is None or obj.date_added > last_read_at,
             "dateAdded": obj.date_added,
         }
