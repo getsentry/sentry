@@ -438,7 +438,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         has_action: bool,
         title_link: str | None = None,
     ) -> SlackBlock:
-        title = build_attachment_title(event_or_group)
+        # Slack only parses <url|label> link syntax when the label is on a
+        # single line; feedback titles can contain newlines, which would
+        # otherwise render as raw mrkdwn. Collapse whitespace so the label
+        # stays on one line.
+        title = " ".join(build_attachment_title(event_or_group).split())
         title_emojis = self.get_title_emoji(has_action)
 
         title_text = f"{title_emojis} <{title_link}|*{escape_slack_text(title)}*>"
