@@ -11,6 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import {
+  isOutOfCreditsError,
   isPrIterationPaused,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -67,9 +68,15 @@ export function PrIterationFeedbackForm({
     setIsSubmitting(true);
     try {
       await startStep('pr_iteration', {runId, userContext: feedback});
-    } catch {
+    } catch (e) {
       // startStep already reports why the request failed.
       setIsSubmitting(false);
+      // Feedback refused for credits is held and runs later, so sending it
+      // again would queue it twice.
+      if (isOutOfCreditsError(e)) {
+        setFeedback('');
+        onClose?.();
+      }
       return;
     }
     trackAnalytics('autofix.pr_iteration.feedback', {

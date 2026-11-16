@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import type {
   AutofixSection,
   ExplorerAutofixState,
+  PrIterationOutOfCreditsWarning,
   RawFeedback,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -13,7 +14,7 @@ import {SeerCreditCheckStub} from 'sentry/components/seer/outOfCredits/__stories
 import * as Storybook from 'sentry/stories';
 import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
-import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 import {CodeChangesCard} from './codeChangesCard';
 
@@ -132,6 +133,28 @@ const SEER_OUT_OF_CREDITS_BLOCK: AutofixSection['blocks'][number] = {
     content:
       "Your organization doesn't have enough Seer credits for this, so I stopped here. Add credits to continue.",
   },
+};
+
+// The open PR Seer iterates on.
+const PULL_REQUEST: RepoPRState = {
+  repo_name: 'org/repo',
+  branch_name: 'seer/fix-null-user',
+  commit_sha: 'abc1234',
+  pr_number: 42,
+  pr_id: 42,
+  pr_url: 'https://github.com/org/repo/pull/42',
+  title: 'Guard against a null user',
+  pr_creation_status: 'completed',
+  pr_creation_error: null,
+};
+
+// Seer refused to push because newer commits landed on the PR branch.
+const BRANCH_MOVED_PULL_REQUEST: RepoPRState = {
+  ...PULL_REQUEST,
+  pr_creation_status: 'error',
+  pr_creation_error_code: 'branch_moved',
+  pr_creation_error:
+    "The pull request's branch has commits newer than the code Seer edited, so pushing would have to force-push over them.",
 };
 
 function makeSection(
@@ -352,6 +375,26 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
             section={makeSection('completed', [])}
           />
         </StatusExample>
+
+        <StatusExample label="Waiting for credits — held for credits until Seer next iterates (warning clock + “Queued” label).">
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix([
+              {...userUiFeedback('Make the button blue', user), held_for_credits: true},
+            ])}
+            section={makeSection('completed', [])}
+          />
+        </StatusExample>
+
+        <StatusExample label="Paused — queued, but iteration is paused, so it won't run (muted circle).">
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix([userUiFeedback('Make the button blue', user)], {
+              pr_iteration_paused: true,
+            })}
+            section={makeSection('completed', [])}
+          />
+        </StatusExample>
       </Stack>
     );
   });
@@ -369,21 +412,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
           groupId="1"
           autofix={makeAutofix([], {
             pr_iteration_paused: true,
-            repo_pr_states: {
-              'org/repo': {
-                repo_name: 'org/repo',
-                branch_name: 'seer/fix-null-user',
-                commit_sha: 'earlier-pushed-commit',
-                pr_number: 42,
-                pr_id: 42,
-                pr_url: 'https://github.com/org/repo/pull/42',
-                title: 'Guard against a null user',
-                pr_creation_status: 'error',
-                pr_creation_error_code: 'branch_moved',
-                pr_creation_error:
-                  "The pull request's branch has commits newer than the code Seer edited, so pushing would have to force-push over them.",
-              },
-            },
+            repo_pr_states: {'org/repo': BRANCH_MOVED_PULL_REQUEST},
           })}
           section={makeSection('completed', [
             makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
@@ -412,19 +441,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
           <CodeChangesCard
             groupId="1"
             autofix={makeAutofix([], {
-              repo_pr_states: {
-                'org/repo': {
-                  repo_name: 'org/repo',
-                  branch_name: 'seer/fix-null-user',
-                  commit_sha: 'abc1234',
-                  pr_number: 42,
-                  pr_id: 42,
-                  pr_url: 'https://github.com/org/repo/pull/42',
-                  title: 'Guard against a null user',
-                  pr_creation_status: 'completed',
-                  pr_creation_error: null,
-                },
-              },
+              repo_pr_states: {'org/repo': PULL_REQUEST},
             })}
             section={makeSection(
               'completed',
@@ -493,49 +510,115 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
   story('PR iteration stopped for credits', () => {
     const user = useUser();
     return (
-      <Fragment>
+      <Stack gap="xl">
         <Text size="sm" variant="muted">
-          The organization ran out of credits while Seer was working on feedback for an
-          open PR. The feedback item is marked failed (hover the red icon), the code
-          already pushed stays on screen, and a line says the PR update stopped. The
-          credit check for <code>autofix_pr_iteration</code> says the organization still
-          can't afford it, so “Add context & retry” and Re-run step are disabled.
+          The organization is out of credits while Seer iterates on an open PR. Held work
+          runs the next time Seer iterates. Hover the icons for each item's status.
         </Text>
         <SeerCreditCheckStub hasEnoughCredits={false}>
-          <CodeChangesCard
-            groupId="1"
-            autofix={makeAutofix([], {
-              status: 'error',
-              failure_reason: 'out_of_credits',
-              repo_pr_states: {
-                'org/repo': {
-                  repo_name: 'org/repo',
-                  branch_name: 'seer/fix-null-user',
-                  commit_sha: 'abc1234',
-                  pr_number: 42,
-                  pr_id: 42,
-                  pr_url: 'https://github.com/org/repo/pull/42',
-                  title: 'Guard against a null user',
-                  pr_creation_status: 'completed',
-                  pr_creation_error: null,
-                },
-              },
-            })}
-            section={{
-              ...makeSection('error', [
-                makeStepBlock('code_changes', 'Guarded the handler against a null user.'),
-                makeFeedbackBlock(0, userUiFeedback('Add a regression test', user)),
-                makeStepBlock(
-                  undefined,
-                  'Adding a test for an unauthenticated request in `test_handlers.py`.'
-                ),
-                SEER_OUT_OF_CREDITS_BLOCK,
-              ]),
-              failureReason: 'out_of_credits',
-            }}
-          />
+          <Stack gap="xl">
+            <StatusExample label="Stopped partway: the feedback failed, and its retry is disabled until the organization has credits.">
+              <CodeChangesCard
+                groupId="1"
+                autofix={makeAutofix([], {
+                  status: 'error',
+                  failure_reason: 'out_of_credits',
+                  repo_pr_states: {'org/repo': PULL_REQUEST},
+                })}
+                section={{
+                  ...makeSection('error', [
+                    makeStepBlock(
+                      'code_changes',
+                      'Guarded the handler against a null user.'
+                    ),
+                    makeFeedbackBlock(0, userUiFeedback('Add a regression test', user)),
+                    makeStepBlock(
+                      undefined,
+                      'Adding a test for an unauthenticated request in `test_handlers.py`.'
+                    ),
+                    SEER_OUT_OF_CREDITS_BLOCK,
+                  ]),
+                  failureReason: 'out_of_credits',
+                }}
+              />
+            </StatusExample>
+
+            <StatusExample label="Feedback held: queued feedback waits for credits.">
+              <CodeChangesCard
+                groupId="1"
+                autofix={makeAutofix(
+                  [
+                    {
+                      ...userUiFeedback('Also handle an expired session', user),
+                      held_for_credits: true,
+                    },
+                    {...checkSuiteFeedback(), held_for_credits: true},
+                  ],
+                  {
+                    repo_pr_states: {'org/repo': PULL_REQUEST},
+                    warnings: [
+                      {
+                        warning_type: 'pr_iteration_out_of_credits',
+                        unfinished_action: null,
+                        unfinished_iteration_index: null,
+                        held_feedback_count: 2,
+                      } as PrIterationOutOfCreditsWarning,
+                    ],
+                  }
+                )}
+                section={makeSection('completed', [
+                  makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+                ])}
+              />
+            </StatusExample>
+
+            <StatusExample label="Push held: the latest changes wait for credits to be pushed.">
+              <CodeChangesCard
+                groupId="1"
+                autofix={makeAutofix([], {
+                  repo_pr_states: {'org/repo': PULL_REQUEST},
+                  warnings: [
+                    {
+                      warning_type: 'pr_iteration_out_of_credits',
+                      unfinished_action: 'push',
+                      unfinished_iteration_index: 1,
+                      held_feedback_count: 0,
+                    } as PrIterationOutOfCreditsWarning,
+                  ],
+                })}
+                section={makeSection('completed', [
+                  makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+                  makeFeedbackBlock(
+                    1,
+                    githubPrCommentFeedback('Can you add a test for this?')
+                  ),
+                ])}
+              />
+            </StatusExample>
+
+            <StatusExample label="Retry held: the retry on the PR's newer commits waits for credits.">
+              <CodeChangesCard
+                groupId="1"
+                autofix={makeAutofix([], {
+                  repo_pr_states: {'org/repo': BRANCH_MOVED_PULL_REQUEST},
+                  warnings: [
+                    {
+                      warning_type: 'pr_iteration_out_of_credits',
+                      unfinished_action: 'branch_moved_retry',
+                      unfinished_iteration_index: 1,
+                      held_feedback_count: 0,
+                    } as PrIterationOutOfCreditsWarning,
+                  ],
+                })}
+                section={makeSection('completed', [
+                  makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+                  makeFeedbackBlock(1, checkSuiteFeedback()),
+                ])}
+              />
+            </StatusExample>
+          </Stack>
         </SeerCreditCheckStub>
-      </Fragment>
+      </Stack>
     );
   });
 

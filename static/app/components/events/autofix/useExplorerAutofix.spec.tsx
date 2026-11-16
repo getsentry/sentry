@@ -1506,6 +1506,51 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
 
     expect(result.current.runState?.queued_feedback).toHaveLength(1);
   });
+
+  it('says refused feedback runs later and refetches it as held', async () => {
+    const errorSpy = jest.spyOn(toast, 'error');
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 402,
+      body: {
+        detail:
+          'Your organization does not have enough credits to continue your Autofix run.',
+        code: 'seer_out_of_credits',
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+
+    // The backend holds the refused feedback on the queue.
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {
+        autofix: {
+          ...baseState,
+          status: 'completed',
+          queued_feedback: [
+            {text: 'make it blue', source: {type: 'user-ui'}, held_for_credits: true},
+          ],
+        },
+      },
+    });
+
+    await expect(
+      act(() =>
+        result.current.startStep('pr_iteration', {runId: 42, userContext: 'make it blue'})
+      )
+    ).rejects.toThrow();
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Your organization is out of credits. Seer will pick up this feedback the next time it iterates on the pull request.'
+    );
+    await waitFor(() =>
+      expect(result.current.runState?.queued_feedback?.[0]?.held_for_credits).toBe(true)
+    );
+  });
 });
 
 describe('useExplorerAutofix - codingAgentErrors', () => {

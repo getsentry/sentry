@@ -8,6 +8,7 @@ import {CodingAgentProvider, DiffLineType} from 'sentry/components/events/autofi
 import type {
   AutofixArtifact,
   AutofixSection,
+  PrIterationOutOfCreditsWarning,
   RootCauseArtifact,
   SolutionArtifact,
   useExplorerAutofix,
@@ -3009,6 +3010,49 @@ describe('out of credits', () => {
       );
     }
   );
+
+  it('says PR iteration feedback is held for credits', () => {
+    render(
+      <CodeChangesCard
+        autofix={{
+          ...mockAutofix,
+          runState: {
+            run_id: 123,
+            blocks: [],
+            status: 'completed',
+            updated_at: '2026-01-01T00:00:00Z',
+            repo_pr_states: {'org/repo': makePR()},
+            queued_feedback: [
+              {text: 'Also log it', source: {type: 'user-ui'}, held_for_credits: true},
+              {text: 'And rename it', source: {type: 'user-ui'}, held_for_credits: true},
+            ],
+            warnings: [
+              {
+                warning_type: 'pr_iteration_out_of_credits',
+                unfinished_action: null,
+                unfinished_iteration_index: null,
+                held_feedback_count: 2,
+              } as PrIterationOutOfCreditsWarning,
+            ],
+          },
+        }}
+        groupId="1"
+        section={makeSection(
+          'code_changes',
+          'completed',
+          [[makePatch('org/repo', 'src/cart.py')]],
+          [makePrIterationBlock(0, {text: 'Please add a test'})]
+        )}
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByText(
+        'Your organization is out of credits, so 2 feedback items are waiting. Seer picks them up the next time it iterates on the pull request.'
+      )
+    ).toBeInTheDocument();
+  });
 
   describe('a PR that failed for credits', () => {
     const section = makeSection('pull_request', 'completed', [

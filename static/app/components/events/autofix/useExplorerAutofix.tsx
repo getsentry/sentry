@@ -213,6 +213,9 @@ type RawFeedbackSource =
   | CheckSuiteFeedbackSource;
 export interface RawFeedback {
   text: string;
+  // Queued feedback only: a drain or submit refused it for credits.
+  // False while a turn is running.
+  held_for_credits?: boolean;
   source?: RawFeedbackSource;
   timestamp?: string;
   // Short display label derived from the source, serialized on `Feedback`.
@@ -241,6 +244,33 @@ export interface ExplorerAutofixState {
     installation_id?: string;
     repo_name?: string;
   }>;
+}
+
+/**
+ * What the latest PR iteration left unfinished for credits:
+ * - `agent_turn`: Seer stopped partway through the iteration.
+ * - `push`: the iteration's changes weren't pushed.
+ * - `branch_moved_retry`: the retry onto the PR's newer branch head didn't run.
+ */
+type PrIterationUnfinishedAction = 'agent_turn' | 'push' | 'branch_moved_retry';
+
+export interface PrIterationOutOfCreditsWarning {
+  held_feedback_count: number;
+  unfinished_action: PrIterationUnfinishedAction | null;
+  unfinished_iteration_index: number | null;
+  warning_type: 'pr_iteration_out_of_credits';
+}
+
+/**
+ * What running out of credits left undone on the run's PR iteration, or null.
+ */
+export function getPrIterationOutOfCreditsWarning(
+  runState: ExplorerAutofixState | null
+): PrIterationOutOfCreditsWarning | null {
+  const warning = runState?.warnings?.find(
+    w => w.warning_type === 'pr_iteration_out_of_credits'
+  );
+  return (warning as PrIterationOutOfCreditsWarning | undefined) ?? null;
 }
 
 /**
@@ -352,7 +382,7 @@ interface OutOfCreditsError {
  * Seer credits. The triggers' credit checks fail open and can be out of date, so
  * the backend has the final say.
  */
-function isOutOfCreditsError(e: unknown): e is OutOfCreditsError {
+export function isOutOfCreditsError(e: unknown): e is OutOfCreditsError {
   const error = e as
     | {responseJSON?: {code?: unknown}; status?: number}
     | null
@@ -1083,6 +1113,10 @@ export function useExplorerAutofix(
           queryClient.invalidateQueries({
             queryKey: seerCreditChecksQueryKey(organization),
           });
+          // A refused PR iteration is held on the queue, so show it.
+          if (step === 'pr_iteration') {
+            queryClient.invalidateQueries({queryKey});
+          }
           toast.error(getRefusedStepMessage(step, e.responseJSON.denialReason ?? null));
           throw e;
         }

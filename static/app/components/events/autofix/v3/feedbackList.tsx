@@ -3,6 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCircle} from '@sentry/icons/circle';
 import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
+import {IconClock} from '@sentry/icons/clock';
 import {IconClose} from '@sentry/icons/close';
 import {IconGithub} from '@sentry/icons/github';
 import {IconOpen} from '@sentry/icons/open';
@@ -18,13 +19,19 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
+  getPrIterationOutOfCreditsWarning,
   isOutOfCreditsSection,
   isPrIterationBlock,
+  isPrIterationPaused,
   type AutofixSection,
   type RawFeedback,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {
+  getWaitingForCreditsFeedbackMessage,
+  OUT_OF_CREDITS_PR_ITERATION_MESSAGE,
+} from 'sentry/components/seer/outOfCredits/messages';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
@@ -42,8 +49,17 @@ const SOURCE_BADGE_SIZE = 14;
  * - `error`: the iteration or its push failed.
  * - `in_progress`: it's driving the iteration currently being processed.
  * - `queued`: submitted while a run was processing, not yet picked up.
+ * - `waiting_for_credits`: held for credits, or its iteration's push or retry
+ *   was. Runs the next time Seer iterates on the PR.
+ * - `paused`: queued, but iteration on the PR is paused, so it won't run.
  */
-type FeedbackStatus = 'processed' | 'error' | 'in_progress' | 'queued';
+type FeedbackStatus =
+  | 'processed'
+  | 'error'
+  | 'in_progress'
+  | 'queued'
+  | 'waiting_for_credits'
+  | 'paused';
 
 interface ParsedBaseFeedback {
   text: string;
@@ -104,6 +120,7 @@ type ParsedFeedback =
 
 type FeedbackListItem = ParsedFeedback & {
   errorCode?: string | null;
+  queued?: boolean;
   status?: FeedbackStatus;
 };
 
@@ -212,6 +229,13 @@ export function usePrIterationFeedback(
       autofix.runState?.status === 'awaiting_user_input' ||
       repoStates.some(repo => repo.pr_creation_status === 'creating');
 
+    const outOfCredits = getPrIterationOutOfCreditsWarning(autofix.runState);
+    const heldForCreditsAction =
+      outOfCredits?.unfinished_action === 'push' ||
+      outOfCredits?.unfinished_action === 'branch_moved_retry'
+        ? outOfCredits.unfinished_action
+        : null;
+
     const currentStep = section.blocks[currentStepStart];
     const currentIterationIndex =
       currentStep && isPrIterationBlock(currentStep)
@@ -244,6 +268,11 @@ export function usePrIterationFeedback(
       ) {
         if (inProgress) {
           status = 'in_progress';
+        } else if (
+          heldForCreditsAction &&
+          Number(iterationIndex) === outOfCredits?.unfinished_iteration_index
+        ) {
+          status = 'waiting_for_credits';
         } else if (section.status === 'error' || pushErrors.length > 0) {
           status = 'error';
         }
@@ -253,7 +282,12 @@ export function usePrIterationFeedback(
         ...parsed,
         iterationIndex: Number(iterationIndex),
         status,
-        errorCode: status === 'error' ? errorCode : undefined,
+        errorCode:
+          status === 'error'
+            ? errorCode
+            : status === 'waiting_for_credits'
+              ? heldForCreditsAction
+              : undefined,
       }));
     });
   }, [section, autofix.runState, currentStepStart]);
@@ -269,21 +303,28 @@ export function usePrIterationFeedback(
   );
 
   const queuedFeedback = useMemo<IterationFeedback[]>(() => {
+    const paused = isPrIterationPaused(autofix.runState);
     return (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
       const parsed = parseFeedbackItem(raw);
       if (!parsed) {
         return [];
       }
 
+      const status: FeedbackStatus = paused
+        ? 'paused'
+        : raw.held_for_credits
+          ? 'waiting_for_credits'
+          : 'queued';
       return [
         {
           ...parsed,
           iterationIndex: (latestIterationIndex ?? -1) + 1,
-          status: 'queued' as const,
+          queued: true,
+          status,
         },
       ];
     });
-  }, [autofix.runState?.queued_feedback, latestIterationIndex]);
+  }, [autofix.runState, latestIterationIndex]);
 
   const feedback = useMemo(
     () => [...blockFeedback, ...queuedFeedback].reverse(),
@@ -504,7 +545,7 @@ function Cell({children}: {children: React.ReactNode}) {
 function FeedbackTimestamp({item}: {item: FeedbackListItem}) {
   return (
     <Text variant="muted" size="sm" wrap="nowrap">
-      {item.status === 'queued' ? (
+      {item.queued && item.status !== 'paused' ? (
         t('Queued')
       ) : item.timestamp ? (
         <TimeSince date={item.timestamp} />
@@ -809,9 +850,7 @@ function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
         'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
       );
     case 'out_of_credits':
-      return t(
-        "Seer couldn't finish this feedback because your organization is out of credits."
-      );
+      return OUT_OF_CREDITS_PR_ITERATION_MESSAGE.agent_turn;
     default:
       return t('Changes from this feedback could not be pushed');
   }
@@ -857,6 +896,32 @@ function FeedbackStatusIcon({
       return (
         <Tooltip title={t('Queued, not yet picked up')} skipWrapper>
           <Flex align="center" justify="center">
+            <IconCircle variant="muted" />
+          </Flex>
+        </Tooltip>
+      );
+    case 'waiting_for_credits':
+      return (
+        <Tooltip title={getWaitingForCreditsFeedbackMessage(errorCode)} skipWrapper>
+          <Flex
+            align="center"
+            justify="center"
+            role="img"
+            aria-label={t('Waiting for credits')}
+          >
+            <IconClock variant="warning" />
+          </Flex>
+        </Tooltip>
+      );
+    case 'paused':
+      return (
+        <Tooltip
+          title={t(
+            "Seer stopped iterating on this pull request, so this feedback won't run."
+          )}
+          skipWrapper
+        >
+          <Flex align="center" justify="center" role="img" aria-label={t('Paused')}>
             <IconCircle variant="muted" />
           </Flex>
         </Tooltip>

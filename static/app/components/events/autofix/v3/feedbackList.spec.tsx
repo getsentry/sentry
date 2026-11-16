@@ -11,6 +11,7 @@ import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {
   getOrderedAutofixSections,
   type ExplorerAutofixState,
+  type PrIterationOutOfCreditsWarning,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 
 import {FeedbackList, usePrIterationFeedback} from './feedbackList';
@@ -213,6 +214,118 @@ describe('FeedbackList', () => {
     expect(
       await screen.findByText(
         "Seer couldn't finish this feedback because your organization is out of credits."
+      )
+    ).toBeInTheDocument();
+  });
+
+  function completedBlock() {
+    return ExplorerAutofixBlockFixture({
+      id: 'iteration-completed',
+      artifacts: [],
+      message: {role: 'assistant', content: 'Done', metadata: null},
+    });
+  }
+
+  function outOfCreditsWarning(
+    overrides: Partial<PrIterationOutOfCreditsWarning> = {}
+  ): PrIterationOutOfCreditsWarning {
+    return {
+      warning_type: 'pr_iteration_out_of_credits',
+      unfinished_action: null,
+      unfinished_iteration_index: null,
+      held_feedback_count: 0,
+      ...overrides,
+    };
+  }
+
+  it('shows queued feedback held for credits as waiting', async () => {
+    const state = ExplorerAutofixStateFixture({
+      status: 'completed',
+      blocks: iterationBlocks(),
+      queued_feedback: [
+        {text: 'Make the button blue', source: {type: 'user-ui'}, held_for_credits: true},
+      ],
+      warnings: [outOfCreditsWarning({held_feedback_count: 1})],
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    expect(screen.getByText('Queued')).toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('img', {name: 'Waiting for credits'}));
+    expect(
+      await screen.findByText(
+        'Waiting for credits. Seer picks this up the next time it iterates on the pull request.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('shows an iteration whose push is held for credits as waiting, not pushed', async () => {
+    // Sentry refused the push, so the repo has no push error for the frontend to see.
+    const state = ExplorerAutofixStateFixture({
+      status: 'completed',
+      blocks: [...iterationBlocks(), completedBlock()],
+      warnings: [
+        outOfCreditsWarning({unfinished_action: 'push', unfinished_iteration_index: 0}),
+      ],
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('img', {name: 'Waiting for credits'}));
+    expect(
+      await screen.findByText(
+        "Seer couldn't push the latest changes because your organization is out of credits. It pushes them the next time it iterates on the pull request."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('shows a branch-moved retry held for credits as waiting, not refused', async () => {
+    const state = ExplorerAutofixStateFixture({
+      status: 'completed',
+      blocks: [...iterationBlocks(), completedBlock()],
+      repo_pr_states: {
+        'org/repo': AutofixRepoPRStateFixture({
+          pr_creation_status: 'error',
+          pr_creation_error_code: 'branch_moved',
+        }),
+      },
+      warnings: [
+        outOfCreditsWarning({
+          unfinished_action: 'branch_moved_retry',
+          unfinished_iteration_index: 0,
+        }),
+      ],
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    expect(screen.queryByRole('img', {name: 'Feedback failed'})).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('img', {name: 'Waiting for credits'}));
+    expect(
+      await screen.findByText(
+        "Seer couldn't retry the latest changes on the pull request's newer commits because your organization is out of credits. It retries the next time it iterates on the pull request."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('shows queued feedback as paused once iteration is paused', async () => {
+    const state = ExplorerAutofixStateFixture({
+      status: 'completed',
+      blocks: iterationBlocks(),
+      pr_iteration_paused: true,
+      queued_feedback: [
+        {text: 'Make the button blue', source: {type: 'user-ui'}, held_for_credits: true},
+      ],
+    });
+
+    render(<IterationFeedback state={state} />);
+
+    expect(screen.queryByText('Queued')).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('img', {name: 'Paused'}));
+    expect(
+      await screen.findByText(
+        "Seer stopped iterating on this pull request, so this feedback won't run."
       )
     ).toBeInTheDocument();
   });
