@@ -20,7 +20,7 @@ from __future__ import annotations
 from typing import Any, NoReturn, TypeVar
 from uuid import UUID
 
-from snuba_sdk import And, Condition, Function, Identifier, Lambda, Op, Or
+from snuba_sdk import And, Condition, Function, Identifier, Lambda, Op
 from snuba_sdk.expressions import Expression
 
 from sentry.replays.lib.new_query.errors import OperatorNotSupported
@@ -225,44 +225,47 @@ class UUIDScalar(GenericBase):
         return Condition(expression, Op.NOT_IN, [str(v) for v in value])
 
 
-class IPv4Scalar(GenericBase):
-    """IPv4 scalar condition class."""
+class IPScalar(GenericBase):
+    """IP address scalar condition base class."""
 
-    @staticmethod
-    def visit_eq(expression: Expression, value: str | None) -> Condition:
+    # ClickHouse function that casts the string value to the column's IP type.
+    cast_function: str
+
+    @classmethod
+    def _cast(cls, value: str) -> Function:
+        return Function(cls.cast_function, parameters=[value])
+
+    @classmethod
+    def visit_eq(cls, expression: Expression, value: str | None) -> Condition:
         if value is None:
             return Condition(Function("isNull", parameters=[expression]), Op.EQ, 1)
-        return Condition(expression, Op.EQ, Function("toIPv4", parameters=[value]))
+        return Condition(expression, Op.EQ, cls._cast(value))
 
-    @staticmethod
-    def visit_neq(expression: Expression, value: str | None) -> Condition:
+    @classmethod
+    def visit_neq(cls, expression: Expression, value: str | None) -> Condition:
         if value is None:
             return Condition(Function("isNull", parameters=[expression]), Op.EQ, 0)
-        return Condition(expression, Op.NEQ, Function("toIPv4", parameters=[value]))
+        return Condition(expression, Op.NEQ, cls._cast(value))
 
-    @staticmethod
-    def visit_in(expression: Expression, value_list: list[str | None]) -> Condition:
-        values = [Function("toIPv4", parameters=[v]) for v in value_list if v is not None]
-        if None in value_list:
-            return Or(
-                conditions=[
-                    Condition(expression, Op.IN, values),
-                    Condition(Function("isNull", parameters=[expression]), Op.EQ, 1),
-                ]
-            )
-        return Condition(expression, Op.IN, values)
+    @classmethod
+    def visit_in(cls, expression: Expression, value: list[str]) -> Condition:
+        return Condition(expression, Op.IN, [cls._cast(v) for v in value])
 
-    @staticmethod
-    def visit_not_in(expression: Expression, value_list: list[str | None]) -> Condition:
-        values = [Function("toIPv4", parameters=[v]) for v in value_list if v is not None]
-        if None in value_list:
-            return And(
-                conditions=[
-                    Condition(expression, Op.NOT_IN, values),
-                    Condition(Function("isNull", parameters=[expression]), Op.EQ, 0),
-                ]
-            )
-        return Condition(expression, Op.NOT_IN, values)
+    @classmethod
+    def visit_not_in(cls, expression: Expression, value: list[str]) -> Condition:
+        return Condition(expression, Op.NOT_IN, [cls._cast(v) for v in value])
+
+
+class IPv4Scalar(IPScalar):
+    """IPv4 scalar condition class."""
+
+    cast_function = "toIPv4"
+
+
+class IPv6Scalar(IPScalar):
+    """IPv6 scalar condition class."""
+
+    cast_function = "toIPv6"
 
 
 class GenericArray(GenericBase):

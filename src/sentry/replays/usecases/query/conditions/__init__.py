@@ -12,7 +12,6 @@ __all__ = [
     "SumOfClickSelectorComposite",
     "SumOfDeadClickSelectorComposite",
     "SumOfIntegerIdScalar",
-    "SumOfIPv4Scalar",
     "SumOfRageClickSelectorComposite",
     "SumOfStringArray",
     "SumOfStringScalar",
@@ -25,7 +24,6 @@ __all__ = [
 from .activity import AggregateActivityScalar
 from .aggregate import (
     SumOfIntegerIdScalar,
-    SumOfIPv4Scalar,
     SumOfStringArray,
     SumOfStringScalar,
     SumOfUUIDArray,

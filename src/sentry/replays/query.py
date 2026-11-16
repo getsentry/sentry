@@ -864,8 +864,14 @@ QUERY_ALIAS_COLUMN_MAP = {
     "user_email": anyIf(column_name="user_email"),
     "user_username": anyIf(column_name="user_name", alias="user_username"),
     "user_ip": Function(
-        "IPv4NumToString",
-        parameters=[anyIfNonZeroIP(column_name="ip_address_v4", aliased=False)],
+        "coalesce",
+        parameters=[
+            Function(
+                "IPv4NumToString",
+                parameters=[anyIfNonZeroIP(column_name="ip_address_v4", aliased=False)],
+            ),
+            Function("IPv6NumToString", parameters=[Function("any", [Column("ip_address_v6")])]),
+        ],
         alias="user_ip",
     ),
     "user_geo_city": anyIf(column_name="user_geo_city"),
@@ -950,8 +956,11 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
     "user.username": Column("user_name"),
     "user.email": Column("user_email"),
     "user.ip": Function(
-        "IPv4NumToString",
-        parameters=[Column("ip_address_v4")],
+        "coalesce",
+        parameters=[
+            Function("IPv4NumToString", parameters=[Column("ip_address_v4")]),
+            Function("IPv6NumToString", parameters=[Column("ip_address_v6")]),
+        ],
     ),
     "sdk.name": Column("sdk_name"),
     "sdk.version": Column("sdk_version"),

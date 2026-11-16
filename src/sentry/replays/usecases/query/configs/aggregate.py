@@ -19,7 +19,6 @@ from sentry.replays.lib.new_query.fields import (
     CountField,
     FieldProtocol,
     IntegerColumnField,
-    NullableStringColumnField,
     StringColumnField,
     SumField,
     SumLengthField,
@@ -28,7 +27,7 @@ from sentry.replays.lib.new_query.fields import (
 from sentry.replays.lib.new_query.parsers import (
     parse_duration,
     parse_int,
-    parse_ipv4,
+    parse_ip_address,
     parse_str,
     parse_uuid,
 )
@@ -41,7 +40,6 @@ from sentry.replays.usecases.query.conditions import (
     SumOfClickSelectorComposite,
     SumOfDeadClickSelectorComposite,
     SumOfIntegerIdScalar,
-    SumOfIPv4Scalar,
     SumOfRageClickSelectorComposite,
     SumOfStringArray,
     SumOfStringScalar,
@@ -49,6 +47,7 @@ from sentry.replays.usecases.query.conditions import (
 )
 from sentry.replays.usecases.query.conditions.aggregate import SumOfUUIDScalar
 from sentry.replays.usecases.query.conditions.event_ids import SumOfErrorIdScalar, SumOfInfoIdScalar
+from sentry.replays.usecases.query.conditions.ip_address import SumOfIPAddressScalar
 from sentry.replays.usecases.query.conditions.tags import SumOfTagAggregate
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 
@@ -137,7 +136,7 @@ search_config: dict[str, FieldProtocol] = {
     "urls": array_string_field("urls"),
     "user.email": string_field("user_email"),
     "user.id": string_field("user_id"),
-    "user.ip_address": NullableStringColumnField("ip_address_v4", parse_ipv4, SumOfIPv4Scalar),
+    "user.ip_address": ComputedField(parse_ip_address, SumOfIPAddressScalar),
     "user.username": string_field("user_name"),
     "user.geo.city": string_field("user_geo_city"),
     "user.geo.country_code": string_field("user_geo_country_code"),
