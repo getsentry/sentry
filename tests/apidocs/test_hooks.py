@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
+from sentry.apidocs.error_codes import SENTRY_API_ERROR_COMPONENT, sentry_api_error_schema
 from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
     _EXPERIMENTAL_OPERATIONS,
@@ -504,7 +505,7 @@ class FixIssueRoutesTest(TestCase):
                     }
                 },
             },
-            "components": {"schemas": {}},
+            "components": {"schemas": {SENTRY_API_ERROR_COMPONENT: sentry_api_error_schema()}},
         }
         assert custom_postprocessing_hook(BEFORE, None) == AFTER
 
