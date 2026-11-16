@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,6 +21,15 @@ from sentry.api.serializers.models.seer_run import (
     SeerRunSerializer,
 )
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
@@ -91,17 +101,81 @@ class OrganizationSeerRunsPermission(OrganizationPermission):
     }
 
 
+@extend_schema(tags=["Seer"])
 @cell_silo_endpoint
 class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
     permission_classes = (OrganizationSeerRunsPermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationSeerRuns",
+        summary="List an Organization's Seer Runs",
+        description=(
+            "Returns runs with no project and runs in projects the caller can access, most "
+            "recently triggered first. With `expand=questions` or `question`, the page size "
+            "defaults to and is capped at 10; otherwise it's 100."
+        ),
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "Search query. Supports `source`, `type`, `project`, `is:agent`/`!is:agent`, "
+                    "`is:mine`/`!is:mine` and free-text title search."
+                ),
+            ),
+            OpenApiParameter(
+                name="expand",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                enum=["questions"],
+                description=(
+                    "Pass `questions` to add each run's answers to the built-in question set "
+                    "in `outputs`. Ignored unless the organization has run questions enabled."
+                ),
+            ),
+            OpenApiParameter(
+                name="question",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description=(
+                    f"A question to answer about each run, up to {MAX_USER_QUESTIONS} of at most "
+                    f"{MAX_QUESTION_LENGTH} characters. Answers follow the built-in ones in "
+                    "`outputs`, in request order. Ignored unless the organization has run "
+                    "questions enabled."
+                ),
+            ),
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            CursorQueryParam,
+            VisibilityParams.PER_PAGE,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationSeerRunsResponse", list[SeerRunResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[SeerRunResponse]] | Response[DetailResponse]:
         """
         List Seer runs for the organization, served from the Sentry-side mirror
         tables (``SeerRun``/``SeerAgentRun``).
