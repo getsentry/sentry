@@ -4,19 +4,35 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
+import {logs} from './logs';
 import {docs} from '.';
 
 describe('dotnet logs onboarding docs', () => {
-  it('renders logs onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+  it('renders the SentrySdk.Init logs setup', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: logs()},
+      {selectedProducts: [ProductSolution.LOGS]}
+    );
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/options\.EnableLogs = true/))
+      await screen.findByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
+      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the UseSentry logs setup when a logger is given', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: logs({logger: 'logger'})},
+      {selectedProducts: [ProductSolution.LOGS]}
+    );
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/set EnableLogs to true/))
     ).toBeInTheDocument();
   });
 
@@ -27,9 +43,6 @@ describe('dotnet logs onboarding docs', () => {
 
     expect(await screen.findByRole('heading', {name: 'Install'})).toBeInTheDocument();
 
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/options\.EnableLogs = true/))
-    ).not.toBeInTheDocument();
     expect(
       screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
     ).not.toBeInTheDocument();

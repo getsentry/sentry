@@ -52,7 +52,7 @@ describe('aspnetcore onboarding docs', () => {
     });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/builder\.WebHost\.UseSentry/))
+      await screen.findByText(textWithMarkupMatcher(/builder\.UseSentry\(o =>/))
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/app\.MapGet\("\/person\/\{id\}"/))
@@ -69,6 +69,9 @@ describe('aspnetcore onboarding docs', () => {
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/app\.Logger\.LogInformation/))
     ).toBeInTheDocument();
   });
 });

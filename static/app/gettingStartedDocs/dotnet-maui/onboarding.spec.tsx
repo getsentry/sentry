@@ -54,5 +54,8 @@ describe('maui onboarding docs', () => {
     expect(
       await screen.findByText(textWithMarkupMatcher(/options.EnableLogs/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
   });
 });

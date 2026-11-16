@@ -14,14 +14,14 @@ const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.AspNet -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnet',
-  '3.34.0'
+  '7.0.0'
 )}`;
 
 const getInstallSnippetEntityFramework = (params: DocsParams) => `
 Install-Package Sentry.EntityFramework -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnet',
-  '3.34.0'
+  '7.0.0'
 )}`;
 
 const getConfigureSnippet = (params: DocsParams) => `
@@ -52,12 +52,6 @@ public class MvcApplication : HttpApplication
             // of transactions for tracing.
             // We recommend adjusting this value in production
             o.TracesSampleRate = 1.0;`
-                : ''
-            }${
-              params.isLogsSelected
-                ? `
-            // Enable logs to be sent to Sentry
-            o.EnableLogs = true;`
                 : ''
             }
             // If you are using EF (and installed the NuGet package):
