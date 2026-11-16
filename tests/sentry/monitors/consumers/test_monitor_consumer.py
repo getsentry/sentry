@@ -1098,8 +1098,14 @@ class MonitorConsumerTest(TestCase):
         """
         monitor = self._create_monitor(slug="my-monitor")
 
+        production_env = self.create_environment(name="production")
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=production_env.id,
+        )
+
         stale_checkin = MonitorCheckIn.objects.create(
-            monitor_environment=MonitorEnvironment.objects.get(monitor=monitor),
+            monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=monitor.date_added - timedelta(weeks=52),
         )
