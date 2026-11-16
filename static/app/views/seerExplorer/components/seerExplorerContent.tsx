@@ -1125,9 +1125,11 @@ function RestartNotice({onCancel}: {onCancel: () => void}) {
       data-test-id="seer-explorer-restart-notice"
     >
       <Stack gap="2xs" flex="1">
-        <Text bold>{t('Starting a new analysis')}</Text>
+        <Text bold>{t('Starting over')}</Text>
         <Text variant="muted" size="sm">
-          {t('Tell Seer what to change. It starts a fresh run with your message.')}
+          {t(
+            'Seer starts a fresh analysis with your message. This conversation stays in your chat history.'
+          )}
         </Text>
       </Stack>
       <Button size="xs" onClick={onCancel}>
