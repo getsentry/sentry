@@ -8,7 +8,11 @@ import {lightTheme} from '@sentry/scraps/theme';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {ExternalLink, Link, type LinkProps} from './link';
-import {LinkBehaviorContextProvider, useResolveLinkHref} from './linkBehaviorContext';
+import {
+  LinkBehaviorContextProvider,
+  useLinkQueryString,
+  useResolveLinkHref,
+} from './linkBehaviorContext';
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
@@ -126,25 +130,53 @@ describe('Link without a router', () => {
   });
 });
 
+describe('useLinkQueryString without a provider', () => {
+  it('parses native search parameters and preserves repeated values', () => {
+    const {result} = renderHook(() => useLinkQueryString());
+    const query = result.current.parse('?tag=one&tag=two&flag&q=a+b%2Bc&__proto__=safe');
+    expect(query).toEqual({
+      tag: ['one', 'two'],
+      flag: '',
+      q: 'a b+c',
+      ['__proto__']: 'safe',
+    });
+    expect(Object.getPrototypeOf(query)).toBeNull();
+  });
+
+  it('uses native encoding when serializing query parameters', () => {
+    const {result} = renderHook(() => useLinkQueryString());
+    expect(
+      result.current.stringify({
+        tag: ['one', 'two'],
+        q: 'a b+c~*',
+        flag: null,
+        absent: undefined,
+      })
+    ).toBe('tag=one&tag=two&q=a+b%2Bc%7E*&flag=null');
+  });
+});
+
 describe('Link with a supplied behavior', () => {
-  it('resolves collection hrefs through the supplied resolver', () => {
+  it('serializes collection hrefs through the supplied stringify helper', () => {
     const {result} = renderHook(() => useResolveLinkHref(), {
       wrapper: ({children}) => (
         <LinkBehaviorContextProvider
           value={{
             component: () => null,
             behavior: props => props,
-            resolveHref: to => `/normalized/${typeof to === 'string' ? to : to.pathname}`,
+            stringify: query => `custom=${String(query.q)}`,
           }}
         >
           {children}
         </LinkBehaviorContextProvider>
       ),
     });
-    expect(result.current({pathname: 'issues/'})).toBe('/normalized/issues/');
+    expect(result.current({pathname: '/issues/', query: {q: 'value'}})).toBe(
+      '/issues/?custom=value'
+    );
   });
 
-  it('normalizes collection destinations when no resolver is supplied', () => {
+  it('normalizes collection destinations with native query defaults', () => {
     const {result} = renderHook(() => useResolveLinkHref(), {
       wrapper: ({children}) => (
         <LinkBehaviorContextProvider
