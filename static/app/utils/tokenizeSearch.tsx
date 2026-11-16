@@ -424,6 +424,22 @@ export class MutableSearch {
     return this;
   }
 
+  /**
+   * Adds one `key:[a,b]` filter. Values that contain spaces or list syntax
+   * characters are quoted so they stay a single list entry.
+   */
+  addFilterValueList(key: string, values: string[]) {
+    const listValues = values.map(value => {
+      const escaped = escapeFilterValue(value);
+      if (escaped === '' || /[\s(),\\"]/.test(escaped)) {
+        return `"${escapeDoubleQuotes(escaped)}"`;
+      }
+      return escaped;
+    });
+    this.addFilterValue(key, `[${listValues.join(',')}]`, false);
+    return this;
+  }
+
   addFilterValue(key: string, value: string, shouldEscape = true) {
     // Filter values that we insert through the UI can contain special characters
     // that need to escaped. User entered filters should not be escaped.

@@ -21,8 +21,8 @@ if TYPE_CHECKING:
 
 def _simple_shallow_clone[T: DefaultFieldsModel](original: T, **overrides: Any) -> T:
     new = copy.copy(original)
-    new.pk = None
-    new.id = None
+    setattr(new, "pk", None)
+    setattr(new, "id", None)
     for attr, value in overrides.items():
         setattr(new, attr, value)
     new.save()

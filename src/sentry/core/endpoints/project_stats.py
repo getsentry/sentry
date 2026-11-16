@@ -127,7 +127,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
         This endpoint may change in the future without notice.
         """
         stat = request.GET.get("stat", "received")
-        query_kwargs = {}
+        environment_id: int | None = None
         if stat == "received":
             stat_model = TSDBModel.project_total_received
         elif stat == "rejected":
@@ -137,9 +137,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
         elif stat == "generated":
             stat_model = TSDBModel.project
             try:
-                query_kwargs["environment_id"] = get_environment_id(
-                    request, project.organization_id
-                )
+                environment_id = get_environment_id(request, project.organization_id)
             except Environment.DoesNotExist:
                 raise ResourceDoesNotExist
         else:
@@ -151,7 +149,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
         data = tsdb.backend.get_range(
             model=stat_model,
             keys=[project.id],
-            **self._parse_args(request, **query_kwargs),
+            **self._parse_args(request, environment_id=environment_id),
             tenant_ids={"organization_id": project.organization_id},
         )[project.id]
 

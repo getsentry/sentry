@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {IconSentry} from '@sentry/icons/sentry';
 import {IconWarning} from '@sentry/icons/warning';
 import type {LocationDescriptor} from 'history';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';

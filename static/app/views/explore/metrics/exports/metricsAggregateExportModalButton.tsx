@@ -3,10 +3,6 @@ import {ROW_COUNT_VALUE_MAX} from 'sentry/components/exports/generateExportRowCo
 import {t} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {formatExportSort} from 'sentry/views/explore/components/exports/formatExportSort';
-import {
-  MetricsExportModalButton,
-  useMetricsQueryInfo,
-} from 'sentry/views/explore/metrics/exports/metricsExportModalButton';
 import {getMetricAggregatesFields} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualizes} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -15,6 +11,8 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
+
+import {MetricsExportModalButton, useMetricsQueryInfo} from './metricsExportModalButton';
 
 type MetricsAggregateExportModalButtonProps = {
   isError: boolean;

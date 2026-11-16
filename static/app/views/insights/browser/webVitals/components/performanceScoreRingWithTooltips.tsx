@@ -9,7 +9,6 @@ import {Link} from '@sentry/scraps/link';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMouseTracking} from 'sentry/utils/useMouseTracking';
-import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
 import {ORDER, WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
 import type {
   ProjectScore,
@@ -19,6 +18,7 @@ import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeigh
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {PerformanceScoreRing} from './performanceScoreRing';
 import {getFormattedDuration} from './webVitalMeters';
 
 type Coordinates = {

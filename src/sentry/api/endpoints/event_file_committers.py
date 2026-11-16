@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.utils.committers import get_serialized_event_file_committers
 
@@ -18,7 +19,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
         Retrieve Suspect Commit information for an event
         ```````````````````````````````````````````

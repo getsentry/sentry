@@ -19,10 +19,16 @@ class ProjectConfigDebounceCache(Service):
 
     __all__ = ("is_debounced", "debounce", "mark_task_done")
 
-    def __init__(self, **options):
+    def __init__(self, **options: object) -> None:
         pass
 
-    def is_debounced(self, *, public_key, project_id, organization_id):
+    def is_debounced(
+        self,
+        *,
+        public_key: str | None,
+        project_id: int | None,
+        organization_id: int | None,
+    ) -> bool:
         """Checks if the given project/organization should be debounced.
 
         If this is called this with multiple arguments each scope is checked, so that even
@@ -31,13 +37,25 @@ class ProjectConfigDebounceCache(Service):
         """
         return False
 
-    def debounce(self, *, public_key, project_id, organization_id):
+    def debounce(
+        self,
+        *,
+        public_key: str | None,
+        project_id: int | None,
+        organization_id: int | None,
+    ) -> None:
         """Debounces the given project/organization, without performing any checks.
 
         The highest-scoped argument passed in will be debounced.
         """
 
-    def mark_task_done(self, *, public_key, project_id, organization_id):
+    def mark_task_done(
+        self,
+        *,
+        public_key: str | None,
+        project_id: int | None,
+        organization_id: int | None,
+    ) -> int:
         """
         Mark a task done such that `is_debounced` starts emitting False
         for the given parameters.

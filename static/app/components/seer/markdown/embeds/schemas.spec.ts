@@ -60,6 +60,21 @@ describe('seerEmbedsToJsonSchemas', () => {
     });
   });
 
+  it('offers the autofix embeds to every Seer plan', () => {
+    const autofixWidgets = seerEmbedsToJsonSchemas().filter(widget =>
+      ['autofix', 'autofixRef'].includes(widget.name)
+    );
+
+    expect(autofixWidgets).toHaveLength(2);
+    for (const widget of autofixWidgets) {
+      expect(widget.featureFlag).toEqual([
+        'organizations:seat-based-seer-enabled',
+        'organizations:seer-added',
+        'organizations:token-billed-seer-enabled',
+      ]);
+    }
+  });
+
   it('documents the replay timestamp offset requirement in the agent contract', () => {
     const replay = seerEmbedsToJsonSchemas().find(widget => widget.name === 'replay');
 
@@ -186,7 +201,7 @@ describe('SEER_EMBED_SCHEMAS page filters', () => {
       properties: {
         projects: {
           items: {
-            anyOf: [{type: 'string'}, {type: 'number'}],
+            type: ['string', 'number'],
           },
         },
       },

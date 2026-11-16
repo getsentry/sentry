@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import (
@@ -16,14 +16,22 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 
 
 def create_notification_origin(rule: Rule) -> NotificationOrigin:
+    """Build an origin from legacy Rule data without writing workflow-engine models.
+
+    Compatibility IDs are read from the first action when present; otherwise the
+    Rule ID is used as the legacy identity. Prefer constructing NotificationOrigin
+    directly in new tests.
+    """
     actions = rule.data.get("actions")
     first_action = actions[0] if actions else {}
     workflow_id = first_action.get("workflow_id")
@@ -38,9 +46,45 @@ def create_notification_origin(rule: Rule) -> NotificationOrigin:
     )
 
 
-def create_notification_action_context(rule: Rule) -> NotificationActionContext:
+def create_workflow_notification_origin_for_rule(rule: Rule) -> NotificationOrigin:
+    """Build a workflow-backed origin for a legacy Rule, creating its lookup if needed.
+
+    This helper writes a Workflow and AlertRuleWorkflow when no lookup exists. When
+    one exists, it synchronizes the workflow name and environment with the Rule.
+    Use it only in tests that bridge legacy Rule inputs to workflow-backed behavior;
+    prefer constructing Workflow and NotificationOrigin explicitly in new tests.
+    """
+    mapping = AlertRuleWorkflow.objects.filter(rule_id=rule.id).select_related("workflow").first()
+    if mapping is None:
+        workflow = Workflow.objects.create(
+            organization=rule.project.organization,
+            name=rule.label,
+            environment_id=rule.environment_id,
+            config={},
+        )
+        AlertRuleWorkflow.objects.create(rule_id=rule.id, workflow=workflow)
+    else:
+        workflow = mapping.workflow
+        workflow.update(name=rule.label, environment_id=rule.environment_id)
+
+    return NotificationOrigin(
+        label=workflow.name,
+        environment_id=workflow.environment_id,
+        workflow_id=workflow.id,
+        legacy_rule_id=rule.id,
+    )
+
+
+def create_notification_action_context(
+    rule: Rule, *, with_workflow: bool = True
+) -> NotificationActionContext:
+    """Build an action context from a Rule, optionally creating workflow lookup data."""
     return NotificationActionContext(
-        origin=create_notification_origin(rule),
+        origin=(
+            create_workflow_notification_origin_for_rule(rule)
+            if with_workflow
+            else create_notification_origin(rule)
+        ),
         action_id=rule.id,
         project=rule.project,
     )
@@ -59,10 +103,10 @@ class DummyNotification(BaseNotification):
     def determine_recipients(self) -> list[Actor]:
         return []
 
-    def build_attachment_title(self, *args) -> str:
+    def build_attachment_title(self, recipient: Actor) -> str:
         return "My Title"
 
-    def get_title_link(self, *args):
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         return None
 
     def get_notification_title(
@@ -70,14 +114,14 @@ class DummyNotification(BaseNotification):
     ) -> str:
         return "Notification Title"
 
-    def record_notification_sent(self, *args):
+    def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         pass
 
-    def build_notification_footer(self, *args) -> str:
+    def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
         return ""
 
-    def get_participants(self):
-        return []
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Actor]]:
+        return cast(Mapping[ExternalProviders, Iterable[Actor]], [])
 
     def get_message_actions(
         self, recipient: Actor, provider: ExternalProviders
@@ -97,7 +141,7 @@ class DummyNotification(BaseNotification):
 
 
 class AnotherDummyNotification(DummyNotification):
-    def __init__(self, organization, some_value) -> None:
+    def __init__(self, organization: Organization, some_value: object) -> None:
         super().__init__(organization)
         self.some_value = some_value
 
@@ -112,13 +156,13 @@ class DummyNotificationWithMoreFields(DummyNotification):
         some_value = context["some_field"]
         return f"Notification Title with {some_value}"
 
-    def build_notification_footer(self, *args) -> str:
+    def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
         return "Notification Footer"
 
     def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> str:
         return "Message Description"
 
-    def get_title_link(self, *args):
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         from sentry.integrations.messaging.message_builder import get_title_link
 
         return get_title_link(self.group, None, False, True, self, ExternalProviders.SLACK)

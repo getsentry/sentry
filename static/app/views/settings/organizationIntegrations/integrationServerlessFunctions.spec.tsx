@@ -4,7 +4,8 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {ServerlessFunction} from 'sentry/types/integrations';
-import {IntegrationServerlessFunctions} from 'sentry/views/settings/organizationIntegrations/integrationServerlessFunctions';
+
+import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
 describe('IntegrationServerlessFunctions', () => {
   const organization = OrganizationFixture();

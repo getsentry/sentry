@@ -366,7 +366,7 @@ class OutboxBase(Model):
         logger.error("outbox.unexpected_coalescing", extra=extra)
 
     def _set_span_data_for_coalesced_message(self, span: StreamedSpan, message: OutboxBase) -> None:
-        tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
+        tag_for_outbox = OutboxScope.get_tag_name(OutboxScope(message.shard_scope))
         span.set_attribute(tag_for_outbox, message.shard_identifier)
         span.set_attribute("outbox_id", message.id)
         span.set_attribute("outbox_shard_id", message.shard_identifier)

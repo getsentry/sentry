@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Any, cast
 
 from django.core.exceptions import ValidationError
 from django.utils.functional import cached_property
@@ -14,26 +17,27 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.artifactbundle import ArtifactBundleFilesSerializer
 from sentry.constants import MAX_ARTIFACT_BUNDLE_FILES_OFFSET
 from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive
+from sentry.models.project import Project
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 
 
 class ArtifactFile:
-    def __init__(self, file_path: str, info: dict[str, str]):
+    def __init__(self, file_path: str, info: dict[str, Any]) -> None:
         self.file_path = file_path
         self.info = info
 
-    def __eq__(self, other):
-        return self.file_path == other.file_path
+    def __eq__(self, other: object) -> bool:
+        return self.file_path == cast(ArtifactFile, other).file_path
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.file_path)
 
-    def __lt__(self, other):
+    def __lt__(self, other: ArtifactFile) -> bool:
         return self.file_path < other.file_path
 
 
 class ArtifactBundleSource:
-    def __init__(self, files: dict):
+    def __init__(self, files: dict[str, dict[str, Any]]) -> None:
         self._files = files
 
     @cached_property
@@ -48,7 +52,7 @@ class ArtifactBundleSource:
     def __len__(self) -> int:
         return len(self.sorted_and_filtered_files)
 
-    def __getitem__(self, range):
+    def __getitem__(self, range: slice | int) -> list[ArtifactFile] | ArtifactFile:
         return self.sorted_and_filtered_files[range]
 
 
@@ -63,7 +67,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
-    def get(self, request: Request, project, bundle_id) -> Response:
+    def get(self, request: Request, project: Project, bundle_id: str) -> Response:
         """
         List files for a given project artifact bundle.
         ``````````````````````````````
@@ -100,7 +104,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 {"error": f"The archive of artifact bundle {bundle_id} can't be opened"}
             )
 
-        def serialize_results(r):
+        def serialize_results(r: ArtifactBundleSource) -> object:
             # Here we don't query with project_id under the assumption that the above's code checks for it. In case
             # the get_release_associations method is going to be used in other places, a project_id check should
             # still be performed to avoid any security problems.

@@ -4,12 +4,6 @@ import {
 } from 'sentry/components/arithmeticBuilder/token';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 import {EQUATION_PREFIX, isEquation} from 'sentry/utils/discover/fields';
-import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
-import {
-  defaultMetricQuery,
-  type BaseMetricQuery,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
   VisualizeEquation,
   VisualizeFunction,
@@ -17,6 +11,10 @@ import {
 import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {DEFAULT_EQUATION_LABEL} from './constants';
+import {defaultMetricQuery, type BaseMetricQuery} from './metricQuery';
+import {parseMetricAggregate} from './parseMetricsAggregate';
 
 interface ParsedAggregateExpression {
   /**

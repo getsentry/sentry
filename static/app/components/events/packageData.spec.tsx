@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {EventPackageData} from 'sentry/components/events/packageData';
+import {EventPackageData} from './packageData';
 
 describe('EventPackageData', () => {
   const event = EventFixture({

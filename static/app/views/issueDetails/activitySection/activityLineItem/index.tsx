@@ -1,23 +1,29 @@
 import {useMemo} from 'react';
 
 import {TimeSince} from 'sentry/components/timeSince';
-import {GroupActivityType, type Group} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
-import type {ActivityFeedItem} from './activityFeedItem';
+import {getActorActivity, type ActivityFeedItem} from './activityFeedItem';
 import {getActivityItem} from './activityItem';
-import {ActivityLineHeadline, ActivityLineRow} from './layout';
-import {ActivityLineMarker} from './progressMarker';
+import {ActivityLineHeadline} from './layout';
+import {ActivityLineMarker} from './marker';
 
 interface ActivityLineProps {
   group: Group;
   item: ActivityFeedItem;
+  children?: React.ReactNode;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
-export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProps) {
+export function ActivityLine({
+  item,
+  group,
+  children,
+  timestampUnitStyle,
+}: ActivityLineProps) {
   const organization = useOrganization();
-  const showProgress = organization.features.includes('issue-activity-progress');
   const {issueCategory, project} = group;
   const {activity} = item;
   const activityItem = useMemo(
@@ -33,26 +39,21 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   const timestamp = (
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
-  let actorActivity = activity;
-  if (item.type === GroupActivityType.SEER_ITERATION_COMPLETED) {
-    actorActivity = item.startedActivity;
-  } else if (item.type === 'activity' && item.actorActivity) {
-    actorActivity = item.actorActivity;
-  }
 
   return (
-    <ActivityLineRow>
-      <ActivityLineMarker
-        actorItem={actorActivity}
-        item={activity}
-        showProgress={showProgress}
-      />
-      <ActivityLineHeadline
-        title={activityItem.title}
-        details={activityItem.details}
-        source={activityItem.source}
-        timestamp={timestamp}
-      />
-    </ActivityLineRow>
+    <Timeline.Item
+      variant={item.variant}
+      marker={<ActivityLineMarker item={getActorActivity(item)} />}
+      headline={
+        <ActivityLineHeadline
+          title={activityItem.title}
+          details={activityItem.details}
+          source={activityItem.source}
+          timestamp={timestamp}
+        />
+      }
+    >
+      {children}
+    </Timeline.Item>
   );
 }

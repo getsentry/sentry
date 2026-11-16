@@ -1,6 +1,6 @@
 import {Frame} from 'sentry/utils/profiling/frame';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
 
+import {Profile} from './profile';
 import {c, f, makeTestingBoilerplate} from './testUtils';
 
 describe('Profile', () => {

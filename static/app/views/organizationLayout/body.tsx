@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import organizationDeletionIllustration from 'sentry-images/organizationDeletion.svg';
 
@@ -11,8 +12,8 @@ import {LogoSentry} from 'sentry/components/logoSentry';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 
@@ -68,23 +69,25 @@ function DeletionInProgress({organization}: OrganizationProps) {
 }
 
 function DeletionPending({organization}: OrganizationProps) {
-  const api = useApi();
   const {addAlert} = useGlobalAlerts();
   const [isRestoring, setIsRestoring] = useState(false);
+
+  const {mutateAsync: cancelDeletion} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        method: 'PUT',
+        data: {cancelDeletion: true},
+      }),
+  });
 
   const onRestore = async () => {
     setIsRestoring(true);
 
     try {
-      await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'PUT',
-          data: {cancelDeletion: true},
-        }
-      );
+      await cancelDeletion();
       testableWindowLocation.reload();
     } catch {
       setIsRestoring(false);

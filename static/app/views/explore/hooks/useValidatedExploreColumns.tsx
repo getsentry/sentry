@@ -1,7 +1,10 @@
 import {useEffect, useMemo, useRef} from 'react';
 
 import type {Sort} from 'sentry/utils/discover/fields';
-import {serializeAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {
+  serializeAggregateField,
+  serializeAggregateFields,
+} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -111,7 +114,7 @@ export function useValidatedExploreColumns({
       )
     );
     const nextAggregateFields = aggregateFieldsChanged
-      ? validatedAggregateFields.map(serializeAggregateField)
+      ? serializeAggregateFields(validatedAggregateFields)
       : undefined;
     const nextAggregateSortBys = aggregateFieldsChanged
       ? aggregateSortBys.filter(sortBy => validAggregateFields.has(sortBy.field))

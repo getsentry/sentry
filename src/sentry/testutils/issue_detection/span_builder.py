@@ -44,7 +44,7 @@ class SpanBuilder:
         self.hash = hash
         return self
 
-    def with_data(self, data: dict) -> "SpanBuilder":
+    def with_data(self, data: dict[str, object] | None) -> "SpanBuilder":
         self.data = data
         return self
 

@@ -8,7 +8,8 @@ import {
 } from 'sentry/views/performance/traceDetails/traceGuards';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {CollapsedNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/collapsedNode';
-import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+
+import type {TraceRowProps} from './traceRow';
 
 export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
   const stats = useMemo(() => {

@@ -1,12 +1,12 @@
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {CollapsedNode} from './traceTreeNode/collapsedNode';
 import {makeExampleTrace} from './makeExampleTrace';
+import {TraceTree} from './traceTree';
 
 export class IssuesTraceTree extends TraceTree {
   static Empty() {

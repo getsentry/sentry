@@ -275,7 +275,7 @@ describe('ScmPlatformFeatures', () => {
   it('continue button is disabled when no platform selected', async () => {
     render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
-    // Wait for the component to fully settle (CompactSelect triggers async popper updates)
+    // Wait for the component to fully settle (CompactSelect triggers async overlay updates)
     await screen.findByText('Search');
 
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();

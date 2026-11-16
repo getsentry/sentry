@@ -22,12 +22,15 @@ from sentry.organizations.services.organization.model import (
     OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
     RpcCellUser,
+    RpcOnboardingReportingCode,
     RpcOrganization,
+    RpcOrganizationAccessContext,
     RpcOrganizationDeleteResponse,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationMemberSummary,
+    RpcOrganizationProjectSummary,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcTeam,
@@ -50,6 +53,68 @@ class OrganizationService(RpcService):
         )
 
         return DatabaseBackedOrganizationService()
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def has_active_onboarding_run(self, *, organization_id: int, user_id: int, run_id: str) -> bool:
+        """Check that the user owns an active onboarding run in this organization."""
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId(), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def issue_onboarding_reporting_code(
+        self, *, organization_id: int, user_id: int, run_id: str
+    ) -> RpcOnboardingReportingCode | None:
+        """Activate a run's reporting code when its private handoff is claimed."""
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_active_project_ids(self, *, organization_id: int, project_ids: list[int]) -> list[int]:
+        """Return the supplied IDs that belong to active projects in this organization."""
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId(), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def get_access_context(
+        self,
+        *,
+        organization_id: int,
+        user_id: int | None = None,
+        include_resource_ids: bool = False,
+    ) -> RpcOrganizationAccessContext | None:
+        """
+        Return organization/member data for access checks without full resource collections.
+
+        include_resource_ids batches org-wide enumeration into this response; it does not
+        authorize the user to access those resources. Callers must apply access policies.
+        """
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def get_access_context_by_slug(
+        self,
+        *,
+        slug: str,
+        only_visible: bool,
+        user_id: int | None = None,
+        include_resource_ids: bool = False,
+    ) -> RpcOrganizationAccessContext | None:
+        """Slug-addressed get_access_context. only_visible excludes inactive organizations."""
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_project_platform_summary(
+        self, *, organization_id: int
+    ) -> RpcOrganizationProjectSummary:
+        """
+        Return distinct platforms and aggregate flags for broadcast targeting.
+
+        Includes inactive projects to preserve existing targeting semantics.
+        """
+        pass
 
     def get(self, id: int) -> RpcOrganization | None:
         """
@@ -116,8 +181,8 @@ class OrganizationService(RpcService):
         Fetches an organization by slug.
 
         If user_id is passed, it will enforce visibility rules. This method is differentiated from
-        get_organization_by_slug by not being cached and returning RpcOrganizationSummary instead of
-        org contexts
+        get_organization_by_slug by returning RpcOrganizationSummary without teams/projects
+        instead of org contexts
 
         :param slug: The slug to search by
         :param user_id: The user to check membership with
@@ -135,8 +200,7 @@ class OrganizationService(RpcService):
         Fetch an organization by id.
 
         If user_id is passed, it will enforce visibility rules. This method is differentiated from
-        get_organization_by_id by not being cached and returning RpcOrganizationSummary instead of
-        org contexts
+        get_organization_by_id by returning RpcOrganizationSummary instead of org contexts.
 
         :param id: The id to search by
         :param user_id: The user to check membership with

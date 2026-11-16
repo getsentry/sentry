@@ -13,12 +13,9 @@ import {
   useUpdateQueryAtIndex,
   type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {
-  Section,
-  SectionHeader,
-  SectionLabel,
-} from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {Section, SectionHeader, SectionLabel} from './styles';
 
 type Props = {
   index: number;

@@ -36,7 +36,7 @@ def send_incident_occurrence(
     consumer: ProcessingStrategy[KafkaPayload],
     ts: datetime,
     incident_occurrence: IncidentOccurrence,
-):
+) -> None:
     value = BrokerValue(
         KafkaPayload(b"fake-key", MONITORS_INCIDENT_OCCURRENCES.encode(incident_occurrence), []),
         partition,
@@ -145,9 +145,9 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
     @override_options({"crons.system_incidents.use_decisions": True})
     def test_delayed_decision_dispatch(
         self,
-        mock_memoized_tick_decision,
-        mock_send_incident_occurrence,
-    ):
+        mock_memoized_tick_decision: mock.MagicMock,
+        mock_send_incident_occurrence: mock.MagicMock,
+    ) -> None:
         """
         Tests that the consumer does NOT send an incident occurrence when the
         clock tick decision is marked as ABNORMAL or RECOVERING. In these cases
@@ -183,9 +183,9 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
     @override_options({"crons.system_incidents.use_decisions": True})
     def test_incident_decision_dispatch(
         self,
-        mock_memoized_tick_decision,
-        mock_send_incident_occurrence,
-    ):
+        mock_memoized_tick_decision: mock.MagicMock,
+        mock_send_incident_occurrence: mock.MagicMock,
+    ) -> None:
         """
         Tests that the cosnumer does NOT send an incident occurrence when the
         clock decision is INCIDENT, in which case we should update the failed

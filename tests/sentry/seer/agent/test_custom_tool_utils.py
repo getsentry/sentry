@@ -2,6 +2,8 @@
 Tests for custom tool utilities.
 """
 
+from typing import Any
+
 import pytest
 from pydantic import BaseModel, Field
 
@@ -53,7 +55,7 @@ class SampleCustomTool(AgentTool[CustomToolParams]):
         return "A test tool"
 
     @classmethod
-    def execute(cls, organization, params: CustomToolParams) -> str:
+    def execute(cls, organization: Any, params: CustomToolParams) -> str:
         return params.message * params.count
 
 
@@ -65,7 +67,7 @@ class SampleToolWithDefault(AgentTool[ToolWithDefaultParams]):
         return "Test tool with default parameter"
 
     @classmethod
-    def execute(cls, organization, params: ToolWithDefaultParams) -> str:
+    def execute(cls, organization: Any, params: ToolWithDefaultParams) -> str:
         return params.value + params.suffix
 
 
@@ -77,7 +79,7 @@ class BadTool(AgentTool[EmptyParams]):
         return "Tool that returns wrong type"
 
     @classmethod
-    def execute(cls, organization, params: EmptyParams) -> str:
+    def execute(cls, organization: Any, params: EmptyParams) -> str:
         return 123  # type: ignore[return-value]  # Returns wrong type to test runtime validation
 
 
@@ -89,7 +91,7 @@ class GetUserInfoTool(AgentTool[GetUserInfoParams]):
         return "Fetches user information"
 
     @classmethod
-    def execute(cls, organization, params: GetUserInfoParams) -> str:
+    def execute(cls, organization: Any, params: GetUserInfoParams) -> str:
         return f"User {params.user_id}"
 
 
@@ -101,7 +103,7 @@ class SearchLogsTool(AgentTool[SearchLogsParams]):
         return "Search application logs"
 
     @classmethod
-    def execute(cls, organization, params: SearchLogsParams) -> str:
+    def execute(cls, organization: Any, params: SearchLogsParams) -> str:
         return f"Found logs for: {params.query}"
 
 
@@ -113,7 +115,7 @@ class ProcessItemsTool(AgentTool[ProcessItemsParams]):
         return "Process a list of items"
 
     @classmethod
-    def execute(cls, organization, params: ProcessItemsParams) -> str:
+    def execute(cls, organization: Any, params: ProcessItemsParams) -> str:
         return "Processed"
 
 
@@ -136,7 +138,7 @@ class CustomToolUtilsTest(TestCase):
                     return "Nested tool"
 
                 @classmethod
-                def execute(cls, organization, params: EmptyParams) -> str:
+                def execute(cls, organization: Any, params: EmptyParams) -> str:
                     return "test"
 
         with pytest.raises(ValueError) as cm:
@@ -246,7 +248,7 @@ class CustomToolUtilsTest(TestCase):
                     return "Tool without params_model"
 
                 @classmethod
-                def execute(cls, organization, params: BaseModel) -> str:
+                def execute(cls, organization: Any, params: BaseModel) -> str:
                     return "test"
 
         assert "must define a params_model" in str(cm.value)

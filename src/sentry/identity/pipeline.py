@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Sequence
 from functools import cached_property
+from typing import cast
 
 from django.contrib import messages
 from django.db import router, transaction
@@ -80,7 +81,7 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
                 linked_identity = Identity.objects.link_identity(
                     user=self.request.user,
                     idp=self.provider_model,
-                    external_id=identity["id"],
+                    external_id=cast(str, identity["id"]),
                     should_reattach=False,
                     defaults={
                         "scopes": identity.get("scopes", []),
@@ -101,7 +102,9 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
             # Let providers react to a freshly linked identity (e.g. backfilling
             # derived mappings). Best-effort: never let it break the link flow.
             try:
-                self.provider.post_link_identity(identity, self.request.user.id)
+                self.provider.post_link_identity(
+                    cast(dict[str, object], identity), self.request.user.id
+                )
             except Exception:
                 logger.exception(
                     "identity.post_link_identity.failed",

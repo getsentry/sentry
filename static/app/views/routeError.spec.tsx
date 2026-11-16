@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {RouteError} from 'sentry/views/routeError';
+
+import {RouteError} from './routeError';
 
 jest.mock('sentry/utils/getRouteStringFromRoutes');
 jest.mocked(getRouteStringFromRoutes).mockReturnValue('/organizations/:orgId/api-keys/');

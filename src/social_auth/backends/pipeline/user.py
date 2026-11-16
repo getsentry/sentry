@@ -1,15 +1,26 @@
+from collections.abc import Callable, Mapping
+from typing import Any, cast
 from uuid import uuid4
 
+from sentry.users.models.user import User
+from social_auth.backends import SocialAuthBackend
 from social_auth.django_compat import get_all_field_names
 from social_auth.models import UserSocialAuth
 from social_auth.utils import module_member, setting
 
-slugify = module_member(setting("SOCIAL_AUTH_SLUGIFY_FUNCTION", "django.utils.text.slugify"))
+slugify = cast(
+    "Callable[[str], str]",
+    module_member(setting("SOCIAL_AUTH_SLUGIFY_FUNCTION", "django.utils.text.slugify")),
+)
 
 
 def get_username(
-    details, user=None, user_exists=UserSocialAuth.simple_user_exists, *args, **kwargs
-):
+    details: Mapping[str, Any],
+    user: User | None = None,
+    user_exists: Callable[..., bool] = UserSocialAuth.simple_user_exists,
+    *args: object,
+    **kwargs: object,
+) -> dict[str, object]:
     """Return an username for new user. Return current user username
     if user was given.
     """
@@ -45,7 +56,16 @@ def get_username(
     return {"username": final_username}
 
 
-def create_user(backend, details, response, uid, username, user=None, *args, **kwargs):
+def create_user(
+    backend: SocialAuthBackend,
+    details: Mapping[str, Any],
+    response: Mapping[str, Any],
+    uid: str,
+    username: str | None,
+    user: User | None = None,
+    *args: object,
+    **kwargs: object,
+) -> dict[str, object] | None:
     """Create user. Depends on get_username pipeline."""
     if user:
         return {"user": user}
@@ -54,7 +74,7 @@ def create_user(backend, details, response, uid, username, user=None, *args, **k
 
     # Avoid hitting field max length
     email = details.get("email")
-    original_email = None
+    original_email: str | None = None
     if email and UserSocialAuth.email_max_length() < len(email):
         original_email = email
         email = ""
@@ -66,7 +86,7 @@ def create_user(backend, details, response, uid, username, user=None, *args, **k
     }
 
 
-def _ignore_field(name, is_new=False):
+def _ignore_field(name: str, is_new: bool = False) -> bool:
     if name in ("username", "id", "pk"):
         return True
 
@@ -75,16 +95,23 @@ def _ignore_field(name, is_new=False):
     return False
 
 
-def django_orm_maxlength_truncate(backend, details, user=None, is_new=False, *args, **kwargs):
+def django_orm_maxlength_truncate(
+    backend: SocialAuthBackend,
+    details: Mapping[str, Any],
+    user: User | None = None,
+    is_new: bool = False,
+    *args: object,
+    **kwargs: object,
+) -> dict[str, dict[str, Any]] | None:
     """Truncate any value in details that corresponds with a field in the user
     model. Add this entry to the pipeline before update_user_details"""
     if user is None:
-        return
-    out = {}
+        return None
+    out: dict[str, Any] = {}
     names = get_all_field_names(user)
     for name, value in details.items():
         if name in names and not _ignore_field(name, is_new):
-            max_length = user._meta.get_field(name).max_length
+            max_length = getattr(user._meta.get_field(name), "max_length", None)
             try:
                 if max_length and len(value) > max_length:
                     value = value[:max_length]
@@ -94,7 +121,15 @@ def django_orm_maxlength_truncate(backend, details, user=None, is_new=False, *ar
     return {"details": out}
 
 
-def update_user_details(backend, details, response, user=None, is_new=False, *args, **kwargs):
+def update_user_details(
+    backend: SocialAuthBackend,
+    details: Mapping[str, Any],
+    response: Mapping[str, Any],
+    user: User | None = None,
+    is_new: bool = False,
+    *args: object,
+    **kwargs: object,
+) -> None:
     """Update user details using data from provider."""
     if user is None:
         return

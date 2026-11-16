@@ -1,3 +1,5 @@
+import {useStore} from 'zustand';
+
 import {Badge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -5,12 +7,12 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {useMailboxCounts} from 'sentry/components/feedback/list/useMailboxCounts';
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useMailboxCounts} from './useMailboxCounts';
 
 interface Props {
   onChange: (next: Mailbox) => void;
@@ -20,7 +22,7 @@ interface Props {
 export function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
 
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasSpamFeature = organization.features.includes('user-feedback-spam-ingest');
@@ -50,14 +52,14 @@ export function MailboxPicker({onChange, value}: Props) {
   };
 
   const MAILBOXES = [
-    {key: 'unresolved', label: t('Inbox')},
-    {key: 'resolved', label: t('Resolved')},
+    {key: 'unresolved', label: t('Inbox'), tooltip: undefined},
+    {key: 'resolved', label: t('Resolved'), tooltip: undefined},
     {
       key: 'ignored',
       label: t('Spam'),
       tooltip: getSpamTooltip(),
     },
-  ];
+  ] as const;
 
   const filteredMailboxes = MAILBOXES;
 
@@ -70,7 +72,6 @@ export function MailboxPicker({onChange, value}: Props) {
         onChange={onChange}
       >
         {filteredMailboxes.map(mailbox => {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const count = data?.[mailbox.key];
           const display = count && count >= 100 ? '99+' : count;
           const title =

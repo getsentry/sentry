@@ -8,12 +8,13 @@ resources:
   figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1198-17420
 ---
 
-import {ProjectsBadge} from '@sentry/scraps/badge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {IconCopyId} from '@sentry/icons/copyId';
+import {IconDownload} from '@sentry/icons/download';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconGlobe} from '@sentry/icons/globe';
 import * as Storybook from 'sentry/stories';
@@ -144,6 +145,59 @@ const query = {
 > Leaving the bare pathname is a valid choice, not an oversight — a settings or
 > configuration destination has no use for a stale `statsPeriod`. Decide per
 > crumb based on whether the destination is filtered.
+
+### Drawers and panels
+
+A trail inside a drawer or panel describes a location within the page, not the
+page itself. The page already has its `<h1>` in the TopBar, so use
+`BreadcrumbList.Current` for the current location instead of
+`BreadcrumbList.Title`. It renders the same bold, truncating label with
+`aria-current="location"`, but no heading. Name the drawer with its own heading
+if it needs one.
+
+`BreadcrumbList` renders no landmark. Outside the TopBar, wrap the list and the
+current item in a `<nav>` with an `aria-label`, and put the query container on
+the row around it so the overflow breakpoint is measured across the whole row.
+
+Only include parents the user can navigate to. Context that has no destination,
+such as the event a drawer belongs to, goes in `labelTooltip` rather than in a
+text-only crumb.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'All Tags', to: '/organizations/org-slug/issues/'}]}
+    title={
+      <BreadcrumbList.Current
+        item={{
+          label: 'browser.name',
+          labelTooltip: 'Event ID: 1a2b3c4d',
+          trailingActions: {
+            type: 'menu',
+            triggerIcon: <IconDownload />,
+            triggerLabel: 'Export options',
+            items: [{key: 'export-page', label: 'Export Page to CSV'}],
+          },
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<Flex containerType="inline-size" align="center" flex="1" minWidth="0">
+  <Flex as="nav" aria-label={t('Breadcrumbs')} align="center" gap="sm" minWidth="0">
+    <BreadcrumbList items={[{type: 'link', label: t('All Tags'), to: allTagsUrl}]} />
+    <BreadcrumbList.Current item={currentItem} />
+  </Flex>
+</Flex>
+```
+
+`BreadcrumbList.Current` accepts `label`, `labelTooltip`, `leadingGraphic`, and
+`trailingActions`. It has no pagination.
+
+Use trailing actions for things you do with the current item itself, such as
+exporting it or opening its full view. They render right after the label.
+Controls that change what the drawer shows, like search, filters, or sorting,
+belong in the drawer.
 
 ## Item types
 
@@ -292,12 +346,12 @@ input replaces the heading.
 
 Beyond `label`, the optional props are not shared evenly across the item types.
 
-| Prop              | `'link'` | `'page-title'` | `'editable-title'` |
-| ----------------- | :------: | :------------: | :----------------: |
-| `leadingGraphic`  |    ✓     |       ✓        |         ✓          |
-| `labelTooltip`    |          |       ✓        |                    |
-| `pagination`      |          |       ✓        |                    |
-| `trailingActions` |          |       ✓        |                    |
+| Prop              | `'link'` | `'page-title'` | `'editable-title'` | `Current` |
+| ----------------- | :------: | :------------: | :----------------: | :-------: |
+| `leadingGraphic`  |    ✓     |       ✓        |         ✓          |     ✓     |
+| `labelTooltip`    |          |       ✓        |                    |     ✓     |
+| `pagination`      |          |       ✓        |                    |           |
+| `trailingActions` |          |       ✓        |                    |     ✓     |
 
 Use `labelTooltip` for a tooltip on the title text. It accepts React content,
 including descriptions and documentation links.
@@ -311,7 +365,8 @@ is the message used when an empty title cannot be saved.
 
 ### Leading graphics
 
-**Available on** `'link'`, `'page-title'`, and `'editable-title'`.
+**Available on** `'link'`, `'page-title'`, `'editable-title'`, and
+`BreadcrumbList.Current`.
 An optional `React.ReactNode` — a `ProjectsBadge`, an avatar, or a Sentry icon.
 It is rendered as decorative content in a fixed 16×16 slot, so the label carries
 the meaning.
@@ -359,7 +414,7 @@ the meaning.
 
 ### Label tooltip
 
-**Available on** `'page-title'` only.
+**Available on** `'page-title'` and `BreadcrumbList.Current`.
 
 `labelTooltip` explains a label that cannot explain itself — an opaque
 identifier, or a value the label shows in shortened form. It is always on, not
@@ -523,7 +578,7 @@ a chevron below and move onto the tooltip to reach the link.
 
 ### Trailing actions
 
-**Available on** `'page-title'` only.
+**Available on** `'page-title'` and `BreadcrumbList.Current`.
 The `page-title` item accepts a `trailingActions` slot rendered after the label,
 for example a copy action or page-level menu. The slot is bounded to
 typed `copy`, `menu`, `button`, or `badge` objects. Falsy entries are dropped so
@@ -534,6 +589,10 @@ Reach for a standalone `copy` action only when it is the page's single trailing
 action. As soon as the title also needs a menu, put the copy entry inside it
 rather than beside it — one affordance next to the title reads more clearly than
 a row of icons competing for the same space.
+
+Action triggers are always zero-sized and transparent. A `menu` action renders
+`md` menu items by default; pass `menuSize` to match a denser surface such as a
+drawer.
 
 <Storybook.Demo>
   <BreadcrumbListDemo

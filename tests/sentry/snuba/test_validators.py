@@ -76,6 +76,25 @@ class SnubaQueryValidatorTest(TestCase):
             ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
         ]
 
+    def test_time_window_out_of_bounds(self) -> None:
+        for time_window in (0, 59, 86401, 604800):
+            self.valid_data["timeWindow"] = time_window
+            validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+            assert not validator.is_valid(), time_window
+            assert validator.errors.get("nonFieldErrors") == [
+                ErrorDetail(
+                    string="Invalid Time Window: must be between 1 minute and 24 hours",
+                    code="invalid",
+                )
+            ]
+
+    def test_time_window_at_bounds(self) -> None:
+        for time_window in (60, 86400):
+            self.valid_data["timeWindow"] = time_window
+            validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+            assert validator.is_valid(), validator.errors
+            assert validator.validated_data["time_window"] == time_window
+
     def test_unsupported_dataset_with_query_type_returns_validation_error(self) -> None:
         """Spans dataset is a valid Dataset enum but is not alert-supported.
 
@@ -184,6 +203,122 @@ class SnubaQueryValidatorTest(TestCase):
         validator = SnubaQueryValidator(data=data, context=self.context)
         assert validator.is_valid(), validator.errors
         assert validator.validated_data["aggregate"] == "user_misery(span.duration,300)"
+
+    def test_eap_unparseable_equation_aggregate(self) -> None:
+        data = {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "",
+            "aggregate": "equation|sum(tags[foo,number]) / sum(tags[bar,number])",
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert "aggregate" in validator.errors
+
+    def _spans_equation_data(self, aggregate: str) -> dict[str, object]:
+        return {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "span.op:gen_ai.chat",
+            "aggregate": aggregate,
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_eap_spans_equation_aggregate(self) -> None:
+        for aggregate in [
+            "equation|sum(gen_ai.usage.cache_read.input_tokens) / sum(gen_ai.usage.input_tokens)",
+            "equation|opportunity_score(measurements.score.lcp) * 100",
+        ]:
+            with self.subTest(aggregate=aggregate):
+                validator = SnubaQueryValidator(
+                    data=self._spans_equation_data(aggregate), context=self.context
+                )
+                assert validator.is_valid(), validator.errors
+                assert validator.validated_data["aggregate"] == aggregate
+
+    def test_eap_spans_equation_aggregate_without_feature(self) -> None:
+        validator = SnubaQueryValidator(
+            data=self._spans_equation_data("equation|count() / count(span.duration)"),
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        assert validator.errors["aggregate"] == [
+            ErrorDetail(
+                string="Invalid Metric: Span monitors do not support equations.", code="invalid"
+            )
+        ]
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_eap_spans_equation_invalid(self) -> None:
+        for aggregate, error in [
+            ("equation|count_sample() / count()", "count_sample() is not supported in monitors."),
+            (
+                "equation|span.duration / 1000",
+                "An equation must combine aggregate functions, such as sum(a) / sum(b).",
+            ),
+            (
+                "equation|sum(span.duration) / span.self_time",
+                "Cannot mix functions and fields in arithmetic",
+            ),
+            (
+                "equation|sum(span.duration) /",
+                "Unable to parse your equation, make sure it is well formed arithmetic",
+            ),
+            ("equation|sum(span.op) / count()", "span.op is invalid for parameter 1 in sum"),
+            ("equation|apdex(span.duration,foo) * 2", "could not convert string to float: 'foo'"),
+        ]:
+            with self.subTest(aggregate=aggregate):
+                validator = SnubaQueryValidator(
+                    data=self._spans_equation_data(aggregate), context=self.context
+                )
+                assert not validator.is_valid()
+                assert str(validator.errors["aggregate"][0]).startswith(f"Invalid Metric: {error}")
+
+    @with_feature(["organizations:ourlogs-enabled", "organizations:spans-monitor-equations"])
+    def test_eap_logs_equation_aggregate(self) -> None:
+        validator = SnubaQueryValidator(
+            data={
+                **self._spans_equation_data("equation|count() / count(message)"),
+                "query": "",
+                "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_LOG.name.lower()],
+            },
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        assert validator.errors["aggregate"] == [
+            ErrorDetail(
+                string="Invalid Metric: equation|count() / count(message) is not a valid function",
+                code="invalid",
+            )
+        ]
+
+    def test_eap_performance_score_aggregate(self) -> None:
+        data = {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "",
+            "aggregate": "performance_score(measurements.score.lcp)",
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+
+    def test_eap_opportunity_score_aggregate(self) -> None:
+        data = {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "",
+            "aggregate": "opportunity_score(measurements.score.lcp)",
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
 
     @with_feature(
         {

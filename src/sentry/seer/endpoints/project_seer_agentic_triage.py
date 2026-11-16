@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.auth.principal import acting_user_id
 from sentry.models.project import Project
 from sentry.tasks.seer.agentic_triage.cron import (
     SeerAgenticTriageRunOptionsPartial,
@@ -33,7 +34,7 @@ class ProjectSeerAgenticTriageEndpoint(ProjectEndpoint):
             raise NotFound
 
         dry_run = bool(request.data.get("dryRun", False))
-        triggering_user_id = request.user.id if request.user.is_authenticated else None
+        triggering_user_id = acting_user_id(request.user)
 
         logger.info(
             "night_shift.manual_trigger.dispatched",

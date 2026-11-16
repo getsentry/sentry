@@ -14,7 +14,7 @@ class GlobInput(NamedTuple):
     def make(cls, value: str | None, pat: str, **kwargs: bool) -> Self:
         return cls(value=value, pat=pat, kwargs=kwargs)
 
-    def __call__(self):
+    def __call__(self) -> bool:
         return glob_match(self.value, self.pat, **self.kwargs)
 
 

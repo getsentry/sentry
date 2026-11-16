@@ -353,6 +353,59 @@ describe('TraceTree', () => {
       ]);
     });
 
+    it('reveals a deeply nested span after explicitly collapsing an ancestor', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'parent',
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'intermediate',
+                children: [
+                  makeEAPSpan({
+                    event_id: 'nested',
+                    is_transaction: true,
+                    children: [makeEAPSpan({event_id: 'target'})],
+                  }),
+                ],
+              }),
+            ],
+          }),
+          makeEAPSpan({event_id: 'sibling', is_transaction: true}),
+        ]),
+        traceOptions
+      ).build();
+      const parent = tree.root.findChild(node => node.id === 'parent');
+      const target = tree.root.findChild(node => node.id === 'target');
+      assertEAPSpanNode(parent);
+      assertEAPSpanNode(target);
+      parent.expand(true, tree);
+      parent.expand(false, tree);
+      expect(tree.list.map(node => node.id)).toEqual(['root', 'parent', 'sibling']);
+
+      const index = TraceTree.EnforceVisibility(tree, target);
+
+      expect(tree.list.map(node => node.id)).toEqual([
+        'root',
+        'parent',
+        'intermediate',
+        'nested',
+        'target',
+        'sibling',
+      ]);
+      expect(tree.list[index]).toBe(target);
+      expect(TraceTree.VisibleParent(target)?.id).toBe('nested');
+      expect(tree.build().list.map(node => node.id)).toEqual([
+        'root',
+        'parent',
+        'intermediate',
+        'nested',
+        'target',
+        'sibling',
+      ]);
+    });
+
     it('collects measurements', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace([

@@ -1,28 +1,38 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from collections.abc import Mapping
+from typing import NamedTuple, TypedDict
 
-from rest_framework.exceptions import APIException, Throttled
+from rest_framework.exceptions import APIException, ParseError, PermissionDenied, Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 from scm import actions as scm_actions
 from scm.errors import ProviderNotFound, RateLimitExceeded, ResourceNotFound, SCMError
 from scm.helpers import iter_all_pages
-from scm.types import GetPullRequestFilesProtocol, PullRequestFile
+from scm.types import (
+    FileStatus,
+    GetPullRequestFilesProtocol,
+    GetPullRequestProtocol,
+    PaginatedActionResult,
+    PaginationParams,
+    PullRequestFile,
+)
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import (
-    OrganizationEndpoint,
-    OrganizationIntegrationsLoosePermission,
-)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
+from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
+from sentry.utils import metrics
+from sentry.utils.auth import is_user_from_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +51,143 @@ class PullRequestFilesResponse(TypedDict):
     files: list[PullRequestFileResponse]
 
 
+class RepositoryPullRequestFileResponse(PullRequestFileResponse):
+    status: FileStatus
+    previousPath: str | None
+
+
+class RepositoryPullRequestFilesResponse(TypedDict):
+    files: list[RepositoryPullRequestFileResponse]
+    # The PR's head commit while these files were read, or None if the provider doesn't say or
+    # a push landed mid-read. The provider can lag behind a push, so a caller that pushed
+    # compares this to its own commit to tell whether the files include that push, and
+    # refetches until it does.
+    headSha: str | None
+
+
+class _PullRequestFiles(NamedTuple):
+    files: list[PullRequestFile]
+    head_sha: str | None
+
+
+def _require_user_session(request: Request) -> None:
+    # Seer calls Sentry as a user by sending X-Viewer-Context. The auth middleware signs
+    # that user in before SessionNoAuthTokenAuthentication runs, so the call looks like a
+    # browser session. Refuse it here so Seer agents can't read source diffs, even if
+    # Seer's generated SDK starts including these endpoints.
+    if is_user_from_viewer_context(request):
+        raise PermissionDenied("Pull request files can only be read from a user session.")
+
+
 def _serialize_file(raw_file: PullRequestFile) -> PullRequestFileResponse:
     return {"path": raw_file["filename"], "patch": raw_file["patch"]}
+
+
+def _read_files(
+    scm: GetPullRequestFilesProtocol, pull_request_key: str
+) -> tuple[list[PullRequestFile], int]:
+    """The files, and how many provider calls reading them took."""
+    files: list[PullRequestFile] = []
+    calls = 0
+
+    def read_page(pagination: PaginationParams) -> PaginatedActionResult[list[PullRequestFile]]:
+        nonlocal calls
+        calls += 1
+        return scm_actions.get_pull_request_files(scm, pull_request_key, pagination=pagination)
+
+    for page in iter_all_pages(read_page):
+        files.extend(page["data"])
+    return files, calls
+
+
+def _record_head_sha_read(provider: str, outcome: str, provider_calls: int) -> None:
+    metrics.distribution(
+        "organization_pull_request_files.head_sha.provider_calls",
+        provider_calls,
+        tags={"provider": provider, "outcome": outcome},
+    )
+
+
+def _read_files_at_one_head(
+    scm: GetPullRequestFilesProtocol,
+    pull_request_key: str,
+    provider: str,
+    log_extra: Mapping[str, object],
+) -> _PullRequestFiles:
+    """
+    The files, with the PR's head commit read before and after them. If a push moves the head
+    while the pages are read, the pages may mix commits, so report no head commit and let the
+    caller refetch.
+    """
+    if not isinstance(scm, GetPullRequestProtocol):
+        files, provider_calls = _read_files(scm, pull_request_key)
+        _record_head_sha_read(provider, "no_pull_request_support", provider_calls)
+        return _PullRequestFiles(files, None)
+
+    head_sha = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
+    files, page_calls = _read_files(scm, pull_request_key)
+    head_sha_after = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
+    provider_calls = page_calls + 2
+    if head_sha_after == head_sha:
+        _record_head_sha_read(provider, "matched", provider_calls)
+        return _PullRequestFiles(files, head_sha)
+
+    logger.info(
+        "organization_pull_request_files.head_sha.moved",
+        extra={
+            **log_extra,
+            "provider": provider,
+            "head_sha_before": head_sha,
+            "head_sha_after": head_sha_after,
+        },
+    )
+    _record_head_sha_read(provider, "moved", provider_calls)
+    return _PullRequestFiles(files, None)
+
+
+def _fetch_files(
+    organization_id: int,
+    repository_id: int,
+    pull_request_key: str,
+    *,
+    head_sha_provider: str | None = None,
+) -> _PullRequestFiles:
+    """
+    Every file the pull request changes, as its provider reports them. With
+    `head_sha_provider` (the repository's provider, used to tag metrics), also the head commit
+    they were read at, which costs two extra provider calls.
+    """
+    try:
+        scm = make_scm(organization_id, repository_id, referrer="pull-request-files")
+    except ProviderNotFound:
+        # No integration installed, or a provider without SCM support (e.g. Bitbucket).
+        return _PullRequestFiles([], None)
+    except SCMError:
+        raise ResourceDoesNotExist
+
+    if not isinstance(scm, GetPullRequestFilesProtocol):
+        return _PullRequestFiles([], None)
+
+    log_extra = {
+        "organization_id": organization_id,
+        "repository_id": repository_id,
+        "pull_request_key": pull_request_key,
+    }
+    try:
+        if head_sha_provider is not None:
+            return _read_files_at_one_head(scm, pull_request_key, head_sha_provider, log_extra)
+        files, _ = _read_files(scm, pull_request_key)
+        return _PullRequestFiles(files, None)
+    except ResourceNotFound:
+        # The PR is gone on the provider.
+        raise ResourceDoesNotExist
+    except RateLimitExceeded:
+        raise Throttled
+    except SCMError:
+        logger.warning(
+            "organization_pull_request_files.fetch_failed", exc_info=True, extra=log_extra
+        )
+        raise PullRequestFilesUnavailable
 
 
 @cell_silo_endpoint
@@ -51,11 +196,14 @@ class OrganizationPullRequestFilesEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (OrganizationIntegrationsLoosePermission,)
+    # Browser sessions only: no API token of any kind may read source diffs.
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
+    permission_classes = (OrganizationPermission,)
 
     def get(
         self, request: Request, organization: Organization, pull_request_id: str
     ) -> Response[PullRequestFilesResponse]:
+        _require_user_session(request)
         try:
             pull_request = PullRequest.objects.get(
                 id=to_valid_int_id("pull_request_id", pull_request_id, raise_404=True),
@@ -64,41 +212,69 @@ class OrganizationPullRequestFilesEndpoint(OrganizationEndpoint):
         except PullRequest.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            scm = make_scm(
-                organization.id, pull_request.repository_id, referrer="pull-request-files"
+        fetched = _fetch_files(organization.id, pull_request.repository_id, pull_request.key)
+        return Response({"files": [_serialize_file(f) for f in fetched.files]})
+
+
+@cell_silo_endpoint
+class OrganizationRepositoryPullRequestFilesEndpoint(OrganizationEndpoint):
+    """
+    A pull request's files, found by its repository's name and its number.
+
+    For callers that know the pull request only from the provider, like Seer runs that open
+    and push to pull requests, which we may have no record of.
+    """
+
+    owner = ApiOwner.CODING_WORKFLOWS
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    # Browser sessions only: no API token of any kind may read source diffs.
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
+    permission_classes = (OrganizationPermission,)
+
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[RepositoryPullRequestFilesResponse]:
+        _require_user_session(request)
+        repo_name = request.GET.get("repo")
+        number = request.GET.get("number", "")
+        if not repo_name or not number.isdigit():
+            raise ParseError(
+                "Pass the repository's name as `repo` and the PR's number as `number`."
             )
-        except ProviderNotFound:
-            # No integration installed, or a provider without SCM support (e.g. Bitbucket).
-            return Response({"files": []})
-        except SCMError:
+
+        # Names aren't unique (e.g. the same repo on GitHub and GitHub Enterprise, or rows
+        # left by a reinstall), so refuse to guess, like `Repository.objects.resolve_active`,
+        # rather than show another repo's PR with the same number.
+        matches = list(
+            Repository.objects.filter(
+                organization_id=organization.id,
+                name=repo_name,
+                status=ObjectStatus.ACTIVE,
+                integration_id__isnull=False,
+            ).order_by("id")[:2]
+        )
+        if len(matches) != 1:
             raise ResourceDoesNotExist
+        repository = matches[0]
 
-        if not isinstance(scm, GetPullRequestFilesProtocol):
-            return Response({"files": []})
-
-        try:
-            files: list[PullRequestFile] = []
-            for page in iter_all_pages(
-                lambda pagination: scm_actions.get_pull_request_files(
-                    scm, pull_request.key, pagination=pagination
-                )
-            ):
-                files.extend(page["data"])
-        except ResourceNotFound:
-            # The PR exists in our records but is gone on the provider.
-            raise ResourceDoesNotExist
-        except RateLimitExceeded:
-            raise Throttled
-        except SCMError:
-            logger.warning(
-                "organization_pull_request_files.fetch_failed",
-                exc_info=True,
-                extra={
-                    "organization_id": organization.id,
-                    "pull_request_id": pull_request.id,
-                },
-            )
-            raise PullRequestFilesUnavailable
-
-        return Response({"files": [_serialize_file(f) for f in files]})
+        fetched = _fetch_files(
+            organization.id,
+            repository.id,
+            number,
+            head_sha_provider=repository.provider or "unknown",
+        )
+        return Response(
+            {
+                "files": [
+                    {
+                        **_serialize_file(f),
+                        "status": f["status"],
+                        "previousPath": f["previous_filename"],
+                    }
+                    for f in fetched.files
+                ],
+                "headSha": fetched.head_sha,
+            }
+        )

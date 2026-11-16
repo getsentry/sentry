@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Storybook from 'sentry/stories';
-import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
+
+import {AutoSizedText} from './autoSizedText';
 
 export default Storybook.story('AutoSizedText', story => {
   story('Getting Started', () => {

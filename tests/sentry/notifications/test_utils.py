@@ -1,4 +1,5 @@
 import types
+from typing import Any
 from unittest import TestCase
 
 from sentry.issue_detection.performance_problem import PerformanceProblem
@@ -15,7 +16,7 @@ from sentry.notifications.utils import (
 )
 
 
-def mock_event(*, transaction, data=None):
+def mock_event(*, transaction: str, data: dict[str, Any] | None = None) -> Any:
     return types.SimpleNamespace(data=data or {}, transaction=transaction)
 
 
@@ -183,27 +184,27 @@ class PerformanceProblemContextTestCase(TestCase):
 
 
 class GetReplayIdTestCase(TestCase):
-    def test_returns_replay_id(self):
+    def test_returns_replay_id(self) -> None:
         event = mock_event(
             transaction="tx",
             data={"contexts": {"replay": {"replay_id": "abc123"}}},
         )
         assert get_replay_id(event) == "abc123"
 
-    def test_returns_none_when_replay_context_is_none(self):
+    def test_returns_none_when_replay_context_is_none(self) -> None:
         event = mock_event(
             transaction="tx",
             data={"contexts": {"replay": None}},
         )
         assert get_replay_id(event) is None
 
-    def test_returns_none_when_contexts_is_none(self):
+    def test_returns_none_when_contexts_is_none(self) -> None:
         event = mock_event(
             transaction="tx",
             data={"contexts": None},
         )
         assert get_replay_id(event) is None
 
-    def test_returns_none_when_no_contexts(self):
+    def test_returns_none_when_no_contexts(self) -> None:
         event = mock_event(transaction="tx", data={})
         assert get_replay_id(event) is None

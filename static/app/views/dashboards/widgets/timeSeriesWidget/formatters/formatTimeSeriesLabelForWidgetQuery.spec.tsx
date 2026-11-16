@@ -53,6 +53,46 @@ describe('formatTimeSeriesLabelForWidgetQuery', () => {
     ).toBe('DB spans : count(spans)');
   });
 
+  it('uses only the query name when requested', () => {
+    const widgetQuery = WidgetQueryFixture({
+      name: 'http',
+      aggregates: ['count(span.duration)'],
+      columns: [],
+      seriesLabel: 'query',
+    });
+    const widget = WidgetFixture({queries: [widgetQuery]});
+
+    expect(
+      formatTimeSeriesLabelForWidgetQuery(
+        makeTimeSeries('count(span.duration)'),
+        widget,
+        widgetQuery
+      )
+    ).toBe('http');
+  });
+
+  it('uses only the group value when requested', () => {
+    const widgetQuery = WidgetQueryFixture({
+      name: 'Custom transports',
+      aggregates: ['count(span.duration)'],
+      columns: ['mcp.transport'],
+      seriesLabel: 'group',
+    });
+    const widget = WidgetFixture({
+      queries: [widgetQuery, WidgetQueryFixture()],
+    });
+
+    expect(
+      formatTimeSeriesLabelForWidgetQuery(
+        makeTimeSeries('count(span.duration)', [
+          {key: 'mcp.transport', value: 'MyCustomTransport'},
+        ]),
+        widget,
+        widgetQuery
+      )
+    ).toBe('MyCustomTransport');
+  });
+
   it('falls back to the conditions when a multi-query widget has no alias', () => {
     const dbQuery = WidgetQueryFixture({
       name: '',

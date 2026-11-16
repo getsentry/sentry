@@ -15,11 +15,12 @@ import type {
   DataConditionGroup,
   Subfilter,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
-import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
-import {CONNECTED_MONITORS_ERROR_ID} from 'sentry/views/automations/components/editConnectedMonitors';
 import type {AlertPreviewRequest} from 'sentry/views/automations/utils/alertPreviewQueryOptions';
+
+import {actionNodesMap} from './actionNodes';
+import type {AutomationBuilderState} from './automationBuilderContext';
+import {dataConditionNodesMap} from './dataConditionNodes';
+import {CONNECTED_MONITORS_ERROR_ID} from './editConnectedMonitors';
 
 export interface AutomationFormData {
   allProjects: boolean;

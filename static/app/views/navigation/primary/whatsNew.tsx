@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {IconBroadcast} from '@sentry/icons/broadcast';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Image} from '@sentry/scraps/image';
@@ -12,14 +12,11 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  PrimaryNavigation,
-  usePrimaryNavigationButtonOverlay,
-} from 'sentry/views/navigation/primary/components';
+
+import {PrimaryNavigation, usePrimaryNavigationButtonOverlay} from './components';
 
 const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
   announcement: t('Announcement'),
@@ -29,6 +26,13 @@ const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> =
   video: t('Video'),
   sdk_update: t('SDK Update'),
 };
+
+const broadcastsApiOptions = (orgSlug: string) =>
+  apiOptions.as<Broadcast[]>()('/organizations/$organizationIdOrSlug/broadcasts/', {
+    path: {organizationIdOrSlug: orgSlug},
+    query: {show: 'latest', limit: '3'},
+    staleTime: 1000 * 60 * 5,
+  });
 
 function BroadcastImage({src, alt}: {alt: string; src: string}) {
   const [loaded, setLoaded] = useState(false);
@@ -71,15 +75,14 @@ function WhatsNewBroadcastList({
       });
     },
     onSuccess: () => {
-      setApiQueryData<Broadcast[]>(
-        queryClient,
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/broadcasts/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-          {query: {show: 'latest', limit: '3'}},
-        ],
-        data => (Array.isArray(data) ? data.map(item => ({...item, hasSeen: true})) : [])
+      queryClient.setQueryData(
+        broadcastsApiOptions(organization.slug).queryKey,
+        previous => ({
+          json: Array.isArray(previous?.json)
+            ? previous.json.map(item => ({...item, hasSeen: true}))
+            : [],
+          headers: previous?.headers ?? {},
+        })
       );
     },
   });
@@ -193,20 +196,11 @@ function WhatsNewBroadcastList({
  */
 export function useWhatsNewBroadcasts() {
   const organization = useOrganization();
-  const {isPending, data: broadcasts} = useApiQuery<Broadcast[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/broadcasts/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {show: 'latest', limit: '3'}},
-    ],
-    {
-      staleTime: 1000 * 60 * 5,
-      // 10 minutes poll
-      refetchInterval: 1000 * 60 * 10,
-      refetchOnWindowFocus: true,
-    }
-  );
+  const {isPending, data: broadcasts} = useQuery({
+    ...broadcastsApiOptions(organization.slug),
+    refetchInterval: 1000 * 60 * 10,
+    refetchOnWindowFocus: true,
+  });
   const allBroadcasts = useMemo(
     () => (Array.isArray(broadcasts) ? broadcasts : []),
     [broadcasts]

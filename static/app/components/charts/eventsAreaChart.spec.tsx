@@ -4,8 +4,8 @@ import {mockZoomRange} from 'sentry-test/charts';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {BaseChart} from 'sentry/components/charts/baseChart';
-import {EventsChart} from 'sentry/components/charts/eventsChart';
+import {BaseChart} from './baseChart';
+import {EventsChart} from './eventsChart';
 
 jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn().mockImplementation(() => <div data-test-id="area-chart" />),

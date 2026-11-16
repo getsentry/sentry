@@ -1,19 +1,18 @@
 from collections.abc import Callable
-from typing import Optional, Union
 
 from sentry import options
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
+from sentry.utils.locking import LockNotOwned
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.services import build_instance_from_options_of_type, resolve_callable
 
-SelectorFncType = Callable[[str, Optional[Union[str, int]], LockBackend, LockBackend], LockBackend]
+SelectorFncType = Callable[[str, LockBackend, LockBackend], LockBackend]
 
 
 def _default_selector_func(
     key: str,
-    routing_key: str | int | None,
     backend_new: LockBackend,
     backend_old: LockBackend,
 ) -> LockBackend:
@@ -42,7 +41,6 @@ class RolloutRateSelector:
     def __call__(
         self,
         key: str,
-        routing_key: str | int | None,
         backend_new: LockBackend,
         backend_old: LockBackend,
     ) -> LockBackend:
@@ -149,10 +147,9 @@ class MigrationLockBackend(LockBackend):
             resolve_callable(selector_func_path) if selector_func_path else _default_selector_func
         )
 
-    def _get_backend(self, key: str, routing_key: str | int | None) -> LockBackend:
+    def _get_backend(self, key: str) -> LockBackend:
         return self.selector_func(
             key,
-            routing_key,
             self.backend_new,
             self.backend_old,
         )
@@ -162,49 +159,54 @@ class MigrationLockBackend(LockBackend):
             return self.selector_func.check_new()
         return True
 
-    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
-        backend = self._get_backend(key=key, routing_key=routing_key)
+    def acquire(self, key: str, duration: int, token: str | None = None) -> None:
+        backend = self._get_backend(key=key)
         other = self.backend_new if backend is self.backend_old else self.backend_old
 
-        backend.acquire(key=key, duration=duration, routing_key=routing_key)
+        backend.acquire(key=key, duration=duration, token=token)
         if backend is self.backend_old and not self._uses_new():
             return
         try:
-            held_elsewhere = other.locked(key=key, routing_key=routing_key)
+            held_elsewhere = other.locked(key=key)
         except Exception:
             metrics.incr("locks.migration.check_error")
             return
 
         if held_elsewhere:
             try:
-                backend.release(key=key, routing_key=routing_key)
+                backend.release(key=key, token=token)
             except Exception:
                 pass
             raise Exception(f"Could not set key: {key!r}")
 
-    def release(self, key: str, routing_key: str | None = None) -> None:
+    def release(self, key: str, token: str | None = None) -> None:
         # Release on the backend that the selector picks now
         # Release on the other backend only if that fails
         # (the selector can have picked a different backend at acquire time)
         if not self._uses_new():
             backends: tuple[LockBackend, ...] = (self.backend_old,)
-        elif self._get_backend(key=key, routing_key=routing_key) is self.backend_old:
+        elif self._get_backend(key=key) is self.backend_old:
             backends = (self.backend_old, self.backend_new)
         else:
             backends = (self.backend_new, self.backend_old)
         errors = []
         for backend in backends:
             try:
-                backend.release(key=key, routing_key=routing_key)
+                backend.release(key=key, token=token)
             except Exception as e:
                 errors.append(e)
             else:
                 return
+        # A caller that uses backend.release directly needs the refusal type.
+        # Wrapping it as a generic Exception hides LockNotOwned. A different
+        # child error, such as a connection failure, stays wrapped.
+        if errors and all(isinstance(error, LockNotOwned) for error in errors):
+            raise errors[0]
         raise Exception(f"Could not release key: {key!r}: {errors!r}")
 
-    def locked(self, key: str, routing_key: str | None = None) -> bool:
-        if self.backend_old.locked(key=key, routing_key=routing_key):
+    def locked(self, key: str) -> bool:
+        if self.backend_old.locked(key=key):
             return True
         if not self._uses_new():
             return False
-        return self.backend_new.locked(key=key, routing_key=routing_key)
+        return self.backend_new.locked(key=key)

@@ -1,12 +1,9 @@
 import {ReplayNavFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {getCurrentScreenName} from 'sentry/utils/replays/getCurrentScreenName';
-import {
-  hydrateBreadcrumbs,
-  replayInitBreadcrumb,
-} from 'sentry/utils/replays/hydrateBreadcrumbs';
-import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
+import {getCurrentScreenName} from './getCurrentScreenName';
+import {hydrateBreadcrumbs, replayInitBreadcrumb} from './hydrateBreadcrumbs';
+import type {BreadcrumbFrame} from './types';
 
 const START_DATE = new Date('2022-06-15T00:40:00.111Z');
 const NAVIGATION_DATE_1 = new Date('2022-06-15T00:46:00.333Z');

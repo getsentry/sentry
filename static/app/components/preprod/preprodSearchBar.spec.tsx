@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
+import {PreprodSearchBar} from './preprodSearchBar';
 
 jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
   const actual = jest.requireActual(

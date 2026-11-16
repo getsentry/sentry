@@ -34,7 +34,7 @@ class GroupOpenPeriodActivity(DefaultFieldsModel):
 
     group_open_period = FlexibleForeignKey("sentry.GroupOpenPeriod")
     # OpenPeriodActivityType
-    type: models.Field = models.IntegerField()
+    type: models.Field[int, int] = models.IntegerField()
     # The priority associated with this activity row.
     # Can be None if the row corresponds to open period closure.
     value = models.IntegerField(null=True)

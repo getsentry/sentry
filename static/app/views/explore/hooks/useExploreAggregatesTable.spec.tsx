@@ -4,10 +4,11 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {useExploreAggregatesTable} from './useExploreAggregatesTable';
+import {SAMPLING_MODE} from './useProgressiveQuery';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;

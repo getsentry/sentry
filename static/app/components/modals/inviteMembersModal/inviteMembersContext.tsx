@@ -1,10 +1,6 @@
 import {createContext, useContext} from 'react';
 
-import type {
-  InviteRow,
-  InviteStatus,
-  NormalizedInvite,
-} from 'sentry/components/modals/inviteMembersModal/types';
+import type {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
 export type InviteMembersContextValue = {
   complete: boolean;

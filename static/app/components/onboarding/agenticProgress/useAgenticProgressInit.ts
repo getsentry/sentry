@@ -7,41 +7,43 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {AgenticRunSession, InitializedAgenticProgressRun} from './types';
+import type {AgenticProgressRun, AgenticRunSession} from './types';
 
 export type UseAgenticProgressInitOptions = {
   enabled: boolean;
   /** The host retains session updates so retries and remounts reuse the run identity. */
   onSessionChange: (session: AgenticRunSession) => void;
   session: AgenticRunSession | undefined;
+  createOnboardingCode?: boolean;
 };
 
 const createOnboardingCode = () => uuid4().slice(0, 10);
 
-const createAgenticRunSession = (): AgenticRunSession => ({
+const createAgenticRunSession = (withOnboardingCode: boolean): AgenticRunSession => ({
   clientRunId: uuid4(),
-  onboardingCode: createOnboardingCode(),
+  ...(withOnboardingCode ? {onboardingCode: createOnboardingCode()} : {}),
 });
 
 export function useAgenticProgressInit({
+  createOnboardingCode: shouldCreateOnboardingCode = true,
   enabled,
   onSessionChange,
   session,
 }: UseAgenticProgressInitOptions) {
   const organization = useOrganization();
-  const [initialSession] = useState(createAgenticRunSession);
-  const {clientRunId, onboardingCode} = session ?? initialSession;
+  const [initialSession] = useState(() =>
+    createAgenticRunSession(shouldCreateOnboardingCode)
+  );
+  const currentSession = session ?? initialSession;
+  const {clientRunId, onboardingCode} = currentSession;
 
-  const initializeRun = (nextClientRunId: string, nextOnboardingCode: string) =>
-    fetchMutation<InitializedAgenticProgressRun>({
+  const initializeRun = (nextSession: AgenticRunSession) =>
+    fetchMutation<AgenticProgressRun>({
       method: 'POST',
       url: getApiUrl('/organizations/$organizationIdOrSlug/onboarding/agent/runs/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      data: {
-        clientRunId: nextClientRunId,
-        onboardingCode: nextOnboardingCode,
-      },
+      data: nextSession,
     });
 
   // A conflicting onboarding code is replaced without changing the run's cache identity.
@@ -50,16 +52,25 @@ export function useAgenticProgressInit({
     queryKey: ['agentic-progress-init', organization.slug, clientRunId],
     queryFn: async ({signal}) => {
       try {
-        return await initializeRun(clientRunId, onboardingCode);
+        return await initializeRun(currentSession);
       } catch (error) {
-        if (signal.aborted || !(error instanceof RequestError) || error.status !== 409) {
+        if (
+          signal.aborted ||
+          !onboardingCode ||
+          !(error instanceof RequestError) ||
+          error.status !== 409
+        ) {
           throw error;
         }
 
         const replacementOnboardingCode = createOnboardingCode();
-        onSessionChange({clientRunId, onboardingCode: replacementOnboardingCode});
+        const replacementSession = {
+          clientRunId,
+          onboardingCode: replacementOnboardingCode,
+        };
+        onSessionChange(replacementSession);
 
-        return initializeRun(clientRunId, replacementOnboardingCode);
+        return initializeRun(replacementSession);
       }
     },
     enabled,
@@ -74,8 +85,8 @@ export function useAgenticProgressInit({
   }, [enabled, initialSession, onSessionChange, session]);
 
   const restartRun = useCallback(() => {
-    onSessionChange(createAgenticRunSession());
-  }, [onSessionChange]);
+    onSessionChange(createAgenticRunSession(shouldCreateOnboardingCode));
+  }, [onSessionChange, shouldCreateOnboardingCode]);
 
   return {
     query,

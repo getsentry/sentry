@@ -7,12 +7,9 @@ import {Button} from '@sentry/scraps/button';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
-import {
-  FoldSection,
-  getFoldSectionKey,
-  StaticFoldSections,
-} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey, useIssueDetails} from './context';
+import {FoldSection, getFoldSectionKey} from './foldSection';
 
 // Mock dependencies
 jest.mock('sentry/views/issueDetails/context');
@@ -28,6 +25,7 @@ describe('FoldSection', () => {
     eventNavigationHeight: 0,
     isSidebarOpen: true,
     navScrollMargin: 64,
+    scrollContext: 'page' as const,
     dispatch: jest.fn(),
   };
 
@@ -35,31 +33,6 @@ describe('FoldSection', () => {
     jest.resetAllMocks();
     localStorageWrapper.clear();
     jest.mocked(useIssueDetails).mockReturnValue(mockUseIssueDetails);
-  });
-
-  it('keeps embedded sections open without changing saved collapse preferences', () => {
-    const storageKey = getFoldSectionKey(SectionKey.HIGHLIGHTS);
-    localStorageWrapper.setItem(storageKey, 'true');
-
-    render(
-      <StaticFoldSections>
-        <FoldSection
-          title="Test Section"
-          sectionKey={SectionKey.HIGHLIGHTS}
-          actions={<Button>Copy</Button>}
-          initialCollapse
-        >
-          <div>Test Content</div>
-        </FoldSection>
-      </StaticFoldSections>
-    );
-
-    expect(screen.getByText('Test Content')).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Copy'})).toBeVisible();
-    expect(
-      screen.queryByRole('button', {name: 'Collapse Test Section Section'})
-    ).not.toBeInTheDocument();
-    expect(localStorageWrapper.getItem(storageKey)).toBe('true');
   });
 
   describe('Basic rendering', () => {

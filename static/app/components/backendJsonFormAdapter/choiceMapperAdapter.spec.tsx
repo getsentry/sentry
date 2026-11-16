@@ -93,7 +93,7 @@ describe('ChoiceMapperAdapter', () => {
       {organization: org}
     );
 
-    // Wait for component to settle (CompactSelect popper setup)
+    // Wait for component to settle (CompactSelect overlay setup)
     expect(await screen.findByRole('button', {name: /Add Repo/i})).toBeInTheDocument();
     // Column headers
     expect(screen.getByText('Repository')).toBeInTheDocument();
@@ -394,7 +394,7 @@ describe('ChoiceMapperAdapter', () => {
     expect(screen.getByText('Type to search')).toBeInTheDocument();
 
     // Type a search query into the search input
-    await userEvent.type(screen.getByRole('textbox'), 'cool');
+    await userEvent.type(screen.getByRole('searchbox'), 'cool');
 
     // Wait for search results to appear
     expect(
@@ -449,7 +449,7 @@ describe('ChoiceMapperAdapter', () => {
     await userEvent.click(
       await screen.findByRole('button', {name: /Add GitHub Project/i})
     );
-    await userEvent.type(screen.getByRole('textbox'), 'cool');
+    await userEvent.type(screen.getByRole('searchbox'), 'cool');
     await userEvent.click(
       await screen.findByRole('option', {name: 'Cool Repo (friendly name)'})
     );

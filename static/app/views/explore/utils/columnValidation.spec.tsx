@@ -1,10 +1,8 @@
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {
-  getColumnFieldsForValidation,
-  getValidatedColumnData,
-} from 'sentry/views/explore/utils/columnValidation';
-import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {getColumnFieldsForValidation, getValidatedColumnData} from './columnValidation';
+import type {EventValidationData} from './validateEventParamsOptions';
 
 describe('getColumnFieldsForValidation', () => {
   it('includes sample fields and aggregate field arguments once', () => {

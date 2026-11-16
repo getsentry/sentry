@@ -1,16 +1,13 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {LoadingError} from 'sentry/components/loadingError';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -21,71 +18,52 @@ import type {DeprecatedApiKey} from './types';
  * API Keys are deprecated, but there may be some legacy customers that still use it
  */
 function OrganizationApiKeys() {
-  const api = useApi();
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const {
-    data: apiKeys = [],
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<DeprecatedApiKey[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
+  const apiKeysOptions = apiOptions.as<DeprecatedApiKey[]>()(
+    '/organizations/$organizationIdOrSlug/api-keys/',
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
   );
+  const {data: apiKeys = [], isPending, isError, refetch} = useQuery(apiKeysOptions);
 
   const removeMutation = useMutation({
     mutationFn: ({removedId}: {removedId: string}) => {
-      return api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/', {
+      return fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/', {
           path: {organizationIdOrSlug: organization.slug, apiKeyId: removedId},
         }),
-        {
-          method: 'DELETE',
-          data: {},
-        }
-      );
+        method: 'DELETE',
+        data: {},
+      });
     },
     onMutate: () => {
-      addLoadingMessage(t('Removing API key'));
+      toast.loading(t('Removing API key'));
     },
     onSuccess: (_data, {removedId}) => {
-      setApiQueryData<DeprecatedApiKey[]>(
-        queryClient,
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
-        oldData => {
-          if (!oldData) {
-            return oldData;
-          }
-
-          return oldData.filter(({id}) => id !== removedId);
-        }
+      queryClient.setQueryData(apiKeysOptions.queryKey, previous =>
+        previous
+          ? {
+              ...previous,
+              json: previous.json.filter(({id}) => id !== removedId),
+            }
+          : undefined
       );
     },
     onError: () => {
-      addErrorMessage(t('Error removing key'));
+      toast.error(t('Error removing key'));
     },
   });
 
   const addMutation = useMutation({
     mutationFn: (): Promise<DeprecatedApiKey> => {
-      return api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
+      return fetchMutation<DeprecatedApiKey>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {method: 'POST', data: {}}
-      );
+        method: 'POST',
+        data: {},
+      });
     },
     onSuccess: data => {
       if (!data) {
@@ -93,10 +71,10 @@ function OrganizationApiKeys() {
       }
 
       navigate(`/settings/${organization.slug}/api-keys/${data.id}/`);
-      addSuccessMessage(t('Created a new API key "%s"', data.label));
+      toast.success(t('Created a new API key "%s"', data.label));
     },
     onError: () => {
-      addErrorMessage(t('Error creating key'));
+      toast.error(t('Error creating key'));
     },
   });
 

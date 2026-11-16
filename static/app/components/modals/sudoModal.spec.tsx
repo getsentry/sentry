@@ -4,13 +4,14 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {makeClosableHeader, ModalBody, ModalFooter} from '@sentry/scraps/modal';
 
-import {SudoModal} from 'sentry/components/modals/sudoModal';
 import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {SuperuserAccessCategoryProps} from 'sentry/types/overrides';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {App} from 'sentry/views/app';
+
+import {SudoModal} from './sudoModal';
 
 function TestAccessCategory({RadioItem}: SuperuserAccessCategoryProps) {
   return <RadioItem value="development">Development</RadioItem>;

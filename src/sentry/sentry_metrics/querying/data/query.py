@@ -26,8 +26,12 @@ class MQLQuery:
     """
 
     def __init__(
-        self, mql: str, order: QueryOrder | None = None, limit: int | None = None, **sub_queries
-    ):
+        self,
+        mql: str,
+        order: QueryOrder | None = None,
+        limit: int | None = None,
+        **sub_queries: object,
+    ) -> None:
         self.mql = mql
         self.order = order
         self.limit = limit

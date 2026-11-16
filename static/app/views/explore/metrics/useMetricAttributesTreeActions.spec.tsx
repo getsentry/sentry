@@ -3,17 +3,18 @@ import {useMemo, type ReactNode} from 'react';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
+import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+
 import {
   defaultAggregateFields,
   defaultAggregateSortBys,
   defaultFields,
   defaultSortBys,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
-import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+} from './metricQuery';
+import {useMetricAttributesTreeActions} from './useMetricAttributesTreeActions';
 
 const mockSetQueryParams = jest.fn();
 

@@ -56,7 +56,9 @@ class WorkflowHourlyStatsTest(TestCase):
         self.login_as(self.user)
 
     def test_workflow_hourly_stats(self) -> None:
-        results = fetch_workflow_hourly_stats(self.workflow, before_now(hours=6), before_now())
+        results = fetch_workflow_hourly_stats(
+            self.workflow, before_now(hours=6), before_now(), project_ids=[self.project.id]
+        )
         assert len(results) == 6
         assert [result.count for result in results] == [
             0,
@@ -69,7 +71,21 @@ class WorkflowHourlyStatsTest(TestCase):
 
     def test_workflow_hourly_stats__past_date_range(self) -> None:
         results = fetch_workflow_hourly_stats(
-            self.workflow_2, before_now(hours=6), before_now(hours=2)
+            self.workflow_2,
+            before_now(hours=6),
+            before_now(hours=2),
+            project_ids=[self.project.id],
         )
         assert len(results) == 4
         assert [result.count for result in results] == [1, 1, 0, 0]
+
+    def test_workflow_hourly_stats__project_filter(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        other_group = self.create_group(project=other_project)
+        self.history[0].update(group=other_group)
+
+        results = fetch_workflow_hourly_stats(
+            self.workflow, before_now(hours=4), before_now(), project_ids=[self.project.id]
+        )
+
+        assert [result.count for result in results] == [3, 2, 0, 0]

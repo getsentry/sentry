@@ -27,9 +27,9 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryIntegration,
 )
+from sentry.integrations.types import HaltReason
 from sentry.integrations.utils.metrics import IntegrationEventLifecycle
 from sentry.locks import locks
 from sentry.organizations.services.organization import organization_service
@@ -481,6 +481,7 @@ def disable_repos_batch(
         organization_id=rpc_org.id,
         integration_id=integration.id,
         providers=[provider],
+        external_ids=external_ids,
     )
     repo_by_external_id = {r.external_id: r for r in all_repos}
 
@@ -517,6 +518,7 @@ def restore_repos_batch(
         organization_id=rpc_org.id,
         integration_id=integration.id,
         providers=[provider],
+        external_ids=external_ids,
     )
     integration_repo_provider = get_integration_repository_provider(integration)
     restore_set = set(external_ids)

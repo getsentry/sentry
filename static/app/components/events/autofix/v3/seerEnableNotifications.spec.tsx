@@ -2,8 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
+
+import {SeerEnableNotifications} from './seerEnableNotifications';
 
 // Service workers and the Notification API do not exist in jsdom, and
 // `supportsNotifications` is read once at module scope, so there is no store or

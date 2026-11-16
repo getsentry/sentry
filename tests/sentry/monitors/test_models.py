@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timezone
 from unittest import mock
 
+import jsonschema
 import pytest
 from django.conf import settings
 from django.test.utils import override_settings
@@ -283,6 +284,9 @@ class MonitorEnvironmentTestCase(TestCase):
 
         assert len(cm.records) == 1
         assert "invalid config" in cm.records[0].message
+        exc_info = cm.records[0].exc_info
+        assert exc_info is not None
+        assert isinstance(exc_info[1], jsonschema.ValidationError)
 
     def test_build_occurrence_fingerprint(self) -> None:
         """Test that build_occurrence_fingerprint returns the expected format"""

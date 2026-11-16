@@ -120,6 +120,33 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_sub.body is None
         assert uptime_sub.trace_sampling is False
 
+    def test_update_without_environment(self) -> None:
+        detector = self.create_uptime_detector()
+        detector.update(config={**detector.config, "environment": None})
+
+        self.get_success_response(
+            self.organization.slug,
+            detector.linked_project.slug,
+            detector.id,
+            name="test",
+        )
+        detector.refresh_from_db()
+        assert detector.name == "test"
+        assert detector.config.get("environment") is None
+
+    def test_update_keeps_environment(self) -> None:
+        env = self.create_environment(project=self.project, name="uptime-prod")
+        detector = self.create_uptime_detector(env=env)
+
+        self.get_success_response(
+            self.organization.slug,
+            detector.linked_project.slug,
+            detector.id,
+            name="test",
+        )
+        detector.refresh_from_db()
+        assert detector.config.get("environment") == "uptime-prod"
+
     def test_enviroment(self) -> None:
         detector = self.create_uptime_detector()
 

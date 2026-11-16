@@ -1,12 +1,13 @@
 import re
-from unittest.mock import Mock, patch
+from collections.abc import Iterator
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import responses
-from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.unfurl.types import Handler, make_type_coercer
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.asserts import assert_slo_metric_calls
 
@@ -16,7 +17,7 @@ from . import LINK_SHARED_EVENT, BaseEventTest, build_test_block
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class LinkSharedEventTest(BaseEventTest):
     @pytest.fixture(autouse=True)
-    def mock_chat_unfurlMessage(self):
+    def mock_chat_unfurlMessage(self) -> Iterator[None]:
         with patch(
             "slack_sdk.web.client.WebClient.chat_unfurl",
             return_value=SlackResponse(
@@ -52,7 +53,7 @@ class LinkSharedEventTest(BaseEventTest):
             )
         },
     )
-    def test_share_links_sdk(self, mock_match_link, mock_record) -> None:
+    def test_share_links_sdk(self, mock_match_link: MagicMock, mock_record: MagicMock) -> None:
         resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
         assert len(mock_match_link.mock_calls) == 3
@@ -90,7 +91,9 @@ class LinkSharedEventTest(BaseEventTest):
             )
         },
     )
-    def test_share_links_block_kit_sdk(self, mock_match_link, mock_record) -> None:
+    def test_share_links_block_kit_sdk(
+        self, mock_match_link: MagicMock, mock_record: MagicMock
+    ) -> None:
         resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
         assert len(mock_match_link.mock_calls) == 3
@@ -134,10 +137,10 @@ class LinkSharedEventTest(BaseEventTest):
             )
         },
     )
-    def test_share_links_failure(self, mock_match_link, mock_record) -> None:
+    def test_share_links_failure(self, mock_match_link: MagicMock, mock_record: MagicMock) -> None:
         with patch("slack_sdk.web.client.WebClient.chat_unfurl") as custom_mock:
             # Your custom behavior
-            custom_mock.side_effect = SlackApiError(
+            custom_mock.side_effect = TypedSlackApiError(
                 message="beep boop",
                 response=SlackResponse(
                     client=None,
@@ -155,7 +158,7 @@ class LinkSharedEventTest(BaseEventTest):
 
         assert_slo_metric_calls(mock_record.mock_calls[-2:], EventLifecycleOutcome.FAILURE)
 
-    def test_share_links_no_matches(self, mock_record) -> None:
+    def test_share_links_no_matches(self, mock_record: MagicMock) -> None:
         event_data = {**LINK_SHARED_EVENT}
         event_data["links"] = [{}]
         resp = self.post_webhook(event_data=event_data)

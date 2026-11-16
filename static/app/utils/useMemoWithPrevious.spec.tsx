@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
+import {useMemoWithPrevious} from './useMemoWithPrevious';
 
 describe('useMemoWithPrevious', () => {
   it('calls factory with null', () => {

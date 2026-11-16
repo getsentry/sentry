@@ -1,6 +1,7 @@
 import random
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import cast
 
 from django.utils import timezone
 
@@ -63,7 +64,10 @@ def store_transaction(
             "timestamp",
         ],
         groupby=None,
-        filter_keys={"project_id": [project_id], "event_id": [event.event_id]},
+        filter_keys={
+            "project_id": [project_id],
+            "event_id": cast("Sequence[int]", [event.event_id]),
+        },
         referrer="_insert_transaction.verify_transaction",
     )
     assert len(result["data"]) == 1

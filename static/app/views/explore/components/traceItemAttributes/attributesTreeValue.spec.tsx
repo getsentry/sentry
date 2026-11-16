@@ -5,8 +5,9 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {AttributesTreeValue} from 'sentry/views/explore/components/traceItemAttributes/attributesTreeValue';
+
+import type {AttributesTreeContent} from './attributesTree';
+import {AttributesTreeValue} from './attributesTreeValue';
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openNavigateToExternalLinkModal: jest.fn(),

@@ -2,9 +2,11 @@ import json  # noqa: S003
 import os
 import re
 from collections import OrderedDict
-from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from collections.abc import Callable, Mapping
+from typing import Any, Literal, NotRequired, TypedDict, cast
+from urllib.parse import urlsplit
 
+from django.http import HttpResponseBase
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
 from sentry.api.api_owners import ApiOwner
@@ -19,6 +21,7 @@ from sentry.apidocs.omission_guard import (
     recording_omissions,
 )
 from sentry.apidocs.utils import SentryApiBuildError
+from sentry.silo.base import SiloLimit, SiloMode
 
 HTTP_METHOD_NAME = Literal[
     "GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"
@@ -47,7 +50,7 @@ EXCLUSION_PATH_PREFIXES = [
 ]
 
 
-def __get_line_count_for_team_stats(team_stats: Mapping):
+def __get_line_count_for_team_stats(team_stats: Mapping[ApiPublishStatus, set[str]]) -> int:
     """
     Returns number of lines it takes to write ownership for each team.
     For example returns 15 for:
@@ -70,12 +73,14 @@ def __get_line_count_for_team_stats(team_stats: Mapping):
     return line_count
 
 
-def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
+def __write_ownership_data(
+    ownership_data: dict[ApiOwner, dict[ApiPublishStatus, set[str]]],
+) -> None:
     """
     Writes API ownership for all the teams in _OWNERSHIP_FILE.
     This file is used by Sentaur slack bot to inform teams on status of their APIs
     """
-    processed_data = {}
+    processed_data: dict[str, dict[str, int | list[str]]] = {}
     index = 2
     for team in ownership_data:
         # sorting APIs list so it doesn't trigger file change on every commit
@@ -101,26 +106,40 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
 class CustomEndpointEnumerator(EndpointEnumerator):
     _non_capturing = re.compile(r"\(\?:[a-z-]+\|[a-z-]+\)")
 
+    def collect_endpoints(self) -> list[tuple[str, str, str, Callable[..., HttpResponseBase]]]:
+        enumerate_endpoints = cast(
+            "Callable[[], list[tuple[str, str, str, Callable[..., HttpResponseBase]]]]",
+            self.get_api_endpoints,
+        )
+        return enumerate_endpoints()
+
     def get_path_from_regex(self, path_regex: str) -> str:
+        # User feedback routes also answer to the legacy `user-reports` name, which isn't documented.
+        path_regex = path_regex.replace("(?:user-feedback|user-reports)", "user-feedback")
         # django 4.x changes to simplify_regex breaks these urls
         path_regex = self._non_capturing.sub("{var}", path_regex)
-        return super().get_path_from_regex(path_regex)
+        return cast("Callable[[str], str]", super().get_path_from_regex)(path_regex)
 
 
 class CustomGenerator(SchemaGenerator):
     endpoint_inspector_cls = CustomEndpointEnumerator
 
-    def get_schema(self, request: Any = None, public: bool = False) -> Any:
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        cast("Callable[..., None]", super().__init__)(*args, **kwargs)
+
+    def get_schema(self, request: Any = None, public: bool = False) -> dict[str, Any]:
         """Build the schema, then prove its omissions changed only what they declare.
 
         The baseline is a second build, on a fresh registry, with omissions off."""
         baseline_generator = type(self)(
             patterns=self.patterns, urlconf=self.urlconf, api_version=self.api_version
         )
+        get_schema = cast("Callable[..., Any]", SchemaGenerator.get_schema)
+        super_get_schema = cast("Callable[..., Any]", super().get_schema)
         with omissions_disabled():
-            baseline = SchemaGenerator.get_schema(baseline_generator, request, public)
+            baseline = cast("dict[str, Any]", get_schema(baseline_generator, request, public))
         with recording_omissions() as recorded:
-            schema = super().get_schema(request, public)
+            schema = cast("dict[str, Any]", super_get_schema(request, public))
         try:
             check_schema_omissions(baseline, schema, recorded)
         except OmissionError as exc:
@@ -135,6 +154,42 @@ _ENDPOINT_SERVERS: dict[str, list[dict[str, Any]]] = {}
 # filters endpoint tuples, so the marker has to be stamped onto the operation later.
 _EXPERIMENTAL_OPERATIONS: set[tuple[str, str]] = set()
 
+DeclaredSilo = Literal["control", "cell", "both", "unknown"]
+
+
+class RoutingMetadata(TypedDict):
+    silo: DeclaredSilo
+    organizationParameter: NotRequired[str]
+
+
+# (canonical path, lowercased method) pairs whose endpoint lists the method in
+# `idempotent_methods`. Collected for unpublished endpoints too, like silos.
+_IDEMPOTENT_OPERATIONS: set[tuple[str, str]] = set()
+
+# RFC 9110 9.2.1: these never change server state, so clients may always resend them.
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
+
+# Include non-spectacular endpoints so existing APPEND_PATHS operations can use
+# their backend declaration without changing which methods are published.
+_OPERATION_SILOS: dict[tuple[str, str], DeclaredSilo] = {}
+
+
+def _declared_silo(view_class: type) -> DeclaredSilo:
+    """Export class availability, not host preference or handler-level behavior."""
+    silo_limit = getattr(view_class, "silo_limit", None)
+    if not isinstance(silo_limit, SiloLimit):
+        return "unknown"
+    control = SiloMode.CONTROL in silo_limit.modes
+    cell = SiloMode.CELL in silo_limit.modes
+    if control and cell:
+        return "both"
+    if control:
+        return "control"
+    if cell:
+        return "cell"
+    return "unknown"
+
+
 # Prepended to the description of every PUBLIC_EXPERIMENTAL operation. The docs render
 # operation descriptions as markdown but have no badge for `x-sentry-experimental`, so
 # this is what actually warns a reader. Wording matches the note endpoints used to write
@@ -145,9 +200,11 @@ EXPERIMENTAL_NOTICE = "**Experimental:** This API is under active development an
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     _ENDPOINT_SERVERS.clear()
     _EXPERIMENTAL_OPERATIONS.clear()
+    _OPERATION_SILOS.clear()
+    _IDEMPOTENT_OPERATIONS.clear()
 
     filtered = []
-    ownership_data: dict[ApiOwner, dict] = {}
+    ownership_data: dict[ApiOwner, dict[ApiPublishStatus, set[str]]] = {}
     for path, path_regex, method, callback in endpoints:
         # Collect servers from endpoint class for postprocessing
         endpoint_servers = getattr(callback.view_class, "servers", None)
@@ -177,22 +234,39 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 f"All methods must declare a publish_status. Please add a valid publish status for Endpoint {callback.view_class} {method} method.",
             )
 
+        declared_idempotent: frozenset[str] | None = getattr(
+            callback.view_class, "idempotent_methods", None
+        )
+        idempotent_methods = declared_idempotent or frozenset()
+        if not idempotent_methods <= callback.view_class.publish_status.keys():
+            raise SentryApiBuildError(
+                f"Endpoint {callback.view_class} declares idempotent_methods that it does not implement: {sorted(idempotent_methods - callback.view_class.publish_status.keys())}.",
+            )
+        if idempotent_methods & _SAFE_METHODS:
+            raise SentryApiBuildError(
+                f"Endpoint {callback.view_class} lists safe methods in idempotent_methods: {sorted(idempotent_methods & _SAFE_METHODS)}. Safe methods are always idempotent; only list non-safe methods such as POST.",
+            )
+
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
-        elif callback.view_class.publish_status:
+        else:
+            operation_key = (_canonical_issue_path(path), method.lower())
+            _OPERATION_SILOS[operation_key] = _declared_silo(callback.view_class)
+            if method in idempotent_methods:
+                _IDEMPOTENT_OPERATIONS.add(operation_key)
             # endpoints that are documented via tooling
             status = callback.view_class.publish_status.get(method)
             if status is not None and status.is_published:
+                if declared_idempotent is None and method not in _SAFE_METHODS:
+                    raise SentryApiBuildError(
+                        f"Endpoint {callback.view_class} publishes {method} but does not declare idempotent_methods. List the methods a client may resend after a timeout or 5xx without changing the outcome, or set `idempotent_methods = frozenset()` if there are none. See src/sentry/apidocs/README.md.",
+                    )
                 # only pass declared public methods of the endpoint
                 # to the rest of the OpenAPI build pipeline
                 filtered.append((path, path_regex, method, callback))
                 if status is ApiPublishStatus.PUBLIC_EXPERIMENTAL:
                     _EXPERIMENTAL_OPERATIONS.add((path, method.lower()))
-
-        else:
-            # if an endpoint doesn't have any registered public methods, don't check it.
-            pass
 
         ownership_data[owner_team][callback.view_class.publish_status[method]].add(
             f"{callback.view_class.__name__}::{method}"
@@ -233,6 +307,9 @@ def _validate_request_body(
 
     # Dereference schema if needed and raise error on schema component collisions
     schema = dereference_schema(schema, schema_components)
+    if "properties" not in schema and isinstance(schema.get("additionalProperties"), dict):
+        # A map body, such as files keyed by checksum: its values carry the named fields.
+        schema = dereference_schema(schema["additionalProperties"], schema_components)
 
     for body_param, param_data in schema["properties"].items():
         # Ensure body parameters have a description. Our API docs don't
@@ -265,7 +342,18 @@ def _validate_request_body(
         )
 
 
-def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
+def custom_postprocessing_hook(
+    result: dict[str, Any], generator: Any, **kwargs: Any
+) -> dict[str, Any]:
+    # Stamp before alias canonicalization so metadata stays with its operation.
+    for path, operations in result["paths"].items():
+        for method, operation in operations.items():
+            operation_key = (_canonical_issue_path(path), method)
+            routing: RoutingMetadata = {"silo": _OPERATION_SILOS.get(operation_key, "unknown")}
+            operation["x-sentry-routing"] = routing
+            if operation_key in _IDEMPOTENT_OPERATIONS:
+                operation["x-sentry-idempotent"] = True
+
     # Add servers override from endpoint class definitions
     for path, servers in _ENDPOINT_SERVERS.items():
         if path in result["paths"]:
@@ -295,6 +383,21 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
 
     for path, endpoints in result["paths"].items():
         for method_info in endpoints.values():
+            # These are the organization kwargs understood by the API gateway.
+            # Require the generated path parameter as well as its placeholder:
+            # aliases and legacy schemas can have incomplete parameter metadata.
+            organization_parameters = {
+                param["name"]
+                for param in method_info.get("parameters", [])
+                if param["in"] == "path"
+                and param["name"] in ("organization_id_or_slug", "organization_slug")
+                and "{" + param["name"] + "}" in path
+            }
+            if len(organization_parameters) == 1:
+                method_info["x-sentry-routing"]["organizationParameter"] = (
+                    organization_parameters.pop()
+                )
+
             endpoint_name = f"'{method_info['operationId']}'"
 
             summary = method_info.get("summary")
@@ -329,6 +432,28 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                 raise SentryApiBuildError(
                     f"Unable to parse body parameters due to KeyError {e} for endpoint {endpoint_name}. Please post in #discuss-api to fix."
                 )
+    return result
+
+
+def relative_paths_hook(result: dict[str, Any], generator: Any, **kwargs: Any) -> dict[str, Any]:
+    """Make every path relative to the path of the first server URL, the API base path.
+
+    Clients then read the base path, and the API version in it, from `servers` instead of
+    from each path. An endpoint's `servers` name origins, so they get the base path too.
+    """
+    base_path = urlsplit(result["servers"][0]["url"]).path.rstrip("/")
+    paths = {}
+    for path, path_item in result["paths"].items():
+        if not path.startswith(f"{base_path}/"):
+            raise SentryApiBuildError(f"{path} is not under the API base path {base_path}.")
+        for operation in path_item.values():
+            if isinstance(operation, dict) and "servers" in operation:
+                # New dicts: the originals are the endpoint class's own `servers`.
+                operation["servers"] = [
+                    {**server, "url": server["url"] + base_path} for server in operation["servers"]
+                ]
+        paths[path.removeprefix(base_path)] = path_item
+    result["paths"] = paths
     return result
 
 
@@ -376,13 +501,26 @@ def _fix_nullable_enums(node: Any) -> None:
             _fix_nullable_enums(item)
 
 
+def _canonical_issue_path(path: str) -> str:
+    if "/shared/{var}/{share_id}" in path:
+        return path.replace("/shared/{var}/{share_id}", "/shared/issues/{share_id}")
+    if "{var}/{issue_id}" not in path:
+        return path
+    path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
+    if path.startswith("/api/0/issues/"):
+        path = path.replace(
+            "/api/0/issues/", "/api/0/organizations/{organization_id_or_slug}/issues/"
+        )
+    return path
+
+
 def _fix_issue_paths(result: Any) -> Any:
     """
     The way we define `/issues/` paths causes some problems with drf-spectacular:
     - The path may be defined twice, with `/organizations/{organization_id_slug}` prefix and
       without. We want to use the `/organizations` prefixed path as it works across regions.
-    - The `/issues/` part of the path is defined as `issues|groups` for compatibility reasons,
-      but we only want to use `issues` in the docs
+    - The `/issues/` part of the path, including in `/shared/issues/`, is defined as
+      `issues|groups` for compatibility reasons, but we only want to use `issues` in the docs
 
     This function removes duplicate paths, removes the `issues|groups` path parameter and
     replaces it with `issues` in the path.
@@ -392,15 +530,11 @@ def _fix_issue_paths(result: Any) -> Any:
     modified_paths = []
 
     for path, endpoint in items:
-        if "{var}/{issue_id}" in path:
+        if _canonical_issue_path(path) != path:
             modified_paths.append(path)
 
     for path in modified_paths:
-        updated_path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
-        if updated_path.startswith("/api/0/issues/"):
-            updated_path = updated_path.replace(
-                "/api/0/issues/", "/api/0/organizations/{organization_id_or_slug}/issues/"
-            )
+        updated_path = _canonical_issue_path(path)
         endpoint = result["paths"][path]
         for method in endpoint.keys():
             endpoint[method]["parameters"] = [

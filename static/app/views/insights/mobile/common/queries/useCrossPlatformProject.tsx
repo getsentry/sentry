@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {isCrossPlatform} from 'sentry/views/insights/mobile/screenload/utils';
 
 export const PLATFORM_LOCAL_STORAGE_KEY = 'mobile-performance-platform';
@@ -13,7 +13,7 @@ export const DEFAULT_PLATFORM = 'Android';
 export function useCrossPlatformProject() {
   const {selection} = usePageFilters();
   const {projects} = useProjects();
-  const location = useLocation();
+  const [platform] = useQueryState(PLATFORM_QUERY_PARAM, parseAsScalar);
 
   const project = useMemo(() => {
     if (selection.projects.length !== 1) {
@@ -29,9 +29,7 @@ export function useCrossPlatformProject() {
   );
 
   const selectedPlatform =
-    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-    DEFAULT_PLATFORM;
+    platform ?? localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ?? DEFAULT_PLATFORM;
 
   return {
     project,

@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t} from 'sentry/locale';

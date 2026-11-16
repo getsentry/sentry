@@ -300,8 +300,8 @@ export class TraceItemFieldSelector {
     AllowedDataScrubbingDatasets,
     string | null
   > = {
-    [AllowedDataScrubbingDatasets.LOGS]: '$log',
-    [AllowedDataScrubbingDatasets.METRICS]: '$trace_metric',
+    [AllowedDataScrubbingDatasets.LOGS]: '$log.',
+    [AllowedDataScrubbingDatasets.METRICS]: '$trace_metric.',
     [AllowedDataScrubbingDatasets.DEFAULT]: null,
   };
 
@@ -355,7 +355,7 @@ export class TraceItemFieldSelector {
 
   private static determineDataset(selector: string): AllowedDataScrubbingDatasets {
     const dataset = Object.entries(TraceItemFieldSelector.datasetSelectorMap).find(
-      ([_, includes]) => selector.startsWith(includes ?? '')
+      ([_, prefix]) => prefix !== null && selector.startsWith(prefix)
     );
     if (dataset) {
       return dataset[0] as AllowedDataScrubbingDatasets;

@@ -6,11 +6,12 @@ import {Button} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Image} from '@sentry/scraps/image';
 
-import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useFeedbackOnboardingSidebarPanel} from './useFeedbackOnboarding';
 
 export function FeedbackSetupPanel() {
   const organization = useOrganization();
