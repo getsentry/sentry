@@ -1,5 +1,6 @@
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -22,11 +23,7 @@ export const OUT_OF_CREDITS_STEP_MESSAGE: Record<AutofixExplorerStep, string> = 
   ),
 };
 
-/**
- * Toast for an autofix step the backend refused to start because the
- * organization is out of credits.
- */
-export const OUT_OF_CREDITS_START_STEP_MESSAGE: Record<AutofixExplorerStep, string> = {
+const OUT_OF_CREDITS_START_STEP_MESSAGE: Record<AutofixExplorerStep, string> = {
   root_cause: t(
     "Seer couldn't start on the root cause because your organization is out of credits."
   ),
@@ -41,13 +38,33 @@ export const OUT_OF_CREDITS_START_STEP_MESSAGE: Record<AutofixExplorerStep, stri
   ),
 };
 
+const DAILY_LIMIT_START_STEP_MESSAGE: Record<AutofixExplorerStep, string> = {
+  root_cause: t(
+    "Seer couldn't start on the root cause because your organization hit its daily usage limit."
+  ),
+  solution: t(
+    "Seer couldn't start on the plan because your organization hit its daily usage limit."
+  ),
+  code_changes: t(
+    "Seer couldn't start on the code changes because your organization hit its daily usage limit."
+  ),
+  pr_iteration: t(
+    "Seer couldn't update the pull request because your organization hit its daily usage limit."
+  ),
+};
+
 /**
- * Toast for pull requests the backend refused to open because the
- * organization is out of credits, when the request named no repo.
+ * Toast for an autofix step the backend refused to start for credits. The
+ * 402's `denialReason` tells a daily usage limit apart from running out.
  */
-export const OUT_OF_CREDITS_OPEN_PRS_MESSAGE = t(
-  "Seer couldn't open a pull request because your organization is out of credits."
-);
+export function getRefusedStepMessage(
+  step: AutofixExplorerStep,
+  denialReason: SeerCreditDenialReason | null
+): string {
+  return denialReason === 'daily_cap_exceeded'
+    ? DAILY_LIMIT_START_STEP_MESSAGE[step]
+    : OUT_OF_CREDITS_START_STEP_MESSAGE[step];
+}
 
 export const OUT_OF_CREDITS_CHAT_MESSAGE = t(
   'Seer stopped because your organization is out of credits.'
@@ -75,6 +92,39 @@ export function getOutOfCreditsPRMessage(
       )
     : t(
         "Seer couldn't open a pull request in %s because your organization is out of credits.",
+        state.repo_name
+      );
+}
+
+/**
+ * Toast for a pull request the backend refused to open or push for credits,
+ * with the 402's `denialReason`. Without a repo, the request was for every
+ * repo in the run.
+ */
+export function getRefusedPRMessage(
+  state: Pick<RepoPRState, 'pr_number' | 'repo_name'> | undefined,
+  denialReason: SeerCreditDenialReason | null
+): string {
+  if (denialReason !== 'daily_cap_exceeded') {
+    return state
+      ? getOutOfCreditsPRMessage(state)
+      : t(
+          "Seer couldn't open a pull request because your organization is out of credits."
+        );
+  }
+  if (!state) {
+    return t(
+      "Seer couldn't open a pull request because your organization hit its daily usage limit."
+    );
+  }
+  return state.pr_number
+    ? t(
+        "Seer couldn't push changes to %s#%s because your organization hit its daily usage limit.",
+        state.repo_name,
+        state.pr_number
+      )
+    : t(
+        "Seer couldn't open a pull request in %s because your organization hit its daily usage limit.",
         state.repo_name
       );
 }

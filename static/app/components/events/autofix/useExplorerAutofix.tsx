@@ -5,9 +5,8 @@ import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
 import {
-  getOutOfCreditsPRMessage,
-  OUT_OF_CREDITS_OPEN_PRS_MESSAGE,
-  OUT_OF_CREDITS_START_STEP_MESSAGE,
+  getRefusedPRMessage,
+  getRefusedStepMessage,
 } from 'sentry/components/seer/outOfCredits/messages';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import type {Group} from 'sentry/types/group';
@@ -17,7 +16,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
+import {
+  seerCreditChecksQueryKey,
+  type SeerCreditDenialReason,
+} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -334,12 +336,23 @@ function isAutofixSetupRequiredError(
   );
 }
 
+interface OutOfCreditsError {
+  responseJSON: {
+    code: 'seer_out_of_credits';
+    /**
+     * Null when billing doesn't say why. Missing from backends that predate it.
+     */
+    denialReason?: SeerCreditDenialReason | null;
+  };
+  status: 402;
+}
+
 /**
- * A step or PR the backend refused because the organization is out of Seer
- * credits. The triggers' credit checks fail open and can be out of date, so
+ * A step or PR the backend refused because the organization can't afford it in
+ * Seer credits. The triggers' credit checks fail open and can be out of date, so
  * the backend has the final say.
  */
-function isOutOfCreditsError(e: unknown): boolean {
+function isOutOfCreditsError(e: unknown): e is OutOfCreditsError {
   const error = e as
     | {responseJSON?: {code?: unknown}; status?: number}
     | null
@@ -1070,7 +1083,7 @@ export function useExplorerAutofix(
           queryClient.invalidateQueries({
             queryKey: seerCreditChecksQueryKey(organization),
           });
-          toast.error(OUT_OF_CREDITS_START_STEP_MESSAGE[step]);
+          toast.error(getRefusedStepMessage(step, e.responseJSON.denialReason ?? null));
           throw e;
         }
 
@@ -1153,11 +1166,10 @@ export function useExplorerAutofix(
               ?.json?.autofix?.repo_pr_states?.[repoName]
           : undefined;
         toast.error(
-          repoName
-            ? getOutOfCreditsPRMessage(
-                repoState ?? {repo_name: repoName, pr_number: null}
-              )
-            : OUT_OF_CREDITS_OPEN_PRS_MESSAGE
+          getRefusedPRMessage(
+            repoName ? (repoState ?? {repo_name: repoName, pr_number: null}) : undefined,
+            e.responseJSON.denialReason ?? null
+          )
         );
         throw e;
       }
