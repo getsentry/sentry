@@ -93,6 +93,16 @@ class SavepointMetricsTest(TransactionTestCase):
         with transaction.atomic(using="default"):
             _open_savepoints(9)
 
+        with transaction.atomic(using="default"):
+            with transaction.atomic(using="default"):
+                _open_savepoints(40)
+                transaction.set_rollback(True, using="default")
+            for _ in range(70):
+                with pytest.raises(ValueError):
+                    with transaction.atomic(using="default"):
+                        raise ValueError
+            _open_savepoints(40)
+
         with pytest.raises(ValueError):
             with transaction.atomic(using="default"):
                 _open_savepoints(10)
@@ -106,6 +116,7 @@ class SavepointMetricsTest(TransactionTestCase):
         assert metrics.incr.call_args_list == [overflow]
         assert metrics.distribution.call_args_list == [
             mock.call("db.transaction.savepoints", 70, tags=tags),
+            mock.call("db.transaction.savepoints", 41, tags=tags),
             mock.call("db.transaction.savepoints", 10, tags=tags),
             mock.call("db.transaction.savepoints", 10, tags=tags),
         ]

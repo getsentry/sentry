@@ -16,9 +16,9 @@ from .schema import DatabaseSchemaEditorProxy
 
 __all__ = ("DatabaseWrapper",)
 
-# Transactions opening fewer savepoints are not reported, to keep the distribution's volume down.
+# Transactions that never hold this many savepoints at once are not reported, to keep the distribution's volume down.
 SAVEPOINT_DISTRIBUTION_MIN = 10
-# Postgres caches 64 subtransaction ids per backend; past that, every snapshot falls back to pg_subtrans.
+# Postgres caches 64 subtransaction ids per backend; once a transaction passes that, every snapshot falls back to pg_subtrans until it ends.
 SAVEPOINT_CACHE_SIZE = 64
 FIRST_OVERFLOWING_SAVEPOINT = SAVEPOINT_CACHE_SIZE + 1
 
@@ -125,7 +125,9 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
         self.execute_wrappers.extend((_execute__include_sql_in_error, _execute__clean_params))
-        self.savepoints_opened = 0
+        self.savepoints_alive = 0
+        self.savepoints_peak = 0
+        self.savepoints_alive_before: dict[str, int] = {}
 
     @auto_reconnect_connection
     def _cursor(self, *args: Any, **kwargs: Any) -> Any:
@@ -142,35 +144,47 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
 
     def _savepoint(self, sid: str) -> None:
         super()._savepoint(sid)  # type: ignore[misc]
-        self.savepoints_opened += 1
-        if self.savepoints_opened == FIRST_OVERFLOWING_SAVEPOINT:
-            tags = _savepoint_metric_tags(self.alias)
-            metrics.incr("db.transaction.savepoint_overflow", tags=tags)
+        self.savepoints_alive_before[sid] = self.savepoints_alive
+        self.savepoints_alive += 1
+        if self.savepoints_alive > self.savepoints_peak:
+            self.savepoints_peak = self.savepoints_alive
+            if self.savepoints_peak == FIRST_OVERFLOWING_SAVEPOINT:
+                tags = _savepoint_metric_tags(self.alias)
+                metrics.incr("db.transaction.savepoint_overflow", tags=tags)
+
+    def _savepoint_rollback(self, sid: str) -> None:
+        super()._savepoint_rollback(sid)  # type: ignore[misc]
+        # Frees the ids of this savepoint and of every one opened inside it; atomic() releases it right after.
+        alive_before = self.savepoints_alive_before.get(sid)
+        if alive_before is not None:
+            self.savepoints_alive = alive_before
 
     def _commit(self) -> None:
         try:
             super()._commit()  # type: ignore[misc]
         finally:
-            self._report_savepoints_opened()
+            self._report_savepoints_peak()
 
     def _rollback(self) -> None:
         try:
             super()._rollback()  # type: ignore[misc]
         finally:
-            self._report_savepoints_opened()
+            self._report_savepoints_peak()
 
-    def _report_savepoints_opened(self) -> None:
-        savepoints_opened = self.savepoints_opened
-        self.savepoints_opened = 0
-        if savepoints_opened >= SAVEPOINT_DISTRIBUTION_MIN:
+    def _report_savepoints_peak(self) -> None:
+        savepoints_peak = self.savepoints_peak
+        self.savepoints_alive = 0
+        self.savepoints_peak = 0
+        self.savepoints_alive_before.clear()
+        if savepoints_peak >= SAVEPOINT_DISTRIBUTION_MIN:
             tags = _savepoint_metric_tags(self.alias)
-            metrics.distribution("db.transaction.savepoints", savepoints_opened, tags=tags)
+            metrics.distribution("db.transaction.savepoints", savepoints_peak, tags=tags)
 
     def close(self, reconnect: bool = False) -> None:
         """
         This ensures we don't error if the connection has already been closed.
         """
-        self._report_savepoints_opened()
+        self._report_savepoints_peak()
         if self.connection is not None:
             if not self.connection.closed:
                 try:
