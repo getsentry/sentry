@@ -20,7 +20,7 @@ const context = `
     const SentryApiError: typeof import("@sentry/api").SentryApiError;
     const options: { path: { organization_id_or_slug: string } };
     const cursor: string | undefined;
-    const regionUrlFor: (organization: string) => Promise<string>;
+    const regionUrls: Map<string, string>;
     const objectstore: Parameters<typeof findExistingObjects>[0];
     const keys: Parameters<typeof findExistingObjects>[1];
     const files: { key: string; size: number; path: string }[];
