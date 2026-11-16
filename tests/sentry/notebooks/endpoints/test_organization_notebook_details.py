@@ -16,11 +16,8 @@ from sentry.notebooks.models import (
     NotebookSourceType,
     NotebookStatus,
 )
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 FEATURE = "organizations:investigations"
 
@@ -70,7 +67,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         response = self.client.delete(
             detail_url,
-            data={"investigationVersion": first["version"]},
+            data={"notebookVersion": first["version"]},
             format="json",
         )
         assert response.status_code == 204
@@ -82,54 +79,39 @@ class OrganizationNotebookDetailsTest(APITestCase):
         archived = self.client.get(detail_url).data
         response = self.client.put(
             detail_url,
-            data={"investigationVersion": archived["version"], "status": "active"},
+            data={"notebookVersion": archived["version"], "status": "active"},
             format="json",
         )
         assert response.status_code == 200
         assert response.data["status"] == "active"
 
-    def test_org_token_can_archive_a_legacy_notebook(self) -> None:
+    def test_update_takes_notebook_version(self) -> None:
         notebook = self.create_notebook(
-            organization=self.organization, created_by=self.user, title="Legacy investigation"
+            organization=self.organization, created_by=self.user, title="Versioned"
         )
-        token = generate_token(self.organization.slug, "")
-        self.create_org_auth_token(
-            organization_id=self.organization.id,
-            name="investigation token",
-            token_hashed=hash_token(token),
-            token_last_characters=token[-4:],
-            scope_list=["org:read"],
-        )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.client.logout()
 
-        response = self.client.put(
+        old_name = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "status": "archived"},
+            data={"investigationVersion": 1, "title": "Renamed"},
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        assert response.status_code == 200, response.data
-        notebook.refresh_from_db()
-        assert notebook.status == NotebookStatus.ARCHIVED
+        assert old_name.status_code == 400
+        assert "investigationVersion" in old_name.data
 
-        restored = self.client.put(
+        renamed = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "status": "active"},
+            data={"notebookVersion": 1, "title": "Renamed"},
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        assert restored.status_code == 200, restored.data
-        notebook.refresh_from_db()
-        deleted = self.client.delete(
+        assert renamed.status_code == 200, renamed.data
+        assert renamed.data["version"] == 2
+
+        stale = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version},
+            data={"notebookVersion": 1, "title": "Again"},
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        assert deleted.status_code == 204, deleted.data
-        notebook.refresh_from_db()
-        assert notebook.status == NotebookStatus.ARCHIVED
+        assert stale.status_code == 409
 
     def test_archive_rejects_an_active_block_run(self) -> None:
         created = self.client.post(
@@ -156,7 +138,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         response = self.client.delete(
             detail_url,
-            data={"investigationVersion": notebook.version},
+            data={"notebookVersion": notebook.version},
             format="json",
         )
 
@@ -193,7 +175,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
         ) as schedule:
             response = self.client.delete(
                 self.details_url(notebook),
-                data={"investigationVersion": created["version"]},
+                data={"notebookVersion": created["version"]},
                 format="json",
             )
 
@@ -218,7 +200,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         restored = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "status": "active"},
+            data={"notebookVersion": notebook.version, "status": "active"},
             format="json",
         )
         assert restored.status_code == 200, restored.data
@@ -228,7 +210,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
             for _ in range(2):
                 archived = self.client.delete(
                     self.details_url(notebook),
-                    data={"investigationVersion": created["version"]},
+                    data={"notebookVersion": created["version"]},
                     format="json",
                 )
                 assert archived.status_code == 204, archived.data
@@ -249,7 +231,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
         response = self.client.put(
             self.details_url(notebook),
             data={
-                "investigationVersion": created["version"],
+                "notebookVersion": created["version"],
                 "title": "My incident title",
             },
             format="json",
@@ -266,7 +248,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
         stale_response = self.client.put(
             self.details_url(notebook),
             data={
-                "investigationVersion": created["version"],
+                "notebookVersion": created["version"],
                 "title": "Overwrite from a stale editor",
             },
             format="json",
@@ -313,7 +295,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         updated = self.client.put(
             url,
-            data={"investigationVersion": notebook.version, "title": "Renamed"},
+            data={"notebookVersion": notebook.version, "title": "Renamed"},
             format="json",
         )
 
@@ -336,7 +318,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
         response = self.client.put(
             url,
             data={
-                "investigationVersion": created["version"],
+                "notebookVersion": created["version"],
                 "title": "After",
                 "filters": {"environment": ["production"]},
                 "projectIds": [],
@@ -350,7 +332,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         response = self.client.put(
             url,
-            data={"investigationVersion": created["version"], "title": "Stale write"},
+            data={"notebookVersion": created["version"], "title": "Stale write"},
             format="json",
         )
         assert response.status_code == 409
@@ -370,14 +352,14 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         response = self.client.put(
             url,
-            data={"investigationVersion": notebook.version, "title": "Updated by member"},
+            data={"notebookVersion": notebook.version, "title": "Updated by member"},
             format="json",
         )
         assert response.status_code == 200, response.data
 
         response = self.client.delete(
             url,
-            data={"investigationVersion": response.data["version"]},
+            data={"notebookVersion": response.data["version"]},
             format="json",
         )
         assert response.status_code == 204
@@ -409,7 +391,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
         response = self.client.put(
             self.details_url(notebook),
             data={
-                "investigationVersion": notebook.version,
+                "notebookVersion": notebook.version,
                 "status": "active",
                 "projectIds": [other_project.id],
             },
@@ -428,7 +410,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         response = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "status": "active"},
+            data={"notebookVersion": notebook.version, "status": "active"},
             format="json",
         )
 
@@ -441,7 +423,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         response = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "title": "Renamed"},
+            data={"notebookVersion": notebook.version, "title": "Renamed"},
             format="json",
         )
 
@@ -478,7 +460,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         renamed = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "title": "Renamed"},
+            data={"notebookVersion": notebook.version, "title": "Renamed"},
             format="json",
         )
         assert renamed.status_code == 200, renamed.data
@@ -487,7 +469,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         archived = self.client.put(
             self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "status": "archived"},
+            data={"notebookVersion": notebook.version, "status": "archived"},
             format="json",
         )
         assert archived.status_code == 200, archived.data
@@ -499,7 +481,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
 
         response = self.client.put(
             self.details_url(second),
-            data={"investigationVersion": second.version, "status": "archived"},
+            data={"notebookVersion": second.version, "status": "archived"},
             format="json",
         )
 
@@ -515,7 +497,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
         response = self.client.put(
             self.details_url(second),
             data={
-                "investigationVersion": second.version,
+                "notebookVersion": second.version,
                 "status": "archived",
                 "title": "Renamed",
             },

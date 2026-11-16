@@ -183,6 +183,7 @@ class ClassifyEntityTest(ClassifierTaskTestCase):
             timestamp=datetime(2020, 1, 1, 12, 0, tzinfo=UTC),
             client_sample_rate=1.0,
             conversation_id="conversation",
+            environment="production",
         )
         self.dataset.load.return_value = self.source
         self.classify.return_value = {"type": "predicate", "name": "match", "probability": 0.8}

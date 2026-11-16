@@ -16,13 +16,14 @@ const RELEASES_LAYER = 'releases';
 
 // Only these widget datasets map to an Outcomes category on the backend
 // (DATASET_TO_CATEGORY in data_annotations.py). Everything else gets no band.
-const WIDGET_TYPE_TO_DROPPED_DATA_DATASET: Partial<Record<WidgetType, DiscoverDatasets>> =
-  {
-    [WidgetType.SPANS]: DiscoverDatasets.SPANS,
-    [WidgetType.LOGS]: DiscoverDatasets.OURLOGS,
-    [WidgetType.TRACEMETRICS]: DiscoverDatasets.TRACEMETRICS,
-    [WidgetType.ERRORS]: DiscoverDatasets.ERRORS,
-  };
+export const WIDGET_TYPE_TO_DROPPED_DATA_DATASET: Partial<
+  Record<WidgetType, DiscoverDatasets>
+> = {
+  [WidgetType.SPANS]: DiscoverDatasets.SPANS,
+  [WidgetType.LOGS]: DiscoverDatasets.OURLOGS,
+  [WidgetType.TRACEMETRICS]: DiscoverDatasets.TRACEMETRICS,
+  [WidgetType.ERRORS]: DiscoverDatasets.ERRORS,
+};
 
 interface UseWidgetChartLayersParams {
   widget: Widget;
@@ -54,6 +55,7 @@ export function useWidgetChartLayers({
       interval: interval ?? '',
     },
     {
+      source: 'dashboards',
       enabled:
         enabled &&
         defined(droppedDataDataset) &&
@@ -73,6 +75,7 @@ export function useWidgetChartLayers({
         trackAnalytics('explore.dropped_data.layer_toggled', {
           organization,
           dataset,
+          source: 'dashboards',
           selected,
         });
       }

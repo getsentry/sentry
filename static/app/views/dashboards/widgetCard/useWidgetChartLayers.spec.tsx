@@ -33,10 +33,6 @@ describe('useWidgetChartLayers', () => {
     });
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('returns the dropped data band for supported widgets', async () => {
     const {result} = renderHookWithProviders(
       () => useWidgetChartLayers({widget: spansWidget, interval: '5m'}),
@@ -44,6 +40,22 @@ describe('useWidgetChartLayers', () => {
     );
 
     await waitFor(() => expect(result.current.droppedData.band).toBeDefined());
+  });
+
+  it('tracks opening the drawer from the band as a dashboards event', async () => {
+    const {result} = renderHookWithProviders(
+      () => useWidgetChartLayers({widget: spansWidget, interval: '5m'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.droppedData.band).toBeDefined());
+    act(() => result.current.droppedData.band!.onClick!());
+
+    expect(trackAnalytics).toHaveBeenCalledWith('explore.dropped_data.drawer_opened', {
+      organization,
+      dataset: 'spans',
+      source: 'dashboards',
+    });
   });
 
   it.each([
@@ -104,6 +116,7 @@ describe('useWidgetChartLayers', () => {
     expect(trackAnalytics).toHaveBeenCalledWith('explore.dropped_data.layer_toggled', {
       organization,
       dataset: 'spans',
+      source: 'dashboards',
       selected: false,
     });
   });

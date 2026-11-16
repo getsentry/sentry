@@ -16,31 +16,28 @@ type TransformationAnalyticsContext = {
 
 type TransformationType = 'fill' | 'smooth';
 
+export type DroppedDataAnalyticsSource = 'explore' | 'discover' | 'dashboards';
+
+type DroppedDataAnalyticsContext = {
+  dataset: DiscoverDatasets;
+  organization: Organization;
+  source: DroppedDataAnalyticsSource;
+};
+
 export type ExploreAnalyticsEventParameters = {
-  'explore.dropped_data.ask_seer_clicked': {
-    dataset: DiscoverDatasets;
-    organization: Organization;
+  'explore.dropped_data.ask_seer_clicked': DroppedDataAnalyticsContext & {
     outcome: string;
     reason: string;
   };
-  'explore.dropped_data.drawer_opened': {
-    dataset: DiscoverDatasets;
-    organization: Organization;
-  };
-  'explore.dropped_data.layer_toggled': {
-    dataset: DiscoverDatasets;
-    organization: Organization;
+  'explore.dropped_data.drawer_opened': DroppedDataAnalyticsContext;
+  'explore.dropped_data.layer_toggled': DroppedDataAnalyticsContext & {
     selected: boolean;
   };
-  'explore.dropped_data.legend_outcome_toggled': {
-    dataset: DiscoverDatasets;
-    organization: Organization;
+  'explore.dropped_data.legend_outcome_toggled': DroppedDataAnalyticsContext & {
     outcome: string;
     selected: boolean;
   };
-  'explore.dropped_data.scope_toggled': {
-    dataset: DiscoverDatasets;
-    organization: Organization;
+  'explore.dropped_data.scope_toggled': DroppedDataAnalyticsContext & {
     scope: 'unexpected' | 'all';
   };
   'explore.floating_trigger.clear_selection': {
