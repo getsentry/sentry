@@ -286,11 +286,6 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
-    def has_feature(self, project: Project, request: Request) -> bool:
-        return features.has(
-            "organizations:performance-view", project.organization, actor=request.user
-        )
-
     def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve performance issue settings
@@ -304,15 +299,9 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         return Response(get_merged_settings(project))
 
     def put(self, request: Request, project: Project) -> Response:
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         internal_only_settings = [setting.value for setting in InternalProjectOptions]
         threshold_settings = [setting.value for setting in ConfigurableThresholds]
         allowed_settings_options = [*internal_only_settings, *threshold_settings]
@@ -374,9 +363,6 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         return Response(data)
 
     def delete(self, request: Request, project: Project) -> Response:
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         # Use raw project overrides (not merged with defaults) to determine disabled options.
         # This preserves existing behavior: if no explicit _enabled setting exists, we treat
         # the detector as "unset" and preserve its thresholds, even if it's enabled by default.

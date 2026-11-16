@@ -379,9 +379,6 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"
     settings.SENTRY_OPTIONS["filestore.control.options"] = {"location": "/tmp/sentry-files"}
 
-    # This is so tests can assume this feature is off by default
-    settings.SENTRY_FEATURES["organizations:performance-view"] = False
-
     # If a request hits the wrong silo, replace the 404 response with an error state
     settings.FAIL_ON_UNAVAILABLE_API_CALL = True
 

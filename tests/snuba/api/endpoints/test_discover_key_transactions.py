@@ -22,7 +22,7 @@ class TeamKeyTransactionTestBase(APITestCase, SnubaTestCase):
         self.project = self.create_project(name="baz", organization=self.org)
         self.event_data = load_data("transaction")
 
-        self.features = ["organizations:performance-view"]
+        self.features = []
 
 
 class ClientCallable(Protocol):
@@ -36,7 +36,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         super().setUp()
         self.url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
 
-    def test_key_transaction_without_feature(self) -> None:
+    def test_key_transaction_with_multiple_projects(self) -> None:
         project = self.create_project(name="qux", organization=self.org)
         data = {
             "project": [self.project.id, project.id],
@@ -48,7 +48,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             self.client.post(self.url, data=data, format="json"),
             self.client.delete(self.url, data=data, format="json"),
         ):
-            assert response.status_code == 404, response.content
+            assert response.status_code == 400, response.content
 
     def test_get_key_transaction_multiple_projects(self) -> None:
         project = self.create_project(name="qux", organization=self.org)
