@@ -35,7 +35,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import math
 import os
@@ -47,6 +46,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from count_test_items import count_tests_in_file
+from selected_tests_common import PYTHON_FULL_SUITE_TRIGGERS, covering_contexts, matches_trigger
 
 ACCEPTANCE_DIR = "tests/acceptance/"
 
@@ -64,15 +64,14 @@ FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     re.compile(
         r"^\.github/workflows/scripts/([^/]*acceptance[^/]*|install-chrome-for-testing\.sh"
         r"|bootstrap-snuba\.py|kafka-topics-healthcheck\.sh|monitor-resources\.py"
-        r"|pr-changed-files\.sh|parse-pr-files\.py|count_test_items\.py"
-        r"|compute-sentry-selected-tests\.py)$"
+        r"|parse-pr-files\.py|count_test_items\.py|selected_tests_common\.py)$"
     ),
     "Makefile",
     "setup.cfg",
     re.compile(r"^devservices/"),
     re.compile(r"^config/"),
     re.compile(r"^\.(python|node)-version$"),
-    # The test harness. The backend's list below covers testutils/pytest/.
+    # The test harness. PYTHON_FULL_SUITE_TRIGGERS covers testutils/pytest/.
     re.compile(r"^tests/(acceptance/)?conftest\.py$"),
     re.compile(r"^tests/acceptance/.*__init__\.py$"),
     "fixtures/page_objects/base.py",
@@ -301,23 +300,6 @@ MODULE_ALIASES: list[tuple[str, tuple[str, ...]]] = [
 PAGE_OBJECT_RE = re.compile(r"^fixtures/page_objects/(\w+)\.py$")
 
 
-def _load_backend_full_suite_triggers() -> list[str | re.Pattern[str]]:
-    # Files that only run while Django starts up have no per-test coverage in
-    # acceptance runs either, so they share the backend's list.
-    path = Path(__file__).parent / "compute-sentry-selected-tests.py"
-    spec = importlib.util.spec_from_file_location("compute_sentry_selected_tests", path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.FULL_SUITE_TRIGGERS
-
-
-def _matches(path: str, trigger: str | re.Pattern[str]) -> bool:
-    if isinstance(trigger, re.Pattern):
-        return trigger.search(path) is not None
-    return path == trigger
-
-
 class FrontendGraph:
     """Import graph of the frontend, built with regexes over static/."""
 
@@ -435,29 +417,11 @@ def _acceptance_test_files(repo_root: Path) -> list[str]:
 
 def _query_coverage(coverage_db: Path, source_files: list[str]) -> dict[str, set[str]]:
     """Acceptance test files whose recorded coverage includes each source file."""
-    conn = sqlite3.connect(coverage_db)
-    try:
-        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        if not {"file", "context", "line_bits"} <= tables:
-            raise ValueError("coverage database has no per-test contexts")
-        found: dict[str, set[str]] = {}
-        for source in source_files:
-            rows = conn.execute(
-                """
-                SELECT c.context, lb.numbits
-                FROM line_bits lb
-                JOIN file f ON lb.file_id = f.id
-                JOIN context c ON lb.context_id = c.id
-                WHERE (f.path = ? OR f.path LIKE ?) AND c.context LIKE ?
-                """,
-                (source, f"%/{source}", f"{ACCEPTANCE_DIR}%"),
-            )
-            found[source] = {
-                context.split("::", 1)[0] for context, numbits in rows if any(bytes(numbits))
-            }
-    finally:
-        conn.close()
-    return found
+    covered = covering_contexts(str(coverage_db), source_files, f"{ACCEPTANCE_DIR}%")
+    return {
+        source: {context.split("::", 1)[0] for context in covered.get(source, ())}
+        for source in source_files
+    }
 
 
 def select_tests(changed: list[str], repo_root: Path, coverage_db: Path | None) -> Selection:
@@ -467,12 +431,11 @@ def select_tests(changed: list[str], repo_root: Path, coverage_db: Path | None) 
         return selection
 
     all_tests = _acceptance_test_files(repo_root)
-    full_triggers = FULL_SUITE_TRIGGERS + _load_backend_full_suite_triggers()
 
     python_sources: list[str] = []
     frontend_files: list[str] = []
     for f in changed:
-        if any(_matches(f, t) for t in FULL_SUITE_TRIGGERS):
+        if any(matches_trigger(f, t) for t in FULL_SUITE_TRIGGERS):
             selection.run_everything(f"{f} changes how the suite is built or run")
         elif f in all_tests:
             selection.tests.add(f)
@@ -485,7 +448,7 @@ def select_tests(changed: list[str], repo_root: Path, coverage_db: Path | None) 
             selection.tests.update(importers)
         elif any(p.search(f) for p in IGNORED):
             continue
-        elif any(_matches(f, t) for t in full_triggers):
+        elif any(matches_trigger(f, t) for t in PYTHON_FULL_SUITE_TRIGGERS):
             selection.run_everything(f"{f} runs at startup, so coverage can't map it")
         elif f.startswith("src/") and f.endswith(".py"):
             python_sources.append(f)
