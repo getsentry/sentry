@@ -20,7 +20,11 @@ from rest_framework.response import Response
 from sentry.models.group import Group
 from sentry.seer.autofix.autofix_agent import get_autofix_run_state
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
+from sentry.seer.autofix.pr_iteration.emit import (
+    PrIterationOutcome,
+    bootstrap_iteration,
+    record_pr_iteration_failure_reason,
+)
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, get_pause_reason
@@ -59,7 +63,8 @@ def handle_ui_feedback(
     the endpoint should send back when the request cannot be acted on: 400 when
     the feedback is empty or the run has no pull request yet, 409 when
     iteration on the run is paused, and 402 when the organization doesn't have
-    enough Seer credits. Raises ``PermissionDenied`` when Seer
+    enough Seer credits, after holding the feedback for the next trigger after a
+    top-up. Raises ``PermissionDenied`` when Seer
     refuses to show us the run.
     """
     if not user_feedback:
@@ -87,16 +92,9 @@ def handle_ui_feedback(
         )
 
     # Check credits here, since the queued feedback is consumed after this request returns.
-    if not can_run_seer_operation(
+    held_for_credits = not can_run_seer_operation(
         group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
-    ):
-        return Response(
-            {
-                "detail": SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
-                "code": SEER_OUT_OF_CREDITS_CODE,
-            },
-            status=status.HTTP_402_PAYMENT_REQUIRED,
-        )
+    )
 
     serialized_users = user_service.serialize_many(
         filter={"user_ids": [user_id]},
@@ -128,7 +126,24 @@ def handle_ui_feedback(
         referrer=referrer,
         run_state=run_state,
         actor_user_id=user_id,
+        held_for_credits=held_for_credits,
     )
+
+    if held_for_credits:
+        # Save the reason for the sweep, in case no top-up comes.
+        record_pr_iteration_failure_reason(
+            log_ctx=log_ctx,
+            run_id=run_id,
+            organization_id=group.organization.id,
+            reason=PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value,
+        )
+        return Response(
+            {
+                "detail": SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
+                "code": SEER_OUT_OF_CREDITS_CODE,
+            },
+            status=status.HTTP_402_PAYMENT_REQUIRED,
+        )
 
     trigger_consume_pr_iteration_feedback(
         log_ctx=log_ctx,
