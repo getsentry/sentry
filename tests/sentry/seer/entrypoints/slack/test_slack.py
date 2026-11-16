@@ -167,6 +167,36 @@ class SlackAutofixEntrypointTest(TestCase):
             slack_user_id=self.slack_request.user_id,
         )
 
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    def test_on_trigger_autofix_out_of_credits(
+        self, mock_send_threaded_ephemeral_message: MagicMock
+    ) -> None:
+        ep = self._get_entrypoint()
+        ep.on_trigger_autofix_out_of_credits(started=False)
+        mock_send_threaded_ephemeral_message.assert_called_once_with(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            renderable=ANY,
+            slack_user_id=self.slack_request.user_id,
+        )
+        blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
+        assert AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE in blocks
+        assert "Contact Admin" in blocks
+
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    def test_on_trigger_autofix_out_of_credits_for_billing_member(
+        self, mock_send_threaded_ephemeral_message: MagicMock, _mock_get_scopes: MagicMock
+    ) -> None:
+        ep = self._get_entrypoint()
+        ep.on_trigger_autofix_out_of_credits(started=True)
+        blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
+        assert AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE in blocks
+        assert "Configure auto-reload" in blocks
+
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
     def test_on_trigger_autofix_success(self, mock_update_message: MagicMock) -> None:
         self.slack_request.data = {
