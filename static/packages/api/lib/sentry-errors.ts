@@ -88,6 +88,58 @@ export class SentryApiError<
   }
 }
 
+/** A `SentryApiError`'s request and response fields; see `getSentryApiErrorDetails`. */
+export type SentryApiErrorDetails = {
+  /** The request method, or `GET` when the error has no request. */
+  method: string;
+  /** The request URL's path, without origin or query, when there is a request. */
+  path?: string;
+  status?: number;
+  statusText?: string;
+  /** The parsed response body, when it was JSON. */
+  responseJSON?: unknown;
+  /** The response text, when the transport read it. */
+  responseText?: string;
+  /** `METHOD /path status`, with `n/a` for a missing status, such as `GET /api/0/organizations/ 404`. */
+  summary: string;
+};
+
+/**
+ * Collect what an application's own error class usually carries from a
+ * `SentryApiError`, such as in an error interceptor that maps SDK errors.
+ * Pass the interceptor's `request` for errors that do not carry one.
+ *
+ * @example
+ * ```ts
+ * sentry.client.interceptors.error.use((error, _response, request) =>
+ *   error instanceof SentryApiError
+ *     ? new AppRequestError(getSentryApiErrorDetails(error, request), { cause: error })
+ *     : error,
+ * );
+ * ```
+ */
+export function getSentryApiErrorDetails(
+  error: SentryApiError,
+  request: Request | undefined = error.request,
+): SentryApiErrorDetails {
+  const method = request?.method ?? "GET";
+  const path = request === undefined ? undefined : new URL(request.url).pathname;
+  // The transport keeps a body that is not JSON as its text.
+  const isJson = error.rawBody === undefined
+    ? typeof error.body === "object" && error.body !== null
+    : error.body !== error.rawBody;
+  const details: SentryApiErrorDetails = {
+    method,
+    summary: [method, path, error.status ?? "n/a"].filter((part) => part !== undefined).join(" "),
+  };
+  if (path !== undefined) details.path = path;
+  if (error.status !== undefined) details.status = error.status;
+  if (error.response !== undefined) details.statusText = error.response.statusText;
+  if (isJson) details.responseJSON = error.body;
+  if (error.rawBody !== undefined) details.responseText = error.rawBody;
+  return details;
+}
+
 /**
  * Convert an SDK result to a status-discriminated HTTP result.
  *

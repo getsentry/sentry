@@ -264,6 +264,8 @@ const sentry = createSentryClient(
 const { data, error } = await sentry.listOrganizations();
 ```
 
+The CSRF token goes only on unsafe-method requests (not `GET`, `HEAD`, `OPTIONS` or `TRACE`) to the page's origin or a similar one: the same host, a parent or subdomain of it, or a sibling subdomain such as `us.sentry.io` from `acme.sentry.io`. Hosts are compared by whole DNS labels. The page origin is `location.origin`; pass `origin` to set it, for example in tests. Without either, only relative URLs get the token.
+
 ### Routing requests by organization
 
 Set `resolveBaseUrl` to pick each request's base URL before the URL is built,
@@ -485,6 +487,32 @@ sentry.client.interceptors.error.use((error, response, request) => {
 });
 ```
 
+To keep an existing error class, map to it in the interceptor. The SDK does not import your class. `getSentryApiErrorDetails` collects what such a class usually carries: `method`, `path`, `status`, `statusText`, the parsed `responseJSON` (only when the body was JSON), `responseText`, and a `summary` such as `GET /api/0/organizations/ 404`:
+
+```ts
+import { getSentryApiErrorDetails, SentryApiError, type SentryApiErrorDetails } from "@sentry/api";
+
+class RequestError extends Error {
+  readonly status?: number;
+  readonly responseJSON?: unknown;
+  readonly responseText?: string;
+
+  constructor(details: SentryApiErrorDetails, options?: ErrorOptions) {
+    super(details.summary, options);
+    this.name = "RequestError";
+    this.status = details.status;
+    this.responseJSON = details.responseJSON;
+    this.responseText = details.responseText;
+  }
+}
+
+sentry.client.interceptors.error.use((error, _response, request) =>
+  error instanceof SentryApiError ? new RequestError(getSentryApiErrorDetails(error, request), { cause: error }) : error,
+);
+```
+
+Operations then return or throw a `RequestError` for HTTP failures; cancellations and fetch rejections pass through unchanged.
+
 ### Opt-in status narrowing
 
 Every operation with documented error responses has a generated `narrowError_<operation>` wrapper. It narrows the default HTTP `SentryApiError` to the operation's status-to-body type map, preserving its metadata. These wrappers remain standalone functions; pass `sentry.client` to reuse the client configured above:
@@ -562,6 +590,18 @@ if (page.nextCursor !== undefined) {
 ```
 
 Each page preserves its own raw `Response`, including status and headers. The transport has already read the body; use `page.data` for the parsed result. Code that constructs a `PaginatedResponse<T>` manually, such as test fixtures, must now supply its `response` field.
+
+`readSentryResponseHeaders` reads the other headers Sentry list endpoints send: `X-Hits` and `X-Max-Hits` as numbers (omitted when missing or malformed), `X-Sentry-Direct-Hit` as a boolean, and the raw `Link` header. `parseSentryLinks` parses `Link` by `rel`, keeping each target's `href` and `results` flag as well as its cursor:
+
+```ts
+import { parseSentryLinks, readSentryResponseHeaders } from "@sentry/api";
+
+const page = await sentry.fetchPage.listOrganizationIssues(options);
+const { link, hits, maxHits, directHit } = readSentryResponseHeaders(page.response.headers);
+const links = parseSentryLinks(link ?? null);
+links.previous?.results; // false on the first page
+links.next?.href; // the server's URL for the next page
+```
 
 ### Bounded collection
 

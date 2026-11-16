@@ -661,6 +661,7 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
 # account is denied with user-required instead of matching the oracle.
 SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
+        "OrganizationDashboardsStarred",
         "OrganizationGroupSearchViews_post",
         "OrganizationMemberDetails",
         "OrganizationMemberDetails_delete",
@@ -1814,12 +1815,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             "DataForwardingIndexEndpoint": "organizations:data-forwarding",
             "DiscoverSavedQueryDetailEndpoint": "organizations:discover-query",
             "DiscoverSavedQueriesEndpoint": "organizations:discover-query",
+            "ExploreSavedQueriesEndpoint": "organizations:visibility-explore-view",
             "ExternalTeamDetailsEndpoint": "organizations:integrations-codeowners",
             "ExternalTeamEndpoint": "organizations:integrations-codeowners",
             "ExternalUserDetailsEndpoint": "organizations:integrations-codeowners",
             "ExternalUserEndpoint": "organizations:integrations-codeowners",
             "EventAttachmentDetailsEndpoint": "organizations:event-attachments",
             "GroupIntegrationDetailsEndpoint": "organizations:integrations-issue-basic",
+            "OrganizationDashboardsStarredEndpoint": "organizations:dashboards-starred",
             "OrganizationEventsEndpoint": "organizations:discover-basic",
             "OrganizationGroupSearchViewsEndpoint": "organizations:issue-views",
             "OrganizationProfilingChunksEndpoint": "organizations:continuous-profiling",
@@ -2086,6 +2089,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                 "fields": ["title"],
                 "query": "is:unresolved",
                 "version": 2,
+            },
+            ("ExploreSavedQueriesEndpoint", "POST"): {
+                "name": "Permission matrix explore query",
+                "projects": [self.project.id],
+                "query": [{"fields": ["span.op"], "mode": "samples", "query": ""}],
+                "range": "24h",
             },
             ("DiscoverSavedQueryDetailEndpoint", "PUT"): {
                 "name": "Updated permission matrix query",

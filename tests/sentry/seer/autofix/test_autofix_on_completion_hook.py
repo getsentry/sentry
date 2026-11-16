@@ -27,6 +27,7 @@ from sentry.seer.autofix.feature.models import FEATURE_ID, LEGACY_FEATURE_ID, SI
 from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
     PR_CREATION_FAILED_REASON,
+    SINGLE_RUN_HANDED_OFF_KEY,
     STOPPING_POINT_TO_STEP,
     AutofixOnCompletionHook,
     _stopping_point_from_run,
@@ -73,7 +74,11 @@ from sentry.seer.autofix.pr_iteration.pause import (
     get_pause_reason,
     is_pr_iteration_paused,
 )
-from sentry.seer.autofix.single_run import is_single_run, single_run_root_cause_payload
+from sentry.seer.autofix.single_run import (
+    CODING_AGENT_HANDOFF_KEY,
+    is_single_run,
+    single_run_root_cause_payload,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.milestones import reconcile_milestones
@@ -3055,6 +3060,7 @@ class TestCompletionMode(TestCase):
 
 
 _ROOT_CAUSE = {"headline": "H", "cause": "C"}
+_HANDOFF_ROOT_CAUSE = {**_ROOT_CAUSE, "relevant_repos": ["owner/repo"]}
 
 
 def _created_pr() -> dict[str, RepoPRState]:
@@ -3221,6 +3227,91 @@ class TestSingleRunCompletion(TestCase):
         assert self._events(mocks) == []
         (call,) = mocks["updates"].call_args_list
         assert call.kwargs["kwargs"]["event_type"] == SentryAppEventType.SEER_ERRORED
+
+    def _set_up_handoff(self, *, flagged: bool = True) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 456)
+        self.create_seer_agent_run(
+            run=self.seer_run,
+            source=SINGLE_RUN_FEATURE_ID,
+            project=self.project,
+            group=self.group,
+            extras={CODING_AGENT_HANDOFF_KEY: True} if flagged else {},
+        )
+
+    def _execute_handing_off(self, state: SeerRunState) -> MagicMock:
+        with patch(f"{HOOK_PATH}.trigger_coding_agent_handoff") as handoff:
+            self._execute(state)
+        return handoff
+
+    def test_handoff_run_launches_the_coding_agent_once(self) -> None:
+        self._set_up_handoff()
+        state = self._state(single_run_memory_block(_HANDOFF_ROOT_CAUSE))
+        state.metadata = {
+            **(state.metadata or {}),
+            "referrer": AutofixReferrer.AGENTIC_TRIAGE.value,
+        }
+
+        handoff = self._execute_handing_off(state)
+        again = self._execute_handing_off(state)
+
+        handoff.assert_called_once_with(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.AGENTIC_TRIAGE,
+            integration_id=456,
+        )
+        again.assert_not_called()
+
+    def test_handoff_waits_for_the_run_to_complete(self) -> None:
+        self._set_up_handoff()
+        paused = self._state(
+            single_run_memory_block(_HANDOFF_ROOT_CAUSE), status="awaiting_user_input"
+        )
+
+        assert not self._execute_handing_off(paused).called
+        self._execute_handing_off(self._state(single_run_memory_block(_HANDOFF_ROOT_CAUSE)))
+        handoff = self._execute_handing_off(
+            self._state(single_run_memory_block(_HANDOFF_ROOT_CAUSE))
+        )
+
+        handoff.assert_not_called()
+        assert SeerRun.objects.get(id=self.seer_run.id).extras[SINGLE_RUN_HANDED_OFF_KEY] is True
+
+    def test_handoff_run_without_a_repo_or_after_a_stop_does_not_launch(self) -> None:
+        self._set_up_handoff()
+        stop = {"reason": "The outage was upstream.", "suggestion": "Check the provider."}
+        for block in (
+            single_run_memory_block(_ROOT_CAUSE),
+            single_run_memory_block({**_ROOT_CAUSE, "relevant_repos": []}),
+            single_run_memory_block(_HANDOFF_ROOT_CAUSE, stop=stop),
+        ):
+            with self.subTest(block=block.artifacts):
+                handoff = self._execute_handing_off(self._state(block))
+
+                handoff.assert_not_called()
+
+    def test_run_not_flagged_for_handoff_does_not_launch(self) -> None:
+        self._set_up_handoff(flagged=False)
+
+        handoff = self._execute_handing_off(
+            self._state(single_run_memory_block(_HANDOFF_ROOT_CAUSE))
+        )
+
+        handoff.assert_not_called()
+
+    def test_handoff_removed_mid_run_does_not_launch(self) -> None:
+        self._set_up_handoff()
+        self.project.delete_option("sentry:seer_automation_handoff_point")
+
+        handoff = self._execute_handing_off(
+            self._state(single_run_memory_block(_HANDOFF_ROOT_CAUSE))
+        )
+
+        handoff.assert_not_called()
 
     def test_single_run_metric_tagged_single_run(self) -> None:
         mocks = self._execute(self._state(single_run_memory_block(_ROOT_CAUSE)))
