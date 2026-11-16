@@ -33,10 +33,6 @@ describe('useDroppedDataLayer', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('returns the band, filter note, and layer control when data was dropped', async () => {
     mockDroppedData();
 
