@@ -47,6 +47,7 @@ class NotebookItemType(InboxItemType[Notebook]):
 @dataclass(frozen=True, kw_only=True)
 class NotebookCompletedData(InboxEventData):
     seer_run_id: int  # Seer DbRunState ID, matching issue inbox events.
+    generation: int
 
 
 @dataclass(frozen=True, kw_only=True)

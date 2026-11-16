@@ -35,6 +35,7 @@ class IssueItemType(InboxItemType[Group]):
 @dataclass(frozen=True, kw_only=True)
 class IssueAssignedData(InboxEventData):
     assignment_source: ActivityIntegration | None
+    activity_id: int
 
 
 @dataclass(frozen=True, kw_only=True)

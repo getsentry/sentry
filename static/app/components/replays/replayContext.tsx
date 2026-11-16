@@ -406,6 +406,7 @@ export function Provider({
       const inst = new Replayer(events, {
         root,
         blockClass: 'sentry-block',
+        showWarning: false,
         mouseTail: {
           duration: 0.75 * 1000,
           lineCap: 'round',
