@@ -1,3 +1,5 @@
+import type { SENTRY_ERROR_EXTRA_KEYS } from "./error-codes.gen.ts";
+
 /**
  * The generated SDK's non-throwing result shape.
  *
@@ -53,6 +55,40 @@ export type NarrowedResult<TData, TErrorMap> =
   | { ok: true; data: TData; response: Response }
   | { ok: false; error: SentryApiResultError<TErrorMap> };
 
+/** Codes the backend's `SentryAPIException` subclasses send, from the spec. */
+export type KnownSentryErrorCode = keyof typeof SENTRY_ERROR_EXTRA_KEYS;
+
+/** The string fields each known code's `extra` can carry. */
+export type SentryErrorExtra<TCode extends KnownSentryErrorCode> = {
+  [TKey in (typeof SENTRY_ERROR_EXTRA_KEYS)[TCode][number]]?: string;
+};
+
+/** A known code, or another code the server sends. */
+export type SentryErrorCode = KnownSentryErrorCode | (string & {});
+
+/** The `detail` of a `{"detail": {"code", "message", "extra"}}` error body. */
+export type SentryErrorDetail = {
+  code: SentryErrorCode;
+  message: string;
+  extra: Record<string, unknown>;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** Read a `SentryAPIException` body; undefined for any other body. */
+export function readSentryErrorDetail(body: unknown): SentryErrorDetail | undefined {
+  const detail = isRecord(body) ? body.detail : undefined;
+  if (!isRecord(detail) || typeof detail.code !== "string" || detail.code === "") {
+    return undefined;
+  }
+  return {
+    code: detail.code,
+    message: typeof detail.message === "string" ? detail.message : "",
+    extra: isRecord(detail.extra) ? detail.extra : {},
+  };
+}
+
 /** An API failure with its parsed body and raw response. */
 export class SentryApiError<
   TStatus extends number | undefined = number | undefined,
@@ -66,6 +102,13 @@ export class SentryApiError<
   readonly request?: Request;
   /** Original response text, captured during the same read as the parsed body. */
   readonly rawBody?: string;
+  // `declare`: errors from other bodies keep their shape, without these keys.
+  /** The `code` of a `{"detail": {"code", "message", "extra"}}` body, which the backend's `SentryAPIException` sends. */
+  declare readonly code?: SentryErrorCode;
+  /** That body's `message`. `message` stays this error's own. */
+  declare readonly detailMessage?: string;
+  /** That body's `extra`, such as `loginUrl` for `sso-required`. */
+  declare readonly extra?: Record<string, unknown>;
 
   constructor(
     status: TStatus,
@@ -85,7 +128,21 @@ export class SentryApiError<
     this.documented = documented;
     this.request = options?.request;
     this.rawBody = options?.rawBody;
+    const detail = readSentryErrorDetail(body);
+    if (detail) {
+      this.code = detail.code;
+      this.detailMessage = detail.message;
+      this.extra = detail.extra;
+    }
   }
+}
+
+/** Whether `error` is a `SentryApiError` whose body has the given `code`. */
+export function isSentryErrorCode<TCode extends SentryErrorCode>(
+  error: unknown,
+  code: TCode,
+): error is SentryApiError & { code: TCode; detailMessage: string; extra: Record<string, unknown> } {
+  return error instanceof SentryApiError && error.code === code;
 }
 
 /** A `SentryApiError`'s request and response fields; see `getSentryApiErrorDetails`. */
