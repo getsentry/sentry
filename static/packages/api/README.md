@@ -282,6 +282,26 @@ const sentry = createSentryClient({
 await sentry.listOrganizationIssues({ path: { organization_id_or_slug: "acme" } });
 ```
 
+Raw requests, such as `client.get` or `client.prepareRequest` with a
+hand-written path, keep the configured base URL by default. Pass
+`{ rawRequests: "lookup" }` to send those whose path names an organization
+through the lookup too, for example when the lookup also picks the account or
+server that knows the organization. Generated operations still follow their
+declarations.
+
+```ts
+import { routeCellOperations } from "@sentry/api/client";
+
+const sentry = createSentryClient({
+  baseUrl: "https://sentry.io",
+  resolveBaseUrl: routeCellOperations(organization => regionUrls.get(organization), {
+    rawRequests: "lookup",
+  }),
+});
+// Also sent to the organization's region.
+await sentry.client.get({ url: "/organizations/acme/issues/" });
+```
+
 It runs once per request, including `prepareRequest`, after `requestValidator`
 and before request interceptors. A per-call `resolveBaseUrl` replaces the
 configured one. A throw rejects the request unchanged, before `fetch` is called.
