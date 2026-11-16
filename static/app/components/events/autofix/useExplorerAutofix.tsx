@@ -239,11 +239,14 @@ export interface ExplorerAutofixState {
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
   sentry_run_id?: string | null;
-  warnings?: Array<{
-    warning_type: string;
-    installation_id?: string;
-    repo_name?: string;
-  }>;
+  warnings?: Array<
+    | {
+        warning_type: string;
+        installation_id?: string;
+        repo_name?: string;
+      }
+    | PrIterationOutOfCreditsWarning
+  >;
 }
 
 /**
@@ -267,10 +270,13 @@ export interface PrIterationOutOfCreditsWarning {
 export function getPrIterationOutOfCreditsWarning(
   runState: ExplorerAutofixState | null
 ): PrIterationOutOfCreditsWarning | null {
-  const warning = runState?.warnings?.find(
-    w => w.warning_type === 'pr_iteration_out_of_credits'
-  );
-  return (warning as PrIterationOutOfCreditsWarning | undefined) ?? null;
+  return runState?.warnings?.find(isPrIterationOutOfCreditsWarning) ?? null;
+}
+
+function isPrIterationOutOfCreditsWarning(
+  warning: NonNullable<ExplorerAutofixState['warnings']>[number]
+): warning is PrIterationOutOfCreditsWarning {
+  return warning.warning_type === 'pr_iteration_out_of_credits';
 }
 
 /**

@@ -6,7 +6,6 @@ import {Text} from '@sentry/scraps/text';
 import type {
   AutofixSection,
   ExplorerAutofixState,
-  PrIterationOutOfCreditsWarning,
   RawFeedback,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -562,7 +561,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                         unfinished_action: null,
                         unfinished_iteration_index: null,
                         held_feedback_count: 2,
-                      } as PrIterationOutOfCreditsWarning,
+                      },
                     ],
                   }
                 )}
@@ -583,7 +582,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                       unfinished_action: 'push',
                       unfinished_iteration_index: 1,
                       held_feedback_count: 0,
-                    } as PrIterationOutOfCreditsWarning,
+                    },
                   ],
                 })}
                 section={makeSection('completed', [
@@ -607,7 +606,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                       unfinished_action: 'branch_moved_retry',
                       unfinished_iteration_index: 1,
                       held_feedback_count: 0,
-                    } as PrIterationOutOfCreditsWarning,
+                    },
                   ],
                 })}
                 section={makeSection('completed', [

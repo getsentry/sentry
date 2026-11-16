@@ -8,7 +8,6 @@ import {CodingAgentProvider, DiffLineType} from 'sentry/components/events/autofi
 import type {
   AutofixArtifact,
   AutofixSection,
-  PrIterationOutOfCreditsWarning,
   RootCauseArtifact,
   SolutionArtifact,
   useExplorerAutofix,
@@ -3032,7 +3031,7 @@ describe('out of credits', () => {
                 unfinished_action: null,
                 unfinished_iteration_index: null,
                 held_feedback_count: 2,
-              } as PrIterationOutOfCreditsWarning,
+              },
             ],
           },
         }}
