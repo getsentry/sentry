@@ -1,4 +1,4 @@
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
 

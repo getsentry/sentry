@@ -1,7 +1,7 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
 import {parseAsString, useQueryState, useQueryStates, type inferParserType} from 'nuqs';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';

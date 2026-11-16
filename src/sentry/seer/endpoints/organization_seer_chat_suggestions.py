@@ -126,9 +126,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             "projects": [
                 {"slug": project.slug, "platform": project.platform} for project in projects
             ],
-            "code_mode": features.has(
-                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
-            ),
+            "code_mode": True,
             "actions_enabled": actions_enabled,
         }
         if actions_enabled:

@@ -28,7 +28,6 @@ describe('useFetchEventsTimeSeries', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     jest.resetAllMocks();
   });
 

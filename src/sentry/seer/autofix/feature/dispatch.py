@@ -50,7 +50,12 @@ from sentry.seer.autofix.utils import (
     get_event_matched_project_repo_ids,
     is_free_cohort_org,
 )
-from sentry.seer.credits import SeerFeature, SeerOperation, has_enough_seer_credits
+from sentry.seer.credits import (
+    SeerFeature,
+    SeerOperation,
+    check_seer_operation,
+    get_denial_reason,
+)
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
@@ -182,10 +187,9 @@ def check_autofix_billing(
     """
     # Check credits for token-billed orgs.
     if features.has("organizations:token-billed-seer-enabled", organization):
-        if features.has(
-            "organizations:seer-credit-checks", organization
-        ) and not has_enough_seer_credits(organization, SeerFeature.AUTOFIX, operation):
-            raise SeerOutOfCreditsException()
+        credits = check_seer_operation(organization, SeerFeature.AUTOFIX, operation)
+        if not credits.has_enough_credits:
+            raise SeerOutOfCreditsException(get_denial_reason(credits))
         return False
 
     # Check quota for non-token-billed orgs once per run.
@@ -356,7 +360,7 @@ def trigger_autofix_feature(
             },
         )
         raise
-    except SeerOutOfCreditsException:
+    except SeerOutOfCreditsException as e:
         logger.info(
             "autofix_feature.dispatch.out_of_credits",
             extra={
@@ -364,6 +368,7 @@ def trigger_autofix_feature(
                 "organization_id": group.organization.id,
                 "operation": args.step.seer_operation.value,
                 "referrer": args.referrer.value,
+                "denial_reason": e.denial_reason,
             },
         )
         raise

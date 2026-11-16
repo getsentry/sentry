@@ -151,7 +151,6 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
           />
 
           <DropdownMenu
-            closeOnSelect={false}
             items={[
               {
                 key: 'ip-pinning',
@@ -162,7 +161,6 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
                 textValue: t('Use IP pinning'),
                 disabled: copyDisabled,
                 isSelected: useIpPinning,
-                closeOnSelect: false,
                 onAction: toggleIpPinning,
               },
             ]}

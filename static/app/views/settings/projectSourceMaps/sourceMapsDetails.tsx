@@ -23,9 +23,9 @@ import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {isUUID} from 'sentry/utils/string/isUUID';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -111,7 +111,6 @@ type Props = {
 };
 
 export function SourceMapsDetails({bundleId, project}: Props) {
-  const api = useApi();
   const organization = useOrganization();
   const navigate = useNavigate();
   const [queryParams, setQueryParams] = useQueryStates({
@@ -277,11 +276,9 @@ export function SourceMapsDetails({bundleId, project}: Props) {
           )}
         {isDebugIdBundle
           ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
-              const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
-                project.slug
-              }/artifact-bundles/${encodeURIComponent(bundleId)}/files/${
-                data.id
-              }/?download=1`;
+              const downloadUrl = resolveHostname(
+                `/api/0/projects/${organization.slug}/${project.slug}/artifact-bundles/${encodeURIComponent(bundleId)}/files/${data.id}/?download=1`
+              );
 
               return (
                 <ArtifactsTableRow
@@ -309,9 +306,9 @@ export function SourceMapsDetails({bundleId, project}: Props) {
               );
             })
           : artifactsData?.map(data => {
-              const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
-                project.slug
-              }/releases/${encodeURIComponent(bundleId)}/files/${data.id}/?download=1`;
+              const downloadUrl = resolveHostname(
+                `/api/0/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(bundleId)}/files/${data.id}/?download=1`
+              );
 
               return (
                 <ArtifactsTableRow

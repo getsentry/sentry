@@ -85,6 +85,7 @@ import {useEngagedViewTracking} from './useEngagedViewTracking';
 import {groupApiOptions, useGroup} from './useGroup';
 import {useGroupDetailsRoute} from './useGroupDetailsRoute';
 import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
+import {ISSUE_DRAWER_TABS, useIssueDrawerReturnPath} from './useIssueDrawerReturnPath';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -635,18 +636,28 @@ function GroupDetailsContentInner({
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
   );
+  const {currentTab, baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
+  const getReturnPath = useIssueDrawerReturnPath({
+    baseUrl,
+    currentTab,
+    pathname: location.pathname,
+  });
   const {openDistributionsDrawer} = useGroupDistributionsDrawer({
+    getReturnPath,
     group,
     includeFeatureFlagsTab: includeFlagDistributions,
   });
-  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
-  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
-  const {openIssueActivityDrawer} = useIssueActivityDrawer({group});
+  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({
+    getReturnPath,
+    group,
+    project,
+  });
+  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({getReturnPath, group, project});
+  const {openIssueActivityDrawer} = useIssueActivityDrawer({getReturnPath, group});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
-  const {currentTab} = useGroupDetailsRoute();
-  const location = useLocation();
   const autofixPage = hasAutofixPage(organization);
   // nuqs flips this as soon as the drawer closes, before the URL catches up, so
   // closing the drawer doesn't reopen it.
@@ -746,13 +757,8 @@ function GroupDetailsContentInner({
     ...(tagKey ? {tagKey} : {}),
   });
 
-  const isDisplayingEventDetails = [
-    Tab.DETAILS,
-    Tab.DISTRIBUTIONS,
-    Tab.SIMILAR_ISSUES,
-    Tab.MERGED,
-    Tab.ACTIVITY,
-  ].includes(currentTab);
+  const isDisplayingEventDetails =
+    currentTab === Tab.DETAILS || ISSUE_DRAWER_TABS.has(currentTab);
 
   if (redirectToAutofixTab) {
     return (

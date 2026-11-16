@@ -97,7 +97,7 @@ const createExploreUrl = (
       queryParams.aggregateField = JSON.parse(queryParams.aggregateField);
     } else if (Array.isArray(queryParams.aggregateField)) {
       queryParams.aggregateField = queryParams.aggregateField.map(item =>
-        item === null ? null : JSON.parse(item)
+        JSON.parse(item)
       );
     }
   }

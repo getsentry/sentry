@@ -5,7 +5,7 @@ import {IconClose} from '@sentry/icons/close';
 import {IconSeer} from '@sentry/icons/seer';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {
@@ -14,6 +14,7 @@ import {
 } from 'sentry/components/events/autofix/autofixCredits';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
+  getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesSection,
   isCodingAgentsSection,
@@ -28,12 +29,13 @@ import {
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {AutofixStartCard} from './autofixStartCard';
 import {CodeChangesCard} from './codeChangesCard';
 import {CodingAgentsCard} from './codingAgentsCard';
-import {SeerDrawerNextStep} from './nextStep';
+import {SeerDrawerNextStep, SingleRunHandoffDropdown} from './nextStep';
 import {PullRequestsCard} from './pullRequestsCard';
 import {RootCauseCard} from './rootCauseCard';
 import {SeerEnableNotifications} from './seerEnableNotifications';
@@ -66,6 +68,10 @@ export function SeerDrawerContent({
   const singleRunId = getAutofixRunId(singleRun);
   const openSingleRunChat = useOpenSingleRunChat();
   const isSingleRunChatOpen = useIsSingleRunChatOpen(singleRunId);
+  const singleRunRootCause = singleRun ? sections.find(isRootCauseSection) : undefined;
+  const singleRunHasRootCause =
+    defined(singleRunRootCause) &&
+    defined(getAutofixArtifactFromSection(singleRunRootCause));
 
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
@@ -109,15 +115,24 @@ export function SeerDrawerContent({
         )}
       {singleRun && (
         <NextStepWrap isSticky={stickyNextStep}>
-          <Button
-            variant="primary"
-            icon={<IconSeer />}
-            onClick={() => singleRunId !== undefined && openSingleRunChat(singleRunId)}
-            disabled={isSingleRunChatOpen}
-            tooltipProps={{title: isSingleRunChatOpen ? t('Chat is open') : undefined}}
-          >
-            {t('Open Autofix')}
-          </Button>
+          <ButtonBar columns="1fr auto">
+            <Button
+              variant="primary"
+              icon={<IconSeer />}
+              onClick={() => singleRunId !== undefined && openSingleRunChat(singleRunId)}
+              disabled={isSingleRunChatOpen}
+              tooltipProps={{title: isSingleRunChatOpen ? t('Chat is open') : undefined}}
+            >
+              {t('Open Autofix')}
+            </Button>
+            {singleRunHasRootCause && singleRunId !== undefined && (
+              <SingleRunHandoffDropdown
+                autofix={autofix}
+                group={group}
+                runId={singleRunId}
+              />
+            )}
+          </ButtonBar>
         </NextStepWrap>
       )}
       {autofix.codingAgentErrors.map(({id, message}) => (
