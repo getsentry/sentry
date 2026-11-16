@@ -573,6 +573,41 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
                 assert result[1][0]["count"] == expected, key
             assert response.data[key]["meta"]["dataset"] == "spans"
 
+    def test_top_events_no_groupby(self) -> None:
+        """topEvents with only aggregate fields and no group-by should return the
+        single aggregate series instead of 500ing on an empty filter."""
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": transaction, "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                )
+                for transaction in ["foo", "bar"]
+            ],
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count()",
+                "field": ["count()"],
+                "orderby": ["-count"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 10,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        rows = response.data[""]["data"][0:6]
+        for expected, result in zip([0, 2, 0, 0, 0, 0], rows):
+            assert result[1][0]["count"] == expected
+        assert response.data[""]["meta"]["dataset"] == "spans"
+
     def test_top_events_multi_y_axis(self) -> None:
         self.store_spans(
             [
