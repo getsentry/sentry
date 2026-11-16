@@ -21,7 +21,6 @@ export const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
   return tags;
 }, {});
 
-export const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
 export const STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS = omit(
   STATIC_FIELD_TAGS,
   ERROR_ONLY_FIELDS
