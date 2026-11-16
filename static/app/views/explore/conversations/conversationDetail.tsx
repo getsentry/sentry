@@ -13,6 +13,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 
 import {ConversationsBreadcrumbs} from './components/conversationsBreadcrumbs';
+import {ConversationSearchInput} from './components/conversationSearchInput';
 import {ConversationSummary} from './components/conversationSummary';
 import {
   CONVERSATION_VIEW_TABS,
@@ -22,6 +23,7 @@ import {
 import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
 import {extractMessagesFromNodes} from './utils/conversationMessages';
+import {hasConversationTranscriptSearchFeature} from './utils/features';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -58,6 +60,7 @@ function ConversationDetailPage() {
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
   const isInitialLoading = isLoading && nodes.length === 0;
+  const hasTranscriptSearch = hasConversationTranscriptSearchFeature(organization);
 
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
@@ -116,7 +119,13 @@ function ConversationDetailPage() {
           isLoading={isInitialLoading}
         />
       </Container>
-      <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
+      <Stack
+        flex={1}
+        minHeight="0"
+        overflow="hidden"
+        padding="xl"
+        gap={hasTranscriptSearch ? 'md' : 'xl'}
+      >
         <Flex flexShrink={0} align="center" justify="between" gap="md">
           <Tabs value={queryState.tab} onChange={handleTabChange}>
             <TabList variant="floating">
@@ -128,6 +137,7 @@ function ConversationDetailPage() {
             <ExportTranscriptButton conversation={conversation} />
           )}
         </Flex>
+        {hasTranscriptSearch && <ConversationSearchInput />}
         <ConversationViewContainer>
           <ConversationViewContent
             conversation={conversation}
