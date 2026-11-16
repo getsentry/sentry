@@ -11,15 +11,18 @@ import {SeerRepoTable} from 'sentry/components/seer/repoTable/seerRepoTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {orgHasCodeReviewFeature} from 'sentry/utils/seer/orgHasCodeReviewFeature';
+import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 
 export default function SeerAutomationRepos() {
   const organization = useOrganization();
   const location = useLocation();
+  const canWrite = useCanWriteSettings();
 
   if (!orgHasCodeReviewFeature(organization)) {
     return (
@@ -60,6 +63,7 @@ export default function SeerAutomationRepos() {
         )}
       />
       <Stack gap="lg" flex="1" minHeight="0" contain="size">
+        {!canWrite && <OrganizationPermissionAlert />}
         <SeerSettingsPageBanners isCodeReviewPage />
         <SeerRepoTable />
       </Stack>
