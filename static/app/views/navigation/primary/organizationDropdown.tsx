@@ -14,6 +14,7 @@ import {
   OrganizationAvatar,
   ProjectAvatar,
 } from '@sentry/scraps/avatar';
+import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {
   DropdownMenu,
   type DropdownMenuProps,
@@ -52,7 +53,6 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
-import {NavigationAvatarButton} from './navigationAvatarButton';
 import {NavigationMenuHeader} from './navigationMenuHeader';
 
 const QUICK_ACCESS_PROJECT_LIMIT = 5;
@@ -159,7 +159,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       description={t('Yep. We "moved the cheese", but it\'s for the better...')}
     >
       {tourProps => (
-        <NavigationAvatarButton
+        <AvatarButton
           avatar={avatarProps}
           size={size}
           aria-label={t('Toggle organization menu')}

@@ -24,11 +24,6 @@ interface AvatarButtonProps extends Omit<
   'aria-label': string;
   /** Omit to render an empty/unassigned placeholder. */
   avatar?: BaseAvatarProps;
-  /**
-   * Avatar whose color tints the button's frame (chonk and border). Defaults to
-   * `avatar`. Use it to make buttons that sit together share one frame color.
-   */
-  frameAvatar?: BaseAvatarProps;
   /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
   round?: boolean;
   size?: AvatarButtonSize;
@@ -36,7 +31,6 @@ interface AvatarButtonProps extends Omit<
 
 export function AvatarButton({
   avatar,
-  frameAvatar,
   round: explicitRound,
   size: explicitSize,
   ...props
@@ -57,15 +51,11 @@ export function AvatarButton({
   });
 
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
-  // Shares the query cache with `colors` when no `frameAvatar` is given.
-  const frameColors = useAvatarColors(isSuggested ? undefined : (frameAvatar ?? avatar));
-  // The chonk sits under this button's own image, so its edge comes from
-  // `colors` even when the frame color comes from `frameAvatar`.
   const edge = colors.type === 'image' ? (colors.edge ?? undefined) : undefined;
   const chonk =
-    frameColors.type === 'none'
+    colors.type === 'none'
       ? undefined
-      : getAvatarChonk(frameColors.dominant, theme.type, edge);
+      : getAvatarChonk(colors.dominant, theme.type, edge);
   // The avatar covers the button's own border, so redraw it in the frame color.
   // Without a tinted chonk that is the default button edge, not transparent.
   const borderColor = isSuggested
