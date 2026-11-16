@@ -118,6 +118,7 @@ class RepoPRState(BaseModel):
     title: str | None = None
     description: str | None = None
     integration_id: str | None = None
+    idempotency_key: str | None = Field(default=None, exclude=True)
 
     class Config:
         extra = "ignore"
@@ -524,15 +525,6 @@ class SeerRunState(BaseModel):
         # Check if all repos with changes are synced
         all_changes_pushed = all(self._is_repo_synced(repo) for repo in diffs_by_repo.keys())
         return (has_changes, all_changes_pushed)
-
-
-class CustomToolDefinition(BaseModel):
-    """Definition of a custom tool to be sent to Seer."""
-
-    name: str
-    module_path: str
-    description: str
-    param_schema: dict[str, Any]  # JSON schema from Pydantic model
 
 
 class AgentRun(BaseModel):

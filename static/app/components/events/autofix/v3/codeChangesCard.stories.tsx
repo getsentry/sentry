@@ -445,7 +445,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
           <code>Changes requested</code>, or <code>Reviewed</code>), and the review's
           inline comments nest beneath it with a left rule. The body and its comments
           share one iteration block (mirroring a single review webhook), which is what
-          keys them together on <code>(iterationIndex, reviewId)</code>.
+          keys them together on <code>reviewId</code>.
         </Text>
 
         <StatusExample label="Changes requested — a review body plus two inline comments, grouped under a danger badge.">

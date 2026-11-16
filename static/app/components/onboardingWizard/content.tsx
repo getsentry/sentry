@@ -17,7 +17,6 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
-import {DemoWalkthroughStore} from 'sentry/stores/demoWalkthroughStore';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -209,8 +208,6 @@ function Task({task, hidePanel}: TaskProps) {
           tours?.[DemoTour.RELEASES]?.startTour();
         } else if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
           tours?.[DemoTour.ISSUES]?.startTour();
-        } else {
-          DemoWalkthroughStore.activateGuideAnchor(task.task);
         }
       }
 

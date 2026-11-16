@@ -1,0 +1,101 @@
+---
+title: Chart layers control
+description: A menu that shows or hides optional layers, like releases or dropped data, on a chart.
+category: patterns
+source: sentry/components/charts/chartLayersControl
+---
+
+import {useState} from 'react';
+
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
+import * as Storybook from 'sentry/stories';
+
+Some charts can draw extra information on top of their series, such as release
+markers or a band where data was dropped. `<ChartLayersControl>` lets people turn
+each of those layers on or off. It is controlled: the caller owns which layers are
+selected and updates them from `onChange`, which reports the one layer that changed.
+
+```jsx
+<ChartLayersControl
+  layers={[
+    {value: 'releases', label: t('Releases'), selected: showReleases},
+    {value: 'dropped-data', label: t('Dropped Spans'), selected: showDroppedData},
+  ]}
+  onChange={(value, selected) => {
+    // update the matching layer's state
+  }}
+/>
+```
+
+export function LayersDemo({triggerLabel}) {
+  const [selected, setSelected] = useState({releases: true, 'dropped-data': false});
+  return (
+    <ChartLayersControl
+      triggerLabel={triggerLabel}
+      layers={[
+        {value: 'releases', label: 'Releases', selected: selected.releases},
+        {
+          value: 'dropped-data',
+          label: 'Dropped Spans',
+          selected: selected['dropped-data'],
+        },
+        {
+          value: 'flags',
+          label: 'Feature Flags',
+          selected: false,
+          disabled: true,
+          tooltip: 'No feature flag changes in this time range',
+        },
+      ]}
+      onChange={(value, isSelected) =>
+        setSelected(prev => ({...prev, [value]: isSelected}))
+      }
+    />
+  );
+}
+
+## Triggers
+
+By default the trigger names the selected layer, with a count badge when there are
+more, and reads "Layers" when none are selected. Use `triggerLabel="icon"` where
+space is tight, like a dashboard widget header. The icon-only trigger keeps its
+"Chart layers" accessible name and hover tooltip.
+
+<Storybook.Demo>
+  <LayersDemo />
+  <LayersDemo triggerLabel="icon" />
+</Storybook.Demo>
+
+```jsx
+<ChartLayersControl layers={layers} onChange={onChange} />
+<ChartLayersControl triggerLabel="icon" layers={layers} onChange={onChange} />
+```
+
+## Disabled layers
+
+Disable a layer when it has nothing to show in the current view, and set `tooltip`
+to say why. Keeping it in the menu, rather than removing it, stops the menu from
+changing shape as filters change.
+
+```jsx
+{
+  value: 'dropped-data',
+  label: t('Dropped Spans'),
+  selected: false,
+  disabled: true,
+  tooltip: t('No significant dropped spans in this time range'),
+}
+```
+
+## Props
+
+| Prop           | Type                        | Default      | Description                                                                  |
+| -------------- | --------------------------- | ------------ | ---------------------------------------------------------------------------- |
+| `layers`       | `ChartLayer[]`              |              | Each layer's `value`, `label`, `selected`, and optional `disabled`/`tooltip` |
+| `onChange`     | `(value, selected) => void` |              | Called with the layer that was toggled and its new state                     |
+| `triggerLabel` | `'selected' \| 'icon'`      | `'selected'` | Whether the trigger names the selected layers or shows only the icon         |
+
+## See Also
+
+- `useDroppedDataLayer` returns `layerControl`, ready to spread into this control,
+  for the dropped-data layer that Explore and Discover charts use.

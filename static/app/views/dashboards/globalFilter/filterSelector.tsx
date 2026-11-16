@@ -617,7 +617,10 @@ const translateKnownFilterOptions = (
   const key = globalFilter.tag.key;
   const dataset = globalFilter.dataset;
 
-  if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
+  if (
+    key === SpanFields.USER_GEO_SUBREGION &&
+    (dataset === WidgetType.SPANS || dataset === WidgetType.TRACEMETRICS)
+  ) {
     return options.map(option => {
       const translatedLabel =
         subregionCodeToName[option.value as SubregionCode] || option.label;

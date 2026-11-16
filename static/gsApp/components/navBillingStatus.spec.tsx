@@ -23,7 +23,7 @@ const MOCK_BEFORE_PERIOD_START = 1652054400; // May 09 2022
 
 const BILLING_MEMBERS_QUERY = 'scope:"org:billing" isInvited:false';
 const UNNAMED_RECIPIENTS =
-  "Your org's Owners and Billing members will get an email asking them to increase your quota.";
+  "Your organization's Owners and Billing members will get an email asking them to increase your quota.";
 
 describe('PrimaryNavigationQuotaExceeded', () => {
   const organization = OrganizationFixture();
@@ -320,7 +320,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     expect(
       screen.getByText(/will get an email asking them to increase your quota/)
     ).toHaveTextContent(
-      "Your org's Owners and Billing members (owner@example.com, billing@example.com) will get an email asking them to increase your quota."
+      "Your organization's Owners and Billing members (owner@example.com, billing@example.com) will get an email asking them to increase your quota."
     );
   });
 
@@ -337,7 +337,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     expect(
       screen.getByText(/will get an email asking them to increase your quota/)
     ).toHaveTextContent(
-      "Your org's Owners and Billing members (billing1@example.com, billing2@example.com, billing3@example.com, and 2 more) will get an email asking them to increase your quota."
+      "Your organization's Owners and Billing members (billing1@example.com, billing2@example.com, billing3@example.com, and 2 more) will get an email asking them to increase your quota."
     );
     expect(
       screen.queryByRole('link', {name: 'billing4@example.com'})
@@ -349,7 +349,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
     expect(await screen.findByText(/nobody will get this request/)).toHaveTextContent(
-      'Your org has no active Owners or Billing members, so nobody will get this request. Contact us at support@sentry.io for help.'
+      'Your organization has no active Owners or Billing members, so nobody will get this request. Contact us at support@sentry.io for help.'
     );
     expect(screen.getByRole('link', {name: 'support@sentry.io'})).toHaveAttribute(
       'href',

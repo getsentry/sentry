@@ -145,7 +145,8 @@ post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 class ArtifactBundleIndex(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    # No index of its own: the composite index in Meta leads with organization_id.
+    organization_id = BoundedBigIntegerField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     url = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -208,13 +209,22 @@ class ProjectArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    has_debug_ids = models.BooleanField(db_default=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_projectartifactbundle"
 
-        indexes = (models.Index(fields=("project_id", "artifact_bundle")),)
+        indexes = (
+            models.Index(fields=("project_id", "artifact_bundle")),
+            # Holds only the flagged links, so a project without any is one lookup that finds nothing.
+            models.Index(
+                fields=("project_id",),
+                condition=models.Q(has_debug_ids=True),
+                name="sentry_pab_project_debug_idx",
+            ),
+        )
 
 
 class ArtifactBundleArchive:

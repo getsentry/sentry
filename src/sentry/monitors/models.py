@@ -27,7 +27,6 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    LegacyTextJSONField,
     Model,
     UUIDField,
     cell_silo_model,
@@ -552,12 +551,6 @@ class MonitorCheckIn(Model):
     max_runtime.
     """
 
-    monitor_config = LegacyTextJSONField(null=True)
-    """
-    Legacy snapshot of the monitor configuration at the time of the check-in.
-    No longer written; replaced by `checkin_config`.
-    """
-
     checkin_config = FlexibleForeignKey(
         "monitors.MonitorCheckInConfig",
         null=True,
@@ -871,9 +864,9 @@ def get_cron_monitor(detector: Detector) -> Monitor:
     """
     Given a detector get the matching cron monitor.
     """
-    data_source = detector.data_sources.first()
+    data_source = detector.data_sources.filter(type=DATA_SOURCE_CRON_MONITOR).first()
     assert data_source
-    return Monitor.objects.get(id=int(data_source.source_id))
+    return Monitor.objects.get(id=int(data_source.source_id), project_id=detector.linked_project.id)
 
 
 def get_detector_for_monitor(monitor: Monitor) -> Detector | None:

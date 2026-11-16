@@ -30,12 +30,15 @@ export function useRerunSingleRun(
   const openSingleRunChat = useOpenSingleRunChat();
   const disabled = useAutofixCreditsDisabled('root_cause', {enabled});
 
-  const rerun = useCallback(async () => {
-    const run = await startStep('root_cause');
-    if (run.isSingleRun) {
-      openSingleRunChat(run.runId);
-    }
-  }, [startStep, openSingleRunChat]);
+  const rerun = useCallback(
+    async (userContext?: string) => {
+      const run = await startStep('root_cause', {userContext});
+      if (run.isSingleRun) {
+        openSingleRunChat(run.runId);
+      }
+    },
+    [startStep, openSingleRunChat]
+  );
 
   return {rerun, disabled};
 }
@@ -44,21 +47,4 @@ export function useIsSingleRunChatOpen(runId: SeerExplorerRunId | undefined) {
   const {isOpen} = useSeerExplorerContext();
   const {runId: openRunId} = useSeerExplorerChatState();
   return runId !== undefined && isOpen && String(openRunId) === String(runId);
-}
-
-export function useToggleSingleRunChat(runId: SeerExplorerRunId | undefined) {
-  const {closeSeerExplorer} = useSeerExplorerContext();
-  const isChatOpen = useIsSingleRunChatOpen(runId);
-  const openSingleRunChat = useOpenSingleRunChat();
-
-  return useCallback(() => {
-    if (runId === undefined) {
-      return;
-    }
-    if (isChatOpen) {
-      closeSeerExplorer();
-    } else {
-      openSingleRunChat(runId);
-    }
-  }, [runId, isChatOpen, openSingleRunChat, closeSeerExplorer]);
 }

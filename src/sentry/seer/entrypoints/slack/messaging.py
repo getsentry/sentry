@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any, assert_never
 
 from pydantic import ValidationError
@@ -396,6 +397,46 @@ def update_existing_message(
         )
 
 
+def replace_investigation_buttons(
+    *, message: SlackRenderable, link_button: ButtonElement
+) -> SlackRenderable | None:
+    """Replace metric alert start buttons without mutating the supplied content.
+
+    Return None when the message has no investigation-start button.
+    """
+    # Slack action registration imports the entrypoint that imports this module.
+    from sentry.integrations.slack.message_builder.routing import decode_action_id
+    from sentry.integrations.slack.message_builder.types import SlackAction
+
+    changed = False
+
+    def replace_button(element: dict[str, Any]) -> dict[str, Any]:
+        nonlocal changed
+        action_id = element.get("action_id", "")
+        if (
+            element["type"] == "button"
+            and decode_action_id(action_id).action == SlackAction.SEER_INVESTIGATION_START.value
+        ):
+            changed = True
+            return deepcopy(link_button.to_dict())
+        return element
+
+    attachments = [
+        {
+            **attachment,
+            "blocks": _transform_block_actions(attachment["blocks"], replace_button),
+        }
+        if "blocks" in attachment
+        else attachment
+        for attachment in message.get("attachments", [])
+    ]
+
+    if not changed:
+        return None
+
+    return SlackRenderable(blocks=message["blocks"], text=message["text"], attachments=attachments)
+
+
 def update_investigation_alert_message(
     *,
     request: SlackActionRequest,
@@ -404,18 +445,10 @@ def update_investigation_alert_message(
     message_ts: str,
     data: SeerInvestigationStarted,
 ) -> None:
-    # Unlike update_existing_message, metric alerts keep blocks in legacy attachments and we swap the button rather than remove it.
-    from sentry.integrations.slack.message_builder.types import SlackAction
-
     link_decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
     link_button = SeerSlackRenderer.render_investigation_link_button(
-        data=data, link_decorator=link_decorator
-    ).to_dict()
-
-    def replace_investigation_button(elem: dict[str, Any]) -> dict[str, Any] | None:
-        if elem.get("action_id", "").startswith(SlackAction.SEER_INVESTIGATION_START.value):
-            return link_button
-        return elem
+        investigation_url=data.investigation_url, link_decorator=link_decorator
+    )
 
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
@@ -424,27 +457,25 @@ def update_investigation_alert_message(
     ).capture() as lifecycle:
         lifecycle.add_extras({"channel_id": channel_id, "message_ts": message_ts})
         try:
-            message_data = request.data["message"]
-            original_attachments = message_data["attachments"]
-            original_text = message_data["text"]
+            original_message = request.data["message"]
+            message = SlackRenderable(
+                blocks=[],
+                text=original_message["text"],
+                attachments=original_message["attachments"],
+            )
         except (KeyError, TypeError) as e:
             lifecycle.record_failure(failure_reason=e)
             return
 
-        attachments = [
-            {
-                **attachment,
-                "blocks": _transform_block_actions(
-                    attachment.get("blocks", []), replace_investigation_button
-                ),
-            }
-            for attachment in original_attachments
-        ]
+        message_data = replace_investigation_buttons(message=message, link_button=link_button)
+        if message_data is None:
+            return
+
         try:
             install.update_message(
                 channel_id=channel_id,
                 message_ts=message_ts,
-                renderable=SlackRenderable(blocks=[], attachments=attachments, text=original_text),
+                renderable=message_data,
             )
         except (IntegrationError, IntegrationConfigurationError) as e:
             lifecycle.record_halt(halt_reason=e)

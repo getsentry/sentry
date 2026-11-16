@@ -18,6 +18,10 @@ const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
 
 describe('WidgetPreview', () => {
+  beforeEach(() => {
+    PageFiltersStore.reset();
+  });
+
   const dashboard: DashboardDetails = {
     id: 'new',
     title: 'Test Dashboard',
@@ -35,8 +39,6 @@ describe('WidgetPreview', () => {
       location: {pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME},
     },
   };
-
-  afterEach(() => PageFiltersStore.reset());
 
   function ExampleWidgetPreview({
     previewStatus,
@@ -119,9 +121,12 @@ describe('WidgetPreview', () => {
           })
         );
       });
-      expect(await screen.findAllByLabelText('Toggle p90(span.duration)')).toHaveLength(
-        2
-      );
+      expect(
+        await screen.findByLabelText('Toggle p90(span.duration)')
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByLabelText('Toggle p90(span.duration) · smooth(sma,5)')
+      ).toBeInTheDocument();
     }
   );
 });

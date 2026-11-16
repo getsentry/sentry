@@ -166,7 +166,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
               variant="primary"
               icon={<IconRefresh />}
               disabled={isSingleRun && singleRunRerun.disabled}
-              onClick={isSingleRun ? singleRunRerun.rerun : () => handleReset()}
+              onClick={isSingleRun ? () => singleRunRerun.rerun() : () => handleReset()}
             >
               {t('Re-run')}
             </Button>

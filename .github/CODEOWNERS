@@ -637,6 +637,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/urls.py                                     @getsentry/owners-api
 /api-docs/                                                  @getsentry/owners-api
 /tests/apidocs/                                             @getsentry/owners-api
+/static/packages/api/                                       @getsentry/owners-api @getsentry/ocpo
 /.github/workflows/openapi.yml                              @getsentry/owners-api
 /.github/workflows/openapi-diff.yml                         @getsentry/owners-api
 /src/sentry/conf/api_pagination_allowlist_do_not_modify.py  @getsentry/owners-api
@@ -965,7 +966,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering
-/static/less/                                         @getsentry/design-engineering
+/static/css/                                          @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering

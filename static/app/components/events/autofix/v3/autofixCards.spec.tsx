@@ -363,7 +363,7 @@ describe('ArtifactCard', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
 
-      expect(startStepMock).toHaveBeenCalledWith('root_cause');
+      expect(startStepMock).toHaveBeenCalledWith('root_cause', {userContext: undefined});
     });
 
     it('holds Re-run disabled when the org cannot afford a new single run', async () => {
@@ -709,7 +709,7 @@ describe('ArtifactCard', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
 
-      expect(startStepMock).toHaveBeenCalledWith('root_cause');
+      expect(startStepMock).toHaveBeenCalledWith('root_cause', {userContext: undefined});
     });
 
     it('holds Re-run disabled when the org cannot afford a new single run', async () => {
