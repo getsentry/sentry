@@ -103,7 +103,7 @@ class IssueProducerRecordingTest(TestCase):
         assert event.inbox_item.user_id == assignee.id
         assert event.inbox_item.organization_id == self.organization.id
         assert event.inbox_item.subject_id == str(self.group.id)
-        assert event.data == {"summary": "Assigned to you", "assignment_source": None}
+        assert event.data == {"assignment_source": None}
         assert event.actor_type == InboxActorType.USER
         assert event.actor_id == self.user.id
         assert (
@@ -125,7 +125,7 @@ class IssueProducerRecordingTest(TestCase):
         event = InboxItemEvent.objects.get()
         assert event.type == "issue.team_assigned"
         assert event.inbox_item.user_id == teammate.id
-        assert event.data == {"summary": "Assigned to your team", "assignment_source": None}
+        assert event.data == {"assignment_source": None}
 
     def test_assignment_integrations(self) -> None:
         for integration in ActivityIntegration:
@@ -179,12 +179,11 @@ class IssueProducerRecordingTest(TestCase):
         assert note is not None
         event = InboxItemEvent.objects.get(type="issue.user_mentioned")
         assert event.inbox_item.user_id == mentioned.id
-        assert event.data == {"summary": "Mentioned you in a comment", "comment_id": note.id}
+        assert event.data == {"comment_id": note.id}
         assert event.actor_id == self.user.id
         team_event = InboxItemEvent.objects.get(type="issue.team_mentioned")
         assert team_event.inbox_item_id == event.inbox_item_id
         assert team_event.data == {
-            "summary": "Mentioned your team in a comment",
             "comment_id": note.id,
         }
         assert team_event.actor_id == self.user.id
@@ -294,7 +293,6 @@ class IssueProducerRecordingTest(TestCase):
         assert event.inbox_item.user_id == self.user.id
         assert event.type == "issue.pr_ready_for_review"
         assert event.data == {
-            "summary": "Pull request ready for review",
             "pr_url": "https://github.com/example/repo/pull/1",
             "seer_run_id": 123,
         }

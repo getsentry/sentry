@@ -45,7 +45,6 @@ import {
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTimeout} from 'sentry/utils/useTimeout';
@@ -202,18 +201,6 @@ export function SeerExplorerContent({
         // Failed to open the PiP window — keep the current surface open.
       });
   };
-
-  // Persisted so the toggle survives the drawer remounting (e.g. popping out
-  // into the picture-in-picture window, or reopening the drawer). Code mode
-  // always shows thinking — no preference or toggle can hide it.
-  const [showThinkingPreference, setShowThinking] = useLocalStorageState(
-    'seer-explorer-show-thinking',
-    false
-  );
-  const hasCodeModeTools = !!organization?.features.includes(
-    'seer-explorer-code-mode-tools'
-  );
-  const showThinking = hasCodeModeTools || showThinkingPreference;
 
   const composerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -660,9 +647,7 @@ export function SeerExplorerContent({
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
       onBashMode: setOverrideBashModeEnabled,
-      onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
-        ? setOverrideCodeModeEnable
-        : undefined,
+      onCodeMode: setOverrideCodeModeEnable,
     },
     inputAnchorRef: composerRef,
   });
@@ -879,8 +864,6 @@ export function SeerExplorerContent({
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
       overrideBashModeEnabled={overrideBashModeEnabled}
       onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
-      showThinking={showThinking}
-      onShowThinkingToggle={() => setShowThinking(v => !v)}
       conversationsUrl={conversationsUrl}
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
@@ -943,7 +926,6 @@ export function SeerExplorerContent({
                 }
                 pendingInput={pendingInput}
                 readOnly={readOnly}
-                showThinking={showThinking}
               />
               {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
             </Fragment>
@@ -1039,7 +1021,6 @@ interface SeerExplorerTranscriptProps {
   pendingInput: PendingUserInput | null;
   readOnly: boolean;
   runId: SeerExplorerRunId | null;
-  showThinking: boolean;
 }
 
 /**
@@ -1054,7 +1035,6 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
   pendingInput,
   readOnly,
   runId,
-  showThinking,
 }: SeerExplorerTranscriptProps) {
   const segments = useMemo(() => groupTranscript(blocks), [blocks]);
   // Walk the conversation once here rather than once per tool block.
@@ -1085,7 +1065,7 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
         interactionPending={interactionPending}
         pendingInput={pendingInput}
         readOnly={readOnly}
-        showThinking={showThinking}
+        showThinking
       />
     );
   });

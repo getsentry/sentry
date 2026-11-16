@@ -14,6 +14,7 @@ import type {Mirror} from '@sentry/rrweb-snapshot';
 import isEqual from 'lodash/isEqual';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {clamp} from 'sentry/utils/number/clamp';
 import type {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import {useTouchEventsCheck} from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
@@ -464,9 +465,9 @@ export function Provider({
       const inst = new VideoReplayerWithInteractions({
         // video specific
         videoEvents,
-        videoApiPrefix: `/api/0/projects/${
-          organization.slug
-        }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
+        videoApiPrefix: resolveHostname(
+          `/api/0/projects/${organization.slug}/${projectSlug}/replays/${replay?.getReplay().id}/videos/`
+        ),
         start: startTimestampMs,
         onFinished: setReplayFinished,
         onLoaded: event => {

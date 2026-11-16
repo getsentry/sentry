@@ -3353,40 +3353,108 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert isinstance(result, RepositoryDefinitionResponse)
         assert result.provider == "integrations:github_enterprise"
 
-    def test_get_repository_definition_multiple_providers(self) -> None:
-        """Test that when multiple repos with different supported providers exist, first one is returned"""
-        # Create two repos with same name but different providers
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/seer",
-            provider="integrations:github",
-            external_id="12345678",
-            integration_id=123,
-            status=ObjectStatus.ACTIVE,
+    def _create_repo(self, **kwargs: Any) -> Repository:
+        defaults: dict[str, Any] = {
+            "organization_id": self.organization.id,
+            "name": "getsentry/seer",
+            "provider": "integrations:github",
+            "external_id": "12345678",
+            "integration_id": 123,
+            "status": ObjectStatus.ACTIVE,
+        }
+        return Repository.objects.create(**{**defaults, **kwargs})
+
+    def test_get_repository_definition_github_and_gitlab_mirror_is_ambiguous(self) -> None:
+        """A GitHub repo and its GitLab mirror share a URL path: refuse rather than guess."""
+        # The same goes for one name on two supported providers, and for the two rows with one
+        # name and provider that a re-installed integration leaves. Here one row matches by name
+        # and the other by URL path.
+        self._create_repo(
+            name="acme/app", url="https://github.com/acme/app", provider="integrations:github"
         )
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/seer",
-            provider="integrations:github_enterprise",
-            external_id="87654321",
-            integration_id=456,
-            status=ObjectStatus.ACTIVE,
+        self._create_repo(
+            name="Acme / App",
+            url="https://gitlab.com/acme/app",
+            provider="integrations:gitlab",
+            external_id="1",
+            config={"path": "acme/app"},
         )
 
-        # Should return one of them without raising MultipleObjectsReturned
+        assert self._lookup(self.organization, "acme/app") == RepositoryDefinitionFailure(
+            failure_reason="repo_ambiguous"
+        )
+
+    def test_get_repository_definition_ambiguous_is_none_unless_asked(self) -> None:
+        """Callers that don't ask for a reason get None, as for not-found."""
+        self._create_repo(external_id="12345678")
+        self._create_repo(external_id="87654321")
+
         result = get_repository_definition(
             organization_id=self.organization.id,
             repo_full_name="getsentry/seer",
         )
 
+        assert result is None
+
+    def _lookup_by_external_id(self, repo_full_name: str, external_id: str) -> Any:
+        return get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name=repo_full_name,
+            external_id=external_id,
+            report_failure_reason=True,
+        )
+
+    def test_get_repository_definition_external_id_on_two_providers_narrowed_by_name(
+        self,
+    ) -> None:
+        """One external_id on two providers: the name picks which of the two."""
+        self._create_repo(name="getsentry/a", provider="integrations:github")
+        b = self._create_repo(name="getsentry/b", provider="integrations:github_enterprise")
+
+        result = self._lookup_by_external_id("getsentry/b", "12345678")
+
         assert isinstance(result, RepositoryDefinitionResponse)
-        # Should return the first matching repo (in this case, GitHub)
-        assert result.provider in [
-            "integrations:github",
-            "integrations:github_enterprise",
+        assert result.repository_id == b.id
+
+    def test_get_repository_definition_external_id_on_two_providers_same_name_is_ambiguous(
+        self,
+    ) -> None:
+        """When the name matches both, it can't pick one."""
+        self._create_repo(provider="integrations:github")
+        self._create_repo(provider="integrations:github_enterprise")
+
+        assert self._lookup_by_external_id(
+            "getsentry/seer", "12345678"
+        ) == RepositoryDefinitionFailure(failure_reason="repo_ambiguous")
+
+    def test_get_repository_definition_ambiguous_external_id_skips_name_fallback(self) -> None:
+        """An external_id the name can't narrow stops the lookup; it doesn't fall back to the
+        name, which would find a repository the external_id doesn't name."""
+        self._create_repo(name="getsentry/a", provider="integrations:github")
+        self._create_repo(name="getsentry/b", provider="integrations:github_enterprise")
+        self._create_repo(name="getsentry/c", external_id="99999999")
+
+        assert self._lookup_by_external_id(
+            "getsentry/c", "12345678"
+        ) == RepositoryDefinitionFailure(failure_reason="repo_ambiguous")
+
+    @patch("sentry.seer.agent.tools.metrics.incr")
+    def test_get_repository_definition_counts_each_resolution(self, mock_incr: MagicMock) -> None:
+        """Every lookup is counted by outcome, so the ambiguous share can be measured."""
+        self._create_repo(name="getsentry/one", external_id="1")
+        self._create_repo(name="getsentry/two", external_id="2")
+        self._create_repo(name="getsentry/two", external_id="3")
+
+        self._lookup(self.organization, "getsentry/one")
+        self._lookup(self.organization, "getsentry/two")
+        self._lookup(self.organization, "getsentry/missing")
+
+        resolution_calls = [
+            call.kwargs["tags"]["resolution"]
+            for call in mock_incr.call_args_list
+            if call.args == ("seer.rpc.get_repository_definition.resolution",)
         ]
-        assert result.owner == "getsentry"
-        assert result.name == "seer"
+        assert resolution_calls == ["resolved", "ambiguous", "not_found"]
 
     def test_get_repository_definition_filters_unsupported_with_supported(self) -> None:
         """Test that unsupported providers are ignored even when a supported one exists"""
