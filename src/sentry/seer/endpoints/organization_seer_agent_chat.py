@@ -472,19 +472,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
             )
 
-            has_code_mode_feature = features.has(
-                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
-            )
-            if not has_code_mode_feature:
-                enable_code_mode_tools = "off"
-            elif override_code_mode_enable is not None:
-                enable_code_mode_tools = override_code_mode_enable
-            else:
-                # Code Mode only, not alongside the classic tools: with both, the agent has
-                # two ways to do everything and mixes them, so the surface being dogfooded is
-                # never the one that ships. The frontend override can still turn it off for
-                # comparison.
-                enable_code_mode_tools = "only"
+            # The frontend override can still turn Code Mode off to compare with the classic tools.
+            enable_code_mode_tools = override_code_mode_enable or "only"
 
             client = SeerAgentClient(
                 organization,
