@@ -14,7 +14,6 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.issue_summary import get_automation_stopping_point
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.autofix.utils import get_automation_handoff
 from sentry.seer.models import SeerPermissionError
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
@@ -48,12 +47,6 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
             )
         except (Organization.DoesNotExist, Group.DoesNotExist):
             return Response({"detail": "Issue not found"}, status=404)
-
-        if get_automation_handoff(group.project.get_option) is not None:
-            return Response(
-                {"detail": "Projects with a coding agent configured can't start single runs"},
-                status=400,
-            )
 
         if serializer.validated_data["automated"]:
             user = None

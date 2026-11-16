@@ -148,6 +148,71 @@ export function consumePage<T>(
   return { data };
 }
 
+/** One target in a Sentry `Link` header; see `parseSentryLinks`. */
+export type SentryLink = {
+  /** The URL between `<` and `>`. */
+  href: string;
+  /** `results="true"` or `"false"`; `null` when the target has no `results` parameter. */
+  results: boolean | null;
+  /** The `cursor` parameter, when present. */
+  cursor?: string;
+};
+
+type LinkSegment = { href?: string; params: Map<string, string> };
+
+/** Split a Link header into targets and their quoted `key="value"` parameters. */
+function linkSegments(header: string | null): LinkSegment[] {
+  if (!header) return [];
+  return header.split(",").map((segment) => {
+    const out: LinkSegment = { params: new Map() };
+    for (const part of segment.split(";").map((s) => s.trim())) {
+      if (part.startsWith("<") && part.endsWith(">")) {
+        out.href = part.slice(1, -1);
+        continue;
+      }
+      const eq = part.indexOf("=");
+      const value = part.slice(eq + 1);
+      if (eq > 0 && value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+        out.params.set(part.slice(0, eq), value.slice(1, -1));
+      }
+    }
+    return out;
+  });
+}
+
+/**
+ * Parse Sentry's Link header into its targets by `rel`, keeping each
+ * target's `href`, `results` and `cursor`. A later target with the same
+ * `rel` replaces an earlier one, and targets without a `<url>` or a `rel`
+ * are skipped.
+ *
+ * Use this when the `href` or the `results` flag matters, for example to
+ * follow the server's next-page URL or to tell an empty previous page from a
+ * missing one; `parseSentryLinkHeader` returns only the usable cursors.
+ *
+ * @example
+ * ```ts
+ * const links = parseSentryLinks(response.headers.get("Link"));
+ * links.next?.href; // "https://sentry.io/api/0/organizations/?cursor=1234:0:0"
+ * links.next?.results; // true
+ * ```
+ */
+export const parseSentryLinks = (header: string | null): Partial<Record<string, SentryLink>> => {
+  const links: Partial<Record<string, SentryLink>> = {};
+  for (const { href, params } of linkSegments(header)) {
+    const rel = params.get("rel");
+    if (href === undefined || !rel) continue;
+    const results = params.get("results");
+    const cursor = params.get("cursor");
+    links[rel] = {
+      href,
+      results: results === "true" ? true : results === "false" ? false : null,
+      ...(cursor === undefined ? {} : { cursor }),
+    };
+  }
+  return links;
+};
+
 /**
  * Parse Sentry's Link header to extract pagination cursors.
  *
@@ -162,47 +227,20 @@ export function consumePage<T>(
  * The `results="true"` qualifier is required — Sentry includes a
  * `previous` rel even on the first page, but with `results="false"`.
  * We honor that signal so first-page callers don't see a bogus `prevCursor`.
+ * Use `parseSentryLinks` to keep each rel's `href` and `results`.
  */
 export const parseSentryLinkHeader = (
   header: string | null,
 ): { nextCursor?: string; prevCursor?: string } => {
-  if (!header) {
-    return {};
-  }
-
-  const segments = header.split(",");
-
   let nextCursor: string | undefined;
   let prevCursor: string | undefined;
 
-  for (const segment of segments) {
-    const parts = segment.trim().split(";").map((s) => s.trim());
-
-    let rel: string | undefined;
-    let results: string | undefined;
-    let cursor: string | undefined;
-
-    for (const part of parts) {
-      const relMatch = part.match(/^rel="([^"]*)"$/);
-      if (relMatch) {
-        rel = relMatch[1];
-        continue;
-      }
-      const resultsMatch = part.match(/^results="([^"]*)"$/);
-      if (resultsMatch) {
-        results = resultsMatch[1];
-        continue;
-      }
-      const cursorMatch = part.match(/^cursor="([^"]*)"$/);
-      if (cursorMatch) {
-        cursor = cursorMatch[1];
-        continue;
-      }
-    }
-
-    if (results !== "true" || !cursor) {
+  for (const { params } of linkSegments(header)) {
+    const cursor = params.get("cursor");
+    if (params.get("results") !== "true" || !cursor) {
       continue;
     }
+    const rel = params.get("rel");
     if (rel === "next") {
       nextCursor = cursor;
     } else if (rel === "previous") {
@@ -215,6 +253,47 @@ export const parseSentryLinkHeader = (
   if (prevCursor !== undefined) out.prevCursor = prevCursor;
   return out;
 };
+
+/** The Sentry list headers of a response; see `readSentryResponseHeaders`. */
+export type SentryResponseHeaders = {
+  /** The raw `Link` header; parse it with `parseSentryLinks` or `parseSentryLinkHeader`. */
+  link?: string;
+  /** `X-Hits`: how many rows match, when the endpoint counts them. */
+  hits?: number;
+  /** `X-Max-Hits`: the cap on `hits`; when `hits` reaches it, more rows may match. */
+  maxHits?: number;
+  /** `X-Sentry-Direct-Hit: 1`: an ID lookup, such as an event ID or short ID search, found exactly one item. */
+  directHit: boolean;
+};
+
+/** A header's non-negative integer value; otherwise undefined. */
+function integerHeader(headers: Headers, name: string): number | undefined {
+  const value = headers.get(name)?.trim();
+  if (!value) return undefined;
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number >= 0 ? number : undefined;
+}
+
+/**
+ * Read the headers Sentry list endpoints send: `Link`, `X-Hits` and
+ * `X-Max-Hits` as numbers, and `X-Sentry-Direct-Hit`. Missing or malformed
+ * counts are `undefined`.
+ *
+ * @example
+ * ```ts
+ * const { hits, maxHits, directHit } = readSentryResponseHeaders(response.headers);
+ * ```
+ */
+export function readSentryResponseHeaders(headers: Headers): SentryResponseHeaders {
+  const out: SentryResponseHeaders = { directHit: headers.get("X-Sentry-Direct-Hit") === "1" };
+  const link = headers.get("Link");
+  if (link !== null) out.link = link;
+  const hits = integerHeader(headers, "X-Hits");
+  if (hits !== undefined) out.hits = hits;
+  const maxHits = integerHeader(headers, "X-Max-Hits");
+  if (maxHits !== undefined) out.maxHits = maxHits;
+  return out;
+}
 
 /**
  * Internal: merge a managed cursor and verified page-size budget into `options.query`
