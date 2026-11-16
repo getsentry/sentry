@@ -111,3 +111,11 @@ def test_collect_findings_with_no_paths_scans_nothing(tmp_path: Path) -> None:
     _write_example(tmp_path)
 
     assert collect_findings(tmp_path, []) == []
+
+
+def test_collect_findings_scans_a_repeated_path_once(tmp_path: Path) -> None:
+    _write_example(tmp_path)
+
+    findings = collect_findings(tmp_path, [PATH, PATH])
+
+    assert len(findings) == 4

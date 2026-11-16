@@ -20,7 +20,8 @@ def collect_findings(
         # scan every file under src/
         files = sorted((root / "src").rglob("*.py"))
     else:
-        for path in sorted(paths):
+        # a path listed twice would be scanned twice and double its counts
+        for path in sorted(set(paths)):
             file = root / path
             # skip deleted files
             if file.exists():

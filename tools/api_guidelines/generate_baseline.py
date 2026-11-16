@@ -252,7 +252,8 @@ def main(argv: list[str] | None = None) -> int:
         rescan_paths = []
         for path in args.files:
             path = normalize_path(path)
-            if path.startswith("src/") and path.endswith(".py"):
+            # skip repeats too i.e a.py and ./a.py, so the "Rescanned N files" count is right
+            if path.startswith("src/") and path.endswith(".py") and path not in rescan_paths:
                 rescan_paths.append(path)
 
         old_entries = json.loads(args.output.read_text())["entries"]
@@ -316,7 +317,7 @@ def main(argv: list[str] | None = None) -> int:
         findings_per_owner[owner] += count
         entries_per_owner[owner] += 1
 
-    # unowned is expected to be ~25 findings so many more means the owner map is stale (re-run make api-owner-map)
+    # unowned much higher than the last run means the owner map is stale (re-run make api-owner-map)
     print(f"    {'owner':35}{'findings':>9}{'entries':>9}")
     for owner, findings in findings_per_owner.most_common():
         print(f"    {owner:35}{findings:>9}{entries_per_owner[owner]:>9}")
