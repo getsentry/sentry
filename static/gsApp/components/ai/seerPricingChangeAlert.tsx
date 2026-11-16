@@ -5,6 +5,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
@@ -47,7 +49,20 @@ function SeerAnnouncementAlert({children}: {children: ReactNode}) {
   );
 }
 
+/**
+ * Orgs on token-billed Seer already pay with Seer credits, so the pricing
+ * change `SeerPricingChangeAlert` announces has already happened for them.
+ */
+export function usesSeerCredits(organization: Organization) {
+  return organization.features.includes('token-billed-seer-enabled');
+}
+
 export function SeerPricingChangeAlert() {
+  const organization = useOrganization();
+  if (usesSeerCredits(organization)) {
+    return null;
+  }
+
   return (
     <SeerAnnouncementAlert>
       {t(

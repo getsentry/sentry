@@ -18,6 +18,7 @@ import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboarding
 import {
   hasPaidSeer,
   SeerPricingChangeAlert,
+  usesSeerCredits,
 } from 'getsentry/components/ai/seerPricingChangeAlert';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -218,7 +219,9 @@ export function ProductBreakdownPanel({
   const shouldShowSeerPricingChangeAlert =
     (selectedProduct === AddOnCategory.SEER ||
       selectedProduct === AddOnCategory.LEGACY_SEER) &&
-    hasPaidSeer(subscription);
+    hasPaidSeer(subscription) &&
+    // The alert renders nothing for these orgs, which would leave its padding.
+    !usesSeerCredits(organization);
 
   return (
     <Container
