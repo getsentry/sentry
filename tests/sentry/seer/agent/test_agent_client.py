@@ -109,6 +109,20 @@ class TestSeerAgentClient(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_start_run_records_metadata_referrer(
+        self, mock_post: MagicMock, mock_access: MagicMock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_run("dsn", metadata={"referrer": "command_palette.tab"})
+
+        run.refresh_from_db()
+        assert run.referrer == "command_palette.tab"
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @with_feature("organizations:seer-agent-enable-assisted-query-code-mode")
     def test_start_run_enables_assisted_query_code_mode(
         self, mock_post: MagicMock, mock_access: MagicMock
