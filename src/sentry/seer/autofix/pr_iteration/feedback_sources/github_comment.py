@@ -7,7 +7,7 @@ from pydantic import BaseModel, root_validator
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision, FeedbackSourceBase
-from sentry.seer.webhooks import SentryIterateCommand, sentry_command
+from sentry.seer.webhooks import SentryIterateCommand, mentions_sentry, sentry_command
 
 GithubPrCommentFeedbackType = Literal["github-pr-comment", "github-pr-review-comment"]
 
@@ -121,6 +121,11 @@ class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     require_command: ClassVar[bool] = True
     type: Literal["github-pr-comment"] = "github-pr-comment"
 
+    @property
+    def is_explicit_request(self) -> bool:
+        # Only constructed from an ``@sentry`` iterate command (``require_command``).
+        return True
+
 
 class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     """Feedback submitted as an inline GitHub PR review comment (``@sentry <feedback>``).
@@ -150,6 +155,12 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     @property
     def is_automated(self) -> bool:
         return self.author_is_bot
+
+    @property
+    def is_explicit_request(self) -> bool:
+        # Judged per comment: one comment mentioning ``@sentry`` doesn't make the
+        # rest of its review explicit. A bot can't ask on a person's behalf.
+        return not self.author_is_bot and mentions_sentry(self.comment.body)
 
     @root_validator
     def _populate_location(cls, values: dict[str, Any]) -> dict[str, Any]:
@@ -241,6 +252,11 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     @property
     def is_automated(self) -> bool:
         return self.author_is_bot
+
+    @property
+    def is_explicit_request(self) -> bool:
+        # Covers only the summary body, not the review's inline comments.
+        return not self.author_is_bot and mentions_sentry(self.body)
 
     def should_consume(self, run_state: SeerRunState) -> Decision:
         if self.review_id is None:
