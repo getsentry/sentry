@@ -11,14 +11,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  * render without an organization; the buttons then use their own avatar's color.
  */
 export function NavigationAvatarButton(
-  props: Omit<ComponentProps<typeof AvatarButton>, 'colorAvatar'>
+  props: Omit<ComponentProps<typeof AvatarButton>, 'frameAvatar'>
 ) {
   const organization = useOrganization({allowNull: true});
 
   return (
     <AvatarButton
       {...props}
-      colorAvatar={organization ? getOrganizationAvatarProps(organization) : undefined}
+      frameAvatar={organization ? getOrganizationAvatarProps(organization) : undefined}
     />
   );
 }

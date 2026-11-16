@@ -25,10 +25,10 @@ interface AvatarButtonProps extends Omit<
   /** Omit to render an empty/unassigned placeholder. */
   avatar?: BaseAvatarProps;
   /**
-   * Avatar whose color tints the button's chonk and border. Defaults to `avatar`.
-   * Use it to make buttons that sit together share one color.
+   * Avatar whose color tints the button's frame (chonk and border). Defaults to
+   * `avatar`. Use it to make buttons that sit together share one frame color.
    */
-  colorAvatar?: BaseAvatarProps;
+  frameAvatar?: BaseAvatarProps;
   /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
   round?: boolean;
   size?: AvatarButtonSize;
@@ -36,7 +36,7 @@ interface AvatarButtonProps extends Omit<
 
 export function AvatarButton({
   avatar,
-  colorAvatar,
+  frameAvatar,
   round: explicitRound,
   size: explicitSize,
   ...props
@@ -57,13 +57,15 @@ export function AvatarButton({
   });
 
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
-  // Shares the query cache with `colors` when no `colorAvatar` is given.
-  const tint = useAvatarColors(isSuggested ? undefined : (colorAvatar ?? avatar));
+  // Shares the query cache with `colors` when no `frameAvatar` is given.
+  const frameColors = useAvatarColors(isSuggested ? undefined : (frameAvatar ?? avatar));
   // The chonk sits under this button's own image, so its edge comes from
-  // `colors` even when the tint comes from `colorAvatar`.
+  // `colors` even when the frame color comes from `frameAvatar`.
   const edge = colors.type === 'image' ? (colors.edge ?? undefined) : undefined;
   const chonk =
-    tint.type === 'none' ? undefined : getAvatarChonk(tint.dominant, theme.type, edge);
+    frameColors.type === 'none'
+      ? undefined
+      : getAvatarChonk(frameColors.dominant, theme.type, edge);
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
