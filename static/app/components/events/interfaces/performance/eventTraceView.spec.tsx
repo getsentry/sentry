@@ -223,7 +223,9 @@ describe('EventTraceView', () => {
       {organization: agentOrganization}
     );
 
+    expect(screen.getByTestId('trace-view-skeleton')).toBeInTheDocument();
     expect(await screen.findByText('search_docs')).toBeInTheDocument();
+    expect(screen.queryByTestId('trace-view-skeleton')).not.toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Agent Activity'})).toBeChecked();
     expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
       'href',

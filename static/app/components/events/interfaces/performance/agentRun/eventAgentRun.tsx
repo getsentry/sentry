@@ -1,11 +1,12 @@
 import {useCallback} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {TraceLinkedIssues} from 'sentry/components/events/interfaces/performance/traceLinkedIssues';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -175,3 +176,37 @@ export function EventAgentActivity({
     </Stack>
   );
 }
+
+/**
+ * Stands in for the whole Trace Preview while it works out which view to open, so
+ * the section appears in one step instead of growing as each request finishes.
+ */
+export function TraceViewSkeleton() {
+  return (
+    <Stack gap="md" data-test-id="trace-view-skeleton">
+      <Placeholder height="16px" width="280px" />
+      <Placeholder height="80px" />
+      <Container border="primary" radius="md" overflow="hidden">
+        <Container padding="xs">
+          <AiSpanTimeline
+            nodes={[]}
+            selectedNodeKey={null}
+            onSelectNode={noop}
+            isLoading
+          />
+        </Container>
+      </Container>
+    </Stack>
+  );
+}
+
+export function TraceViewActionsSkeleton() {
+  return (
+    <Flex align="center" gap="md">
+      <Placeholder height="24px" width="96px" />
+      <Placeholder height="24px" width="150px" />
+    </Flex>
+  );
+}
+
+function noop() {}
