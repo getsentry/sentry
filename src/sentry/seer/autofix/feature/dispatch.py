@@ -360,7 +360,7 @@ def trigger_autofix_feature(
             },
         )
         raise
-    except SeerOutOfCreditsException:
+    except SeerOutOfCreditsException as e:
         logger.info(
             "autofix_feature.dispatch.out_of_credits",
             extra={
@@ -368,6 +368,7 @@ def trigger_autofix_feature(
                 "organization_id": group.organization.id,
                 "operation": args.step.seer_operation.value,
                 "referrer": args.referrer.value,
+                "denial_reason": e.denial_reason,
             },
         )
         raise

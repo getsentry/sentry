@@ -161,7 +161,7 @@ class AutofixPaymentRequiredResponse(TypedDict):
     code: Annotated[
         SeerPaymentRequiredCode,
         ApiDescription(
-            "`seer_out_of_credits` when the organization has no Seer credits left, "
+            "`seer_out_of_credits` when the organization does not have enough Seer credits, "
             "`seer_out_of_quota` when it has no Seer budget"
         ),
     ]
