@@ -225,8 +225,8 @@ def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferre
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
-    # Agentic triage runs aren't billed, so a client can't claim to be one.
-    if referrer == AutofixReferrer.AGENTIC_TRIAGE:
+    # These pick an unbilled label for the credit check, so a client can't claim them.
+    if referrer in (AutofixReferrer.AGENTIC_TRIAGE, AutofixReferrer.ON_COMPLETION_HOOK):
         return AutofixReferrer.UNKNOWN
     return referrer
 
