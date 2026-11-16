@@ -344,6 +344,36 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
     }
 
 
+# The guard an IP filter on one data type carries, so that it matches only that type.
+ERROR_GUARD = {
+    "op": "or",
+    "inner": [
+        {"op": "glob", "name": "error.platform", "value": ["*"]},
+        {"op": "glob", "name": "default.platform", "value": ["*"]},
+        {"op": "glob", "name": "csp.platform", "value": ["*"]},
+    ],
+}
+SPAN_GUARD = {
+    "op": "glob",
+    "name": "span.attributes.sentry.observed_timestamp_nanos.value",
+    "value": ["*"],
+}
+LOG_GUARD = {
+    "op": "glob",
+    "name": "log.attributes.sentry.observed_timestamp_nanos.value",
+    "value": ["*"],
+}
+METRIC_GUARD = {
+    "op": "glob",
+    "name": "trace_metric.attributes.sentry.observed_timestamp_nanos.value",
+    "value": ["*"],
+}
+
+
+def client_ip_condition(values: list[str]) -> dict[str, object]:
+    return {"op": "cidr", "name": "envelope.client_ip", "value": values}
+
+
 @django_db_all
 @pytest.mark.parametrize(
     ("data_type", "conditions", "expected_condition"),
@@ -676,17 +706,56 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]}],
-            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            {"op": "and", "inner": [ERROR_GUARD, client_ip_condition(["10.0.0.0/8"])]},
             id="cidr_on_ip_address",
         ),
         pytest.param(
             "error",
             [{"type": "ip_address", "operator": "not_cidr", "value": ["10.0.0.0/8"]}],
             {
-                "op": "not",
-                "inner": {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+                "op": "and",
+                "inner": [
+                    ERROR_GUARD,
+                    {"op": "not", "inner": client_ip_condition(["10.0.0.0/8"])},
+                ],
             },
             id="not_cidr_on_ip_address",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "ip_address", "operator": "not_cidr", "value": ["10.0.0.0/8"]}],
+            {
+                "op": "and",
+                "inner": [
+                    SPAN_GUARD,
+                    {"op": "not", "inner": client_ip_condition(["10.0.0.0/8"])},
+                ],
+            },
+            id="not_cidr_on_one_data_type_is_guarded",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            {"op": "and", "inner": [ERROR_GUARD, client_ip_condition(["10.0.0.0/8"])]},
+            id="ip_address_on_errors_matches_only_errors",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            {"op": "and", "inner": [SPAN_GUARD, client_ip_condition(["10.0.0.0/8"])]},
+            id="ip_address_on_spans_matches_only_spans",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            {"op": "and", "inner": [LOG_GUARD, client_ip_condition(["10.0.0.0/8"])]},
+            id="ip_address_on_logs_matches_only_logs",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            {"op": "and", "inner": [METRIC_GUARD, client_ip_condition(["10.0.0.0/8"])]},
+            id="ip_address_on_metrics_matches_only_metrics",
         ),
         pytest.param(
             "all",
@@ -704,9 +773,10 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
             {
                 "op": "and",
                 "inner": [
+                    ERROR_GUARD,
                     error_message_rule_condition(["*timeout*"]),
                     {"op": "release", "name": "event.release", "comparator": "gte", "value": "2.0"},
-                    {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+                    client_ip_condition(["10.0.0.0/8"]),
                 ],
             },
             id="operators_combine_with_and",
@@ -714,7 +784,10 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
         pytest.param(
             "error",
             [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
-            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8", "203.0.113.7"]},
+            {
+                "op": "and",
+                "inner": [ERROR_GUARD, client_ip_condition(["10.0.0.0/8", "203.0.113.7"])],
+            },
             id="ip_address_reads_the_envelope_client_ip",
         ),
         pytest.param(
@@ -744,8 +817,9 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
             {
                 "op": "and",
                 "inner": [
+                    LOG_GUARD,
                     {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
-                    {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+                    client_ip_condition(["10.0.0.0/8"]),
                 ],
             },
             id="ip_address_combines_with_item_conditions",
