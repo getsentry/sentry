@@ -238,6 +238,36 @@ describe('SeerDrawer', () => {
     expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
+  it('disables reset when out of Seer credits', async () => {
+    const creditOrganization = OrganizationFixture({
+      ...organization,
+      features: [
+        ...organization.features,
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: makeExplorerAutofixData({status: 'error'})},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${creditOrganization.slug}/seer/credit-check/`,
+      body: {hasEnoughCredits: false},
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+      organization: creditOrganization,
+    });
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    expect(
+      screen.getByRole('button', {name: 'Start a new analysis from scratch'})
+    ).toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('restarts a failed run without asking what to change', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
