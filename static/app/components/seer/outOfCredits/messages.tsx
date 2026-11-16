@@ -67,41 +67,23 @@ export function getRefusedStepMessage(
 }
 
 /**
- * PR iteration work stopped for credits, for the Code Changes card and its
- * feedback items.
+ * The Code Changes card's line for PR iteration work held for credits.
  */
+// TODO(CW-3102): Point at the Retry button instead of the next iteration.
 export const OUT_OF_CREDITS_PR_ITERATION_MESSAGE = {
-  agent_turn: t(
-    "Seer couldn't finish this feedback because your organization is out of credits."
-  ),
   push: t(
-    "Seer couldn't push the latest changes because your organization is out of credits. It pushes them the next time it iterates on the pull request."
+    "Seer couldn't push the latest changes because your organization is out of credits. Seer continues the next time it iterates on the pull request."
   ),
   branch_moved_retry: t(
-    "Seer couldn't retry the latest changes on the pull request's newer commits because your organization is out of credits. It retries the next time it iterates on the pull request."
+    "Seer couldn't redo the latest changes on the pull request's newer commits because your organization is out of credits. Seer continues the next time it iterates on the pull request."
   ),
   held: (count: number) =>
     tn(
-      'Your organization is out of credits, so %s feedback item is waiting. Seer picks it up the next time it iterates on the pull request.',
-      'Your organization is out of credits, so %s feedback items are waiting. Seer picks them up the next time it iterates on the pull request.',
+      '%s feedback item is waiting because your organization is out of credits. Seer continues the next time it iterates on the pull request.',
+      '%s feedback items are waiting because your organization is out of credits. Seer continues the next time it iterates on the pull request.',
       count
     ),
-  // One held item's own tooltip, without the count.
-  held_item: t(
-    'Waiting for credits. Seer picks this up the next time it iterates on the pull request.'
-  ),
 };
-
-/**
- * Tooltip for a PR iteration feedback item waiting for credits.
- */
-export function getWaitingForCreditsFeedbackMessage(
-  heldForCreditsAction: string | null | undefined
-): string {
-  return heldForCreditsAction === 'push' || heldForCreditsAction === 'branch_moved_retry'
-    ? OUT_OF_CREDITS_PR_ITERATION_MESSAGE[heldForCreditsAction]
-    : OUT_OF_CREDITS_PR_ITERATION_MESSAGE.held_item;
-}
 
 export const OUT_OF_CREDITS_CHAT_MESSAGE = t(
   'Seer stopped because your organization is out of credits.'

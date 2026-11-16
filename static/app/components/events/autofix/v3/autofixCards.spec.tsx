@@ -3049,7 +3049,7 @@ describe('out of credits', () => {
 
     expect(
       screen.getByText(
-        'Your organization is out of credits, so 2 feedback items are waiting. Seer picks them up the next time it iterates on the pull request.'
+        '2 feedback items are waiting because your organization is out of credits. Seer continues the next time it iterates on the pull request.'
       )
     ).toBeInTheDocument();
   });

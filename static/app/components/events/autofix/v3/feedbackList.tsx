@@ -28,10 +28,6 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {
-  getWaitingForCreditsFeedbackMessage,
-  OUT_OF_CREDITS_PR_ITERATION_MESSAGE,
-} from 'sentry/components/seer/outOfCredits/messages';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
@@ -850,9 +846,24 @@ function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
         'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
       );
     case 'out_of_credits':
-      return OUT_OF_CREDITS_PR_ITERATION_MESSAGE.agent_turn;
+      return t(
+        "Seer couldn't finish this feedback because your organization is out of credits."
+      );
     default:
       return t('Changes from this feedback could not be pushed');
+  }
+}
+
+function getWaitingForCreditsMessage(
+  heldForCreditsAction: string | null | undefined
+): string {
+  switch (heldForCreditsAction) {
+    case 'push':
+      return t('Changes from this feedback are waiting for credits to be pushed');
+    case 'branch_moved_retry':
+      return t('This feedback is waiting for credits to be redone on newer PR commits');
+    default:
+      return t('This feedback is waiting for credits');
   }
 }
 
@@ -902,7 +913,7 @@ function FeedbackStatusIcon({
       );
     case 'waiting_for_credits':
       return (
-        <Tooltip title={getWaitingForCreditsFeedbackMessage(errorCode)} skipWrapper>
+        <Tooltip title={getWaitingForCreditsMessage(errorCode)} skipWrapper>
           <Flex
             align="center"
             justify="center"
@@ -916,9 +927,7 @@ function FeedbackStatusIcon({
     case 'paused':
       return (
         <Tooltip
-          title={t(
-            "Seer stopped iterating on this pull request, so this feedback won't run."
-          )}
+          title={t("This feedback won't run because PR iteration was stopped")}
           skipWrapper
         >
           <Flex align="center" justify="center" role="img" aria-label={t('Paused')}>

@@ -253,9 +253,7 @@ describe('FeedbackList', () => {
     expect(screen.getByText('Queued')).toBeInTheDocument();
     await userEvent.hover(screen.getByRole('img', {name: 'Waiting for credits'}));
     expect(
-      await screen.findByText(
-        'Waiting for credits. Seer picks this up the next time it iterates on the pull request.'
-      )
+      await screen.findByText('This feedback is waiting for credits')
     ).toBeInTheDocument();
   });
 
@@ -275,7 +273,7 @@ describe('FeedbackList', () => {
     await userEvent.hover(screen.getByRole('img', {name: 'Waiting for credits'}));
     expect(
       await screen.findByText(
-        "Seer couldn't push the latest changes because your organization is out of credits. It pushes them the next time it iterates on the pull request."
+        'Changes from this feedback are waiting for credits to be pushed'
       )
     ).toBeInTheDocument();
   });
@@ -304,7 +302,7 @@ describe('FeedbackList', () => {
     await userEvent.hover(screen.getByRole('img', {name: 'Waiting for credits'}));
     expect(
       await screen.findByText(
-        "Seer couldn't retry the latest changes on the pull request's newer commits because your organization is out of credits. It retries the next time it iterates on the pull request."
+        'This feedback is waiting for credits to be redone on newer PR commits'
       )
     ).toBeInTheDocument();
   });
@@ -324,9 +322,7 @@ describe('FeedbackList', () => {
     expect(screen.queryByText('Queued')).not.toBeInTheDocument();
     await userEvent.hover(screen.getByRole('img', {name: 'Paused'}));
     expect(
-      await screen.findByText(
-        "Seer stopped iterating on this pull request, so this feedback won't run."
-      )
+      await screen.findByText("This feedback won't run because PR iteration was stopped")
     ).toBeInTheDocument();
   });
 });
