@@ -7,7 +7,6 @@ class AgentHandoffPromptCreatedEvent(analytics.Event):
     user_id: int
     organization_id: int
     flow: str
-    run_id: str | None = None
     ip_pinning: bool
 
 
@@ -19,7 +18,6 @@ class AgentHandoffClaimedEvent(analytics.Event):
     user_id: int | None = None
     organization_id: int | None = None
     flow: str | None = None
-    run_id: str | None = None
 
 
 analytics.register(AgentHandoffPromptCreatedEvent)

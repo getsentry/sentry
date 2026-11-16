@@ -289,7 +289,6 @@ class AgentHandoffViewTest(TestCase):
                 user_id=self.user.id if attributed else None,
                 organization_id=self.organization.id if attributed else None,
                 flow=HandoffFlow.ONBOARDING.value if attributed else None,
-                run_id=self.onboarding_context.run_id if attributed else None,
             ),
         )
 

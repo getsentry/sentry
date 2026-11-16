@@ -188,7 +188,6 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
                 user_id=user.id,
                 organization_id=organization.id,
                 flow=flow.value,
-                run_id=values["context"].run_id if values["context"] is not None else None,
                 ip_pinning=not values["disable_ip_pinning"],
             )
         )

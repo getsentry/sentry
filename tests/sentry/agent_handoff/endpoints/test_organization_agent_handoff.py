@@ -113,13 +113,12 @@ class OrganizationAgentHandoffTest(APITestCase):
                 user_id=self.user.id,
                 organization_id=self.organization.id,
                 flow=HandoffFlow.ONBOARDING.value,
-                run_id="a" * 32,
                 ip_pinning=False,
             ),
         )
 
     @patch("sentry.analytics.record")
-    def test_records_prompt_created_without_run(self, record: MagicMock) -> None:
+    def test_records_prompt_created_for_guided_next_steps(self, record: MagicMock) -> None:
         response = self.get_success_response(self.organization.slug, status_code=201)
         assert_last_analytics_event(
             record,
@@ -128,7 +127,6 @@ class OrganizationAgentHandoffTest(APITestCase):
                 user_id=self.user.id,
                 organization_id=self.organization.id,
                 flow=HandoffFlow.GUIDED_NEXT_STEPS.value,
-                run_id=None,
                 ip_pinning=True,
             ),
         )
