@@ -66,7 +66,7 @@ describe("request preparation", () => {
     const response = Response.json({ data: [], meta: { fields: {} } }, { status: 403 });
     globalThis.fetch = asFetch(async request => { requests.push(request); return response; });
     try {
-      const config = createBrowserSdkConfig({ baseUrl: "https://example.test", getCsrfToken: () => "csrf-example" });
+      const config = createBrowserSdkConfig({ baseUrl: "https://example.test", origin: "https://example.test", getCsrfToken: () => "csrf-example" });
       const sentry = createSentryClient({ ...config, fetch: asFetch(request => config.fetch(request)) });
       const prepared = await sentry.client.prepareRequest({ method: "POST", url: "/custom/", body: { value: 1 } });
       expect(requests).toHaveLength(0);
