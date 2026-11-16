@@ -72,6 +72,12 @@ def load_config(app: App) -> None:
     if app.config.endpoints.control_resolve:
         app.config.Resolver.addrs = [app.config.endpoints.control]
 
+    if resolver_ttl := os.environ.get("APIGW_RESOLVER_TTL"):
+        app.config.Resolver.interval = int(resolver_ttl)
+
+    if resolver_timeout := os.environ.get("APIGW_RESOLVER_TIMEOUT"):
+        app.config.Resolver.timeout = int(resolver_timeout)
+
     app.config.proxy.timeout = None
     app.config.proxy.max_concurrency = int(os.environ.get("APIGW_PROXY_MAX_CONCURRENCY", 512))
     app.config.proxy.max_failures = int(os.environ.get("APIGW_PROXY_MAX_FAILURES", 16))

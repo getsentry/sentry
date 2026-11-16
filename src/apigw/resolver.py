@@ -13,7 +13,8 @@ class Resolver(Extension):
 
     default_config = {
         "addrs": [],
-        "interval": 5,
+        "interval": 10,
+        "timeout": 5,
     }
 
     def on_load(self) -> None:
@@ -54,7 +55,7 @@ class Resolver(Extension):
             while True:
                 await asyncio.sleep(self.config.interval)
                 try:
-                    await self._refresh(addr)
+                    await asyncio.wait_for(self._refresh(addr), timeout=self.config.timeout)
                 except Exception:
                     pass
         except asyncio.CancelledError:
