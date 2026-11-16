@@ -12,6 +12,8 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_contex
 def webhook_viewer_context(organization_id: int) -> Generator[None]:
     """Set ViewerContext for a webhook handler processing an org-scoped event.
 
+    Attribute the event to the integration within the resolved organization.
+
     Gated by the ``viewer-context.enabled`` option so it rolls out alongside
     the rest of the ViewerContext infrastructure.
     """

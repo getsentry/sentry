@@ -90,5 +90,6 @@ def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
     if auth is not None and hasattr(auth, "organization_id"):
         organization_id = auth.organization_id
 
+    # TODO(Greg): Remove the UNKNOWN actor type and this fallback.
     actor = resolve_actor(request.user, auth) or Actor(type=ActorType.UNKNOWN)
     return ViewerContext(actor=actor, organization_id=organization_id)
