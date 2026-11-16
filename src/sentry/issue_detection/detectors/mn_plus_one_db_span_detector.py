@@ -447,7 +447,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     To create a problem from a set a spans, this detector looks for the following:
     - A pattern of at least one db query span and one non-db span (set by `max_sequence_length`).
       Connection lifecycle spans are part of the pattern but do not count as queries.
-    - The pattern is repeated sequentially with no intervening spans (set by `min_occurrences_of_pattern`)
+    - The pattern is repeated sequentially with no intervening spans (set by `minimum_occurrences_of_pattern`)
     - The total duration of the repeated pattern is above the threshold (set by `total_duration_threshold`)
     - The total duration of the db query spans is above the percentage threshold for the whole sequence (set by `min_percentage_of_db_spans`)
     - The pattern has at least one common parent span within the event, and within the configured depth (set by `max_allowable_depth`)

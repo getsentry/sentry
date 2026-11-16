@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import uuid as uuid_module
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar
+from typing import TYPE_CHECKING, Any, Final, Literal, NamedTuple, TypeVar
 
 from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
@@ -18,8 +19,10 @@ if TYPE_CHECKING:
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 
 # Let API clients like the CLI and MCP tell billing 402s apart without parsing detail text.
-SEER_OUT_OF_CREDITS_CODE = "seer_out_of_credits"
-SEER_OUT_OF_QUOTA_CODE = "seer_out_of_quota"
+# The API schema documents these codes as an enum, so a new code has to be added here.
+SeerPaymentRequiredCode = Literal["seer_out_of_credits", "seer_out_of_quota"]
+SEER_OUT_OF_CREDITS_CODE: Final[SeerPaymentRequiredCode] = "seer_out_of_credits"
+SEER_OUT_OF_QUOTA_CODE: Final[SeerPaymentRequiredCode] = "seer_out_of_quota"
 
 SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL = (
     "Your organization does not have enough credits to start an Autofix run."
@@ -30,6 +33,15 @@ SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL = (
 SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL = (
     "Your organization does not have enough credits left for you to message Seer."
 )
+
+
+def seer_out_of_credits_response(
+    detail: str, denial_reason: SeerCreditDenialReason | None
+) -> Response:
+    return Response(
+        {"detail": detail, "code": SEER_OUT_OF_CREDITS_CODE, "denialReason": denial_reason},
+        status=status.HTTP_402_PAYMENT_REQUIRED,
+    )
 
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):

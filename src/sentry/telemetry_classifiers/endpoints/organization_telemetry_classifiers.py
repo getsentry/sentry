@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from drf_spectacular.utils import extend_schema
+from django.db.models import Q
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -29,9 +30,8 @@ from sentry.telemetry_classifiers.serializers import (
 
 
 class TelemetryClassifierPermission(OrganizationPermission):
-    # Team admins have project:write on their projects but only org:read on the org, so writes
-    # check project:write on the classifier's project instead (in the create serializer and in
-    # the update handler).
+    # Members only have org:read on the org, so writes check project:read on the classifier's
+    # project instead (in the create serializer and in the update handler).
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
@@ -54,6 +54,13 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                description="Case-insensitive substring match against the classifier name or result attribute.",
+            ),
             CursorQueryParam,
         ],
         responses={
@@ -76,6 +83,12 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         queryset = TelemetryClassifier.objects.filter(project__in=projects)
+
+        query = request.GET.get("query", "").strip()
+        if query:
+            queryset = queryset.filter(
+                Q(name__icontains=query) | Q(result_attribute__icontains=query)
+            )
 
         return self.paginate(
             request=request,
@@ -105,7 +118,7 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[TelemetryClassifierResponse]:
         """
-        Create a telemetry classifier on a project the caller can write to.
+        Create a telemetry classifier on a project the caller can access.
         """
         if not features.has("organizations:classifiers-ui", organization, actor=request.user):
             return self.respond(status=404)

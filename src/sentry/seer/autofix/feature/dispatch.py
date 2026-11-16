@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,7 +16,6 @@ from sentry.constants import (
 )
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
@@ -24,6 +24,7 @@ from sentry.seer.agent.client_utils import (
     get_proxy_headers,
 )
 from sentry.seer.agent.on_completion_hook import extract_hook_definition
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import (
@@ -38,13 +39,20 @@ from sentry.seer.autofix.feature.models import (
     RCAStepArgs,
     SolutionStepArgs,
 )
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    feedback_text,
+    serialize_feedback,
+)
+from sentry.seer.autofix.single_run import CODING_AGENT_HANDOFF_KEY, hands_off_to_coding_agent
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_automation_handoff,
+    get_event_matched_project_repo_ids,
     is_free_cohort_org,
 )
-from sentry.seer.credits import SeerOperation, has_enough_seer_credits
+from sentry.seer.credits import SeerOperation, check_seer_operation, get_denial_reason
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
@@ -52,14 +60,6 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-# Used for server-owned referrers. Public callers supply a billing feature
-# resolved from the request source and actor before reaching dispatch.
-_BILLING_FEATURE_BY_REFERRER = {
-    AutofixReferrer.AGENTIC_TRIAGE: billing.SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
-    AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY: billing.SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
-    AutofixReferrer.SLACK: billing.SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
-}
 
 
 @dataclass(frozen=True)
@@ -104,7 +104,9 @@ def autofix_run_targets_other_issue(group: Group, run_id: int) -> bool:
     return not _run_mirrors(group, run_id).filter(_mirror_matches_issue(group)).exists()
 
 
-def require_autofix_run_for_group(group: Group, run_id: int) -> SeerAgentRun:
+def require_autofix_run_for_group(
+    group: Group, run_id: int, sources: tuple[str, ...] = (FEATURE_ID, LEGACY_FEATURE_ID)
+) -> SeerAgentRun:
     """The autofix run mirror for this issue, or a permission error.
 
     ``run_id`` comes from the request body. Org membership is not enough: the
@@ -113,7 +115,7 @@ def require_autofix_run_for_group(group: Group, run_id: int) -> SeerAgentRun:
     """
     agent_run = (
         _run_mirrors(group, run_id)
-        .filter(source__in=(FEATURE_ID, LEGACY_FEATURE_ID))
+        .filter(source__in=sources)
         .select_related("run")
         .filter(_mirror_matches_issue(group))
         .first()
@@ -130,23 +132,18 @@ def should_use_single_run(
     existing_run_id: int | None = None,
     single_run_requested: bool = False,
 ) -> bool:
-    # Only fresh root-cause starts qualify: later steps and retries continue step-by-step runs,
-    # and coding-agent handoff only exists in that flow (AIML-3808).
+    # Only fresh root-cause starts qualify: later steps and retries continue step-by-step runs.
     if step != AutofixStep.ROOT_CAUSE or existing_run_id is not None:
-        return False
-    if get_automation_handoff(group.project.get_option) is not None:
         return False
     return single_run_requested or features.has(
         "organizations:autofix-single-run", group.organization
     )
 
 
-def project_stopping_point(project: Project) -> AutofixStoppingPoint:
-    return AutofixStoppingPoint(project.get_option("sentry:seer_automated_run_stopping_point"))
-
-
 def _single_run_pr_internal_settings(
-    group: Group, referrer: AutofixReferrer
+    group: Group,
+    referrer: AutofixReferrer,
+    commit_author: SeerCommitAuthor | None = None,
 ) -> AutofixSingleRunPrInternalSettings:
     from sentry.seer.autofix.autofix_agent import (
         build_pr_description_suffix,
@@ -156,6 +153,19 @@ def _single_run_pr_internal_settings(
     return AutofixSingleRunPrInternalSettings(
         description_suffix=build_pr_description_suffix(group, referrer),
         ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
+        commit_author=commit_author,
+    )
+
+
+_CODING_STOPPING_POINTS = (AutofixStoppingPoint.CODE_CHANGES, AutofixStoppingPoint.OPEN_PR)
+
+
+def will_hand_off_to_coding_agent(
+    group: Group, stopping_point: AutofixStoppingPoint | None
+) -> bool:
+    return (
+        stopping_point in _CODING_STOPPING_POINTS
+        and get_automation_handoff(group.project.get_option) is not None
     )
 
 
@@ -182,10 +192,9 @@ def check_autofix_billing(
     """
     # Check credits for token-billed orgs.
     if features.has("organizations:token-billed-seer-enabled", organization):
-        if features.has(
-            "organizations:seer-credit-checks", organization
-        ) and not has_enough_seer_credits(organization, billing_feature, operation):
-            raise SeerOutOfCreditsException()
+        credits = check_seer_operation(organization, billing_feature, operation)
+        if not credits.has_enough_credits:
+            raise SeerOutOfCreditsException(get_denial_reason(credits))
         return False
 
     # Check quota for non-token-billed orgs once per run.
@@ -211,8 +220,6 @@ def continue_single_run(
     user: User | RpcUser,
     can_publish: bool,
 ) -> SeerRun:
-    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
-
     check_autofix_billing(
         group.organization,
         billing_feature,
@@ -220,8 +227,77 @@ def continue_single_run(
         is_new_run=False,
     )
 
-    enable_coding = _org_allows_coding(group)
+    # A run handing off to the project's coding agent never gets code tools, so Seer doesn't
+    # write a fix the agent is also writing.
+    enable_coding = not hands_off_to_coding_agent(agent_run) and _org_allows_coding(group)
     open_pr = enable_coding and can_publish
+    return _continue_single_run(
+        agent_run,
+        group,
+        reply=reply,
+        user=user,
+        enable_coding=enable_coding,
+        pr_internal_settings=(
+            _single_run_pr_internal_settings(group, referrer) if open_pr else None
+        ),
+        enable_pr_context_tools=False,
+        referrer=referrer,
+    )
+
+
+def continue_single_run_from_pr_feedback(
+    agent_run: SeerAgentRun,
+    group: Group,
+    *,
+    feedback: Sequence[Feedback],
+    iteration_index: int,
+    iteration_id: int | None,
+    commit_author: SeerCommitAuthor | None,
+    referrer: AutofixReferrer,
+    billing_feature: int,
+) -> SeerRun:
+    check_autofix_billing(
+        group.organization,
+        billing_feature,
+        SeerOperation.AUTOFIX_PR_ITERATION,
+        is_new_run=False,
+    )
+    enable_coding = _org_allows_coding(group)
+    return _continue_single_run(
+        agent_run,
+        group,
+        reply=feedback_text(feedback),
+        user=None,
+        enable_coding=enable_coding,
+        pr_internal_settings=(
+            _single_run_pr_internal_settings(group, referrer, commit_author)
+            if enable_coding
+            else None
+        ),
+        enable_pr_context_tools=True,
+        referrer=referrer,
+        pr_feedback=PrIterationStepArgs(
+            iteration_index=iteration_index,
+            iteration_id=iteration_id,
+            feedback=serialize_feedback(feedback),
+        ),
+    )
+
+
+def _continue_single_run(
+    agent_run: SeerAgentRun,
+    group: Group,
+    *,
+    reply: str,
+    user: User | RpcUser | None,
+    enable_coding: bool,
+    pr_internal_settings: AutofixSingleRunPrInternalSettings | None,
+    enable_pr_context_tools: bool,
+    referrer: AutofixReferrer,
+    pr_feedback: PrIterationStepArgs | None = None,
+) -> SeerRun:
+    from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+
     payload = AutofixSingleRunFeaturePayload(
         group_id=group.id,
         project_id=group.project_id,
@@ -232,16 +308,16 @@ def continue_single_run(
         should_run_repo_checks=True,
         existing_run_id=agent_run.run.seer_run_state_id,
         reply=reply,
-        pr_internal_settings=(
-            _single_run_pr_internal_settings(group, referrer) if open_pr else None
-        ),
+        pr_internal_settings=pr_internal_settings,
+        coding_agent_handoff=hands_off_to_coding_agent(agent_run),
+        pr_feedback=pr_feedback,
     )
     agent_run_options = AgentRunOptions(
         is_context_engine_enabled=False,
         enable_frontend_code_search=False,
         enable_coding=enable_coding,
-        enable_pr_context_tools=False,
-        enable_write_pull_request=open_pr,
+        enable_pr_context_tools=enable_pr_context_tools,
+        enable_write_pull_request=pr_internal_settings is not None,
     )
 
     client = SeerAgentClient(
@@ -256,7 +332,11 @@ def continue_single_run(
         existing_agent_run=agent_run,
         payload=payload.dict(),
         referrer=referrer.value,
-        user_org_context=collect_user_org_context(user, group.organization),
+        user_org_context=collect_user_org_context(
+            user,
+            group.organization,
+            priority_project_repo_ids=get_event_matched_project_repo_ids(group),
+        ),
         proxy_headers=get_proxy_headers(),
         agent_run_options=agent_run_options,
     )
@@ -275,16 +355,19 @@ def trigger_autofix_feature(
     is_new_run = existing_agent_run is None
 
     billing_feature = args.billing_feature
-    if billing_feature is None:
-        # Continuations without the stored feature are unattributed rather than guessed.
-        billing_feature = (
-            _BILLING_FEATURE_BY_REFERRER.get(
-                args.referrer, billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
-            )
-            if is_new_run
-            else billing.SEER_BILLING_FEATURE_UNSPECIFIED
+    if is_new_run and billing_feature in (None, billing.SEER_BILLING_FEATURE_UNSPECIFIED):
+        logger.warning(
+            "autofix_feature.dispatch.missing_billing_feature",
+            extra={
+                "group_id": group.id,
+                "organization_id": group.organization.id,
+                "referrer": args.referrer.value,
+                "billing_feature": billing_feature,
+            },
         )
-
+        billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
+    elif billing_feature is None:
+        billing_feature = billing.SEER_BILLING_FEATURE_UNSPECIFIED
     try:
         uses_quota = check_autofix_billing(
             group.organization,
@@ -305,7 +388,7 @@ def trigger_autofix_feature(
             },
         )
         raise
-    except SeerOutOfCreditsException:
+    except SeerOutOfCreditsException as e:
         logger.info(
             "autofix_feature.dispatch.out_of_credits",
             extra={
@@ -313,6 +396,7 @@ def trigger_autofix_feature(
                 "organization_id": group.organization.id,
                 "operation": args.step.seer_operation.value,
                 "referrer": args.referrer.value,
+                "denial_reason": e.denial_reason,
             },
         )
         raise
@@ -324,7 +408,7 @@ def trigger_autofix_feature(
         single_run_requested=args.single_run,
     )
     stopping_point = (
-        (args.stopping_point or project_stopping_point(group.project))
+        (args.stopping_point or AutofixStoppingPoint.CODE_CHANGES)
         if single_run
         else args.stopping_point
     )
@@ -350,10 +434,14 @@ def trigger_autofix_feature(
             user_context=args.user_context,
             should_run_repo_checks=True,
         )
-        enable_coding = stopping_point in (
-            AutofixStoppingPoint.CODE_CHANGES,
-            AutofixStoppingPoint.OPEN_PR,
-        ) and _org_allows_coding(group)
+        # The project's coding agent writes the fix, so Seer stops after the root cause. Only
+        # automated runs, which pass the project's stopping point, hand off. A manual run names
+        # none and has Seer write the fix; the user can hand off from the UI instead.
+        hand_off = will_hand_off_to_coding_agent(group, args.stopping_point)
+        enable_coding = (
+            stopping_point in _CODING_STOPPING_POINTS and not hand_off and _org_allows_coding(group)
+        )
+        payload.coding_agent_handoff = hand_off
         open_pr = enable_coding and stopping_point == AutofixStoppingPoint.OPEN_PR
         if open_pr:
             payload.pr_internal_settings = _single_run_pr_internal_settings(group, args.referrer)
@@ -374,6 +462,7 @@ def trigger_autofix_feature(
         )
         enable_coding = args.step in (AutofixStep.CODE_CHANGES, AutofixStep.PR_ITERATION)
         open_pr = False
+        hand_off = False
 
     client = SeerAgentClient(
         organization=group.organization,
@@ -403,8 +492,16 @@ def trigger_autofix_feature(
     # Store the stopping point here for delivery to use when advancing steps.
     if stopping_point is not None:
         extras["stopping_point"] = stopping_point.value
+    # Decided once here so the tools the run gets and the completion hook's handoff agree,
+    # even if the project's handoff settings change mid-run.
+    if hand_off:
+        extras[CODING_AGENT_HANDOFF_KEY] = True
 
-    user_org_context = collect_user_org_context(args.user, group.organization)
+    user_org_context = collect_user_org_context(
+        args.user,
+        group.organization,
+        priority_project_repo_ids=get_event_matched_project_repo_ids(group),
+    )
     if is_new_run:
         run = client.start_feature_run(
             feature_id=SINGLE_RUN_FEATURE_ID if single_run else FEATURE_ID,

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from uuid import UUID
 
 import orjson
 from rest_framework.request import Request
@@ -12,14 +11,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.jira.forge.invocation_token import (
     ForgeInvocationTokenError,
-    verify_forge_invocation_token,
+    jira_cloud_id,
+    verify_forge_request,
 )
 from sentry.integrations.jira.tasks import sync_forge_installation
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 from .base import JiraWebhookBase
 
-JIRA_API_BASE_URL = "https://api.atlassian.com/ex/jira/"
 # Atlassian guarantees a system token is valid for at least this long.
 FORGE_SYSTEM_TOKEN_MIN_TTL = 2 * 60 * 60
 
@@ -37,26 +36,15 @@ class JiraForgeInstallationWebhook(JiraWebhookBase):
     """
 
     def post(self, request: Request, *args: object, **kwargs: object) -> Response:
-        scheme, _, token = request.headers.get("Authorization", "").partition(" ")
-        if scheme.lower() != "bearer" or not token:
-            return self.respond({"detail": "Missing Forge invocation token"}, status=401)
         try:
-            invocation = verify_forge_invocation_token(token)
+            invocation = verify_forge_request(request)
         except ForgeInvocationTokenError:
             return self.respond({"detail": "Invalid Forge invocation token"}, status=401)
 
-        # Lifecycle events and scheduled triggers can arrive with an empty `context`, so
-        # the site comes from apiBaseUrl, which every FIT carries. The system token is sent
-        # to this URL, so it must be Atlassian's API for a single Jira site.
-        api_base_url = invocation.api_base_url
-        try:
-            cloud_id: str | None = str(UUID(api_base_url.removeprefix(JIRA_API_BASE_URL)))
-        except ValueError:
-            cloud_id = None
-        if api_base_url != f"{JIRA_API_BASE_URL}{cloud_id}" or invocation.cloud_id not in (
-            None,
-            cloud_id,
-        ):
+        # The system token is sent to apiBaseUrl, so it must be Atlassian's API for a
+        # single Jira site.
+        cloud_id = jira_cloud_id(invocation)
+        if cloud_id is None:
             return self.respond({"detail": "Invalid Forge installation context"}, status=400)
 
         system_token = request.headers.get("X-Forge-OAuth-System")

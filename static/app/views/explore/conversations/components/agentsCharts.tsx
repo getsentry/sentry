@@ -5,6 +5,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -191,6 +192,16 @@ export function AgentsCharts() {
                   dashboardFilters={dashboard.filters}
                   selection={selection}
                   showContextMenu
+                  onContextMenuAction={key => {
+                    const saveType = getSaveType(key);
+                    if (saveType && widget.id) {
+                      trackAnalytics('conversations.save_as', {
+                        organization,
+                        chart: widget.id,
+                        save_type: saveType,
+                      });
+                    }
+                  }}
                   widget={widget}
                   widgetInterval={chartInterval}
                   widgetLegendState={widgetLegendState}
@@ -203,4 +214,14 @@ export function AgentsCharts() {
       </Stack>
     </Container>
   );
+}
+
+function getSaveType(menuKey: string): 'alert' | 'dashboard' | null {
+  if (menuKey === 'add-to-dashboard') {
+    return 'dashboard';
+  }
+  if (menuKey.startsWith('create-alert')) {
+    return 'alert';
+  }
+  return null;
 }

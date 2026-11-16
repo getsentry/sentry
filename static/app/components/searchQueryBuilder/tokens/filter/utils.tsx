@@ -114,6 +114,8 @@ export function getValidOpsForFilter({
     regexOperators.forEach(op => validOps.delete(op));
   }
 
+  fieldDefinition?.disallowedOperators?.forEach(op => validOps.delete(op));
+
   if (fieldDefinition?.comparisonOperatorsFirst) {
     const ops = [...validOps];
     const isComparison = (op: TermOperator) =>

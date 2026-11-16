@@ -29,14 +29,14 @@ from sentry.notebooks.models import (
 )
 from sentry.notebooks.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.notebooks.services.executions import freeze_query_links, mark_block_execution_dispatched
-from sentry.notebooks.services.notebooks import has_default_investigation_title
+from sentry.notebooks.services.notebooks import has_default_notebook_title
 from sentry.notebooks.telemetry import (
     record_execution_cancelled,
     record_execution_completed,
     record_execution_failed,
     record_execution_started,
-    record_investigation_completed,
-    record_investigation_failed,
+    record_notebook_completed,
+    record_notebook_failed,
     record_title_generation_completed,
     record_title_generation_failed,
 )
@@ -646,12 +646,12 @@ def _interrupt_execution_best_effort(organization: Organization, run_id: int) ->
         )
 
 
-def cancel_investigation_executions_after_failure(
+def cancel_notebook_executions_after_failure(
     failed_execution: NotebookBlockExecution,
 ) -> None:
     database = router.db_for_write(NotebookBlockExecution)
     with transaction.atomic(using=database):
-        investigation = (
+        notebook = (
             Notebook.objects.select_for_update()
             .select_related("organization")
             .get(id=failed_execution.block.notebook_id)
@@ -670,14 +670,14 @@ def cancel_investigation_executions_after_failure(
 
         failure_reason = str((failed_execution.error or {}).get("code") or "execution_failed")
         transaction.on_commit(
-            partial(record_investigation_failed, investigation, reason=failure_reason),
+            partial(record_notebook_failed, notebook, reason=failure_reason),
             using=database,
         )
 
         active_executions = list(
             NotebookBlockExecution.objects.select_for_update(of=("self",))
             .filter(
-                block__notebook_id=investigation.id,
+                block__notebook_id=notebook.id,
                 status__in=ACTIVE_BLOCK_EXECUTION_STATUSES,
             )
             .exclude(id=failed_execution.id)
@@ -711,18 +711,18 @@ def cancel_investigation_executions_after_failure(
             transaction.on_commit(
                 partial(
                     _interrupt_execution_best_effort,
-                    investigation.organization,
+                    notebook.organization,
                     execution.seer_run.seer_run_state_id,
                 ),
                 using=database,
             )
 
 
-def _cancel_investigation_executions_after_commit(
+def _cancel_notebook_executions_after_commit(
     failed_execution: NotebookBlockExecution,
 ) -> None:
     transaction.on_commit(
-        partial(cancel_investigation_executions_after_failure, failed_execution),
+        partial(cancel_notebook_executions_after_failure, failed_execution),
         using=router.db_for_write(NotebookBlockExecution),
     )
 
@@ -786,7 +786,7 @@ def synchronize_execution(execution: NotebookBlockExecution, state: SeerRunState
                 ),
                 using=database,
             )
-            _cancel_investigation_executions_after_commit(execution)
+            _cancel_notebook_executions_after_commit(execution)
             if execution.seer_run and execution.seer_run.seer_run_state_id:
                 transaction.on_commit(
                     partial(
@@ -845,7 +845,7 @@ def synchronize_execution(execution: NotebookBlockExecution, state: SeerRunState
                 ),
                 using=database,
             )
-            _cancel_investigation_executions_after_commit(execution)
+            _cancel_notebook_executions_after_commit(execution)
             return
 
         raw_result = _result_from_final_message(state, block_kind=execution.block.kind)
@@ -879,7 +879,7 @@ def synchronize_execution(execution: NotebookBlockExecution, state: SeerRunState
                 ),
                 using=database,
             )
-            _cancel_investigation_executions_after_commit(execution)
+            _cancel_notebook_executions_after_commit(execution)
             return
         try:
             if execution.block.kind == NotebookBlockKind.QUERY:
@@ -938,7 +938,7 @@ def synchronize_execution(execution: NotebookBlockExecution, state: SeerRunState
                 ),
                 using=database,
             )
-            _cancel_investigation_executions_after_commit(execution)
+            _cancel_notebook_executions_after_commit(execution)
             return
 
         execution.result = result
@@ -979,34 +979,34 @@ def synchronize_execution(execution: NotebookBlockExecution, state: SeerRunState
             transaction.on_commit(
                 partial(
                     schedule_eligible_auto_run_blocks,
-                    investigation_id=block.notebook_id,
+                    notebook_id=block.notebook_id,
                     user_id=execution.triggered_by_id,
                 ),
                 using=database,
             )
 
 
-def _maybe_start_title_generation(investigation: Notebook, user_id: int | None) -> None:
-    if investigation.title_generation_status in NON_RETRYABLE_TITLE_STATUSES:
+def _maybe_start_title_generation(notebook: Notebook, user_id: int | None) -> None:
+    if notebook.title_generation_status in NON_RETRYABLE_TITLE_STATUSES:
         return
     blocks = list(
-        investigation.blocks.filter(deleted_at__isnull=True)
+        notebook.blocks.filter(deleted_at__isnull=True)
         .select_related("content_execution", "result_execution")
         .order_by("position")
     )
     auto_run_blocks = [block for block in blocks if block.config.get("autoRun")]
-    if not auto_run_blocks and not has_default_investigation_title(investigation):
+    if not auto_run_blocks and not has_default_notebook_title(notebook):
         return
     if auto_run_blocks and not all(_block_has_current_result(block) for block in auto_run_blocks):
         return
-    if investigation.summary is not None and investigation.summary_description is not None:
+    if notebook.summary is not None and notebook.summary_description is not None:
         return
     user = user_service.get_user(user_id=user_id) if user_id else None
     client = SeerAgentClient(
-        investigation.organization,
+        notebook.organization,
         user,
         category_key=SEER_CATEGORY_KEY,
-        category_value=str(investigation.id),
+        category_value=str(notebook.id),
         on_completion_hook=InvestigationAgentCompletionHook,
         enable_code_mode_tools="only",
         enable_coding=False,
@@ -1026,13 +1026,13 @@ def _maybe_start_title_generation(investigation: Notebook, user_id: int | None) 
         "and do not invent a cause. Put title "
         "first in the JSON object. Do not call any function to write or save the result.\n"
         "<source_context>\n"
-        f"{json.dumps(investigation.source)}\n</source_context>\n"
+        f"{json.dumps(notebook.source)}\n</source_context>\n"
         f"<block_context>\n{block_context}\n</block_context>"
     )
 
     database = router.db_for_write(Notebook)
     with transaction.atomic(using=database):
-        locked = Notebook.objects.select_for_update().get(id=investigation.id)
+        locked = Notebook.objects.select_for_update().get(id=notebook.id)
         if locked.title_generation_status in NON_RETRYABLE_TITLE_STATUSES or (
             locked.summary is not None and locked.summary_description is not None
         ):
@@ -1044,7 +1044,7 @@ def _maybe_start_title_generation(investigation: Notebook, user_id: int | None) 
     def link_title_run(run: Any) -> None:
         nonlocal title_seer_run_state_id
         title_seer_run_state_id = run.seer_run_state_id
-        Notebook.objects.filter(id=investigation.id).update(
+        Notebook.objects.filter(id=notebook.id).update(
             title_seer_run_id=run.id, title_generation_status=TitleGenerationStatus.RUNNING
         )
 
@@ -1053,34 +1053,34 @@ def _maybe_start_title_generation(investigation: Notebook, user_id: int | None) 
             prompt,
             metadata={
                 "referrer": "investigation-title",
-                "investigation_id": str(investigation.id),
+                "investigation_id": str(notebook.id),
             },
             record_in_history=False,
             on_run_created=link_title_run,
         )
     except Exception:
         Notebook.objects.filter(
-            id=investigation.id, title_generation_status__in=IN_FLIGHT_TITLE_STATUSES
+            id=notebook.id, title_generation_status__in=IN_FLIGHT_TITLE_STATUSES
         ).update(title_generation_status=TitleGenerationStatus.FAILED)
         record_title_generation_failed(
-            investigation,
+            notebook,
             reason="dispatch_failed",
             seer_run_id=title_seer_run_state_id,
         )
         raise
 
 
-def synchronize_title(investigation: Notebook, state: SeerRunState) -> None:
-    if investigation.title_generation_status not in IN_FLIGHT_TITLE_STATUSES:
+def synchronize_title(notebook: Notebook, state: SeerRunState) -> None:
+    if notebook.title_generation_status not in IN_FLIGHT_TITLE_STATUSES:
         return
     if any(
         _block_policy_error(block, allow_query_tools=False) is not None for block in state.blocks
     ):
         if state.status in {"processing", "awaiting_user_input"}:
-            interrupt_run(investigation.organization, state.run_id)
-        investigation.update(title_generation_status=TitleGenerationStatus.FAILED)
+            interrupt_run(notebook.organization, state.run_id)
+        notebook.update(title_generation_status=TitleGenerationStatus.FAILED)
         record_title_generation_failed(
-            investigation, reason="unsupported_tool_use", seer_run_id=state.run_id
+            notebook, reason="unsupported_tool_use", seer_run_id=state.run_id
         )
         return
     if state.status in {"processing", "awaiting_user_input"}:
@@ -1100,18 +1100,18 @@ def synchronize_title(investigation: Notebook, state: SeerRunState) -> None:
         )
     }
     if metadata:
-        if has_default_investigation_title(investigation):
+        if has_default_notebook_title(notebook):
             updates["title"] = metadata["title"]
         updates["summary"] = metadata["summary"]
         updates["summary_description"] = metadata["summary_description"]
         updates["version"] = F("version") + 1
-    investigation.update(**updates)
+    notebook.update(**updates)
     if metadata is not None:
-        record_title_generation_completed(investigation)
-        record_investigation_completed(investigation)
+        record_title_generation_completed(notebook)
+        record_notebook_completed(notebook)
     else:
         record_title_generation_failed(
-            investigation,
+            notebook,
             reason="seer_execution_failed"
             if state.status == "error"
             else ("missing_result" if not content else "invalid_result"),
@@ -1223,8 +1223,8 @@ class InvestigationAgentCompletionHook(AgentOnCompletionHook):
         if execution is not None:
             synchronize_execution(execution, state)
             return
-        investigation = Notebook.objects.filter(
+        notebook = Notebook.objects.filter(
             organization=organization, title_seer_run__seer_run_state_id=run_id
         ).first()
-        if investigation is not None:
-            synchronize_title(investigation, state)
+        if notebook is not None:
+            synchronize_title(notebook, state)

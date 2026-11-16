@@ -23,6 +23,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
+from sentry.utils.registry import NoRegistrationExistsError
 
 
 class InboxItemSerializerTest(TestCase):
@@ -62,7 +63,7 @@ class InboxItemSerializerTest(TestCase):
         ]
         for item in items:
             self.create_inbox_item_event(
-                inbox_item=item, type="notebook.participant_added", data={"summary": "Added you"}
+                inbox_item=item, type="notebook.participant_added", data={}
             )
 
         with self.assertNumQueries(3):
@@ -91,45 +92,47 @@ class InboxItemSerializerTest(TestCase):
         older = before_now(minutes=5)
         item = self.create_inbox_item(subject_id=str(first.id), last_read_at=older)
         other = self.create_inbox_item(subject_id=str(second.id))
-        previous = self.create_inbox_item_event(
-            inbox_item=item, data={"summary": "Assigned to you"}
-        )
+        previous = self.create_inbox_item_event(inbox_item=item, data={})
         previous.update(date_added=older)
         latest = self.create_inbox_item_event(
             inbox_item=item,
-            type="issue.mentioned",
-            data={"summary": "Mentioned you", "comment_id": 123},
+            type="issue.user_mentioned",
+            data={"comment_id": 123},
         )
-        self.create_inbox_item_event(inbox_item=other, data={"summary": "Assigned to you"})
+        self.create_inbox_item_event(inbox_item=other, data={})
 
         with self.assertNumQueries(3):
             results = serialize([item, other], self.user, InboxItemSerializer())
 
         assert results[0]["title"] == "First issue"
-        assert results[0]["subtitle"] == "Mentioned you"
+        assert results[0]["subtitle"] == "Mentioned you in a comment"
         assert results[0]["eventCount"] == 2
         assert results[0]["unreadEventCount"] == 1
-        assert results[0]["eventTypes"] == ["issue.mentioned", "issue.user_assigned"]
+        assert results[0]["eventTypes"] == ["issue.user_assigned", "issue.user_mentioned"]
         assert results[0]["latestEvent"]["id"] == str(latest.id)
         assert results[0]["latestEvent"]["data"] == {"commentId": "123"}
         assert results[1]["title"] == "Second issue"
 
-    def test_missing_subject_and_unregistered_types(self) -> None:
+    def test_unregistered_event_type(self) -> None:
         item = self.create_inbox_item(subject_type="removed.type", subject_id="missing")
-        self.create_inbox_item_event(
-            inbox_item=item, type="removed.event", data={"summary": "A retained event"}
-        )
+        self.create_inbox_item_event(inbox_item=item, type="removed.event", data={})
+
+        with pytest.raises(NoRegistrationExistsError, match="removed.event"):
+            serialize(item, self.user, InboxItemSerializer())
+
+    def test_unregistered_subject_type(self) -> None:
+        item = self.create_inbox_item(subject_type="removed.type", subject_id="missing")
+        self.create_inbox_item_event(inbox_item=item)
 
         result = serialize(item, self.user, InboxItemSerializer())
 
         assert result["title"] is None
-        assert result["subtitle"] == "A retained event"
-        assert result["latestEvent"]["type"] == "removed.event"
+        assert result["subtitle"] == "Assigned to you"
 
     def test_deleted_subject(self) -> None:
         group = self.create_group(project=self.project)
         item = self.create_inbox_item(subject_id=str(group.id))
-        self.create_inbox_item_event(inbox_item=item, data={"summary": "Assigned to you"})
+        self.create_inbox_item_event(inbox_item=item, data={})
         group.delete()
 
         assert serialize(item, self.user, InboxItemSerializer())["title"] is None
@@ -141,32 +144,32 @@ class TestNotebookEvents:
         [
             (
                 "notebook.completed",
-                NotebookCompletedData(summary="Investigation completed", seer_run_id=123),
+                NotebookCompletedData(seer_run_id=123),
                 {"seerRunId": "123"},
             ),
             (
                 "notebook.user_mentioned",
-                NotebookMentionedData(summary="Mentioned you", comment_id=123),
+                NotebookMentionedData(comment_id=123),
                 {"commentId": "123", "blockId": None},
             ),
             (
                 "notebook.user_mentioned",
-                NotebookMentionedData(summary="Mentioned you", comment_id=123, block_id=456),
+                NotebookMentionedData(comment_id=123, block_id=456),
                 {"commentId": "123", "blockId": "456"},
             ),
             (
                 "notebook.team_mentioned",
-                NotebookMentionedData(summary="Mentioned your team", comment_id=123),
+                NotebookMentionedData(comment_id=123),
                 {"commentId": "123", "blockId": None},
             ),
             (
                 "notebook.team_mentioned",
-                NotebookMentionedData(summary="Mentioned your team", comment_id=123, block_id=456),
+                NotebookMentionedData(comment_id=123, block_id=456),
                 {"commentId": "123", "blockId": "456"},
             ),
             (
                 "notebook.participant_added",
-                NotebookParticipantAddedData(summary="Added you"),
+                NotebookParticipantAddedData(),
                 {},
             ),
         ],
@@ -200,22 +203,30 @@ class TestNotebookEvents:
         assert item.subject_type == "notebook"
         assert item.subject_id == str(notebook.id)
         assert result["type"] == event_type
-        assert result["summary"] == data.summary
+        assert result["summary"] == event_type_definition.summary
         assert result["data"] == expected_data
 
 
 class InboxItemEventSerializerTest(TestCase):
+    def test_summary_comes_from_event_definition(self) -> None:
+        item = self.create_inbox_item()
+        for payload in ({"comment_id": 123}, {"comment_id": 123, "summary": "Old wording"}):
+            event = self.create_inbox_item_event(
+                inbox_item=item, type="issue.user_mentioned", data=payload
+            )
+
+            result = serialize(event, self.user, InboxItemEventSerializer())
+
+            assert result["summary"] == "Mentioned you in a comment"
+            assert result["data"] == {"commentId": "123"}
+
     def test_bulk_parent_loading(self) -> None:
         read_at = before_now(minutes=1)
         read_item = self.create_inbox_item(subject_id="1", last_read_at=read_at)
         unread_item = self.create_inbox_item(subject_id="2")
-        read_event = self.create_inbox_item_event(
-            inbox_item=read_item, data={"summary": "Read event"}
-        )
+        read_event = self.create_inbox_item_event(inbox_item=read_item, data={})
         read_event.update(date_added=read_at)
-        unread_event = self.create_inbox_item_event(
-            inbox_item=unread_item, data={"summary": "Unread event"}
-        )
+        unread_event = self.create_inbox_item_event(inbox_item=unread_item, data={})
         events = list(
             InboxItemEvent.objects.filter(id__in=[read_event.id, unread_event.id]).order_by("id")
         )
@@ -233,7 +244,6 @@ class InboxItemEventSerializerTest(TestCase):
         event = self.create_inbox_item_event(
             inbox_item=item,
             data={
-                "summary": "A retained event",
                 "comment_id": 123,
                 "seer_run_id": 456,
                 "external_id": 789,
@@ -258,16 +268,16 @@ class InboxItemEventSerializerTest(TestCase):
         first = self.create_inbox_item_event(
             inbox_item=item,
             actor=actor,
-            data={"summary": "An assignment"},
+            data={},
         )
         first.update(date_added=before_now(minutes=5))
         second = self.create_inbox_item_event(
             inbox_item=item,
             actor=actor,
             type="issue.pr_ready_for_review",
-            data={"summary": "PR ready", "pr_url": "https://example.com/pr/1", "seer_run_id": 12},
+            data={"pr_url": "https://example.com/pr/1", "seer_run_id": 12},
         )
-        system = self.create_inbox_item_event(inbox_item=item, data={"summary": "A system event"})
+        system = self.create_inbox_item_event(inbox_item=item, data={})
 
         with patch.object(
             user_service,
@@ -295,7 +305,7 @@ class InboxItemEventSerializerTest(TestCase):
         event = self.create_inbox_item_event(
             inbox_item=item,
             actor=actor,
-            data={"summary": "A retained event"},
+            data={},
         )
 
         with patch.object(user_service, "serialize_many", return_value=[]):

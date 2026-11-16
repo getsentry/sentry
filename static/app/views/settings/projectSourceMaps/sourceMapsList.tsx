@@ -33,6 +33,8 @@ import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
+import {getPaginationProps} from 'sentry/utils/pagination';
+import {isReactNativePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -294,7 +296,9 @@ function SourceMapsEmptyState({
             ? t('No source maps uploads matching your search')
             : t('No source maps uploaded')
         }
-        action={project.platform === 'react-native' ? <ReactNativeCallOut /> : undefined}
+        action={
+          isReactNativePlatform(project.platform) ? <ReactNativeCallOut /> : undefined
+        }
       >
         {query
           ? tct(
@@ -395,7 +399,7 @@ function SourceMapUploadsList({
           </Item>
         ))}
       </Grid>
-      <Pagination pageLinks={pageLinks} />
+      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }

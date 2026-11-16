@@ -4,8 +4,6 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
@@ -54,13 +52,6 @@ export function CreditCardSetup({
         buttonText={buttonText ?? t('Save Changes')}
         referrer={referrer}
         cardMode="setup"
-        intentDataQueryKey={
-          [
-            getApiUrl('/organizations/$organizationIdOrSlug/payments/setup/', {
-              path: {organizationIdOrSlug: organization.slug},
-            }),
-          ] satisfies ApiQueryKey
-        }
         onCancel={onCancel ?? (() => {})}
         onSuccess={() => {
           onSuccess?.();

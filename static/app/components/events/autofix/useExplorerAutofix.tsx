@@ -79,6 +79,24 @@ export function isRootCauseArtifact(
   );
 }
 
+export interface SingleRunStop {
+  reason: string;
+  suggestion: string;
+}
+
+function isSingleRunStopArtifact(value: unknown): value is Artifact<SingleRunStop> {
+  return (
+    isArtifact(value) &&
+    value.key === SINGLE_RUN_STOP_KEY &&
+    isString(value.data?.reason) &&
+    isString(value.data?.suggestion)
+  );
+}
+
+export function getSingleRunStop(section: AutofixSection): SingleRunStop | null {
+  return section.artifacts.findLast(isSingleRunStopArtifact)?.data ?? null;
+}
+
 export interface SolutionStep {
   description: string;
   title: string;
@@ -474,6 +492,7 @@ function buildSection(
  */
 export const SINGLE_RUN_FEATURE_ID = 'autofix_single_run';
 const SINGLE_RUN_ROOT_CAUSE_KEY = 'single_run_root_cause';
+const SINGLE_RUN_STOP_KEY = 'stop';
 
 export function isSingleRunAutofix(runState: ExplorerAutofixState | null): boolean {
   return runState?.feature_id === SINGLE_RUN_FEATURE_ID;
@@ -483,25 +502,37 @@ function getSingleRunSections(
   blocks: Block[],
   runState: ExplorerAutofixState
 ): AutofixSection[] {
-  const rootCauses: Array<Artifact<RootCauseArtifact>> = collectArtifacts(blocks)
-    .filter(artifact => artifact.key === SINGLE_RUN_ROOT_CAUSE_KEY)
-    .flatMap(artifact => {
+  const rootCauses: Array<Artifact<RootCauseArtifact>> = collectArtifacts(blocks).flatMap(
+    artifact => {
+      if (artifact.key !== 'root_cause' && artifact.key !== SINGLE_RUN_ROOT_CAUSE_KEY) {
+        return [];
+      }
       const headline = artifact.data?.headline;
       const cause = artifact.data?.cause;
       if (!isString(headline) || !isString(cause)) {
         return [];
       }
       return [
-        {...artifact, data: {one_line_description: headline, cause, five_whys: []}},
+        {
+          ...artifact,
+          key: 'root_cause',
+          data: {one_line_description: headline, cause, five_whys: []},
+        },
       ];
-    });
+    }
+  );
+
+  const patches = mergeFilePatches(blocks);
+  const stops = patches.length
+    ? []
+    : collectArtifacts(blocks).filter(isSingleRunStopArtifact);
 
   const sections: AutofixSection[] = [
     {
       index: 0,
       step: 'root_cause',
       blocks,
-      artifacts: rootCauses,
+      artifacts: [...rootCauses, ...stops],
       status: rootCauses.length
         ? 'completed'
         : runState.status === 'error'
@@ -512,22 +543,28 @@ function getSingleRunSections(
     },
   ];
 
-  const patches = mergeFilePatches(blocks);
+  const failed = runState.status === 'error';
   if (patches.length) {
     sections.push({
       index: 0,
       step: 'code_changes',
       blocks,
       artifacts: [patches],
-      status:
-        runState.status === 'processing' &&
-        !Object.keys(runState.repo_pr_states ?? {}).length
+      status: failed
+        ? 'error'
+        : runState.status === 'processing' &&
+            !Object.keys(runState.repo_pr_states ?? {}).length
           ? 'processing'
           : 'completed',
     });
-  }
-  if (runState.status === 'error') {
-    sections[sections.length - 1]!.status = 'error';
+  } else if (failed && rootCauses.length) {
+    sections.push({
+      index: 0,
+      step: 'code_changes',
+      blocks: [],
+      artifacts: [],
+      status: 'error',
+    });
   }
   return sections;
 }

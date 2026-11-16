@@ -95,7 +95,6 @@ describe('SeerProjectTable', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
     jest.restoreAllMocks();
   });
 

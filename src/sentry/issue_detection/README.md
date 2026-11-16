@@ -1,4 +1,4 @@
-# Performance Issues (Updated: 2025-05-07)
+# Performance Issues (Updated: 2026-11-03)
 
 [Performance issues](https://docs.sentry.io/product/issues/issue-details/performance-issues/) are composed of a few different parts which control how they manifest in the app to users. This document will outline those parts, and then explain how to go about creating a new performance detector, and experimenting with changes to performance detectors.
 
@@ -6,26 +6,34 @@
 
 Performance Issues are built on top of the [Issue Platform](https://develop.sentry.dev/backend/issue-platform/) which already has great documentation as to its usage. The internal logic for each detector varies, but here's a general walkthrough of how a performance issue is generated end-to-end.
 
-- First an event comes in, it is persisted via [event_manager.py](../event_manager.py)'s `save()` method.
-  - When the `event_type` is a `transaction`, it also calls `save_transaction_events()`
-  - There are many nested function calls, but eventually we get to [performance_detection.py](./performance_detection.py)'s `_detect_performance_problems` and `_send_occurrence_to_platform` functions.
-- The `_detect_performance_problem` function takes in the transaction event, and spits out a list of `PerformanceProblem`s which are generated from running the detector on all of the spans in the event.
-  - This function starts with all the detectors listed in `DETECTOR_CLASSES`
+Detection runs in one of two places, depending on how the data arrives:
+
+- **Transactions.** The event is persisted via [event_manager.py](../event_manager.py)'s `save()` method.
+  - When the `event_type` is a `transaction`, it calls `save_transaction_events()`, which calls `_detect_performance_problems` and then `_send_occurrence_to_platform`, both in [event_manager.py](../event_manager.py).
+  - If the event has the `_performance_issues_spans` flag (set by Relay), `_detect_performance_problems` skips detection and stores no problems, because the spans consumer handles that data instead.
+- **Segments (span-first).** The spans consumer in [process_segments/message.py](../spans/consumers/process_segments/message.py) builds a shim transaction from the segment and runs the same detectors via `detect_performance_problems`.
+  - It only runs the detector types listed in the `spans.process-segments.detect-performance-problems.detectors-enabled` option.
+  - It only produces occurrences when `organizations:performance-issues-spans` is enabled and the transaction path could not already have created them. See `_run_legacy_detectors` for the exact conditions.
+
+In both paths, `detect_performance_problems()` in [performance_detection.py](./performance_detection.py) does the work:
+
+- It is gated by the `performance.issues.all.problem-detection` sample rate.
+- It takes in the event data, and spits out a list of `PerformanceProblem`s which are generated from running the detectors on all of the spans in the event.
+  - This function starts with all the detectors listed in `DETECTOR_CLASSES` (or the subset passed by the caller)
   - Next, the list is filtered by running `PerformanceDetector.is_detection_allowed_for_system()` from [base.py](./base.py)
     - By default, this check will cross-reference `DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION` from [base.py](./base.py)
     - If `PerformanceDetector.type` isn't in that dictionary, **it will not run the detector**.
     - If the system option is unregistered, or has no default, **it will not run the detector**.
-    - If the system option is a boolean, it will only run the detector if set to `True`.
-    - If the system option is a number (0.0 < `x` < 1.0), it will run the detector `100 * x`% of the time.
+    - The `*.problem-creation` options are floats: a value `x` between 0.0 and 1.0 runs the detector `100 * x`% of the time.
   - After this check, the detectors are run on the event, see `run_detector_on_data()` in [performance_detection.py](./performance_detection.py)
   - After recording metrics about the results, a check is run, dropping the `PerformanceProblem`s if it returns `False`:
     - `PerformanceDetector.is_creation_allowed()` - Usually checking project's detector settings
-- We store the list of `PerformanceProblem`s from `_detect_performance_problems` on `job["performance_problems"]`
-- Then we run `_send_occurrence_to_platform` which reads `job["performance_problems"]`
+- On the transaction path, we store the list of `PerformanceProblem`s on `job["performance_problems"]`
+- Then we run `_send_occurrence_to_platform`, which reads `job["performance_problems"]`
   - It will map each `PerformanceProblem` into an `IssueOccurrence`
   - Then run `produce_occurrence_to_kafka` from [producer.py](../issues/producer.py) which passes the occurrence along to the [Issue Platform](https://develop.sentry.dev/backend/issue-platform/)
 
-For context, the Issue Platform operates off of the the GroupType subclasses (from [grouptype.py](../issues/grouptype.py)). The [issue platform docs](https://develop.sentry.dev/backend/issue-platform/#releasing-your-issue-type) provide a way to control the rollout of new `GroupType`s via the `released` property. Keep in mind, **this rollout is entirely separate from the PerformanceDetector**! The checks within `_detect_performance_problem` may skip running the detector, or skip creating problems completely all before they ever reach the Issue Platform.
+For context, the Issue Platform operates off of the GroupType subclasses (from [grouptype.py](../issues/grouptype.py)). The [issue platform docs](https://develop.sentry.dev/backend/issue-platform/#releasing-your-issue-type) provide a way to control the rollout of new `GroupType`s via the `released` property. Keep in mind, **this rollout is entirely separate from the PerformanceDetector**! The checks within `detect_performance_problems` may skip running the detector, or skip creating problems completely all before they ever reach the Issue Platform.
 
 ### Detector Assumptions
 
@@ -52,7 +60,7 @@ There are quite a few places which need to be updated when adding a new performa
     - [ ] Then add it to [project_performance_issue_settings.py](../issues/endpoints/project_performance_issue_settings.py), either `InternalProjectOptions` or `ConfigurableThresholds`
     - [ ] In the same file, Add it to the mappings `project_settings_to_group_map`/`thresholds_to_manage_map` using the new GroupType
     - [ ] In the same file, Add a serializer field to `ProjectPerformanceIssueSettingsSerializer` to allow it to be validated from the inbound API.
-    - [ ] (Optional) The frontend file (`projectPerformance.tsx`) should add the new field.
+    - [ ] (Optional) Add the new field to the frontend detector settings in `static/app/views/settings/projectPerformance/detectors/detectorSettings.ts`.
     - [ ] Then, to set a default value, register an option in [defaults.py](../options/defaults.py)
     - [ ] And finally, respect that default value by modifying `get_merged_settings()` in [performance_detection.py](./performance_detection.py)
 - [ ] Setup for the `PerformanceDetector` subclass

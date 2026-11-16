@@ -8,7 +8,7 @@ export function PrebuiltClassifierFixture(
     dataset: 'conversation',
     name: 'User frustration',
     description: 'When your users become frustrated.',
-    resultAttribute: 'sentry.classifier.user_frustration',
+    resultAttribute: 'user_frustration',
     ...params,
   };
 }

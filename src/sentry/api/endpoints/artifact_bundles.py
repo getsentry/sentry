@@ -94,9 +94,10 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
 
         if query:
             org_id = project.organization_id
-            # Include organization_id in each Q so the composite indexes on
-            # releaseartifactbundle and debugidartifactbundle (which both lead
-            # with organization_id) can be used.
+            # Include organization_id in each Q so the composite index on
+            # releaseartifactbundle, which leads with organization_id, can be used.
+            # Debug IDs are looked up through debugidartifactbundle's
+            # (debug_id, artifact_bundle_id) index.
             query_q = Q(
                 releaseartifactbundle__organization_id=org_id,
                 releaseartifactbundle__release_name=query,

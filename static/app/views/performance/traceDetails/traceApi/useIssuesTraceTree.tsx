@@ -38,7 +38,7 @@ export function useIssuesTraceTree({trace, replay}: UseTraceTreeParams): IssuesT
       return;
     }
 
-    if (trace.data && trace.data.length === 0) {
+    if (trace.data?.length === 0) {
       setTree(t => (t.type === 'empty' ? t : IssuesTraceTree.Empty()));
       return;
     }

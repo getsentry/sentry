@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from sentry.notebooks.agent import (
-    cancel_investigation_executions_after_failure,
+    cancel_notebook_executions_after_failure,
     start_execution_run,
 )
 from sentry.notebooks.models import NotebookBlockExecution
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.seer.investigation.dispatch_investigation_execution",
     namespace=seer_tasks,
 )
-def dispatch_investigation_execution(execution_id: int) -> None:
+def dispatch_notebook_execution(execution_id: int) -> None:
     execution = (
         NotebookBlockExecution.objects.select_related("block__notebook__organization")
         .filter(id=execution_id)
@@ -51,4 +51,4 @@ def dispatch_investigation_execution(execution_id: int) -> None:
         if mark_block_execution_dispatch_failed(execution, dispatch_claimed_at=dispatch_claimed_at):
             execution.refresh_from_db(fields=["completed_at"])
             record_execution_failed(execution, reason="dispatch_failed", seer_run_id=None)
-            cancel_investigation_executions_after_failure(execution)
+            cancel_notebook_executions_after_failure(execution)

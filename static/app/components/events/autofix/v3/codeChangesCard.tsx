@@ -39,6 +39,7 @@ import {
 } from './prIterationFeedbackForm';
 import {useResetAutofixStep} from './useResetAutofixStep';
 import {useRethinkInChat} from './useRethinkInChat';
+import {useRerunSingleRun} from './useToggleSingleRunChat';
 import {artifactToMarkdown} from './utils';
 
 interface CodeChangesCardProps {
@@ -100,6 +101,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }, [section]);
 
   const {copy} = useCopyToClipboard();
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
+  const singleRunRerun = useRerunSingleRun(autofix, {
+    enabled: isSingleRun && section.status === 'error',
+  });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
@@ -344,8 +349,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
             <Button
               variant="primary"
               icon={<IconRefresh />}
-              disabled={!canReset}
-              onClick={() => handleReset()}
+              disabled={isSingleRun ? singleRunRerun.disabled : !canReset}
+              onClick={isSingleRun ? singleRunRerun.rerun : () => handleReset()}
             >
               {t('Re-run')}
             </Button>
@@ -365,7 +370,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
           : undefined
       }
       // Single runs reject step restarts; people redo the fix by replying in the chat.
-      allowReset={!isSingleRunAutofix(autofix.runState)}
+      allowReset={!isSingleRun}
       onReset={canReset ? (resetInChat ?? (() => setShouldShowReset(true))) : undefined}
       resetInChat={defined(resetInChat)}
       resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : undefined}

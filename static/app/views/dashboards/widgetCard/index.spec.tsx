@@ -348,6 +348,33 @@ describe('Dashboards > WidgetCard', () => {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
+  it('reports the selected context menu item and still runs its action', async () => {
+    const onDuplicate = jest.fn();
+    const onContextMenuAction = jest.fn();
+    renderWithProviders(
+      <WidgetCard
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.AREA,
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
+        }}
+        selection={selection}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={onDuplicate}
+        onContextMenuAction={onContextMenuAction}
+        showContextMenu
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />
+    );
+
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Duplicate Widget'}));
+    expect(onContextMenuAction).toHaveBeenCalledWith('duplicate-widget');
+    expect(onDuplicate).toHaveBeenCalledTimes(1);
+  });
+
   it('does not add duplicate widgets if max widget is reached', async () => {
     const mock = jest.fn();
     renderWithProviders(

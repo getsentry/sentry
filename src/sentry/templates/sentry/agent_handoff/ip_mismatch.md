@@ -1,9 +1,8 @@
-# This Sentry Handoff Is Bound to a Different IP Address
+# Handoff Code Cannot Be Used From This Network
 
-Your request came from a different IP address than the user who generated this
-private handoff prompt. The handoff has not been claimed.
+The network address using this handoff code does not match the address that generated
+it. The handoff code remains available.
 
-Ask the user to return to Sentry, open the handoff advanced options, select
-"Disable IP pinning", and copy a new handoff prompt. This option is intended for
-agents on remote hosts or in the cloud, or when the browser and agent use different
-network routes.
+Ask the user to return to Sentry, open Advanced options, turn off "Use IP pinning", and
+copy a new prompt. Turn off IP pinning when setup runs on a different network
+from the user's browser.

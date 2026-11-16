@@ -12,6 +12,7 @@ on:
       - '.python-version'
       - '.envrc'
       - 'Brewfile'
+      - 'devenv/**'
       - 'scripts/**'
       - 'tools/**'
       - 'src/sentry/runner/commands/devserver.py'
@@ -77,3 +78,11 @@ jobs:
       - name: devenv sync
         run: |
           devenv --nocoderoot sync
+
+      - name: direnv activation
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq direnv
+          direnv allow
+          direnv exec . bash -euc 'test "$(command -v sentry)" = "$PWD/.venv/bin/sentry"' 2>&1 | tee direnv.log
+          if grep -q "isn't installed" direnv.log; then exit 1; fi

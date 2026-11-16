@@ -59,6 +59,8 @@ class ActivityType(Enum):
     # still fires when the PR is opened; this is the moment worth reading it.
     SEER_PR_READY_FOR_REVIEW = 44
 
+    SEER_STOPPED = 45
+
 
 # Warning: This must remain in this EXACT order.
 CHOICES = tuple(
@@ -108,6 +110,7 @@ CHOICES = tuple(
         ActivityType.TRIGGER_AUTOFIX,  # 42
         ActivityType.SMART_ASSIGNMENT_COMPLETED,  # 43
         ActivityType.SEER_PR_READY_FOR_REVIEW,  # 44
+        ActivityType.SEER_STOPPED,  # 45
     ]
 )
 

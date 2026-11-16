@@ -27,7 +27,6 @@ describe('NoDataMessage', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     ProjectsStore.reset();
   });
 

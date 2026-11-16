@@ -13,11 +13,11 @@ function solidImage(hex: string): string {
   )}`;
 }
 
-function uploadedAvatarOrganization(avatarUrl: string) {
+function logoOrganization(hex: string) {
   return OrganizationFixture({
     name: 'Acme',
     slug: 'acme',
-    avatar: {avatarType: 'upload', avatarUuid: null, avatarUrl},
+    avatar: {avatarType: 'upload', avatarUuid: null, avatarUrl: solidImage(hex)},
   });
 }
 
@@ -26,14 +26,14 @@ function uploadedAvatarOrganization(avatarUrl: string) {
  * Seed the sampled color so the header renders what it shows once sampling
  * finishes.
  */
-function sampledQueryClient(avatarUrl?: string, sampledColor?: string): QueryClient {
+function sampledQueryClient(hex?: string): QueryClient {
   // No garbage collection timers, so Jest can exit once the snapshots are taken.
   const queryClient = new QueryClient({defaultOptions: {queries: {gcTime: Infinity}}});
-  if (avatarUrl && sampledColor) {
+  if (hex) {
     for (const themeType of ['light', 'dark']) {
-      queryClient.setQueryData(['avatar-button-chonk', avatarUrl, themeType], {
-        chonk: sampledColor,
-        dominant: sampledColor,
+      queryClient.setQueryData(['avatar-button-chonk', solidImage(hex), themeType], {
+        chonk: hex,
+        dominant: hex,
         style: 'fill',
       });
     }
@@ -41,15 +41,9 @@ function sampledQueryClient(avatarUrl?: string, sampledColor?: string): QueryCli
   return queryClient;
 }
 
-function MenuHeaderFrame({
-  children,
-  queryClient,
-}: {
-  children: ReactNode;
-  queryClient: QueryClient;
-}) {
+function Frame({children, sampledColor}: {children: ReactNode; sampledColor?: string}) {
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={sampledQueryClient(sampledColor)}>
       <Container width="258px" padding="sm lg">
         {children}
       </Container>
@@ -57,73 +51,82 @@ function MenuHeaderFrame({
   );
 }
 
-const SAMPLED_AVATAR_COLORS = {
-  // Dark and saturated: the menu header used to wash this out to grey-purple.
-  purple: '#6513a6',
-  yellow: '#ffd000',
-  // Already darker than the default gradient, so the header keeps it.
-  'near-black': '#1a1a1a',
-};
+const LOGOS = [
+  // Bright, where the gradient used to start near black.
+  {kind: 'bright', color: '#ffd744'},
+  {kind: 'saturated', color: '#e3442a'},
+  // Already darker than the default gradient.
+  {kind: 'dark', color: '#12424a'},
+  // No colored pixels, so the header keeps its default gradient.
+  {kind: 'neutral', color: '#000000'},
+];
 
 describe('NavigationMenuHeader', () => {
-  it.snapshot.each<keyof typeof SAMPLED_AVATAR_COLORS>([
-    'purple',
-    'yellow',
-    'near-black',
-  ])(
-    'organization-image-avatar-%s',
-    colorName => {
-      const sampledColor = SAMPLED_AVATAR_COLORS[colorName];
-      const avatarUrl = solidImage(sampledColor);
-      return (
-        <MenuHeaderFrame queryClient={sampledQueryClient(avatarUrl, sampledColor)}>
+  for (const {kind, color} of LOGOS) {
+    it.snapshot(
+      `organization-logo-${kind}`,
+      () => (
+        <Frame sampledColor={color}>
           <NavigationMenuHeader
-            organization={uploadedAvatarOrganization(avatarUrl)}
+            organization={logoOrganization(color)}
             projectCount={12}
           />
-        </MenuHeaderFrame>
-      );
-    },
-    colorName => ({tags: {avatar: 'image', color: colorName, area: 'core'}})
-  );
+        </Frame>
+      ),
+      {tags: {avatar: 'image', logo: kind, area: 'core'}}
+    );
+  }
 
   // Before an image avatar has been sampled, the header uses its default gradient.
   it.snapshot(
-    'organization-image-avatar-unsampled',
+    'organization-logo-unsampled',
     () => (
-      <MenuHeaderFrame queryClient={sampledQueryClient()}>
+      <Frame>
         <NavigationMenuHeader
-          organization={uploadedAvatarOrganization(
-            solidImage(SAMPLED_AVATAR_COLORS.purple)
-          )}
+          organization={logoOrganization('#ffd744')}
           projectCount={12}
         />
-      </MenuHeaderFrame>
+      </Frame>
     ),
-    {tags: {avatar: 'image', color: 'unsampled', area: 'core'}}
+    {tags: {avatar: 'image', logo: 'unsampled', area: 'core'}}
   );
 
   it.snapshot(
     'organization-letter-avatar',
     () => (
-      <MenuHeaderFrame queryClient={sampledQueryClient()}>
+      <Frame>
         <NavigationMenuHeader
           organization={OrganizationFixture({name: 'Acme', slug: 'acme'})}
           projectCount={1}
         />
-      </MenuHeaderFrame>
+      </Frame>
     ),
     {tags: {avatar: 'letter', area: 'core'}}
   );
 
+  // The user menu takes its gradient from the organization's avatar.
   it.snapshot(
-    'user-letter-avatar',
+    'user-with-organization-logo',
     () => (
-      <MenuHeaderFrame queryClient={sampledQueryClient()}>
+      <Frame sampledColor="#ffd744">
+        <NavigationMenuHeader
+          user={UserFixture({name: 'Jane Doe', email: 'jane@example.com'})}
+          organization={logoOrganization('#ffd744')}
+        />
+      </Frame>
+    ),
+    {tags: {avatar: 'image', logo: 'bright', area: 'core'}}
+  );
+
+  // Without an organization, the user menu uses the default gradient.
+  it.snapshot(
+    'user-without-organization',
+    () => (
+      <Frame>
         <NavigationMenuHeader
           user={UserFixture({name: 'Jane Doe', email: 'jane@example.com'})}
         />
-      </MenuHeaderFrame>
+      </Frame>
     ),
     {tags: {avatar: 'letter', area: 'core'}}
   );

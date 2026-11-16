@@ -25,6 +25,7 @@ from sentry.api.serializers.models.team import (
     TeamSCIMSerializer,
 )
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
     RESPONSE_SUCCESS,
@@ -259,6 +260,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         request=SCIMTeamRequestBodySerializer,
         responses={
             201: TeamSCIMSerializer,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -577,6 +579,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         request=SCIMTeamPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

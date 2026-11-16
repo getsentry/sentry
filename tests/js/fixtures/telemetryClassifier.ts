@@ -7,7 +7,7 @@ export function TelemetryClassifierFixture(
     id: '1',
     projectId: '1',
     name: 'User frustration',
-    resultAttribute: 'sentry.classifier.user_frustration',
+    resultAttribute: 'user_frustration',
     dataset: 'conversation',
     filterQuery: '',
     status: 'enabled',

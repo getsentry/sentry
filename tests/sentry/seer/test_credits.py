@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
     SEER_BILLING_FEATURE_AUTOFIX_WEB,
     SEER_BILLING_FEATURE_SEER_AGENT,
@@ -11,7 +12,12 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
     CheckSeerCreditsResponse,
 )
 
-from sentry.seer.credits import SEER_OPERATION_ESTIMATES, SeerOperation, can_run_seer_operation
+from sentry.seer.credits import (
+    SEER_OPERATION_ESTIMATES,
+    SeerOperation,
+    can_run_seer_operation,
+    get_denial_reason,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -78,3 +84,18 @@ class SeerCreditsTest(TestCase):
         assert can_run_seer_operation(
             self.organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
         )
+
+
+@pytest.mark.parametrize(
+    ("denial_reason", "expected"),
+    [
+        (CheckSeerCreditsResponse.DENIAL_REASON_NOT_ENOUGH_CREDITS, "not_enough_credits"),
+        (CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED, "daily_cap_exceeded"),
+        (CheckSeerCreditsResponse.DENIAL_REASON_UNSPECIFIED, None),
+        (99, None),
+    ],
+)
+def test_get_denial_reason(denial_reason: int, expected: str | None) -> None:
+    response = CheckSeerCreditsResponse(has_enough_credits=False)
+    response.denial_reason = denial_reason  # type: ignore[assignment]
+    assert get_denial_reason(response) == expected

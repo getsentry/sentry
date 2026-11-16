@@ -25,11 +25,13 @@ class AggregateFieldData(TypedDict, total=False):
     chartType: int
     yAxes: list[str]
     groupBy: str
+    transformations: list[str]
 
 
 class VisualizeData(TypedDict):
     yAxes: list[str]
     chartType: NotRequired[int]
+    transformations: NotRequired[list[str]]
 
 
 class CrossEventData(TypedDict):
@@ -81,7 +83,9 @@ class VisualizeSerializer(serializers.Serializer):
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField())
     transformations = serializers.ListField(
-        child=serializers.CharField(trim_whitespace=False), required=False
+        child=serializers.CharField(trim_whitespace=False),
+        required=False,
+        help_text="Ordered fill(...) and smooth(...) expressions. Use an empty list to clear the pipeline.",
     )
 
 
@@ -94,7 +98,9 @@ class AggregateFieldSerializer(serializers.Serializer):
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField(), required=False)
     transformations = serializers.ListField(
-        child=serializers.CharField(trim_whitespace=False), required=False
+        child=serializers.CharField(trim_whitespace=False),
+        required=False,
+        help_text="Ordered fill(...) and smooth(...) expressions. Use an empty list to clear the pipeline.",
     )
 
     # group bys

@@ -1,4 +1,4 @@
-from typing import cast
+from typing import TypedDict, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -18,9 +18,12 @@ from sentry.api.serializers.models.project import (
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.apidocs.response_types import ValidationErrorResponse
 from sentry.models.project import Project
 from sentry.models.team import Team
+
+
+class _DetailListResponse(TypedDict):
+    detail: list[str]
 
 
 class ProjectTeamsPermission(ProjectPermission):
@@ -123,7 +126,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     )
     def delete(
         self, request: Request, project: Project, team: Team
-    ) -> Response[ProjectWithTeamResponseDict] | Response[ValidationErrorResponse]:
+    ) -> Response[ProjectWithTeamResponseDict] | Response[_DetailListResponse]:
         """
         Revoke a team's access to a project.
 

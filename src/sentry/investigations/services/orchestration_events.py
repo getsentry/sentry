@@ -13,7 +13,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import APIException
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
-from sentry.inbox.notebook import record_notebook_completed
+from sentry.inbox.notebook import NOTEBOOK_COMPLETED, NotebookCompletedData
+from sentry.inbox.types import SYSTEM_ACTOR
 from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     OrchestrationProjectionSerializer,
@@ -29,13 +30,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
-)
-from sentry.investigations.services.action_requests import (
-    supersede_action_requests_before,
-    supersede_block_action_requests,
-    sync_snapshot_action_requests,
-    upsert_action_request,
-    withdraw_action_request,
 )
 from sentry.investigations.services.orchestration import (
     clear_command_dispatch_error,
@@ -53,6 +47,13 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookStatus,
 )
+from sentry.notebooks.services.action_requests import (
+    supersede_action_requests_before,
+    supersede_block_action_requests,
+    sync_snapshot_action_requests,
+    upsert_action_request,
+    withdraw_action_request,
+)
 from sentry.notebooks.services.producer_writes import (
     UNSET,
     NotebookWrites,
@@ -62,6 +63,7 @@ from sentry.notebooks.services.producer_writes import (
     remove_blocks,
     upsert_block,
 )
+from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.utils import json
 
@@ -306,7 +308,17 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
     # Remember skipped completions too: enabling recording or restoring access must
     # not backfill old notifications when Seer replays a completed projection.
     control["inboxCompletedGeneration"] = run.generation
-    record_notebook_completed(notebook=run.investigation, seer_run_id=seer_run.seer_run_state_id)
+
+    notebook = run.investigation
+    if notebook.created_by_id is None:
+        return
+    create_inbox_items(
+        event_type=NOTEBOOK_COMPLETED,
+        subject=notebook,
+        data=NotebookCompletedData(seer_run_id=seer_run.seer_run_state_id),
+        user_ids=[notebook.created_by_id],
+        actor=SYSTEM_ACTOR,
+    )
 
 
 def _schedule_issue_links(run: InvestigationOrchestrationRun) -> None:
@@ -775,7 +787,7 @@ def _apply_snapshot(
 
 
 def _sync_snapshot_action_requests(run: InvestigationOrchestrationRun, items: list[object]) -> None:
-    sync_snapshot_action_requests(run, valid_action_requests(items, log=True))
+    sync_snapshot_action_requests(run.investigation, valid_action_requests(items, log=True))
 
 
 def _event_carries_projection(event: InvestigationOrchestrationEvent) -> bool:
@@ -945,9 +957,9 @@ def _apply_generation_event(
             return False, "invalid_action_request"
         if request["reportRevision"] < _report_revision(run):
             return False, "stale_report_revision"
-        upsert_action_request(run, request)
+        upsert_action_request(run.investigation, request)
     elif event.type == "action_withdrawn":
-        withdraw_action_request(run, payload["key"], payload["reason"])
+        withdraw_action_request(run.investigation, payload["key"], payload["reason"])
     elif event.type == "workflow_failed":
         # A delayed failure still fails the run, but it must not replace state
         # that a newer projection has already established.

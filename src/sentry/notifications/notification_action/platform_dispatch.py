@@ -258,7 +258,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
 
 
 def send_issue_alert(invocation: ActionInvocation, provider: NotificationProviderKey) -> None:
-    group = invocation.event_data.group
+    group = invocation.event_data.require_group()
     organization = group.project.organization
 
     target = _build_target(
@@ -328,7 +328,7 @@ def _record_legacy_issue_alert_sent(
     the send succeeded like the legacy sends. Remove with the legacy path.
     """
     provider_name, sent_event_class, metric_instance = LEGACY_ISSUE_ALERT_ANALYTICS[provider]
-    group = invocation.event_data.group
+    group = invocation.event_data.require_group()
     metrics.incr(
         "notifications.sent",
         instance=metric_instance,

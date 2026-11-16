@@ -101,7 +101,6 @@ describe('SeerDrawer', () => {
       body: {
         hasSupportedScmIntegration: false,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });

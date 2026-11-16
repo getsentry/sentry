@@ -1221,6 +1221,32 @@ class TestDetectPlatformsMultiFrameworks:
         assert "react-native" in platforms
         assert "javascript-react" not in platforms
 
+    def test_expo_detected_and_supersedes_react_native(self) -> None:
+        content = json.dumps(
+            {
+                "dependencies": {
+                    "expo": "~52.0.0",
+                    "react-native": "0.76.0",
+                    "react": "18.3.1",
+                }
+            }
+        )
+
+        client = _mock_client(
+            {"JavaScript": 50000},
+            tree_paths=["package.json"],
+            contents={
+                "package.json": content,
+            },
+        )
+
+        result = detect_platforms_multi(client, "owner/repo")["platforms"]
+
+        platforms = [r["platform"] for r in result]
+        assert "expo" in platforms
+        assert "react-native" not in platforms
+        assert "javascript-react" not in platforms
+
     def test_electron_detected(self) -> None:
         content = json.dumps({"dependencies": {"electron": "^28.0.0"}})
 

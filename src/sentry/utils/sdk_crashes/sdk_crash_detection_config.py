@@ -312,13 +312,25 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 # The `fetch` wrapper rethrows synchronously, while the `<anonymous>` promise
                 # rejection handler rethrows the error asynchronously (surfacing via
                 # onunhandledrejection), so both pass-through frames must be ignored.
+                # The leading `*` matches the module wherever it sits in the path: pnpm
+                # (`.pnpm/@sentry+core@x/node_modules/@sentry/core/...`), nested copies
+                # (`@sentry/react-native/node_modules/@sentry/core/...`), and bundler prefixes.
+                # Older SDKs shipped the same instrumentation in @sentry/utils.
                 # https://github.com/getsentry/sentry-javascript/blob/090d08c284089acf886d675f06cd516b3f6e06be/packages/core/src/instrument/fetch.ts
                 FunctionAndModulePattern(
-                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    module_pattern="*@sentry/core/*/instrument/fetch*",
                     function_pattern="fetch",
                 ),
                 FunctionAndModulePattern(
-                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    module_pattern="*@sentry/core/*/instrument/fetch*",
+                    function_pattern="<anonymous>",
+                ),
+                FunctionAndModulePattern(
+                    module_pattern="*@sentry/utils/*/instrument/fetch*",
+                    function_pattern="fetch",
+                ),
+                FunctionAndModulePattern(
+                    module_pattern="*@sentry/utils/*/instrument/fetch*",
                     function_pattern="<anonymous>",
                 ),
             },

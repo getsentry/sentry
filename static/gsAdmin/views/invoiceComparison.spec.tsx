@@ -26,10 +26,9 @@ function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
         status: 'mismatch',
       },
     ],
-    unmatched: [],
     summary: {
-      start: '2026-01-01T00:00:00+00:00',
-      end: '2026-01-02T00:00:00+00:00',
+      start: '2026-01-01',
+      end: '2026-01-01',
       legacy_count: 1,
       platform_count: 1,
       over_threshold_count: 1,
@@ -39,10 +38,6 @@ function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
       rows_page: rowsPage,
       rows_page_size: 25,
       rows_total_pages: rowsTotalPages,
-      unmatched_org_count: 0,
-      unmatched_page: 1,
-      unmatched_page_size: 25,
-      unmatched_total_pages: 1,
     },
   };
 }
@@ -73,13 +68,13 @@ describe('InvoiceComparison', () => {
       body: comparisonBody(),
     });
 
-    renderComparison({page_size: '25', rows_page: '1', unmatched_page: '1'});
+    renderComparison({page_size: '25', rows_page: '1'});
 
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
       expect.objectContaining({
-        start: '2026-11-09T00:00:00.000Z',
-        end: '2026-11-10T00:00:00.000Z',
+        start: '2026-11-09',
+        end: '2026-11-09',
       })
     );
     expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-11-09');
@@ -101,8 +96,8 @@ describe('InvoiceComparison', () => {
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
       expect.objectContaining({
-        start: '2026-11-09T00:00:00.000Z',
-        end: '2026-11-10T00:00:00.000Z',
+        start: '2026-11-09',
+        end: '2026-11-09',
       })
     );
   });
@@ -140,8 +135,8 @@ describe('InvoiceComparison', () => {
       expect.objectContaining({
         host: US_URL,
         query: expect.objectContaining({
-          start: '2026-01-01T00:00:00.000Z',
-          end: '2026-01-04T00:00:00.000Z',
+          start: '2026-01-01',
+          end: '2026-01-03',
         }),
       })
     );

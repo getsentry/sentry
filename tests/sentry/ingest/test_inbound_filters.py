@@ -317,6 +317,14 @@ RELEASE_FIELDS = [
 ]
 
 
+ENVIRONMENT_FIELDS = [
+    "event.environment",
+    "log.attributes.sentry.environment.value",
+    "trace_metric.attributes.sentry.environment.value",
+    "span.attributes.sentry.environment.value",
+]
+
+
 def release_rule_condition(values: list[str]) -> dict[str, object]:
     """The catch-all shape: the release field of every data type, combined with OR."""
     return {
@@ -452,6 +460,77 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
             [{"type": "release", "value": ["1.*"]}],
             release_rule_condition(["1.*"]),
             id="catch_all_release",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "environment", "operator": "equals", "value": ["staging"]}],
+            {"op": "glob", "name": "event.environment", "value": ["staging"]},
+            id="environment_on_errors",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "environment", "operator": "equals", "value": ["staging"]}],
+            {"op": "glob", "name": "log.attributes.sentry.environment.value", "value": ["staging"]},
+            id="environment_on_logs",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "environment", "operator": "starts_with", "value": ["dev"]}],
+            {
+                "op": "glob",
+                "name": "trace_metric.attributes.sentry.environment.value",
+                "value": ["dev*"],
+            },
+            id="environment_on_metrics",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "environment", "operator": "glob", "value": ["staging-*"]}],
+            {
+                "op": "glob",
+                "name": "span.attributes.sentry.environment.value",
+                "value": ["staging-*"],
+            },
+            id="environment_on_spans",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "environment", "operator": "equals", "value": ["staging", "qa"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": name, "value": ["staging", "qa"]}
+                    for name in ENVIRONMENT_FIELDS
+                ],
+            },
+            id="catch_all_environment",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "environment", "operator": "does_not_start_with", "value": ["prod"]}],
+            {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "or",
+                        "inner": [
+                            {"op": "glob", "name": name, "value": ["*"]}
+                            for name in ENVIRONMENT_FIELDS
+                        ],
+                    },
+                    {
+                        "op": "not",
+                        "inner": {
+                            "op": "or",
+                            "inner": [
+                                {"op": "glob", "name": name, "value": ["prod*"]}
+                                for name in ENVIRONMENT_FIELDS
+                            ],
+                        },
+                    },
+                ],
+            },
+            id="catch_all_environment_negated",
         ),
         pytest.param(
             "all",
