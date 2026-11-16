@@ -515,3 +515,32 @@ def test_diff_entries_with_no_changes() -> None:
     entries = [_entry("query:a", 1)]
 
     assert diff_entries(old_entries=entries, new_entries=entries) == ([], [], [])
+
+
+def test_root_scans_another_checkout(
+    fake_repo: Path, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    # an older checkout where put doesn't read name yet
+    older = tmp_path_factory.mktemp("older")
+    endpoint = older / PATH
+    endpoint.parent.mkdir(parents=True)
+    endpoint.write_text(EXAMPLE_ENDPOINT.replace('request.data.get("name")', "None"))
+
+    assert _run_main(fake_repo, "--root", str(older)) == 0
+
+    entries = _entries(fake_repo / "out.json")
+    assert _find(entries, "ExampleEndpoint.put", "body:name") is None
+    assert _counted_findings(fake_repo / "out.json") == 3
+    # the owner map still comes from this checkout
+    entry = _find(entries, "ExampleEndpoint.get", "query:id")
+    assert entry is not None
+    assert entry["owner"] == "issues-feed"
+
+
+def test_root_without_a_src_folder_stops(
+    fake_repo: Path, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    empty = tmp_path_factory.mktemp("empty")
+
+    assert _run_main(fake_repo, "--root", str(empty)) == 1
+    assert not (fake_repo / "out.json").exists()

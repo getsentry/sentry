@@ -206,6 +206,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--files", nargs="+", help="only rescan these files and merge them into the existing file"
     )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=_REPO_ROOT,
+        help="the checkout to scan, i.e an older commit's worktree. The rules, owner map and output still come from this checkout",
+    )
     args = parser.parse_args(argv)
 
     if not args.owner_map.exists():
@@ -225,6 +231,13 @@ def main(argv: list[str] | None = None) -> int:
     elif args.output.exists() and not args.force:
         print(
             f"{args.output} already exists. Pass --force to replace it (this resets every reviewed status and reason).",
+            file=sys.stderr,
+        )
+        return 1
+
+    if not (args.root / "src").is_dir():
+        print(
+            f"{args.root} has no src folder. Pass the top folder of a sentry checkout.",
             file=sys.stderr,
         )
         return 1
@@ -250,7 +263,7 @@ def main(argv: list[str] | None = None) -> int:
     # the scan returns every rule's findings, and only the rules with a baseline are kept. This
     # happens before build_entries so the count check below still adds up
     finding: list[tuple[str, ApiInputViolation]] = []
-    for path, scanned in collect_findings(_REPO_ROOT, rescan_paths):
+    for path, scanned in collect_findings(args.root, rescan_paths):
         if scanned.rule in BASELINED_RULES:
             finding.append((path, scanned))
 
