@@ -2,7 +2,7 @@ import color from 'color';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 
-import {isNeutralColor} from './avatarImageAnalysis';
+import {isNeutralColor} from './dominantColor';
 import {useAvatarColors} from './useAvatarColors';
 
 interface Gradient {

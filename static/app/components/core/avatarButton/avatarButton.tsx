@@ -8,7 +8,7 @@ import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 
-import {getAvatarChonk} from './avatarImageAnalysis';
+import {getAvatarChonk} from './avatarChonk';
 import {useAvatarColors} from './useAvatarColors';
 
 type AvatarButtonSize = 'xs' | 'sm' | 'md';
