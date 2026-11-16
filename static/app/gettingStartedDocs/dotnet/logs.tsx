@@ -29,7 +29,36 @@ SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
   ],
 });
 
-export const logs: OnboardingConfig = {
+export const loggerLogsVerify = (
+  params: DocsParams,
+  logger = 'logger'
+): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isLogsSelected,
+  content: [
+    {
+      type: 'text',
+      text: tct(
+        'Send a test log through [code:ILogger] from your app, then refresh this page to verify it arrived in Sentry.',
+        {
+          code: <code />,
+        }
+      ),
+    },
+    {
+      type: 'code',
+      language: 'csharp',
+      code: `${logger}.LogInformation("A simple log message");
+${logger}.LogError("A {Parameter} log message", "formatted");`,
+    },
+  ],
+});
+
+/**
+ * @param logger For platforms whose `UseSentry` options have `EnableLogs`: the `ILogger`
+ * the verify snippet logs through. Leave it out for platforms that call `SentrySdk.Init`.
+ */
+export const logs = ({logger}: {logger?: string} = {}): OnboardingConfig => ({
   install: params => [
     {
       type: StepType.INSTALL,
@@ -65,25 +94,37 @@ export const logs: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       content: [
-        {
-          type: 'text',
-          text: tct(
-            'To enable logging, you need to initialize the SDK with the [code:EnableLogs] option set to [code:true].',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: `SentrySdk.Init(options =>
+        ...(logger
+          ? ([
+              {
+                type: 'text',
+                text: tct(
+                  'To send the entries your app writes through [code:ILogger] to Sentry as logs, set [code:EnableLogs] to [code:true] in the options you pass to [code:UseSentry], or in the [code:Sentry] section of [code:appsettings.json].',
+                  {
+                    code: <code />,
+                  }
+                ),
+              },
+            ] satisfies ContentBlock[])
+          : ([
+              {
+                type: 'text',
+                text: tct(
+                  'From version [code:7.0.0] on, logs you send with [code:SentrySdk.Logger] need no extra option. Initialize the SDK:',
+                  {
+                    code: <code />,
+                  }
+                ),
+              },
+              {
+                type: 'code',
+                language: 'csharp',
+                code: `SentrySdk.Init(options =>
 {
     options.Dsn = "${params.dsn.public}";
-    // Enable logs to be sent to Sentry
-    options.EnableLogs = true;
 });`,
-        },
+              },
+            ] satisfies ContentBlock[])),
         {
           type: 'text',
           text: tct(
@@ -100,7 +141,7 @@ export const logs: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: t('Test that logs are working by sending some test logs:'),
-      content: [logsVerify(params)],
+      content: [logger ? loggerLogsVerify(params, logger) : logsVerify(params)],
     },
   ],
-};
+});

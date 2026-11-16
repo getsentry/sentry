@@ -48,5 +48,8 @@ describe('gcpfunctions onboarding docs', () => {
     expect(
       await screen.findByText(textWithMarkupMatcher(/EnableLogs/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
   });
 });

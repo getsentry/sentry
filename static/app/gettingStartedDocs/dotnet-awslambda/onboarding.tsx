@@ -5,7 +5,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {loggerLogsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
 import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -14,14 +14,14 @@ const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.AspNetCore -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  '3.34.0'
+  '7.0.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.AspNetCore -v ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  '3.34.0'
+  '7.0.0'
 )}`;
 
 const getConfigureSnippet = (params: DocsParams) => `
@@ -47,7 +47,7 @@ public class LambdaEntryPoint : Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFu
               }${
                 params.isLogsSelected
                   ? `
-              // Enable logs to be sent to Sentry
+              // Send ILogger entries to Sentry as logs
               o.EnableLogs = true;`
                   : ''
               }
@@ -157,7 +157,7 @@ export const onboarding: OnboardingConfig = {
           language: 'shell',
           code: 'curl -X GET -I https://url.of.server.aws/api/bad',
         },
-        logsVerify(params),
+        loggerLogsVerify(params),
         metricsVerify(params),
         {
           type: 'text',

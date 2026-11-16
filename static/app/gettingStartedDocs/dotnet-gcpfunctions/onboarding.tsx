@@ -5,7 +5,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {loggerLogsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
 import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -14,14 +14,14 @@ const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Google.Cloud.Functions -Version ${getPackageVersion(
   params,
   'sentry.dotnet.google-cloud-function',
-  '3.34.0'
+  '7.0.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Google.Cloud.Functions -v ${getPackageVersion(
   params,
   'sentry.dotnet.google-cloud-function',
-  '3.34.0'
+  '7.0.0'
 )}`;
 
 const getInstallSnippetManual = (params: DocsParams) => `
@@ -29,7 +29,7 @@ const getInstallSnippetManual = (params: DocsParams) => `
   <PackageReference Include="Sentry.Google.Cloud.Functions" Version="${getPackageVersion(
     params,
     'sentry.dotnet.google-cloud-function',
-    '3.34.0'
+    '7.0.0'
   )}"/>
 </ItemGroup>`;
 
@@ -64,7 +64,7 @@ const getConfigureJsonSnippet = (params: DocsParams) => `
     }${
       params.isLogsSelected
         ? `,
-    // Enable logs to be sent to Sentry
+    // Send ILogger entries to Sentry as logs
     "EnableLogs": true`
         : ''
     }
@@ -168,7 +168,7 @@ export const onboarding: OnboardingConfig = {
           language: 'csharp',
           code: getVerifySnippet(),
         },
-        logsVerify(params),
+        loggerLogsVerify(params),
         metricsVerify(params),
       ],
     },

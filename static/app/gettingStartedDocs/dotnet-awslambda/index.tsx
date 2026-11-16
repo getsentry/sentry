@@ -10,6 +10,6 @@ export const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: crashReport,
-  logsOnboarding: logs,
+  logsOnboarding: logs({logger: 'logger'}),
   metricsOnboarding: metrics,
 };

@@ -14,6 +14,6 @@ export const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
-  logsOnboarding: logs,
+  logsOnboarding: logs(),
   metricsOnboarding: metrics,
 };
