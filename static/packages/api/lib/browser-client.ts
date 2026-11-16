@@ -49,11 +49,10 @@ function isSameOrSubdomain(child: string[], parent: string[]): boolean {
 }
 
 /**
- * Whether a request to `target` may carry the page's CSRF token. Matches the
- * Sentry frontend's rule: the hosts are equal, one is a subdomain of the
- * other, or they are sibling subdomains under a parent of at least two labels
- * (`us.sentry.io` and `acme.sentry.io`). Hosts are compared by whole labels,
- * so `notsentry.io` does not match `sentry.io`.
+ * Whether a request to `target` may carry the page's CSRF token: the hosts
+ * are equal, one is a parent or subdomain of the other, or they are sibling
+ * subdomains under a parent of at least two labels (`us.sentry.io` and
+ * `acme.sentry.io`). Hosts are compared by whole DNS labels.
  */
 function isSimilarOrigin(target: URL, origin: URL): boolean {
   const targetHost = target.hostname.split('.');
