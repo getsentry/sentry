@@ -77,13 +77,18 @@ function mayCarryCsrfToken(input: RequestInfo | URL, opts: BrowserClientOptions)
     return URL.canParse(url, UNKNOWN_ORIGIN) && new URL(url, UNKNOWN_ORIGIN).origin === UNKNOWN_ORIGIN;
   }
   if (!URL.canParse(origin) || !URL.canParse(url, origin)) return false;
-  return isSimilarOrigin(new URL(url, origin), new URL(origin));
+  const target = new URL(url, origin);
+  const page = new URL(origin);
+  // From an https page, the token never goes over plain http.
+  if (page.protocol === 'https:' && target.protocol !== 'https:') return false;
+  return isSimilarOrigin(target, page);
 }
 
 /**
  * Returns a fetch wrapper that injects X-CSRFToken on state-changing requests
  * to the page's origin or a similar one (the same host, a parent or subdomain
- * of it, or a sibling subdomain), and sends session cookies via
+ * of it, or a sibling subdomain), only over https from an https page, and
+ * sends session cookies via
  * credentials: 'include'. Requests to other origins never get the token.
  *
  * Sentry's Django backend reads the CSRF token from the 'sc' cookie by default

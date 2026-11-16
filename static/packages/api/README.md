@@ -250,7 +250,7 @@ const sentry = createSentryClient(
 const { data, error } = await sentry.listOrganizations();
 ```
 
-The CSRF token goes only on unsafe-method requests (not `GET`, `HEAD`, `OPTIONS` or `TRACE`) to the page's origin or a similar one: the same host, a parent or subdomain of it, or a sibling subdomain such as `us.sentry.io` from `acme.sentry.io`. Hosts are compared by whole DNS labels. The page origin is `location.origin`; pass `origin` to set it, for example in tests. Without either, only relative URLs get the token.
+The CSRF token goes only on unsafe-method requests (not `GET`, `HEAD`, `OPTIONS` or `TRACE`) to the page's origin or a similar one: the same host, a parent or subdomain of it, or a sibling subdomain such as `us.sentry.io` from `acme.sentry.io`. Hosts are compared by whole DNS labels. From an `https:` page, only `https:` targets get the token; `http:` pages are not restricted by scheme. The page origin is `location.origin`; pass `origin` to set it, for example in tests. Without either, only relative URLs get the token.
 
 ### Routing requests by organization
 
