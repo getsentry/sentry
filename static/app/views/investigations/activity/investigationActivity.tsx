@@ -1,4 +1,5 @@
 import {useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconIssues} from '@sentry/icons/issues';
 
@@ -12,7 +13,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {ProgressState} from 'sentry/types/group';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -39,7 +39,6 @@ import type {
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
 import {getActorName} from 'sentry/views/investigations/utils';
-import {AssigneePill} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/assigneeChip';
 import {InlineChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/inlineChip';
 import {
   ActivityLineContent,
@@ -184,30 +183,44 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
 
   // Whoever or whatever started it is a reference, so it uses the issue
   // activity feed's inline chips, and the row keeps the timeline dot.
+  const word = <StartedWord />;
   let details: React.ReactNode = null;
   if (user) {
-    details = tct('by [actor]', {actor: <AssigneePill assignee={user} />});
+    details = tct('[word:by] [actor]', {
+      word,
+      actor: (
+        <InlineChip variant="constrainedCompactLeading">
+          <UserAvatar user={user} size={16} />
+          <ChipLabel>{getActorName(user)}</ChipLabel>
+        </InlineChip>
+      ),
+    });
   } else if (trigger?.type === 'automation') {
-    details = tct('by [automation] automation', {
+    details = tct('[word:by] [automation] [suffix:automation]', {
+      word,
+      suffix: word,
       automation: (
         <InlineChip variant="constrained">
-          {trigger.automation.name ?? getStrategyLabel(trigger.automation.strategy)}
+          <ChipLabel>
+            {trigger.automation.name ?? getStrategyLabel(trigger.automation.strategy)}
+          </ChipLabel>
         </InlineChip>
       ),
     });
   } else if (source.groupId) {
-    details = tct('from [source]', {
+    details = tct('[word:from] [source]', {
+      word,
       source: (
-        <Link
+        <ChipLink
           to={normalizeUrl(
             `/organizations/${organization.slug}/issues/${source.groupId}/`
           )}
         >
           <InlineChip interactive tone="accent" variant="constrainedCompactLeading">
             <IconIssues size="xs" />
-            {source.monitorName ?? t('an issue')}
+            <ChipLabel>{source.monitorName ?? t('an issue')}</ChipLabel>
           </InlineChip>
-        </Link>
+        </ChipLink>
       ),
     });
   }
@@ -215,13 +228,31 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
   return (
     <ActivityLineRow as="li">
       <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
-        <ActivityProgressMarker state={ProgressState.IDENTIFIED} label={t('Started')} />
+        <ActivityProgressMarker state="activity" label={t('Started')} />
       </Grid>
-      <ActivityLineHeadline
-        title={t('Investigation started')}
-        details={details}
-        timestamp={<TimeSince date={investigation.dateCreated} />}
-      />
+      {/* Each word and chip is its own flex item, so they center on the
+          marker. In ActivityLineHeadline's sentence the chips sit lower than
+          the text and the names sit high in their chips. */}
+      <Flex
+        column={2}
+        row={1}
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        minHeight="22px"
+        minWidth={0}
+      >
+        <StartedText bold density="comfortable">
+          {t('Investigation started')}
+        </StartedText>{' '}
+        {details}{' '}
+        <StartedText variant="muted" density="comfortable">
+          &bull;
+        </StartedText>{' '}
+        <StartedText variant="muted" density="comfortable" wrap="nowrap">
+          <TimeSince date={investigation.dateCreated} />
+        </StartedText>
+      </Flex>
     </ActivityLineRow>
   );
 }
@@ -379,4 +410,32 @@ const ActivityList = styled(ActivityLineList)`
   margin: 0;
   padding: 0;
   list-style: none;
+`;
+
+// Rubik's capitals sit above the middle of its line box. Trimming the text to
+// its cap height lets flex centering line it up with avatars, icons, and chips.
+const capHeightTrim = css`
+  text-box: trim-both cap alphabetic;
+`;
+
+const StartedText = styled(Text)`
+  ${capHeightTrim};
+`;
+
+// tct passes the translated word as children.
+function StartedWord({children}: {children?: React.ReactNode}) {
+  return (
+    <StartedText variant="muted" density="comfortable">
+      {children}
+    </StartedText>
+  );
+}
+
+const ChipLabel = styled('span')`
+  ${capHeightTrim};
+`;
+
+const ChipLink = styled(Link)`
+  display: flex;
+  min-width: 0;
 `;
