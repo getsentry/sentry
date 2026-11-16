@@ -78,6 +78,7 @@ export function AgenticCreateProject({
     restartRun,
   } = useAgenticSetupRun({
     createOnboardingCode: false,
+    origin: 'project_creation',
     enabled: canCreateProject && setupMethod === 'agent',
     session,
     onSessionChange: setSession,

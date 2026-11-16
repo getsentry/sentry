@@ -1297,6 +1297,7 @@ describe('ScmCreateProject', () => {
       ).toBeInTheDocument();
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
       const session = request.mock.calls[0]?.[1]?.data;
+      expect(session.origin).toBe('project_creation');
       expect(session.clientRunId).not.toBe(onboardingSession.agenticProgressClientRunId);
       expect(session.onboardingCode).toBeUndefined();
       expect(
@@ -1364,6 +1365,7 @@ describe('ScmCreateProject', () => {
       await waitFor(() => expect(progressRequest).toHaveBeenCalled());
       expect(request.mock.calls[0]?.[1]?.data).toEqual({
         clientRunId: expect.any(String),
+        origin: 'project_creation',
       });
 
       await user.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
