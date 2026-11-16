@@ -2,12 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {
-  hasAnnotations,
-  Markdown,
-  stripAnnotations,
-  type MarkdownProps,
-} from '@sentry/scraps/markdown';
+import {Markdown, stripAnnotations, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -313,15 +308,7 @@ export function AIContentRenderer({
       return (
         <TraceDrawerComponents.MultilineText
           clip={clipText}
-          // A custom formatter skips the fallback for markdown that renders blank,
-          // so only take over when there are scrubbed values to mark.
-          renderFormatted={
-            hasAnnotations(text)
-              ? rawText => (
-                  <Markdown raw={rawText} components={plainTextMarkdownComponents} />
-                )
-              : undefined
-          }
+          markdownComponents={plainTextMarkdownComponents}
         >
           {text}
         </TraceDrawerComponents.MultilineText>

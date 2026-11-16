@@ -18,6 +18,7 @@ import {
   Markdown,
   markdownRendersVisibleContent,
   stripAnnotations,
+  type MarkdownProps,
 } from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -642,6 +643,7 @@ function SectionCard({
 function MultilineText({
   children,
   renderFormatted,
+  markdownComponents,
   clip = true,
   mode,
 }: {
@@ -651,6 +653,8 @@ function MultilineText({
    * scrolls on its own, so content flows instead of being clipped and hidden.
    */
   clip?: boolean;
+  /** Overrides how the default markdown rendering renders tokens, like annotations. */
+  markdownComponents?: MarkdownProps['components'];
   /**
    * Forces the pretty or raw view and hides the hover toggle, for callers that
    * control the format themselves.
@@ -687,7 +691,9 @@ function MultilineText({
       </Container>
       {showRaw || defaultFormattingIsBlank
         ? stripAnnotations(children.trim())
-        : (renderFormatted?.(children) ?? <Markdown raw={children} />)}
+        : (renderFormatted?.(children) ?? (
+            <Markdown raw={children} components={markdownComponents} />
+          ))}
     </MultilineTextWrapper>
   );
 
