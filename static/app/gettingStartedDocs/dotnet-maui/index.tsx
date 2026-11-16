@@ -10,6 +10,9 @@ export const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: crashReport,
-  logsOnboarding: logs({logger: 'logger'}),
+  logsOnboarding: logs({
+    logger: 'logger',
+    sdkPackage: {name: 'Sentry.Maui', registryKey: 'sentry.dotnet.maui'},
+  }),
   metricsOnboarding: metrics,
 };

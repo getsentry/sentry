@@ -52,4 +52,20 @@ describe('awslambda onboarding docs', () => {
       screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
     ).toBeInTheDocument();
   });
+
+  it('renders the logs drawer for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.logsOnboarding!},
+      {selectedProducts: [ProductSolution.LOGS]}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNetCore -Version/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
+  });
 });

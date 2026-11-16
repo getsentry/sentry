@@ -10,6 +10,12 @@ export const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: crashReport,
-  logsOnboarding: logs({logger: 'logger'}),
+  logsOnboarding: logs({
+    logger: 'logger',
+    sdkPackage: {
+      name: 'Sentry.Google.Cloud.Functions',
+      registryKey: 'sentry.dotnet.google-cloud-function',
+    },
+  }),
   metricsOnboarding: metrics,
 };

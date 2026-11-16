@@ -14,6 +14,8 @@ export const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
-  logsOnboarding: logs(),
+  logsOnboarding: logs({
+    sdkPackage: {name: 'Sentry.AspNet', registryKey: 'sentry.dotnet.aspnet'},
+  }),
   metricsOnboarding: metrics,
 };

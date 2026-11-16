@@ -57,4 +57,17 @@ describe('aspnet onboarding docs', () => {
       screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
     ).not.toBeInTheDocument();
   });
+
+  it('renders the logs drawer for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.logsOnboarding!},
+      {selectedProducts: [ProductSolution.LOGS]}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNet -Version/)
+      )
+    ).toBeInTheDocument();
+  });
 });
