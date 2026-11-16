@@ -16,7 +16,6 @@ from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
-    MonitorCheckIn,
     MonitorEnvBrokenDetection,
     MonitorEnvironment,
     MonitorIncident,
@@ -56,7 +55,7 @@ class MarkOkTestCase(TestCase):
         )
 
         # OK checkin comes in
-        success_checkin = MonitorCheckIn.objects.create(
+        success_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
             date_added=now,
@@ -97,7 +96,7 @@ class MarkOkTestCase(TestCase):
         )
 
         # OK checkin comes in
-        success_checkin = MonitorCheckIn.objects.create(
+        success_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
             date_added=now,
@@ -135,7 +134,7 @@ class MarkOkTestCase(TestCase):
             environment_id=self.environment.id,
             status=MonitorStatus.ERROR,
         )
-        first_checkin = MonitorCheckIn.objects.create(
+        first_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=now,
@@ -150,7 +149,7 @@ class MarkOkTestCase(TestCase):
         # Create OK check-ins
         for i in range(0, recovery_threshold - 1):
             now = now + timedelta(minutes=1)
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.OK,
                 date_added=now,
@@ -159,7 +158,7 @@ class MarkOkTestCase(TestCase):
 
         # create an in-progress check-in to make sure that we don't resolve anything
         now = now + timedelta(minutes=1)
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=now,
@@ -181,7 +180,7 @@ class MarkOkTestCase(TestCase):
 
         # create another failed check-in to break the chain
         now = now + timedelta(minutes=1)
-        last_checkin = MonitorCheckIn.objects.create(
+        last_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=now,
@@ -195,7 +194,7 @@ class MarkOkTestCase(TestCase):
         # Create enough check-ins to resolve the incident
         for i in range(0, recovery_threshold):
             now = now + timedelta(minutes=1)
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.OK,
                 date_added=now,
@@ -259,7 +258,7 @@ class MarkOkTestCase(TestCase):
             last_checkin=now - timedelta(minutes=1),
             next_checkin=now,
         )
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=timezone.now() - timedelta(days=14),
@@ -275,7 +274,7 @@ class MarkOkTestCase(TestCase):
         )
 
         # OK checkin comes in
-        success_checkin = MonitorCheckIn.objects.create(
+        success_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
             date_added=now,

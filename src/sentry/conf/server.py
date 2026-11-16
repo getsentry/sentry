@@ -914,6 +914,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
     "sentry.inbox.event_retention",
+    "sentry.inbox.item_retention",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.bitbucket_server.tasks",
@@ -1067,6 +1068,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "cadence-tick": {
         "task": "issues:sentry.cadence.tasks.cadence_tick",
         "schedule": timedelta(seconds=10),
+    },
+    "cadence-sweep": {
+        "task": "issues:sentry.cadence.tasks.cadence_sweep",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
@@ -2639,7 +2644,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.10.1"
+SELF_HOSTED_STABLE_VERSION = "26.11.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

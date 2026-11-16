@@ -18,8 +18,9 @@ describe('AgentHandoffPrompt', () => {
   const context = {runId: 'a'.repeat(32)};
   const feedbackSource = 'agent-handoff-prompt-test';
   const code = 'sntryh_example';
+  const handoffId = 'a'.repeat(32);
   const prompt =
-    'Follow the instructions verbatim at https://sentry-jest-tests.example.com/agent-handoff/. Your handoff code is `sntryh_example`.';
+    'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
 
   beforeEach(() => {
@@ -43,7 +44,7 @@ describe('AgentHandoffPrompt', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     const onCopySuccess = jest.fn();
 
@@ -59,14 +60,15 @@ describe('AgentHandoffPrompt', () => {
 
     expect(screen.getByRole('link', {name: 'See the full instructions'})).toHaveAttribute(
       'href',
-      'https://sentry.io/agent-handoff/?preview=1&flow=onboarding'
+      'https://sentry.io/agent-handoff.md?preview=1&flow=onboarding'
     );
-    expect(screen.getByText(/Follow the instructions verbatim/)).toHaveTextContent(
-      'Follow the instructions verbatim at https://sentry-jest-tests.example.com/agent-handoff/. Your handoff code is sntryh_****.'
+    expect(screen.getByText(/Read and follow/)).toHaveTextContent(
+      'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is sntryh_****.'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
 
     await waitFor(() => expect(onCopySuccess).toHaveBeenCalledTimes(1));
+    expect(onCopySuccess).toHaveBeenCalledWith(handoffId);
     expect(mint).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
@@ -89,7 +91,7 @@ describe('AgentHandoffPrompt', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {code, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     render(
       <AgentHandoffPrompt
@@ -144,6 +146,11 @@ describe('AgentHandoffPrompt', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(document.activeElement?.textContent).toContain('sntryh_****');
     expect(window.getSelection()?.toString()).toContain('sntryh_****');
+    expect(screen.getByText('sntryh_****')).toHaveAttribute('data-selected', 'true');
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Prior input'}));
+
+    expect(screen.getByText('sntryh_****')).not.toHaveAttribute('data-selected');
   });
 
   it('shows prompt creation errors', async () => {

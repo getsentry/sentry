@@ -1,8 +1,8 @@
-import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import type {PageFilters} from 'sentry/types/core';
+import * as qs from 'sentry/utils/url/qs';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ChartType} from 'sentry/views/insights/common/components/chart';

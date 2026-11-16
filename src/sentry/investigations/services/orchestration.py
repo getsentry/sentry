@@ -9,8 +9,7 @@ from functools import partial
 from typing import Any
 from uuid import UUID, uuid5
 
-from django.db import IntegrityError, router, transaction
-from django.db.models import Max
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
@@ -46,6 +45,7 @@ from sentry.notebooks.services.notebooks import (
     archive_notebook_row,
     create_notebook,
     default_notebook_title,
+    get_or_create_source_notebook,
     update_notebook_row,
 )
 from sentry.users.services.user.service import user_service
@@ -404,8 +404,10 @@ def schedule_orchestration_commands(run_id: int) -> None:
 
 
 def archive_investigation_with_orchestration(
-    *, investigation: Notebook, expected_version: int, actor_id: int | None
+    *, investigation: Notebook, expected_version: int, actor: ActorId
 ) -> Notebook:
+    user_id = actor.id if actor.type == ActorType.USER else None
+    service_account_id = actor.id if actor.type == ActorType.SERVICE_ACCOUNT else None
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         try:
@@ -417,7 +419,7 @@ def archive_investigation_with_orchestration(
             .filter(investigation=locked_investigation)
             .first()
         )
-        if run is not None and actor_id is None:
+        if run is not None and user_id is None and service_account_id is None:
             raise PermissionDenied
         archive_version = expected_version
         if run is None:
@@ -434,7 +436,6 @@ def archive_investigation_with_orchestration(
             InvestigationOrchestrationStatus.FAILED,
             InvestigationOrchestrationStatus.CANCELLED,
         }:
-            assert actor_id is not None
             accept_orchestration_command(
                 investigation=locked_investigation,
                 request_id=uuid5(
@@ -444,7 +445,8 @@ def archive_investigation_with_orchestration(
                 expected_workflow_version=run.workflow_version,
                 command_type="cancel",
                 payload={"reason": "investigation_archived"},
-                actor_id=actor_id,
+                actor_id=user_id,
+                service_account_id=service_account_id,
             )
         if run is not None:
             run.refresh_from_db(fields=["generation", "projection"])
@@ -647,48 +649,25 @@ def create_agentic_breached_metric_investigation(
         raise NotebookValidationError({"projectIds": "The metric project must be selected."})
     normalized_source = resolved_source.source
     source_key = agentic_breached_metric_source_key(normalized_source)
-    # Uniqueness on the active source and revision arbitrates concurrent launches.
-    for attempt in range(3):
-        active = (
-            Notebook.objects.filter(
-                organization=organization,
-                source_key=source_key,
-                status=NotebookStatus.ACTIVE,
-            )
-            .order_by("-source_revision", "-id")
-            .first()
-        )
-        if active is not None:
-            return active, False
-        latest_revision = Notebook.objects.filter(
+
+    def create(revision: int) -> Notebook:
+        investigation, _ = _create_agentic_investigation(
             organization=organization,
+            creator=creator,
+            title=title,
+            source=normalized_source,
+            orchestration_source=_breached_metric_orchestration_source(normalized_source),
+            project_ids=project_ids,
+            filters=filters,
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
             source_key=source_key,
-        ).aggregate(latest=Max("source_revision"))["latest"]
-        try:
-            investigation, _ = _create_agentic_investigation(
-                organization=organization,
-                creator=creator,
-                title=title,
-                source=normalized_source,
-                orchestration_source=_breached_metric_orchestration_source(normalized_source),
-                project_ids=project_ids,
-                filters=filters,
-                source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
-                source_key=source_key,
-                source_revision=(latest_revision or 0) + 1,
-            )
-            return investigation, True
-        except IntegrityError:
-            if attempt == 2:
-                active = Notebook.objects.filter(
-                    organization=organization,
-                    source_key=source_key,
-                    status=NotebookStatus.ACTIVE,
-                ).first()
-                if active is not None:
-                    return active, False
-                raise
-    raise AssertionError("unreachable")
+            source_revision=revision,
+        )
+        return investigation
+
+    return get_or_create_source_notebook(
+        organization=organization, source_key=source_key, create=create
+    )
 
 
 def _require_accessible_projects(
@@ -809,6 +788,7 @@ def accept_orchestration_command(
     command_type: str,
     payload: dict[str, Any],
     actor_id: int | None,
+    service_account_id: int | None = None,
 ) -> AcceptedOrchestrationCommand:
     with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
         # Investigation-wide mutations lock the aggregate root before subordinate rows.
@@ -866,6 +846,7 @@ def accept_orchestration_command(
                 orchestration_run=run,
                 request_id=request_id,
                 actor_id=actor_id,
+                requested_by_service_account_id=service_account_id,
                 expected_workflow_version=expected_workflow_version,
                 resulting_workflow_version=run.workflow_version,
                 type=command_type,
@@ -891,6 +872,7 @@ def accept_orchestration_command(
             orchestration_run=run,
             request_id=request_id,
             actor_id=actor_id,
+            requested_by_service_account_id=service_account_id,
             expected_workflow_version=expected_workflow_version,
             resulting_workflow_version=resulting_version,
             type=command_type,

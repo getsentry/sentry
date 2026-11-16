@@ -3,9 +3,6 @@ from __future__ import annotations
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
-    CheckSeerCreditsResponse,
-)
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -13,15 +10,13 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.credits import SeerFeature, SeerOperation, check_seer_operation
+from sentry.seer.credits import (
+    SeerFeature,
+    SeerOperation,
+    check_seer_operation,
+    get_denial_reason,
+)
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-
-# Unspecified and unknown reasons map to None, so a reason added to the proto
-# before this mapping doesn't leak an enum name into the API.
-_DENIAL_REASONS: dict[CheckSeerCreditsResponse.DenialReason.ValueType, str] = {
-    CheckSeerCreditsResponse.DENIAL_REASON_NOT_ENOUGH_CREDITS: "not_enough_credits",
-    CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED: "daily_cap_exceeded",
-}
 
 
 class SeerCreditCheckSerializer(serializers.Serializer[dict[str, str]]):
@@ -66,6 +61,6 @@ class OrganizationSeerCreditCheckEndpoint(OrganizationEndpoint):
         return Response(
             {
                 "hasEnoughCredits": credits.has_enough_credits,
-                "denialReason": _DENIAL_REASONS.get(credits.denial_reason),
+                "denialReason": get_denial_reason(credits),
             }
         )
