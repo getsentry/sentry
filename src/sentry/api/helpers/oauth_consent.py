@@ -135,9 +135,12 @@ _PERMISSION_RESOURCES = (
     OAuthPermissionResource(
         "membership",
         "Organization and team membership",
-        ("membership:read",),
+        ("membership:read", "membership:write", "membership:admin", "membership:invite"),
         access_descriptions={
             "read": "View organization members, invites, invite requests, and team access requests.",
+            "write": "Invite members, handle invite and team access requests, and manage team membership.",
+            "admin": "Change member roles and remove organization members.",
+            "invite": "Invite organization members.",
         },
     ),
     OAuthPermissionResource(

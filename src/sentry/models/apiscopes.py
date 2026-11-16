@@ -40,7 +40,12 @@ class ApiScopes(Sequence[str]):
 
     dashboard = (("dashboard:read"), ("dashboard:write"))
 
-    membership = ("membership:read",)
+    membership = (
+        ("membership:read"),
+        ("membership:write"),
+        ("membership:admin"),
+        ("membership:invite"),
+    )
 
     saved_query = (("saved_query:read"), ("saved_query:write"))
 

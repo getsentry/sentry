@@ -48,9 +48,16 @@ class ApproveInviteRequestSerializer(serializers.Serializer[dict[str, Any]]):
 
 class InviteRequestPermissions(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "member:admin", "membership:read"],
-        "PUT": ["member:write", "member:admin"],
-        "DELETE": ["member:write", "member:admin"],
+        "GET": [
+            "member:read",
+            "member:write",
+            "member:admin",
+            "membership:read",
+            "membership:write",
+            "membership:admin",
+        ],
+        "PUT": ["member:write", "member:admin", "membership:write", "membership:admin"],
+        "DELETE": ["member:write", "member:admin", "membership:write", "membership:admin"],
     }
 
 

@@ -647,17 +647,46 @@ def _permission_classes(cls: type[SentryPermission]) -> list[type[SentryPermissi
     return [cls, *(sub for direct in cls.__subclasses__() for sub in _permission_classes(direct))]
 
 
-def test_membership_read_only_replaces_member_read() -> None:
-    """member:read translates to membership:read, so membership:read must not open anything
-    that member:read doesn't already open."""
+MEMBER_TO_MEMBERSHIP_SCOPES = {
+    f"member:{action}": f"membership:{action}" for action in ("read", "write", "invite", "admin")
+}
+
+
+def _all_permission_classes() -> list[type[SentryPermission]]:
     get_resolver().url_patterns  # Import every endpoint module so its permissions are defined.
+    return _permission_classes(SentryPermission)
+
+
+@pytest.mark.parametrize(("member_scope", "membership_scope"), MEMBER_TO_MEMBERSHIP_SCOPES.items())
+def test_membership_scope_only_replaces_member_scope(
+    member_scope: str, membership_scope: str
+) -> None:
+    """Each member scope translates to its membership scope, so the membership scope must not
+    open anything that the member scope doesn't already open."""
     broadened = {
         (permission_cls.__qualname__, method)
-        for permission_cls in _permission_classes(SentryPermission)
+        for permission_cls in _all_permission_classes()
         for method, scopes in permission_cls.scope_map.items()
-        if "membership:read" in scopes and "member:read" not in scopes
+        if membership_scope in scopes and member_scope not in scopes
     }
     assert broadened == set()
+
+
+def test_membership_permissions_mirror_every_member_scope() -> None:
+    """A permission that accepts membership scopes accepts the membership counterpart of every
+    member scope it accepts, so tokens holding only membership scopes keep the same access."""
+    unmirrored = {
+        (permission_cls.__qualname__, method, member_scope)
+        for permission_cls in _all_permission_classes()
+        if any(
+            set(scopes) & set(MEMBER_TO_MEMBERSHIP_SCOPES.values())
+            for scopes in permission_cls.scope_map.values()
+        )
+        for method, scopes in permission_cls.scope_map.items()
+        for member_scope in set(scopes) & set(MEMBER_TO_MEMBERSHIP_SCOPES)
+        if MEMBER_TO_MEMBERSHIP_SCOPES[member_scope] not in scopes
+    }
+    assert unmirrored == set()
 
 
 class BaseOrganizationEndpointTest(TestCase):

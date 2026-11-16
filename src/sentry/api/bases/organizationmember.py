@@ -26,10 +26,24 @@ from .organization import OrganizationEndpoint, OrganizationPermission
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "member:admin", "membership:read"],
-        "POST": ["member:write", "member:admin", "member:invite"],
-        "PUT": ["member:write", "member:admin"],
-        "DELETE": ["member:admin"],
+        "GET": [
+            "member:read",
+            "member:write",
+            "member:admin",
+            "membership:read",
+            "membership:write",
+            "membership:admin",
+        ],
+        "POST": [
+            "member:write",
+            "member:admin",
+            "member:invite",
+            "membership:write",
+            "membership:admin",
+            "membership:invite",
+        ],
+        "PUT": ["member:write", "member:admin", "membership:write", "membership:admin"],
+        "DELETE": ["member:admin", "membership:admin"],
     }
 
     def has_object_permission(

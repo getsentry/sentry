@@ -101,6 +101,8 @@ class OrganizationTeamMemberPermission(OrganizationPermission):
             "member:write",
             "member:admin",
             "membership:read",
+            "membership:write",
+            "membership:admin",
         ],
         "POST": ["org:read", "org:write", "team:write"],
         "PUT": [
@@ -110,6 +112,9 @@ class OrganizationTeamMemberPermission(OrganizationPermission):
             "member:read",
             "member:write",
             "member:admin",
+            "membership:read",
+            "membership:write",
+            "membership:admin",
             "team:admin",
             "team:write",
         ],

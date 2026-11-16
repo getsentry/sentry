@@ -1971,6 +1971,9 @@ SENTRY_SCOPES = {
     "dashboard:read",
     "dashboard:write",
     "membership:read",
+    "membership:write",
+    "membership:invite",
+    "membership:admin",
     "saved_query:read",
     "saved_query:write",
     "seer:read",
@@ -2030,6 +2033,9 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     # and writes needs both scopes.
     "dashboard:write": {"dashboard:write"},
     "membership:read": {"membership:read"},
+    "membership:write": {"membership:write"},
+    "membership:invite": {"membership:invite"},
+    "membership:admin": {"membership:admin"},
     "saved_query:read": {"saved_query:read"},
     "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
@@ -2069,6 +2075,9 @@ GRANULAR_SCOPES = frozenset(
         "user_preference:write",
         # Accepted by endpoints, but not granted by any role yet.
         "membership:read",
+        "membership:write",
+        "membership:invite",
+        "membership:admin",
     ]
 )
 
@@ -2100,6 +2109,19 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "user_preference:write",
         ]
     ),
+    # member:invite, member:write and member:admin translate one-to-one to the membership
+    # scopes, which endpoints accept wherever they accept the member scope.
+    "member:invite": frozenset(["member:invite", "membership:invite"]),
+    # Starring and starred order accept member:write too, like member:read.
+    "member:write": frozenset(
+        [
+            "member:write",
+            "membership:write",
+            "user_preference:read",
+            "user_preference:write",
+        ]
+    ),
+    "member:admin": frozenset(["member:admin", "membership:admin"]),
     # No granular replacements yet.
     "project:read": frozenset(["project:read"]),
 }
@@ -2166,7 +2188,12 @@ SENTRY_SCOPE_SETS = (
         ("dashboard:write", "Write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
-    (("membership:read", "Read access to organization and team membership."),),
+    (
+        ("membership:admin", "Admin access to organization and team membership."),
+        ("membership:write", "Write access to organization and team membership."),
+        ("membership:read", "Read access to organization and team membership."),
+        ("membership:invite", "Invite access to organization membership."),
+    ),
     (
         ("saved_query:write", "Write access to saved queries."),
         ("saved_query:read", "Read access to saved queries."),

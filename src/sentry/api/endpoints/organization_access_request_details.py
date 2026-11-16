@@ -33,6 +33,8 @@ class AccessRequestPermission(OrganizationPermission):
             "member:write",
             "member:admin",
             "membership:read",
+            "membership:write",
+            "membership:admin",
         ],
         "POST": [],
         "PUT": [
@@ -43,6 +45,8 @@ class AccessRequestPermission(OrganizationPermission):
             "team:admin",
             "member:write",
             "member:admin",
+            "membership:write",
+            "membership:admin",
         ],
         "DELETE": [],
     }
