@@ -343,7 +343,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           <Container {...tourProps} width={{zero: '100%', lg: 'auto'}} maxWidth="100%">
             <Flex wrap="wrap" gap={{zero: 'sm', sm: 'xs'}}>
               {currentTab === Tab.AUTOFIX && autofixPanel && (
-                <Flex align="center" gap="xs">
+                <Flex align="center">
                   <AutofixReferrerInfoTip referrer={autofixPanel.referrer} />
                   <SeerPanelActions
                     autofixState={autofixPanel.runState}
