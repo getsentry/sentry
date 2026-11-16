@@ -6,6 +6,11 @@ source: '@sentry/scraps/entityHeader'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/entityHeader/entityHeader.tsx
   figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1635-47167
+  a11y:
+    WCAG 1.3.1: https://www.w3.org/TR/WCAG22/#info-and-relationships
+    WCAG 1.4.1: https://www.w3.org/TR/WCAG22/#use-of-color
+    WCAG 2.4.4: https://www.w3.org/TR/WCAG22/#link-purpose-in-context
+    WCAG 4.1.2: https://www.w3.org/TR/WCAG22/#name-role-value
 ---
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -19,38 +24,89 @@ import * as Storybook from 'sentry/stories';
 export const documentation =
   import('!!type-loader!@sentry/scraps/entityHeader/entityHeader');
 
-The `EntityHeader`'s primary goal is to unify the presentation of key data pertaining to a specific entity or event typically shown at the top of a page. It deliberately does **not** render breadcrumbs, the page `h1`, or global actions. Those belong to the TopBar and its slots (`TopBar.Slot name="breadcrumbs"` / `"title"`). The title here is an `h2`.
+`EntityHeader` shows the key facts about one entity, such as a replay, an issue or a build, in a band at the top of its detail page. Layout responds to its container through [container queries](/scraps/core/container/#container-queries), and every slot has a built-in [loading skeleton](/scraps/product/components/placeholder/).
 
-`EntityHeader` comes with the following features.
+```jsx
+<EntityHeader title={{type: 'text', label: t('Issue type'), value: issue.type}} />
+```
 
-1. Responsive behaviour is baked in using [Container Queries](https://sentry.sentry.io/scraps/core/container/#container-queries) API.
-2. Interstitial loading states are baked in using the [Placeholder Component](https://sentry.sentry.io/scraps/product/components/placeholder/)
-3. Comprehensive properties for improved screen-reader support
+## When to use
+
+Use it directly below the TopBar on a page about a single entity.
+
+> [!NOTE]
+> `EntityHeader` does not render breadcrumbs, the page `h1` or global actions. Those belong to the TopBar's slots (`TopBar.Slot name="breadcrumbs"` / `"title"`). The title here is an `h2`.
 
 ## Usage
 
-Only `title` is required. The grid template is built from whichever other slots you pass, so an omitted one leaves no empty row behind.
+The header has five slots: `title`, `subtitle`, `stats`, `people` and `metadata`. Only `title` is required, and the layout is built from whichever others you pass, so an omitted slot leaves no empty row.
+
+The example below is the Replay Details header. The title links to the replays list filtered to this user, Dead Clicks and Rage Clicks link to the breadcrumbs tab, and the error count carries a breakdown in its tooltip.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
     title={{
-      type: 'text',
+      type: 'link',
       label: 'Replay user',
-      value: 'anonymous@example.com',
+      value: 'alice@example.com',
+      to: '/replays/?query=user.email%3A%22alice%40example.com%22',
+      leadingGraphic: {
+        type: 'user',
+        user: {
+          id: '1',
+          name: 'Alice Chen',
+          email: 'alice@example.com',
+          username: 'alice@example.com',
+          ip_address: '',
+        },
+      },
       tags: [
         <Tag key="live" variant="success">
           Live
         </Tag>,
       ],
     }}
+    people={{
+      label: 'Viewed by',
+      users: [
+        {
+          id: '2',
+          name: 'Bob Diaz',
+          email: 'bob@example.com',
+          username: 'bob',
+          ip_address: '',
+        },
+        {
+          id: '3',
+          name: 'Carol Singh',
+          email: 'carol@example.com',
+          username: 'carol',
+          ip_address: '',
+        },
+      ],
+    }}
     stats={{
       label: 'Replay stats',
       items: [
-        {label: 'Dead Clicks', value: 0},
-        {label: 'Rage Clicks', value: 2},
+        {
+          label: {
+            type: 'link',
+            content: 'Dead Clicks',
+            to: '/replays/1/?t_main=breadcrumbs',
+          },
+          value: 0,
+        },
+        {
+          label: {
+            type: 'link',
+            content: 'Rage Clicks',
+            to: '/replays/1/?t_main=breadcrumbs',
+          },
+          value: 2,
+        },
         {
           label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
-          value: 1,
+          value: {type: 'text', content: 1, tooltip: '1 error from javascript'},
         },
       ],
     }}
@@ -61,19 +117,21 @@ Only `title` is required. The grid template is built from whichever other slots 
           label: 'Started at',
           type: 'text',
           value: 'Feb 11, 2026 10:56 CET',
-          leadingGraphic: <IconCalendar size="md" />,
+          leadingGraphic: <IconCalendar size="md" variant="muted" />,
         },
         {
           label: 'Browser',
           type: 'text',
           value: 'Chrome',
           secondary: {label: 'version', value: '144.0.0'},
+          leadingGraphic: <PlatformIcon platform="chrome" size="16px" />,
         },
         {
           label: 'Operating system',
           type: 'text',
           value: 'Windows',
           secondary: {label: 'version', value: '>=10'},
+          leadingGraphic: <PlatformIcon platform="windows" size="16px" />,
         },
       ],
     }}
@@ -83,23 +141,67 @@ Only `title` is required. The grid template is built from whichever other slots 
 ```jsx
 <EntityHeader
   title={{
-    type: 'text',
+    type: 'link',
     label: 'Replay user',
-    value: 'anonymous@example.com',
+    value: 'alice@example.com',
+    to: '/replays/?query=user.email%3A%22alice%40example.com%22',
+    leadingGraphic: {
+      type: 'user',
+      user: {
+        id: '1',
+        name: 'Alice Chen',
+        email: 'alice@example.com',
+        username: 'alice@example.com',
+        ip_address: '',
+      },
+    },
     tags: [
       <Tag key="live" variant="success">
         Live
       </Tag>,
     ],
   }}
+  people={{
+    label: 'Viewed by',
+    users: [
+      {
+        id: '2',
+        name: 'Bob Diaz',
+        email: 'bob@example.com',
+        username: 'bob',
+        ip_address: '',
+      },
+      {
+        id: '3',
+        name: 'Carol Singh',
+        email: 'carol@example.com',
+        username: 'carol',
+        ip_address: '',
+      },
+    ],
+  }}
   stats={{
     label: 'Replay stats',
     items: [
-      {label: 'Dead Clicks', value: 0},
-      {label: 'Rage Clicks', value: 2},
+      {
+        label: {
+          type: 'link',
+          content: 'Dead Clicks',
+          to: '/replays/1/?t_main=breadcrumbs',
+        },
+        value: 0,
+      },
+      {
+        label: {
+          type: 'link',
+          content: 'Rage Clicks',
+          to: '/replays/1/?t_main=breadcrumbs',
+        },
+        value: 2,
+      },
       {
         label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
-        value: 1,
+        value: {type: 'text', content: 1, tooltip: '1 error from javascript'},
       },
     ],
   }}
@@ -110,41 +212,50 @@ Only `title` is required. The grid template is built from whichever other slots 
         label: 'Started at',
         type: 'text',
         value: 'Feb 11, 2026 10:56 CET',
-        leadingGraphic: <IconCalendar size="md" />,
+        leadingGraphic: <IconCalendar size="md" variant="muted" />,
       },
       {
         label: 'Browser',
         type: 'text',
         value: 'Chrome',
         secondary: {label: 'version', value: '144.0.0'},
+        leadingGraphic: <PlatformIcon platform="chrome" size="16px" />,
       },
       {
         label: 'Operating system',
         type: 'text',
         value: 'Windows',
         secondary: {label: 'version', value: '>=10'},
+        leadingGraphic: <PlatformIcon platform="windows" size="16px" />,
       },
     ],
   }}
 />
 ```
 
-`stats`, `metadata.items` and `title.tags` drop `null` entries, so a conditional can be written inline. Items are keyed by their position in the array you wrote rather than in the filtered result, so one appearing or disappearing never remounts its neighbours.
+`stats.items`, `metadata.items` and `title.tags` skip an entry that is `null` itself, so a whole item can be written as an inline conditional. This is separate from a stat's `value: null`: that item is still there, and shows "No data" (see [No data](#no-data)). Items are keyed by their position in the array you wrote, so one appearing or disappearing never remounts its neighbors.
 
 ```jsx
-stats={{label: 'Replay stats', items: [
-  isVideoReplay ? null : {label: t('Dead Clicks'), value: deadClicks},
-  {label: t('Errors'), value: errors.length},
-]}}
+<EntityHeader
+  title={title}
+  stats={{
+    label: t('Replay stats'),
+    items: [
+      // Left out on a video replay, which has no clicks to count
+      isVideoReplay ? null : {label: t('Dead Clicks'), value: deadClicks},
+      // Always there; `build.cost` is `null` when no cost was recorded,
+      // which shows "No data"
+      {label: t('Cost'), value: build.cost},
+    ],
+  }}
+/>
 ```
 
-### Loading
+## Loading
 
-Pass `isLoading` and every slot renders a skeleton sized from the typography it will hold. The skeleton comes from the same declarations as the loaded state, so the two cannot drift apart — there is no placeholder twin to maintain.
+Pass `isLoading` and every declared slot renders a skeleton instead: one per declared item, at the fixed height of the line it will hold. A stat is held as a single block, and the title's graphic and tags wait until it loads.
 
-A declared slot holds its space before its contents arrive. Passing `metadata` reserves the row even while every item is still `null`, so a header whose facts all land at once does not grow a row and push the page down. Only an omitted slot leaves no row behind.
-
-`subtitle` is the exception, because a node gives nothing to declare with: one that has not loaded is indistinguishable from one that was never passed, so its line appears when the text does.
+While `isLoading` is set, a declared `metadata` keeps its row even if every item is still `null`, so the page below does not jump when the facts land together. Once loading ends, a `metadata` whose items are all `null` leaves no row, the same as an omitted one. `subtitle` has nothing to declare, so its line appears when its text does.
 
 > [!NOTE]
 > Skeleton widths aren't configurable.
@@ -201,27 +312,31 @@ A declared slot holds its space before its contents arrive. Passing `metadata` r
 />
 ```
 
-Slots that resolve on their own schedule carry their own flag, additive to the header's: `people.isLoading` for the avatar stack, and `isLoading` on an individual stat. Use the latter when a count arrives after the entity does — an issue knows its title before it knows how many events it has, and a stat without the flag would render the zero it happens to hold. The entity's own fields stay live throughout.
+Data that arrives after the entity has its own flag, on top of the header's: `people.isLoading`, or `isLoading` on a single stat. Without it, a pending stat renders whatever it holds, usually a `0` it has not confirmed.
 
 ```jsx
-stats={{label: 'Replay stats', items: [
-  {label: t('Events'), value: count, isLoading: isCountPending},
-]}}
+<EntityHeader
+  title={title}
+  stats={{
+    label: t('Issue stats'),
+    items: [{label: t('Events'), value: count, isLoading: isCountPending}],
+  }}
+/>
 ```
-
-The header sets `aria-busy` while any slot is loading. Note that this is a state in the accessibility tree, not an announcement — no screen reader reads it. A page that needs the transition announced has to add its own live region.
 
 ## Title
 
-It's a requirement for titles to have a `label` and a `value`. The `value` is what gets rendered on the screen and the `label` is used to contextualise that value to users who depend on screen readers.
+A title needs a `label` and a `value`. The `value` is shown; the `label` is read first by screen readers to say what the value is.
 
 ```jsx
-title={{type: 'text', label: t('Replay user'), value: replay.user.display_name}}
+<EntityHeader
+  title={{type: 'text', label: t('Replay user'), value: replay.user.display_name}}
+/>
 ```
 
 ### Types
 
-A title declares whether it navigates, the same way a stat and a metadata item do. `link` points the entity's name at the list it came from, filtered to it.
+A title is `text` or `link`. A `link` points the entity's name at the list it came from, filtered to it. Use `to` inside the product, or `externalHref` for a destination outside it, which opens in a new tab. Only link a title when the destination is obvious from the title itself.
 
 <Storybook.Demo resizable direction="column" align="stretch" gap="xl">
   <EntityHeader title={{type: 'text', label: 'Issue type', value: 'ValueError'}} />
@@ -233,29 +348,48 @@ A title declares whether it navigates, the same way a stat and a metadata item d
       to: '/replays/?query=user.email%3A%22anonymous%40example.com%22',
       leadingGraphic: {
         type: 'user',
-        user: {id: '1', name: 'Alice Chen', email: 'anonymous@example.com'},
+        user: {
+          id: '1',
+          name: 'Alice Chen',
+          email: 'anonymous@example.com',
+          username: 'alice',
+          ip_address: '',
+        },
       },
+    }}
+  />
+  <EntityHeader
+    title={{
+      type: 'link',
+      label: 'Branch',
+      value: 'seer/spans-table',
+      externalHref: 'https://github.com/getsentry/sentry/tree/seer/spans-table',
     }}
   />
 </Storybook.Demo>
 
 ```jsx
-{type: 'text', label: t('Issue type'), value: issue.type}
-{type: 'link', label: t('Replay user'), value: replay.user.display_name, to: replaysIndexUrl}
-{type: 'link', label: t('Branch'), value: build.headRef, externalHref: branchUrl}
+// Text
+title={{type: 'text', label: t('Issue type'), value: issue.type}}
+
+// Link inside the product
+title={{
+  type: 'link',
+  label: t('Replay user'),
+  value: replay.user.display_name,
+  to: replaysIndexUrl,
+  leadingGraphic: {type: 'user', user: replay.user},
+}}
+
+// Link outside the product
+title={{type: 'link', label: t('Branch'), value: build.headRef, externalHref: branchUrl}}
 ```
 
-A destination outside the product takes `externalHref` in place of `to`, such as the branch a build came from on GitHub. The two are mutually exclusive, and the choice is about where the destination lives rather than how it looks: `to` routes inside the app, `externalHref` renders an `ExternalLink` and opens in a new tab. Both draw identically.
-
-A link title is accent-coloured and carries no underline, the same treatment a stat or metadata link gets — one link treatment across the header. Colour is doing the work here, so reserve `link` for a destination the title genuinely implies; a title that merely _could_ link is better left as text with the destination offered elsewhere.
-
-Note where the link sits in each of the three. A stat chooses **per half** — its label, its value, or both — because the two can lead to different places: the measure, or the things it counts. A metadata item's **value** navigates, because the value is where the user is going. A title navigates **whole** — it is the entity, so there is no half to choose between.
-
-The title is still an `h2`, now with a link inside it, which is how most of the web marks up an article title. A screen reader announces both — "Replay user, anonymous@example.com, heading level 2, link" — and the link carries the same name as the heading, so a links list reads that rather than a bare address.
+A link title is accent-colored with no underline. The link wraps the `h2`, so a headings list and a links list both read "Replay user, anonymous@example.com".
 
 ### Leading graphic
 
-`title.leadingGraphic` is data, not a node, so the header controls the size and the slot cannot be used to smuggle in a component.
+`title.leadingGraphic` is data, not a node, so the header controls its size. `project` and `platform` draw the same badge: use `project` when you have projects (the header maps them to platforms) and `platform` when you only have a platform. A project with no known platform falls back to the generic platform tile.
 
 <Storybook.Demo resizable direction="column" align="stretch" gap="xl">
   <EntityHeader
@@ -265,7 +399,13 @@ The title is still an `h2`, now with a link inside it, which is how most of the 
       value: 'alice@example.com',
       leadingGraphic: {
         type: 'user',
-        user: {id: '1', name: 'Alice Chen', email: 'alice@example.com'},
+        user: {
+          id: '1',
+          name: 'Alice Chen',
+          email: 'alice@example.com',
+          username: 'alice',
+          ip_address: '',
+        },
       },
     }}
   />
@@ -297,85 +437,123 @@ The title is still an `h2`, now with a link inside it, which is how most of the 
 </Storybook.Demo>
 
 ```jsx
-// Decorative. The title beside it already says who this is.
-leadingGraphic={{type: 'user', user: replay.user}}
+// Decorative: the title already says who this is.
+title={{...title, leadingGraphic: {type: 'user', user: replay.user}}}
 
-// Named, and elaborating on hover. `tooltip` is only reachable once there is
-// a `label` for it to attach to — the pair is unrepresentable otherwise.
-leadingGraphic={{
-  type: 'project',
-  projects,
-  label: t('%s projects', projects.length),
-  tooltip: projects.map(p => p.slug).join(', '),
+// Named, because it says something the title does not.
+title={{
+  ...title,
+  leadingGraphic: {
+    type: 'project',
+    projects,
+    label: t('%s projects', projects.length),
+    tooltip: projects.map(p => p.slug).join(', '),
+  },
 }}
 
-// Same badge, for a caller that has a platform but no project.
-leadingGraphic={{type: 'platform', platform: 'javascript'}}
+// A platform without a project.
+title={{...title, leadingGraphic: {type: 'platform', platform: 'javascript'}}}
 ```
 
-`project` and `platform` draw the same badge but take what the caller actually holds: a trace knows its projects and the header maps them to platforms, a build has only inferred a platform from a file type. A `project` graphic whose projects have no known platform falls back to the generic platform tile, not to the all-projects glyph — that one means a saved view, not an entity.
-
-The graphic is decorative and non-focusable by default, because it usually repeats something the title already says. Give it a `label` when it does not — which projects a trace touched — and it becomes an image in its own right.
-
-`tooltip` is mouse-only, since a named image is announced without focus — keep anything a user needs in `label` itself.
+The graphic is decorative by default. Give it a `label` when it adds something the title does not, and it becomes a named image. `tooltip` requires a `label` and only appears on hover; without one, the `label` shows on hover instead.
 
 ### Tags
 
-`title.tags` takes `Tag` elements, rendered inline after the value. Use them for status that belongs to the entity itself — live, archived, pre-release.
+`title.tags` takes `Tag` elements, shown after the value. Use them for status that belongs to the entity itself, such as live, archived or pre-release.
+
+<Storybook.Demo resizable direction="column" align="stretch">
+  <EntityHeader
+    title={{
+      type: 'text',
+      label: 'Release',
+      value: '8.42.0',
+      tags: [
+        <Tag key="pre-release" variant="warning">
+          Pre-release
+        </Tag>,
+        <Tag key="archived" variant="muted">
+          Archived
+        </Tag>,
+      ],
+    }}
+  />
+</Storybook.Demo>
 
 ```jsx
-tags={[isLive ? <Tag key="live" variant="success">{t('Live')}</Tag> : null]}
+title={{
+  ...title,
+  tags: [
+    isPreRelease ? <Tag key="pre-release" variant="warning">{t('Pre-release')}</Tag> : null,
+    isArchived ? <Tag key="archived" variant="muted">{t('Archived')}</Tag> : null,
+  ],
+}}
+```
+
+## Subtitle
+
+`subtitle` is a single line of secondary text under the title, such as an error message.
+
+<Storybook.Demo resizable direction="column" align="stretch">
+  <EntityHeader
+    title={{type: 'text', label: 'Issue type', value: 'TypeError'}}
+    subtitle="Cannot read properties of undefined (reading 'map')"
+  />
+</Storybook.Demo>
+
+```jsx
+<EntityHeader title={title} subtitle={event.message} />
 ```
 
 ## Stats
 
-A stat is one measurement: a `label` naming it and a `value`. Both are rendered, on a shared baseline.
+A stat is one measurement: a `label` naming it and a `value`, shown side by side with the label first. Keep the value to the single number the label names, and put any breakdown in a tooltip.
 
 ```jsx
-stats={{label: 'Replay stats', items: [{label: t('Rage Clicks'), value: 2}]}}
+<EntityHeader
+  title={title}
+  stats={{label: t('Replay stats'), items: [{label: t('Rage Clicks'), value: 2}]}}
+/>
 ```
-
-Keep the value to the single number the label names. Anything that explains it belongs in a tooltip, not in the row — a stat that renders its own detail inline fights the density the row is built for.
-
-### Accessibility
-
-The row is a list, and `label` names it — "Replay stats". Without it a screen reader meets a run of numbers with nothing saying what they count. People sit beside that list rather than inside it: a list named for its stats cannot hold something that is not one.
-
-The label comes first, on screen and in the DOM: "Errors 3", not "3 Errors". A screen reader never announces a bare number before saying what it counts, the row reads the same whatever the count with no plural to agree ("Errors 1"), and someone using voice control meets the word they would say before the number beside it.
-
-Each half is read as itself — "Errors", then "3" — rather than composed into one announcement. Nothing is hidden and nothing is renamed, except the dash shown for an empty value (see No data, below), so what a screen reader reads is what is on screen.
-
-A link is named by the text it wraps. A label link reads "Errors" in a links list; a value link reads "7". Neither is renamed to fold in the other half — the other half sits in the same list item, which is context enough for the link's purpose, and what a screen reader reads stays what is on screen.
 
 ### Types
 
-Each half — `label` and `value` — declares whether it is `text` or a `link`. That is not only documentation. A half whose type depended on its data would render a different element once that data arrived, and swapping a span for an anchor mid-load moves the row. So a half that links, links from the first render — including when its count is still zero.
-
-A plain string for `label`, or a number, string or `null` for `value`, is shorthand for a `text` half. The object form is `{type, content, tooltip?}`, and a `link` half adds where it leads: `to` inside the product, or `externalHref` outside it, plus an optional `onClick` for analytics.
+Each half, `label` and `value`, is `text` or `link`. A string (or, for `value`, a number or `null`) is shorthand for `text`. The object form is `{type, content, tooltip?}`, and a `link` adds `to` or `externalHref`, plus an optional `onClick` for analytics.
 
 ```jsx
-{label: t('Rage Clicks'), value: 2}
-{label: {type: 'link', content: t('Dead Clicks'), to: breadcrumbsTab}, value: deadClicks}
-{label: t('Errors'), value: {type: 'link', content: errors.length, to: errorsUrl}}
+items: [
+  // Shorthand
+  {label: t('Rage Clicks'), value: 2},
+
+  // The label links: the destination is about what is measured
+  {
+    label: {type: 'link', content: t('Dead Clicks'), to: breadcrumbsTab},
+    value: deadClicks,
+  },
+
+  // The value links: the destination is the things it counts
+  {
+    label: t('Errors'),
+    value: {type: 'link', content: errorCount, to: errorsUrl, onClick: trackErrorsClick},
+  },
+
+  // A link outside the product
+  {
+    label: {type: 'link', content: t('Install Size'), externalHref: sizeDocsUrl},
+    value: installSize,
+  },
+];
 ```
 
-The content may change as often as it likes. The type may not.
+> [!WARNING]
+> Don't switch a half between `text` and `link` based on its data. Swapping a span for an anchor moves the row, so a link stays a link when its count is zero or empty.
 
-### Which half links
-
-Link the **label** when the destination is about what the stat measures — the tab where dead clicks are listed, the docs that explain an install size. Link the **value** when the destination is the things the value counts — the errors behind an error count.
-
-Both halves can link, to the same place or to different ones. Two links to the same place cost a keyboard user a second tab stop for nothing, so prefer one unless both destinations earn their place.
+Both halves can link, to the same place or to different ones. Two links to the same place add a second tab stop for nothing, so prefer one.
 
 ### Tooltips
 
-A tooltip belongs to the half it explains, as that half's `tooltip`. On the label it covers a label that is jargon on its own. On the value it carries a breakdown — a replay's errors can come from several projects, so the stat shows the total and the tooltip splits it by project. Either takes structured content, so it can be built from `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
+Set `tooltip` on the half it explains; this needs the object form. On a label, explain jargon. On a value, show a breakdown, such as errors by project. Content can be built from `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
 
-A tooltip needs the object form, even on a `text` half: shorthand has nowhere to put one.
-
-Each tooltip has one trigger, on its own half. Tab visits the label, then the value, and each opens only its own tooltip. On a `link` half the tooltip attaches to the link itself rather than nesting a second tab stop inside it.
-
-Colour says it navigates; an underline says it explains. A link is accent-coloured, a tooltipped half is underlined, and one that does both is both — as the stats below show. A single treatment would mean a link that only navigates looked like one that explains, and an underline reads as "hover for more" to most people, so that is the meaning it keeps.
+Accent color means a half navigates; an underline means it has a tooltip. A half can be both, as below.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -455,22 +633,17 @@ Colour says it navigates; an underline says it explains. A link is accent-colour
 
 ### No data
 
-Pass `value: null` for a stat that applies to this entity but has nothing to show — a build with no cost recorded, an artifact with no size reported. It renders a muted "—" in the value's own typography, so the row does not shift. The dash is hidden from screen readers and "No data" is read in its place, so the stat reads "Cost", then "No data".
+Pass `value: null` when the stat applies but its data was never collected, such as a build with no cost recorded. It shows a muted "—" and is read as "No data". Four states look alike and are not:
 
-Four states look alike and are not:
+- **No data:** `value: null`. The data will not arrive later; if it will, the stat is loading.
+- **Zero:** `value: 0`. A real measurement.
+- **Loading:** `isLoading`. Shows a skeleton, not a dash.
+- **Does not apply:** `null` for the whole item, which leaves the stat out.
 
-- **No data** — `value: null`. The stat applies, and the data was never collected. It will not arrive later; if it will, the stat is loading.
-- **Zero** — `value: 0`. A real measurement, read as "Errors", "0". A count that is genuinely zero is not empty.
-- **Loading** — `isLoading`. The value is on its way; the stat renders a skeleton, not a dash.
-- **Does not apply** — `null` for the whole item. The stat is left out, as for dead clicks on a video replay.
+> [!WARNING]
+> Don't pass a placeholder such as `'-'`, `'—'` or `'N/A'`. A screen reader reads it aloud as the value ("dash"). The header warns in development when it sees one.
 
-Do not pass a placeholder string such as `'-'`, `'—'` or `'N/A'`. A screen reader reads it aloud as the value — "Cost", "dash" — and nothing tells it the stat is empty. The header warns in development when it sees one.
-
-An empty value under a link label is still there, read "No data" after the label link ("Errors"). An empty `link` value is still a link, since a half's type must not change once its data arrives — named by what it shows, so it reads "No data", and accent-coloured rather than muted, since the colour says it navigates.
-
-Say why there is no value in the value's `tooltip`. Keep that reason readable on its own, without links: nothing inside a tooltip can be reached by keyboard.
-
-Screen readers cannot reach the reason yet. Focus on the value reads "No data", but tooltip content is not announced until `Tooltip` itself is fixed, so do not put anything there that a screen reader user needs.
+An empty `link` value stays a link, colored accent rather than muted, and is read "No data". Give the reason there is no value in the value's `tooltip`, as plain text.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -507,80 +680,230 @@ Screen readers cannot reach the reason yet. Focus on the value reads "No data", 
     tooltip: t('Download size is not reported for this platform.'),
   },
 }
-{label: {type: 'link', content: t('Errors'), to: errorsTab}, value: null}
-{label: t('Issues'), value: {type: 'link', content: null, to: issuesUrl}}
 ```
 
 ## People
 
-People related to the entity get their own slot rather than being a labelled stat: they have no value to show, and they usually load on a different schedule from the entity itself.
+People related to the entity, such as who viewed a replay or who is involved in an issue, get their own slot with a required `label`. It sits at the start of the stats row and keeps its space while `isLoading`. Once it resolves to nobody it renders nothing. After `maxVisibleAvatars` (default 5) the rest collapse into an overflow chip.
+
+<Storybook.Demo resizable direction="column" align="stretch">
+  <EntityHeader
+    title={{type: 'text', label: 'Replay user', value: 'anonymous@example.com'}}
+    people={{
+      label: 'Viewed by',
+      users: [
+        {
+          id: '1',
+          name: 'Alice Chen',
+          email: 'alice@example.com',
+          username: 'alice',
+          ip_address: '',
+        },
+        {
+          id: '2',
+          name: 'Bob Diaz',
+          email: 'bob@example.com',
+          username: 'bob',
+          ip_address: '',
+        },
+      ],
+    }}
+    stats={{
+      label: 'Replay stats',
+      items: [{label: 'Errors', value: 1}],
+    }}
+  />
+</Storybook.Demo>
 
 ```jsx
-// Replay — who watched it
-people={{users: viewers, label: t('Viewed by'), isLoading}}
-
-// Issue — who is involved in it
-people={{users: participants, label: t('Participants')}}
+<EntityHeader
+  title={title}
+  people={{label: t('Viewed by'), users: viewers, isLoading: isViewersPending}}
+  stats={stats}
+/>
 ```
-
-The slot keeps its space while `isLoading`, which is what stops the stats sliding sideways when the avatars land. Once it resolves to nobody it renders nothing, and the divider before the first stat goes with it.
-
-### Accessibility
-
-The people are read out by name — "Viewed by: Alice, Bob" — and the avatars themselves are decorative.
-
-A stack of faces says nothing on its own, which is why `label` is required. The avatars cannot carry the names either: most people have no uploaded avatar, and a letter avatar reaches the accessibility tree as initials with an unreliable name. They are also not focusable, so their hover tooltips never reach a keyboard user, and nor does the overflow chip. Naming everyone as text answers all three, and does not depend on a screen reader announcing a `group` role.
 
 ## Metadata
 
-The metadata row is a list of properties. Each item is one property: a `label` saying what it is, a `value`, and optionally a `secondary` qualifier.
+The metadata row is a list of properties. Each item has a `label` saying what it is and a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties.
+
+`type: 'link'` makes the value a link, with `to` or `externalHref` as on the title. Its name includes the key ("Release 8.42.0"), because the key is usually hidden. `tooltip` explains the value on hover, with an underline. `mode: 'full'` draws the key beside the value; the default, `compact`, keeps it for screen readers only.
+
+Each header below varies one thing. The first shows leading items and how the key is drawn, the second compares a value with and without a `secondary` qualifier, and the third shows the kinds of value.
+
+<Storybook.Demo resizable direction="column" align="stretch" gap="xl">
+  <EntityHeader
+    title={{type: 'text', label: 'Example', value: 'Leading items'}}
+    metadata={{
+      label: 'Leading items',
+      items: [
+        {
+          label: 'Started at',
+          type: 'text',
+          value: 'Compact, with an icon',
+          leadingGraphic: <IconCalendar size="md" variant="muted" />,
+        },
+        {label: 'Environment', type: 'text', value: 'Full, no icon', mode: 'full'},
+        {
+          label: 'Started at',
+          type: 'text',
+          value: 'Full, with an icon',
+          mode: 'full',
+          leadingGraphic: <IconCalendar size="md" variant="muted" />,
+        },
+      ],
+    }}
+  />
+  <EntityHeader
+    title={{type: 'text', label: 'Example', value: 'Secondary values'}}
+    metadata={{
+      label: 'Secondary values',
+      items: [
+        {
+          label: 'Browser',
+          type: 'text',
+          value: 'Chrome',
+          leadingGraphic: <PlatformIcon platform="chrome" size="16px" />,
+        },
+        {
+          label: 'Browser',
+          type: 'text',
+          value: 'Chrome',
+          secondary: {label: 'version', value: '144.0.0'},
+          leadingGraphic: <PlatformIcon platform="chrome" size="16px" />,
+        },
+        {
+          label: 'Browser',
+          type: 'text',
+          value: 'Chrome',
+          mode: 'full',
+          secondary: {label: 'version', value: '144.0.0'},
+          leadingGraphic: <PlatformIcon platform="chrome" size="16px" />,
+        },
+      ],
+    }}
+  />
+  <EntityHeader
+    title={{type: 'text', label: 'Example', value: 'Value types'}}
+    metadata={{
+      label: 'Value types',
+      items: [
+        {label: 'Environment', type: 'text', value: 'production', mode: 'full'},
+        {
+          label: 'Configuration',
+          type: 'text',
+          value: 'Release',
+          mode: 'full',
+          tooltip: 'The build configuration the artifact was compiled with.',
+        },
+        {
+          label: 'Release',
+          type: 'link',
+          value: '8.42.0',
+          mode: 'full',
+          to: '/releases/8.42.0/',
+        },
+        {
+          label: 'Commit',
+          type: 'link',
+          value: '169d99d',
+          mode: 'full',
+          externalHref: 'https://github.com/getsentry/sentry/commit/169d99d',
+          tooltip: 'View this commit on GitHub',
+        },
+      ],
+    }}
+  />
+</Storybook.Demo>
 
 ```jsx
-metadata={{
-  label: t('Replay properties'),
-  items: [
-    {
-      label: t('Browser'),
-      type: 'text', value: browser.name, secondary: {label: 'version', value: browser.version},
-      leadingGraphic: <PlatformIcon platform={platform} size="16px" />,
-    },
-  ],
-}}
+<EntityHeader
+  title={{type: 'text', label: 'Example', value: 'Leading items'}}
+  metadata={{
+    label: 'Leading items',
+    items: [
+      {
+        label: 'Started at',
+        type: 'text',
+        value: 'Compact, with an icon',
+        leadingGraphic: <IconCalendar size="md" variant="muted" />,
+      },
+      {label: 'Environment', type: 'text', value: 'Full, no icon', mode: 'full'},
+      {
+        label: 'Started at',
+        type: 'text',
+        value: 'Full, with an icon',
+        mode: 'full',
+        leadingGraphic: <IconCalendar size="md" variant="muted" />,
+      },
+    ],
+  }}
+/>
+<EntityHeader
+  title={{type: 'text', label: 'Example', value: 'Secondary values'}}
+  metadata={{
+    label: 'Secondary values',
+    items: [
+      {
+        label: 'Browser',
+        type: 'text',
+        value: 'Chrome',
+        leadingGraphic: <PlatformIcon platform="chrome" size="16px" />,
+      },
+      {
+        label: 'Browser',
+        type: 'text',
+        value: 'Chrome',
+        secondary: {label: 'version', value: '144.0.0'},
+        leadingGraphic: <PlatformIcon platform="chrome" size="16px" />,
+      },
+      {
+        label: 'Browser',
+        type: 'text',
+        value: 'Chrome',
+        mode: 'full',
+        secondary: {label: 'version', value: '144.0.0'},
+        leadingGraphic: <PlatformIcon platform="chrome" size="16px" />,
+      },
+    ],
+  }}
+/>
+<EntityHeader
+  title={{type: 'text', label: 'Example', value: 'Value types'}}
+  metadata={{
+    label: 'Value types',
+    items: [
+      {label: 'Environment', type: 'text', value: 'production', mode: 'full'},
+      {
+        label: 'Configuration',
+        type: 'text',
+        value: 'Release',
+        mode: 'full',
+        tooltip: 'The build configuration the artifact was compiled with.',
+      },
+      {
+        label: 'Release',
+        type: 'link',
+        value: '8.42.0',
+        mode: 'full',
+        to: '/releases/8.42.0/',
+      },
+      {
+        label: 'Commit',
+        type: 'link',
+        value: '169d99d',
+        mode: 'full',
+        externalHref: 'https://github.com/getsentry/sentry/commit/169d99d',
+        tooltip: 'View this commit on GitHub',
+      },
+    ],
+  }}
+/>
 ```
-
-Two values rather than one joined string is the point: a browser is its name _and_ its version, and joining them at the call site loses that. Two is also the ceiling — a property needing three is two properties.
-
-With one value, `label` is its key — "Started at". With two, it is the parent of both, and `secondary.label` names the child: "version" under "Browser" composes to "Browser version", which is what the row announces and what the qualifier shows on hover.
-
-A value can navigate. `type: 'link'` renders it as one, named from the key and the value together so a links list reads "Release 8.42.0" rather than a bare version. Unlike a stat, where both halves are on screen and each link is named by its own text, a metadata key is usually hidden — so the link has to carry it.
-
-```jsx
-{
-  label: t('Release'),
-  type: 'link',
-  value: release.version,
-  to: releaseUrl,
-}
-```
-
-As on the title, a value pointing outside the product, such as a commit or pull request on GitHub, takes `externalHref` rather than `to` and renders an `ExternalLink` that opens in a new tab.
-
-```jsx
-{
-  label: t('Commit'),
-  type: 'link',
-  value: shortSha,
-  externalHref: commitUrl,
-}
-```
-
-`tooltip` adds an explanation on hover against the value, with an underline to signal it.
 
 ### Leading graphic
 
-`leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon` for a browser, OS or SDK, or a `UserAvatar` for a person. Unlike the title's, this one is a node — there is no fixed set of things a property can be about, so the slot takes whatever the caller already has rather than growing a `type` for each.
-
-The box is a fixed 16px and holds its width through loading, so the row does not narrow as items resolve. It sizes itself and not its contents, so draw the graphic at 16 to match it.
+A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon` or a `UserAvatar`. It sits in a fixed 16px box that keeps its width through loading, so draw the graphic at 16px.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -607,7 +930,13 @@ The box is a fixed 16px and holds its width through loading, so the row does not
           value: 'Alice Chen',
           leadingGraphic: (
             <UserAvatar
-              user={{id: '1', name: 'Alice Chen', email: 'alice@example.com'}}
+              user={{
+                id: '1',
+                name: 'Alice Chen',
+                email: 'alice@example.com',
+                username: 'alice',
+                ip_address: '',
+              }}
               size={16}
             />
           ),
@@ -618,26 +947,38 @@ The box is a fixed 16px and holds its width through loading, so the row does not
 </Storybook.Demo>
 
 ```jsx
-leadingGraphic={<IconCalendar size="md" />}
-leadingGraphic={<PlatformIcon platform="chrome" size="16px" />}
-leadingGraphic={<UserAvatar user={issue.assignee} size={16} />}
+<EntityHeader
+  title={title}
+  metadata={{
+    label: t('Issue properties'),
+    items: [
+      {
+        label: t('Last seen'),
+        type: 'text',
+        value: <DateTime date={issue.lastSeen} />,
+        leadingGraphic: <IconCalendar size="md" />,
+      },
+      {
+        label: t('Browser'),
+        type: 'text',
+        value: browser.name,
+        secondary: {label: t('version'), value: browser.version},
+        leadingGraphic: <PlatformIcon platform={browser.platform} size="16px" />,
+      },
+      {
+        label: t('Assigned to'),
+        type: 'text',
+        value: assignee.name,
+        leadingGraphic: <UserAvatar user={assignee} size={16} />,
+      },
+    ],
+  }}
+/>
 ```
-
-The graphic is always decorative, so it is hidden from assistive technology. It has nothing to add: the key is in the DOM whether or not `mode` draws it, so the property is named either way.
-
-### Accessibility
-
-The row's `label` names it. Without one a screen reader meets a run of unrelated strings with nothing saying they belong together, or to what.
-
-Every key is in the DOM whether or not it is on screen, so an item reads "Browser, Chrome, Browser version, 144.0.0" — more words than a single label, but no value arrives unexplained. `mode` decides whether the parent key is also drawn: `compact` leaves naming the property to the graphic beside it, `full` spells it out. The child key stays hidden either way, and the mode never changes what is announced.
-
-A link is the exception: it is named from the key and the value together, so the key is not repeated beside it in `compact` mode.
-
-A description list would tie each label to its value structurally, which sounds like the better answer and is not: marking them up as a `dt` and a `dd` made VoiceOver narrate the pairing itself — "term", then "selectable list item", then "end of term" — before it reached the value. One named item beats two correctly-related ones.
 
 ### Variants
 
-`variant` colours the value. Use a semantic variant to call out a problem, the way Issue Details renders "Unhandled" in `danger`. It is available on a text value only — a link already spends its colour saying that it navigates, and a red link reads as neither. The `Release` row below is a link for that contrast: it takes no `variant` and draws in accent regardless of what sits beside it.
+`variant` colors a text value, for example `danger` for "Unhandled". The options are `primary`, `muted`, `danger`, `success` and `warning`. A link takes no variant and is always accent, like the `Release` row below.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -731,4 +1072,28 @@ A description list would tie each label to its value structurally, which sounds 
 />
 ```
 
-The set is narrower than `ContentVariant` — `primary`, `muted`, `danger`, `success`, `warning` — because a tooltipped value also colours its underline, and `Tooltip` takes a smaller set. Keeping one list means the two cannot disagree. `muted` resolves to `content.secondary`, so the only colours out of reach are `accent`, which would read as a link, and `promotion`.
+## Accessibility
+
+- **Title:** an `h2`, named "label, value" ("Replay user, anonymous@example.com"). A link title carries the same name.
+- **Lists:** the stats and metadata rows are lists, each named by its `label` ("Replay stats", "Replay properties"). People sit beside the stats list, not inside it.
+- **Stats:** the label comes before the value on screen and in the DOM, and each half is read as shown: "Errors", then "3". A link is named by its own text, so a label link reads "Errors" and a value link reads "3". The other half, in the same list item, gives the context.
+- **Tab order:** only halves that link or have a tooltip are tab stops, label first. A tooltip on a link attaches to the link, so it adds no extra stop.
+- **No data:** the dash is hidden from screen readers and "No data" is read instead.
+- **People:** read as text ("Viewed by: Alice Chen, Bob Diaz"). The avatars are decorative and can't be focused.
+- **Metadata:** every key is in the DOM, as hidden text or in a link's name, so a value is never announced unexplained: "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology.
+- **Color:** accent marks a link and an underline marks a tooltip.
+- **Loading:** the header sets `aria-busy` while any slot is loading. This is a state, not an announcement.
+
+### Developer responsibilities
+
+- Always pass a `label` for `stats`, `people` and `metadata`. Without one, a screen reader meets a run of values with nothing saying what they belong to.
+- Give a title's `leadingGraphic` a `label` when it adds information the title does not have.
+- Use `value: null` for no data, never a placeholder string.
+- Don't put anything a user needs only in a tooltip. Nothing inside a tooltip can be reached by keyboard, and screen readers may not announce it.
+- Add your own live region if the end of loading needs to be announced.
+
+## See Also
+
+- [BreadcrumbList](/scraps/core/breadcrumblist/): breadcrumbs for the TopBar above the header
+- [Tag](/scraps/core/tag/): status chips for `title.tags`
+- [Placeholder](/scraps/product/components/placeholder/): the loading skeletons the header uses
