@@ -206,12 +206,7 @@ class DatabaseConnectionResetHook:
 
 def is_broken(connection: BaseDatabaseWrapper) -> bool:
     # No atomic block can legitimately be open, or owe commit hooks, once the task has exited
-    if (
-        connection.in_atomic_block
-        or connection.needs_rollback
-        or connection.closed_in_transaction
-        or connection.run_on_commit
-    ):
+    if connection.in_atomic_block or connection.needs_rollback or connection.run_on_commit:
         return True
 
     # Read the attribute rather than get_autocommit(), which would open a connection
@@ -245,8 +240,6 @@ def reset_database_connection(connection: BaseDatabaseWrapper) -> None:
     connection.run_on_commit = []
     # Otherwise the closed connection still looks broken, and every later task resets it again
     connection.needs_rollback = False
-    # close() is a no-op for a connection already closed inside an atomic block
-    connection.closed_in_transaction = False
 
     connection.close()
 
