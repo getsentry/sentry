@@ -1,5 +1,7 @@
 import type {Theme} from '@emotion/react';
 
+import {hexToOklch, oklchToHex} from './oklch';
+
 export const SAMPLE_SIZE = 12;
 
 // TS can't prove typed-array index access is defined; this centralizes the
@@ -104,8 +106,10 @@ export function isNeutralColor(hex: string): boolean {
  * The chonk for an avatar's color, built the way the theme builds the chonks of
  * the accent, danger and warning buttons (compare them in OKLCH): the same hue,
  * one fixed step darker in light mode, and a fixed deep shade in dark mode so
- * the chonk never glows brighter than the button surface. Gray colors return
- * undefined and keep the default button chonk.
+ * the chonk never glows brighter than the button surface. Chroma is lowered to
+ * what sRGB can show at that lightness, so dark oranges stay orange-brown (like
+ * the warning chonk) instead of clipping to red. Gray colors return undefined
+ * and keep the default button chonk.
  */
 export function getAvatarChonk(
   dominant: string,
@@ -114,9 +118,10 @@ export function getAvatarChonk(
   if (isNeutralColor(dominant)) {
     return undefined;
   }
+  const {l, c, h} = hexToOklch(dominant);
   return themeType === 'dark'
-    ? `oklch(from ${dominant} 0.19 min(c, 0.09) h)`
-    : `oklch(from ${dominant} calc(l - 0.13) c h)`;
+    ? oklchToHex({l: 0.19, c: Math.min(c, 0.09), h})
+    : oklchToHex({l: Math.max(0, l - 0.13), c, h});
 }
 
 export function dominantColor(data: Uint8ClampedArray): string | null {

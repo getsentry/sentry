@@ -143,16 +143,19 @@ describe('isNeutralColor', () => {
 });
 
 describe('getAvatarChonk', () => {
-  it('steps the color darker in light mode, keeping hue and chroma', () => {
-    expect(getAvatarChonk('#635bff', 'light')).toBe(
-      'oklch(from #635bff calc(l - 0.13) c h)'
-    );
+  it('steps the color darker in light mode, keeping the hue', () => {
+    expect(getAvatarChonk('#635bff', 'light')).toBe('#452bd1');
   });
 
   it('uses a deep shade of the same hue in dark mode', () => {
-    expect(getAvatarChonk('#635bff', 'dark')).toBe(
-      'oklch(from #635bff 0.19 min(c, 0.09) h)'
-    );
+    expect(getAvatarChonk('#635bff', 'dark')).toBe('#0e093a');
+  });
+
+  it('keeps dark-mode oranges orange-brown instead of clipping to red', () => {
+    // Orange at L 0.19 can't hold chroma 0.09 in sRGB. Browser clipping would
+    // give #300000; lowering chroma keeps the hue, like the warning chonk.
+    expect(getAvatarChonk('#e66000', 'dark')).toBe('#270900');
+    expect(getAvatarChonk('#ff9500', 'dark')).toBe('#210e00');
   });
 
   it('keeps the default chonk for neutral colors', () => {
