@@ -18,6 +18,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
+  isOutOfCreditsSection,
   isPrIterationBlock,
   type AutofixSection,
   type RawFeedback,
@@ -29,6 +30,7 @@ import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {userDisplayName} from 'sentry/utils/formatters';
+import {isOutOfCreditsPRState} from 'sentry/views/seerExplorer/types';
 
 import {ArtifactDetails} from './artifactDetails';
 
@@ -198,9 +200,12 @@ export function usePrIterationFeedback(
   const blockFeedback = useMemo<IterationFeedback[]>(() => {
     const repoStates = Object.values(autofix.runState?.repo_pr_states ?? {});
     const pushErrors = repoStates.filter(repo => repo.pr_creation_status === 'error');
-    const errorCode = pushErrors.find(
-      repo => repo.pr_creation_error_code === 'branch_moved'
-    )?.pr_creation_error_code;
+    // Running out of credits stops either the iteration itself or its push.
+    const errorCode =
+      isOutOfCreditsSection(section) || pushErrors.some(isOutOfCreditsPRState)
+        ? 'out_of_credits'
+        : pushErrors.find(repo => repo.pr_creation_error_code === 'branch_moved')
+            ?.pr_creation_error_code;
     const inProgress =
       section.status === 'processing' ||
       autofix.runState?.status === 'processing' ||
@@ -251,7 +256,7 @@ export function usePrIterationFeedback(
         errorCode: status === 'error' ? errorCode : undefined,
       }));
     });
-  }, [section.blocks, section.status, autofix.runState, currentStepStart]);
+  }, [section, autofix.runState, currentStepStart]);
 
   const latestIterationIndex = useMemo(
     () =>
@@ -797,6 +802,21 @@ function PrimaryIconAvatar({Icon, tooltip}: {Icon: typeof IconSeer; tooltip: str
   );
 }
 
+function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
+  switch (errorCode) {
+    case 'branch_moved':
+      return t(
+        'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
+      );
+    case 'out_of_credits':
+      return t(
+        "Seer couldn't finish this feedback because your organization is out of credits."
+      );
+    default:
+      return t('Changes from this feedback could not be pushed');
+  }
+}
+
 // Source-agnostic: the same status glyphs regardless of where the iteration came from.
 function FeedbackStatusIcon({
   status,
@@ -808,16 +828,7 @@ function FeedbackStatusIcon({
   switch (status) {
     case 'error':
       return (
-        <Tooltip
-          title={
-            errorCode === 'branch_moved'
-              ? t(
-                  'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
-                )
-              : t('Changes from this feedback could not be pushed')
-          }
-          skipWrapper
-        >
+        <Tooltip title={getFeedbackErrorMessage(errorCode)} skipWrapper>
           <Flex
             align="center"
             justify="center"
