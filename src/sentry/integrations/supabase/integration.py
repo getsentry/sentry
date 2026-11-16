@@ -89,7 +89,7 @@ class SupabaseOAuthApiStep:
         )
         params = urlencode(
             {
-                "client_id": settings.SUPABASE_CLIENT_ID,
+                "client_id": settings.SUPABASE_FOR_SEER_CLIENT_ID,
                 "response_type": "code",
                 "state": state,
                 "redirect_uri": absolute_uri(SUPABASE_REDIRECT_URL),

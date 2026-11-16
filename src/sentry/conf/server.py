@@ -719,8 +719,8 @@ LINEAR_CLIENT_ID = ""
 LINEAR_CLIENT_SECRET = ""
 
 # Supabase integration (OAuth app credentials)
-SUPABASE_CLIENT_ID = ""
-SUPABASE_CLIENT_SECRET = ""
+SUPABASE_FOR_SEER_CLIENT_ID = ""
+SUPABASE_FOR_SEER_CLIENT_SECRET = ""
 
 SOCIAL_AUTH_PIPELINE = (
     "social_auth.backends.pipeline.user.get_username",

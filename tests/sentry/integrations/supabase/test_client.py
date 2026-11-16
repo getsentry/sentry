@@ -49,7 +49,8 @@ class TestSupabaseOAuthTokens:
     @pytest.fixture(autouse=True)
     def supabase_settings(self) -> Iterator[None]:
         with override_settings(
-            SUPABASE_CLIENT_ID="sentry-app-id", SUPABASE_CLIENT_SECRET="sentry-app-secret"
+            SUPABASE_FOR_SEER_CLIENT_ID="sentry-app-id",
+            SUPABASE_FOR_SEER_CLIENT_SECRET="sentry-app-secret",
         ):
             yield
 
@@ -213,7 +214,7 @@ class TestSupabaseOAuthTokens:
             refresh_access_token("refresh-token")
 
     @responses.activate
-    @override_settings(SUPABASE_CLIENT_SECRET="")
+    @override_settings(SUPABASE_FOR_SEER_CLIENT_SECRET="")
     def test_requires_sentry_app_configuration(self) -> None:
         with pytest.raises(IntegrationConfigurationError, match="not configured in Sentry"):
             refresh_access_token("refresh-token")
@@ -274,7 +275,9 @@ class TestValidateSupabaseAccessToken:
 
 
 @all_silo_test
-@override_settings(SUPABASE_CLIENT_ID="sentry-app-id", SUPABASE_CLIENT_SECRET="sentry-app-secret")
+@override_settings(
+    SUPABASE_FOR_SEER_CLIENT_ID="sentry-app-id", SUPABASE_FOR_SEER_CLIENT_SECRET="sentry-app-secret"
+)
 @freeze_time("2025-01-01T00:00:00Z")
 class SupabaseTokenRefreshTest(TestCase):
     def create_supabase(self, **metadata: Any) -> Integration:

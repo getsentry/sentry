@@ -58,7 +58,9 @@ def mock_supabase(*, access_token: str = "supabase-token") -> None:
     )
 
 
-@override_settings(SUPABASE_CLIENT_ID="sentry-app-id", SUPABASE_CLIENT_SECRET="sentry-app-secret")
+@override_settings(
+    SUPABASE_FOR_SEER_CLIENT_ID="sentry-app-id", SUPABASE_FOR_SEER_CLIENT_SECRET="sentry-app-secret"
+)
 @control_silo_test
 class SupabaseIntegrationProviderTest(IntegrationTestCase):
     @property
@@ -158,7 +160,9 @@ class SupabaseIntegrationProviderTest(IntegrationTestCase):
         assert len(responses.calls) == 1
 
 
-@override_settings(SUPABASE_CLIENT_ID="sentry-app-id", SUPABASE_CLIENT_SECRET="sentry-app-secret")
+@override_settings(
+    SUPABASE_FOR_SEER_CLIENT_ID="sentry-app-id", SUPABASE_FOR_SEER_CLIENT_SECRET="sentry-app-secret"
+)
 @control_silo_test
 @freeze_time("2025-01-01T00:00:00Z")
 class SupabaseApiPipelineTest(APITestCase):

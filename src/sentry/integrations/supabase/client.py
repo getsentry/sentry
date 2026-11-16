@@ -77,9 +77,9 @@ class SupabaseToken(BaseModel):
 
 
 def _oauth_credentials() -> tuple[str, str]:
-    if not settings.SUPABASE_CLIENT_ID or not settings.SUPABASE_CLIENT_SECRET:
+    if not settings.SUPABASE_FOR_SEER_CLIENT_ID or not settings.SUPABASE_FOR_SEER_CLIENT_SECRET:
         raise IntegrationConfigurationError("Supabase OAuth is not configured in Sentry.")
-    return settings.SUPABASE_CLIENT_ID, settings.SUPABASE_CLIENT_SECRET
+    return settings.SUPABASE_FOR_SEER_CLIENT_ID, settings.SUPABASE_FOR_SEER_CLIENT_SECRET
 
 
 def _request_token(params: dict[str, str]) -> SupabaseToken:

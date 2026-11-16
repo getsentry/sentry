@@ -25,7 +25,7 @@ an organization owner can authorize access across the organization's current and
 projects. Supabase's newer grant-configuration controls are rolling out separately; do not
 depend on preview-only `grant_kind` or `project_scoping_mode` API parameters.
 
-Set `SUPABASE_CLIENT_ID` and `SUPABASE_CLIENT_SECRET` in Sentry's server configuration.
+Set `SUPABASE_FOR_SEER_CLIENT_ID` and `SUPABASE_FOR_SEER_CLIENT_SECRET` in Sentry's server configuration.
 Enable `organizations:integrations-supabase` and `organizations:seer-infra-telemetry` for
 the Sentry organization. No frontend-specific configuration is required: the integration
 uses the existing API-driven OAuth setup and Seer connector catalog.

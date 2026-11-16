@@ -244,8 +244,8 @@ class TestOrganizationSeerMonitoringIdentityToken(SeerMonitoringProviderEndpoint
     SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY,
     LINEAR_CLIENT_ID="sentry-app-id",
     LINEAR_CLIENT_SECRET="sentry-app-secret",
-    SUPABASE_CLIENT_ID="sentry-app-id",
-    SUPABASE_CLIENT_SECRET="sentry-app-secret",
+    SUPABASE_FOR_SEER_CLIENT_ID="sentry-app-id",
+    SUPABASE_FOR_SEER_CLIENT_SECRET="sentry-app-secret",
 )
 @with_feature(FEATURES)
 @cell_silo_test
