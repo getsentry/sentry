@@ -162,6 +162,5 @@ class MonitorCheckInSerializerTest(TestCase):
 
         result = serialize([legacy, snapshot, no_config], self.user, MonitorCheckInSerializer())
 
-        assert not result[0]["monitorConfig"]
-        assert result[1]["monitorConfig"] == {**config, "schedule_type": "crontab"}
-        assert not result[2]["monitorConfig"]
+        expected = {**config, "schedule_type": "crontab"}
+        assert [r["monitorConfig"] for r in result] == [{}, expected, {}]
