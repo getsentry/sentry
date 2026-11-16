@@ -3019,8 +3019,9 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert set(results) == {self.group1}
 
         # Short id outside the selected projects should not resolve
+        other_project = self.create_project()
         results = self.make_query(
-            projects=[self.project2],
+            projects=[other_project],
             search_filter_query=f"issue.id:{self.group1.qualified_short_id}",
         )
         assert set(results) == set()

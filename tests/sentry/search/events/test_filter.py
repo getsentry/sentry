@@ -1424,7 +1424,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
     def test_issue_id_in_numeric_and_short_id(self) -> None:
         query = f"issue.id:[{self.group1.qualified_short_id},{self.group2.id}]"
         where, having = self.query_filter.resolve_conditions(query)
-        assert where == [_cond("group_id", Op.IN, sorted([self.group1.id, self.group2.id]))]
+        assert where == [_cond("group_id", Op.IN, [self.group1.id, self.group2.id])]
         assert having == []
 
     def test_issue_numeric_group_id(self) -> None:

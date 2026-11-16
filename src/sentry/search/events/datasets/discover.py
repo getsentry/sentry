@@ -1745,6 +1745,9 @@ class DiscoverDatasetConfig(DatasetConfig):
                 general_group_filter_values.extend(sorted([group.id for group in groups]))
 
         if general_group_filter_values:
+            # Keep the values deterministic regardless of the input order of
+            # numeric ids and short ids.
+            general_group_filter_values.sort()
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(
                     SearchKey("issue.id"),

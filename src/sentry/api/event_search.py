@@ -43,9 +43,10 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
 from sentry.utils.validators import is_event_id, is_span_id
 
-# Qualified issue short id form (e.g. ``PROJECT-123``); strict enough to reject
-# values containing spaces or wildcards.
-_SHORT_ID_PATTERN = re.compile(r"^[A-Za-z0-9]+[-_][A-Za-z0-9]+$")
+# Qualified issue short id form (e.g. ``PROJECT-123``); project slugs may
+# themselves contain dashes, so one or more dash-separated segments are
+# allowed. Strict enough to reject values containing spaces or wildcards.
+_SHORT_ID_PATTERN = re.compile(r"^[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)+$")
 
 
 def _is_issue_id_string_value(value: Any) -> bool:

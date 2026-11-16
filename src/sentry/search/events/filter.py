@@ -857,7 +857,7 @@ def format_search_filter(
             int(v) for v in value if isinstance(v, str) and v and v != "unknown" and v.isdigit()
         ]
         filter_values: list[str | int] = ["" for v in value if not v or v == "unknown"]
-        filter_values.extend(numeric_group_ids)
+        resolved_group_ids = sorted(numeric_group_ids)
 
         if group_short_ids and params and "organization_id" in params:
             try:
@@ -870,8 +870,11 @@ def format_search_filter(
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                filter_values.extend(sorted(g.id for g in groups))
+                resolved_group_ids.extend(sorted(g.id for g in groups))
 
+        # Keep the group ids sorted so the output is deterministic regardless of
+        # the input order of numeric ids and short ids.
+        filter_values.extend(resolved_group_ids)
         term = SearchFilter(
             SearchKey("issue.id"),
             operator,
