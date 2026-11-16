@@ -146,7 +146,7 @@ describe("package entry points", () => {
       execFileSync("node", [join(root, "node_modules", "typescript", "bin", "tsc6"), "-p", directory]);
 
       writeFileSync(join(directory, "types.ts"), `
-        import { consumePage, type PaginationContinuation, type PagePosition, type SentryClient } from "@sentry/api";
+        import { consumePage, type ApiRoutes, type PaginationContinuation, type PagePosition, type SentryClient } from "@sentry/api";
         declare const sentry: SentryClient;
         const prepared: Promise<Request> = sentry.client.prepareRequest({method: "GET", url: "/custom/"});
         const position: PagePosition = {cursor: "opaque", offset: 2};
@@ -155,15 +155,25 @@ describe("package entry points", () => {
         sentry.paginateUpTo.listOrganizationProjects(
           {path: {organization_id_or_slug: "example"}}, {limit: 5, resume},
         );
+
+        type Projects = ApiRoutes["/organizations/{organization_id_or_slug}/projects/"];
+        const listing: Projects["GET"]["operation"] = "listOrganizationProjects";
+        const slug: Projects["GET"]["data"]["path"]["organization_id_or_slug"] = "example";
+        declare const page: Projects["GET"]["responses"][200];
+        const firstSlug: string | undefined = page[0]?.slug;
+        const forbidden: keyof Projects["GET"]["errors"] = 403;
+        const created: Projects["POST"]["data"]["body"] = {name: "example"};
+        // @ts-expect-error Only documented paths are keys.
+        type Unknown = ApiRoutes["/not-a-route/"];
       `);
-      writeFileSync(join(directory, "tsconfig.json"), JSON.stringify({
-        compilerOptions: {
-          module: "ESNext", moduleResolution: "bundler", strict: true,
-          noEmit: true, types: [], lib: ["ES2022", "DOM"],
-        },
-        files: ["types.ts"],
-      }));
-      execFileSync("node", [join(root, "node_modules", "typescript", "bin", "tsc6"), "-p", directory]);
+      // NodeNext needs an extension on every relative import in the declarations.
+      for (const resolution of [{ module: "NodeNext" }, { module: "ESNext", moduleResolution: "bundler" }]) {
+        writeFileSync(join(directory, "tsconfig.json"), JSON.stringify({
+          compilerOptions: { ...resolution, strict: true, noEmit: true, types: [], lib: ["ES2022", "DOM"] },
+          files: ["types.ts"],
+        }));
+        execFileSync("node", [join(root, "node_modules", "typescript", "bin", "tsc6"), "-p", directory]);
+      }
 
       symlinkSync(join(root, "node_modules", "typescript"), join(directory, "node_modules", "typescript"), "dir");
       writeFileSync(join(directory, "analysis.mjs"), `

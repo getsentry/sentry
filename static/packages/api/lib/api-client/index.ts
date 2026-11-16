@@ -12,6 +12,7 @@ export * from "./core.js";
 export * from "./errors.js";
 export * from "./idempotent-operations.js";
 export * from "./objectstore.js";
+export * from "./operation-routing.js";
 export * from "./pagination.js";
 export * from "./response.js";
 export * from "./response-cache/index.js";

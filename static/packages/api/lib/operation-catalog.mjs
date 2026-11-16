@@ -5,6 +5,24 @@ import { parseSdkOperations } from "./sdk-operations.mjs";
 // RFC 9110 9.2.1: safe methods never change server state, so they are always idempotent.
 const SAFE_METHODS = new Set(["get", "head", "options", "trace"]);
 
+const SILOS = new Set(["control", "cell", "both", "unknown"]);
+
+/**
+ * Copy Sentry's `x-sentry-routing` declaration. An operation without one gets
+ * `unknown`, the value Sentry uses when it has no declaration either.
+ */
+function routing(key, operation, pathParameters) {
+  const declared = operation["x-sentry-routing"];
+  if (declared === undefined) return { silo: "unknown" };
+  const { silo, organizationParameter } = declared;
+  if (!SILOS.has(silo)) throw new Error(`${key} declares an unsupported x-sentry-routing silo: ${silo}`);
+  if (organizationParameter === undefined) return { silo };
+  if (!pathParameters.includes(organizationParameter)) {
+    throw new Error(`${key} declares x-sentry-routing organizationParameter ${organizationParameter}, which is not in its path`);
+  }
+  return { silo, organizationParameter };
+}
+
 /** Operation-level parameters replace path-level parameters with the same name/in. */
 function queryParameters(pathItem, operation) {
   const parameters = new Map();
@@ -44,6 +62,7 @@ export function extractOperations(spec, sdkSource) {
       const functionName = functions.get(key);
       if (!functionName) throw new Error(`Missing SDK operation for ${key}`);
       functions.delete(key);
+      const pathParameters = [...path.matchAll(/\{([^}]+)\}/g)].map(match => match[1]);
       operations.push({
         functionName,
         operationId: operation.operationId ?? "",
@@ -52,13 +71,14 @@ export function extractOperations(spec, sdkSource) {
         ...(operation.summary === undefined ? {} : { summary: operation.summary.trim() }),
         description: (operation.description ?? "").trim(),
         ...(operation.tags === undefined ? {} : { tags: operation.tags }),
-        pathParameters: [...path.matchAll(/\{([^}]+)\}/g)].map(match => match[1]),
+        pathParameters,
         queryParameters: queryParameters(pathItem, operation),
         deprecated: operation.deprecated === true,
         // Sentry's schema build marks PUBLIC_EXPERIMENTAL endpoints with this extension.
         experimental: operation["x-sentry-experimental"] === true,
         // Other methods count only when Sentry marks them; PUT/DELETE handlers are not all idempotent.
         idempotent: SAFE_METHODS.has(method) || operation["x-sentry-idempotent"] === true,
+        routing: routing(key, operation, pathParameters),
       });
     }
   }

@@ -1,3 +1,15 @@
+## 2.5.2
+
+### Bug Fixes 🐛
+
+- (api) Resolve the root entry's types under NodeNext by @BYK with @sentry-junior in [#131216](https://github.com/getsentry/sentry/pull/131216)
+
+## 2.5.1
+
+### Documentation 📚
+
+- (api) Document the package's Node.js support floor by @BYK with @sentry-junior in [#131205](https://github.com/getsentry/sentry/pull/131205)
+
 ## 2.5.0
 
 ### New Features ✨

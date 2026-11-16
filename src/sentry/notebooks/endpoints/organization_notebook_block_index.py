@@ -42,7 +42,8 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
     idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="Create a Notebook Block",
+        operation_id="createOrganizationNotebookBlock",
+        summary="Create a Notebook Block",
         tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=BlockCreateValidator,
