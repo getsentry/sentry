@@ -3,6 +3,9 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 from rest_framework.response import Response
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
+)
 
 from sentry.eventstream.base import GroupState
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -58,6 +61,7 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
         assert kwargs["group"] == self.group
         assert kwargs["step"] == AutofixStep.ROOT_CAUSE
         assert kwargs["referrer"] == AutofixReferrer.ADMIN
+        assert kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
         assert kwargs["single_run"] is True
         assert kwargs["user"].id == self.user.id
         assert kwargs.get("stopping_point") is None
@@ -95,6 +99,7 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
 
         kwargs = mock_trigger.call_args.kwargs
         assert kwargs["referrer"] == AutofixReferrer.ADMIN_AUTOMATED
+        assert kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
         assert kwargs["user"] is None
         assert kwargs["actor_user_id"] is None
         assert actor_types == [ActorType.SYSTEM]

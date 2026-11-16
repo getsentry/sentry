@@ -66,6 +66,19 @@ NEVER query the database in `serialize()` for bulk requests. `serialize()` runs 
 
 The `ViewerContext` contextvar carries the current viewer's identity. When the viewer is in scope, call `sentry.viewer_context.get_viewer_context()` instead of passing org and user identity through arguments.
 
+Use the actor type that matches who initiated the work.
+
+| Actor type        | Meaning and use                                                                                                                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `USER`            | A user acting directly. Request principal resolution stores the user's ID in `actor_id`.                                                                                                     |
+| `AGENT`           | A Seer agent token acting on behalf of a user. The user's ID is in `delegated_user_id`. Preserve this type when propagating the context so downstream code can identify delegated activity.  |
+| `SERVICE_ACCOUNT` | A service account acting under its own identity. `actor_id` is the service account ID, and there is no acting user.                                                                          |
+| `INTEGRATION`     | An external integration acting within an organization. For example, GitHub webhook handlers use `webhook_viewer_context()` to establish this context.                                        |
+| `SYSTEM`          | Work Sentry initiates itself, such as scheduled background work or cleanup that users have no control over. Preserve the originating actor when a job continues work on that actor's behalf. |
+| `UNKNOWN`         | The caller's identity could not be resolved, such as an anonymous request or an internal RPC with no propagated viewer context.                                                              |
+
+Use `get_acting_user_id(ctx)` when you need the user behind a `USER` or `AGENT` context. Organization and project IDs describe the context's scope.
+
 ### Request Principals
 
 `request.user` is whoever is calling: a user, an agent acting for one, a service account, or anonymous. Don't assume a `User`, and don't read `request.user.id`. Use `sentry.auth.principal`:

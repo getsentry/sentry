@@ -33,7 +33,8 @@ interface AgentHandoffPromptProps<Flow extends AgentHandoffFlow> {
   context: AgentHandoffContext<Flow> | null;
   feedbackSource: string;
   flow: Flow;
-  onCopySuccess?: () => void;
+  /** Receives the ID of the handoff whose prompt was copied, for analytics. */
+  onCopySuccess?: (handoffId: string) => void;
   onSelect?: () => void;
 }
 
@@ -59,9 +60,9 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
 
     void handoff
       .copyPrompt({disableIpPinning: !useIpPinning})
-      .then(() => {
+      .then(handoffId => {
         toast.success(t('Agent prompt copied to clipboard'));
-        onCopySuccess?.();
+        onCopySuccess?.(handoffId);
       })
       .catch(() => null);
   }
