@@ -76,6 +76,13 @@ function getAccountNavigationConfiguration({
           path: `${userSettingsPathPrefix}/security/`,
           icon: <IconLock />,
           title: t('Security'),
+          keywords: [
+            t('2fa'),
+            t('2 factor authentication'),
+            t('two factor authentication'),
+            t('mfa'),
+            t('password'),
+          ],
           description: t('Change your account password and/or two factor authentication'),
         },
         {
@@ -182,10 +189,14 @@ function getOrganizationNavigationConfiguration({
           title: t('Security & Privacy'),
           keywords: [
             t('data scrubbing'),
+            t('data scrubber'),
             t('privacy'),
             t('pii'),
             t('attachments'),
             t('advanced data scrubbing'),
+            t('prevent storing of ip addresses'),
+            t('ip address'),
+            t('store native crash reports'),
           ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
@@ -397,6 +408,9 @@ function getDeveloperNavigationConfiguration({
         t('token'),
         t('credentials'),
         t('user auth tokens'),
+        t('create new token'),
+        t('sentry auth token'),
+        t('auth-tokens'),
         'SENTRY_AUTH_TOKEN',
       ],
       description: t(
@@ -428,6 +442,11 @@ function getDeveloperNavigationConfiguration({
         t('token'),
         t('credentials'),
         t('user auth tokens'),
+        t('create new token'),
+        t('sentry auth token'),
+        t('organization auth token'),
+        t('organisation token'),
+        t('auth-tokens'),
         'SENTRY_AUTH_TOKEN',
       ],
       description: t('Manage organization tokens'),

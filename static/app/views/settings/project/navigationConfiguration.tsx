@@ -35,6 +35,7 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/`,
           index: true,
           title: settingsV3 ? t('General') : t('General Settings'),
+          keywords: [t('slug'), t('project slug')],
           description: t('Configure general settings for a project'),
         },
         {
@@ -120,6 +121,9 @@ export function getNavigationConfiguration({
             t('discard'),
             t('ignore'),
             t('attachments'),
+            t('browser'),
+            t('browsers'),
+            t('legacy browsers'),
           ],
           description: t(
             "Configure a project's inbound filters (e.g. browsers, messages)"
@@ -129,6 +133,15 @@ export function getNavigationConfiguration({
           id: 'project_security_and_privacy',
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
+          keywords: [
+            t('data scrubbing'),
+            t('data scrubber'),
+            t('privacy'),
+            t('pii'),
+            t('prevent storing of ip addresses'),
+            t('ip address'),
+            t('store native crash reports'),
+          ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
           ),
