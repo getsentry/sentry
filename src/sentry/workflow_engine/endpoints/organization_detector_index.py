@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterable, Mapping, Sequence
 from functools import partial
 from typing import Any, assert_never
@@ -76,6 +77,8 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorAPIOperation, DetectorType
+
+logger = logging.getLogger(__name__)
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -604,16 +607,42 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not can_delete_detectors(queryset, request):
             raise PermissionDenied
 
+        # Seat removal can't roll back, so keep going past failures
+        failed_detectors = []
         for detector in queryset:
-            with transaction.atomic(router.db_for_write(Detector)):
-                CellScheduledDeletion.schedule(detector, days=0, actor=request.user)
-                create_audit_entry(
-                    request=request,
-                    organization=organization,
-                    target_object=detector.id,
-                    event=audit_log.get_event_id("DETECTOR_REMOVE"),
-                    data=detector.get_audit_log_data(),
+            if detector.type in SEAT_DETECTOR_TYPES:
+                # The deletion task can run hours later, so the validator frees
+                # the billing seat now, as the single-detector delete does.
+                detector_validator = get_detector_validator(
+                    request, detector.linked_project, detector.type, instance=detector
                 )
-                detector.update(status=ObjectStatus.PENDING_DELETION)
+                try:
+                    detector_validator.delete()
+                except Exception:
+                    logger.exception(
+                        "workflow_engine.bulk_delete_detectors.seat_detector_failed",
+                        extra={"detector_id": detector.id, "organization_id": organization.id},
+                    )
+                    failed_detectors.append(detector)
+                    continue
+            else:
+                with transaction.atomic(router.db_for_write(Detector)):
+                    CellScheduledDeletion.schedule(detector, days=0, actor=request.user)
+                    detector.update(status=ObjectStatus.PENDING_DELETION)
+
+            create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=detector.id,
+                event=audit_log.get_event_id("DETECTOR_REMOVE"),
+                data=detector.get_audit_log_data(),
+            )
+
+        if failed_detectors:
+            names = ", ".join(detector.name for detector in failed_detectors)
+            return Response(
+                {"detail": f"Failed to delete some monitors: {names}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(status=status.HTTP_204_NO_CONTENT)

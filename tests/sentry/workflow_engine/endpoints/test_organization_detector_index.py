@@ -2237,6 +2237,87 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         assert not QuerySubscription.objects.filter(id=subscription.id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
 
+    @patch("sentry.quotas.backend.remove_seat")
+    def test_delete_cron_detector_removes_seat(self, mock_remove_seat: MagicMock) -> None:
+        monitor = self.create_monitor(project=self.project)
+        detector = ensure_cron_detector(monitor)
+        assert detector is not None
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"id": str(detector.id)},
+                status_code=204,
+            )
+
+        mock_remove_seat.assert_called_once_with(seat_object=monitor)
+        detector.refresh_from_db()
+        assert detector.status == ObjectStatus.PENDING_DELETION
+        assert CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=detector.id
+        ).exists()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("DETECTOR_REMOVE"),
+            target_object=detector.id,
+            actor=self.user,
+        )
+
+    @patch("sentry.quotas.backend.remove_seat")
+    def test_delete_uptime_detector_removes_seat(self, mock_remove_seat: MagicMock) -> None:
+        detector = self.create_uptime_detector()
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"id": str(detector.id)},
+                status_code=204,
+            )
+
+        mock_remove_seat.assert_called_once_with(seat_object=detector)
+        detector.refresh_from_db()
+        assert detector.status == ObjectStatus.PENDING_DELETION
+        assert get_uptime_subscription(detector).status == UptimeSubscription.Status.DELETING.value
+        assert CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=detector.id
+        ).exists()
+
+    def test_delete_seat_detector_fails_mid_batch(self) -> None:
+        ok_monitor = self.create_monitor(project=self.project)
+        ok_detector = ensure_cron_detector(ok_monitor)
+        assert ok_detector is not None
+        failed_monitor = self.create_monitor(project=self.project, name="Seat error")
+        failed_detector = ensure_cron_detector(failed_monitor)
+        assert failed_detector is not None
+
+        def remove_seat(seat_object: Monitor) -> None:
+            if seat_object.id == failed_monitor.id:
+                raise Exception("seat service unavailable")
+
+        with (
+            patch("sentry.quotas.backend.remove_seat", side_effect=remove_seat),
+            outbox_runner(),
+        ):
+            response = self.get_error_response(
+                self.organization.slug,
+                qs_params=[
+                    ("id", str(ok_detector.id)),
+                    ("id", str(failed_detector.id)),
+                    ("id", str(self.detector.id)),
+                ],
+                status_code=400,
+            )
+
+        assert response.data["detail"] == f"Failed to delete some monitors: {failed_detector.name}"
+        ok_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert ok_detector.status == ObjectStatus.PENDING_DELETION
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
+        self.assert_unaffected_detectors([failed_detector])
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=failed_detector.id
+        ).exists()
+
 
 @django_db_all
 @pytest.mark.parametrize(
