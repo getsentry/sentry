@@ -998,15 +998,15 @@ http2 = [
 
 [[package]]
 name = "httpunk"
-version = "0.4.5"
+version = "0.5.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.4.5-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:00a63466b1a695e1be5d445579b105616414662286cfaf13c67b2ab4ab11569f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.4.5-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:92ff212a222bb81684f5ab2f3aee416619013c1d932494a30a441e56bd833e49" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.4.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e13959d6823c585b1a98f4f0e01176525773ff79fc3db3c83dc98f69ba2f3dca" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.4.5-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:d4f2804e582d315804b266dcf0e1975433510d130f0313f43e085a35a03f4195" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.4.5-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e73e28d09c82196120adcc5f5527b890a8806c2beef35b739dab003c652be55b" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.4.5-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9a26931b598c4dcdc897ae457e087352b39a69c1f27719c00f37b11d08ffdf55" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.5.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:bed3ea4e5db1227957f62e5e05ed83e65c38e370d6842eea9b469d67f248d309" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.5.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:e10f3d1c0082daa8994800e4e700fe8801ff435c8559396d8ac02a9672ca985a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.5.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:de4a19c08c222d359d8a9eae1e4982d3d59de80e735bf9f16b5fe8022fe4e45c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.5.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:6aa33bff14ac63eb3073b6efe51939c4f32d0ad4affee23bd4071bc458e7bf12" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.5.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:772fda4b67ece2f746b29493f2b469b6d810207aeb953c81c3e4ca00905ab07a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.5.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:ffb2c212fbe59b74011bae3e01a856b524d80fc74da2a7d5e6db35b2156497b8" },
 ]
 
 [[package]]
@@ -1671,13 +1671,13 @@ wheels = [
 
 [[package]]
 name = "punkreq"
-version = "0.2.4"
+version = "0.3.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "httpunk" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/punkreq-0.2.4-py3-none-any.whl", hash = "sha256:112d2e7272197e4c22d959f927ae4952b0910d9f7164bfd7998278e65f3bf7c7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/punkreq-0.3.0-py3-none-any.whl", hash = "sha256:1ac4e774132aab367479be59d30210e67b05d62922528525125e1f5ca46995af" },
 ]
 
 [[package]]
