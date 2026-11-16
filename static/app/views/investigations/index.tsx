@@ -122,21 +122,9 @@ function getTriggerQuery(filter: TriggerFilter) {
 }
 
 const SORTS = ['dateUpdated', 'dateCreated'] as const;
-const SORT_OPTIONS: Array<{
-  details: string;
-  label: string;
-  value: (typeof SORTS)[number];
-}> = [
-  {
-    value: 'dateUpdated',
-    label: t('Last Modified'),
-    details: t('Last time the investigation was updated.'),
-  },
-  {
-    value: 'dateCreated',
-    label: t('Date Created'),
-    details: t('When the investigation was created.'),
-  },
+const SORT_OPTIONS: Array<{label: string; value: (typeof SORTS)[number]}> = [
+  {value: 'dateUpdated', label: t('Last Modified')},
+  {value: 'dateCreated', label: t('Date Created')},
 ];
 
 function getStatusLabel({orchestration}: InvestigationListItem) {
@@ -465,7 +453,6 @@ export function InvestigationsPage() {
                     )}
                     value={sort}
                     options={SORT_OPTIONS}
-                    menuWidth={240}
                     onChange={option =>
                       setQueryParams({sort: option.value, cursor: null})
                     }
