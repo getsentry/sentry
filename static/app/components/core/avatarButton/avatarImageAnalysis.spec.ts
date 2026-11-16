@@ -119,9 +119,47 @@ describe('dominantColor', () => {
     expect(dominantColor(data)).toBeNull();
   });
 
+  it('ignores a small colored accent next to gray content', () => {
+    // A small orange icon beside a gray wordmark.
+    const data = makePixelData((col, row) =>
+      col < 4 && row < 4 ? [252, 109, 38, 255] : [100, 100, 100, 255]
+    );
+    expect(isNeutralColor(dominantColor(data)!)).toBe(true);
+  });
+
+  it('does not count a white plate against the logo color', () => {
+    // A green mark on a white background, like a logo on a light plate.
+    const data = makePixelData((col, row) =>
+      col < 10 && row < 10 ? [118, 185, 0, 255] : [255, 255, 255, 255]
+    );
+    expect(dominantColor(data)).toBe('#76b900');
+  });
+
+  it('treats a logo split across unrelated hues as neutral', () => {
+    // Four equal quadrants in four different hues, like a multicolor mark.
+    const quadrants: Array<[number, number, number, number]> = [
+      [224, 30, 90, 255],
+      [54, 197, 240, 255],
+      [46, 182, 125, 255],
+      [236, 178, 46, 255],
+    ];
+    const half = SAMPLE_SIZE / 2;
+    const data = makePixelData(
+      (col, row) => quadrants[(row < half ? 0 : 2) + (col < half ? 0 : 1)]!
+    );
+    expect(isNeutralColor(dominantColor(data)!)).toBe(true);
+  });
+
+  it('keeps the color of a logo with a single dominant hue', () => {
+    const data = makePixelData((col, _row) =>
+      col < SAMPLE_SIZE / 2 ? [99, 91, 255, 255] : [80, 70, 230, 255]
+    );
+    expect(isNeutralColor(dominantColor(data)!)).toBe(false);
+  });
+
   it('prefers chromatic over grayscale when both exist', () => {
     const data = makePixelData((col, _row) =>
-      col < 6 ? [128, 128, 128, 255] : [0, 0, 200, 255]
+      col < SAMPLE_SIZE / 2 ? [128, 128, 128, 255] : [0, 0, 200, 255]
     );
     const result = dominantColor(data);
     expect(result).not.toBeNull();

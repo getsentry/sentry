@@ -2,47 +2,46 @@ import type {Theme} from '@emotion/react';
 
 import {hexToOklch, oklchToHex} from './oklch';
 
-export const SAMPLE_SIZE = 12;
+// Large enough that small logo marks keep their real colors instead of being
+// blended with their surroundings by the downscale.
+export const SAMPLE_SIZE = 32;
 
 // TS can't prove typed-array index access is defined; this centralizes the
 // single suppression so callers stay clean.
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const px = (data: Uint8ClampedArray, i: number): number => data[i]!;
 
-// Returns 'fill' when the image covers the full frame edge-to-edge, 'padded' otherwise.
-// Each edge check returns 'padded' when every pixel on that edge is transparent (alpha < 128).
-// Pixel (col, row) has its alpha channel at (row * 12 + col) * 4 + 3 in a 12×12 RGBA canvas.
+function isOpaqueAt(data: Uint8ClampedArray, col: number, row: number): boolean {
+  return px(data, (row * SAMPLE_SIZE + col) * 4 + 3) >= 128;
+}
+
+// Returns 'fill' when the image covers the frame edge to edge, 'padded' when an
+// edge is fully transparent or a corner is transparent (e.g. a round logo).
 export function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
-  // oxfmt-ignore
-  if (!(px(data,3)>=128   || px(data,51)>=128  || px(data,99)>=128  ||
-        px(data,147)>=128 || px(data,195)>=128 || px(data,243)>=128 ||
-        px(data,291)>=128 || px(data,339)>=128 || px(data,387)>=128 ||
-        px(data,435)>=128 || px(data,483)>=128 || px(data,531)>=128)) {return 'padded';}
-  // oxfmt-ignore
-  if (!(px(data,47)>=128  || px(data,95)>=128  || px(data,143)>=128 ||
-        px(data,191)>=128 || px(data,239)>=128 || px(data,287)>=128 ||
-        px(data,335)>=128 || px(data,383)>=128 || px(data,431)>=128 ||
-        px(data,479)>=128 || px(data,527)>=128 || px(data,575)>=128)) {return 'padded';}
-  // oxfmt-ignore
-  if (!(px(data,3)>=128  || px(data,7)>=128  || px(data,11)>=128 ||
-        px(data,15)>=128 || px(data,19)>=128 || px(data,23)>=128 ||
-        px(data,27)>=128 || px(data,31)>=128 || px(data,35)>=128 ||
-        px(data,39)>=128 || px(data,43)>=128 || px(data,47)>=128)) {return 'padded';}
-  // oxfmt-ignore
-  if (!(px(data,531)>=128 || px(data,535)>=128 || px(data,539)>=128 ||
-        px(data,543)>=128 || px(data,547)>=128 || px(data,551)>=128 ||
-        px(data,555)>=128 || px(data,559)>=128 || px(data,563)>=128 ||
-        px(data,567)>=128 || px(data,571)>=128 || px(data,575)>=128)) {return 'padded';}
-  if (
-    px(data, 3) < 128 ||
-    px(data, 47) < 128 ||
-    px(data, 531) < 128 ||
-    px(data, 575) < 128
-  ) {
-    return 'padded';
+  const last = SAMPLE_SIZE - 1;
+  const edges: Array<(i: number) => boolean> = [
+    i => isOpaqueAt(data, 0, i),
+    i => isOpaqueAt(data, last, i),
+    i => isOpaqueAt(data, i, 0),
+    i => isOpaqueAt(data, i, last),
+  ];
+  for (const isOpaque of edges) {
+    let edgeHasContent = false;
+    for (let i = 0; i < SAMPLE_SIZE && !edgeHasContent; i++) {
+      edgeHasContent = isOpaque(i);
+    }
+    if (!edgeHasContent) {
+      return 'padded';
+    }
   }
 
-  return 'fill';
+  const corners: Array<[number, number]> = [
+    [0, 0],
+    [last, 0],
+    [0, last],
+    [last, last],
+  ];
+  return corners.every(([col, row]) => isOpaqueAt(data, col, row)) ? 'fill' : 'padded';
 }
 
 function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
@@ -76,9 +75,6 @@ function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
   }
 }
 
-// Finds the dominant vibrant color by bucketing pixels into coarse RGB
-// buckets, preferring chromatic buckets (saturation ≥ MIN_SATURATION) over grayscale.
-// Among tied-for-largest buckets, picks the most saturated one.
 const DOMINANT_BUCKET_SIZE = 24;
 const DOMINANT_TIE_THRESHOLD = 0.8;
 
@@ -124,50 +120,61 @@ export function getAvatarChonk(
     : oklchToHex({l: Math.max(0, l - 0.13), c, h});
 }
 
-export function dominantColor(data: Uint8ClampedArray): string | null {
-  let hasChromatic = false;
-  for (let i = 0; i < data.length; i += 4) {
-    if (px(data, i + 3) < 128) {
-      continue;
-    }
-    const r = px(data, i),
-      g = px(data, i + 1),
-      b = px(data, i + 2);
-    if (saturationOf(r, g, b) >= MIN_SATURATION) {
-      hasChromatic = true;
-      break;
-    }
+// A logo only gets tinted when colored pixels make up at least this share of
+// it (near-white background excluded). Below that the color is an accent, such
+// as a small icon next to a gray wordmark.
+export const MIN_COLOR_COVERAGE = 0.25;
+
+// ...and when at least this share of its colored pixels sit within
+// HUE_TOLERANCE degrees of the dominant hue. Below that it's multicolor.
+export const MIN_HUE_AGREEMENT = 0.5;
+const HUE_TOLERANCE = 30;
+
+type Rgb = [number, number, number];
+
+function hueOf([r, g, b]: Rgb): number {
+  const max = Math.max(r, g, b);
+  const delta = max - Math.min(r, g, b);
+  if (delta === 0) {
+    return 0;
   }
+  const h =
+    max === r
+      ? ((g - b) / delta) % 6
+      : max === g
+        ? (b - r) / delta + 2
+        : (r - g) / delta + 4;
+  return (h * 60 + 360) % 360;
+}
 
-  const buckets = new Map<string, {b: number; count: number; g: number; r: number}>();
+function isNearWhite([r, g, b]: Rgb): boolean {
+  return Math.min(r, g, b) >= 230;
+}
 
-  for (let i = 0; i < data.length; i += 4) {
-    if (px(data, i + 3) < 128) {
-      continue;
-    }
-    const r = px(data, i),
-      g = px(data, i + 1),
-      b = px(data, i + 2);
+function hueDistance(a: number, b: number): number {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
 
-    const chromatic = saturationOf(r, g, b) >= MIN_SATURATION;
-    if (hasChromatic && !chromatic) {
-      continue;
-    }
+function toHex([r, g, b]: Rgb): string {
+  return `#${[r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+}
 
+// The most common color among `pixels`, bucketed into coarse RGB buckets.
+// Among buckets tied for largest, picks the most saturated one.
+function mostCommonColor(pixels: Rgb[]): Rgb {
+  const buckets = new Map<string, {count: number; sum: Rgb}>();
+  for (const [r, g, b] of pixels) {
     const key = `${quantizeChannel(r)},${quantizeChannel(g)},${quantizeChannel(b)}`;
     const bucket = buckets.get(key);
     if (bucket) {
-      bucket.r += r;
-      bucket.g += g;
-      bucket.b += b;
+      bucket.sum[0] += r;
+      bucket.sum[1] += g;
+      bucket.sum[2] += b;
       bucket.count++;
     } else {
-      buckets.set(key, {r, g, b, count: 1});
+      buckets.set(key, {count: 1, sum: [r, g, b]});
     }
-  }
-
-  if (buckets.size === 0) {
-    return null;
   }
 
   let topCount = 0;
@@ -175,34 +182,65 @@ export function dominantColor(data: Uint8ClampedArray): string | null {
     topCount = Math.max(topCount, bucket.count);
   }
 
-  let dominant: {b: number; count: number; g: number; r: number} | null = null;
-  let dominantSaturation = -1;
-  for (const bucket of buckets.values()) {
-    if (bucket.count < topCount * DOMINANT_TIE_THRESHOLD) {
+  let best: Rgb = [0, 0, 0];
+  let bestSaturation = -1;
+  for (const {count, sum} of buckets.values()) {
+    if (count < topCount * DOMINANT_TIE_THRESHOLD) {
       continue;
     }
-
-    const saturation = saturationOf(
-      bucket.r / bucket.count,
-      bucket.g / bucket.count,
-      bucket.b / bucket.count
-    );
-    if (saturation > dominantSaturation) {
-      dominant = bucket;
-      dominantSaturation = saturation;
+    const mean: Rgb = [sum[0] / count, sum[1] / count, sum[2] / count];
+    const saturation = saturationOf(...mean);
+    if (saturation > bestSaturation) {
+      best = mean;
+      bestSaturation = saturation;
     }
   }
+  return best;
+}
 
-  if (!dominant) {
+/**
+ * The avatar's brand color, or a gray when it has none. Grays mean "keep the
+ * default styling" (see `isNeutralColor`). A logo is neutral when its colored
+ * pixels are only a small accent, or when they spread over several unrelated
+ * hues (e.g. a four-color mark) so no single color represents it.
+ */
+export function dominantColor(data: Uint8ClampedArray): string | null {
+  const colored: Rgb[] = [];
+  const gray: Rgb[] = [];
+  for (let i = 0; i < data.length; i += 4) {
+    if (px(data, i + 3) < 128) {
+      continue;
+    }
+    const pixel: Rgb = [px(data, i), px(data, i + 1), px(data, i + 2)];
+    (saturationOf(...pixel) >= MIN_SATURATION ? colored : gray).push(pixel);
+  }
+
+  if (colored.length + gray.length === 0) {
     return null;
   }
 
-  const {count} = dominant;
-  const toHex = (v: number) =>
-    Math.round(v / count)
-      .toString(16)
-      .padStart(2, '0');
-  return `#${toHex(dominant.r)}${toHex(dominant.g)}${toHex(dominant.b)}`;
+  // Near-white is usually the plate a logo sits on, not part of the logo.
+  const content = colored.length + gray.filter(pixel => !isNearWhite(pixel)).length;
+  if (colored.length > 0 && colored.length >= content * MIN_COLOR_COVERAGE) {
+    const dominant = mostCommonColor(colored);
+    const hue = hueOf(dominant);
+    const agreeing = colored.filter(
+      pixel => hueDistance(hueOf(pixel), hue) <= HUE_TOLERANCE
+    ).length;
+    if (agreeing >= colored.length * MIN_HUE_AGREEMENT) {
+      return toHex(dominant);
+    }
+  }
+
+  if (gray.length > 0) {
+    return toHex(mostCommonColor(gray));
+  }
+
+  // Entirely multicolor: fall back to the overall lightness as a gray.
+  const luma =
+    colored.reduce((sum, [r, g, b]) => sum + 0.299 * r + 0.587 * g + 0.114 * b, 0) /
+    colored.length;
+  return toHex([luma, luma, luma]);
 }
 
 function sampleAvatarColor(
