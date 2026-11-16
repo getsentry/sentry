@@ -147,8 +147,8 @@ process.exit(Number(packageRun ? process.env.PACKAGE_TEST_STATUS ?? 0 : process.
       ['!./static/packages/*', ...(standalone ? ['./static/packages/*'] : [])]
     );
     for (const args of runs) {
-      assert.ok(args.includes('--workspace-concurrency=2'));
-      assert.ok(args.includes('--maxWorkers=2'));
+      assert.ok(args.includes('--workspace-concurrency=1'));
+      assert.ok(args.includes('--maxWorkers=75%'));
       assert.ok(args.includes('--aggregate-output'));
     }
   }

@@ -212,11 +212,10 @@ jobs:
   jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: [files-changed, jest-config]
-    name: Jest (shard ${{ matrix.index }})
-    # If you change the master runner, you must also change the runner in jest-balance.yml
-    # so that the balancer runs in the same environment as the tests. Pull requests run
-    # on Arm and reuse those shard weights, which are relative.
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    # BENCHMARK ONLY (removed before merge): run every shard once per setting, on the
+    # runner master uses.
+    name: Jest (${{ matrix.variant }}, shard ${{ matrix.index }})
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
@@ -225,6 +224,17 @@ jobs:
       matrix:
         index: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).index }}
         total: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).total }}
+        variant: [baseline, serial-75, parallel-75]
+        include:
+          - variant: baseline
+            workspace_concurrency: '2'
+            max_workers: '2'
+          - variant: serial-75
+            workspace_concurrency: '1'
+            max_workers: '75%'
+          - variant: parallel-75
+            workspace_concurrency: '2'
+            max_workers: '75%'
     permissions:
       contents: read
       # `gh run download` in "Download jest artifacts"
@@ -262,12 +272,17 @@ jobs:
               GH_REPO: ${{ github.repository }}
             run: ./.github/workflows/scripts/download-jest-artifacts.sh
 
+      - name: runner resources
+        run: nproc && free -g
+
       - name: jest
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_JEST_DSN }}
 
           CI_NODE_TOTAL: ${{ matrix.total }}
           CI_NODE_INDEX: ${{ matrix.index }}
+          JEST_BENCH_WORKSPACE_CONCURRENCY: ${{ matrix.workspace_concurrency }}
+          JEST_BENCH_MAX_WORKERS: ${{ matrix.max_workers }}
 
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}

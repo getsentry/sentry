@@ -41,6 +41,10 @@ if (
   }
 }
 
+// BENCHMARK ONLY (removed before merge): lets CI compare settings per job.
+const workspaceConcurrency = process.env.JEST_BENCH_WORKSPACE_CONCURRENCY ?? '1';
+const maxWorkers = process.env.JEST_BENCH_MAX_WORKERS ?? '75%';
+
 /**
  * @param {string} filter
  */
@@ -49,7 +53,7 @@ function runWorkspaceTests(filter) {
     'pnpm',
     [
       '--recursive',
-      '--workspace-concurrency=2',
+      `--workspace-concurrency=${workspaceConcurrency}`,
       '--aggregate-output',
       '--reporter=append-only',
       '--no-sort',
@@ -63,7 +67,7 @@ function runWorkspaceTests(filter) {
       '--ci',
       '--watch=false',
       '--passWithNoTests',
-      '--maxWorkers=2',
+      `--maxWorkers=${maxWorkers}`,
       '--watchman=false',
       '--colors',
       ...args,
