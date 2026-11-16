@@ -8,6 +8,10 @@ on:
       - master
       - releases/**
   pull_request:
+  # Records the per-test coverage that select-tests maps Python changes with.
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -21,9 +25,11 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   CHARTCUTERIE_CONFIG_PATH: ${{ github.workspace }}/config/chartcuterie
   SNUBA_NO_WORKERS: 1
+  COLLECT_COVERAGE: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
 jobs:
   files-changed:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     name: detect what files changed
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
@@ -45,9 +51,73 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-  acceptance:
-    if: needs.files-changed.outputs.acceptance == 'true'
+  # Pull requests run only the acceptance tests their changes can reach. See
+  # compute-acceptance-selected-tests.py for how, and what it can miss. Pushes
+  # to master run the whole suite, so a missed test fails there.
+  select-tests:
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.files-changed.outputs.acceptance == 'true' &&
+      !contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing')
     needs: files-changed
+    name: select acceptance tests
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read # to download the coverage artifact
+    outputs:
+      selected: ${{ steps.select.outputs.selected }}
+      shard-count: ${{ steps.select.outputs.shard-count }}
+      shard-indices: ${{ steps.select.outputs.shard-indices }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Get changed files
+        id: changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: .github/workflows/scripts/pr-changed-files.sh >> "$GITHUB_OUTPUT"
+
+      # Without coverage, Python changes run the whole suite.
+      - name: Download acceptance coverage
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/workflows/scripts/download-acceptance-coverage.sh .artifacts/acceptance.coverage
+
+      - name: Select tests
+        id: select
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+          PREVIOUS_FILENAMES: ${{ steps.changed.outputs.previous-filenames }}
+        run: |
+          python3 .github/workflows/scripts/compute-acceptance-selected-tests.py \
+            --changed-files "$CHANGED_FILES" \
+            --previous-filenames "$PREVIOUS_FILENAMES" \
+            --coverage-db .artifacts/acceptance.coverage \
+            --output .artifacts/acceptance-selected-tests.txt \
+            --github-output
+
+      - name: Upload selected tests
+        if: steps.select.outputs.selected == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: acceptance-selected-tests-${{ github.run_id }}
+          path: .artifacts/acceptance-selected-tests.txt
+          retention-days: 1
+
+  acceptance:
+    # When select-tests is skipped or fails, its outputs are empty and the
+    # whole suite runs. It reports shard-count 0 when no test needs to run.
+    if: >-
+      always() && !cancelled() &&
+      (needs.files-changed.outputs.acceptance == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      needs.select-tests.outputs.shard-count != '0'
+    needs: [files-changed, select-tests]
     name: acceptance
     # Arm runners on pull requests only; master stays on amd64 for now.
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
@@ -61,11 +131,12 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        # XXX: Use 5 runners when backend changes are present, 10 runners for frontend-only changes
-        instance: ${{ needs.files-changed.outputs.backend_all == 'true' && fromJSON('[0, 1, 2, 3, 4]') || fromJSON('[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]') }}
+        # XXX: Use 5 runners when backend changes are present, 10 runners for frontend-only changes,
+        # and the shards select-tests asks for when it selected tests.
+        instance: ${{ needs.select-tests.outputs.selected == 'true' && fromJSON(needs.select-tests.outputs.shard-indices) || (needs.files-changed.outputs.backend_all == 'true' && fromJSON('[0, 1, 2, 3, 4]') || fromJSON('[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]')) }}
     env:
-      # XXX: MATRIX_INSTANCE_TOTAL must match the matrix size (5 for backend changes, 10 for frontend-only)
-      MATRIX_INSTANCE_TOTAL: ${{ needs.files-changed.outputs.backend_all == 'true' && '5' || '10' }}
+      # XXX: MATRIX_INSTANCE_TOTAL must match the matrix size
+      MATRIX_INSTANCE_TOTAL: ${{ needs.select-tests.outputs.selected == 'true' && needs.select-tests.outputs.shard-count || (needs.files-changed.outputs.backend_all == 'true' && '5' || '10') }}
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
@@ -178,17 +249,28 @@ jobs:
           docker cp .github/workflows/scripts/kafka-topics-healthcheck.sh "kafka-kafka-1:$real"
           time docker exec kafka-kafka-1 kafka-topics --bootstrap-server 127.0.0.1:9092 --list
 
+      - name: Download selected tests
+        if: needs.select-tests.outputs.selected == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: acceptance-selected-tests-${{ github.run_id }}
+          path: .artifacts/
+
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        run: |
-          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
-          # Pins the Chrome for Testing build, not the image's Chrome, and skips
-          # the Selenium Manager lookup Selenium would run on every launch.
-          chrome=$(command -v google-chrome)
-          chromedriver=$(command -v chromedriver)
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS --chrome-path=$chrome --chromedriver-path=$chromedriver"
-          timeout -k 30 1200 make run-acceptance || rc=$?
-          [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
-          exit "${rc:-0}"
+        env:
+          SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.selected == 'true' && '.artifacts/acceptance-selected-tests.txt' || '' }}
+        run: .github/workflows/scripts/run-acceptance-tests.sh
+
+      # Uploaded even when tests fail, so one flaky test doesn't lose the run's
+      # coverage. A shard that didn't finish has no coverage file.
+      - name: Upload acceptance coverage
+        if: ${{ !cancelled() && env.COLLECT_COVERAGE == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: acceptance-coverage-shard-${{ matrix.instance }}-of-${{ env.MATRIX_INSTANCE_TOTAL }}
+          path: .artifacts/acceptance.coverage
+          if-no-files-found: ignore
+          retention-days: 1
 
       - name: Stop resource monitor
         if: always()
@@ -219,6 +301,45 @@ jobs:
               docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
             done
           fi
+
+  acceptance-coverage:
+    if: >-
+      !cancelled() && needs.acceptance.result != 'skipped' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    needs: acceptance
+    name: combine acceptance coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      # Must match uv.lock, so the data files are in a format it can read.
+      COVERAGE_VERSION: '7.6.4'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download shard coverage
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: acceptance-coverage-shard-*
+          path: .artifacts/shards
+
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.13.7'
+          enable-cache: false
+
+      - name: Combine shard coverage
+        run: .github/workflows/scripts/combine-acceptance-coverage.sh .artifacts/shards .artifacts/acceptance.coverage
+
+      # select-tests downloads the newest one of these from master.
+      - name: Upload acceptance coverage
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: acceptance-coverage
+          path: .artifacts/acceptance.coverage
+          if-no-files-found: error
+          retention-days: 14
 
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.
