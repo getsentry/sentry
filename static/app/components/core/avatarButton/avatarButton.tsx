@@ -24,6 +24,11 @@ interface AvatarButtonProps extends Omit<
   'aria-label': string;
   /** Omit to render an empty/unassigned placeholder. */
   avatar?: BaseAvatarProps;
+  /**
+   * Avatar whose color tints the button's chonk and border. Defaults to `avatar`.
+   * Use it to make buttons that sit together share one color.
+   */
+  colorAvatar?: BaseAvatarProps;
   /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
   round?: boolean;
   size?: AvatarButtonSize;
@@ -31,6 +36,7 @@ interface AvatarButtonProps extends Omit<
 
 export function AvatarButton({
   avatar,
+  colorAvatar,
   round: explicitRound,
   size: explicitSize,
   ...props
@@ -51,8 +57,10 @@ export function AvatarButton({
   });
 
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
+  // Shares the query cache with `colors` when no `colorAvatar` is given.
+  const tint = useAvatarColors(isSuggested ? undefined : (colorAvatar ?? avatar));
   const chonk =
-    colors.type === 'none' ? undefined : getAvatarChonk(colors.dominant, theme.type);
+    tint.type === 'none' ? undefined : getAvatarChonk(tint.dominant, theme.type);
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
