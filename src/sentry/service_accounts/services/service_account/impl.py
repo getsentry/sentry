@@ -106,7 +106,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
     ) -> RpcServiceAccount | None:
         service_account = ServiceAccount.objects.filter(
             organization_id=organization_id, idempotency_key=idempotency_key
-        ).first()
+        ).first()  # noqa: S035
         if service_account is None:
             return None
         return _serialize_with_projects(service_account)
