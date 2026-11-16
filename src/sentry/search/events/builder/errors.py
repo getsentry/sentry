@@ -98,12 +98,18 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
         with ``Column 'events._snuba_gen_1' is not under aggregate function and
         not in GROUP BY keys``. Add such functions to the groupby; they are
         functionally dependent on the grouped columns and do not change the
-        grouping.
+        grouping. Only pre-existing grouped queries are modified: aggregates
+        from the orderby are never grouping keys, and ungrouped queries have
+        no outer GROUP BY to satisfy.
         """
-        if not isinstance(self.match, Join):
+        if not isinstance(self.match, Join) or not self.groupby:
             return
         for order in self.orderby:
-            if isinstance(order.exp, Function) and order.exp not in self.groupby:
+            if (
+                isinstance(order.exp, Function)
+                and order.exp.function == "transform"
+                and order.exp not in self.groupby
+            ):
                 self.groupby.append(order.exp)
 
     def aliased_column(self, name: str) -> SelectType:
