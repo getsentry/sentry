@@ -121,6 +121,7 @@ class LoadConversationTest(BaseAIConversationsTestCase):
             timestamp=self.start + timedelta(seconds=5),
             client_sample_rate=1.0,
             conversation_id="conversation",
+            environment=None,
         )
 
     def test_keeps_newest_spans_and_cuts_long_messages(self) -> None:
@@ -148,6 +149,23 @@ class LoadConversationTest(BaseAIConversationsTestCase):
         incr.assert_called_once_with(
             "telemetry_classifiers.load.truncated", tags={"dataset": "conversation"}
         )
+
+    def test_takes_environment_from_newest_span(self) -> None:
+        for index, environment in enumerate(["staging", "production"]):
+            span = self.store_ai_span(
+                "conversation",
+                self.start + timedelta(seconds=index),
+                operation_type="ai_client",
+                input_messages=[{"role": "user", "content": environment}],
+                store=False,
+            )
+            span["sentry_tags"]["environment"] = environment
+            self.store_spans([span])
+
+        loaded = DATASET.load(self.project, "conversation")
+
+        assert loaded is not None
+        assert loaded.environment == "production"
 
     def test_returns_none_without_message_spans(self) -> None:
         self.store_ai_span("conversation", self.start, operation_type="tool")
