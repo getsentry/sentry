@@ -784,6 +784,13 @@ Tests import the generated `src/`, `dist/` and `spec/` output, so build before t
 
 Every `ts` example in this README is typechecked against the packed package by `test/readme.test.ts`, each as its own module. When an example uses a value it doesn't define, such as `sentry` or `options`, declare it in that test's `context`.
 
+To check the packed package the way an outside project uses it, pack it and run `test/consumers/check.mjs` with each runtime to check. CI runs it on Node.js 22 and Bun. It installs the tarball into fresh projects from the npm registry, with no optional peers and then with each validator peer:
+
+```sh
+pnpm --filter @sentry/api pack --out /tmp/sentry-api.tgz
+node static/packages/api/test/consumers/check.mjs /tmp/sentry-api.tgz
+```
+
 ## License
 
 FSL-1.1-Apache-2.0. See [LICENSE.md](LICENSE.md).
