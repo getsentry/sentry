@@ -17,6 +17,7 @@ from django.utils import timezone
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.inbox.event_retention import cleanup_inbox_item_events
+from sentry.inbox.item_retention import cleanup_inbox_items
 from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
@@ -38,7 +39,21 @@ class InboxActor:
 SYSTEM_ACTOR = InboxActor(type=InboxActorType.SYSTEM, id=None)
 
 
-def _schedule_retention(items: Sequence[InboxItem]) -> None:
+def _schedule_item_retention(items: Sequence[InboxItem]) -> None:
+    if not options.get("cleanup.inbox-items.enabled"):
+        return
+
+    rate = options.get("cleanup.inbox-items.sample-rate")
+    for item in items:
+        if random() < rate:
+            safe_execute(
+                cleanup_inbox_items.delay,
+                organization_id=item.organization_id,
+                user_id=item.user_id,
+            )
+
+
+def _schedule_event_retention(items: Sequence[InboxItem]) -> None:
     if not options.get("cleanup.inbox-events.enabled"):
         return
 
@@ -172,7 +187,11 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
                 item.last_activity_at = Greatest("last_activity_at", activity_at)
                 item.date_updated = activity_at
             transaction.on_commit(
-                partial(_schedule_retention, items),
+                partial(_schedule_item_retention, items),
+                using=router.db_for_write(InboxItem),
+            )
+            transaction.on_commit(
+                partial(_schedule_event_retention, items),
                 using=router.db_for_write(InboxItem),
             )
             InboxItem.objects.bulk_update(items, ["last_activity_at", "date_updated"])
