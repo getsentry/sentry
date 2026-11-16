@@ -45,7 +45,7 @@ describe('useEventLogsUrl', () => {
     const {result} = renderHookWithProviders(() => useEventLogsUrl(event));
 
     expect(result.current).toMatchInlineSnapshot(
-      `"/organizations/org-slug/explore/logs/?end=2024-12-22T05%3A00%3A00&logsQuery=trace%3Atrace-abc-123&project=-1&start=2024-12-20T05%3A00%3A00"`
+      `"/organizations/org-slug/explore/logs/?end=2024-12-22T05%3A00%3A00.000&logsQuery=trace%3Atrace-abc-123&project=-1&start=2024-12-20T05%3A00%3A00.000"`
     );
   });
 
@@ -68,7 +68,7 @@ describe('useEventLogsUrl', () => {
     const {result} = renderHookWithProviders(() => useEventLogsUrl(event));
 
     expect(result.current).toMatchInlineSnapshot(
-      `"/organizations/org-slug/explore/logs/?end=2024-12-22T05%3A00%3A00&logsQuery=trace%3Atrace-abc-123&project=-1&start=2024-12-20T05%3A00%3A00"`
+      `"/organizations/org-slug/explore/logs/?end=2024-12-22T05%3A00%3A00.000&logsQuery=trace%3Atrace-abc-123&project=-1&start=2024-12-20T05%3A00%3A00.000"`
     );
   });
 });

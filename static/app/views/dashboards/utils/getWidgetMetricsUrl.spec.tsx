@@ -761,8 +761,8 @@ describe('getWidgetMetricsUrl', () => {
       const url = getWidgetMetricsUrl(widget, undefined, absoluteSelection, organization);
       const {params} = parseMetricsUrl(url);
 
-      expect(params.start).toBe('2024-01-01T00:00:00Z');
-      expect(params.end).toBe('2024-01-31T23:59:59Z');
+      expect(params.start).toBe('2024-01-01T00:00:00.000');
+      expect(params.end).toBe('2024-01-31T23:59:59.000');
       expect(params.utc).toBe('true');
       expect(params.statsPeriod).toBeUndefined();
     });
