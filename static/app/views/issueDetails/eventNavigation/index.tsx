@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import {IconTelescope} from '@sentry/icons/telescope';
 import {keepPreviousData} from '@tanstack/react-query';
@@ -272,7 +273,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   >
                     <Flex as="span" align="center" gap="xs">
                       {tab.name}
-                      {tab.hasUnread ? <UnreadIndicator /> : null}
+                      {tab.hasUnread ? <TabUnreadIndicator /> : null}
                       {tab.count === null ? null : (
                         <Badge variant="muted">
                           <Text tabular variant="inherit">
@@ -485,3 +486,8 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     </Flex>
   );
 }
+
+const TabUnreadIndicator = styled(UnreadIndicator)`
+  width: 6px;
+  height: 6px;
+`;
