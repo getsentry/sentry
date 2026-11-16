@@ -89,7 +89,7 @@ function setupMockApis() {
  * A query param holding a single value comes back as a string rather than a
  * one-element array, so normalise before comparing to a serialized list.
  */
-function queryList(value: string | string[] | undefined | null) {
+function queryList(value: string | Array<string | null> | undefined | null) {
   return value === undefined || value === null ? [] : [value].flat();
 }
 

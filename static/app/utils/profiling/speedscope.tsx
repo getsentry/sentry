@@ -108,14 +108,8 @@ export class Rect {
       return null;
     }
 
-    const rect = new Rect(
-      ...(maybeEncodedRect.map(p => parseFloat(p ?? '')) as [
-        number,
-        number,
-        number,
-        number,
-      ])
-    );
+    const [x, y, width, height] = maybeEncodedRect.map(p => parseFloat(p ?? ''));
+    const rect = new Rect(x ?? NaN, y ?? NaN, width ?? NaN, height ?? NaN);
 
     if (rect.isValid()) {
       return rect;
