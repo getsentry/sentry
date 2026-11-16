@@ -79,10 +79,20 @@ export function IntegrationExternalTeamMappings(props: Props) {
     return Promise.all([refetchTeams(), refetchInitialResults()]);
   };
 
+  // Search both initialResults and teams (filtered by hasExternalTeams).
+  // Fall back to sentryName from the mutation data for teams found via search
+  // that aren't in either list.
+  const getTeamSlug = (mapping: ExternalActorMappingOrSuggestion) => {
+    const team =
+      initialResults.find(item => item.id === mapping.teamId) ??
+      teams.find(item => item.id === mapping.teamId);
+    return team?.slug ?? ('sentryName' in mapping ? mapping.sentryName : '');
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (mapping: ExternalActorMapping) => {
-      const team = teams.find(item => item.id === mapping.teamId);
-      if (!team) {
+      const teamSlug = getTeamSlug(mapping);
+      if (!teamSlug) {
         throw new Error('Cannot find correct team slug.');
       }
       return fetchMutation({
@@ -91,7 +101,7 @@ export function IntegrationExternalTeamMappings(props: Props) {
           {
             path: {
               organizationIdOrSlug: organization.slug,
-              teamIdOrSlug: team.slug,
+              teamIdOrSlug: teamSlug,
               externalTeamId: mapping.id,
             },
           }
@@ -145,13 +155,7 @@ export function IntegrationExternalTeamMappings(props: Props) {
         path: skipToken,
       });
     }
-    // Search both initialResults and teams (filtered by hasExternalTeams).
-    // Fall back to sentryName from the mutation data for teams found via search
-    // that aren't in either list.
-    const team =
-      initialResults?.find(item => item.id === mapping.teamId) ??
-      teams.find(item => item.id === mapping.teamId);
-    const teamSlug = team?.slug ?? ('sentryName' in mapping ? mapping.sentryName : '');
+    const teamSlug = getTeamSlug(mapping);
     const externalTeamId = 'id' in mapping ? mapping.id : null;
     return externalTeamId
       ? getApiUrl(

@@ -169,4 +169,63 @@ describe('IntegrationExternalTeamMappings', () => {
     expect(screen.getByText('@getsentry/pubsub-infra')).toBeInTheDocument();
     expect(screen.queryByText('@getsentry/billing')).not.toBeInTheDocument();
   });
+
+  it('deletes a mapping created from a suggestion while searching', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [TeamFixture({id: '1', slug: 'payments', externalTeams: []})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      match: [MockApiClient.matchQuery({query: 'hasExternalTeams:true billing'})],
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/codeowners-associations/`,
+      body: {
+        'project-1': {
+          associations: {},
+          errors: {missing_external_teams: ['@getsentry/billing']},
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/payments/external-teams/`,
+      method: 'POST',
+      body: {
+        id: '30',
+        teamId: '1',
+        externalName: '@getsentry/billing',
+        sentryName: 'payments',
+        provider: 'github',
+        integrationId: integration.id,
+      },
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/payments/external-teams/30/`,
+      method: 'DELETE',
+    });
+
+    render(<IntegrationExternalTeamMappings integration={integration} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/settings/integrations/github/1/',
+          query: {query: 'billing'},
+        },
+      },
+    });
+    renderGlobalModal();
+
+    expect(await screen.findByText('@getsentry/billing')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Select Sentry Team'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'payments'}));
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Remove user mapping'})
+    );
+    await userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitFor(() => expect(deleteRequest).toHaveBeenCalled());
+  });
 });
