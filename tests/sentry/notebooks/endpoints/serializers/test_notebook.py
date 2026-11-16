@@ -240,6 +240,25 @@ class NotebookDetailsSerializerTest(TestCase):
         assert detail["template"] is None
         assert detail["source"]["type"] == "manual"
         assert detail["titleGeneration"] == {"status": None}
+        assert "prompt" not in detail["source"]
+
+    def test_includes_the_prompt_of_a_manual_investigation(self) -> None:
+        self.notebook.update(
+            source={
+                "type": "manual",
+                "prompt": "Why did checkout latency increase?",
+                "seed": {"pageContext": "checkout"},
+            }
+        )
+
+        source = self.serialize_detail()["source"]
+
+        assert source == {
+            "type": "manual",
+            "ref": {},
+            "revision": None,
+            "prompt": "Why did checkout latency increase?",
+        }
 
     def test_includes_block_output(self) -> None:
         execution = self.create_notebook_block_execution(
