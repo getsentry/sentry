@@ -388,6 +388,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/seer/monitoring-connections/'
   | '/organizations/$organizationIdOrSlug/seer/monitoring-identities/$identityId/token/'
   | '/organizations/$organizationIdOrSlug/seer/monitoring-integrations/$integrationId/token/'
+  | '/organizations/$organizationIdOrSlug/seer/nav-links/'
   | '/organizations/$organizationIdOrSlug/seer/onboarding-check/'
   | '/organizations/$organizationIdOrSlug/seer/projects/'
   | '/organizations/$organizationIdOrSlug/seer/runs/'
