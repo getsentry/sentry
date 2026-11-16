@@ -7,7 +7,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {StacktraceOrder, type AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 
 import {getThreadException} from './threads/threadSelector/getThreadException';
 
@@ -152,7 +152,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
       case 'application/x-www-form-urlencoded':
         result +=
           ' \\\n --data "' +
-          escapeBashString(qs.stringify(data.data as Record<string, any>)) +
+          escapeBashString(stringify(data.data as Record<string, any>)) +
           '"';
         break;
 
@@ -191,7 +191,7 @@ export function stringifyQueryList(
       }
     }
   }
-  return qs.stringify(queryObj);
+  return stringify(queryObj);
 }
 
 export function getFullUrl(data: EntryRequest['data']): string | undefined {

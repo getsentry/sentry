@@ -1,4 +1,4 @@
-import {parse, parseUrl, stringify, stringifyUrl} from './qs';
+import {parse, stringify, stringifyUrl} from './qs';
 
 describe('stringify', () => {
   it('sorts keys, repeats array keys and writes null as a bare key', () => {
@@ -60,15 +60,6 @@ describe('parse', () => {
 
   it('only splits a parameter on its first equals sign', () => {
     expect(parse('query=a=b&&x=%3D')).toEqual({query: 'a=b', x: '='});
-  });
-});
-
-describe('parseUrl', () => {
-  it('splits the URL from its query and drops the hash', () => {
-    expect(parseUrl('https://example.com/issues/?b=2&a=1#details')).toEqual({
-      url: 'https://example.com/issues/',
-      query: {a: '1', b: '2'},
-    });
   });
 });
 

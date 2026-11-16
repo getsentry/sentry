@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie';
 
-import * as qs from './url/qs';
+import {parse} from './url/qs';
 
 type PendingInvite = {
   memberId: number;
@@ -15,5 +15,5 @@ export function getPendingInvite(): PendingInvite | null {
     return null;
   }
 
-  return qs.parse(data) as any;
+  return parse(data) as any;
 }

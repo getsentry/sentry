@@ -7,7 +7,7 @@ import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {uniqueId} from 'sentry/utils/guid';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-import * as qs from 'sentry/utils/url/qs';
+import {parse} from 'sentry/utils/url/qs';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
 
 import type {Subscription} from 'getsentry/types';
@@ -71,7 +71,7 @@ const hasAnalyticsDebug = () => localStorageWrapper.getItem('DEBUG_ANALYTICS') =
 const getCustomReferrer = () => {
   try {
     // pull the referrer from the query parameter of the page
-    const {referrer} = qs.parse(window.location.search) || {};
+    const {referrer} = parse(window.location.search) || {};
     // pull the referrer from session storage.
     const storedReferrer = readStorageValue(CUSTOM_REFERRER_KEY, null) as string | null;
     // ?referrer takes precedence, but still unset session stored referrer.

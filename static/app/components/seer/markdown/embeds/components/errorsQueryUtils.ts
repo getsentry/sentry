@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 
 export type ErrorsQueryData = EmbedOutput<'errorsQuery'>;
 
@@ -66,7 +66,7 @@ export function getErrorsQueryHref(
     SavedQueryDatasets.ERRORS
   );
 
-  return `${target.pathname}?${qs.stringify(target.query, {skipNull: true})}`;
+  return `${target.pathname}?${stringify(target.query, {skipNull: true})}`;
 }
 
 const AGGREGATE_FIELD_PATTERN = /\(.*\)/;

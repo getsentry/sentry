@@ -14,7 +14,7 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {encodeSort} from 'sentry/utils/queryString';
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -263,7 +263,7 @@ const getEventViewDiscoverPath = (
   // `EventView#getResultsViewUrlTarget` omits those! Get them manually
   discoverUrlTarget.query.query = eventView.getQueryWithAdditionalConditions();
 
-  return `${discoverUrlTarget.pathname}?${qs.stringify(
+  return `${discoverUrlTarget.pathname}?${stringify(
     omit(discoverUrlTarget.query, ['widths']) // Column widths are not useful in this case
   )}`;
 };

@@ -35,7 +35,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {FieldKind} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 import {DEFAULT_STATS_PERIOD} from './data';
@@ -263,7 +263,7 @@ export function getWidgetDiscoverUrl(
     selection.projects.length === 0 ? '' : discoverLocation.query.project;
 
   // Construct and return the discover url
-  const discoverPath = `${discoverLocation.pathname}?${qs.stringify({
+  const discoverPath = `${discoverLocation.pathname}?${stringify({
     ...discoverLocation.query,
     project: projectParam,
   })}`;
@@ -281,7 +281,7 @@ export function getWidgetIssueUrl(
     start && end
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
-  const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
+  const issuesLocation = `/organizations/${organization.slug}/issues/?${stringify({
     query: applyDashboardFilters({
       baseQuery: widget.queries?.[0]?.conditions,
       dashboardFilters,
@@ -308,7 +308,7 @@ export function getWidgetReleasesUrl(
     start && end
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
-  const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
+  const releasesLocation = `/organizations/${organization.slug}/releases/?${stringify({
     ...datetime,
     query: applyDashboardFilters({baseQuery: '', dashboardFilters}),
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL

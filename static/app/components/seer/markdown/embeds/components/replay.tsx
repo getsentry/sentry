@@ -12,7 +12,7 @@ import {
 } from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';
-import * as queryString from 'sentry/utils/url/qs';
+import {stringifyUrl} from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 
@@ -34,7 +34,7 @@ function useReplayHref({id, eventTimestamp}: EmbedOutput<'replay'>): string {
   const pathname = makeReplaysPathname({path: `/${id}/`, organization});
 
   return eventTimestamp
-    ? queryString.stringifyUrl({url: pathname, query: {event_t: eventTimestamp}})
+    ? stringifyUrl({url: pathname, query: {event_t: eventTimestamp}})
     : pathname;
 }
 

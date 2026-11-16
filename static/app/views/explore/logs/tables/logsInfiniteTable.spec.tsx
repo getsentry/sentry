@@ -22,7 +22,7 @@ import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldValueType} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
@@ -680,7 +680,7 @@ describe('LogsInfiniteTable', () => {
     expect(screen.queryByRole('button', {name: 'Copy as JSON'})).not.toBeInTheDocument();
 
     router.navigate(
-      `/organizations/${organization.slug}/explore/logs/?${qs.stringify({
+      `/organizations/${organization.slug}/explore/logs/?${stringify({
         [LOGS_FIELDS_KEY]: visibleColumnFields,
         [LOGS_SORT_BYS_KEY]: '-timestamp',
         [LOGS_ROW_ID_KEY]: '2',

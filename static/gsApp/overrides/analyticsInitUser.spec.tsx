@@ -6,7 +6,7 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 
 import {analyticsInitUser} from 'getsentry/overrides/analyticsInitUser';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
@@ -68,7 +68,7 @@ describe('analyticsInitUser', () => {
       {event_name: 'Start Trial'},
     ];
     const jsonEvents = JSON.stringify(events);
-    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
+    setWindowLocation(`http://localhost/?${stringify({frontend_events: jsonEvents})}`);
     analyticsInitUser(user);
     expect(trackMarketingEvent).toHaveBeenCalledWith('Sign Up', {event_label: 'Google'});
     expect(trackMarketingEvent).toHaveBeenCalledWith('Start Trial', {
@@ -79,7 +79,7 @@ describe('analyticsInitUser', () => {
   it('handles frontend_events as single event', () => {
     const events = {event_name: 'Sign Up', event_label: 'Google'};
     const jsonEvents = JSON.stringify(events);
-    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
+    setWindowLocation(`http://localhost/?${stringify({frontend_events: jsonEvents})}`);
     analyticsInitUser(user);
     expect(trackMarketingEvent).toHaveBeenCalledWith('Sign Up', {event_label: 'Google'});
     expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toEqual(jsonEvents);
@@ -87,7 +87,7 @@ describe('analyticsInitUser', () => {
   it('skip sending event if in session storage', () => {
     const events = {event_name: 'Sign Up', event_label: 'Google'};
     const jsonEvents = JSON.stringify(events);
-    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
+    setWindowLocation(`http://localhost/?${stringify({frontend_events: jsonEvents})}`);
     sessionStorageWrapper.setItem('marketing_event_recorded', jsonEvents);
     analyticsInitUser(user);
     expect(trackMarketingEvent).not.toHaveBeenCalled();
@@ -95,7 +95,7 @@ describe('analyticsInitUser', () => {
   it('handles malformed event_name', () => {
     const events = {event_name: undefined, event_label: 'Google'};
     const jsonEvents = JSON.stringify(events);
-    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
+    setWindowLocation(`http://localhost/?${stringify({frontend_events: jsonEvents})}`);
     analyticsInitUser(user);
     expect(trackMarketingEvent).not.toHaveBeenCalled();
   });
@@ -113,7 +113,7 @@ describe('analyticsInitUser', () => {
       {event_name: 'Start Trial'},
     ];
     const jsonEvents = JSON.stringify(events);
-    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
+    setWindowLocation(`http://localhost/?${stringify({frontend_events: jsonEvents})}`);
     analyticsInitUser(user);
     expect(jest.mocked(trackMarketingEvent).mock.calls).toEqual([
       ['Sign Up', {event_label: 'github'}],
@@ -133,7 +133,7 @@ describe('analyticsInitUser', () => {
     expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toBe('null');
   });
   it('reports invalid frontend_events JSON and still records it in session storage', () => {
-    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: '[{'})}`);
+    setWindowLocation(`http://localhost/?${stringify({frontend_events: '[{'})}`);
     analyticsInitUser(user);
     expect(trackMarketingEvent).not.toHaveBeenCalled();
     expect(Sentry.captureException).toHaveBeenCalledWith(
@@ -147,7 +147,7 @@ describe('analyticsInitUser', () => {
       throw error;
     });
     const jsonEvents = JSON.stringify([{event_name: 'Sign Up'}]);
-    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
+    setWindowLocation(`http://localhost/?${stringify({frontend_events: jsonEvents})}`);
     analyticsInitUser(user);
     expect(Sentry.captureException).toHaveBeenCalledWith(error);
     expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toEqual(jsonEvents);

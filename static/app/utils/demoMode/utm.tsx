@@ -1,4 +1,4 @@
-import * as qs from 'sentry/utils/url/qs';
+import {parse} from 'sentry/utils/url/qs';
 
 const trackableParams = [/^GCLID$/, /^promo_name$/, /^utm_.+$/];
 const trackableParamsRegExp = new RegExp(
@@ -19,7 +19,7 @@ type UTMState = {
 };
 
 export function getUTMState(): UTMState {
-  const query = qs.parse(window.location.search);
+  const query = parse(window.location.search);
   const trackableQuery: Record<string, string> = Object.keys(query).reduce((a, k) => {
     return trackableParamsRegExp.test(k) && !!query[k] ? {...a, [k]: query[k]} : a;
   }, {});

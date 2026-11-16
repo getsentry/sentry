@@ -14,7 +14,7 @@ import {t, tn} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
@@ -168,6 +168,6 @@ function getTraceUrl(
     ...(timestamp === undefined ? dateSelection : {timestamp}),
   };
   return normalizeUrl(
-    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?${qs.stringify(query)}`
+    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?${stringify(query)}`
   );
 }

@@ -1,7 +1,7 @@
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardFilters, GlobalFilter} from 'sentry/views/dashboards/types';
 
@@ -53,7 +53,7 @@ export function usePrebuiltDashboardUrl(
   const {slug} = organization;
 
   applyDashboardFilters(queryParams, filters);
-  const query = Object.keys(queryParams).length ? `?${qs.stringify(queryParams)}` : '';
+  const query = Object.keys(queryParams).length ? `?${stringify(queryParams)}` : '';
   return normalizeUrl(
     `/organizations/${slug}/dashboard/${prebuiltDashboard.id}/${query}`
   );

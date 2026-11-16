@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 
 export function LocationFixture(params: Partial<Location> = {}): Location {
   const location: Location = {
@@ -18,7 +18,7 @@ export function LocationFixture(params: Partial<Location> = {}): Location {
   // nuqs in particular — reads `location.search`. A fixture that sets only one
   // of them is a location that cannot exist, so keep the two in agreement.
   if (params.search === undefined && params.query) {
-    const search = qs.stringify(params.query);
+    const search = stringify(params.query);
     location.search = search ? `?${search}` : '';
   }
 

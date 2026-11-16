@@ -24,7 +24,7 @@ import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRendere
 import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRenderer';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import * as qs from 'sentry/utils/url/qs';
+import {parse, stringify} from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -195,7 +195,7 @@ export function FlamegraphSpans({
       return;
     }
 
-    const span_id = qs.parse(window.location.search).spanId;
+    const span_id = parse(window.location.search).spanId;
     if (!span_id) {
       return;
     }
@@ -491,7 +491,7 @@ export function FlamegraphSpans({
     });
 
     window.open(
-      `${link.pathname}?${qs.stringify(link.query ?? {})}`,
+      `${link.pathname}?${stringify(link.query ?? {})}`,
       '_blank',
       'noopener,noreferrer'
     );

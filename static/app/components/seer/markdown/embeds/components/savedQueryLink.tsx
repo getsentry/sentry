@@ -4,7 +4,7 @@ import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import * as queryString from 'sentry/utils/url/qs';
+import {stringifyUrl} from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {makeLogsPathname} from 'sentry/views/explore/logs/utils';
@@ -54,7 +54,7 @@ export function SavedQueryLink({
   format,
 }: {data: SavedQueryData} & ResourceLinkFormatProps) {
   const organization = useOrganization();
-  const href = queryString.stringifyUrl({
+  const href = stringifyUrl({
     url: datasetPathname(data.dataset, organization),
     query: {id: data.id},
   });

@@ -10,11 +10,6 @@
 
 export type ParsedQuery<T = string> = Record<string, T | T[] | null>;
 
-interface ParsedUrl {
-  query: ParsedQuery;
-  url: string;
-}
-
 interface StringifyOptions {
   /**
    * Leave out keys and array items whose value is `null`.
@@ -184,17 +179,6 @@ export function stringify(
   }
 
   return params.join('&');
-}
-
-/**
- * Splits a URL into the part before `?` and its parsed query. The hash is
- * dropped.
- */
-export function parseUrl(url: string): ParsedUrl {
-  return {
-    url: removeQuery(url),
-    query: parse(extract(url)),
-  };
 }
 
 /**

@@ -5,7 +5,7 @@ import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
 import type {DeepPartial} from 'sentry/types/utils';
 import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import type * as qs from 'sentry/utils/url/qs';
+import type {ParsedQuery} from 'sentry/utils/url/qs';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import type {FlamegraphState} from './flamegraphContext';
@@ -63,7 +63,7 @@ function isView(
 }
 
 export function decodeFlamegraphStateFromQueryParams(
-  query: qs.ParsedQuery
+  query: ParsedQuery
 ): DeepPartial<FlamegraphState> {
   const decoded: DeepPartial<FlamegraphState> = {};
 

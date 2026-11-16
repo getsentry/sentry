@@ -1,7 +1,7 @@
 import type {NavigateOptions} from 'react-router';
 import type {Location} from 'history';
 
-import * as qs from './url/qs';
+import {stringify} from './url/qs';
 import type {ReactRouter3Navigate} from './useNavigate';
 
 interface NavigateTarget {
@@ -15,7 +15,7 @@ export function navigateIfQueryChanged(
   target: NavigateTarget,
   options?: NavigateOptions
 ): void {
-  if (qs.stringify(target.query) !== qs.stringify(location.query)) {
+  if (stringify(target.query) !== stringify(location.query)) {
     navigate({...target, pathname: target.pathname ?? location.pathname}, options);
   }
 }

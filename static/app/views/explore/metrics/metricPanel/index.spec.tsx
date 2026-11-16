@@ -14,7 +14,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as qs from 'sentry/utils/url/qs';
+import {parse} from 'sentry/utils/url/qs';
 import * as useMetricTraceDetailModule from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
@@ -553,7 +553,7 @@ describe('MetricPanel', () => {
       true
     );
 
-    const parsedQuery = qs.parse(href.split('?')[1]!);
+    const parsedQuery = parse(href.split('?')[1]!);
     expect(parsedQuery).toEqual(
       expect.objectContaining({
         mode: 'samples',
@@ -583,7 +583,7 @@ describe('MetricPanel', () => {
       )
     ).toBe(true);
 
-    const openInExploreQuery = qs.parse(openInExploreHref.split('?')[1]!);
+    const openInExploreQuery = parse(openInExploreHref.split('?')[1]!);
     expect(openInExploreQuery).toEqual(
       expect.objectContaining({
         project: project.id,

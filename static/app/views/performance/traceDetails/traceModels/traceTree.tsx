@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
@@ -1343,7 +1343,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           batch.map(batchTraceData => {
             return fetchTrace(api, {
               orgSlug: organization.slug,
-              query: qs.stringify(
+              query: stringify(
                 getTraceQueryParams(urlParams, filters.selection, {
                   timestamp: batchTraceData.timestamp,
                 })

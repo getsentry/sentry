@@ -3,7 +3,7 @@ import {IconIssues} from '@sentry/icons/issues';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import * as queryString from 'sentry/utils/url/qs';
+import {stringifyUrl} from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
@@ -20,7 +20,7 @@ export function getIssuesQueryHref(
   }: EmbedOutput<'issuesQuery'>,
   organizationSlug: string
 ) {
-  return queryString.stringifyUrl({
+  return stringifyUrl({
     url: normalizeUrl(`/organizations/${organizationSlug}/issues/`),
     query: {
       query,

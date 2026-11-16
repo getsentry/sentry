@@ -20,7 +20,7 @@ import {
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
-import * as qs from 'sentry/utils/url/qs';
+import {parse} from 'sentry/utils/url/qs';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -75,7 +75,7 @@ export default function ContinuousProfileFlamegraphWrapper() {
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
     const queryStringState = decodeFlamegraphStateFromQueryParams(
-      qs.parse(window.location.search)
+      parse(window.location.search)
     );
 
     return {

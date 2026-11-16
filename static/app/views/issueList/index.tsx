@@ -11,7 +11,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import * as qs from 'sentry/utils/url/qs';
+import {parse} from 'sentry/utils/url/qs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -46,7 +46,7 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
   const previousViewData = usePrevious(view);
 
   useEffect(() => {
-    const query = qs.parse(window.location.search);
+    const query = parse(window.location.search);
 
     if (
       view &&

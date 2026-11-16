@@ -10,7 +10,7 @@ import {Link} from '@sentry/scraps/link';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import * as qs from 'sentry/utils/url/qs';
+import {stringify} from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -182,7 +182,7 @@ export function getTraceLinkForIssue(
     searchParams.node = pathToNode;
   }
 
-  return `${traceTarget.pathname}?${qs.stringify(searchParams)}`;
+  return `${traceTarget.pathname}?${stringify(searchParams)}`;
 }
 
 const OverlayWrapper = styled('div')`

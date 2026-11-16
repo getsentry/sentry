@@ -4,7 +4,7 @@ import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import * as queryString from 'sentry/utils/url/qs';
+import {stringifyUrl} from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {getAgentNamesFilter} from 'sentry/views/insights/pages/agents/utils/query';
@@ -36,7 +36,7 @@ export function getConversationsQueryHref(
 ): string {
   const {query, agents, projects, environments, statsPeriod, start, end} = data;
 
-  return queryString.stringifyUrl({
+  return stringifyUrl({
     url: normalizeUrl(
       `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
     ),

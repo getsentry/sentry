@@ -14,7 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {TagValue, TagWithTopValues} from 'sentry/types/group';
-import * as qs from 'sentry/utils/url/qs';
+import {parse} from 'sentry/utils/url/qs';
 
 import {TagDetailsDrawerContent} from './tagDetailsDrawerContent';
 
@@ -312,7 +312,7 @@ describe('TagDetailsDrawerContent', () => {
 
     const link = new URL(discoverMenuItem.getAttribute('href') ?? '', 'http://localhost');
     expect(link.pathname).toBe('/organizations/org-slug/explore/errors/results/');
-    const discoverQueryParams = qs.parse(link.search);
+    const discoverQueryParams = parse(link.search);
 
     expect(discoverQueryParams).toEqual({
       dataset: 'errors',

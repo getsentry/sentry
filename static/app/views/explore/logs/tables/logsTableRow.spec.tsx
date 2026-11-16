@@ -17,7 +17,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import * as qs from 'sentry/utils/url/qs';
+import {parse} from 'sentry/utils/url/qs';
 import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
@@ -598,7 +598,7 @@ describe('logsTableRow', () => {
       true
     );
 
-    const parsedQuery = qs.parse(href.split('?')[1]!);
+    const parsedQuery = parse(href.split('?')[1]!);
     expect(parsedQuery).toEqual(
       expect.objectContaining({
         mode: 'samples',
@@ -639,7 +639,7 @@ describe('logsTableRow', () => {
         .getByText('Explore connected spans')
         .closest('a')!
         .getAttribute('href')!;
-      expect(JSON.parse(qs.parse(href.split('?')[1]!).crossEvents as string)).toEqual([
+      expect(JSON.parse(parse(href.split('?')[1]!).crossEvents as string)).toEqual([
         {type: 'logs', query: `message:"${fullMessage}"`},
       ]);
     });
