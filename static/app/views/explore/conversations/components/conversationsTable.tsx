@@ -236,6 +236,7 @@ interface ConversationsTableProps {
   disableCellActions?: boolean;
   hidePagination?: boolean;
   persistColumnWidths?: boolean;
+  projects?: number[];
 }
 
 export function ConversationsTable({
@@ -244,10 +245,12 @@ export function ConversationsTable({
   disableCellActions = false,
   hidePagination = false,
   persistColumnWidths = true,
+  projects,
 }: ConversationsTableProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const detailProjects = projects ?? selection.projects;
   const {data, isFetching, error, pageLinks, setCursor, unsetCursor, sort, setSort} =
     conversations;
 
@@ -352,11 +355,7 @@ export function ConversationsTable({
       ) {
         return;
       }
-      const url = getConversationDetailUrl(
-        organization.slug,
-        dataRow,
-        selection.projects
-      );
+      const url = getConversationDetailUrl(organization.slug, dataRow, detailProjects);
       // Mirror native link behavior instead of navigating in place: Cmd/Ctrl+click
       // opens a new tab (no features string) and Shift+click opens a new window
       // (a features string makes browsers open a window rather than a tab).
@@ -370,7 +369,7 @@ export function ConversationsTable({
       }
       navigate(url);
     },
-    [navigate, organization.slug, selection.projects]
+    [detailProjects, navigate, organization.slug]
   );
 
   const getColumnSort = useCallback(

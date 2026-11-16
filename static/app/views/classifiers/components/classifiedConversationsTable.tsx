@@ -37,6 +37,7 @@ export function ClassifiedConversationsTable({
 }: ClassifiedConversationsTableProps) {
   const conversations = useClassifiedConversations(classifier);
   const {results} = conversations;
+  const projects = useMemo(() => [Number(classifier.projectId)], [classifier.projectId]);
 
   const additionalColumns = useMemo<ConversationsTableColumn[]>(
     () => [
@@ -61,6 +62,7 @@ export function ClassifiedConversationsTable({
       additionalColumns={additionalColumns}
       disableCellActions
       persistColumnWidths={false}
+      projects={projects}
     />
   );
 }

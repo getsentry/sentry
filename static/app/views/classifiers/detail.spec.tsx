@@ -173,6 +173,32 @@ describe('ClassifierDetail', () => {
     );
   });
 
+  it("opens a classified conversation in the classifier's project", async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({
+        id: '10',
+        projectId: '1',
+        resultAttribute: 'user_frustration',
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {data: [{'gen_ai.conversation.id': 'conv-1', [RESULT_FIELD]: 0.5}]},
+    });
+    MockApiClient.addMockResponse({
+      url: conversationsUrl,
+      body: [ConversationFixture('conv-1', 'First conversation')],
+    });
+
+    const {router} = renderDetail();
+
+    await userEvent.click(await screen.findByText('First conversation'));
+
+    expect(router.location.pathname).toContain('/conv-1/');
+    expect(router.location.query.project).toBe('1');
+  });
+
   it('charts the count of the classifier result attribute', async () => {
     const yAxis = 'count(tags[sentry.enrichment.user_frustration,number])';
     MockApiClient.addMockResponse({
