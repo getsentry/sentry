@@ -463,6 +463,9 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     _trace("django.setup")
     django.setup()
 
+    _trace("monkeypatch_request_principal")
+    monkeypatch_request_principal()
+
     _trace("validate_regions")
     validate_regions(settings)
 
@@ -599,6 +602,12 @@ def monkeypatch_django_migrations() -> None:
     from sentry.new_migrations.monkey import monkey_migrations
 
     monkey_migrations()
+
+
+def monkeypatch_request_principal() -> None:
+    from sentry.auth.principal import patch_request_principal
+
+    patch_request_principal()
 
 
 def monkeypatch_drf_listfield_serializer_errors() -> None:
@@ -773,7 +782,11 @@ def validate_snuba() -> None:
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check
         settings.SENTRY_TSDB
-        in ("sentry.tsdb.redissnuba.RedisSnubaTSDB", "sentry.utils.services.ServiceDelegator")
+        in (
+            "sentry.tsdb.snuba.SnubaTSDB",
+            "sentry.tsdb.redissnuba.RedisSnubaTSDB",
+            "sentry.utils.services.ServiceDelegator",
+        )
     )
 
     eventstream_is_snuba = (

@@ -8,12 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
-import {
-  CONVERSATION_SPAN_DETAIL_TABS,
-  ConversationSpanDetail,
-} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
 import {
   useConversation,
   type UseConversationsOptions,
@@ -25,6 +19,13 @@ import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/g
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
+
+import {ConversationContentLayout} from './conversationLayout';
+import {
+  CONVERSATION_SPAN_DETAIL_TABS,
+  ConversationSpanDetail,
+} from './conversationSpanDetail';
+import {MessagesPanel} from './messagesPanel';
 
 export type ConversationViewTab = 'transcript' | 'timeline';
 

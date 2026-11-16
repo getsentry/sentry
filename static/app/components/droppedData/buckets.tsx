@@ -1,9 +1,6 @@
-import type {
-  DroppedDataBucket,
-  DroppedEventsBucket,
-  OutcomeVolume,
-} from 'sentry/components/droppedData/types';
 import {defined} from 'sentry/utils/defined';
+
+import type {DroppedDataBucket, OutcomeRow, OutcomeVolume} from './types';
 
 const MIN_HIGHLIGHT_RATIO = 0.001;
 
@@ -17,7 +14,7 @@ interface BucketDraft {
 
 function getOrCreateDraft(
   drafts: Map<number, BucketDraft>,
-  {start, end}: DroppedEventsBucket
+  {start, end}: OutcomeRow
 ): BucketDraft {
   let draft = drafts.get(start);
 
@@ -29,10 +26,7 @@ function getOrCreateDraft(
   return draft;
 }
 
-function addDroppedEvent(
-  drafts: Map<number, BucketDraft>,
-  event: DroppedEventsBucket
-): void {
+function addDroppedEvent(drafts: Map<number, BucketDraft>, event: OutcomeRow): void {
   const draft = getOrCreateDraft(drafts, event);
 
   if (!event.tags.includes('unintentional')) {
@@ -68,8 +62,8 @@ function toBucket(draft: BucketDraft): DroppedDataBucket {
  * events so every total has a denominator.
  */
 export function groupIntoBuckets(
-  droppedEvents: DroppedEventsBucket[],
-  acceptedEvents: DroppedEventsBucket[] = []
+  droppedEvents: OutcomeRow[],
+  acceptedEvents: OutcomeRow[] = []
 ): DroppedDataBucket[] {
   const drafts = new Map<number, BucketDraft>();
 
@@ -88,8 +82,8 @@ export function isHighlighted(bucket: DroppedDataBucket): boolean {
 }
 
 export function hasDroppedData(
-  droppedEvents: DroppedEventsBucket[] | undefined,
-  acceptedEvents?: DroppedEventsBucket[]
+  droppedEvents: OutcomeRow[] | undefined,
+  acceptedEvents?: OutcomeRow[]
 ): boolean {
   return (
     defined(droppedEvents) &&

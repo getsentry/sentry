@@ -46,7 +46,7 @@ class TestCategorizeComparisonImagesUnexpectedStatus:
 
 
 class TestCategorizeComparisonImagesAllStatuses:
-    def _base_images(self) -> dict[str, dict]:
+    def _base_images(self) -> dict[str, dict[str, object]]:
         return {
             "changed_a.png": {
                 "content_hash": "base_ca",
@@ -76,7 +76,7 @@ class TestCategorizeComparisonImagesAllStatuses:
             "skipped.png": {"content_hash": "base_sk", "width": 16, "height": 26},
         }
 
-    def _comparison_images(self) -> dict[str, dict]:
+    def _comparison_images(self) -> dict[str, dict[str, object]]:
         return {
             "changed_a.png": {
                 "status": "changed",

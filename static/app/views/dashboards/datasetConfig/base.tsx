@@ -123,6 +123,7 @@ export type HeatmapWidgetQueryParams = Pick<
   | 'dashboardFilters'
   | 'skipDashboardFilterParens'
   | 'widgetInterval'
+  | 'samplingMode'
 > & {
   yBuckets?: number;
 };

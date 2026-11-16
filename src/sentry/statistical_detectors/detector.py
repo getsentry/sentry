@@ -4,7 +4,7 @@ import heapq
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import ClassVar
@@ -70,7 +70,7 @@ class RegressionDetector(ABC):
     def min_throughput_threshold(cls) -> int: ...
 
     @classmethod
-    def configure_tags(cls):
+    def configure_tags(cls) -> None:
         sentry_sdk.set_tag("regression.source", cls.source)
         sentry_sdk.set_attribute("regression.source", cls.source)
         sentry_sdk.set_tag("regression.kind", cls.source)
@@ -82,7 +82,9 @@ class RegressionDetector(ABC):
 
     @classmethod
     @abstractmethod
-    def detector_store_factory(cls) -> DetectorStore: ...
+    def detector_store_factory(
+        cls,
+    ) -> DetectorStore[Mapping[str | bytes, bytes | float | int | str]]: ...
 
     @classmethod
     def all_payloads(
@@ -109,7 +111,7 @@ class RegressionDetector(ABC):
 
     @classmethod
     def detect_trends(
-        cls, projects: list[Project], start: datetime, batch_size=100
+        cls, projects: list[Project], start: datetime, batch_size: int = 100
     ) -> Generator[TrendBundle]:
         unique_project_ids: set[int] = set()
 
@@ -200,7 +202,11 @@ class RegressionDetector(ABC):
 
     @classmethod
     def all_timeseries(
-        cls, objects: list[tuple[Project, int | str]], start: datetime, function: str, chunk_size=25
+        cls,
+        objects: list[tuple[Project, int | str]],
+        start: datetime,
+        function: str,
+        chunk_size: int = 25,
     ) -> Generator[tuple[int, int | str, SnubaTSResult]]:
         # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
         # 336 data points per transaction name, so we can safely get 25 transaction
@@ -226,7 +232,7 @@ class RegressionDetector(ABC):
         objects: list[tuple[Project, int | str]],
         start: datetime,
         function: str,
-        timeseries_per_batch=10,
+        timeseries_per_batch: int = 10,
         viewer_context: SeerViewerContext | None = None,
     ) -> Generator[BreakpointData]:
         serializer = SnubaTSResultSerializer(None, None, None)
@@ -317,7 +323,7 @@ class RegressionDetector(ABC):
     def get_regression_groups(
         cls,
         bundles: Generator[TrendBundle],
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[TrendBundle]:
         for trend_chunk in chunked(bundles, batch_size):
             active_regression_groups = {
@@ -355,7 +361,7 @@ class RegressionDetector(ABC):
         cls,
         bundles: Generator[TrendBundle],
         timestamp: datetime,
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[TrendBundle]:
         groups_to_resolve = []
 
@@ -403,7 +409,7 @@ class RegressionDetector(ABC):
         cls,
         bundles: Generator[TrendBundle],
         timestamp: datetime,
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[TrendBundle]:
         escalated = 0
 
@@ -524,7 +530,7 @@ class RegressionDetector(ABC):
     def _filter_escalating_groups(
         cls,
         bundles_to_escalate: list[TrendBundle],
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[tuple[TrendBundle, bool]]:
         now = django_timezone.now()
 
@@ -584,7 +590,7 @@ class RegressionDetector(ABC):
     def get_regression_versions(
         cls,
         regressions: Generator[BreakpointData],
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[tuple[int, datetime | None, BreakpointData]]:
         now = django_timezone.now()
         active_regressions = []
@@ -667,7 +673,7 @@ class RegressionDetector(ABC):
     def save_regressions_with_versions(
         cls,
         regressions: Generator[BreakpointData],
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[BreakpointData]:
         versioned_regressions = cls.get_regression_versions(regressions)
 

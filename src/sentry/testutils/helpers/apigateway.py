@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
+from typing import IO, cast
 from urllib.parse import parse_qs
 
 import responses
@@ -7,6 +9,7 @@ from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.test import override_settings
 from django.urls import re_path
+from requests import PreparedRequest
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +18,7 @@ import sentry.api.urls as api_urls
 from sentry.api.base import Endpoint, cell_silo_endpoint, control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.feedback.endpoints.error_page_embed import ErrorEmbedResolver
+from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
 from sentry.types.cell import Cell
 from sentry.utils import json
@@ -24,7 +28,7 @@ from sentry.utils import json
 class ControlEndpoint(ControlSiloOrganizationEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
 
-    def get(self, request, organization, **kwargs):
+    def get(self, request: Request, organization: Organization, **kwargs: object) -> Response:
         return Response({"proxy": False})
 
 
@@ -32,10 +36,10 @@ class ControlEndpoint(ControlSiloOrganizationEndpoint):
 class RegionEndpoint(OrganizationEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
 
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         return Response({"proxy": False})
 
-    def post(self, request, organization):
+    def post(self, request: Request, organization: Organization) -> HttpResponseRedirect:
         return HttpResponseRedirect("https://zombo.com")
 
 
@@ -85,34 +89,41 @@ urlpatterns = [
 ] + api_urls.urlpatterns
 
 
-def verify_request_body(body, headers):
+def verify_request_body(
+    body: object, headers: Mapping[str, str]
+) -> Callable[[PreparedRequest], tuple[int, Mapping[str, str], str]]:
     """Wrapper for a callback function for responses.add_callback"""
 
-    def request_callback(request):
+    def request_callback(request: PreparedRequest) -> tuple[int, Mapping[str, str], str]:
         if request.headers.get("content-type") == "application/json":
-            assert json.load(request.body) == body
+            assert json.load(cast(IO[bytes], request.body)) == body
         else:
-            assert request.body.read() == body
+            assert cast(IO[bytes], request.body).read() == body
         assert (request.headers[key] == headers[key] for key in headers)
         return 200, {}, json.dumps({"proxy": True})
 
     return request_callback
 
 
-def verify_request_headers(headers):
+def verify_request_headers(
+    headers: Mapping[str, str],
+) -> Callable[[PreparedRequest], tuple[int, Mapping[str, str], str]]:
     """Wrapper for a callback function for responses.add_callback"""
 
-    def request_callback(request):
+    def request_callback(request: PreparedRequest) -> tuple[int, Mapping[str, str], str]:
         assert (request.headers[key] == headers[key] for key in headers)
         return 200, {}, json.dumps({"proxy": True})
 
     return request_callback
 
 
-def verify_request_params(params, headers):
+def verify_request_params(
+    params: Mapping[str, str | list[str]], headers: Mapping[str, str]
+) -> Callable[[PreparedRequest], tuple[int, Mapping[str, str], str]]:
     """Wrapper for a callback function for responses.add_callback"""
 
-    def request_callback(request):
+    def request_callback(request: PreparedRequest) -> tuple[int, Mapping[str, str], str]:
+        assert request.url is not None
         request_params = parse_qs(request.url.split("?")[1])
         assert (request.headers[key] == headers[key] for key in headers)
         for key in params:
@@ -126,18 +137,20 @@ def verify_request_params(params, headers):
     return request_callback
 
 
-def verify_file_body(file_body, headers):
+def verify_file_body(
+    file_body: bytes, headers: Mapping[str, str]
+) -> Callable[[PreparedRequest], tuple[int, Mapping[str, str], str]]:
     """Wrapper for a callback function for responses.add_callback"""
 
-    def request_callback(request):
-        assert file_body in request.body.read()
+    def request_callback(request: PreparedRequest) -> tuple[int, Mapping[str, str], str]:
+        assert file_body in cast(IO[bytes], request.body).read()
         assert (request.headers[key] == headers[key] for key in headers)
         return 200, {}, json.dumps({"proxy": True})
 
     return request_callback
 
 
-def provision_middleware():
+def provision_middleware() -> list[str]:
     middleware = list(settings.MIDDLEWARE)
     if "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware" not in middleware:
         middleware = ["sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware"] + middleware
@@ -155,7 +168,7 @@ class ApiGatewayTestCase(APITestCase):
         address="http://us.internal.sentry.io",
     )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         responses.add(
             responses.GET,
@@ -176,11 +189,16 @@ class ApiGatewayTestCase(APITestCase):
         self.organization = self.create_organization(cell=self.CELL)
 
         # Echos the request body and header back for verification
-        def return_request_body(request):
+        def return_request_body(
+            request: PreparedRequest,
+        ) -> tuple[int, Mapping[str, str], str | bytes | None]:
             return (200, request.headers, request.body)
 
         # Echos the query params and header back for verification
-        def return_request_params(request):
+        def return_request_params(
+            request: PreparedRequest,
+        ) -> tuple[int, Mapping[str, str], str | bytes | None]:
+            assert request.url is not None
             params = parse_qs(request.url.split("?")[1])
             return (200, request.headers, json.dumps(params).encode())
 

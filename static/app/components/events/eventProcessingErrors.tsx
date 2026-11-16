@@ -6,8 +6,6 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
-import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {
   KeyValueTableCard,
   KeyValueTableCardGrid,
@@ -17,6 +15,9 @@ import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import type {ErrorMessage} from './interfaces/crashContent/exception/actionableItems';
+import {useActionableItemsWithProguardErrors} from './interfaces/crashContent/exception/useActionableItems';
 
 type Props = {
   event: Event;

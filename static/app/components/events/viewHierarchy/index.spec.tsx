@@ -9,14 +9,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {
-  getPlatform,
-  getPlatformViewConfig,
-} from 'sentry/components/events/viewHierarchy/utils';
 import type {Project} from 'sentry/types/project';
 
 import type {ViewHierarchyData} from './index';
 import {ViewHierarchy} from './index';
+import {getPlatform, getPlatformViewConfig} from './utils';
 
 // Mocks for useVirtualizedTree hook
 class ResizeObserver {

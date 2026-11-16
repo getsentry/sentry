@@ -1,4 +1,4 @@
-from typing import Any, NotRequired, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -16,6 +17,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
     CellOrganizationIntegrationBaseEndpoint,
 )
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -23,17 +25,30 @@ from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class IntegrationRepository(TypedDict):
-    name: str
-    identifier: str
-    isInstalled: bool
-    defaultBranch: str | None
-    externalId: str
-    url: str | None
+    name: Annotated[str, ApiDescription("Name of the repository")]
+    identifier: Annotated[
+        str, ApiDescription("Identifier of the repository in the provider, such as owner/name")
+    ]
+    isInstalled: Annotated[
+        bool, ApiDescription("Whether the repository is already added to Sentry")
+    ]
+    defaultBranch: Annotated[str | None, ApiDescription("Default branch of the repository")]
+    externalId: Annotated[str, ApiDescription("ID of the repository in the provider")]
+    url: Annotated[str | None, ApiDescription("URL of the repository")]
 
 
 class IntegrationRepositoriesResponse(TypedDict):
-    repos: list[IntegrationRepository]
-    searchable: NotRequired[bool]
+    repos: Annotated[
+        list[IntegrationRepository], ApiDescription("Repositories the integration can access")
+    ]
+    searchable: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription(
+                "Whether the provider supports searching repositories with the search query parameter"
+            ),
+        ]
+    ]
 
 
 @extend_schema(tags=["Integration"])
@@ -110,20 +125,24 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
             search = request.GET.get("search")
             accessible_only = request.GET.get("accessibleOnly", "false").lower() == "true"
 
-            try:
+            with install.record_event(
+                SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES
+            ).capture() as lifecycle:
                 # This endpoint backs interactive repo pickers (the onboarding
                 # repo selector and the code-mappings path config form), so opt
                 # into parallel pagination for the latency win. Providers that
                 # don't implement it ignore the flag; internal/background callers
                 # of get_repositories keep the serial default.
-                repositories = install.get_repositories(
-                    search,
-                    accessible_only=accessible_only,
-                    use_cache=accessible_only and bool(search),
-                    parallel=True,
-                )
-            except (IntegrationError, IdentityNotValid) as e:
-                return self.respond({"detail": str(e)}, status=400)
+                try:
+                    repositories = install.get_repositories(
+                        search,
+                        accessible_only=accessible_only,
+                        use_cache=accessible_only and bool(search),
+                        parallel=True,
+                    )
+                except (IntegrationError, IdentityNotValid) as e:
+                    lifecycle.record_halt(e, create_issue=False)
+                    return self.respond({"detail": str(e)}, status=400)
 
             installable_only = request.GET.get("installableOnly", "false").lower() == "true"
 

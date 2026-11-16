@@ -20,6 +20,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            canonical_case=True,
         ),
         ResolvedAttribute(
             public_alias="severity_number",
@@ -53,6 +54,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            canonical_case=True,
             context=AttributeContext(
                 brief=(
                     "A trace represents the record of the entire operation you want to "

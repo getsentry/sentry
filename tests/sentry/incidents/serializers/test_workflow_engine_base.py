@@ -1,4 +1,5 @@
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
 from django.utils import timezone
 
@@ -21,7 +22,6 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
     Detector,
-    IncidentGroupOpenPeriod,
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -38,11 +38,7 @@ class MetricSerializerTestCase(BaseWorkflowTest):
             workflow_condition_group=self.create_data_condition_group(
                 organization=self.organization
             ),
-            config={
-                "detection_type": AlertRuleDetectionType.STATIC,
-                "comparison_delta": None,
-                **config,
-            },
+            config={"detection_type": AlertRuleDetectionType.STATIC, **config},
         )
         query = self.create_snuba_query(query="level:error")
         subscription = self.create_snuba_query_subscription(snuba_query_id=query.id)
@@ -64,7 +60,7 @@ class MetricSerializerTestCase(BaseWorkflowTest):
         condition = self.create_data_condition(
             condition_group=detector.workflow_condition_group,
             type=Condition.GREATER,
-            comparison=threshold,
+            comparison=cast("str | int | Mapping[str, object]", threshold),
             condition_result=priority,
         )
         action_group = self.create_data_condition_group(organization=self.organization)
@@ -234,7 +230,7 @@ class TestWorkflowEngineSerializer(MetricSerializerTestCase):
         )
         self.group_open_period = GroupOpenPeriod.objects.get(group=self.group, project=self.project)
         self.group_open_period.update(date_started=self.now)
-        self.incident_group_open_period = IncidentGroupOpenPeriod.objects.create(
+        self.incident_group_open_period = self.create_incident_group_open_period(
             group_open_period=self.group_open_period,
             incident_id=12401,
             incident_identifier=12402,

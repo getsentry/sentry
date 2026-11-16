@@ -5,6 +5,7 @@ import sentry_sdk
 from pydantic import ValidationError
 from sentry_sdk import traces
 
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -17,14 +18,10 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     ResolvedGreenCheckSuite,
     confirm_green_check_suite,
     green_review_side_effects_enabled,
-    resolve_check_suite_flag_gate,
     resolve_green_check_suite,
     should_defer_pr_iteration,
 )
-from sentry.seer.autofix.pr_iteration.constants import (
-    FAILING_CHECK_SUITE_FLAGS,
-    GREEN_CHECK_SUITE_FLAGS,
-)
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER_SLUG
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
@@ -134,19 +131,17 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent) -
             attributes={"sentry.op": "function"},
             parent_span=None,
         ):
+            # GitHub Enterprise delivers the same check_suite events; turn it away
+            # before queueing a task. See ``PR_ITERATION_PROVIDER``.
+            if check_suite_event.subscription_event["type"] != PR_ITERATION_PROVIDER_SLUG:
+                return None
+
             if check_suite_event.action != "completed":
                 return None
 
             conclusion = check_suite_event.check_suite["conclusion"]
             is_green = conclusion in GREEN_CONCLUSIONS
             if not is_green and conclusion not in FAILURE_CONCLUSIONS:
-                return None
-
-            # Drop suites nobody behind the installation can act on
-            gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
-            if not resolve_check_suite_flag_gate(
-                check_suite_event, gate_flags
-            ).flagged_organization_ids:
                 return None
 
             # Lazy: the task module can't load while this listener registers in AppConfig.ready.
@@ -169,51 +164,52 @@ def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
         if resolved is None:
             return None
 
-        run_state = resolved.autofix_run.run_state
-        # A green suite carries no feedback of its own: it pre-empts an iteration
-        # some earlier feedback already deferred, so it never opens a row.
-        log_ctx = bootstrap_iteration(
-            logger=logger,
-            run_state=run_state,
-            organization_id=resolved.organization.id,
-            group_id=resolved.autofix_run.group_id,
-            create=False,
-        )
-        # Peek the queue for parked check-suite feedback on this head, then
-        # ``should_defer_pr_iteration`` (GitHub sweep) only if something is
-        # waiting. Isolated so a failure cannot swallow undraft / review-request
-        # below.
-        try:
-            _retrigger_deferred_iteration(log_ctx, resolved)
-        except Exception as e:
-            log_ctx.error(
-                "autofix.pr_iteration.green_check_suite.retrigger_deferred_consume_failed",
-                error_type=type(e).__name__,
+        with webhook_viewer_context(resolved.organization.id):
+            run_state = resolved.autofix_run.run_state
+            # A green suite carries no feedback of its own: it pre-empts an iteration
+            # some earlier feedback already deferred, so it never opens a row.
+            log_ctx = bootstrap_iteration(
+                logger=logger,
+                run_state=run_state,
+                organization_id=resolved.organization.id,
+                group_id=resolved.autofix_run.group_id,
+                create=False,
             )
+            # Peek the queue for parked check-suite feedback on this head, then
+            # ``should_defer_pr_iteration`` (GitHub sweep) only if something is
+            # waiting. Isolated so a failure cannot swallow undraft / review-request
+            # below.
+            try:
+                _retrigger_deferred_iteration(log_ctx, resolved)
+            except Exception as e:
+                log_ctx.error(
+                    "autofix.pr_iteration.green_check_suite.retrigger_deferred_consume_failed",
+                    error_type=type(e).__name__,
+                )
 
-        if not green_review_side_effects_enabled(resolved):
-            return None
+            if not green_review_side_effects_enabled(resolved):
+                return None
 
-        # Cheap resolve → read markers once → skip SCM if both done → confirm
-        # green → run only the missing side effects. Undraft before
-        # review-request: GitHub may CODEOWNERS-request after undraft; see TODO
-        # on ``request_review_from_context``.
-        ready_for_review_marker = get_run_marker(
-            resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name
-        )
-        review_request_marker = get_run_marker(
-            resolved.seer_run, REVIEW_REQUESTS_EXTRA, resolved.repo_name
-        )
-        if ready_for_review_marker is not None and review_request_marker is not None:
+            # Cheap resolve → read markers once → skip SCM if both done → confirm
+            # green → run only the missing side effects. Undraft before
+            # review-request: GitHub may CODEOWNERS-request after undraft; see TODO
+            # on ``request_review_from_context``.
+            ready_for_review_marker = get_run_marker(
+                resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name
+            )
+            review_request_marker = get_run_marker(
+                resolved.seer_run, REVIEW_REQUESTS_EXTRA, resolved.repo_name
+            )
+            if ready_for_review_marker is not None and review_request_marker is not None:
+                return None
+            ctx = confirm_green_check_suite(resolved)
+            if ctx is None:
+                return None
+            if ready_for_review_marker is None:
+                mark_ready_for_review(ctx)
+            if review_request_marker is None:
+                request_review_from_context(ctx)
             return None
-        ctx = confirm_green_check_suite(resolved)
-        if ctx is None:
-            return None
-        if ready_for_review_marker is None:
-            mark_ready_for_review(ctx)
-        if review_request_marker is None:
-            request_review_from_context(ctx)
-        return None
 
     try:
         raw = orjson.loads(check_suite_event.subscription_event["event"])
@@ -243,76 +239,77 @@ def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
         return None
 
     organization_id = autofix_run.repository.organization_id
-    agent_state = autofix_run.run_state
+    with webhook_viewer_context(organization_id):
+        agent_state = autofix_run.run_state
 
-    # Lazy: pr_state imports the SCM factory, which can't load while this listener registers.
-    from sentry.seer.autofix.pr_iteration.pr_state import iteration_prs_any_external_head
+        # Lazy: pr_state imports the SCM factory, which can't load while this listener registers.
+        from sentry.seer.autofix.pr_iteration.pr_state import iteration_prs_any_external_head
 
-    # Someone else has pushed to the PR, so CI is no longer judging Seer's work alone.
-    if iteration_prs_any_external_head(organization_id, agent_state):
-        logger.info(
-            "autofix.pr_iteration.check_suite.external_head",
-            extra={
-                "run_id": agent_state.run_id,
-                "organization_id": organization_id,
-                "check_suite_id": check_suite_event.check_suite["id"],
-            },
-        )
-        return None
+        # Someone else has pushed to the PR, so CI is no longer judging Seer's work alone.
+        if iteration_prs_any_external_head(organization_id, agent_state):
+            logger.info(
+                "autofix.pr_iteration.check_suite.external_head",
+                extra={
+                    "run_id": agent_state.run_id,
+                    "organization_id": organization_id,
+                    "check_suite_id": check_suite_event.check_suite["id"],
+                },
+            )
+            return None
 
-    feedback = Feedback(source=source)
-    # One identity for both decisions below, so the queue line and the trigger
-    # line of a single check suite are found by the same search.
-    log_ctx = bootstrap_iteration(
-        logger=logger,
-        run_state=agent_state,
-        organization_id=organization_id,
-        group_id=autofix_run.group_id,
-    )
-
-    # Report failures here so they are searchable under the PR-iteration
-    # identity, and swallow them so the task worker does not report the same
-    # failure a second time.
-    try:
-        enqueue_autofix_feedback(
-            log_ctx=log_ctx,
-            run_id=agent_state.run_id,
+        feedback = Feedback(source=source)
+        # One identity for both decisions below, so the queue line and the trigger
+        # line of a single check suite are found by the same search.
+        log_ctx = bootstrap_iteration(
+            logger=logger,
+            run_state=agent_state,
             organization_id=organization_id,
             group_id=autofix_run.group_id,
-            feedback=feedback,
-            referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
-            run_state=agent_state,
         )
 
-        # Defer Now/Later/skip to `should_trigger` (incomplete check runs schedule
-        # a delayed consume rather than dropping the scheduled task entirely). It logs
-        # `autofix.pr_iteration.feedback.trigger` either way.
-        #
-        # Lazy: tasks.seer.pr_iteration → scm.factory → github → jira client
-        # which calls absolute_uri() at import time (needs options cache).
-        # stream.py is loaded in AppConfig.ready before options init.
-        from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
+        # Report failures here so they are searchable under the PR-iteration
+        # identity, and swallow them so the task worker does not report the same
+        # failure a second time.
+        try:
+            enqueue_autofix_feedback(
+                log_ctx=log_ctx,
+                run_id=agent_state.run_id,
+                organization_id=organization_id,
+                group_id=autofix_run.group_id,
+                feedback=feedback,
+                referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
+                run_state=agent_state,
+            )
 
-        decision = trigger_consume_pr_iteration_feedback(
-            log_ctx=log_ctx,
-            run_id=agent_state.run_id,
-            organization_id=organization_id,
-            feedback=feedback,
-            run_state=agent_state,
-        )
-        if decision.task is None and decision.reason == "hard_cap_reached":
-            # Nothing will drain this suite and the run would otherwise just go
-            # quiet, so hand the PR to a human instead.
-            assign_user_for_exhausted_cap(source.event, autofix_run)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        metrics.incr(
-            "autofix.pr_iteration.check_suite.failed",
-            tags={"error_type": type(e).__name__},
-        )
-        log_ctx.error(
-            "autofix.pr_iteration.check_suite.failed",
-            error_type=type(e).__name__,
-            **source.log_fields(agent_state),
-        )
-        return None
+            # Defer Now/Later/skip to `should_trigger` (incomplete check runs schedule
+            # a delayed consume rather than dropping the scheduled task entirely). It logs
+            # `autofix.pr_iteration.feedback.trigger` either way.
+            #
+            # Lazy: tasks.seer.pr_iteration → scm.factory → github → jira client
+            # which calls absolute_uri() at import time (needs options cache).
+            # stream.py is loaded in AppConfig.ready before options init.
+            from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
+
+            decision = trigger_consume_pr_iteration_feedback(
+                log_ctx=log_ctx,
+                run_id=agent_state.run_id,
+                organization_id=organization_id,
+                feedback=feedback,
+                run_state=agent_state,
+            )
+            if decision.task is None and decision.reason == "hard_cap_reached":
+                # Nothing will drain this suite and the run would otherwise just go
+                # quiet, so hand the PR to a human instead.
+                assign_user_for_exhausted_cap(source.event, autofix_run)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            metrics.incr(
+                "autofix.pr_iteration.check_suite.failed",
+                tags={"error_type": type(e).__name__},
+            )
+            log_ctx.error(
+                "autofix.pr_iteration.check_suite.failed",
+                error_type=type(e).__name__,
+                **source.log_fields(agent_state),
+            )
+            return None

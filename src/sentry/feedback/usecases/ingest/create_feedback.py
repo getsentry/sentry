@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import random
+from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
 import jsonschema
@@ -39,11 +40,21 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_contex
 logger = logging.getLogger(__name__)
 
 
+class _FeedbackContext(TypedDict, total=False):
+    associated_event_id: str
+    contact_email: str
+    message: str
+    name: str
+
+
 def make_evidence(
-    feedback, source: FeedbackCreationSource, is_message_spam: bool | None, is_spam_enabled: bool
-):
-    evidence_data = {}
-    evidence_display = []
+    feedback: _FeedbackContext,
+    source: FeedbackCreationSource,
+    is_message_spam: bool | None,
+    is_spam_enabled: bool,
+) -> tuple[dict[str, object], list[IssueEvidence]]:
+    evidence_data: dict[str, object] = {}
+    evidence_display: list[IssueEvidence] = []
     if feedback.get("associated_event_id"):
         evidence_data["associated_event_id"] = feedback["associated_event_id"]
         evidence_display.append(
@@ -169,7 +180,7 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     return ret_event
 
 
-def validate_issue_platform_event_schema(event_data):
+def validate_issue_platform_event_schema(event_data: Mapping[str, object]) -> None:
     """
     The issue platform schema validation does not run in dev atm so we have to do the validation
     ourselves, or else our tests are not representative of what happens in prod.
@@ -177,7 +188,9 @@ def validate_issue_platform_event_schema(event_data):
     jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
 
 
-def should_filter_feedback(event: dict) -> tuple[bool, str | None]:
+def should_filter_feedback(
+    event: Mapping[str, Any],
+) -> tuple[bool, str | None]:
     """Returns a tuple of (should_filter, reason)."""
 
     # Right now all unreal error events without a feedback

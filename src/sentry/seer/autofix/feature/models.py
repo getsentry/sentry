@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from sentry.seer.agent.on_completion_hook import OnCompletionHookDefinition
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.steps import AutofixStep
 
 # Keep models in sync with src/seer/automation/features/autofix/models.py in Seer
@@ -12,6 +13,7 @@ from sentry.seer.autofix.steps import AutofixStep
 FEATURE_ID = "autofix"
 # In-flight runs started before the rename still deliver and persist this id.
 LEGACY_FEATURE_ID = "autofix_rca"
+SINGLE_RUN_FEATURE_ID = "autofix_single_run"
 
 
 class RepoPin(BaseModel):
@@ -85,3 +87,34 @@ class AutofixFeaturePayload(BaseModel):
     # Not to be confused with user_org_context, this is free-form context added by the user.
     user_context: str | None = None
     stopping_point: str | None = None
+
+
+class AutofixSingleRunPrInternalSettings(BaseModel):
+    # Appended to the PR description: "Fixes" issue links and the `@sentry` command hints.
+    description_suffix: str | None
+    # False opens the PR as a draft.
+    ready_for_review: bool
+    # Credits pushed commits to this person instead of the Seer bot.
+    commit_author: SeerCommitAuthor | None = None
+
+
+class AutofixSingleRunFeaturePayload(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    group_id: int
+    project_id: int
+    short_id: str
+    title: str
+    culprit: str
+    on_completion_hook: OnCompletionHookDefinition
+    intelligence_level: Literal["low", "medium", "high"] = "medium"
+    reasoning_effort: Literal["low", "medium", "high"] = "medium"
+    repo_pins: RepoPins | None = None
+    user_context: str | None = None
+    should_run_repo_checks: bool = False
+    pr_internal_settings: AutofixSingleRunPrInternalSettings | None = None
+    existing_run_id: int | None = None
+    reply: str | None = None
+    # Marks the reply as a PR feedback turn, so Sentry can close out the iteration when it ends.
+    pr_feedback: PrIterationStepArgs | None = None

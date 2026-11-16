@@ -16,6 +16,7 @@ from sentry.replays.usecases.query import QueryResponse
 from sentry.replays.validators import ReplaySelectorValidator, ReplayValidator
 from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
+from sentry.utils import json
 from sentry.utils.cursors import Cursor
 from sentry.utils.snuba import QueryMemoryLimitExceeded, QueryTooManySimultaneous
 
@@ -74,7 +75,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url)
             assert response.status_code == 200
 
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert response_data["data"] == []
 
@@ -136,8 +137,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
         )
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp, project.id, "error", replay1_id, "a3a62ef6ac86415b83c2416fc2f76db1"
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp,
+                    project.id,
+                    "error",
+                    replay1_id,
+                    "a3a62ef6ac86415b83c2416fc2f76db1",
+                )
             )
         )
 
@@ -145,7 +152,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url)
             assert response.status_code == 200
 
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert len(response_data["data"]) == 1
 
@@ -209,7 +216,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + query)
                 assert response.status_code == 200
 
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert "data" in response_data, query
                 assert len(response_data["data"]) == 2, query
 
@@ -285,7 +292,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + qstr)
             assert response.status_code == 200
 
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert len(response_data["data"]) == 1
 
@@ -338,7 +345,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?field=tags")
             assert response.status_code == 200
 
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert len(response_data["data"]) == 1
 
@@ -386,7 +393,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert response.status_code == 200
 
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert len(response_data["data"]) == 1
 
@@ -422,14 +429,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?environment=development")
             assert response.status_code == 200
 
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert response_data["data"][0]["id"] == replay1_id
 
             response = self.client.get(self.url + "?environment=production")
             assert response.status_code == 200
 
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert response_data["data"][0]["id"] == replay2_id
 
@@ -451,13 +458,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(self.features):
             # Latest first.
             response = self.client.get(self.url + "?orderBy=-started_at")
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
             # Earlist first.
             response = self.client.get(self.url + "?orderBy=started_at")
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
 
@@ -479,13 +486,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(self.features):
             # Latest first.
             response = self.client.get(self.url + "?orderBy=-finished_at")
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
             # Earlist first.
             response = self.client.get(self.url + "?orderBy=finished_at")
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
 
@@ -509,13 +516,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             # Smallest duration first.
             response = self.client.get(self.url + "?orderBy=duration")
             assert response.status_code == 200, response
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
 
             # Largest duration first.
             response = self.client.get(self.url + "?orderBy=-duration")
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
@@ -534,11 +541,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(self.features):
             response = self.client.get(self.url + "?orderBy=duration")
             assert response.status_code == 200, response
-            asc_order = [r["id"] for r in response.json()["data"]]
+            asc_order = [r["id"] for r in json.loads(response.content)["data"]]
 
             response = self.client.get(self.url + "?orderBy=-duration")
             assert response.status_code == 200, response
-            desc_order = [r["id"] for r in response.json()["data"]]
+            desc_order = [r["id"] for r in json.loads(response.content)["data"]]
 
             assert desc_order == list(reversed(asc_order))
             assert set(asc_order) == set(replay_ids)
@@ -566,7 +573,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 cursor=Cursor(0, 0),
                 per_page=1,
             )
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert len(response_data["data"]) == 1
             assert response_data["data"][0]["id"] == replay2_id
@@ -579,7 +586,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 cursor=Cursor(0, 1),
                 per_page=1,
             )
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert len(response_data["data"]) == 1
             assert response_data["data"][0]["id"] == replay1_id
@@ -593,7 +600,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 per_page=1,
             )
 
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert len(response_data["data"]) == 0
             link_header = response.headers["Link"]
@@ -662,26 +669,50 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex)
-        )
-        self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex)
-        )
-        self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp, project.id, "error", replay1_id, "a3a62ef6ac86415b83c2416fc2f76db1"
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex
+                )
             )
         )
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp, project.id, "warning", replay1_id, uuid.uuid4().hex
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex
+                )
             )
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "info", replay1_id, uuid.uuid4().hex)
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp,
+                    project.id,
+                    "error",
+                    replay1_id,
+                    "a3a62ef6ac86415b83c2416fc2f76db1",
+                )
+            )
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex)
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "warning", replay1_id, uuid.uuid4().hex
+                )
+            )
+        )
+        self.store_replays(
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "info", replay1_id, uuid.uuid4().hex
+                )
+            )
+        )
+        self.store_replays(
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex
+                )
+            )
         )
         self.store_replays(
             mock_replay_viewed(
@@ -818,8 +849,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
-                assert response.status_code == 200, (query, response.json())
-                response_data = response.json()
+                assert response.status_code == 200, (query, json.loads(response.content))
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, (query, response.json())
 
             # Test all queries as a single AND expression.
@@ -827,7 +858,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             response = self.client.get(self.url + f"?query={all_queries}")
             assert response.status_code == 200
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert len(response_data["data"]) == 1, "all queries"
 
             missing_uuid = "f8a783a4261a4b559f108c3721fc05cc"
@@ -893,8 +924,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
-                assert response.status_code == 200, (query, response.json())
-                response_data = response.json()
+                assert response.status_code == 200, (query, json.loads(response.content))
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 0, (query, response.json())
 
     def test_get_replays_user_sorts(self) -> None:
@@ -1008,26 +1039,38 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
         )
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp, project2.id, "fatal", replay1_id, uuid.uuid4().hex
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project2.id, "fatal", replay1_id, uuid.uuid4().hex
+                )
             )
         )
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp, project2.id, "error", replay1_id, uuid.uuid4().hex
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project2.id, "error", replay1_id, uuid.uuid4().hex
+                )
             )
         )
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp, project2.id, "warning", replay1_id, uuid.uuid4().hex
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project2.id, "warning", replay1_id, uuid.uuid4().hex
+                )
             )
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project2.id, "info", replay1_id, uuid.uuid4().hex)
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project2.id, "info", replay1_id, uuid.uuid4().hex
+                )
+            )
         )
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp, project2.id, "debug", replay1_id, uuid.uuid4().hex
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project2.id, "debug", replay1_id, uuid.uuid4().hex
+                )
             )
         )
 
@@ -1395,7 +1438,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200, query
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
             queries = [
@@ -1423,7 +1466,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")
                 assert response.status_code == 200, query
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 0, query
 
     def test_get_replays_filter_taps(self) -> None:
@@ -1469,7 +1512,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200, query
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
             negation_queries = [
@@ -1481,7 +1524,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in negation_queries:
                 response = self.client.get(self.url + f"?query={query}")
                 assert response.status_code == 200, query
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 0, query
 
     def test_get_replays_click_fields(self) -> None:
@@ -1526,7 +1569,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(self.features):
             response = self.client.get(self.url + "?field=clicks")
             assert response.status_code == 200, response.content
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert response_data["data"] == [
                 {
                     "clicks": [
@@ -1756,7 +1799,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in success_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
             # These tests demonstrate what happens when you match a click value on non-click row.
@@ -1773,7 +1816,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in failure_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 0, query
 
     # The following section tests the valid branches of the condition classes.
@@ -1800,7 +1843,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_branches_click_scalar_conditions(self) -> None:
@@ -1830,7 +1873,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_branches_click_array_conditions(self) -> None:
@@ -1860,7 +1903,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_branches_array_of_string_conditions(self) -> None:
@@ -1887,7 +1930,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_branches_segment_names_conditions(self) -> None:
@@ -1919,7 +1962,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_branches_integer_conditions(self) -> None:
@@ -1932,8 +1975,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, error_ids=[]))
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp, project.id, "error", replay1_id, "a3a62ef6ac86415b83c2416fc2f76db1"
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp,
+                    project.id,
+                    "error",
+                    replay1_id,
+                    "a3a62ef6ac86415b83c2416fc2f76db1",
+                )
             )
         )
 
@@ -1951,7 +2000,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_branches_error_ids_conditions(self) -> None:
@@ -1977,7 +2026,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_branches_uuid_conditions(self) -> None:
@@ -2003,7 +2052,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_branches_string_uuid_conditions(self) -> None:
@@ -2028,7 +2077,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_branches_ip_address_conditions(self) -> None:
@@ -2051,7 +2100,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_invalid_ipv4_addresses(self) -> None:
@@ -2180,7 +2229,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
     def test_query_scalar_optimization_multiple_varying(self) -> None:
@@ -2198,7 +2247,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(self.features):
             response = self.client.get(self.url + "?field=id&query=urls:apple urls:microsoft")
             assert response.status_code == 200
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert len(response_data["data"]) == 1
 
     def test_query_scalar_optimization_varying_with_tags(self) -> None:
@@ -2261,7 +2310,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url)
             assert response.status_code == 200
 
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert "data" in response_data
             assert len(response_data["data"]) == 0
 
@@ -2281,10 +2330,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         )
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, error_ids=[]))
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "error", replay1_id, uid1)
+            dict(self.mock_event_links(seq1_timestamp, project.id, "error", replay1_id, uid1))
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uid2)
+            dict(self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uid2))
         )
         with self.feature(self.features):
             queries = [
@@ -2297,7 +2346,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&field=error_ids&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
                 assert len(response_data["data"][0]["error_ids"]) == 2, query
 
@@ -2305,7 +2354,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 self.url + f"?field=id&field=error_ids&query=error_id:{uid3}"
             )
             assert response.status_code == 200
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert len(response_data["data"]) == 0, query
 
     def test_warnings_column(self) -> None:
@@ -2321,7 +2370,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "warning", replay1_id, uid1)
+            dict(self.mock_event_links(seq1_timestamp, project.id, "warning", replay1_id, uid1))
         )
 
         with self.feature(self.features):
@@ -2334,7 +2383,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&field=warning_ids&query={query}")
                 assert response.status_code == 200, query
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
                 assert len(response_data["data"][0]["warning_ids"]) == 1, query
 
@@ -2342,7 +2391,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 self.url + f"?field=id&field=warning_ids&query=warning_id:{uid2}"
             )
             assert response.status_code == 200
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert len(response_data["data"]) == 0, query
 
     def test_infos_column(self) -> None:
@@ -2359,10 +2408,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "info", replay1_id, uid1)
+            dict(self.mock_event_links(seq1_timestamp, project.id, "info", replay1_id, uid1))
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uid2)
+            dict(self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uid2))
         )
         with self.feature(self.features):
             queries = [
@@ -2375,13 +2424,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&field=info_ids&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
                 assert len(response_data["data"][0]["info_ids"]) == 2, query
 
             response = self.client.get(self.url + f"?field=id&field=info_ids&query=info_id:{uid3}")
             assert response.status_code == 200
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert len(response_data["data"]) == 0, query
 
     def test_exp_query_branches_error_ids_conditions(self) -> None:
@@ -2410,7 +2459,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&field=error_ids&query={query}")
                 assert response.status_code == 200
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
                 assert len(response_data["data"][0]["error_ids"]) == 1, query
 
@@ -2429,26 +2478,46 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex)
-        )
-        self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "error", replay1_id, uuid.uuid4().hex)
-        )
-        self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp, project.id, "warning", replay1_id, uuid.uuid4().hex
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex
+                )
             )
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "info", replay1_id, uuid.uuid4().hex)
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "error", replay1_id, uuid.uuid4().hex
+                )
+            )
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex)
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "warning", replay1_id, uuid.uuid4().hex
+                )
+            )
+        )
+        self.store_replays(
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "info", replay1_id, uuid.uuid4().hex
+                )
+            )
+        )
+        self.store_replays(
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex
+                )
+            )
         )
 
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp, project.id, "debug", other_replay, uuid.uuid4().hex
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp, project.id, "debug", other_replay, uuid.uuid4().hex
+                )
             )
         )
 
@@ -2457,7 +2526,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 self.url + f"?field=id&field=count_warnings&field=count_infos&query=id:{replay1_id}"
             )
             assert response.status_code == 200
-            response_data = response.json()
+            response_data = json.loads(response.content)
             assert response_data["data"][0]["count_warnings"] == 1
 
     def test_non_empty_string_scalar(self) -> None:
@@ -2484,7 +2553,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200, query
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
             # If we explicitly negate dist's filled value we should also ignore empty
@@ -2497,7 +2566,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200, query
-                response_data = response.json()
+                response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 0, query
 
     def test_get_replays_preferred_source(self) -> None:

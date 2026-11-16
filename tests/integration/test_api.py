@@ -123,7 +123,7 @@ class AuthenticationTest(AuthProviderTestCase):
 
         assert resp.json()["detail"]["extra"]["loginUrl"] == "/auth/login/foo/"
 
-    def _test_paths_with_status(self, status):
+    def _test_paths_with_status(self, status: int) -> None:
         for path in self.paths:
             resp = self.client.get(path)
             assert resp.status_code == status, (resp.status_code, resp.content)

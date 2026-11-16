@@ -1,153 +1,247 @@
+from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, call, patch
 
-from django.utils import timezone
+import pytest
 
+from sentry.constants import DataCategory
+from sentry.exceptions import InvalidSearchQuery
+from sentry.telemetry_classifiers.definitions import resolve_prebuilt_definition
+from sentry.telemetry_classifiers.inference import ClassifierExecutionError
+from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.telemetry_classifiers.tasks import (
-    _claim_conversations,
-    _ConversationRef,
-    _fetch_conversations,
-    schedule_conversation_classifiers,
+    classify_entity,
+    schedule_classifiers,
+    select_entities,
+)
+from sentry.telemetry_classifiers.types import (
+    Dataset,
+    TelemetryClassifierStatus,
+    TelemetryInput,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
-from tests.sentry.api.endpoints.test_organization_ai_conversations_base import (
-    BaseAIConversationsTestCase,
-)
+
+NOW = datetime(2020, 1, 1, 12, 7, 31, tzinfo=UTC)
+LATER = datetime(2020, 1, 1, 12, 12, 31, tzinfo=UTC)
 
 
-class FetchConversationsTest(BaseAIConversationsTestCase):
-    def test_fetches_only_conversations_that_became_inactive_in_window(self) -> None:
-        scan_time = timezone.now().replace(second=0, microsecond=0)
-        self.store_ai_span(
-            "eligible",
-            scan_time - timedelta(minutes=22),
-            operation_type="ai_client",
+class ClassifierTaskTestCase(TestCase):
+    dataset: MagicMock
+
+    @pytest.fixture(autouse=True)
+    def mock_dataset(self) -> Generator[None]:
+        self.dataset = MagicMock(data_category=DataCategory.SPAN)
+        with patch.dict(
+            "sentry.telemetry_classifiers.tasks.DATASETS", {Dataset.CONVERSATION: self.dataset}
+        ):
+            yield
+
+    def create_prebuilt_classifier(self, **kwargs: object) -> TelemetryClassifier:
+        return self.create_telemetry_classifier(
+            project=self.project,
+            prebuilt_classifier_key="conversation_user_frustration",
+            natural_language_prompt=None,
+            compiled_prompt=None,
+            output_type=None,
+            **kwargs,
         )
-        self.store_ai_span(
-            "still-active",
-            scan_time - timedelta(minutes=22),
-            operation_type="ai_client",
-        )
-        self.store_ai_span(
-            "still-active",
-            scan_time - timedelta(minutes=10),
-            operation_type="ai_client",
-        )
-        self.store_ai_span(
-            "too-old",
-            scan_time - timedelta(minutes=26),
-            operation_type="ai_client",
-        )
-        self.store_ai_span(
-            "too-new",
-            scan_time - timedelta(minutes=19),
-            operation_type="ai_client",
-        )
-
-        conversations = _fetch_conversations(
-            self.project,
-            scan_time,
-            limit=100,
-        )
-
-        assert [(item.project_id, item.conversation_id) for item in conversations] == [
-            (self.project.id, "eligible")
-        ]
-
-
-def test_claim_conversations_deduplicates_by_version() -> None:
-    conversations = [
-        _ConversationRef(project_id=1, conversation_id="conversation-a", version="first"),
-        _ConversationRef(project_id=1, conversation_id="conversation-a", version="second"),
-    ]
-    client = MagicMock()
-    pipeline = client.pipeline.return_value.__enter__.return_value
-    pipeline.execute.return_value = [True, None]
-
-    with patch(
-        "sentry.telemetry_classifiers.tasks.redis_clusters.get",
-        return_value=client,
-    ):
-        claimed = _claim_conversations(conversations)
-
-    assert claimed == 1
-    client.pipeline.assert_called_once_with(transaction=False)
-    assert pipeline.set.call_count == 2
-    first_key = pipeline.set.call_args_list[0].args[0]
-    second_key = pipeline.set.call_args_list[1].args[0]
-    assert first_key != second_key
-    assert "conversation-a" not in first_key
-    assert pipeline.set.call_args_list[0].kwargs == {"ex": 3600, "nx": True}
 
 
 @cell_silo_test
-class ScheduleConversationClassifiersTest(TestCase):
-    @override_options({"classifiers.conversations.telemetry-limit": 2})
-    @patch("sentry.telemetry_classifiers.tasks._fetch_conversations")
-    @patch("sentry.telemetry_classifiers.tasks.logger.info")
-    def test_disabled_without_projects(
-        self,
-        mock_log: MagicMock,
-        mock_fetch: MagicMock,
-    ) -> None:
-        schedule_conversation_classifiers()
-
-        mock_fetch.assert_not_called()
-        mock_log.assert_not_called()
-
-    @override_options({"classifiers.conversations.telemetry-limit": 2})
-    @patch("sentry.telemetry_classifiers.tasks.timezone_now")
-    @patch("sentry.telemetry_classifiers.tasks._claim_conversations")
-    @patch("sentry.telemetry_classifiers.tasks._fetch_conversations")
-    @patch("sentry.telemetry_classifiers.tasks.logger.info")
-    def test_fetches_each_project_with_limit_and_logs_counts(
-        self,
-        mock_log: MagicMock,
-        mock_fetch: MagicMock,
-        mock_claim: MagicMock,
-        mock_now: MagicMock,
-    ) -> None:
-        now = datetime(2020, 1, 1, 12, 7, 31, tzinfo=UTC)
-        scan_time = datetime(2020, 1, 1, 12, 5, tzinfo=UTC)
-        first_project = self.project
-        second_project = self.create_project(
-            organization=self.organization,
-            teams=[self.team],
-            name="Second",
-            slug="second",
+class ScheduleClassifiersTest(TestCase):
+    @patch("sentry.telemetry_classifiers.tasks.select_entities.delay")
+    def test_selects_enabled_classifiers(self, mock_select: MagicMock) -> None:
+        enabled = self.create_telemetry_classifier(project=self.project)
+        self.create_telemetry_classifier(
+            project=self.project, status=TelemetryClassifierStatus.DISABLED
         )
-        first_conversations = [
-            _ConversationRef(project_id=first_project.id, conversation_id="one", version="v1"),
-            _ConversationRef(project_id=first_project.id, conversation_id="two", version="v1"),
-        ]
-        second_conversations = [
-            _ConversationRef(project_id=second_project.id, conversation_id="three", version="v1")
-        ]
-        mock_now.return_value = now
-        mock_fetch.side_effect = [first_conversations, second_conversations]
-        mock_claim.side_effect = [1, 1]
 
-        with override_options(
-            {"classifiers.conversations.project-ids": [first_project.id, second_project.id]}
+        schedule_classifiers()
+
+        mock_select.assert_called_once_with(enabled.id)
+
+
+@cell_silo_test
+class SelectEntitiesTest(ClassifierTaskTestCase):
+    @pytest.fixture(autouse=True)
+    def mock_classify_entity(self) -> Generator[None]:
+        with patch("sentry.telemetry_classifiers.tasks.classify_entity.delay") as mock:
+            self.classify_entity = mock
+            yield
+
+    def test_selects_recent_entities_once(self) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project, filter_query="a:b")
+        # Windows overlap, so the second selection finds "one" again.
+        self.dataset.select.side_effect = [["one"], ["two", "one"]]
+
+        with freeze_time(NOW):
+            select_entities(classifier.id)
+        with freeze_time(LATER):
+            select_entities(classifier.id)
+
+        assert self.dataset.select.call_args_list == [
+            call(self.project, "a:b", NOW - timedelta(minutes=15), NOW, 100, 0),
+            call(self.project, "a:b", LATER - timedelta(minutes=15), LATER, 100, 0),
+        ]
+        assert self.classify_entity.call_args_list == [
+            call(classifier_id=classifier.id, entity_id="one"),
+            call(classifier_id=classifier.id, entity_id="two"),
+        ]
+
+    @override_options({"telemetry-classifiers.select-limit": 2})
+    def test_pages_past_entities_already_enqueued(self) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project)
+        self.dataset.select.side_effect = [["one", "two"], ["one", "two"], ["three"]]
+
+        select_entities(classifier.id)
+        select_entities(classifier.id)
+
+        assert [c.args[4:] for c in self.dataset.select.call_args_list] == [(2, 0), (2, 0), (2, 2)]
+        assert self.classify_entity.call_args_list == [
+            call(classifier_id=classifier.id, entity_id="one"),
+            call(classifier_id=classifier.id, entity_id="two"),
+            call(classifier_id=classifier.id, entity_id="three"),
+        ]
+
+    @override_options({"telemetry-classifiers.select-limit": 2})
+    @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
+    def test_entities_already_enqueued_dont_count_toward_the_limit(
+        self, mock_incr: MagicMock
+    ) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project)
+        self.dataset.select.side_effect = [["one"], ["one", "two"], ["three", "four"]]
+
+        select_entities(classifier.id)
+        select_entities(classifier.id)
+
+        assert self.classify_entity.call_args_list == [
+            call(classifier_id=classifier.id, entity_id="one"),
+            call(classifier_id=classifier.id, entity_id="two"),
+            call(classifier_id=classifier.id, entity_id="three"),
+        ]
+        mock_incr.assert_any_call(
+            "telemetry_classifiers.select",
+            tags={"dataset": Dataset.CONVERSATION, "outcome": "limit_reached"},
+        )
+
+    def test_retries_skip_entities_already_enqueued(self) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project)
+        self.dataset.select.return_value = ["one", "two"]
+        self.classify_entity.side_effect = [None, ConnectionError("broker unavailable")]
+
+        with pytest.raises(ConnectionError):
+            select_entities(classifier.id)
+        self.classify_entity.side_effect = None
+        select_entities(classifier.id)
+
+        # "two" failed to enqueue, so only it is enqueued again.
+        assert self.classify_entity.call_args_list == [
+            call(classifier_id=classifier.id, entity_id="one"),
+            call(classifier_id=classifier.id, entity_id="two"),
+            call(classifier_id=classifier.id, entity_id="two"),
+        ]
+
+    def test_skips_disabled_classifiers(self) -> None:
+        classifier = self.create_telemetry_classifier(
+            project=self.project, status=TelemetryClassifierStatus.DISABLED
+        )
+
+        select_entities(classifier.id)
+
+        self.dataset.select.assert_not_called()
+
+    def test_skips_invalid_filters(self) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project)
+        self.dataset.select.side_effect = InvalidSearchQuery("invalid")
+
+        select_entities(classifier.id)
+
+        self.classify_entity.assert_not_called()
+
+
+@cell_silo_test
+class ClassifyEntityTest(ClassifierTaskTestCase):
+    @pytest.fixture(autouse=True)
+    def mock_pipeline(self) -> Generator[None]:
+        with (
+            patch("sentry.telemetry_classifiers.tasks.classify") as mock_classify,
+            patch("sentry.telemetry_classifiers.tasks.write_result") as mock_write,
         ):
-            schedule_conversation_classifiers()
+            self.classify = mock_classify
+            self.write_result = mock_write
+            yield
 
-        assert mock_fetch.call_args_list == [
-            call(first_project, scan_time, 2),
-            call(second_project, scan_time, 2),
-        ]
-        assert mock_claim.call_args_list == [
-            call(first_conversations),
-            call(second_conversations),
-        ]
-        mock_log.assert_called_once_with(
-            "telemetry_classifiers.conversations.fetched",
-            extra={
-                "fetched_count": 3,
-                "claimed_count": 2,
-                "window_start": "2020-01-01T11:40:00+00:00",
-                "window_end": "2020-01-01T11:45:00+00:00",
-            },
+    def setUp(self) -> None:
+        super().setUp()
+        self.source = TelemetryInput(
+            events=[{"role": "user", "content": "This is broken"}],
+            truncated=False,
+            trace_id="a" * 32,
+            timestamp=datetime(2020, 1, 1, 12, 0, tzinfo=UTC),
+            client_sample_rate=1.0,
+            conversation_id="conversation",
         )
+        self.dataset.load.return_value = self.source
+        self.classify.return_value = {"type": "predicate", "name": "match", "probability": 0.8}
+
+    def test_writes_result(self) -> None:
+        classifier = self.create_prebuilt_classifier(result_attribute="user_frustration")
+
+        classify_entity(classifier_id=classifier.id, entity_id="conversation")
+
+        self.dataset.load.assert_called_once_with(self.project, "conversation")
+        self.classify.assert_called_once_with(
+            resolve_prebuilt_definition("conversation_user_frustration", Dataset.CONVERSATION),
+            ({"role": "user", "content": "This is broken"},),
+            self.organization,
+        )
+        self.write_result.assert_called_once_with(
+            classifier,
+            "conversation",
+            self.source,
+            {"sentry.enrichment.user_frustration": 0.8},
+            DataCategory.SPAN,
+        )
+
+    def test_skips_disabled_classifiers(self) -> None:
+        classifier = self.create_prebuilt_classifier(status=TelemetryClassifierStatus.DISABLED)
+
+        classify_entity(classifier_id=classifier.id, entity_id="conversation")
+
+        self.dataset.load.assert_not_called()
+
+    def test_skips_classifiers_that_cant_run(self) -> None:
+        # Custom classifiers can't run yet.
+        classifier = self.create_telemetry_classifier(project=self.project)
+
+        classify_entity(classifier_id=classifier.id, entity_id="conversation")
+
+        self.dataset.load.assert_not_called()
+
+    def test_skips_entities_without_telemetry(self) -> None:
+        classifier = self.create_prebuilt_classifier()
+        self.dataset.load.return_value = None
+
+        classify_entity(classifier_id=classifier.id, entity_id="conversation")
+
+        self.classify.assert_not_called()
+
+    def test_drops_results_that_cant_succeed(self) -> None:
+        classifier = self.create_prebuilt_classifier()
+        self.classify.side_effect = ClassifierExecutionError("invalid_response", retryable=False)
+
+        classify_entity(classifier_id=classifier.id, entity_id="conversation")
+
+        self.write_result.assert_not_called()
+
+    def test_raises_retryable_errors(self) -> None:
+        classifier = self.create_prebuilt_classifier()
+        self.classify.side_effect = ClassifierExecutionError("seer_unavailable", retryable=True)
+
+        with pytest.raises(ClassifierExecutionError):
+            classify_entity(classifier_id=classifier.id, entity_id="conversation")
+
+        self.write_result.assert_not_called()

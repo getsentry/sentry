@@ -13,10 +13,11 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import type {ExploreQueryChangedReason} from './useSaveQuery';
 
 export enum SavedQueryType {
   DISCOVER = 'discover',

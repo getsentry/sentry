@@ -4,7 +4,7 @@ import {
   escapeDoubleQuotes,
   explodeSlug,
   extractMultilineFields,
-} from 'sentry/utils';
+} from './utils';
 
 describe('utils.extractMultilineFields', () => {
   it('should split string by newlines', () => {

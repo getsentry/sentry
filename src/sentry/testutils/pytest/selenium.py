@@ -1,18 +1,21 @@
 # TODO(dcramer): this heavily inspired by pytest-selenium, and it's possible
 # we could simply inherit from the plugin at this point
+from __future__ import annotations
+
 import logging
 import os
 import sys
 import threading
-from collections.abc import Callable, MutableSequence
+from collections.abc import Callable, Generator, Iterator, MutableSequence, Sequence
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any, Generic, Mapping, TypeVar, cast
 from urllib.parse import urlparse
 
 import pytest
 from selenium import webdriver
 from selenium.common.exceptions import (
+    NoAlertPresentException,
     NoSuchElementException,
     SessionNotCreatedException,
     WebDriverException,
@@ -20,7 +23,9 @@ from selenium.common.exceptions import (
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.switch_to import SwitchTo
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -28,63 +33,80 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.retries import TimedRetryPolicy
 
+if TYPE_CHECKING:
+    from pytest_django.live_server_helper import LiveServer
+
 logger = logging.getLogger("sentry.testutils")
+
+ViewportSize = dict[str, dict[str, int]]
+
+
+# Selenium's default of 0.5s adds up to half a second to every wait that
+# isn't already satisfied, and acceptance tests wait many times each.
+WAIT_POLL_SECONDS = 0.1
 
 
 class Browser:
-    def __init__(self, driver, live_server):
+    def __init__(self, driver: WebDriver, live_server: LiveServer) -> None:
         self.driver = driver
         self.live_server_url = live_server.url
         self.domain = urlparse(self.live_server_url).hostname
         self._has_initialized_cookie_store = False
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         return getattr(self.driver, attr)
 
-    def route(self, path, *args, **kwargs):
+    def route(self, path: str, *args: Any, **kwargs: Any) -> str:
         """
         Return the absolute URI for a given route in Sentry.
         """
         return "{}/{}".format(self.live_server_url, path.lstrip("/").format(*args, **kwargs))
 
-    def get(self, path, *args, **kwargs):
+    def get(self, path: str, *args: Any, **kwargs: Any) -> Browser:
         self.driver.get(self.route(path), *args, **kwargs)
         self._has_initialized_cookie_store = True
         return self
 
-    def post(self, path, *args, **kwargs):
-        self.driver.post(self.route(path), *args, **kwargs)
+    def post(self, path: str, *args: Any, **kwargs: Any) -> Browser:
+        getattr(self.driver, "post")(self.route(path), *args, **kwargs)
         self._has_initialized_cookie_store = True
         return self
 
-    def put(self, path, *args, **kwargs):
-        self.driver.put(self.route(path), *args, **kwargs)
+    def put(self, path: str, *args: Any, **kwargs: Any) -> Browser:
+        getattr(self.driver, "put")(self.route(path), *args, **kwargs)
         self._has_initialized_cookie_store = True
         return self
 
-    def delete(self, path, *args, **kwargs):
-        self.driver.delete(self.route(path), *args, **kwargs)
+    def delete(self, path: str, *args: Any, **kwargs: Any) -> Browser:
+        getattr(self.driver, "delete")(self.route(path), *args, **kwargs)
         self._has_initialized_cookie_store = True
         return self
 
-    def set_emulated_media(self, features, media=""):
+    def set_emulated_media(self, features: list[dict[str, str]], media: str = "") -> object:
         """
         This is used to emulate different media features (e.g. color scheme)
         """
-        return self.driver.execute_cdp_cmd(
+        return getattr(self.driver, "execute_cdp_cmd")(
             "Emulation.setEmulatedMedia", {"media": media, "features": features}
         )
 
-    def get_content_height(self):
+    def get_content_height(self) -> int:
         """
         Get height of current DOM contents
 
         Adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
         """
 
-        return self.driver.execute_script("return document.body.parentNode.scrollHeight")
+        return cast(
+            "int", self.driver.execute_script("return document.body.parentNode.scrollHeight")
+        )
 
-    def set_window_size(self, width=None, height=None, fit_content=False):
+    def set_window_size(
+        self,
+        width: int | None = None,
+        height: int | None = None,
+        fit_content: bool = False,
+    ) -> ViewportSize:
         """
         Sets the window size.
 
@@ -112,7 +134,9 @@ class Browser:
             "current": {"width": width, "height": height},
         }
 
-    def set_viewport(self, width, height, fit_content):
+    def set_viewport(
+        self, width: int | None, height: int | None, fit_content: bool
+    ) -> Iterator[ViewportSize]:
         size = self.set_window_size(width, height, fit_content)
         try:
             yield size
@@ -121,14 +145,25 @@ class Browser:
             self.set_window_size(size["previous"]["width"], size["previous"]["height"])
 
     @contextmanager
-    def full_viewport(self, width=None, height=None, fit_content=True):
+    def full_viewport(
+        self,
+        width: int | None = None,
+        height: int | None = None,
+        fit_content: bool = True,
+    ) -> Iterator[ViewportSize]:
         return self.set_viewport(width, height, fit_content)
 
     @contextmanager
-    def mobile_viewport(self, width=375, height=812):
+    def mobile_viewport(self, width: int = 375, height: int = 812) -> Iterator[ViewportSize]:
         return self.set_viewport(width, height, fit_content=True)
 
-    def element(self, selector=None, xpath=None):
+    def find_element(self, by: str = By.ID, value: str | None = None) -> WebElement:
+        return self.driver.find_element(by=by, value=value)
+
+    def find_elements(self, by: str = By.ID, value: str | None = None) -> list[WebElement]:
+        return self.driver.find_elements(by=by, value=value)
+
+    def element(self, selector: str | None = None, xpath: str | None = None) -> WebElement:
         """
         Get an element from the page. This method will wait for the element to show up.
         """
@@ -140,7 +175,7 @@ class Browser:
             self.wait_until(selector)
             return self.driver.find_element(by=By.CSS_SELECTOR, value=selector)
 
-    def elements(self, selector=None, xpath=None):
+    def elements(self, selector: str | None = None, xpath: str | None = None) -> list[WebElement]:
         """
         Get elements from the page. This method will wait for the element to show up.
         """
@@ -152,7 +187,7 @@ class Browser:
             self.wait_until(selector)
             return self.driver.find_elements(by=By.CSS_SELECTOR, value=selector)
 
-    def element_exists(self, selector=None, xpath=None):
+    def element_exists(self, selector: str | None = None, xpath: str | None = None) -> bool:
         """
         Check if an element exists on the page. This method will *not* wait for the element.
         """
@@ -165,24 +200,26 @@ class Browser:
             return False
         return True
 
-    def element_exists_by_test_id(self, test_id):
+    def element_exists_by_test_id(self, test_id: str) -> bool:
         """
         Check if an element exists on the page using a data-test-id attribute.
         This method will not wait for the element.
         """
         return self.element_exists('[data-test-id="%s"]' % (test_id))
 
-    def element_exists_by_aria_label(self, label):
+    def element_exists_by_aria_label(self, label: str) -> bool:
         """
         Check if an element exists on the page using the aria-label attribute.
         This method will not wait for the element.
         """
         return self.element_exists('[aria-label="%s"]' % (label))
 
-    def click(self, selector=None, xpath=None):
+    def click(self, selector: str | None = None, xpath: str | None = None) -> None:
         self.element(selector, xpath=xpath).click()
 
-    def click_when_visible(self, selector=None, xpath=None, timeout=3):
+    def click_when_visible(
+        self, selector: str | None = None, xpath: str | None = None, timeout: int = 3
+    ) -> Browser:
         """
         Waits until ``selector`` is available to be clicked before attempting to click
         """
@@ -194,10 +231,10 @@ class Browser:
 
         return self
 
-    def find_element_by_name(self, name):
+    def find_element_by_name(self, name: str) -> WebElement:
         return self.driver.find_element(by=By.NAME, value=name)
 
-    def move_to(self, selector=None):
+    def move_to(self, selector: str | None = None) -> Browser:
         """
         Mouse move to ``selector``
         """
@@ -209,12 +246,14 @@ class Browser:
 
         return self
 
-    def wait_until_clickable(self, selector=None, xpath=None, timeout=10):
+    def wait_until_clickable(
+        self, selector: str | None = None, xpath: str | None = None, timeout: int = 10
+    ) -> Browser:
         """
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
         """
-        wait = WebDriverWait(self.driver, timeout)
+        wait = WebDriverWait(self.driver, timeout, poll_frequency=WAIT_POLL_SECONDS)
         if selector:
             wait.until(expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector)))
         elif xpath:
@@ -224,12 +263,18 @@ class Browser:
 
         return self
 
-    def wait_until(self, selector=None, xpath=None, title=None, timeout=10):
+    def wait_until(
+        self,
+        selector: str | None = None,
+        xpath: str | None = None,
+        title: str | None = None,
+        timeout: int = 10,
+    ) -> Browser:
         """
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
         """
-        wait = WebDriverWait(self.driver, timeout)
+        wait = WebDriverWait(self.driver, timeout, poll_frequency=WAIT_POLL_SECONDS)
         if selector:
             wait.until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector)))
         elif xpath:
@@ -241,15 +286,21 @@ class Browser:
 
         return self
 
-    def wait_until_test_id(self, test_id):
+    def wait_until_test_id(self, test_id: str) -> Browser:
         return self.wait_until('[data-test-id="%s"]' % (test_id))
 
-    def wait_until_not(self, selector=None, xpath=None, title=None, timeout=10):
+    def wait_until_not(
+        self,
+        selector: str | None = None,
+        xpath: str | None = None,
+        title: str | None = None,
+        timeout: int = 10,
+    ) -> Browser:
         """
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
         """
-        wait = WebDriverWait(self.driver, timeout)
+        wait = WebDriverWait(self.driver, timeout, poll_frequency=WAIT_POLL_SECONDS)
         if selector:
             wait.until_not(
                 expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
@@ -263,33 +314,33 @@ class Browser:
 
         return self
 
-    def wait_until_script_execution(self, script, timeout=10):
+    def wait_until_script_execution(self, script: str, timeout: int = 10) -> Browser:
         """
         Waits until ``script`` executes and evaluates truthy,
         or until ``timeout`` is hit, whichever happens first.
         """
-        wait = WebDriverWait(self.driver, timeout)
+        wait = WebDriverWait(self.driver, timeout, poll_frequency=WAIT_POLL_SECONDS)
         wait.until(lambda driver: driver.execute_script(script))
 
         return self
 
-    def wait_for_images_loaded(self, timeout=10):
+    def wait_for_images_loaded(self, timeout: int = 10) -> Browser:
         return self.wait_until_script_execution(
             """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)""",
             timeout,
         )
 
-    def wait_for_fonts_loaded(self, timeout=10):
+    def wait_for_fonts_loaded(self, timeout: int = 10) -> Browser:
         return self.wait_until_script_execution(
             """return document.fonts.status === 'loaded'""",
             timeout,
         )
 
     @property
-    def switch_to(self):
+    def switch_to(self) -> SwitchTo:
         return self.driver.switch_to
 
-    def implicitly_wait(self, duration):
+    def implicitly_wait(self, duration: float) -> None:
         """
         An implicit wait tells WebDriver to poll the DOM for a certain amount of
         time when trying to find any element (or elements) not immediately
@@ -298,39 +349,42 @@ class Browser:
         """
         self.driver.implicitly_wait(duration)
 
-    def get_local_storage_items(self):
+    def get_local_storage_items(self) -> dict[str, str]:
         """
         Retrieve all items in local storage
         """
 
-        return self.driver.execute_script(
-            "Object.fromEntries(Object.entries(window.localStorage));"
+        return cast(
+            "dict[str, str]",
+            self.driver.execute_script("Object.fromEntries(Object.entries(window.localStorage));"),
         )
 
-    def get_local_storage_item(self, key):
+    def get_local_storage_item(self, key: str) -> str | None:
         """
         Retrieve key from local storage, this will fail if you use single quotes in your keys.
         """
 
-        return self.driver.execute_script(f"window.localStorage.getItem('{key}')")
+        return cast(
+            "str | None", self.driver.execute_script(f"window.localStorage.getItem('{key}')")
+        )
 
     def save_cookie(
         self,
-        name,
-        value,
-        domain=None,
-        path="/",
-        expires="Tue, 20 Jun 2025 19:07:44 GMT",
-        max_age=None,
-        secure=None,
-    ):
+        name: str,
+        value: str,
+        domain: str | None = None,
+        path: str = "/",
+        expires: str = "Tue, 20 Jun 2025 19:07:44 GMT",
+        max_age: int | None = None,
+        secure: bool | None = None,
+    ) -> None:
         domain = domain or self.domain
         # Recent changes to Chrome no longer allow us to explicitly set a cookie domain
         # to be localhost. If no domain is specified, the cookie will be created on
         # the host of the current url that the browser has visited.
         if domain == "localhost":
             domain = None
-        cookie = {
+        cookie: dict[str, Any] = {
             "name": name,
             "value": value,
             "expires": expires,
@@ -355,7 +409,7 @@ class Browser:
         self.driver.add_cookie(cookie)
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addini("selenium_driver", help="selenium driver (chrome, or firefox)")
 
     group = parser.getgroup("selenium", "selenium")
@@ -376,7 +430,7 @@ def pytest_addoption(parser):
     group._addoption("--slow-network", dest="slow_network", help="slow the network (chrome)")
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     if hasattr(config, "workerinput"):
         return  # xdist worker
 
@@ -388,7 +442,7 @@ def pytest_configure(config):
 
 
 @TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,), log_original_error=True)
-def start_chrome(**chrome_args):
+def start_chrome(**chrome_args: Any) -> webdriver.Chrome | None:
     try:
         return webdriver.Chrome(**chrome_args)
     except SessionNotCreatedException as e:
@@ -399,6 +453,7 @@ def start_chrome(**chrome_args):
     brew upgrade --cask chromedriver
     """
             )
+        return None
 
 
 def _launch_chrome(config: pytest.Config) -> webdriver.Chrome:
@@ -420,6 +475,7 @@ def _launch_chrome(config: pytest.Config) -> webdriver.Chrome:
         chrome_args["service"] = ChromeService(executable_path=chromedriver_path)
 
     driver = start_chrome(**chrome_args)
+    assert driver is not None
     if config.getoption("slow_network"):
         driver.set_network_conditions(
             offline=False,
@@ -429,12 +485,15 @@ def _launch_chrome(config: pytest.Config) -> webdriver.Chrome:
     return driver
 
 
-class _Background:
+_BackgroundResult = TypeVar("_BackgroundResult")
+
+
+class _Background(Generic[_BackgroundResult]):
     """Runs a function on a thread and hands its result back when joined."""
 
-    def __init__(self, name: str, fn: Callable[[], Any]) -> None:
+    def __init__(self, name: str, fn: Callable[[], _BackgroundResult]) -> None:
         self._fn = fn
-        self._result: Any = None
+        self._result: _BackgroundResult | None = None
         self._error: BaseException | None = None
         self._thread = threading.Thread(target=self._run, name=name, daemon=True)
         self._thread.start()
@@ -445,7 +504,7 @@ class _Background:
         except BaseException as e:
             self._error = e
 
-    def join(self) -> Any:
+    def join(self) -> _BackgroundResult | None:
         self._thread.join()
         if self._error is not None:
             raise self._error
@@ -463,7 +522,7 @@ def _populate_url_resolver() -> None:
 # The first Chrome launch on a fresh worker and the URLconf import both take
 # seconds, and neither needs the test databases. Starting them once collection
 # finishes lets them overlap with the test database setup, which runs next.
-_warmup: dict[str, _Background] = {}
+_warmup: dict[str, _Background[webdriver.Chrome | None]] = {}
 
 
 @pytest.hookimpl(trylast=True)
@@ -499,23 +558,55 @@ def _take_prelaunched_chrome() -> webdriver.Chrome | None:
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     # A worker whose tests never use the browser still has to close the
     # prelaunched Chrome.
-    driver = _take_prelaunched_chrome()
-    if driver is not None:
+    for driver in (_take_prelaunched_chrome(), _reusable_chrome.pop("driver", None)):
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+
+
+# Starting Chrome for every test costs the launch, and each test then loads the
+# app bundle into a cold cache. One Chrome per worker, reset between tests,
+# keeps the cache warm.
+_reusable_chrome: dict[str, webdriver.Chrome] = {}
+
+
+def _reset_chrome(driver: webdriver.Chrome, origin: str) -> bool:
+    """Clears what a test can leave behind. Returns False if Chrome is unusable."""
+    try:
         try:
-            driver.quit()
-        except Exception:
+            driver.switch_to.alert.dismiss()
+        except NoAlertPresentException:
             pass
+        handles = driver.window_handles
+        for handle in handles[1:]:
+            driver.switch_to.window(handle)
+            driver.close()
+        driver.switch_to.window(handles[0])
+        driver.get("about:blank")
+        driver.execute_cdp_cmd("Network.clearBrowserCookies", {})
+        driver.execute_cdp_cmd(
+            "Storage.clearDataForOrigin", {"origin": origin, "storageTypes": "all"}
+        )
+        driver.execute_cdp_cmd("Emulation.setTouchEmulationEnabled", {"enabled": False})
+        driver.execute_cdp_cmd("Emulation.clearDeviceMetricsOverride", {})
+    except Exception:
+        logger.warning("selenium.reset-chrome.failed", exc_info=True)
+        return False
+    return True
 
 
 @pytest.fixture(scope="function")
-def browser(request, live_server):
+def browser(request: pytest.FixtureRequest, live_server: LiveServer) -> Generator[WebDriver]:
     window_size = request.config.getoption("window_size")
     window_width, window_height = map(int, window_size.split("x", 1))
 
     driver_type = request.config.getoption("selenium_driver")
     driver: WebDriver
     if driver_type == "chrome":
-        driver = _take_prelaunched_chrome() or _launch_chrome(request.config)
+        reused = _reusable_chrome.pop("driver", None)
+        driver = reused or _take_prelaunched_chrome() or _launch_chrome(request.config)
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     else:
@@ -550,6 +641,9 @@ def browser(request, live_server):
         sys.stderr.write("[browser console] ")
         sys.stderr.write(repr(entry))
         sys.stderr.write("\n")
+    if isinstance(driver, webdriver.Chrome) and _reset_chrome(driver, live_server.url):
+        _reusable_chrome["driver"] = driver
+        return
     # Teardown Selenium.
     try:
         driver.quit()
@@ -558,13 +652,17 @@ def browser(request, live_server):
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo[None]
+) -> Generator[None, Any]:
     outcome = yield
     report = outcome.get_result()
     summary: MutableSequence[str] = []
     extra = getattr(report, "extra", [])
     driver = getattr(item, "_driver", None)
-    if driver is not None:
+    # A screenshot and page dump cost real time on every phase of every test,
+    # and only a failure needs them.
+    if driver is not None and report.failed:
         _gather_url(item, report, driver, summary, extra)
         _gather_screenshot(item, report, driver, summary, extra)
         _gather_html(item, report, driver, summary, extra)
@@ -574,7 +672,13 @@ def pytest_runtest_makereport(item, call):
     report.extra = extra
 
 
-def _gather_url(item, report, driver, summary, extra):
+def _gather_url(
+    item: pytest.Item,
+    report: pytest.TestReport,
+    driver: WebDriver,
+    summary: MutableSequence[str],
+    extra: list[object],
+) -> None:
     try:
         url = driver.current_url
     except Exception as e:
@@ -587,7 +691,13 @@ def _gather_url(item, report, driver, summary, extra):
     summary.append(f"URL: {url}")
 
 
-def _gather_screenshot(item, report, driver, summary, extra):
+def _gather_screenshot(
+    item: pytest.Item,
+    report: pytest.TestReport,
+    driver: WebDriver,
+    summary: MutableSequence[str],
+    extra: list[object],
+) -> None:
     try:
         screenshot = driver.get_screenshot_as_base64()
     except Exception as e:
@@ -599,7 +709,13 @@ def _gather_screenshot(item, report, driver, summary, extra):
         extra.append(pytest_html.extras.image(screenshot, "Screenshot"))
 
 
-def _gather_html(item, report, driver, summary, extra):
+def _gather_html(
+    item: pytest.Item,
+    report: pytest.TestReport,
+    driver: WebDriver,
+    summary: MutableSequence[str],
+    extra: list[object],
+) -> None:
     try:
         html = driver.page_source.encode("utf-8")
     except Exception as e:
@@ -611,7 +727,13 @@ def _gather_html(item, report, driver, summary, extra):
         extra.append(pytest_html.extras.text(html, "HTML"))
 
 
-def _gather_logs(item, report, driver, summary, extra):
+def _gather_logs(
+    item: pytest.Item,
+    report: pytest.TestReport,
+    driver: WebDriver,
+    summary: MutableSequence[str],
+    extra: list[object],
+) -> None:
     try:
         types = driver.log_types
     except Exception as e:
@@ -629,7 +751,7 @@ def _gather_logs(item, report, driver, summary, extra):
             extra.append(pytest_html.extras.text(format_log(log), "%s Log" % name.title()))
 
 
-def format_log(log):
+def format_log(log: Sequence[Mapping[str, Any]]) -> bytes:
     timestamp_format = "%Y-%m-%d %H:%M:%S.%f"
     entries = [
         "{0} {1[level]} - {1[message]}".format(
@@ -637,6 +759,4 @@ def format_log(log):
         ).rstrip()
         for entry in log
     ]
-    log = "\n".join(entries)
-    log = log.encode("utf-8")
-    return log
+    return "\n".join(entries).encode("utf-8")

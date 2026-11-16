@@ -201,7 +201,6 @@ export interface Block {
   live_calls?: CallRecord[] | null;
   loading?: boolean;
   merged_file_patches?: ExplorerFilePatch[] | null;
-  pr_commit_shas?: Record<string, string> | null;
   progress?: ProgressEvent[] | null;
   todos?: TodoItem[] | null;
   tool_links?: Array<ToolLink | null> | null;
@@ -264,11 +263,12 @@ export type SeerExplorerResponse = {
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
     blocks?: Block[];
-    failure_reason?: 'timeout' | 'stalled' | null;
+    failure_reason?: 'timeout' | 'stalled' | 'out_of_credits' | null;
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;
   } | null;
+  feature_id?: string | null;
   sentry_run_id?: string | null;
 };
 

@@ -18,6 +18,10 @@ const productionEntryPoints = [
   'chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when the autofixRef embed consumes it (#122099)
   'components/seer/autofixChatContext.tsx',
+  // TODO: Remove when the Seer credit gates consume it (#129563, #129565)
+  'utils/seer/useSeerCreditCheck.tsx',
+  // TODO: Remove when the Seer credit gates render it (#129563, #129565)
+  'components/seer/outOfCredits/seerOutOfCreditsCta.tsx',
   'components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'views/authV2/authLogin/**/*.{ts,tsx}',
@@ -57,34 +61,24 @@ const config: KnipConfig = {
   compilers: {mdx: true},
   // Test package exports are development entry points, not production code.
   ignoreWorkspaces: ['tests/js!', 'tests/js/getsentry-test!'],
+  // @sentry/api is generated from the API spec at build time, so its sources
+  // and entry points only exist after `pnpm --filter @sentry/api run build`.
+  ignore: ['static/packages/api/**'],
   workspaces: {
     '.': {
       // The root runs app tests, but Jest is declared in the test package.
       jest: {config: 'tests/js/jest.config.ci.mjs'},
       entry: ['scripts/*.ts!', 'build-utils/mdx-plugins.ts'],
-      project: [
-        'static/**/*.{js,ts,tsx,mdx,less}!',
-        'config/**/*.ts',
-        // fixtures can be ignored in production - it's fine that they are only used in tests
-        '!static/**/{fixtures,__fixtures__}/**!',
-        // helper files for tests - it's fine that they are only used in tests
-        '!static/**/*{t,T}estUtils*.{js,ts,tsx}!',
-        // helper files for stories - it's fine that they are only used in tests
-        '!static/app/**/__stories__/*.{js,ts,tsx}!',
-        '!static/app/stories/**/*.{js,ts,tsx}!',
-        // Oxlint JS plugins are separate workspace packages
-        '!static/oxlint/**/*.ts!',
-      ],
+      // The root's project must list mdx since the mdx compiler is configured here
+      project: ['config/**/*.{ts,mdx}'],
       ignoreDependencies: [
+        'jest', // CI runner and regression tests resolve Jest from tests/js.
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'zrender', // used in echarts
         // Referenced by its node_modules path in tests/js/createJestConfig.ts.
         'reflux',
       ],
-      // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
-      // so do not report them as unused files.
-      ignoreFiles: ['static/**/*.less'],
     },
     'static/app': {
       ...frontendWorkspace,
@@ -113,6 +107,9 @@ const config: KnipConfig = {
         ...frontendWorkspace.entry,
         '**/*.snapshots.tsx',
         '**/__mocks__/**/*.{js,ts,tsx}',
+        '**/*.stories.{js,ts,tsx}',
+        // The story manifest loads MDX stories from gsApp too.
+        '**/*.mdx',
       ],
     },
     'static/gsAdmin': {
@@ -125,20 +122,10 @@ const config: KnipConfig = {
       entry: ['**/*.spec.{js,ts,tsx}', 'test-balancer/*.ts'],
       project: ['**/*.{js,cjs,mjs,ts,tsx,mdx}'],
       includeEntryExports: true,
-      ignoreDependencies: [
-        '@sentry-internal/global-search', // jest.mock does not count as an import.
-        '@tanstack/react-pacer', // loaded with requireActual
-        'echarts-for-react', // jest.mock in setup.ts
-      ],
     },
     'tests/js/getsentry-test': {
       project: ['**/*.{js,ts,tsx,mdx}'],
       includeEntryExports: true,
-      ignoreDependencies: [
-        'react', // loaded with jest.requireActual, which Knip does not track.
-        '@stripe/react-stripe-js', // Billing setup mocks this package; Knip does not track jest.mock.
-        '@stripe/stripe-js', // Billing setup mocks this package; Knip does not track jest.mock.
-      ],
     },
     'static/packages/icons': {
       oxlint: scopedOxlint,
@@ -148,11 +135,19 @@ const config: KnipConfig = {
     },
     'static/packages/scraps': {
       oxlint: scopedOxlint,
+      // Component docs are rendered by the app's story viewer, so their demos
+      // can use app dependencies that the package does not ship with.
+      entry: ['src/**/*.mdx'],
+      ignoreDependencies: ['nuqs'],
       project: [
         '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.
         '!{test,scripts}/**!',
       ],
+    },
+    'static/packages/search-syntax': {
+      jest: scopedJest,
+      oxlint: scopedOxlint,
     },
     'static/oxlint/eslintPluginScraps': {
       jest: scopedJest,

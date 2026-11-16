@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DirectEnableButton} from 'sentry/views/settings/organizationIntegrations/directEnableButton';
+import {DirectEnableButton} from './directEnableButton';
 
 describe('DirectEnableButton', () => {
   const organization = OrganizationFixture();

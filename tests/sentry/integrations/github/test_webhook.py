@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -506,7 +506,7 @@ class InstallationNewPermissionsEventWebhookTest(APITestCase):
             HTTP_X_HUB_SIGNATURE_256=f"sha256={sig256}",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
-        return response.status_code
+        return int(response.status_code)
 
     def _add_refresh_response(self) -> None:
         responses.add(
@@ -630,7 +630,12 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
 
-    def _make_event(self, action="added", repos_added=None, repos_removed=None):
+    def _make_event(
+        self,
+        action: str = "added",
+        repos_added: list[dict[str, Any]] | None = None,
+        repos_removed: list[dict[str, Any]] | None = None,
+    ) -> Any:
         return json.dumps(
             {
                 "action": action,
@@ -920,7 +925,7 @@ class PushEventWebhookTest(APITestCase):
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
 
-    def _create_integration_and_send_push_event(self):
+    def _create_integration_and_send_push_event(self) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_integration(
@@ -943,7 +948,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
 
-    def _send_push_event(self, body: str):
+    def _send_push_event(self, body: str) -> Any:
         sig1 = GitHubIntegrationsWebhookEndpoint.compute_signature(
             "sha1", body.encode("utf-8"), self.secret
         )
@@ -960,7 +965,7 @@ class PushEventWebhookTest(APITestCase):
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
-    def _setup_github_integration_and_repo(self):
+    def _setup_github_integration_and_repo(self) -> Any:
         Repository.objects.create(
             organization_id=self.organization.id,
             external_id="35129377",
@@ -1222,13 +1227,13 @@ class PushEventWebhookTest(APITestCase):
             name="baxterthehacker/repo",
         )
 
-        captured_contexts: list = []
+        captured_contexts: list[Any] = []
 
         from sentry.integrations.github.webhook import PushEventWebhook
 
         original_handle = PushEventWebhook._handle
 
-        def capturing_handle(self_handler, **kwargs):
+        def capturing_handle(self_handler: Any, **kwargs: Any) -> Any:
             captured_contexts.append(get_viewer_context())
             return original_handle(self_handler, **kwargs)
 
@@ -1509,7 +1514,7 @@ class PullRequestEventWebhookTest(APITestCase):
             integration_id=integration.id,
         )
 
-    def _create_integration_and_send_pull_request_opened_event(self):
+    def _create_integration_and_send_pull_request_opened_event(self) -> Any:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_integration(
@@ -2319,7 +2324,7 @@ class PullRequestEventWebhookTest(APITestCase):
         )
         assert merged_activity.user_id == self.user.id
 
-    def assert_group_link(self, group, pr):
+    def assert_group_link(self, group: Group, pr: PullRequest) -> None:
         link = GroupLink.objects.get()
         assert link.group_id == group.id
         assert link.linked_id == pr.id
@@ -2457,7 +2462,7 @@ class IssuesEventWebhookTest(APITestCase):
         )
         return group
 
-    def _create_github_member(self, username: str):
+    def _create_github_member(self, username: str) -> Any:
         member = self.create_user(email=f"{username}@example.com")
         self.create_member(organization=self.organization, user=member, teams=[self.team])
         self.create_external_user(
@@ -2469,8 +2474,10 @@ class IssuesEventWebhookTest(APITestCase):
         )
         return member
 
-    def _assigned_event(self, login: str, updated_at: str) -> dict:
+    def _assigned_event(self, login: str, updated_at: str) -> dict[str, Any]:
         event = json.loads(ISSUES_ASSIGNED_EVENT_EXAMPLE)
+        if not isinstance(event, dict):
+            raise TypeError("Issues assigned event is not a JSON object")
         event["issue"]["updated_at"] = updated_at
         event["issue"]["assignees"] = [{"login": login}]
         return event
@@ -2562,7 +2569,7 @@ class IssuesEventWebhookTest(APITestCase):
         )
         return f"sha256={sig}"
 
-    def _post_issues_event(self, event: dict) -> None:
+    def _post_issues_event(self, event: dict[str, Any]) -> None:
         body = json.dumps(event)
         response = self.client.post(
             path=self.url,

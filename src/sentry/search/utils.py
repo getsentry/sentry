@@ -6,10 +6,10 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Optional
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import DataError, connections, router
 from django.utils import timezone as django_timezone
 
+from sentry.auth.principal import RequestPrincipal, has_user
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import STATUS_QUERY_CHOICES, Group
@@ -316,10 +316,12 @@ def parse_team_value(projects: Sequence[Project], value: Sequence[str]) -> Team:
     ).first() or Team(id=0)
 
 
-def get_teams_for_users(projects: Sequence[Project], users: Sequence[User]) -> list[Team]:
+def get_teams_for_users(
+    projects: Sequence[Project], users: Sequence[RequestPrincipal | None]
+) -> list[Team]:
     if not projects:
         return []
-    user_ids = [u.id for u in users if u is not None]
+    user_ids = [u.id for u in users if u is not None and has_user(u)]
     teams = Team.objects.filter(
         id__in=OrganizationMemberTeam.objects.filter(
             organizationmember__in=OrganizationMember.objects.filter(
@@ -332,7 +334,7 @@ def get_teams_for_users(projects: Sequence[Project], users: Sequence[User]) -> l
 
 
 def parse_actor_value(
-    projects: Sequence[Project], value: str, user: User | RpcUser | AnonymousUser
+    projects: Sequence[Project], value: str, user: RequestPrincipal | None
 ) -> RpcUser | Team:
     if value.startswith("#"):
         return parse_team_value(projects, value)
@@ -340,7 +342,7 @@ def parse_actor_value(
 
 
 def parse_actor_or_none_value(
-    projects: Sequence[Project], value: str, user: User | RpcUser | AnonymousUser
+    projects: Sequence[Project], value: str, user: RequestPrincipal | None
 ) -> RpcUser | Team | None:
     if value == "none":
         return None
@@ -352,7 +354,7 @@ def parse_actor_or_none_value(
 _HACKY_INVALID_USER = RpcUser(id=0)
 
 
-def parse_user_value(value: str, user: User | RpcUser | AnonymousUser) -> RpcUser:
+def parse_user_value(value: str, user: RequestPrincipal | None) -> RpcUser:
     if value == "me":
         if isinstance(user, User):
             return serialize_rpc_user(user)
@@ -376,7 +378,7 @@ def get_latest_release(
     projects: Sequence[Project | int],
     environments: Sequence[Environment] | None,
     organization_id: int | None = None,
-    adopted=False,
+    adopted: bool = False,
 ) -> list[str]:
     if organization_id is None:
         project = projects[0]
@@ -737,7 +739,7 @@ def split_query_into_tokens(query: str) -> Sequence[str]:
 def parse_query(
     projects: Sequence[Project],
     query: str,
-    user: User | RpcUser | AnonymousUser,
+    user: RequestPrincipal,
     environments: Sequence[Environment],
 ) -> dict[str, Any]:
     """| Parses the query string and returns a dict of structured query term values:

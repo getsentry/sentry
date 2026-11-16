@@ -31,7 +31,7 @@ from sentry.testutils.cases import TestCase
 
 
 class IncidentOccurrenceTestCase(TestCase):
-    def build_occurrence_test_data(self):
+    def build_occurrence_test_data(self) -> None:
         self.monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -363,9 +363,9 @@ class IncidentOccurrenceTestCase(TestCase):
     @mock.patch("sentry.monitors.logic.incident_occurrence.queue_incident_occurrence")
     def test_dispatch_incident_occurrence(
         self,
-        mock_queue_incident_occurrence,
-        mock_send_incident_occurrence,
-    ):
+        mock_queue_incident_occurrence: mock.MagicMock,
+        mock_send_incident_occurrence: mock.MagicMock,
+    ) -> None:
         monitor = self.create_monitor()
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,

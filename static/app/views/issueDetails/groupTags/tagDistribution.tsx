@@ -10,7 +10,8 @@ import {DeviceName} from 'sentry/components/deviceName';
 import {Version} from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {percent} from 'sentry/utils';
-import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+
+import type {GroupTag} from './useGroupTags';
 
 /**
  * How many values a panel draws before folding the rest into "Other". Not a
@@ -138,8 +139,8 @@ export function TagDistributionPanel({
  * Returns nothing for every other key, and for a missing value, so the panel
  * falls back to the raw string and to its own "(empty)" marker.
  */
-function renderTagValue(tagKey: string, value: string): React.ReactNode {
-  if (value === '') {
+function renderTagValue(tagKey: string, value: string | null): React.ReactNode {
+  if (!value) {
     return undefined;
   }
   if (tagKey === 'release') {
@@ -164,7 +165,8 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
       totalValues={tag.totalValues}
       values={tag.topValues.map(topValue => ({
         count: topValue.count,
-        value: topValue.value,
+        // A null value is a missing tag, same as ''
+        value: topValue.value ?? '',
         node: renderTagValue(tag.key, topValue.value),
       }))}
     />

@@ -1,19 +1,17 @@
-import type {Location} from 'history';
+import {parseAsJson} from 'nuqs';
+import {z} from 'zod';
 
 import {defined} from 'sentry/utils/defined';
-import {decodeList} from 'sentry/utils/queryString';
-import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {
-  BaseVisualize,
-  ParseVisualizeOptions,
-} from 'sentry/views/explore/queryParams/visualize';
+
+import type {GroupBy} from './groupBy';
+import {isGroupBy} from './groupBy';
+import type {BaseVisualize, ParseVisualizeOptions} from './visualize';
 import {
+  baseVisualizeSchema,
   isVisualize,
-  parseVisualize,
   serializeVisualizes,
   Visualize,
-} from 'sentry/views/explore/queryParams/visualize';
+} from './visualize';
 
 export type WritableAggregateField = GroupBy | BaseVisualize;
 
@@ -87,46 +85,23 @@ function gatherChartGroups(aggregateFields: readonly AggregateField[]): Aggregat
   return gathered;
 }
 
-export function getAggregateFieldsFromLocation(
-  location: Location,
-  key: string,
+const parseAsAggregateField = parseAsJson(
+  z.union([z.looseObject({groupBy: z.string()}), baseVisualizeSchema])
+);
+
+export function getAggregateFields(
+  rawAggregateFields: readonly string[],
   options?: ParseVisualizeOptions
 ): AggregateField[] | null {
-  const rawAggregateFields = decodeList(location.query?.[key]);
-
   if (rawAggregateFields.length <= 0) {
     return null;
   }
 
-  const aggregateFields = [];
-
-  for (const rawAggregateField of rawAggregateFields) {
-    let value: any;
-    try {
-      value = JSON.parse(rawAggregateField);
-    } catch (error) {
-      continue;
+  return rawAggregateFields.flatMap<AggregateField>(rawAggregateField => {
+    const value = parseAsAggregateField.parse(rawAggregateField);
+    if (!value) {
+      return [];
     }
-    for (const aggregateField of parseAggregateField(value, options)) {
-      aggregateFields.push(aggregateField);
-    }
-  }
-
-  return aggregateFields;
-}
-
-function parseAggregateField(
-  value: any,
-  options?: ParseVisualizeOptions
-): AggregateField[] {
-  if (isGroupBy(value)) {
-    return [value];
-  }
-
-  const visualizes = parseVisualize(value, options);
-  if (visualizes.length) {
-    return visualizes;
-  }
-
-  return [];
+    return isGroupBy(value) ? [value] : Visualize.fromJSON(value, options);
+  });
 }

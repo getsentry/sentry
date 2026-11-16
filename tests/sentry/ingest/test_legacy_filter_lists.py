@@ -8,11 +8,14 @@ from sentry.ingest.legacy_filter_lists import (
     set_list,
 )
 from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def rows_of(project) -> list[dict]:
+def rows_of(project: Project) -> list[dict[str, object]]:
     return [
         {
             "name": f.name,
@@ -26,7 +29,7 @@ def rows_of(project) -> list[dict]:
 
 
 @django_db_all
-def test_set_list_writes_the_option_and_one_row_with_every_line(default_project) -> None:
+def test_set_list_writes_the_option_and_one_row_with_every_line(default_project: Project) -> None:
     lines = ["1.*", "# block staging until the fix ships", "1.*", "3.*"]
     set_list(default_project, FilterTypes.RELEASES, lines)
 
@@ -44,7 +47,7 @@ def test_set_list_writes_the_option_and_one_row_with_every_line(default_project)
 
 @django_db_all
 def test_set_list_updates_the_lines_and_keeps_the_users_name_and_active_flag(
-    default_project, factories
+    default_project: Project, factories: Factories
 ) -> None:
     row = factories.create_project_custom_inbound_filter(
         default_project,
@@ -72,7 +75,7 @@ def test_set_list_updates_the_lines_and_keeps_the_users_name_and_active_flag(
 
 
 @django_db_all
-def test_set_list_removes_the_row_for_an_empty_list(default_project) -> None:
+def test_set_list_removes_the_row_for_an_empty_list(default_project: Project) -> None:
     set_list(default_project, FilterTypes.RELEASES, ["1.*"])
     set_list(default_project, FilterTypes.RELEASES, [])
 
@@ -81,13 +84,15 @@ def test_set_list_removes_the_row_for_an_empty_list(default_project) -> None:
 
 
 @django_db_all
-def test_served_legacy_filters_is_empty_without_the_feature(default_organization) -> None:
+def test_served_legacy_filters_is_empty_without_the_feature(
+    default_organization: Organization,
+) -> None:
     assert served_legacy_filters(default_organization) == []
 
 
 @django_db_all
 @with_feature("organizations:inbound-filters-v2")
-def test_the_feature_serves_every_list_of_the_org(default_organization) -> None:
+def test_the_feature_serves_every_list_of_the_org(default_organization: Organization) -> None:
     assert served_legacy_filters(default_organization) == [
         "release-version",
         "error-message",
@@ -98,7 +103,7 @@ def test_the_feature_serves_every_list_of_the_org(default_organization) -> None:
 
 @django_db_all
 @with_feature("organizations:inbound-filters-v2")
-def test_v2_reads_the_row(default_project, factories) -> None:
+def test_v2_reads_the_row(default_project: Project, factories: Factories) -> None:
     default_project.update_option("sentry:releases", ["stale"])
     factories.create_project_custom_inbound_filter(
         default_project,
@@ -120,7 +125,9 @@ def test_v2_reads_the_row(default_project, factories) -> None:
 
 
 @django_db_all
-def test_without_the_feature_reads_the_option(default_project, factories) -> None:
+def test_without_the_feature_reads_the_option(
+    default_project: Project, factories: Factories
+) -> None:
     default_project.update_option("sentry:releases", ["from the option"])
     factories.create_project_custom_inbound_filter(
         default_project,
@@ -136,7 +143,7 @@ def test_without_the_feature_reads_the_option(default_project, factories) -> Non
 
 @django_db_all
 @with_feature("organizations:inbound-filters-v2")
-def test_v2_reads_an_empty_list_without_a_row(default_project) -> None:
+def test_v2_reads_an_empty_list_without_a_row(default_project: Project) -> None:
     default_project.update_option("sentry:releases", ["stale"])
 
     assert get_lines(default_project, FilterTypes.RELEASES) == []
@@ -146,7 +153,9 @@ def test_v2_reads_an_empty_list_without_a_row(default_project) -> None:
 
 @django_db_all
 @with_feature("organizations:inbound-filters-v2")
-def test_v2_applies_nothing_while_the_row_is_switched_off(default_project, factories) -> None:
+def test_v2_applies_nothing_while_the_row_is_switched_off(
+    default_project: Project, factories: Factories
+) -> None:
     factories.create_project_custom_inbound_filter(
         default_project,
         active=False,

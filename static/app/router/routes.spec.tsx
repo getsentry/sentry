@@ -1,11 +1,12 @@
 import {matchRoutes, type RouteObject} from 'react-router';
 
 import * as constants from 'sentry/constants';
-import {buildRoutes} from 'sentry/router/routes';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {AuthenticatedApiErrorHandler} from 'sentry/views/app/authenticatedApiErrorHandler';
 import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+
+import {buildRoutes} from './routes';
 
 // Setup a module mock so that we can replace
 // USING_CUSTOMER_DOMAIN with a getter.
@@ -116,7 +117,6 @@ describe('buildRoutes()', () => {
             {
               type: 'project',
               to: '/settings/:orgId/projects/:projectId/',
-              switchTo: '/settings/:orgId/projects/:projectId/keys/',
             },
             {
               type: 'link',
@@ -252,6 +252,8 @@ describe('buildRoutes()', () => {
     it.each([
       ['/seer/automations/', 'automations/', true],
       ['/organizations/test-org/seer/automations/', 'automations/', false],
+      ['/seer/automations/runs/', 'runs/', true],
+      ['/organizations/test-org/seer/automations/runs/', 'runs/', false],
       ['/seer/investigations/', 'investigations/', true],
       ['/seer/investigations/investigation-1/', 'investigations/:investigationId/', true],
       ['/organizations/test-org/seer/investigations/', 'investigations/', false],
@@ -307,6 +309,12 @@ describe('buildRoutes()', () => {
 
     expect(matches?.at(-1)?.route.path).toBe(routePath);
     expect(components).not.toContain(AuthenticatedApiErrorHandler);
+  });
+
+  it('redirects legacy project group urls to the organization issue details', () => {
+    expect(getRedirectTarget(buildRoutes(), '/test-org/test-project/group/123/')).toBe(
+      '/organizations/test-org/issues/123/'
+    );
   });
 
   it('matches legacy project event redirects under the organization layout', () => {

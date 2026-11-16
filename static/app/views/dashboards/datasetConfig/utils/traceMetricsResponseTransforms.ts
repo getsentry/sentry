@@ -5,8 +5,14 @@ import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
 import {type WidgetQuery} from 'sentry/views/dashboards/types';
 import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import {
+  isWebVitalScoreBreakdownChart,
+  webVitalScoreField,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
+import {transformPerformanceScoreBreakdownTimeSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 
 function formatMetricsTimeseriesLabel({
   widgetQuery,
@@ -60,9 +66,25 @@ export const traceMetricsResponseTransforms: Pick<
     }
     return transformedData;
   },
-  transformTimeSeries: (data, widget, queryIndex) =>
-    transformTimeSeriesResponse(data, widget, queryIndex, {
-      getSeriesName: (timeSeries, widgetQuery) =>
-        formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
-    }),
+  transformTimeSeries: (data, widget, queryIndex) => {
+    const isScoreBreakdown = isWebVitalScoreBreakdownChart(widget.queries[queryIndex]!);
+    return transformTimeSeriesResponse(
+      isScoreBreakdown
+        ? transformPerformanceScoreBreakdownTimeSeries(data, webVitalScoreField)
+        : data,
+      widget,
+      queryIndex,
+      {
+        getSeriesName: (timeSeries, widgetQuery) =>
+          formatTimeSeriesName({
+            ...timeSeries,
+            yAxis: formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
+            groupBy: [],
+          }),
+        // Score breakdown charts undergo frontend side transformations that change
+        // the value type of the series to `score`.
+        meta: isScoreBreakdown ? {valueType: 'score', valueUnit: null} : undefined,
+      }
+    );
+  },
 };

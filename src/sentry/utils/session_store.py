@@ -1,7 +1,13 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
 from uuid import uuid4
 
 import sentry_sdk
 from django.conf import settings
+from django.http import HttpRequest
+from redis.client import StrictRedis
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.utils import redis
 from sentry.utils.json import dumps, loads
@@ -51,13 +57,13 @@ class RedisSessionStore:
 
     redis_namespace = "session-cache"
 
-    def __init__(self, request, prefix, ttl=EXPIRATION_TTL):
+    def __init__(self, request: HttpRequest, prefix: str, ttl: int = EXPIRATION_TTL) -> None:
         self.request = request
         self.prefix = prefix
         self.ttl = ttl
 
     @property
-    def _client(self):
+    def _client(self) -> RedisCluster[str] | StrictRedis[str]:
         return redis.redis_clusters.get(settings.SENTRY_SESSION_STORE_REDIS_CLUSTER)
 
     @property
@@ -65,14 +71,14 @@ class RedisSessionStore:
         return f"store:{self.prefix}"
 
     @property
-    def redis_key(self):
+    def redis_key(self) -> str | None:
         return self.request.session.get(self.session_key)
 
-    def mark_session(self):
+    def mark_session(self) -> None:
         # Subclasses may override to mark session as modified
         pass
 
-    def regenerate(self, initial_state=None):
+    def regenerate(self, initial_state: Mapping[str, object] | None = None) -> None:
         if initial_state is None:
             initial_state = {}
 
@@ -84,7 +90,7 @@ class RedisSessionStore:
         value = dumps(initial_state)
         self._client.setex(redis_key, self.ttl, value)
 
-    def clear(self):
+    def clear(self) -> None:
         if not self.redis_key:
             return
 
@@ -94,10 +100,10 @@ class RedisSessionStore:
         del session[self.session_key]
         self.mark_session()
 
-    def is_valid(self):
+    def is_valid(self) -> bool:
         return bool(self.redis_key and self.get_state() is not None)
 
-    def get_state(self):
+    def get_state(self) -> dict[str, object] | None:
         if not self.redis_key:
             return None
 
@@ -106,16 +112,17 @@ class RedisSessionStore:
             return None
 
         try:
-            return loads(state_json)
+            state = loads(state_json)
+            return state
         except Exception as e:
             sentry_sdk.capture_exception(e)
         return None
 
 
-def redis_property(key: str):
+def redis_property(key: str) -> property:
     """Declare a property backed by Redis on a RedisSessionStore class."""
 
-    def getter(store: "RedisSessionStore"):
+    def getter(store: RedisSessionStore) -> object | None:
         state = store.get_state()
 
         try:
@@ -123,13 +130,15 @@ def redis_property(key: str):
         except KeyError as e:
             raise AttributeError(e)
 
-    def setter(store: "RedisSessionStore", value):
+    def setter(store: RedisSessionStore, value: object) -> None:
         state = store.get_state()
 
         if state is None:
             return
 
         state[key] = value
-        store._client.setex(store.redis_key, store.ttl, dumps(state))
+        redis_key = store.redis_key
+        assert redis_key is not None
+        store._client.setex(redis_key, store.ttl, dumps(state))
 
     return property(getter, setter)

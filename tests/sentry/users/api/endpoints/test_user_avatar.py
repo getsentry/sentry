@@ -185,6 +185,7 @@ class UserAvatarTest(APITestCase):
             assert response.status_code == 200, response.content
             assert avatar.get_file_id()
             assert isinstance(avatar.get_file(), ControlFile)
+            assert avatar.control_file_id is not None
             assert ControlFile.objects.filter(id=avatar.control_file_id).exists()
 
     def test_put_bad(self) -> None:

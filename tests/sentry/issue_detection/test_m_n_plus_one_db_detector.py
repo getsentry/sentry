@@ -315,6 +315,15 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-redis")
         assert self.find_problems(event) == []
 
+    def test_m_n_plus_one_ignores_redis_db_query_spans(self) -> None:
+        # Newer SDKs report Redis commands with the generic `db.query` op
+        event = get_event("m-n-plus-one-db/m-n-plus-one-redis")
+        for span in event["spans"]:
+            if span["op"] == "db.redis":
+                span["op"] = "db.query"
+                span["data"] = {"db.system.name": "redis"}
+        assert self.find_problems(event) == []
+
     def test_m_n_plus_one_ignores_mostly_not_db(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-mostly-http")
         assert self.find_problems(event) == []

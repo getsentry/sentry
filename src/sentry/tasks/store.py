@@ -5,7 +5,7 @@ import random
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from time import time
-from typing import Any
+from typing import Any, cast
 
 import orjson
 from sentry_relay.processing import StoreNormalizer
@@ -223,7 +223,7 @@ def _do_preprocess_event(
     # The event will be submitted to Symbolicator for all returned platforms,
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
-    symbolicate_functions = get_symbolication_functions(data, stacktraces)
+    symbolicate_functions = get_symbolication_functions(data, stacktraces, project)
     metrics.incr(
         "events.to-symbolicate",
         tags={f.value: True for f in symbolicate_functions},
@@ -244,8 +244,10 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
+            # Base the backup on the cache key fixed at ingest, not on current options, so
+            # `save_event` can rely on events without a cache key having no Redis backup.
             transport = get_event_payload_transport(event_id)
-            if transport.cache:
+            if cache_key and transport.cache:
                 reprocessing2.backup_unprocessed_event(data=original_data)
 
             submit_symbolicate(
@@ -259,7 +261,7 @@ def _do_preprocess_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
-                unprocessed_pending=transport.inline,
+                unprocessed_pending=transport.inline or not cache_key,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
@@ -566,7 +568,7 @@ def _do_save_event(
     Saves an event to the database.
     """
 
-    set_current_event_project(project_id)
+    set_current_event_project(cast("int", project_id))
 
     from sentry.event_manager import EventManager, resolve_project
     from sentry.exceptions import HashDiscarded

@@ -2,12 +2,14 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
+
+import {ensureSentenceEnd} from './sentence';
 
 type InvestigationSummaryCardProps = {
   summary: string | null;
   summaryDescription: string | null;
   className?: string;
+  id?: string;
 };
 
 /**
@@ -16,6 +18,7 @@ type InvestigationSummaryCardProps = {
  */
 export function InvestigationSummaryCard({
   className,
+  id,
   summary,
   summaryDescription,
 }: InvestigationSummaryCardProps) {
@@ -34,6 +37,7 @@ export function InvestigationSummaryCard({
   return (
     <Stack
       as="section"
+      id={id}
       className={className}
       gap="lg"
       data-test-id="investigation-summary"

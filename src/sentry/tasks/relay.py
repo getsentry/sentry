@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import logging
 import time
+from collections.abc import Iterator, Mapping
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 from django.db import connections, router, transaction
@@ -17,7 +21,17 @@ from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
 
+if TYPE_CHECKING:
+    from sentry.models.projectkey import ProjectKey
+
 logger = logging.getLogger(__name__)
+
+
+class _DebounceKeys(TypedDict):
+    public_key: str | None
+    project_id: int | None
+    organization_id: int | None
+
 
 # Project options that don't trigger a project config invalidation.
 NON_INVALIDATING_PROJECT_OPTIONS = [
@@ -38,7 +52,7 @@ NON_INVALIDATING_PROJECT_OPTIONS = [
     expires=30,
     processing_deadline_duration=30,
 )
-def build_project_config(public_key=None, **kwargs):
+def build_project_config(public_key: str, **kwargs: object) -> None:
     """Build a project config and put it in the Redis cache.
 
     This task is used to compute missing project configs, it is aggressively
@@ -75,7 +89,7 @@ def build_project_config(public_key=None, **kwargs):
         )
 
 
-def schedule_build_project_config(public_key):
+def schedule_build_project_config(public_key: str) -> None:
     """Schedule the `build_project_config` with debouncing applied.
 
     See documentation of `build_project_config` for documentation of parameters.
@@ -107,7 +121,11 @@ def schedule_build_project_config(public_key):
     )
 
 
-def validate_args(organization_id=None, project_id=None, public_key=None):
+def validate_args(
+    organization_id: int | None = None,
+    project_id: int | None = None,
+    public_key: str | None = None,
+) -> None:
     """Validates arguments for the tasks and sets sentry scope.
 
     The tasks should be invoked for only one of these arguments, however because tasks
@@ -118,7 +136,11 @@ def validate_args(organization_id=None, project_id=None, public_key=None):
         raise TypeError("Must provide exactly one of organzation_id, project_id or public_key")
 
 
-def compute_configs(organization_id=None, project_id=None, public_key=None):
+def compute_configs(
+    organization_id: int | None = None,
+    project_id: int | None = None,
+    public_key: str | None = None,
+) -> Iterator[tuple[str, Mapping[str, object]]]:
     """Computes all configs for the org, project or single public key.
 
     You must only provide one single argument, not all.
@@ -144,6 +166,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                 project.set_cached_field_value("organization", organization)
                 for key in ProjectKey.objects.filter(project_id=project.id):
                     key.set_cached_field_value("project", project)
+                    assert key.public_key is not None
                     # If we find the config in the cache it means it was active.  As such we want to
                     # recalculate it.  If the config was not there at all, we leave it and avoid the
                     # cost of re-computation.
@@ -160,6 +183,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
         for project in Project.objects.filter(id=project_id):
             for key in ProjectKey.objects.filter(project_id=project_id):
                 key.set_cached_field_value("project", project)
+                assert key.public_key is not None
                 # If we find the config in the cache it means it was active.  As such we want to
                 # recalculate it.  If the config was not there at all, we leave it and avoid the
                 # cost of re-computation.
@@ -192,7 +216,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
         raise TypeError("One of the arguments must not be None")
 
 
-def compute_projectkey_config(key):
+def compute_projectkey_config(key: ProjectKey) -> dict[str, Any]:
     """Computes a single config for the given :class:`ProjectKey`.
 
     :returns: A dict with the project config.
@@ -208,7 +232,7 @@ def compute_projectkey_config(key):
         OrganizationOption.objects.reload_task_local_cache(key.project.organization_id)
         ProjectOption.objects.reload_task_local_cache(key.project_id)
 
-        return get_project_config(key.project, project_keys=[key]).to_dict()
+        return dict(get_project_config(key.project, project_keys=[key]).to_dict())
 
 
 @instrumented_task(
@@ -219,13 +243,13 @@ def compute_projectkey_config(key):
     silo_mode=SiloMode.CELL,
 )
 def invalidate_project_config(
-    organization_id=None,
-    project_id=None,
-    public_key=None,
-    trigger="invalidated",
-    trigger_details=None,
-    **kwargs,
-):
+    organization_id: int | None = None,
+    project_id: int | None = None,
+    public_key: str | None = None,
+    trigger: str = "invalidated",
+    trigger_details: str | None = None,
+    **kwargs: object,
+) -> None:
     """Task which re-computes an invalidated project config.
 
     This task can be scheduled regardless of whether the :func:`build_project_config` task
@@ -277,14 +301,14 @@ def invalidate_project_config(
 @traces.trace
 def schedule_invalidate_project_config(
     *,
-    trigger,
-    trigger_details=None,
-    organization_id=None,
-    project_id=None,
-    public_key=None,
-    countdown=5,
-    transaction_db=None,
-):
+    trigger: str,
+    trigger_details: str | None = None,
+    organization_id: int | None = None,
+    project_id: int | None = None,
+    public_key: str | None = None,
+    countdown: int = 5,
+    transaction_db: str | None = None,
+) -> None:
     """Schedules the :func:`invalidate_project_config` task.
 
     Pass exactly one of ``organization_id``, ``project_id`` or ``public_key``. If none or
@@ -340,7 +364,7 @@ def schedule_invalidate_project_config(
     if transaction_db is None:
         transaction_db = router.db_for_write(Project)
 
-    def _do_schedule():
+    def _do_schedule() -> None:
         _schedule_invalidate_project_config(
             trigger=trigger,
             trigger_details=trigger_details,
@@ -369,13 +393,13 @@ def schedule_invalidate_project_config(
 
 def _schedule_invalidate_project_config(
     *,
-    trigger,
-    trigger_details=None,
-    organization_id=None,
-    project_id=None,
-    public_key=None,
-    countdown=5,
-):
+    trigger: str,
+    trigger_details: str | None = None,
+    organization_id: int | None = None,
+    project_id: int | None = None,
+    public_key: str | None = None,
+    countdown: int = 5,
+) -> None:
     """For param docs, see :func:`schedule_invalidate_project_config`."""
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
@@ -384,7 +408,7 @@ def _schedule_invalidate_project_config(
 
     # The keys we need to check for to see if this is debounced, we want to check all
     # levels.
-    check_debounce_keys = {
+    check_debounce_keys: _DebounceKeys = {
         "public_key": public_key,
         "project_id": project_id,
         "organization_id": organization_id,

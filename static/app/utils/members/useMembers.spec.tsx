@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useMembers} from 'sentry/utils/members/useMembers';
+import {useMembers} from './useMembers';
 
 describe('useMembers', () => {
   const org = OrganizationFixture();

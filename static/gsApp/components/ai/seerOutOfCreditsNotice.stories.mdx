@@ -1,0 +1,253 @@
+---
+title: Seer Out of Credits
+description: Tells the viewer their organization is out of Seer credits and offers the one action they can take.
+category: patterns
+source: getsentry/components/ai/seerOutOfCreditsNotice
+---
+
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+import {SeerOutOfCreditsCta} from 'getsentry/components/ai/seerOutOfCreditsCta';
+import {SeerOutOfCreditsNotice} from 'getsentry/components/ai/seerOutOfCreditsNotice';
+
+Product code renders `SeerOutOfCreditsCta` with the surface the org can't
+afford, and getsentry fills it in: the copy depends on the surface, whether the
+viewer has billing access, why the credit check denied credit, and whether
+auto-reload is already on. Open source has
+no credits and renders nothing. These demos render the `SeerOutOfCreditsNotice`
+underneath it. The copy and buttons follow the Billing Gates designs in Figma.
+
+```jsx
+<SeerOutOfCreditsCta reason="agent-chat" denialReason={creditCheck.denialReason} />
+<SeerOutOfCreditsCta reason="autofix-start" denialReason={creditCheck.denialReason} variant="muted" />
+```
+
+## Agent chat
+
+Shown above the chat composer when the org can't afford another message.
+Billing members turn on auto-reload in place, in the billing page's
+auto-reload modal. The chat uses full-size buttons; Autofix uses small ones.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsNotice
+    reason="agent-chat"
+    escalation="configure"
+    onConfigureAutoReload={() => {}}
+  />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice
+  reason="agent-chat"
+  escalation="configure"
+  onConfigureAutoReload={openAutoReloadModal}
+/>
+```
+
+## Daily usage limit
+
+The org has credits but hit its daily usage limit: the credit check's
+`denialReason` is `daily_cap_exceeded`, or a billing member has auto-reload on,
+which reloads credits until the limit stops it. The notice says when the limit
+resets, at the next midnight UTC in the viewer's timezone. Billing members
+configure auto-reload, where the limit is set. Members can't raise the limit,
+and more credits won't lift it, so they get no button and are told to ask their
+admin. Autofix uses the same copy for its own steps.
+
+<Storybook.Demo>
+  <Stack gap="md" width="100%">
+    <SeerOutOfCreditsNotice
+      reason="agent-chat"
+      denialReason="daily_cap_exceeded"
+      escalation="configure"
+      onConfigureAutoReload={() => {}}
+    />
+    <SeerOutOfCreditsNotice
+      reason="agent-chat"
+      denialReason="daily_cap_exceeded"
+      escalation="contact"
+    />
+    <SeerOutOfCreditsNotice
+      reason="autofix-continue"
+      denialReason="daily_cap_exceeded"
+      escalation="configure"
+      onConfigureAutoReload={() => {}}
+    />
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice
+  reason="agent-chat"
+  denialReason="daily_cap_exceeded"
+  escalation="configure"
+  onConfigureAutoReload={openAutoReloadModal}
+/>
+<SeerOutOfCreditsNotice reason="agent-chat" denialReason="daily_cap_exceeded" escalation="contact" />
+<SeerOutOfCreditsNotice
+  reason="autofix-continue"
+  denialReason="daily_cap_exceeded"
+  escalation="configure"
+  onConfigureAutoReload={openAutoReloadModal}
+/>
+```
+
+## Autofix, before a run
+
+At the top of the Autofix tab when the org can't afford to start a run.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsNotice
+    reason="autofix-start"
+    escalation="configure"
+    onConfigureAutoReload={() => {}}
+  />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice
+  reason="autofix-start"
+  escalation="configure"
+  onConfigureAutoReload={openAutoReloadModal}
+/>
+```
+
+## Autofix, part way through a run
+
+At the top of the Autofix tab, above the results so far, when the org can't
+afford the next step or the run stopped for credits.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsNotice
+    reason="autofix-continue"
+    escalation="configure"
+    onConfigureAutoReload={() => {}}
+  />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice
+  reason="autofix-continue"
+  escalation="configure"
+  onConfigureAutoReload={openAutoReloadModal}
+/>
+```
+
+## Issue sidebar
+
+The `muted` variant sits above the disabled Start Autofix button in the issue
+sidebar.
+
+<Storybook.Demo>
+  <Stack gap="md" width="320px">
+    <SeerOutOfCreditsNotice
+      reason="autofix-start"
+      variant="muted"
+      escalation="configure"
+      onConfigureAutoReload={() => {}}
+    />
+    <Button variant="primary" disabled>
+      Start Autofix
+    </Button>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice
+  reason="autofix-start"
+  variant="muted"
+  escalation="configure"
+  onConfigureAutoReload={openAutoReloadModal}
+/>
+```
+
+## Members
+
+Members email their admins with "Contact Admin". Sending shows an "Admins
+emailed." toast, and the button then reads "Admins emailed" until the billing
+period ends.
+
+<Storybook.Demo>
+  <Stack gap="md" width="100%">
+    <SeerOutOfCreditsNotice
+      reason="agent-chat"
+      escalation="request"
+      onRequestCredits={() => {}}
+    />
+    <SeerOutOfCreditsNotice
+      reason="agent-chat"
+      escalation="request"
+      onRequestCredits={() => {}}
+      isRequestingCredits
+    />
+    <SeerOutOfCreditsNotice
+      reason="agent-chat"
+      escalation="request"
+      onRequestCredits={() => {}}
+      hasRequestedCredits
+    />
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice reason="agent-chat" escalation="request" onRequestCredits={handleRequestCredits} />
+<SeerOutOfCreditsNotice reason="agent-chat" escalation="request" onRequestCredits={handleRequestCredits} isRequestingCredits />
+<SeerOutOfCreditsNotice reason="agent-chat" escalation="request" onRequestCredits={handleRequestCredits} hasRequestedCredits />
+```
+
+## Members, issue sidebar
+
+In Autofix, the member copy also says what to ask the admins for.
+
+<Storybook.Demo>
+  <Stack gap="md" width="320px">
+    <SeerOutOfCreditsNotice
+      reason="autofix-start"
+      variant="muted"
+      escalation="request"
+      onRequestCredits={() => {}}
+    />
+    <Button variant="primary" disabled>
+      Start Autofix
+    </Button>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice
+  reason="autofix-start"
+  variant="muted"
+  escalation="request"
+  onRequestCredits={handleRequestCredits}
+/>
+```
+
+## Orgs that can't self-serve
+
+Members of orgs that buy through an account team get no button, so the copy
+says who to ask.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsNotice reason="agent-chat" escalation="contact" />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice reason="agent-chat" escalation="contact" />
+```
+
+## For the signed-in viewer
+
+`SeerOutOfCreditsCta` itself, with the escalation and copy it picks for you.
+The auto-reload button and "Contact Admin" do the real thing: the modal reads and
+saves your org's Seer wallet, and "Contact Admin" emails your billing members.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />
+```

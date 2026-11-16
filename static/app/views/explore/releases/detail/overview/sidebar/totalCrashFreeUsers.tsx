@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
@@ -12,9 +13,8 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
 type Props = {
@@ -36,28 +36,24 @@ export function TotalCrashFreeUsers({
     data: releaseStats,
     isPending,
     isError,
-  } = useApiQuery<ReleaseStatsType>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/stats/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug,
-            version,
-          },
-        }
-      ),
+  } = useQuery(
+    apiOptions.as<ReleaseStatsType>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/stats/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectSlug,
+          version,
+        },
         query: {
           ...normalizeDateTimeParams(
             pick(location.query, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])
           ),
           type: 'sessions',
         },
-      },
-    ],
-    {staleTime: 0}
+        staleTime: 0,
+      }
+    )
   );
 
   if (isPending) {

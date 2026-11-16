@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections.abc import Mapping
+from time import time
+from typing import Any, cast
 
 import orjson
 
@@ -12,13 +14,16 @@ from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integration.gitlab")
 
+ACCESS_TOKEN_LIFETIME_S = 2 * 60 * 60
 
-def get_oauth_data(payload):
+
+def get_oauth_data(payload: Mapping[str, object]) -> dict[str, object]:
     data = {"access_token": payload["access_token"]}
 
     # https://docs.gitlab.com/ee/api/oauth2.html#2-requesting-access-token
@@ -28,23 +33,29 @@ def get_oauth_data(payload):
     #   "token_type": "bearer",
     #   "refresh_token": "29f43sdfsk22fsj929",
     #   "created_at": 1536798907,
+    #   "expires_in": 7200,
     #   "scope": "api"
     # }
+    # Measured on our clock rather than from GitLab's created_at, since it's compared against
+    # our clock. GitLab before 15.0 can issue a token without an expiry, and gives it one when
+    # the instance upgrades; assuming the usual lifetime refreshes it often enough either way.
+    data["expires_in"] = int(cast(int, payload.get("expires_in", ACCESS_TOKEN_LIFETIME_S)))
+    data["expires"] = int(time()) + cast(int, data["expires_in"])
     if "refresh_token" in payload:
         data["refresh_token"] = payload["refresh_token"]
     if "token_type" in payload:
         data["token_type"] = payload["token_type"]
     if "created_at" in payload:
-        data["created_at"] = int(payload["created_at"])
+        data["created_at"] = int(cast(int, payload["created_at"]))
     return data
 
 
-def get_user_info(access_token, installation_data):
+def get_user_info(access_token: str, installation_data: Mapping[str, object]) -> dict[str, object]:
     with http.build_session() as session:
         resp = session.get(
             f"{installation_data['url']}/api/v4/user",
             headers={"Accept": "application/json", "Authorization": f"Bearer {access_token}"},
-            verify=installation_data["verify_ssl"],
+            verify=cast(bool, installation_data["verify_ssl"]),
         )
     try:
         resp.raise_for_status()
@@ -60,7 +71,8 @@ def get_user_info(access_token, installation_data):
             },
         )
         raise
-    return resp.json()
+    data = resp.json()
+    return data
 
 
 class GitlabIdentityProvider(OAuth2Provider):
@@ -69,15 +81,16 @@ class GitlabIdentityProvider(OAuth2Provider):
 
     oauth_scopes = ("api",)
 
-    def build_identity(self, data):
-        data = data["data"]
+    def build_identity(self, data: Mapping[str, object]) -> Mapping[str, object]:
+        identity_data = cast(Mapping[str, object], data["data"])
+        user = cast(Mapping[str, object], identity_data["user"])
 
         return {
             "type": IntegrationProviderSlug.GITLAB.value,
-            "id": data["user"]["id"],
-            "email": data["user"]["email"],
-            "scopes": sorted(data["scope"].split(",")),
-            "data": self.get_oauth_data(data),
+            "id": user["id"],
+            "email": user["email"],
+            "scopes": sorted(cast(str, identity_data["scope"]).split(",")),
+            "data": self.get_oauth_data(identity_data),
         }
 
     def get_refresh_token_params(
@@ -128,6 +141,11 @@ class GitlabIdentityProvider(OAuth2Provider):
                 },
             )
             payload = {}
+
+        if "access_token" not in payload:
+            raise ApiError(
+                "GitLab answered the token refresh without an access token", code=req.status_code
+            )
 
         identity.data.update(get_oauth_data(payload))
         identity_service.update_data(identity_id=identity.id, data=identity.data)

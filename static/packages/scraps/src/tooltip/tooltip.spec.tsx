@@ -287,6 +287,28 @@ describe('Tooltip', () => {
   });
 
   describe('sections', () => {
+    it.each([
+      ['header', Tooltip.Header],
+      ['footer', Tooltip.Footer],
+    ] as const)(
+      'preserves zero and omits nullish trailing values in a %s',
+      (_, Section) => {
+        const {rerender} = render(<Section trailingItems={0}>Label</Section>, {
+          wrapper: ThemeWrapper,
+        });
+
+        expect(screen.getByText('0')).toBeInTheDocument();
+
+        rerender(<Section trailingItems={null}>Label</Section>);
+        expect(screen.getByText('Label')).toBeInTheDocument();
+        expect(screen.queryByText('0')).not.toBeInTheDocument();
+
+        rerender(<Section trailingItems={undefined}>Label</Section>);
+        expect(screen.getByText('Label')).toBeInTheDocument();
+        expect(screen.queryByText('0')).not.toBeInTheDocument();
+      }
+    );
+
     it('renders a header label alongside its trailing value', async () => {
       render(
         <Tooltip

@@ -107,6 +107,12 @@ export interface FieldDefinition {
    */
   disallowWildcardOperators?: boolean;
   /**
+   * Operators to leave out of the operator menu, for a field whose backend does
+   * not take them. A query typed as text can still hold one, so the consumer
+   * must also refuse it.
+   */
+  disallowedOperators?: readonly TermOperator[];
+  /**
    * Feature flag that indicates gating of the field from use
    */
   featureFlag?: string;

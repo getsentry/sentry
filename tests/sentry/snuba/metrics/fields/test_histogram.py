@@ -1,11 +1,27 @@
+from typing import TypedDict
+
 import pytest
+from _pytest.mark.structures import ParameterSet
 
-from sentry.snuba.metrics.fields.histogram import rebucket_histogram
+from sentry.snuba.metrics.fields.histogram import ClickhouseHistogram, rebucket_histogram
 
 
-def _call(data, histogram_from, histogram_to, histogram_buckets, output):
+class _CallKwargs(TypedDict):
+    data: ClickhouseHistogram
+    histogram_from: float | None
+    histogram_to: float | None
+    histogram_buckets: int
+
+
+def _call(
+    data: ClickhouseHistogram,
+    histogram_from: float | None,
+    histogram_to: float | None,
+    histogram_buckets: int,
+    output: ClickhouseHistogram,
+) -> ParameterSet:
     return pytest.param(
-        dict(
+        _CallKwargs(
             data=data,
             histogram_from=histogram_from,
             histogram_to=histogram_to,
@@ -28,5 +44,5 @@ def _call(data, histogram_from, histogram_to, histogram_buckets, output):
         _call([(1, 2, 3)], 0, 2, 1, output=[(0.0, 2.0, 3)]),
     ],
 )
-def test_basic(kwargs, output) -> None:
+def test_basic(kwargs: _CallKwargs, output: ClickhouseHistogram) -> None:
     assert rebucket_histogram(**kwargs) == output

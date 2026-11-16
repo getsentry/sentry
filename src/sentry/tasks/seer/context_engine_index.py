@@ -65,7 +65,14 @@ logger = logging.getLogger(__name__)
 def _organization_viewer_context_scope(
     organization_id: int,
 ) -> contextlib.AbstractContextManager[None]:
-    if get_viewer_context() is not None:
+    current = get_viewer_context()
+    if (
+        current is not None
+        and current.organization_id == organization_id
+        and current.actor.type == ActorType.USER
+        and current.actor.user_id is not None
+        and current.actor.user_id > 0
+    ):
         return contextlib.nullcontext()
 
     return viewer_context_scope(
@@ -178,7 +185,7 @@ def index_org_project_knowledge(org_id: int) -> None:
     processing_deadline_duration=10 * 60,  # 10 minutes
     retry=Retry(times=3, on=(SnubaRPCRateLimitExceeded,), delay=60),
 )
-def build_service_map(organization_id: int, *args, **kwargs) -> None:
+def build_service_map(organization_id: int, *args: object, **kwargs: object) -> None:
     """
     Build service map for a single organization and send to Seer.
 
@@ -257,7 +264,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     processing_deadline_duration=10 * 60,  # 10 minutes
     retry=Retry(times=3, on=(SeerApiError,), delay=60),
 )
-def index_repos(organization_id: int, *args, **kwargs) -> None:
+def index_repos(organization_id: int, *args: object, **kwargs: object) -> None:
     if not options.get("explorer.context_engine_indexing.enable"):
         logger.info("explorer.context_engine_indexing.enable flag is disabled")
         return

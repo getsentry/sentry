@@ -4,6 +4,8 @@ import logging
 import random
 import re
 import time
+from collections.abc import Callable, MutableMapping
+from typing import Any
 from urllib.parse import parse_qsl
 
 import orjson
@@ -24,31 +26,45 @@ HARD_TIMEOUT = 3 * 24 * 60 * 60  # 3 days = 259200 seconds
 REACT_MAPPING_URL = (
     "https://raw.githubusercontent.com/facebook/react/master/scripts/error-codes/codes.json"
 )
+# React 19 reworded several messages and added placeholders (e.g. #418), so
+# errors from React 18 and older must be decoded with the codes they shipped
+# with. Otherwise their placeholders have no args and render as <redacted>.
+REACT_LEGACY_MAPPING_URL = (
+    "https://raw.githubusercontent.com/facebook/react/v18.3.1/scripts/error-codes/codes.json"
+)
 
 # Regex for React error messages.
 # * The `(\d+)` group matches the error code
 # * The `(?:\?(\S+))?` group optionally matches a query (non-capturing),
 #   and `(\S+)` matches the query parameters.
-REACT_ERROR_REGEX = r"Minified React error #(\d+); visit https?://[^?]+(?:\?(\S+))?"
+# React 19+ links to react.dev/errors/; older versions link to an
+# error-decoder.html page on reactjs.org or facebook.github.io.
+REACT_ERROR_REGEX = r"Minified React error #(\d+); visit https?://react\.dev/[^?]+(?:\?(\S+))?"
+REACT_LEGACY_ERROR_REGEX = (
+    r"Minified React error #(\d+); visit https?://(?!react\.dev/)[^?]+(?:\?(\S+))?"
+)
 
 error_processors: dict[str, Processor] = {}
 
 
-def is_expired(ts):
+ProcessorFunc = Callable[[dict[str, Any], re.Match[str], dict[str, Any]], bool]
+
+
+def is_expired(ts: float) -> bool:
     return ts > (time.time() - SOFT_TIMEOUT - random.random() * SOFT_TIMEOUT_FUZZINESS)
 
 
 class Processor:
-    def __init__(self, vendor: str, mapping_url, regex, func):
+    def __init__(self, vendor: str, mapping_url: str, regex: str, func: ProcessorFunc) -> None:
         self.vendor: str = vendor
         self.mapping_url = mapping_url
         self.regex = re.compile(regex)
         self.func = func
 
-    def load_mapping(self):
+    def load_mapping(self) -> dict[str, str]:
         key = f"javascript.errormapping:{self.vendor}"
         mapping = cache.get(key)
-        cached_rv = None
+        cached_rv: dict[str, str] | None = None
         if mapping is not None:
             ts, cached_rv = orjson.loads(mapping)
             if not is_expired(ts):
@@ -71,7 +87,7 @@ class Processor:
             return cached_rv
         return data
 
-    def try_process(self, exc):
+    def try_process(self, exc: dict[str, Any]) -> bool:
         if not exc.get("value"):
             return False
         match = self.regex.search(exc["value"])
@@ -81,19 +97,31 @@ class Processor:
         return self.func(exc, match, mapping)
 
 
-def minified_error(vendor, mapping_url, regex):
-    def decorator(f):
+def minified_error(
+    vendor: str, mapping_url: str, regex: str
+) -> Callable[[ProcessorFunc], ProcessorFunc]:
+    def decorator(f: ProcessorFunc) -> ProcessorFunc:
         error_processors[vendor] = Processor(vendor, mapping_url, regex, f)
+        return f
 
     return decorator
 
 
 @minified_error(
+    vendor="react-legacy",
+    mapping_url=REACT_LEGACY_MAPPING_URL,
+    regex=REACT_LEGACY_ERROR_REGEX,
+)
+@minified_error(
     vendor="react",
     mapping_url=REACT_MAPPING_URL,
     regex=REACT_ERROR_REGEX,
 )
-def process_react_exception(exc, match, mapping):
+def process_react_exception(
+    exc: dict[str, Any],
+    match: re.Match[str],
+    mapping: dict[str, str],
+) -> bool:
     error_id, qs = match.groups()
     msg_format = mapping.get(error_id)
     if msg_format is None:
@@ -114,7 +142,7 @@ def process_react_exception(exc, match, mapping):
     return True
 
 
-def rewrite_exception(data):
+def rewrite_exception(data: MutableMapping[str, Any]) -> bool:
     """Rewrite an exception in an event if needed.  Updates the exception
     in place and returns `True` if a modification was performed or `False`
     otherwise.

@@ -38,13 +38,9 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {callRecordLabel} from 'sentry/views/seerExplorer/callRecords';
-import type {
-  CallRecord,
-  ToolCall,
-  ToolLink,
-  ToolResult,
-} from 'sentry/views/seerExplorer/types';
+
+import {callRecordLabel} from './callRecords';
+import type {CallRecord, ToolCall, ToolLink, ToolResult} from './types';
 
 /**
  * Where a Code Mode call sends you.

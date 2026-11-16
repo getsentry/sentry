@@ -65,19 +65,24 @@
               ],
               "properties": {
                 "id": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "ID of the external issue link"
                 },
                 "issueId": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "ID of the Sentry issue"
                 },
                 "serviceType": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Slug of the custom integration that created the external issue"
                 },
                 "displayName": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Display name of the external issue, such as ABC-123"
                 },
                 "webUrl": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "URL of the external issue"
                 }
               }
             },

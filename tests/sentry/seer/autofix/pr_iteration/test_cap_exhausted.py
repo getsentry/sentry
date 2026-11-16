@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
@@ -40,8 +41,11 @@ def _event(head_sha: str = HEAD_SHA) -> GithubCheckSuiteEvent:
 
 
 def _pull_request_result(
-    *, state: str = "open", merged: bool = False, assignees: list[dict] | None = None
-) -> dict:
+    *,
+    state: str = "open",
+    merged: bool = False,
+    assignees: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     return {
         "data": {"state": state, "merged": merged},
         "raw": {"headers": None, "data": {"assignees": assignees or []}},
@@ -77,9 +81,10 @@ class AssignUserForExhaustedCapTest(TestCase):
             repository=self.repo, run_state=run_state, pr_id=555, group_id=1
         )
 
-    def _marker(self) -> dict | None:
+    def _marker(self) -> dict[str, Any] | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(CAP_EXHAUSTED_EXTRA, {}).get(REPO_NAME)
+        marker = (self.seer_run.extras or {}).get(CAP_EXHAUSTED_EXTRA, {}).get(REPO_NAME)
+        return marker if isinstance(marker, dict) else None
 
     @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())

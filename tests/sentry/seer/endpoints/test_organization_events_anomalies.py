@@ -46,7 +46,11 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     current_timestamp_1 = one_week_ago.timestamp()
     current_timestamp_2 = (one_week_ago + timedelta(minutes=10)).timestamp()
 
-    def get_test_data(self, project_id: int) -> dict:
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"))
+
+    def get_test_data(self, project_id: int) -> dict[str, object]:
         return {
             "project_id": str(project_id),  # UI provides project_id as str
             "config": self.config,

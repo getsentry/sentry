@@ -1,5 +1,6 @@
 import type {Release} from 'sentry/types/release';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+import {apiOptions} from './api/apiOptions';
 
 export function releaseApiOptions({
   orgSlug,

@@ -3,9 +3,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+
+import {useCreateProject} from './useCreateProject';
 
 const platform: OnboardingSelectedSDK = {
   key: 'javascript-nextjs',

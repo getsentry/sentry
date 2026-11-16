@@ -86,7 +86,7 @@ class TimeLimitedCache(CacheProtocol[T, U]):
         else:
             return True
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.cache)
 
     def __delitem__(self, key: T) -> None:
@@ -119,7 +119,7 @@ class AutoCache(CacheProtocol[T, U]):
     def __contains__(self, key: T) -> bool:
         return key in self.cache
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.cache)
 
     def __delitem__(self, key: T) -> None:

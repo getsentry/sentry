@@ -7,9 +7,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
 import {generateTransactionSummaryRoute} from 'sentry/views/performance/transactionSummary/utils';
+
+import {useDomainViewFilters} from './useFilters';
 
 interface Props {
   project?: string;

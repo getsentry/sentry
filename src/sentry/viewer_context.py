@@ -31,6 +31,7 @@ __all__ = [
     "ActorType",
     "SuperuserAccess",
     "ViewerContext",
+    "actor_id_from_references",
     "get_viewer_context",
     "viewer_context_scope",
 ]
@@ -54,21 +55,27 @@ https://www.notion.so/sentry/RFC-Unified-ViewerContext-via-ContextVar-32f8b10e4b
 """
 
 
-def get_acting_user_id(ctx: ViewerContext | None) -> int | None:
-    """Return the human user *ctx* acts as, or ``None``.
-
-    A user actor acts as itself and an agent acts for its delegating user. Other
-    actor types never resolve to a user, so a stray ``delegated_user_id`` on them
-    cannot grant user identity.
-    """
-    if ctx is None:
+def actor_id_from_references(
+    *, user_id: int | None, service_account_id: int | None
+) -> ActorId | None:
+    """Interpret mutually exclusive references without resolving or authorizing the actor."""
+    if user_id is not None:
+        if service_account_id is not None:
+            raise ValueError("User and service-account references are mutually exclusive")
+        kind, actor_id = ActorType.USER, user_id
+    elif service_account_id is not None:
+        kind, actor_id = ActorType.SERVICE_ACCOUNT, service_account_id
+    else:
         return None
-    actor = ctx.actor
-    if actor.type == ActorType.USER:
-        return actor.actor_id
-    if actor.type == ActorType.AGENT:
-        return actor.delegated_user_id
-    return None
+
+    if type(actor_id) is not int or actor_id <= 0:
+        raise ValueError("Actor ID must be a positive integer")
+    return ActorId(kind, actor_id)
+
+
+def get_acting_user_id(ctx: ViewerContext | None) -> int | None:
+    """Return the human user *ctx* acts as, or ``None``."""
+    return ctx.actor.user_id if ctx is not None else None
 
 
 def observe_viewer_context_propagation(
@@ -152,6 +159,17 @@ def set_viewer_context_superuser(
                 actor=dataclasses.replace(ctx.actor, superuser=superuser),
             )
         )
+
+
+def set_viewer_context_actor(actor: Actor) -> None:
+    """Replace the caller, e.g. when an endpoint authenticates after the middleware did."""
+    ctx = get_viewer_context()
+    if ctx is None or ctx.actor == actor:
+        return
+    if actor.superuser is None and dataclasses.replace(ctx.actor, superuser=None) == actor:
+        # Same caller: keep the elevation the access checks granted.
+        return
+    _viewer_context_var.set(dataclasses.replace(ctx, actor=actor))
 
 
 def set_viewer_context_organization(organization_id: int) -> None:

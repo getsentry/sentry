@@ -3,12 +3,10 @@ import * as qs from 'query-string';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
-import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
 import {
@@ -38,6 +36,9 @@ import {
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+
+import type {TagTreeContent} from './eventTagsTree';
+import {EventTagsValue} from './eventTagsValue';
 
 interface EventTagsTreeRowProps {
   content: TagTreeContent;
@@ -219,14 +220,14 @@ function EventTagsTreeRowDropdown({
           },
           {
             onError: () => {
-              addErrorMessage(
+              toast.error(
                 tct("Failed to update '[projectName]' project", {
                   projectName: project.name,
                 })
               );
             },
             onSuccess: () => {
-              addSuccessMessage(
+              toast.success(
                 tct("Successfully updated '[projectName]' project", {
                   projectName: project.name,
                 })

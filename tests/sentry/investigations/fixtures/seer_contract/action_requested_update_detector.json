@@ -2,7 +2,11 @@
   "request": {
     "action": {
       "before": {
+        "aggregate": "count()",
+        "environment": "production",
+        "highThreshold": 500.0,
         "query": "transaction:/checkout",
+        "resolutionThreshold": 500.0,
         "timeWindowSeconds": 300
       },
       "changes": {

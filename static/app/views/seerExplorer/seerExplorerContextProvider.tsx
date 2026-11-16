@@ -16,34 +16,33 @@ import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {serializeChatPromptContext} from 'sentry/views/seerExplorer/chatPrompt';
-import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+
+import {ExplorerDrawerContent} from './components/drawer/explorerDrawerContent';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
-} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
-import {SeerExplorerErrorBoundary} from 'sentry/views/seerExplorer/components/seerExplorerErrorBoundary';
-import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+} from './components/drawer/useSeerExplorerDrawer';
+import {SeerExplorerContent} from './components/seerExplorerContent';
+import {SeerExplorerErrorBoundary} from './components/seerExplorerErrorBoundary';
+import {useSeerExplorerPolling} from './hooks/useSeerExplorerPolling';
+import {serializeChatPromptContext} from './chatPrompt';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
-} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {
-  SeerExplorerRunId,
-  SeerExplorerSidebarPosition,
-} from 'sentry/views/seerExplorer/types';
+} from './seerExplorerChatStateContext';
+import type {SeerExplorerRunId, SeerExplorerSidebarPosition} from './types';
 import {
   SeerExplorerContext,
   type SeerExplorerContextValue,
-} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+} from './useSeerExplorerContext';
 import {
   getSeerExplorerAnalyticsBrowserSize,
   usePageReferrer,
   useRemoveSeerExplorerRunIdParam,
   useSeerExplorerDeepLink,
   useSyncSeerExplorerRunIdToUrl,
-} from 'sentry/views/seerExplorer/utils';
+} from './utils';
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {runId, chatStates} = useSeerExplorerChatState();
@@ -61,9 +60,12 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     onClose: () => setLastViewedAt(Date.now()),
   });
 
-  // Sidebar (split-panel) state. Open state is ephemeral — resets on reload,
-  // like the drawer; only the dock preference persists.
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Sidebar (split-panel) state. Open state lives in sessionStorage, like the
+  // run id, so a reload keeps the same chat open while new tabs start closed.
+  const [isSidebarOpen, setIsSidebarOpen] = useSessionStorage(
+    'seer-explorer-sidebar-open',
+    false
+  );
   const isSidebarOpenRef = useRef(isSidebarOpen);
   useEffect(() => {
     isSidebarOpenRef.current = isSidebarOpen;
@@ -113,7 +115,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       organization,
       isDrawer: false,
     });
-  }, [getPageReferrer, organization]);
+  }, [getPageReferrer, organization, setIsSidebarOpen]);
 
   // Re-open the active surface (sidebar or drawer) whenever the PiP window closes
   // (native controls, dock button, or programmatically) — unless a full close
@@ -143,7 +145,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       }
       isRedockingRef.current = true;
       if (isSidebarMode) {
-        // oxlint-disable-next-line react/set-state-in-effect
         openSidebar();
       } else {
         openSeerExplorerDrawer();
@@ -266,7 +267,13 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       return;
     }
     closeSeerExplorerDrawer();
-  }, [pipWindow, isSidebarMode, closePipWindow, closeSeerExplorerDrawer]);
+  }, [
+    pipWindow,
+    isSidebarMode,
+    closePipWindow,
+    setIsSidebarOpen,
+    closeSeerExplorerDrawer,
+  ]);
 
   const toggleSeerExplorer = useCallback(() => {
     if (pipWindow) {
@@ -293,6 +300,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     isSidebarMode,
     isSidebarOpen,
     closePipWindow,
+    setIsSidebarOpen,
     openSidebar,
     toggleSeerExplorerDrawer,
   ]);
@@ -437,24 +445,23 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // Links opened with `explorerRunId` keep it in the URL and follow session switches.
   useSyncSeerExplorerRunIdToUrl(runId);
 
+  // Keep the layout alternatives: with Cmd held, browsers may report the base key.
   useHotkeys(
     isModalOpen
       ? []
-      : [
-          {
-            match: [
-              'mod+/', // QWERTY (US, UK, most CJK, RTL scripts)
-              'mod+.', // macOS-friendly alternative
-              'mod+shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
-              'mod+shift+.', // AZERTY (French, Belgian): / === Shift+.
-              'mod+shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
-            ],
-            callback: () => {
-              toggleSeerExplorer();
-            },
-            includeInputs: true,
-          },
-        ]
+      : (
+          [
+            'Mod+/', // QWERTY (US, UK, most CJK, RTL scripts)
+            'Mod+.', // macOS-friendly alternative
+            'Mod+Shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
+            'Mod+Shift+.', // AZERTY (French, Belgian): / === Shift+.
+            'Mod+Shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
+          ] as const
+        ).map(hotkey => ({
+          hotkey,
+          callback: toggleSeerExplorer,
+          options: {ignoreInputs: false},
+        }))
   );
 
   return (

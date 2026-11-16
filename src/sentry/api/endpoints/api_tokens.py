@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import router, transaction
 from django.utils.decorators import method_decorator
@@ -18,10 +20,17 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
-from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.auth.principal import acting_user_id, require_user
+from sentry.hybridcloud.models.outbox import (
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
 from sentry.models.apitoken import ApiToken
 from sentry.security.utils import capture_security_activity
 from sentry.types.token import AuthTokenType
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_FIELDS = ["name", "tokenId"]
 
@@ -44,7 +53,7 @@ def get_appropriate_user_id(request: Request) -> int:
     assert request.user.is_authenticated
 
     # Get the user id for the user that made the current request as a baseline default
-    user_id = request.user.id
+    user_id = require_user(request).id
     if has_elevated_mode(request):
         datastore = request.GET if request.GET else request.data
         # If a userId override is not found, use the id for the user who made the request
@@ -85,31 +94,50 @@ class ApiTokensEndpoint(Endpoint):
         if serializer.is_valid():
             result = serializer.validated_data
             assert request.user.is_authenticated, "User must not be anonymous"
+            user = require_user(request)
 
-            token = ApiToken.objects.create(
-                user_id=request.user.id,
-                name=result.get("name", None),
-                token_type=AuthTokenType.USER,
-                scope_list=result["scopes"],
-                expires_at=None,
-            )
+            token: ApiToken | None = None
+            try:
+                # This transaction is required to bind the token to a variable
+                # when replication fails. The outbox_context is just to flag
+                # that this is an outbox-producing operation.
+                with outbox_context(transaction.atomic(router.db_for_write(ApiToken))):
+                    token = ApiToken.objects.create(
+                        user_id=user.id,
+                        name=result.get("name", None),
+                        token_type=AuthTokenType.USER,
+                        scope_list=result["scopes"],
+                        expires_at=None,
+                    )
+            except (OutboxDatabaseError, OutboxFlushError):
+                if token is None:
+                    raise
+
+                # Guard against replication fanout failures. The key has been
+                # minted, and its outbox has been committed alongside it,
+                # guaranteeing that it will eventually be valid in all regions.
+                logger.warning(
+                    "api_tokens.outbox-flush-failure",
+                    extra={"token_id": token.id, "user_id": user.id},
+                    exc_info=True,
+                )
 
             capture_security_activity(
-                account=request.user,
+                account=user,
                 type="api-token-generated",
-                actor=request.user,
+                actor=user,
                 ip_address=request.META["REMOTE_ADDR"],
                 context={},
                 send_email=True,
             )
 
-            analytics.record(ApiTokenCreated(user_id=request.user.id))
+            analytics.record(ApiTokenCreated(user_id=user.id))
 
             return Response(serialize(token, request.user), status=201)
         return Response(serializer.errors, status=400)
 
     @method_decorator(never_cache)
-    def delete(self, request: Request):
+    def delete(self, request: Request) -> Response[dict[str, object] | None]:
         user_id = get_appropriate_user_id(request=request)
 
         token_id = request.data.get("tokenId", None)
@@ -127,6 +155,6 @@ class ApiTokensEndpoint(Endpoint):
 
             token_to_delete.delete()
 
-        analytics.record(ApiTokenDeleted(user_id=request.user.id))
+        analytics.record(ApiTokenDeleted(user_id=acting_user_id(request.user)))
 
         return Response(status=204)

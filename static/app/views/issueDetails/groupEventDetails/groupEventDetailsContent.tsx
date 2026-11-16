@@ -1,6 +1,6 @@
 import {Fragment, lazy, useMemo, useRef} from 'react';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -21,13 +21,10 @@ import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreen
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
+import {EventGpuCrashReport} from 'sentry/components/events/gpuCrashReport';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
-import {
-  AndroidNativeTombstonesBanner,
-  shouldShowTombstonesBanner,
-} from 'sentry/components/events/interfaces/crashContent/exception/androidNativeTombstonesBanner';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
@@ -63,14 +60,12 @@ import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/conf
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {getHangProfileData} from 'sentry/views/issueDetails/metricKitHangProfileSection';
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {
   MetricDetectorTriggeredSection,
   MetricIssueSeerInvestigationSection,
 } from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
 import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/sizeAnalysisTriggeredSection';
-import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 
@@ -112,9 +107,6 @@ export function EventDetailsContent({
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-  const isMetricKitHang =
-    mechanism === 'mx_hang_diagnostic' && getHangProfileData(event) !== null;
-  const isSampleError = useIsSampleEvent();
 
   useCopyIssueDetails(group, event);
 
@@ -167,14 +159,9 @@ export function EventDetailsContent({
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
       )}
-      {!isMetricKitHang && shouldShowTombstonesBanner(event) && !isSampleError && (
-        <ErrorBoundary mini>
-          <AndroidNativeTombstonesBanner
-            event={event}
-            projectId={group?.project.id ?? event.projectID ?? ''}
-          />
-        </ErrorBoundary>
-      )}
+      <ErrorBoundary mini>
+        <EventGpuCrashReport event={event} />
+      </ErrorBoundary>
       <EventStackTrace event={event} group={group} projectSlug={projectSlug} />
       <ScreenshotDataSection event={event} projectSlug={project.slug} />
       {isANR && (
@@ -236,15 +223,15 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
-      <BreadcrumbsDataSection event={event} group={group} project={project} />
+      <BreadcrumbsDataSection event={event} />
       <ErrorBoundary mini message={t('There was a problem loading logs.')}>
         <Feature features="ourlogs-enabled" organization={organization}>
-          <OurlogsSection event={event} group={group} project={project} />
+          <OurlogsSection event={event} group={group} />
         </Feature>
       </ErrorBoundary>
       <ErrorBoundary mini message={t('There was a problem loading metrics.')}>
         <Feature features="tracemetrics-enabled" organization={organization}>
-          <MetricsSection event={event} group={group} project={project} />
+          <MetricsSection event={event} />
         </Feature>
       </ErrorBoundary>
       {issueTypeConfig.trace.enabled &&

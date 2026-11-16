@@ -5,7 +5,8 @@ import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
-import {CRON_DEFAULT_RECOVERY_THRESHOLD} from 'sentry/views/detectors/components/forms/cron/fields';
+
+import {CRON_DEFAULT_RECOVERY_THRESHOLD} from './fields';
 
 export function CronDetectorFormResolveSection({step}: {step?: number}) {
   return (

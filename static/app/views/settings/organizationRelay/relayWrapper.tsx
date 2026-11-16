@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {IconAdd} from '@sentry/icons/add';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 import {z} from 'zod';
 
@@ -8,8 +8,8 @@ import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -17,8 +17,9 @@ import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay, RelayActivity} from 'sentry/types/relay';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
@@ -81,7 +82,7 @@ export function RelayWrapper() {
         savedRelays={relays}
         orgSlug={organization.slug}
         onSubmitSuccess={response => {
-          addSuccessMessage(t('Successfully added Relay public key'));
+          toast.success(t('Successfully added Relay public key'));
           setRelays(response.trustedRelays ?? []);
         }}
       />
@@ -223,18 +224,14 @@ function RelayUsageList({
 }) {
   const {openModal} = useModal();
 
-  const {isPending, isError, refetch, data} = useApiQuery<RelayActivity[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/relay_usage/', {
-        path: {organizationIdOrSlug: orgSlug},
-      }),
-    ],
-    {
-      staleTime: 0,
-      retry: false,
-      enabled: relays.length > 0,
-    }
-  );
+  const {isPending, isError, refetch, data} = useQuery({
+    ...apiOptions.as<RelayActivity[]>()(
+      '/organizations/$organizationIdOrSlug/relay_usage/',
+      {path: {organizationIdOrSlug: orgSlug}, staleTime: 0}
+    ),
+    retry: false,
+    enabled: relays.length > 0,
+  });
 
   const {mutate: deleteRelay} = useMutation({
     mutationFn: ({
@@ -256,11 +253,11 @@ function RelayUsageList({
       });
     },
     onSuccess: response => {
-      addSuccessMessage(t('Successfully deleted Relay public key'));
+      toast.success(t('Successfully deleted Relay public key'));
       onRelaysChange(response.trustedRelays ?? []);
     },
     onError: () => {
-      addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
+      toast.error(t('An unknown error occurred while deleting Relay public key'));
     },
   });
 
@@ -278,7 +275,7 @@ function RelayUsageList({
         orgSlug={orgSlug}
         relay={editRelay}
         onSubmitSuccess={response => {
-          addSuccessMessage(t('Successfully updated Relay public key'));
+          toast.success(t('Successfully updated Relay public key'));
           onRelaysChange(response.trustedRelays ?? []);
         }}
       />

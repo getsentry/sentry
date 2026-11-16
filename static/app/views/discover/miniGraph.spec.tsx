@@ -5,7 +5,8 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {EventView} from 'sentry/utils/discover/eventView';
-import MiniGraph from 'sentry/views/discover/miniGraph';
+
+import MiniGraph from './miniGraph';
 
 jest.mock('sentry/components/charts/eventsRequest');
 

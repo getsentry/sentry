@@ -1,4 +1,4 @@
-import {getBuildNumber} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {getBuildNumber} from './buildDetailsTypes';
 
 describe('getBuildNumber', () => {
   it('prefers build_number_raw when present', () => {

@@ -1,4 +1,4 @@
-import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
+import {getExactDuration} from './getExactDuration';
 
 describe('getExactDuration', () => {
   it('should provide default value', () => {

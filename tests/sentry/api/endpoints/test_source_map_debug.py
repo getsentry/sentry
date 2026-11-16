@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import zipfile
 from io import BytesIO
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import orjson
@@ -408,6 +408,34 @@ class SourceMapDebugEndpointTestCase(APITestCase):
                 event.event_id,
             )
         assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+
+    @override_options({"sourcemaps.source-map-debug.debug-id-check-max-bundles": 0})
+    def test_project_has_some_artifact_bundle_with_a_debug_id_unbounded(self) -> None:
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=True)
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=False)
+
+        event = self.store_event(
+            data=create_event(),
+            project_id=self.project.id,
+        )
+
+        with CaptureQueriesContext(
+            connections[router.db_for_read(DebugIdArtifactBundle)]
+        ) as queries:
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+        assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+        debug_id_queries = [
+            query["sql"]
+            for query in queries.captured_queries
+            if 'FROM "sentry_debugidartifactbundle"' in query["sql"]
+        ]
+        assert len(debug_id_queries) == 1
+        assert '"sentry_debugidartifactbundle"."organization_id"' in debug_id_queries[0]
 
     @override_options({"sourcemaps.source-map-debug.debug-id-check-max-bundles": 2})
     def test_project_has_some_artifact_bundle_with_a_debug_id_in_other_project(self) -> None:
@@ -1574,7 +1602,10 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             self.project.slug,
             event_id,
         )
-        return resp.data["exceptions"][0]["frames"][0]["release_process"]
+        return cast(
+            "dict[str, Any]",
+            resp.data["exceptions"][0]["frames"][0]["release_process"],
+        )
 
     @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
     def test_frame_release_process_artifact_bundle_url_match_by_bundle_successful(self) -> None:

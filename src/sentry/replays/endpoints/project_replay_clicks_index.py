@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from collections.abc import Sequence
-from typing import TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Annotated, Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -30,6 +30,7 @@ from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, p
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -47,12 +48,14 @@ REFERRER = "replays.query.query_replay_clicks_dataset"
 
 
 class ReplayClickResponseData(TypedDict):
-    node_id: int
-    timestamp: datetime.datetime
+    node_id: Annotated[int, ApiDescription("RRWeb DOM node ID of the clicked element")]
+    timestamp: Annotated[datetime.datetime, ApiDescription("When the element was clicked")]
 
 
 class ReplayClickResponse(TypedDict):
-    data: list[ReplayClickResponseData]
+    data: Annotated[
+        list[ReplayClickResponseData], ApiDescription("Clicks that match the query, in time order")
+    ]
 
 
 @cell_silo_endpoint
@@ -92,7 +95,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
 
         replay_id = str(uuid.UUID(replay_id))
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> Mapping[str, Any]:
             try:
                 search_filters = parse_search_query(request.query_params.get("query", ""))
             except InvalidSearchQuery as e:
@@ -126,7 +129,7 @@ def query_replay_clicks(
     offset: int,
     search_filters: Sequence[QueryToken],
     organization_id: int,
-):
+) -> Mapping[str, Any]:
     """Query replay clicks.
 
     This query is atypical in that it does not aggregate by replay_id and it is not exposed as a

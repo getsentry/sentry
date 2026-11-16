@@ -2,6 +2,7 @@ from typing import Any
 
 from django.test import override_settings
 
+from sentry.models.project import Project
 from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.tasks.release_registry import SDK_INDEX_CACHE_KEY
 from sentry.testutils.cases import TestCase
@@ -21,11 +22,11 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
 
     def assert_db_entry(
         self,
-        project,
-        event_type,
-        sdk_name,
-        sdk_version,
-    ):
+        project: Project,
+        event_type: EventType,
+        sdk_name: str,
+        sdk_version: str,
+    ) -> ProjectSDK:
         project_sdk = ProjectSDK.objects.get(
             project=project,
             event_type=event_type.value,
@@ -36,11 +37,11 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
 
     def assert_cache_entry(
         self,
-        project,
-        event_type,
-        sdk_name,
-        sdk_version,
-    ):
+        project: Project,
+        event_type: EventType,
+        sdk_name: str,
+        sdk_version: str,
+    ) -> ProjectSDK:
         cache_key = ProjectSDK.get_cache_key(project, event_type, sdk_name)
         project_sdk = cache.get(cache_key)
 

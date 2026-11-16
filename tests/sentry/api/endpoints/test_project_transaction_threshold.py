@@ -1,7 +1,10 @@
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class ProjectTransactionThresholdTest(APITestCase):
@@ -74,6 +77,33 @@ class ProjectTransactionThresholdTest(APITestCase):
         assert ProjectTransactionThreshold.objects.filter(
             project=self.project, organization=self.project.organization
         ).exists()
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_creates_threshold_without_editor(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.project.organization,
+            scope_list=["project:write"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.project.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                data={"metric": "duration", "threshold": "300"},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert response.status_code == 201, response.content
+        threshold = ProjectTransactionThreshold.objects.get(project=self.project)
+        assert threshold.edited_by_id is None
 
     def test_update_single_field_project_threshold(self) -> None:
         with self.feature(self.feature_name):

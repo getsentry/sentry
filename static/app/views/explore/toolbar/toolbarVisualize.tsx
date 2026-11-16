@@ -9,7 +9,6 @@ import {Badge} from '@sentry/scraps/badge';
 import {
   CompositeSelect,
   TriggerLabel,
-  type SelectKey,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -19,6 +18,7 @@ import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -31,7 +31,6 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
-import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -60,9 +59,12 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
 import {
+  isSpansHeatMap,
+  SPANS_HEAT_MAP_Y_AXES,
+} from 'sentry/views/explore/spans/charts/spansHeatMap';
+import {
   SHARED_CHART_AGGREGATE_REGIONS,
   SHARED_CHART_AGGREGATES,
-  hasMultiAggregateCharts,
 } from 'sentry/views/explore/spans/sharedChartAggregates';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
@@ -253,7 +255,7 @@ function ToolbarVisualizeItem({
     [visualizes]
   );
 
-  const fieldOptions = useVisualizeFields({
+  const visualizeFieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
@@ -263,6 +265,9 @@ function ToolbarVisualizeItem({
         : parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
+  const fieldOptions = isSpansHeatMap(visualize, organization)
+    ? HEAT_MAP_FIELD_OPTIONS
+    : visualizeFieldOptions;
 
   const filter = parsedFunction?.filter ?? '';
 
@@ -349,16 +354,6 @@ function ToolbarVisualizeItem({
     [onReplace, visualizes]
   );
 
-  const onChangeAggregate = useCallback(
-    (option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        onChangeAggregates([option.value]);
-      }
-    },
-    [onChangeAggregates]
-  );
-
-  const multiAggregateCharts = hasMultiAggregateCharts(organization);
   const showFilterSearchBar = supportsConditionalAggregateFilter(
     parsedFunction?.name ?? ''
   );
@@ -367,17 +362,13 @@ function ToolbarVisualizeItem({
     <ToolbarVisualizeDropdown
       dragColumnId={dragColumnId}
       aggregateSelect={
-        multiAggregateCharts ? (
-          <AggregateMultiSelect
-            formulas={formulas}
-            maxAggregates={maxAggregates}
-            onChange={onChangeAggregates}
-            value={selectedAggregates}
-          />
-        ) : undefined
+        <AggregateMultiSelect
+          formulas={formulas}
+          maxAggregates={maxAggregates}
+          onChange={onChangeAggregates}
+          value={selectedAggregates}
+        />
       }
-      aggregateOptions={AGGREGATE_OPTIONS}
-      onChangeAggregate={onChangeAggregate}
       fieldOptions={fieldOptions}
       formulaDefaultColumn={DEFAULT_VISUALIZATION_FIELD}
       formulas={formulas}
@@ -389,22 +380,6 @@ function ToolbarVisualizeItem({
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
       onSearch={setSearch}
       onClose={() => setSearch(undefined)}
-      transformationControls={
-        organization.features.includes('explore-interpolation-and-smoothing') &&
-        isVisualizeFunction(visualize) ? (
-          <VisualizeTransformations
-            traceItemDataset={TraceItemDataset.SPANS}
-            transformations={visualize.transformations}
-            onChange={transformations =>
-              onReplace(
-                visualizes.map(v =>
-                  isVisualizeFunction(v) ? v.replace({transformations}) : v
-                )
-              )
-            }
-          />
-        ) : undefined
-      }
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar
@@ -419,12 +394,12 @@ function ToolbarVisualizeItem({
   );
 }
 
-const AGGREGATE_OPTIONS: Array<SelectOption<string>> =
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => ({
-    label: aggregate,
-    value: aggregate,
-    textValue: aggregate,
-  }));
+const HEAT_MAP_FIELD_OPTIONS = SPANS_HEAT_MAP_Y_AXES.map(field =>
+  optionFromTag(
+    {key: field, name: field, kind: FieldKind.MEASUREMENT},
+    TraceItemDataset.SPANS
+  )
+);
 
 const SINGLE_SELECT_AGGREGATES = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(
   aggregate => !SHARED_CHART_AGGREGATES.includes(aggregate)
@@ -474,6 +449,7 @@ function AggregateMultiSelect({
 
   return (
     <AggregateCompositeSelect
+      fullWidth={defined(selectedFormula)}
       menuHeaderTrailingItems={
         isDefaultSelection
           ? undefined
@@ -557,9 +533,13 @@ function AggregateMultiSelect({
   );
 }
 
-const AggregateCompositeSelect = styled(CompositeSelect)`
-  width: 100px;
-  flex-shrink: 0;
+const AggregateCompositeSelect = styled(CompositeSelect, {
+  shouldForwardProp: prop => prop !== 'fullWidth',
+})<{fullWidth: boolean}>`
+  ${p =>
+    p.fullWidth
+      ? 'flex: 1 1; min-width: 0; width: 100%;'
+      : 'width: 100px; flex-shrink: 0;'}
 
   > button {
     width: 100%;

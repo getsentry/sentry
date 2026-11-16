@@ -1,5 +1,6 @@
 import React from 'react';
 import qs from 'query-string';
+import {EventFixture} from 'sentry-fixture/event';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -14,8 +15,11 @@ import {
   type RenderOptions,
 } from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldValueType} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
@@ -28,13 +32,13 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {
-  addValidatedFieldTypesToLogsMeta,
-  LogsInfiniteTable,
-} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {createErrorLogRow} from 'sentry/views/explore/logs/utils';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {addValidatedFieldTypesToLogsMeta, LogsInfiniteTable} from './logsInfiniteTable';
+
+const mockScrollToIndex = jest.fn();
 
 jest.mock('@tanstack/react-virtual', () => {
   return {
@@ -66,6 +70,7 @@ jest.mock('@tanstack/react-virtual', () => {
       },
       scrollDirection: 'forward',
       scrollOffset: 0,
+      scrollToIndex: (...args: unknown[]) => mockScrollToIndex(...args),
       isScrolling: false,
     }),
   };
@@ -755,6 +760,168 @@ describe('LogsInfiniteTable', () => {
       expect(pinnedRow).toHaveAttribute('data-row-hover-linked', 'true');
     });
     expect(tbodyRow).toHaveAttribute('data-row-hover-linked', 'true');
+  });
+
+  describe('scroll to log', () => {
+    const unloadedPinnedLog = LogFixture({
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ID]: '99',
+      [OurLogKnownFieldKey.MESSAGE]: 'unloaded pinned log body',
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/99/`,
+        method: 'GET',
+        body: {
+          itemId: '99',
+          links: null,
+          meta: {},
+          timestamp: unloadedPinnedLog[OurLogKnownFieldKey.TIMESTAMP],
+          attributes: [],
+        },
+      });
+    });
+
+    const pinnedRouterConfig = {
+      location: {
+        pathname: `/organizations/${organization.slug}/explore/logs/`,
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'severity:error',
+          logsPinned: '99',
+        },
+      },
+    };
+
+    function mockEvents(matchQuery: (query: string) => boolean, data: unknown[]) {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {data, meta: {fields: {}, units: {}}},
+        match: [(_, options) => matchQuery(String(options?.query?.query ?? ''))],
+      });
+    }
+
+    async function clickScrollToLog() {
+      const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
+      const pinnedRow = await within(pinnedTableBody).findByTestId('log-table-row');
+      await userEvent.hover(pinnedRow);
+      await userEvent.click(
+        within(pinnedRow).getAllByRole('button', {name: 'Actions'})[0]!
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Scroll to log'})
+      );
+    }
+
+    it('shows the pinned log in the table when it was not loaded', async () => {
+      mockEvents(query => query === 'id:[99]', [unloadedPinnedLog]);
+      const anchoredMock = mockEvents(
+        query => query.startsWith(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=`),
+        [unloadedPinnedLog]
+      );
+      mockEvents(
+        query => query.startsWith(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=`),
+        []
+      );
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: pinnedRouterConfig}
+      );
+
+      await clickScrollToLog();
+
+      const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
+      await waitFor(() => {
+        expect(
+          screen
+            .getAllByText('unloaded pinned log body')
+            .filter(element => !pinnedTableBody.contains(element))
+        ).toHaveLength(1);
+      });
+      expect(anchoredMock).toHaveBeenCalled();
+      expect(mockScrollToIndex).toHaveBeenCalledWith(0, {align: 'center'});
+    });
+
+    it('shows an error when the pinned log is not in the current results', async () => {
+      const addErrorMessage = jest.spyOn(toast, 'error');
+      const trackAnalytics = jest.spyOn(analytics, 'trackAnalytics');
+      mockEvents(query => query === 'id:[99]', [unloadedPinnedLog]);
+      mockEvents(
+        query => query.startsWith(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:`),
+        []
+      );
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: pinnedRouterConfig}
+      );
+
+      await clickScrollToLog();
+
+      await waitFor(() => {
+        expect(addErrorMessage).toHaveBeenCalledWith(
+          'This log is not in the current results'
+        );
+      });
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'logs.table.pinned_row_not_in_results',
+        {log_id: '99', organization: expect.anything()}
+      );
+      expect(await screen.findByText('test log body 1')).toBeInTheDocument();
+    });
+  });
+
+  describe('scroll to event', () => {
+    beforeEach(() => {
+      mockScrollToIndex.mockClear();
+    });
+
+    function mockEvents({hasMoreResults}: {hasMoreResults: boolean}) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {data: mockLogsData, meta: {fields: {}, units: {}}},
+        headers: {
+          Link: `<https://sentry.io/api/0/organizations/${organization.slug}/events/>; rel="next"; results="${hasMoreResults}"; cursor="0:1000:0"`,
+        },
+      });
+    }
+
+    function renderWithEvent() {
+      renderWithProviders(
+        <LogsInfiniteTable
+          embedded
+          additionalData={{event: EventFixture({dateCreated: '2025-04-01T00:00:00Z'})}}
+          analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+        />
+      );
+    }
+
+    it('scrolls to the event after the loaded logs when no more pages exist', async () => {
+      mockEvents({hasMoreResults: false});
+
+      renderWithEvent();
+
+      await waitFor(() =>
+        expect(mockScrollToIndex).toHaveBeenCalledWith(3, {
+          behavior: 'smooth',
+          align: 'center',
+        })
+      );
+    });
+
+    it('does not scroll to the event when it is after the loaded logs and more pages exist', async () => {
+      mockEvents({hasMoreResults: true});
+
+      renderWithEvent();
+      await screen.findByText('test log body 3');
+      await act(() => new Promise(resolve => setTimeout(resolve, 200)));
+
+      expect(mockScrollToIndex).not.toHaveBeenCalled();
+    });
   });
 
   it('interleaves injected error rows and links them to the issue when clicked', async () => {

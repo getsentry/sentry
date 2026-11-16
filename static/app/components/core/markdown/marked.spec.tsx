@@ -1,6 +1,6 @@
 /* eslint no-script-url:0 */
 
-import {loadPrismLanguage} from '@sentry/scraps/code';
+import {loadPrismLanguage} from '@sentry/scraps/codeBlock';
 import {
   asyncSanitizedMarked,
   markdownRendersVisibleContent,

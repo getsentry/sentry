@@ -1,15 +1,16 @@
 import {Fragment, type ReactNode} from 'react';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+
+import {DroppedDataLLMContext} from './droppedDataLLMContext';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
@@ -52,15 +53,15 @@ describe('DroppedDataLLMContext', () => {
       body: {
         meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
         droppedEvents: [
-          DroppedEventFixture({outcome: 'rate_limited', count: 10}),
-          DroppedEventFixture({
+          OutcomeRowFixture({outcome: 'rate_limited', count: 10}),
+          OutcomeRowFixture({
             outcome: 'client_discard',
             reason: 'sample_rate',
             count: 30,
           }),
         ],
         acceptedEvents: [
-          DroppedEventFixture({outcome: 'accepted', reason: 'accepted', count: 60}),
+          OutcomeRowFixture({outcome: 'accepted', reason: 'accepted', count: 60}),
         ],
       },
     });

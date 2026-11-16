@@ -9,9 +9,10 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {TagDetailsLink} from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
-import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+
+import {TagDetailsLink} from './tagDetailsLink';
+import {TagDistribution} from './tagDistribution';
+import {useGroupTags} from './useGroupTags';
 
 export function TagDrawerContent({
   group,
@@ -45,15 +46,6 @@ export function TagDrawerContent({
     return detailedProject?.highlightTags ?? [];
   }, [detailedProject]);
 
-  const tagValues = useMemo(
-    () =>
-      data.reduce<Record<string, string>>((valueMap, tag) => {
-        valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
-        return valueMap;
-      }, {}),
-    [data]
-  );
-
   const displayTags = useMemo(() => {
     const highlightTags = data.filter(tag => highlightTagKeys.includes(tag.key));
     const orderedHighlightTags = highlightTags.sort(
@@ -66,10 +58,10 @@ export function TagDrawerContent({
       tag =>
         tag.key.includes(search) ||
         tag.name.includes(search) ||
-        tagValues[tag.key]?.includes(search)
+        tag.topValues.some(tv => tv.value?.includes(search))
     );
     return searchedTags;
-  }, [data, search, tagValues, highlightTagKeys]);
+  }, [data, search, highlightTagKeys]);
 
   if (isPending || isHighlightsPending) {
     return <LoadingIndicator />;

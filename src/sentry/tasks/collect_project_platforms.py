@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from datetime import timedelta
 
 from django.utils import timezone
@@ -11,7 +12,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 
 
-def paginate_project_ids(paginate):
+def paginate_project_ids(paginate: int) -> Iterator[list[int]]:
     id_cursor = -1
     while True:
         queryset = (
@@ -30,7 +31,7 @@ def paginate_project_ids(paginate):
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
 )
-def collect_project_platforms(paginate=1000, **kwargs):
+def collect_project_platforms(paginate: int = 1000, **kwargs: object) -> None:
     now = timezone.now()
 
     for page_of_project_ids in paginate_project_ids(paginate):

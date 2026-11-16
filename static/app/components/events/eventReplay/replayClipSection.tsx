@@ -5,7 +5,6 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
@@ -20,6 +19,8 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+
+import {REPLAY_LOADING_HEIGHT} from './constants';
 
 interface Props {
   event: Event;

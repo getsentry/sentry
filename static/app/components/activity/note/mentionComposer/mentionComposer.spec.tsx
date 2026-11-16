@@ -4,8 +4,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TeamStore} from 'sentry/stores/teamStore';
+
+import {MentionComposer} from './mentionComposer';
 
 function getEditor(name = 'Add a comment') {
   const editor = screen.getByRole('combobox', {name});

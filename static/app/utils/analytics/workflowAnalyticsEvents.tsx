@@ -1,7 +1,8 @@
 import type {GroupStatus} from 'sentry/types/group';
-import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import type {Tab} from 'sentry/views/issueDetails/types';
+
+import type {ProjectCreationVariant} from './projectCreationAnalyticsEvents';
 
 type RuleViewed = {
   alert_type: 'issue' | 'metric';

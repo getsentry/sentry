@@ -66,6 +66,38 @@ NEVER query the database in `serialize()` for bulk requests. `serialize()` runs 
 
 The `ViewerContext` contextvar carries the current viewer's identity. When the viewer is in scope, call `sentry.viewer_context.get_viewer_context()` instead of passing org and user identity through arguments.
 
+### Request Principals
+
+`request.user` is whoever is calling: a user, an agent acting for one, a service account, or anonymous. Don't assume a `User`, and don't read `request.user.id`. Use `sentry.auth.principal`:
+
+- `acting_user_id(request.user)`: the user behind the call (an agent's is the user it acts for), or None. Handle None.
+- `has_user(request.user)`: whether there is one; narrows to `User | RpcUser`.
+- `acting_user(request.user)`: the same user as an object, or None; for APIs that take a user (e.g. `as_user=`).
+- `is_acting_user(request.user, obj.user_id)`: "is this mine?"; False when there is no user.
+- `is_owned_by_acting_user(request.user)`: a `Q` for "mine" (`filter`) or "not mine" (`exclude`); matches nothing when there is no user.
+- `request.access.role`: the caller's org role, or None without a membership. Don't look up its `OrganizationMember` by user id.
+- `require_user(request)`: the user, or `UserRequired` (403) if there is none. For one user-only path in a shared endpoint.
+- `requires_user = True` on an endpoint: the same check for the whole endpoint.
+- `set_request_principal(request, user, auth)`: the only place `request.user` and `request.auth` are set.
+
+mypy types DRF `request.user` as `User | AnonymousUser | ServiceAccountPrincipal`, so narrow it with the helpers above before reading user-only attributes.
+
+A service account is a `ServiceAccountPrincipal`: no user; its access is `request.access`. Personal state (bookmarks, "is this mine?") needs a user; "who did this" fields record None. Never look rows up by a possibly-None user id: `filter(user_id=None)` matches rows with no user (S032).
+
+Query "mine" and "not mine" with `is_owned_by_acting_user`, never `user_id=request.user.id`:
+
+```python
+from sentry.auth.principal import is_owned_by_acting_user
+
+starred = GroupSearchViewStarred.objects.filter(is_owned_by_acting_user(request.user), organization=org)
+others = views.exclude(is_owned_by_acting_user(request.user))
+visible = queries.filter(Exists(on_my_projects) | is_owned_by_acting_user(request.user, "created_by_id"))
+```
+
+- Pass the column when it isn't `user_id`. It's a `Q`, so it combines with `|`, `&` and other filters.
+- With no user, `filter` matches nothing and `exclude` matches everything: service accounts and tokens see shared rows and no personal state, with no branch at the call site.
+- For one row use `is_acting_user(request.user, obj.user_id)`. To write personal state, use `require_user(request).id`.
+
 ### Permissions
 
 ```python
@@ -78,6 +110,12 @@ class MyPermission(SentryPermission):
     }
 ```
 
+New scopes in `SENTRY_SCOPES` (`src/sentry/conf/server.py`) use `<resource>:<action>`:
+
+- `<resource>` is the singular snake_case object being accessed, such as `saved_query` or `project_key`. Do not put the object in the action under a parent resource: `project_key:write`, not `project:keys`.
+- `<action>` is `read`, `write`, `admin`, or `create`, such as `project_key:create`. Use another verb only when those don't fit, and add it to `SCOPE_ACTIONS` in `tests/sentry/conf/test_scopes.py`.
+- `test_scope_names_follow_resource_action` enforces this. Older scopes that break it are listed in `LEGACY_SCOPE_NAMES` there; do not add to that list.
+
 ### Logging, Tracing, Metrics, Options
 
 Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()` → use the **`backend-conventions`** skill.
@@ -89,6 +127,7 @@ Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()`
 - The control silo holds global data such as `User`, `Integration`, and `OrganizationMapping`. The cell silo holds organization-scoped data such as `Organization`, `Project`, and `Group`.
 - Each model declares its silo with `@control_silo_model` or `@cell_silo_model` (`src/sentry/db/models/base.py`). Each endpoint declares it with `@control_silo_endpoint` or `@cell_silo_endpoint`.
 - Never join across silos. Use outboxes (`src/sentry/hybridcloud/models/outbox.py`) for cross-silo updates. For silo, RPC, and outbox work, use the **`hybrid-cloud-rpc`**, **`hybrid-cloud-outboxes`**, and **`cell-architecture`** skills.
+- Never add an RPC method and its first production caller in the same PR. Silos deploy separately, and control deploys after the cells, so the caller runs before the serving silo has the method and every call fails with `Service unavailable (404 status)`. Land the method first, and land the caller only after the method has deployed to every silo that serves it.
 
 ### Database Guidelines
 

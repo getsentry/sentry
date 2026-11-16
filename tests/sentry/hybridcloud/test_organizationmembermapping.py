@@ -31,7 +31,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
         omm = OrganizationMemberMapping.objects.get(
             organization_id=self.organization.id, organizationmember_id=111111
         )
-        assert omm.user_id is None
+        assert not omm.user_id
         assert omm.inviter_id == self.user.id
 
     def test_upsert_stale_inviter_id(self) -> None:

@@ -33,6 +33,11 @@ NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
     NotificationSettingEnum.SPIKE_PROTECTION: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.REPORTS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.BROKEN_MONITORS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.INBOX: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.INBOX_ASSIGNMENTS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.INBOX_MENTIONS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.INBOX_PULL_REQUESTS_READY: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.INBOX_COMPLETION_STATUS: NotificationSettingsOptionEnum.ALWAYS,
 }
 
 

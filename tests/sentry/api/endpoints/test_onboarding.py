@@ -20,7 +20,7 @@ class SkipOnboardingTaskTest(APITestCase):
         """
         skippable_tasks = OrganizationOnboardingTask.SKIPPABLE_TASKS
 
-        def get_skipped_tasks():
+        def get_skipped_tasks() -> set[int]:
             return set(
                 OrganizationOnboardingTask.objects.filter(
                     organization=self.organization, status=OnboardingTaskStatus.SKIPPED

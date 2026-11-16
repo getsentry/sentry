@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import AdminProjects from 'sentry/views/admin/adminProjects';
+import AdminProjects from './adminProjects';
 
 describe('AdminProjects', () => {
   it('loads filtered projects and renders their details in a table', async () => {

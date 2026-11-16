@@ -4,10 +4,11 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {useValidateSpansTab} from './useValidateSpansTab';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;

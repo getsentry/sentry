@@ -1,5 +1,5 @@
-import type {MetaType} from 'sentry/utils/discover/eventView';
-import {AGGREGATIONS, isEquation} from 'sentry/utils/discover/fields';
+import type {MetaType} from './eventView';
+import {AGGREGATIONS, isEquation} from './fields';
 
 // Sorting metadata for the fields `fieldRenderers` formats. It lives apart from the
 // renderers so that code which only sorts, like EventView, doesn't load them and

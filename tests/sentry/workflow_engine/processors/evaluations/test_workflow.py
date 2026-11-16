@@ -74,8 +74,9 @@ class TestWorkflowEvaluationArtifact(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.event = self.store_event(data={}, project_id=self.project.id)
-        self.group = self.event.group
-        assert self.group is not None
+        group = self.event.group
+        assert group is not None
+        self.group = group
 
         self.event_data = WorkflowEventData(
             event=self.event.for_group(self.group),

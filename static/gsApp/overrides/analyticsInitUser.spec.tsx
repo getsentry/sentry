@@ -1,4 +1,5 @@
 import * as Amplitude from '@amplitude/analytics-browser';
+import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -25,6 +26,7 @@ describe('analyticsInitUser', () => {
   afterEach(() => {
     sessionStorageWrapper.removeItem('marketing_event_recorded');
     jest.mocked(trackMarketingEvent).mockClear();
+    jest.restoreAllMocks();
     jest.mocked(Amplitude.setUserId).mockClear();
     jest.mocked(Amplitude.track).mockClear();
     jest.mocked(Amplitude.Identify).mockClear();
@@ -96,6 +98,67 @@ describe('analyticsInitUser', () => {
     setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
     analyticsInitUser(user);
     expect(trackMarketingEvent).not.toHaveBeenCalled();
+  });
+  it('tracks the valid events and warns about each invalid one', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const events = [
+      {event_name: 'Sign Up', event_label: 'github', extra: true},
+      {event_name: ''},
+      {event_name: 7},
+      {event_label: 'Google'},
+      {event_name: 'Bad Label', event_label: null},
+      {event_name: 'Bad Label', event_label: 3},
+      null,
+      'Sign Up',
+      {event_name: 'Start Trial'},
+    ];
+    const jsonEvents = JSON.stringify(events);
+    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
+    analyticsInitUser(user);
+    expect(jest.mocked(trackMarketingEvent).mock.calls).toEqual([
+      ['Sign Up', {event_label: 'github'}],
+      ['Start Trial', {event_label: undefined}],
+    ]);
+    expect(warn).toHaveBeenCalledTimes(7);
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toEqual(jsonEvents);
+  });
+  it('warns without reporting to Sentry when frontend_events is null', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    setWindowLocation('http://localhost/?frontend_events=null');
+    analyticsInitUser(user);
+    expect(trackMarketingEvent).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toBe('null');
+  });
+  it('reports invalid frontend_events JSON and still records it in session storage', () => {
+    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: '[{'})}`);
+    analyticsInitUser(user);
+    expect(trackMarketingEvent).not.toHaveBeenCalled();
+    expect(Sentry.captureException).toHaveBeenCalledWith(
+      new Error('Invalid frontend_events JSON')
+    );
+    expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toBe('[{');
+  });
+  it('reports a tracking error and still records frontend_events in session storage', () => {
+    const error = new Error('ga is not a function');
+    jest.mocked(trackMarketingEvent).mockImplementationOnce(() => {
+      throw error;
+    });
+    const jsonEvents = JSON.stringify([{event_name: 'Sign Up'}]);
+    setWindowLocation(`http://localhost/?${qs.stringify({frontend_events: jsonEvents})}`);
+    analyticsInitUser(user);
+    expect(Sentry.captureException).toHaveBeenCalledWith(error);
+    expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toEqual(jsonEvents);
+  });
+  it('ignores frontend_events when it is repeated', () => {
+    setWindowLocation(
+      'http://localhost/?frontend_events=%7B%22event_name%22%3A%22A%22%7D&frontend_events=%7B%22event_name%22%3A%22B%22%7D'
+    );
+    analyticsInitUser(user);
+    expect(trackMarketingEvent).not.toHaveBeenCalled();
+    expect(sessionStorageWrapper.getItem('marketing_event_recorded')).toBeNull();
   });
   it('store previous_referrer in local storage', () => {
     setWindowLocation('http:/localhost/?referrer=something');

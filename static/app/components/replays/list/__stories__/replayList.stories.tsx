@@ -6,11 +6,12 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import {ReplayList} from 'sentry/components/replays/list/__stories__/replayList';
 import {EnvironmentPicker} from 'sentry/components/replays/player/__stories__/environmentPicker';
 import * as Storybook from 'sentry/stories';
 import {replayListInfiniteApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {ReplayList} from './replayList';
 
 export default Storybook.story('ReplayList', story => {
   story('Rendered', () => {

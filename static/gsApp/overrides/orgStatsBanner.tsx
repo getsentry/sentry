@@ -9,7 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import AddEventsCTA from 'getsentry/components/addEventsCTA';
+import {AddEventsCTA} from 'getsentry/components/addEventsCTA';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {

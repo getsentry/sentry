@@ -108,7 +108,7 @@ class ViewValidator(serializers.Serializer):
             raise ValidationError(detail=f"Invalid issue search query: {e}")
         return value
 
-    def validate_projects(self, value):
+    def validate_projects(self, value: list[int]) -> list[int]:
         if value != [-1]:
             project_ids = set(value)
             existing_project_ids = set(
@@ -123,7 +123,7 @@ class ViewValidator(serializers.Serializer):
 
         return value
 
-    def validate(self, data) -> GroupSearchViewValidatorResponse:
+    def validate(self, data: GroupSearchViewValidatorResponse) -> GroupSearchViewValidatorResponse:
         if data["projects"] == [-1]:
             data["projects"] = []
             data["isAllProjects"] = True
@@ -142,5 +142,5 @@ class GroupSearchViewPostValidator(ViewValidator):
         required=False, help_text="Whether to star the issue view for the current user."
     )
 
-    def validate(self, data):
+    def validate(self, data: GroupSearchViewValidatorResponse) -> GroupSearchViewValidatorResponse:
         return super().validate(data)

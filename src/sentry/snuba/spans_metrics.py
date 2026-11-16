@@ -1,50 +1,56 @@
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
-from snuba_sdk import Column
+from snuba_sdk import Column, Condition
 
 from sentry.search.events.builder.spans_metrics import (
     SpansMetricsQueryBuilder,
     TimeseriesSpansMetricsQueryBuilder,
     TopSpansMetricsQueryBuilder,
 )
-from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
 
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
+
 logger = logging.getLogger(__name__)
 
 
 def query(
-    selected_columns,
-    query,
-    snuba_params=None,
-    equations=None,
-    orderby=None,
-    offset=None,
-    limit=50,
-    auto_fields=False,
-    auto_aggregations=False,
-    include_equation_fields=False,
-    allow_metric_aggregates=False,
-    use_aggregate_conditions=False,
-    conditions=None,
-    functions_acl=None,
-    transform_alias_to_input_format=False,
-    sample=None,
-    has_metrics=False,
-    skip_tag_resolution=False,
-    extra_columns=None,
-    on_demand_metrics_enabled=False,
+    selected_columns: list[str],
+    query: str,
+    snuba_params: SnubaParams,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int | None = None,
+    limit: int = 50,
+    auto_fields: bool = False,
+    auto_aggregations: bool = False,
+    include_equation_fields: bool = False,
+    allow_metric_aggregates: bool = False,
+    use_aggregate_conditions: bool = False,
+    conditions: list[Condition] | None = None,
+    functions_acl: list[str] | None = None,
+    transform_alias_to_input_format: bool = False,
+    sample: float | None = None,
+    has_metrics: bool = False,
+    skip_tag_resolution: bool = False,
+    extra_columns: list[Column] | None = None,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
-    fallback_to_transactions=False,
+    fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
     *,
     referrer: str,
-):
+) -> EventsResponse:
     builder = SpansMetricsQueryBuilder(
         dataset=Dataset.PerformanceMetrics,
         params={},
@@ -82,7 +88,7 @@ def timeseries_query(
     snuba_params: SnubaParams,
     rollup: int,
     zerofill_results: bool = True,
-    allow_metric_aggregates=True,
+    allow_metric_aggregates: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     has_metrics: bool = True,
@@ -144,28 +150,28 @@ def timeseries_query(
 
 
 def top_events_timeseries(
-    timeseries_columns,
-    selected_columns,
-    user_query,
-    snuba_params,
-    orderby,
-    rollup,
-    limit,
-    organization,
-    equations=None,
-    top_events=None,
-    allow_empty=True,
-    zerofill_results=True,
-    include_other=False,
-    functions_acl=None,
-    on_demand_metrics_enabled=False,
+    timeseries_columns: list[str],
+    selected_columns: list[str],
+    user_query: str,
+    snuba_params: SnubaParams,
+    orderby: list[str],
+    rollup: int,
+    limit: int,
+    organization: Organization,
+    equations: list[str] | None = None,
+    top_events: EventsResponse | None = None,
+    allow_empty: bool = True,
+    zerofill_results: bool = True,
+    include_other: bool = False,
+    functions_acl: list[str] | None = None,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
     *,
     referrer: str,
-):
+) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
 

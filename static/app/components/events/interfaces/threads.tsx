@@ -11,16 +11,6 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {
-  StacktraceContext,
-  useStacktraceContext,
-} from 'sentry/components/events/interfaces/stackTraceContext';
-import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
-import {
-  getMappedThreadState,
-  getThreadStateHelpText,
-  ThreadStates,
-} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import {Pill} from 'sentry/components/pill';
@@ -45,7 +35,14 @@ import {ThreadSelector} from './threads/threadSelector';
 import {findBestThread} from './threads/threadSelector/findBestThread';
 import {getThreadException} from './threads/threadSelector/getThreadException';
 import {getThreadStacktrace} from './threads/threadSelector/getThreadStacktrace';
+import {getLockReason} from './threads/threadSelector/lockReason';
+import {
+  getMappedThreadState,
+  getThreadStateHelpText,
+  ThreadStates,
+} from './threads/threadSelector/threadStates';
 import {NoStackTraceMessage} from './noStackTraceMessage';
+import {StacktraceContext, useStacktraceContext} from './stackTraceContext';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
 
 type Props = {

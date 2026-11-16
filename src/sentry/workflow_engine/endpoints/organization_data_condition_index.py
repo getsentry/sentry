@@ -1,4 +1,4 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -38,9 +38,17 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
         operation_id="Fetch Data Conditions",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="group",
+                location="query",
+                required=True,
+                type=str,
+                enum=[group.value for group in DataConditionHandler.Group],
+                description="The condition group to return: detector triggers, workflow triggers, or action filters.",
+            ),
         ],
         responses={
-            201: inline_sentry_response_serializer(
+            200: inline_sentry_response_serializer(
                 "ListDataConditionHandlerResponse", list[DataConditionHandlerResponse]
             ),
             400: RESPONSE_BAD_REQUEST,

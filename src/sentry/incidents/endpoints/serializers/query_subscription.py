@@ -6,13 +6,17 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.incidents.typings.query_subscription import (
+    QuerySubscriptionSerializerResponse,
+    SnubaQuerySerializerResponse,
+)
 from sentry.snuba.models import ExtrapolationMode, QuerySubscription, SnubaQuery
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 
 @register(SnubaQuery)
-class SnubaQuerySerializer(Serializer[dict[str, Any]]):
+class SnubaQuerySerializer(Serializer[SnubaQuerySerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[SnubaQuery], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[SnubaQuery, dict[str, Any]]:
@@ -25,7 +29,7 @@ class SnubaQuerySerializer(Serializer[dict[str, Any]]):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> SnubaQuerySerializerResponse:
         return {
             "id": str(obj.id),
             "dataset": obj.dataset,
@@ -43,7 +47,7 @@ class SnubaQuerySerializer(Serializer[dict[str, Any]]):
 
 
 @register(QuerySubscription)
-class QuerySubscriptionSerializer(Serializer[dict[str, Any]]):
+class QuerySubscriptionSerializer(Serializer[QuerySubscriptionSerializerResponse]):
     def get_attrs(
         self,
         item_list: Sequence[QuerySubscription],
@@ -65,10 +69,10 @@ class QuerySubscriptionSerializer(Serializer[dict[str, Any]]):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> QuerySubscriptionSerializerResponse:
         return {
             "id": str(obj.id),
             "status": obj.status,
             "subscription": obj.subscription_id,
-            "snubaQuery": attrs.get("snuba_query"),
+            "snubaQuery": attrs["snuba_query"],
         }

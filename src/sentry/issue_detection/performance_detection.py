@@ -791,6 +791,7 @@ def run_detector_on_data(detector: PerformanceDetector, data: dict[str, Any]) ->
         detector.visit_span(span)
 
     detector.on_complete()
+    detector.log_duplicate_fingerprints()
 
 
 def build_tree(spans: Sequence[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:

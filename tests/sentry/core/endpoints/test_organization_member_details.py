@@ -23,6 +23,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user_option import UserOption
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -35,8 +36,35 @@ class OrganizationMemberTestBase(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
+    def _service_account_context(self) -> str:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["member:admin", "org:read"]
+        )
+        return encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
 
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_read_member(self) -> None:
+        member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug, member.id]),
+            HTTP_X_VIEWER_CONTEXT=self._service_account_context(),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+
     def test_me(self) -> None:
         response = self.get_success_response(self.organization.slug, "me")
 
@@ -836,8 +864,8 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
     def test_can_demote_team_member_to_role_where_team_roles_disabled_with_team_removed(
-        self, mock_get
-    ):
+        self, mock_get: MagicMock
+    ) -> None:
         team = self.create_team(organization=self.organization, name="Team Foo")
 
         self.manager = self.create_user()
@@ -935,6 +963,22 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_remove_member(self) -> None:
+        member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+
+        response = self.client.delete(
+            reverse(self.endpoint, args=[self.organization.slug, member.id]),
+            HTTP_X_VIEWER_CONTEXT=self._service_account_context(),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert OrganizationMember.objects.filter(id=member.id).exists()
 
     def setUp(self) -> None:
         super().setUp()
@@ -1284,7 +1328,7 @@ class ResetOrganizationMember2faTest(APITestCase):
             self.interface_id = totp.authenticator.id
             assert Authenticator.objects.filter(user=self.member).exists()
 
-    def assert_can_get_authenticators(self):
+    def assert_can_get_authenticators(self) -> None:
         path = reverse(
             "sentry-api-0-organization-member-details", args=[self.org.slug, self.member_om.id]
         )
@@ -1296,7 +1340,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert data["user"]["has2fa"] is True
         assert data["user"]["canReset2fa"] is True
 
-    def assert_cannot_get_authenticators(self):
+    def assert_cannot_get_authenticators(self) -> None:
         path = reverse(
             "sentry-api-0-organization-member-details", args=[self.org.slug, self.member_om.id]
         )
@@ -1308,7 +1352,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert "canReset2fa" not in data["user"]
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def assert_can_remove_authenticators(self):
+    def assert_can_remove_authenticators(self) -> None:
         path = reverse(
             "sentry-api-0-user-authenticator-details", args=[self.member.id, self.interface_id]
         )
@@ -1317,7 +1361,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert not Authenticator.objects.filter(user=self.member).exists()
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def assert_cannot_remove_authenticators(self):
+    def assert_cannot_remove_authenticators(self) -> None:
         path = reverse(
             "sentry-api-0-user-authenticator-details", args=[self.member.id, self.interface_id]
         )
@@ -1399,7 +1443,7 @@ class ResetOrganizationMember2faTest(APITestCase):
             TotpInterface().enroll(self.owner)
 
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
-        assert self.org.flags.require_2fa.is_set is True
+        assert self.org.flags.require_2fa
 
         self.assert_cannot_remove_authenticators()
 

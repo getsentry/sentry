@@ -59,15 +59,6 @@ import {
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
-import {ExploreCharts} from 'sentry/views/explore/spans/charts';
-import {SPANS_TABLE_LIMIT} from 'sentry/views/explore/spans/constants';
-import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
-import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
-import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
-import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
-import {SpanTabSearchSection} from 'sentry/views/explore/spans/spansTabSearchSection';
-import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
-import {TracesExportModalButton} from 'sentry/views/explore/spans/tracesExportModalButton';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -79,6 +70,16 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {useCrossEventDatasetAvailability} from './crossEvents/useCrossEventDatasetAvailability';
+import {ExploreCharts} from './charts';
+import {SPANS_TABLE_LIMIT} from './constants';
+import {DroppedFieldsAlert} from './droppedFieldsAlert';
+import {ExtrapolationEnabledAlert} from './extrapolationEnabledAlert';
+import {SettingsDropdown} from './settingsDropdown';
+import {SpanTabSearchSection} from './spansTabSearchSection';
+import {ExploreSpansTour, ExploreSpansTourContext} from './tour';
+import {TracesExportModalButton} from './tracesExportModalButton';
 
 interface SpansTabOnboardingProps {
   datePageFilterProps: DatePageFilterProps;

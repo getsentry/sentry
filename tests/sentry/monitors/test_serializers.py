@@ -165,4 +165,4 @@ class MonitorCheckInSerializerTest(TestCase):
         expected = {**config, "schedule_type": "crontab"}
         assert result[0]["monitorConfig"] == expected
         assert result[1]["monitorConfig"] == expected
-        assert result[2]["monitorConfig"] == {}
+        assert not result[2]["monitorConfig"]

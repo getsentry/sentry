@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
+import {AutomationStatsChart} from './automationStatsChart';
 
 let mockChartOptions: EChartsOption | undefined;
 

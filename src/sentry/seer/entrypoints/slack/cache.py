@@ -1,4 +1,4 @@
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 from sentry.utils.cache import cache
 
@@ -44,17 +44,24 @@ class SlackSeerAgentMessageCache:
     def get(
         cls, *, integration_id: int, channel_id: str, message_ts: str
     ) -> SlackSeerAgentMessageCachePayload | None:
-        return cache.get(
-            cls._get_cache_key(
-                integration_id=integration_id,
-                channel_id=channel_id,
-                message_ts=message_ts,
+        return cast(
+            "SlackSeerAgentMessageCachePayload | None",
+            cache.get(
+                cls._get_cache_key(
+                    integration_id=integration_id,
+                    channel_id=channel_id,
+                    message_ts=message_ts,
+                )
             ),
         )
 
 
 class SlackSeerAgentReply(TypedDict):
     message_ts: str
+    # Hash of the repo statuses currently displayed under this reply.
+    pr_status_hash: NotRequired[str]
+    # The scope link an answer was posted with; it's only looked up once per thread.
+    missing_scope_settings_url: NotRequired[str | None]
 
 
 class SlackSeerAgentReplyCache:

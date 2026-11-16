@@ -10,7 +10,11 @@ from sentry.seer.similarity.grouping_records import (
     call_seer_to_delete_project_grouping_records,
     call_seer_to_delete_these_hashes,
 )
-from sentry.seer.similarity.utils import ReferrerOptions, killswitch_enabled
+from sentry.seer.similarity.utils import (
+    ReferrerOptions,
+    killswitch_enabled,
+    project_uses_seer_similarity,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -76,7 +80,7 @@ def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequen
 
     if not (
         project
-        and project.get_option("sentry:similarity_backfill_completed")
+        and project_uses_seer_similarity(project)
         and not killswitch_enabled(project.id, ReferrerOptions.DELETION)
     ):
         return

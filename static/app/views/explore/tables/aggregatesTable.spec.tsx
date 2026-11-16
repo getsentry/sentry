@@ -142,10 +142,6 @@ describe('AggregatesTable', () => {
     });
   });
 
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
-
   it('shows the query timeout message instead of a generic loading error', () => {
     render(
       <AggregatesTableWithParamsProvider

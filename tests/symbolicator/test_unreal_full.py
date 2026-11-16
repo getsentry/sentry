@@ -1,10 +1,12 @@
 import zipfile
+from collections.abc import Generator
 from io import BytesIO
 from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from pytest_django.live_server_helper import LiveServer
 
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.eventattachment import EventAttachment
@@ -29,18 +31,18 @@ from tests.symbolicator import normalize_native_exception
 pytestmark = [requires_symbolicator, requires_kafka]
 
 
-def get_unreal_crash_file():
+def get_unreal_crash_file() -> str:
     return get_fixture_path("native", "unreal_crash")
 
 
-def get_unreal_crash_apple_file():
+def get_unreal_crash_apple_file() -> str:
     return get_fixture_path("native", "unreal_crash_apple")
 
 
 @debug_files_test_both_backends
 class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
+    def initialize(self, live_server: LiveServer) -> Generator[None]:
         self.project.update_option("sentry:builtin_symbol_sources", [])
 
         with (
@@ -50,7 +52,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
             # Run test case
             yield
 
-    def upload_symbols(self):
+    def upload_symbols(self) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -78,7 +80,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert response.status_code == 201, response.content
         assert len(response.json()) == 1
 
-    def unreal_crash_test_impl(self, filename):
+    def unreal_crash_test_impl(self, filename: str) -> list[EventAttachment]:
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
 
@@ -87,7 +89,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
             with open(filename, "rb") as f:
                 event = self.post_and_retrieve_unreal(f.read())
 
-        def make_snapshot(subname=None):
+        def make_snapshot(subname: str | None = None) -> None:
             self.insta_snapshot(
                 {
                     "contexts": {

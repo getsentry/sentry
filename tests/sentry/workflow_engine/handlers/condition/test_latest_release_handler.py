@@ -95,14 +95,14 @@ class TestLatestReleaseCondition(ConditionTestCase):
         new_release.add_project(self.project)
 
         # ensure we clear the cache after creating a new release
-        cache_key = LatestReleaseCacheKey(self.event.group.project_id, None)
+        cache_key = LatestReleaseCacheKey(self.group.project_id, None)
         assert latest_release_cache.get(cache_key) is None
 
         self.assert_does_not_pass(self.dc, self.event_data)
 
         # ensure we clear the cache when a release is deleted
         new_release.safe_delete()
-        cache_key = LatestReleaseCacheKey(self.event.group.project_id, None)
+        cache_key = LatestReleaseCacheKey(self.group.project_id, None)
         assert latest_release_cache.get(cache_key) is None
 
         # rule should pass again because the latest release is oldRelease
@@ -122,21 +122,21 @@ class TestLatestReleaseCondition(ConditionTestCase):
 
     def test_latest_release_with_environment(self) -> None:
         self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="1",
             date_added=datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC),
             environments=[self.environment],
         )
 
         new_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="2",
             date_added=datetime(2020, 9, 2, 3, 8, 24, 880386, tzinfo=UTC),
             environments=[self.environment],
         )
 
         other_env_release = self.create_release(
-            project=self.event.group.project,
+            project=self.group.project,
             version="4",
             date_added=datetime(2020, 9, 3, 3, 8, 24, 880386, tzinfo=UTC),
         )

@@ -12,9 +12,9 @@ import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';

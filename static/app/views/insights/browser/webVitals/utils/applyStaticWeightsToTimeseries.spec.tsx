@@ -1,4 +1,4 @@
-import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
+import {applyStaticWeightsToTimeseries} from './applyStaticWeightsToTimeseries';
 
 describe('applyStaticWeightsToTimeseries', () => {
   it('updates timeseries scores with static weighing', () => {

@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getSpringContextData,
-  type SpringContext,
-} from 'sentry/components/events/contexts/platformContext/spring';
+
+import {getSpringContextData, type SpringContext} from './spring';
 
 const MOCK_SPRING_CONTEXT: SpringContext = {
   active_profiles: ['some', 'profiles'],

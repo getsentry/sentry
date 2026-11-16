@@ -1,8 +1,9 @@
 import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
+import {parseAsStringEnum} from 'nuqs';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 
 import {decodeHistogramZoom} from './transactionOverview/latencyChart/utils';
 
@@ -76,10 +77,14 @@ export function stringToFilter(option: string) {
   return SpanOperationBreakdownFilter.NONE;
 }
 
+const breakdownParsers = {
+  breakdown: parseAsStringEnum(Object.values(SpanOperationBreakdownFilter)).withDefault(
+    SpanOperationBreakdownFilter.NONE
+  ),
+};
+
 export function decodeFilterFromLocation(location: Location) {
-  return stringToFilter(
-    decodeScalar(location.query.breakdown, SpanOperationBreakdownFilter.NONE)
-  );
+  return loadQueryParamsFromLocation(breakdownParsers, location).breakdown;
 }
 
 export function filterToLocationQuery(option: SpanOperationBreakdownFilter | undefined) {

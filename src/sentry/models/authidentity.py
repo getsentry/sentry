@@ -98,11 +98,11 @@ class AuthIdentity(ReplicatedControlModel):
     def __str__(self) -> str:
         return self.ident
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         return {"user_id": self.user_id, "data": self.data}
 
-    def get_display_name(self):
+    def get_display_name(self) -> str:
         return self.user.get_display_name()
 
-    def get_label(self):
+    def get_label(self) -> str:
         return self.user.get_label()

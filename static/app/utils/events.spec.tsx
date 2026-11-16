@@ -2,7 +2,8 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import type {EventMetadata} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
-import {getTitle} from 'sentry/utils/events';
+
+import {getTitle} from './events';
 
 describe('getTitle', () => {
   const errorGroup = (metadata: EventMetadata) =>

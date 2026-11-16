@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
+import {useQueryStates} from 'nuqs';
 import * as qs from 'query-string';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -10,8 +11,8 @@ import {Stack} from '@sentry/scraps/layout';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -34,10 +35,23 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {parseAsSingleScalar} from 'sentry/views/explore/queryParams/parsers';
 import {RouteError} from 'sentry/views/routeError';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 import {GitHubInstallationCallout} from './gitHubInstallationCallout';
+
+const integrationLinkParsers = {
+  // GitHub installs forwarded here from `/extensions/external-install/...`
+  // carry `installationId` in the query string.
+  installationId: parseAsSingleScalar,
+  next: parseAsSingleScalar,
+  installationReceipt: parseAsSingleScalar,
+  code: parseAsSingleScalar,
+  guild_id: parseAsSingleScalar,
+  signed_params: parseAsSingleScalar,
+  targetId: parseAsSingleScalar,
+};
 
 /**
  * Landing page that completes an integration install initiated from a
@@ -86,12 +100,17 @@ import {GitHubInstallationCallout} from './gitHubInstallationCallout';
 export default function IntegrationOrganizationLink() {
   const location = useLocation();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
-  // GitHub installs forwarded here from `/extensions/external-install/...`
-  // carry `installationId` in the query string.
-  const installationId =
-    typeof location.query.installationId === 'string'
-      ? location.query.installationId
-      : undefined;
+  const [
+    {
+      installationId,
+      next: nextParam,
+      installationReceipt,
+      code,
+      guild_id: guildId,
+      signed_params: signedParams,
+      targetId,
+    },
+  ] = useQueryStates(integrationLinkParsers);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState<string | null>(null);
 
   const {
@@ -111,7 +130,7 @@ export default function IntegrationOrganizationLink() {
   const organization = organizationQuery.data ?? null;
   useEffect(() => {
     if (hasSelectedOrg && organizationQuery.error) {
-      addErrorMessage(t('Failed to retrieve organization details'));
+      toast.error(t('Failed to retrieve organization details'));
     }
   }, [hasSelectedOrg, organizationQuery.error]);
 
@@ -131,7 +150,7 @@ export default function IntegrationOrganizationLink() {
   useEffect(() => {
     const hasEmptyProvider = !provider && !providerQuery.isPending;
     if (hasSelectedOrg && (providerQuery.error || hasEmptyProvider)) {
-      addErrorMessage(t('Failed to retrieve integration details'));
+      toast.error(t('Failed to retrieve integration details'));
     }
   }, [hasSelectedOrg, providerQuery.error, providerQuery.isPending, provider]);
 
@@ -184,14 +203,12 @@ export default function IntegrationOrganizationLink() {
       // Preserve the `next` param (e.g. Vercel's marketplace return URL) so the
       // integration's configure page can offer a "Complete on <provider>" link
       // back to where the install was initiated.
-      const nextParam =
-        typeof location.query.next === 'string' ? location.query.next : undefined;
       const search = nextParam ? `?${qs.stringify({next: nextParam})}` : '';
       testableWindowLocation.assign(
         `${organization?.links.organizationUrl || ''}${normalizedUrl}${search}`
       );
     },
-    [organization, location.query.next]
+    [organization, nextParam]
   );
 
   // GitHub App listing installs arrive here with `installationId` as a URL
@@ -211,12 +228,11 @@ export default function IntegrationOrganizationLink() {
     if (integrationSlug !== 'cursor_origin') {
       return null;
     }
-    const installationReceipt = location.query.installationReceipt;
-    if (typeof installationReceipt !== 'string') {
+    if (installationReceipt === null) {
       return null;
     }
     return {installationReceipt};
-  }, [integrationSlug, location.query]);
+  }, [integrationSlug, installationReceipt]);
 
   // Discord App Directory installs arrive here with `code` and `guild_id` in
   // the URL query (forwarded from `/extensions/discord/configure/`). The
@@ -225,13 +241,11 @@ export default function IntegrationOrganizationLink() {
     if (integrationSlug !== 'discord') {
       return null;
     }
-    const code = location.query.code;
-    const guildId = location.query.guild_id;
-    if (typeof code !== 'string' || typeof guildId !== 'string') {
+    if (code === null || guildId === null) {
       return null;
     }
     return {code, guild_id: guildId, use_configure: '1'};
-  }, [integrationSlug, location.query]);
+  }, [integrationSlug, code, guildId]);
 
   // Microsoft Teams installs arrive here with `signed_params` in the URL query
   // (forwarded from `/extensions/msteams/configure/`). The install button uses
@@ -240,12 +254,11 @@ export default function IntegrationOrganizationLink() {
     if (integrationSlug !== 'msteams') {
       return null;
     }
-    const signedParams = location.query.signed_params;
-    if (typeof signedParams !== 'string') {
+    if (signedParams === null) {
       return null;
     }
     return {signedParams};
-  }, [integrationSlug, location.query]);
+  }, [integrationSlug, signedParams]);
 
   // Jira Cloud installs arrive here with `signed_params` in the URL query
   // (forwarded from `/extensions/jira/configure/`). The install button uses it
@@ -254,12 +267,11 @@ export default function IntegrationOrganizationLink() {
     if (integrationSlug !== 'jira') {
       return null;
     }
-    const signedParams = location.query.signed_params;
-    if (typeof signedParams !== 'string') {
+    if (signedParams === null) {
       return null;
     }
     return {signedParams};
-  }, [integrationSlug, location.query]);
+  }, [integrationSlug, signedParams]);
 
   // Vercel marketplace installs arrive here (forwarded from
   // `/extensions/vercel/configure/`) with the OAuth `code` Vercel already
@@ -269,12 +281,11 @@ export default function IntegrationOrganizationLink() {
     if (integrationSlug !== 'vercel') {
       return null;
     }
-    const code = location.query.code;
-    if (typeof code !== 'string') {
+    if (code === null) {
       return null;
     }
     return {code};
-  }, [integrationSlug, location.query]);
+  }, [integrationSlug, code]);
 
   // Azure DevOps Marketplace installs arrive here with `targetId` in the URL
   // query (forwarded from `/extensions/vsts/configure/`). It identifies the
@@ -285,12 +296,11 @@ export default function IntegrationOrganizationLink() {
     if (integrationSlug !== 'vsts') {
       return null;
     }
-    const targetId = location.query.targetId;
-    if (typeof targetId !== 'string') {
+    if (targetId === null) {
       return null;
     }
     return {targetId};
-  }, [integrationSlug, location.query]);
+  }, [integrationSlug, targetId]);
 
   // A flow is invalid when the resolved provider has no pipeline registered for
   // it. Every first-party provider should have one, so this only happens for an

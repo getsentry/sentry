@@ -101,13 +101,13 @@ interface SeerEmbedSchema {
 }
 
 /**
- * Autofix is a Seer plan entitlement, and the two plan shapes grant it under
- * different flags: seat-based plans and legacy usage-based ones. Matching the
- * pair is the same test the frontend's `orgHasSeerAccess` makes.
+ * Autofix is a Seer plan entitlement. Seat-based, legacy usage-based and
+ * token-billed plans each grant it under their own flag.
  */
 const SEER_PLAN_AUTOFIX_FEATURES = [
   'organizations:seat-based-seer-enabled',
   'organizations:seer-added',
+  'organizations:token-billed-seer-enabled',
 ];
 
 export const SEER_EMBED_SCHEMAS = {
@@ -199,7 +199,8 @@ export const SEER_EMBED_SCHEMAS = {
       'Inline: renders a compact link with the short id. ' +
       'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
-      'When referencing 2+ issues, use `issuesQuery` with an issue ID search. ' +
+      'When referencing 2+ issues, use one `issuesQuery` listing their short IDs, ' +
+      'e.g. `issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -790,9 +791,11 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issuesQuery: {
     description:
-      'The ONLY way to list multiple Sentry issues. Accepts any issue search terms, ' +
-      'including a specific list of issue IDs such as ' +
-      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
+      'The ONLY way to list multiple Sentry issues. Accepts any issue search terms. ' +
+      'To list several specific issues, put their short IDs in ONE `issue:` filter: ' +
+      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. Never repeat the `issue:` filter — ' +
+      'space-separated terms are ANDed and an issue has a single short ID, so ' +
+      '`issue:JAVASCRIPT-22SP issue:JAVASCRIPT-39HX` matches nothing. ' +
       'The `issue:` filter only accepts short IDs — to search by numeric group ID, ' +
       'use `issue.id:[7716642857,7716642858]` instead. ' +
       'Inline renders a link; block renders the first five matching issues with ' +

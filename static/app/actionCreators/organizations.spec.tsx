@@ -1,7 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {ConfigStore} from 'sentry/stores/configStore';
+
+import {fetchOrganizations} from './organizations';
 
 describe('fetchOrganizations', () => {
   const api = new MockApiClient();

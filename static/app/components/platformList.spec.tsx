@@ -1,7 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {PlatformList} from 'sentry/components/platformList';
 import type {PlatformKey} from 'sentry/types/platform';
+
+import {PlatformList} from './platformList';
 
 describe('PlatformList', () => {
   const platforms: PlatformKey[] = ['java', 'php', 'javascript', 'cocoa-swift', 'ruby'];

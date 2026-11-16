@@ -2,7 +2,8 @@ import {useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import type {
   Integration,
@@ -110,7 +111,7 @@ export function useScmRepoSelection({
       onSelect({...optimistic, ...created});
     } catch (error) {
       Sentry.captureException(error);
-      addErrorMessage(t('Failed to select repository'));
+      toast.error(t('Failed to select repository'));
       onSelect(undefined);
       // oxlint-disable-next-line react/todo
     } finally {

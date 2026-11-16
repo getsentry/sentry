@@ -1,6 +1,5 @@
 import * as qs from 'query-string';
 
-import {getThreadException} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Image} from 'sentry/types/debugImage';
@@ -10,6 +9,8 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {StacktraceOrder, type AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
+
+import {getThreadException} from './threads/threadSelector/getThreadException';
 
 /**
  * Attempts to escape a string from any bash double quote special characters.
@@ -180,7 +181,7 @@ export function stringifyQueryList(
 
   const queryObj: Record<string, string[]> = {};
   for (const kv of query) {
-    if (kv !== null && kv.length === 2) {
+    if (kv?.length === 2) {
       const [key, value] = kv;
       if (value !== null) {
         if (Array.isArray(queryObj[key])) {

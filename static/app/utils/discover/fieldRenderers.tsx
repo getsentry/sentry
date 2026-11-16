@@ -34,20 +34,6 @@ import type {AvatarProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
-import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
-import type {RateUnit} from 'sentry/utils/discover/fields';
-import {
-  ABYTE_UNITS,
-  getAggregateAlias,
-  getSpanOperationName,
-  isEquation,
-  isRelativeSpanOperationBreakdownField,
-  parseFunction,
-  SPAN_OP_BREAKDOWN_FIELDS,
-  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-  stripEquationPrefix,
-} from 'sentry/utils/discover/fields';
-import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -91,6 +77,19 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ArrayValue} from './arrayValue';
 import {emptyStringValue, emptyValue, nullableValue} from './emptyFieldValues';
+import type {EventData, EventView, MetaType} from './eventView';
+import type {RateUnit} from './fields';
+import {
+  ABYTE_UNITS,
+  getAggregateAlias,
+  getSpanOperationName,
+  isEquation,
+  isRelativeSpanOperationBreakdownField,
+  parseFunction,
+  SPAN_OP_BREAKDOWN_FIELDS,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+  stripEquationPrefix,
+} from './fields';
 import {DURATION_UNITS, SIZE_UNITS} from './fieldUnits';
 import type {FieldFormatterType, SpecialFieldKey} from './getSortField';
 import {
@@ -107,6 +106,7 @@ import {
   VersionContainer,
 } from './styles';
 import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamKeyTransactionField';
+import {ViewReplayLink} from './viewReplayLink';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.

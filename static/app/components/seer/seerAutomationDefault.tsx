@@ -5,7 +5,6 @@ import {z} from 'zod';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {t} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
@@ -13,6 +12,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
+
+import {SEER_THRESHOLD_OPTIONS} from './legacy/constants';
 
 const seerDefaultsSchema = z.object({
   defaultSeerScannerAutomation: z.boolean(),
@@ -42,7 +43,7 @@ export function SeerAutomationDefault() {
         data,
       }),
     onMutate: data => {
-      const previousOrg = OrganizationStore.get().organization;
+      const previousOrg = OrganizationStore.getState().organization;
       if (previousOrg) {
         OrganizationStore.onUpdate(data);
         return () => {

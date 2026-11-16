@@ -15,8 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
-import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
 import {DemoWalkthroughStore} from 'sentry/stores/demoWalkthroughStore';
@@ -30,6 +28,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
+
+import {useOnboardingTasks} from './useOnboardingTasks';
+import {findCompleteTasks, taskIsDone} from './utils';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete

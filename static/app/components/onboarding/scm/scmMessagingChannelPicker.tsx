@@ -185,7 +185,7 @@ export function ScmMessagingChannelPicker({
                 {t('Workspace')}
               </Text>
               <Select
-                inputId={workspaceId}
+                id={workspaceId}
                 autoFocus
                 value={selectedIntegration}
                 options={integrationOptions}

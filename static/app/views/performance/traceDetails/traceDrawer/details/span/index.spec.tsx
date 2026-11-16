@@ -32,6 +32,10 @@ const createMockExtra = (
 describe('SpanNodeDetails', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
 
     const organization = OrganizationFixture();
     MockApiClient.addMockResponse({

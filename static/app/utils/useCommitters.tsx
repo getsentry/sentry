@@ -1,11 +1,11 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Group} from 'sentry/types/group';
 import type {Committer} from 'sentry/types/integrations';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {usePrevious} from 'sentry/utils/usePrevious';
 
+import {apiOptions} from './api/apiOptions';
 import {useOrganization} from './useOrganization';
+import {usePrevious} from './usePrevious';
 
 interface UseCommittersProps {
   eventId: string;
@@ -17,12 +17,12 @@ interface CommittersResponse {
   committers: Committer[];
 }
 
-const makeCommittersQueryKey = (
+const makeCommittersApiOptions = (
   orgSlug: string,
   projectSlug: string,
   eventId: string
-): ApiQueryKey => [
-  getApiUrl(
+) =>
+  apiOptions.as<CommittersResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/committers/',
     {
       path: {
@@ -30,22 +30,20 @@ const makeCommittersQueryKey = (
         projectIdOrSlug: projectSlug,
         eventId,
       },
+      staleTime: Infinity,
     }
-  ),
-];
+  );
 
 export function useCommitters({eventId, projectSlug, group}: UseCommittersProps) {
   const org = useOrganization();
   const previousGroupId = usePrevious(group.id);
-  return useApiQuery<CommittersResponse>(
-    makeCommittersQueryKey(org.slug, projectSlug, eventId),
-    {
-      staleTime: Infinity,
-      retry: false,
-      enabled: !!eventId,
-      placeholderData: previousData => {
-        return group.id === previousGroupId ? previousData : undefined;
-      },
-    }
-  );
+  return useQuery({
+    ...makeCommittersApiOptions(org.slug, projectSlug, eventId),
+
+    retry: false,
+    enabled: !!eventId,
+    placeholderData: previousData => {
+      return group.id === previousGroupId ? previousData : undefined;
+    },
+  });
 }

@@ -37,6 +37,7 @@ class ProjectStacktraceSourceContextEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 10.0
 
     def get(self, request: Request, project: Project) -> Response:
         if not project.get_option("sentry:scm_source_context_enabled", False):

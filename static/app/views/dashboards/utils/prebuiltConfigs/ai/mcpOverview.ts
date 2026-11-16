@@ -6,13 +6,14 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  MCP_OVERVIEW_DASHBOARD_DESCRIPTION,
-  MCP_OVERVIEW_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
+
+import {
+  MCP_OVERVIEW_DASHBOARD_DESCRIPTION,
+  MCP_OVERVIEW_DASHBOARD_TITLE,
+} from './settings';
 
 const MCP_SERVER_FILTER = `${SpanFields.SPAN_OP}:mcp.server`;
 const MCP_TOOL_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.GEN_AI_TOOL_NAME}`;

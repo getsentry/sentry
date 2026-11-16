@@ -2,9 +2,6 @@ import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
-import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
-import {StyledTabPanels} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
@@ -13,6 +10,10 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+
+import {AggregatesTab} from './aggregatesTab';
+import {StyledTabPanels} from './metricInfoTabStyles';
+import {SamplesTab} from './samplesTab';
 
 interface MetricInfoTabsProps {
   traceMetric: TraceMetric;

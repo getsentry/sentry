@@ -13,8 +13,6 @@ import {Replayer, ReplayerEvents} from '@sentry/rrweb';
 import type {Mirror} from '@sentry/rrweb-snapshot';
 import isEqual from 'lodash/isEqual';
 
-import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighlighting';
-import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {clamp} from 'sentry/utils/number/clamp';
 import type {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -30,6 +28,8 @@ import {useRAF} from 'sentry/utils/useRAF';
 import {useUser} from 'sentry/utils/useUser';
 
 import {canvasReplayerPlugin} from './canvasReplayerPlugin';
+import {useReplayHighlighting} from './useReplayHighlighting';
+import {VideoReplayerWithInteractions} from './videoReplayerWithInteractions';
 
 type RootElem = null | HTMLDivElement;
 
@@ -369,6 +369,19 @@ export function Provider({
   const initRoot = useCallback(
     (root: RootElem) => {
       if (events === undefined || root === null || isFetching) {
+        return;
+      }
+
+      // rrweb's Replayer throws with fewer than 2 events. On the replay details
+      // page this happens when navigating to a replay whose segments failed to
+      // load or are empty: ReplayLoadingState handles that case, but it renders
+      // below this context, so it can't stop a Replayer that's already mounted
+      // from being rebuilt. Restructuring the contexts a replay needs, so that
+      // ReplayLoadingState sits above ReplayContext and its error handling
+      // gates player initialization, would make this guard unnecessary.
+      if (events.length < 2) {
+        replayerRef.current?.destroy();
+        replayerRef.current = null;
         return;
       }
 

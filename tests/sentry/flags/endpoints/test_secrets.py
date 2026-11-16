@@ -1,7 +1,10 @@
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.flags.models import FlagWebHookSigningSecretModel
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
@@ -269,6 +272,32 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         models = FlagWebHookSigningSecretModel.objects.filter(provider="generic").all()
         assert len(models) == 1
         assert models[0].secret == "31271af8b9804cd99a4c787a28274993"
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_updates_secret_with_no_creator(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:write"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"secret": "31271af8b9804cd99a4c787a28274993", "provider": "launchdarkly"},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 201, response.content
+
+        self.obj.refresh_from_db()
+        assert self.obj.secret == "31271af8b9804cd99a4c787a28274993"
+        assert self.obj.created_by is None
 
 
 class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):

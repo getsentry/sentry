@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
-import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
-import {getHatchPattern} from 'sentry/components/performance/waterfall/utils';
+import type {SpanBarType} from './constants';
+import {ROW_HEIGHT, ROW_PADDING} from './constants';
+import {getHatchPattern} from './utils';
 
 export const RowRectangle = styled('div')<{
   isHidden?: boolean;

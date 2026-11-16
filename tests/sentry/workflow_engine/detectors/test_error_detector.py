@@ -49,7 +49,10 @@ class TestErrorDetectorValidator(TestCase):
         validator = ErrorDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
         assert validator.errors.get("fingerprintingRules") == [
-            ErrorDetail(string="""Invalid syntax near "hello" (line 1, column 1)""", code="invalid")
+            ErrorDetail(
+                string="""Invalid syntax near "hello" (line 1, column 1): expected "->" between the matchers and the fingerprint""",
+                code="invalid",
+            )
         ]
 
     def test_invalid_resolve_duration(self) -> None:

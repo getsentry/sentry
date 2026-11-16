@@ -37,13 +37,12 @@ from sentry.integrations.source_code_management.commit_context import (
     PRCommentWorkflow,
 )
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
 from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.source_code_management.url import url_is_under
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -170,7 +169,7 @@ class GitlabIntegration(
             return GitLabApiClient(self)
 
     # IntegrationInstallation methods
-    def error_message_from_json(self, data):
+    def error_message_from_json(self, data: Mapping[str, Any]) -> object:
         """
         Extract error messages from gitlab API errors.
         Generic errors come in the `error` key while validation errors
@@ -182,6 +181,7 @@ class GitlabIntegration(
             return data["message"]
         if "error" in data:
             return data["error"]
+        return None
 
     def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
         # GitLab's get_repositories does not wrap errors in IntegrationError,
@@ -494,16 +494,16 @@ class GitlabIntegration(
 
     # Gitlab only functions
 
-    def get_group_id(self):
+    def get_group_id(self) -> str:
         return self.model.metadata["group_id"]
 
-    def search_projects(self, query):
+    def search_projects(self, query: str | None) -> list[Mapping[str, object]]:
         client = self.get_client()
         group_id = self.get_group_id()
         return client.search_projects(group_id, query)
 
     # TODO(cathy): define in issue ABC
-    def search_issues(self, query: str | None, **kwargs) -> list[dict[str, Any]]:
+    def search_issues(self, query: str | None, **kwargs: Any) -> list[dict[str, Any]]:
         client = self.get_client()
         project_id = kwargs["project_id"]
         iids = kwargs["iids"]
@@ -565,7 +565,7 @@ class GitlabPRCommentWorkflow(PRCommentWorkflow):
         }
 
 
-class InstallationConfigSerializer(CamelSnakeSerializer):
+class InstallationConfigSerializer(CamelSnakeSerializer[dict[str, Any]]):
     url = URLField(required=False, default="https://gitlab.com")
     group = CharField(required=True, allow_blank=False)
     include_subgroups = BooleanField(required=False, default=False)
@@ -678,7 +678,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
             force=True,
         )
 
-    def get_group_info(self, access_token, installation_data):
+    def get_group_info(
+        self, access_token: str, installation_data: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
         client = GitLabSetupApiClient(
             base_url=installation_data["url"],
             access_token=access_token,
@@ -820,7 +822,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(
