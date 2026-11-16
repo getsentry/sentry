@@ -1,12 +1,15 @@
 import {
+  bottomEdgeColor,
   dominantColor,
   getAvatarChonk,
   isNeutralColor,
+  MIN_EDGE_STEP,
   resolveImageAvatarColors,
   SAMPLE_SIZE,
   shouldPadImage,
   toPageOriginIfSameHost,
 } from './avatarImageAnalysis';
+import {hexToOklch} from './oklch';
 
 describe('resolveImageAvatarColors', () => {
   afterEach(() => {
@@ -33,6 +36,7 @@ describe('resolveImageAvatarColors', () => {
 
     await expect(result).resolves.toEqual({
       dominant: '#649632',
+      edge: null,
       style: 'padded',
     });
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -180,6 +184,22 @@ describe('isNeutralColor', () => {
   });
 });
 
+describe('bottomEdgeColor', () => {
+  it('averages the opaque pixels along the bottom', () => {
+    const data = makePixelData((_col, row) =>
+      row >= SAMPLE_SIZE - 2 ? [51, 25, 111, 255] : [99, 52, 233, 255]
+    );
+    expect(bottomEdgeColor(data)).toBe('#33196f');
+  });
+
+  it('returns null when the bottom is transparent', () => {
+    const data = makePixelData((_col, row) =>
+      row >= SAMPLE_SIZE - 2 ? [0, 0, 0, 0] : [99, 52, 233, 255]
+    );
+    expect(bottomEdgeColor(data)).toBeNull();
+  });
+});
+
 describe('getAvatarChonk', () => {
   it('steps the color darker in light mode, keeping the hue', () => {
     expect(getAvatarChonk('#635bff', 'light')).toBe('#452bd1');
@@ -194,6 +214,21 @@ describe('getAvatarChonk', () => {
     // give #300000; lowering chroma keeps the hue, like the warning chonk.
     expect(getAvatarChonk('#e66000', 'dark')).toBe('#270900');
     expect(getAvatarChonk('#ff9500', 'dark')).toBe('#210e00');
+  });
+
+  it('stays darker than the bottom edge of a full-bleed image', () => {
+    // A purple gradient that darkens toward the bottom, like the Sentry logo.
+    const chonk = getAvatarChonk('#53289b', 'light', '#33196f')!;
+    expect(hexToOklch(chonk).l).toBeLessThanOrEqual(
+      hexToOklch('#33196f').l - MIN_EDGE_STEP + 0.01
+    );
+    expect(hexToOklch(chonk).h).toBeCloseTo(hexToOklch('#53289b').h, -1);
+  });
+
+  it('ignores an edge that is already lighter than the chonk', () => {
+    expect(getAvatarChonk('#635bff', 'light', '#ffffff')).toBe(
+      getAvatarChonk('#635bff', 'light')
+    );
   });
 
   it('keeps the default chonk for neutral colors', () => {

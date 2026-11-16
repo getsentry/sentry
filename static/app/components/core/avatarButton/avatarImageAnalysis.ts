@@ -106,18 +106,45 @@ export function isNeutralColor(hex: string): boolean {
  * what sRGB can show at that lightness, so dark oranges stay orange-brown (like
  * the warning chonk) instead of clipping to red. Gray colors return undefined
  * and keep the default button chonk.
+ *
+ * `edge` is the color along the bottom of a full-bleed image, which sits right
+ * on top of the chonk. The chonk stays at least MIN_EDGE_STEP darker than it,
+ * so an image that darkens toward the bottom doesn't merge into its chonk.
  */
 export function getAvatarChonk(
   dominant: string,
-  themeType: Theme['type']
+  themeType: Theme['type'],
+  edge?: string
 ): string | undefined {
   if (isNeutralColor(dominant)) {
     return undefined;
   }
   const {l, c, h} = hexToOklch(dominant);
-  return themeType === 'dark'
-    ? oklchToHex({l: 0.19, c: Math.min(c, 0.09), h})
-    : oklchToHex({l: Math.max(0, l - 0.13), c, h});
+  const lightness = themeType === 'dark' ? 0.19 : l - 0.13;
+  const chroma = themeType === 'dark' ? Math.min(c, 0.09) : c;
+  const ceiling = edge ? hexToOklch(edge).l - MIN_EDGE_STEP : 1;
+  return oklchToHex({l: Math.max(0, Math.min(lightness, ceiling)), c: chroma, h});
+}
+
+// How much darker (OKLCH lightness) the chonk must be than the bottom edge of a
+// full-bleed image for the button's edge to stay visible.
+export const MIN_EDGE_STEP = 0.1;
+
+// The average color of the bottom rows of the sample, or null if they're empty.
+export function bottomEdgeColor(data: Uint8ClampedArray): string | null {
+  const rows = 2;
+  const sum: Rgb = [0, 0, 0];
+  let count = 0;
+  for (let i = (SAMPLE_SIZE - rows) * SAMPLE_SIZE * 4; i < data.length; i += 4) {
+    if (px(data, i + 3) < 128) {
+      continue;
+    }
+    sum[0] += px(data, i);
+    sum[1] += px(data, i + 1);
+    sum[2] += px(data, i + 2);
+    count++;
+  }
+  return count ? toHex([sum[0] / count, sum[1] / count, sum[2] / count]) : null;
 }
 
 // A logo only gets tinted when colored pixels make up at least this share of
@@ -245,7 +272,7 @@ export function dominantColor(data: Uint8ClampedArray): string | null {
 
 function sampleAvatarColor(
   img: HTMLImageElement
-): {dominant: string; style: 'fill' | 'padded'} | null {
+): {dominant: string; edge: string | null; style: 'fill' | 'padded'} | null {
   const data = readPixels(img);
   if (!data) {
     return null;
@@ -256,7 +283,8 @@ function sampleAvatarColor(
     return null;
   }
 
-  return {dominant, style: shouldPadImage(data)};
+  const style = shouldPadImage(data);
+  return {dominant, style, edge: style === 'fill' ? bottomEdgeColor(data) : null};
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement | null> {

@@ -59,8 +59,11 @@ export function AvatarButton({
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
   // Shares the query cache with `colors` when no `colorAvatar` is given.
   const tint = useAvatarColors(isSuggested ? undefined : (colorAvatar ?? avatar));
+  // The chonk sits under this button's own image, so its edge comes from
+  // `colors` even when the tint comes from `colorAvatar`.
+  const edge = colors.type === 'image' ? (colors.edge ?? undefined) : undefined;
   const chonk =
-    tint.type === 'none' ? undefined : getAvatarChonk(tint.dominant, theme.type);
+    tint.type === 'none' ? undefined : getAvatarChonk(tint.dominant, theme.type, edge);
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
@@ -215,7 +218,11 @@ const StyledAvatarButton = styled(AvatarButtonBase)`
         background: ${p.chonk};
         box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size]} 0 0px ${p.chonk};
       }
+      /* The avatar covers the surface entirely. Paint it with the chonk so the
+         seam that anti-aliasing leaves around the lifted avatar on hover matches
+         the border instead of showing the light surface. */
       &&::after {
+        background: ${p.chonk};
         border-color: ${p.chonk};
       }
     `}

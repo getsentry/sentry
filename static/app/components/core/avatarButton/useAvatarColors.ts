@@ -6,9 +6,10 @@ import {useAvatar} from '@sentry/scraps/avatar';
 import {resolveImageAvatarColors} from './avatarImageAnalysis';
 
 // `dominant` is the color the avatar shows. `style` says whether an image fills
-// the frame or should be inset.
+// the frame or should be inset. `edge` is the color along the bottom of a
+// full-bleed image, where it meets the chonk.
 export type AvatarColorsResult =
-  | {dominant: string; style: 'padded' | 'fill'; type: 'image'}
+  | {dominant: string; edge: string | null; style: 'padded' | 'fill'; type: 'image'}
   | {dominant: string; type: 'letter'}
   | {type: 'none'};
 
@@ -45,7 +46,12 @@ export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
   }
 
   if (imageResult) {
-    return {type: 'image', dominant: imageResult.dominant, style: imageResult.style};
+    return {
+      type: 'image',
+      dominant: imageResult.dominant,
+      edge: imageResult.edge,
+      style: imageResult.style,
+    };
   }
 
   return {type: 'none'};
