@@ -314,7 +314,7 @@ def resolve_run_group_id(
 
 def fetch_run_group(organization: Organization, run_id: int, group_id: int) -> Group | None:
     """The run's group, scoped to the organization."""
-    group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
+    group = Group.objects.get_or_none(id=group_id, project__organization_id=organization.id)
     if group is None:
         logger.warning(
             "autofix.on_completion_hook.group_not_found",
