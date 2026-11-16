@@ -14,7 +14,7 @@ import {SampledEventsTable} from './eapSampledEventsTable';
 describe('EAP SampledEventsTable', () => {
   const project = ProjectFixture({id: '1', platform: 'javascript'});
   const organization = OrganizationFixture({
-    features: ['performance-view'],
+    features: [],
   });
 
   const META_FIELDS = {

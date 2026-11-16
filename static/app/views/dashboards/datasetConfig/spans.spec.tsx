@@ -22,7 +22,7 @@ describe('SpansConfig', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     organization = OrganizationFixture({
-      features: ['performance-view'],
+      features: [],
     });
   });
 
@@ -100,7 +100,7 @@ describe('SpansConfig', () => {
       ],
     });
 
-    const org = OrganizationFixture({features: ['performance-view']});
+    const org = OrganizationFixture({features: []});
     const renderer = SpansConfig.getCustomFieldRenderer!(
       field,
       {},

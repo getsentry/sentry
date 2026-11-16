@@ -21,7 +21,7 @@ describe('IssueTraceWaterfallOverlay', () => {
         evidenceData: {offenderSpanIds: ['offender-span-id']},
       },
     });
-    const organization = OrganizationFixture({features: ['performance-view']});
+    const organization = OrganizationFixture({features: []});
     const viewManager = {
       row_measurer: {
         off: jest.fn(),
@@ -73,7 +73,7 @@ describe('IssueTraceWaterfallOverlay', () => {
         },
       },
     });
-    const organization = OrganizationFixture({features: ['performance-view']});
+    const organization = OrganizationFixture({features: []});
     const viewManager = {
       row_measurer: {
         off: jest.fn(),

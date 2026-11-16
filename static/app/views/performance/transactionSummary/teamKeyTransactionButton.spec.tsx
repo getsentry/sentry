@@ -20,7 +20,7 @@ async function clickTeamKeyTransactionDropdown() {
 }
 
 describe('TeamKeyTransactionButton', () => {
-  const organization = OrganizationFixture({features: ['performance-view']});
+  const organization = OrganizationFixture({features: []});
   const teams = [
     TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
     TeamFixture({id: '2', slug: 'team2', name: 'Team 2'}),

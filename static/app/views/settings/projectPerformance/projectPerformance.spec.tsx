@@ -85,7 +85,7 @@ function getDetectorSlider({label, index}: {index: number; label: string}) {
 
 describe('projectPerformance', () => {
   const org = OrganizationFixture({
-    features: ['performance-view', 'performance-web-vitals-seer-suggestions'],
+    features: ['performance-web-vitals-seer-suggestions'],
   });
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
@@ -812,11 +812,7 @@ describe('projectPerformance', () => {
 
     render(<ProjectPerformance />, {
       organization: OrganizationFixture({
-        features: [
-          'performance-view',
-          'performance-web-vitals-seer-suggestions',
-          'ai-issue-detection',
-        ],
+        features: ['performance-web-vitals-seer-suggestions', 'ai-issue-detection'],
       }),
       initialRouterConfig,
     });

@@ -9,7 +9,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import BackendOverviewPage from './backendOverviewPage';
 
-const organization = OrganizationFixture({features: ['performance-view']});
+const organization = OrganizationFixture({features: []});
 const pageFilterSelection = PageFiltersFixture({
   projects: [1, 2],
   datetime: {

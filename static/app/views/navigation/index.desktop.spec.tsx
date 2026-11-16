@@ -35,7 +35,6 @@ const ALL_AVAILABLE_FEATURES = [
   'dashboards-prebuilt-insights-dashboards',
   'session-replay-ui',
   'ourlogs-enabled',
-  'performance-view',
   'profiling',
   'visibility-explore-view',
 ];

@@ -41,7 +41,7 @@ describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['performance-view'],
+      features: [],
     });
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
@@ -1872,7 +1872,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization: OrganizationFixture({
-            features: ['performance-view', 'visibility-explore-view'],
+            features: ['visibility-explore-view'],
           }),
           initialRouterConfig: {
             location: {
@@ -1975,7 +1975,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization: OrganizationFixture({
-            features: ['performance-view', 'visibility-explore-view'],
+            features: ['visibility-explore-view'],
           }),
           initialRouterConfig: {
             location: {

@@ -13,7 +13,7 @@ import {EAPSampledEventsTab} from './eapSampledEventsTab';
 describe('EAPSampledEventsTab', () => {
   const project = ProjectFixture({id: '1', platform: 'javascript'});
   const organization = OrganizationFixture({
-    features: ['performance-view'],
+    features: [],
   });
 
   beforeEach(() => {

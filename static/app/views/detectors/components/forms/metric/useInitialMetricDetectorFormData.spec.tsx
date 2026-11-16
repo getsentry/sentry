@@ -46,7 +46,7 @@ describe('useInitialMetricDetectorFormData', () => {
   });
 
   it('parses dataset, aggregate, and query from URL', () => {
-    const organization = OrganizationFixture({features: ['performance-view']});
+    const organization = OrganizationFixture({features: []});
     const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
       organization,
       initialRouterConfig: {

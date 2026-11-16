@@ -7,7 +7,7 @@ describe('ProjectSettingsCommandPaletteActions', () => {
   it('returns current project settings sections with visibility rules applied', () => {
     const organization = OrganizationFixture({
       access: ['project:write'],
-      features: ['performance-view'],
+      features: [],
       slug: 'acme',
     });
     const project = DetailedProjectFixture({
