@@ -307,7 +307,7 @@ def query_replays_dataset_tagkey_values(
     project_ids: list[int],
     start: datetime,
     end: datetime,
-    environment: str | None,
+    environment: list[str] | None,
     tag_key: str,
     tag_substr_query: str | None,
     tenant_ids: dict[str, Any] | None,
