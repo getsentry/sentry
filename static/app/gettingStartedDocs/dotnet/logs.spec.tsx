@@ -20,6 +20,10 @@ describe('dotnet logs onboarding docs', () => {
     expect(
       screen.queryByText(textWithMarkupMatcher(/EnableLogs = true/))
     ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/dotnet/logs/'
+    );
   });
 
   it('renders the UseSentry logs setup when a logger is given', async () => {
@@ -28,6 +32,7 @@ describe('dotnet logs onboarding docs', () => {
         onboarding: logs({
           logger: 'logger',
           sdkPackage: {name: 'Sentry.Maui', registryKey: 'sentry.dotnet.maui'},
+          docsGuide: 'maui',
         }),
       },
       {
@@ -53,6 +58,10 @@ describe('dotnet logs onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/in the UseSentry callback/))
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/dotnet/guides/maui/logs/'
+    );
 
     await userEvent.click(screen.getByRole('button', {name: '.NET Core CLI'}));
     expect(

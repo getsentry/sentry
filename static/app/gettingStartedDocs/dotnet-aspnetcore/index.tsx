@@ -20,6 +20,6 @@ export const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
-  logsOnboarding: logs({logger: 'app.Logger', sdkPackage}),
+  logsOnboarding: logs({logger: 'app.Logger', sdkPackage, docsGuide: 'aspnetcore'}),
   metricsOnboarding: metrics({hostInitializesSdk: true, sdkPackage}),
 };
