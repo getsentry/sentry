@@ -114,6 +114,21 @@ describe('SeerDrawerContent', () => {
       ],
     };
 
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
+      });
+    });
+
     it('shows no next step', () => {
       render(
         <SeerDrawerContent
@@ -178,6 +193,50 @@ describe('SeerDrawerContent', () => {
       expect(mockChatDispatch).toHaveBeenCalledWith({type: 'set run id', payload: 776});
       mockIsOpen = false;
       mockChatRunId = null;
+    });
+
+    it('hands the root cause off to a coding agent', async () => {
+      const triggerCodingAgentHandoff = jest.fn();
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState: singleRun, triggerCodingAgentHandoff})}
+          group={GroupFixture()}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Send to Copilot'})
+      );
+
+      expect(triggerCodingAgentHandoff).toHaveBeenCalledWith(
+        776,
+        expect.objectContaining({id: '1'})
+      );
+    });
+
+    it('offers no hand-off before the root cause is written', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              ...singleRun,
+              status: 'processing',
+              blocks: singleRun.blocks.map(block => ({...block, artifacts: []})),
+            },
+          })}
+          group={GroupFixture()}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'More code fix options'})
+      ).not.toBeInTheDocument();
     });
 
     it('hides the root cause reset', () => {
