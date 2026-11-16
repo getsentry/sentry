@@ -8,17 +8,14 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import {BAND_HEIGHT} from 'sentry/components/charts/bands/bandShapes';
 import {CHART_TOOLTIP_VIEWPORT_OFFSET} from 'sentry/components/charts/components/tooltip';
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {severityColor, withAlpha} from './severityColor';
-import {
-  BAND_HEIGHT,
-  DROPPED_DATA_SERIES_ID,
-  useDroppedDataBand,
-} from './useDroppedDataBand';
+import {DROPPED_DATA_SERIES_ID, useDroppedDataBand} from './useDroppedDataBand';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};
 

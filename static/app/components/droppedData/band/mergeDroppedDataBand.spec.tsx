@@ -3,16 +3,13 @@ import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import {BAND_HEIGHT} from 'sentry/components/charts/bands/bandShapes';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {mergeDroppedDataBand} from './mergeDroppedDataBand';
-import {
-  BAND_HEIGHT,
-  DROPPED_DATA_SERIES_ID,
-  useDroppedDataBand,
-} from './useDroppedDataBand';
+import {DROPPED_DATA_SERIES_ID, useDroppedDataBand} from './useDroppedDataBand';
 
 type ClickEvent = Parameters<EChartClickHandler>[0];
 
