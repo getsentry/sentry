@@ -1,3 +1,9 @@
+## 2.7.0
+
+### New Features ✨
+
+- (api) Match a method and concrete path to a catalog operation by @BYK with @sentry-junior in [#131235](https://github.com/getsentry/sentry/pull/131235)
+
 ## 2.6.1
 
 ### Internal Changes 🔧
