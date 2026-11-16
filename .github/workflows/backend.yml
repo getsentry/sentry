@@ -151,6 +151,9 @@ jobs:
       - name: Pack
         run: pnpm --filter @sentry/api pack --out "$SENTRY_API_TARBALL"
 
+      - name: Check for exports removed since the latest release
+        run: node static/packages/api/test/consumers/exports.mjs "$SENTRY_API_TARBALL"
+
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         with:
           node-version: '22'

@@ -791,6 +791,8 @@ pnpm --filter @sentry/api pack --out /tmp/sentry-api.tgz
 node static/packages/api/test/consumers/check.mjs /tmp/sentry-api.tgz
 ```
 
+CI also runs `test/consumers/exports.mjs` on the same tarball. It fails when an entry point or export of the latest `@sentry/api` on npm is gone, since that breaks code written against the release. A renamed operation counts as a removed one.
+
 ## License
 
 FSL-1.1-Apache-2.0. See [LICENSE.md](LICENSE.md).
