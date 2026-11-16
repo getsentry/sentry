@@ -9,7 +9,7 @@ import {IconPerforce} from '@sentry/icons/perforce';
 import {IconSentry} from '@sentry/icons/sentry';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {IconVsts} from '@sentry/icons/vsts';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';

@@ -1,4 +1,4 @@
-import {normalizeDateTimeParams, parseStatsPeriod} from './parse';
+import {getStateFromQuery, normalizeDateTimeParams, parseStatsPeriod} from './parse';
 
 describe('normalizeDateTimeParams', () => {
   it('should return default statsPeriod if it is not provided or is invalid', () => {
@@ -24,6 +24,12 @@ describe('normalizeDateTimeParams', () => {
 
   it('should parse first valid statsPeriod', () => {
     expect(normalizeDateTimeParams({statsPeriod: ['invalid', '24d', '5s']})).toEqual({
+      statsPeriod: '24d',
+    });
+  });
+
+  it('skips valueless statsPeriod entries from a repeated key', () => {
+    expect(normalizeDateTimeParams({statsPeriod: [null, '24d']})).toEqual({
       statsPeriod: '24d',
     });
   });
@@ -237,5 +243,13 @@ describe('parseStatsPeriod', () => {
         {allowAbsoluteDatetime: false}
       )
     ).toEqual({statsPeriod: '14d'});
+  });
+});
+
+describe('getStateFromQuery', () => {
+  it('drops valueless project and environment entries from a repeated key', () => {
+    expect(
+      getStateFromQuery({project: ['1', null], environment: [null, 'prod']})
+    ).toMatchObject({project: [1], environment: ['prod']});
   });
 });

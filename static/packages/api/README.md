@@ -250,7 +250,7 @@ const sentry = createSentryClient(
 const { data, error } = await sentry.listOrganizations();
 ```
 
-The CSRF token goes only on unsafe-method requests (not `GET`, `HEAD`, `OPTIONS` or `TRACE`) to the page's origin or a similar one: the same host, a parent or subdomain of it, or a sibling subdomain such as `us.sentry.io` from `acme.sentry.io`. Hosts are compared by whole DNS labels. The page origin is `location.origin`; pass `origin` to set it, for example in tests. Without either, only relative URLs get the token.
+The CSRF token goes only on unsafe-method requests (not `GET`, `HEAD`, `OPTIONS` or `TRACE`) to the page's origin or a similar one: the same host, a parent or subdomain of it, or a sibling subdomain such as `us.sentry.io` from `acme.sentry.io`. Hosts are compared by whole DNS labels. From an `https:` page, only `https:` targets get the token; `http:` pages are not restricted by scheme. The page origin is `location.origin`; pass `origin` to set it, for example in tests. Without either, only relative URLs get the token.
 
 ### Routing requests by organization
 
@@ -282,6 +282,26 @@ const sentry = createSentryClient({
 });
 // Sent to the organization's region, such as https://us.sentry.io.
 await sentry.listOrganizationIssues({ path: { organization_id_or_slug: "acme" } });
+```
+
+Raw requests, such as `client.get` or `client.prepareRequest` with a
+hand-written path, keep the configured base URL by default. Pass
+`{ rawRequests: "lookup" }` to send those whose path names an organization
+through the lookup too, for example when the lookup also picks the account or
+server that knows the organization. Generated operations still follow their
+declarations.
+
+```ts
+import { routeCellOperations } from "@sentry/api/client";
+
+const sentry = createSentryClient({
+  baseUrl: "https://sentry.io",
+  resolveBaseUrl: routeCellOperations(organization => regionUrls.get(organization), {
+    rawRequests: "lookup",
+  }),
+});
+// Also sent to the organization's region.
+await sentry.client.get({ url: "/organizations/acme/issues/" });
 ```
 
 It runs once per request, including `prepareRequest`, after `requestValidator`

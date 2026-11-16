@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 import {parseAsJson} from 'nuqs';
-import * as qs from 'query-string';
+import qs from 'query-string';
 import {z} from 'zod';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
