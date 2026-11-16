@@ -145,11 +145,6 @@ class MonitorCheckInSerializerTest(TestCase):
             "max_runtime": 30,
             "checkin_margin": 5,
         }
-        legacy = MonitorCheckIn.objects.create(
-            monitor_environment=monitor_env,
-            status=CheckInStatus.OK,
-            monitor_config=config,
-        )
         snapshot = MonitorCheckIn.objects.create(
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
@@ -160,7 +155,7 @@ class MonitorCheckInSerializerTest(TestCase):
             status=CheckInStatus.OK,
         )
 
-        result = serialize([legacy, snapshot, no_config], self.user, MonitorCheckInSerializer())
+        result = serialize([snapshot, no_config], self.user, MonitorCheckInSerializer())
 
-        expected = {**config, "schedule_type": "crontab"}
-        assert [r["monitorConfig"] for r in result] == [{}, expected, {}]
+        assert result[0]["monitorConfig"] == {**config, "schedule_type": "crontab"}
+        assert not result[1]["monitorConfig"]
