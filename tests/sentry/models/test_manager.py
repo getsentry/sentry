@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import connections, router, transaction
@@ -9,6 +9,14 @@ from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.utils.cache import cache
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+
+
+def fallback_metric_tags(mock_incr: MagicMock) -> list[dict[str, str]]:
+    return [
+        c.kwargs["tags"]
+        for c in mock_incr.call_args_list
+        if c.args[0] == "database.get_from_cache.replica_miss_fallback"
+    ]
 
 
 class GetFromCacheTest(TestCase):
@@ -55,23 +63,31 @@ class GetFromCacheTest(TestCase):
         org = self.create_organization()
         self.clear()
 
-        with patch.object(
-            Organization.objects, "using_replica", return_value=Organization.objects.none()
-        ) as using_replica:
+        with (
+            patch.object(
+                Organization.objects, "using_replica", return_value=Organization.objects.none()
+            ) as using_replica,
+            patch("sentry.utils.metrics.incr") as mock_incr,
+        ):
             assert Organization.objects.get_from_cache(id=org.id, use_replica=True) == org
         using_replica.assert_called_once_with()
+        assert fallback_metric_tags(mock_incr) == [{"model": "Organization", "found": "true"}]
 
         flush_manager_local_cache()
         with self.assertNumQueries(0):
             assert Organization.objects.get_from_cache(id=org.id, use_replica=True) == org
 
     def test_replica_and_primary_miss_raises(self) -> None:
-        with patch.object(
-            Organization.objects, "using_replica", return_value=Organization.objects.none()
+        with (
+            patch.object(
+                Organization.objects, "using_replica", return_value=Organization.objects.none()
+            ),
+            patch("sentry.utils.metrics.incr") as mock_incr,
         ):
             with pytest.raises(Organization.DoesNotExist) as excinfo:
                 Organization.objects.get_from_cache(id=0, use_replica=True)
         assert excinfo.value.__context__ is None
+        assert fallback_metric_tags(mock_incr) == [{"model": "Organization", "found": "false"}]
 
 
 class PostUpdateCacheInvalidationTest(TransactionTestCase):

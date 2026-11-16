@@ -20,6 +20,7 @@ from sentry.db.models.manager.types import M
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.signals import post_update
 from sentry.silo.base import SiloLimit
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -334,7 +335,19 @@ class BaseManager(_base_manager_base[M]):
                 # written may only exist on the primary. Query it outside this
                 # block so a real miss doesn't chain the replica's exception.
                 pass
-            return self.get(**kwargs)
+            try:
+                result = self.get(**kwargs)
+            except self.model.DoesNotExist:
+                metrics.incr(
+                    "database.get_from_cache.replica_miss_fallback",
+                    tags={"model": self.model.__name__, "found": "false"},
+                )
+                raise
+            metrics.incr(
+                "database.get_from_cache.replica_miss_fallback",
+                tags={"model": self.model.__name__, "found": "true"},
+            )
+            return result
 
         def validate_result(inst: Any) -> M:
             if isinstance(inst, self.model) and (key != pk_name or int(value) == inst.pk):
