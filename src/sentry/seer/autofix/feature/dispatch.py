@@ -74,6 +74,7 @@ class AutofixFeatureArgs:
     existing_run_id: int | None = None
     insert_index: int | None = None
     user_context: str | None = None
+    sent_at: list[str] | None = None
     stopping_point: AutofixStoppingPoint | None = None
     allow_free_cohort: bool = False
     user: User | RpcUser | AnonymousUser | None = None
@@ -418,6 +419,7 @@ def trigger_autofix_feature(
             reasoning_effort=args.step_args.reasoning_effort,
             repo_pins=args.step_args.repo_pins,
             user_context=args.user_context,
+            sent_at=args.sent_at,
             should_run_repo_checks=True,
         )
         # The project's coding agent writes the fix, so Seer stops after the root cause. Only
@@ -443,6 +445,7 @@ def trigger_autofix_feature(
             existing_run_id=args.existing_run_id,
             insert_index=args.insert_index,
             user_context=args.user_context,
+            sent_at=args.sent_at,
             stopping_point=(args.stopping_point.value if args.stopping_point is not None else None),
             step_args=args.step_args,
         )

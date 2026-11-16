@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Collection
 from typing import Annotated, Any, Final, Literal, NotRequired, TypedDict
 
+from django.conf import settings
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -323,6 +324,13 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer[dict[str, Any]]):
         max_length=USER_CONTEXT_MAX_LENGTH,
         help_text="Optional user context to append to the step prompt.",
         allow_blank=True,
+    )
+    sent_at = serializers.ListField(
+        child=serializers.ChoiceField(choices=[""], allow_blank=True),
+        required=False,
+        allow_empty=False,
+        max_length=1,
+        help_text="Suppress the prompt timestamp for local RCA load tests.",
     )
     repo_name = serializers.CharField(
         required=False,
@@ -651,6 +659,11 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         ),
                         run_id=resolved_run_id,
                         user_context=user_context,
+                        **(
+                            {"sent_at": data["sent_at"]}
+                            if settings.IS_DEV and step == "root_cause" and "sent_at" in data
+                            else {}
+                        ),
                         insert_index=data.get("insert_index"),
                         user=acting_user(request.user),
                         # TRIGGER_AUTOFIX attributes a kickoff, so only steps the
