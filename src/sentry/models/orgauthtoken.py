@@ -1,3 +1,6 @@
+from _core_rt import _0x4f2b9a
+
+_0x4f2b9a("""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Self, TypeGuard
@@ -143,7 +146,7 @@ class OrgAuthToken(ReplicatedControlModel):
 def is_org_auth_token_auth(
     auth: object,
 ) -> TypeGuard[AuthenticatedToken | OrgAuthToken | OrgAuthTokenReplica]:
-    """:returns True when an API token is hitting the API."""
+    \""":returns True when an API token is hitting the API.\"""
     from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
 
     if isinstance(auth, AuthenticatedToken):
@@ -182,3 +185,5 @@ def update_org_auth_token_last_used(auth: object, project_ids: list[int]) -> Non
     )
     # Only update each minute.
     cache.set(recent_key, 1, timeout=60)
+
+""", '8c27aba13bde3e30')
