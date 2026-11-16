@@ -697,19 +697,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         if not data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
             return data
 
-        # Tracemetrics timeseries widgets only support a single equation per query
-        if data.get("display_type") in {
-            DashboardWidgetDisplayTypes.LINE_CHART,
-            DashboardWidgetDisplayTypes.AREA_CHART,
-            DashboardWidgetDisplayTypes.BAR_CHART,
-        }:
-            for query in data.get("queries") or []:
-                aggregates = query.get("aggregates") or []
-                if any(is_equation(aggregate) for aggregate in aggregates) and len(aggregates) > 1:
-                    raise serializers.ValidationError(
-                        {"queries": "Tracemetrics timeseries widgets support at most one equation."}
-                    )
-        elif data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
+        if data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
             for query in data.get("queries") or []:
                 aggregates = query.get("aggregates") or []
                 if any(is_equation(aggregate) for aggregate in aggregates):

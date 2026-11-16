@@ -1876,7 +1876,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_widget_type_tracemetrics_line_chart_rejects_multiple_equations(self) -> None:
+    def test_widget_type_tracemetrics_line_chart_allows_multiple_equations(self) -> None:
         data = {
             "title": "Test Metrics Equation",
             "widgetType": "tracemetrics",
@@ -1903,10 +1903,9 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             self.url(),
             data=data,
         )
-        assert response.status_code == 400, response.data
-        assert "queries" in response.data, response.data
+        assert response.status_code == 200, response.data
 
-    def test_widget_type_tracemetrics_line_chart_rejects_multiple_aggregates_with_equation(
+    def test_widget_type_tracemetrics_line_chart_allows_aggregates_alongside_equation(
         self,
     ) -> None:
         data = {
@@ -1935,8 +1934,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             self.url(),
             data=data,
         )
-        assert response.status_code == 400, response.data
-        assert "queries" in response.data, response.data
+        assert response.status_code == 200, response.data
 
     def test_widget_type_tracemetrics_rejects_table(self) -> None:
         data = {
