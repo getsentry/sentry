@@ -401,6 +401,26 @@ describe('AutofixSection', () => {
       );
     });
 
+    it('only opens the Explorer panel on Open Autofix without the Autofix tab', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      const {router} = render(
+        <AutofixSection group={mockGroup} project={mockProject} />,
+        {
+          organization,
+        }
+      );
+
+      expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
+
+      expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
+      expect(router.location.query.seerDrawer).toBeUndefined();
+    });
+
     it('opens the Explorer panel when Start Analysis starts a single run', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
