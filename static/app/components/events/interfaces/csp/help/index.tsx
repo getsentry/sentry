@@ -65,9 +65,4 @@ const StyledExternalLink = styled(ExternalLink)`
 const StyledIconOpen = styled(IconOpen)`
   margin: 0 ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.graphics.neutral.vibrant};
-  transition: color ${p => p.theme.motion.smooth.fast};
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.secondary};
-  }
 `;
