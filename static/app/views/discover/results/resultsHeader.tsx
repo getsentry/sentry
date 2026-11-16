@@ -18,12 +18,7 @@ type Props = {
   isHomepage?: boolean;
 };
 
-export function ResultsHeader({
-  eventView,
-  location,
-  organization,
-  isHomepage,
-}: Props) {
+export function ResultsHeader({eventView, location, organization, isHomepage}: Props) {
   const api = useApi();
   const [savedQuery, setSavedQueryState] = useState<SavedQuery | undefined>(undefined);
 

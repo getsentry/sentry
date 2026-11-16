@@ -22,7 +22,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {usePrimaryNavigation} from './primaryNavigationContext';
 
 export const enum NavigationTour {
   ISSUES = 'issues',

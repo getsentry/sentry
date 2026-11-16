@@ -32,12 +32,7 @@ jest.mock('sentry/constants', () => {
 });
 
 const organization = OrganizationFixture({
-  features: [
-    'open-membership',
-    'discover',
-    'discover-basic',
-    'discover-query',
-  ],
+  features: ['open-membership', 'discover', 'discover-basic', 'discover-query'],
 });
 
 const projects = [
