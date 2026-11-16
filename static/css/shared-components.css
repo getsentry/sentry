@@ -151,23 +151,6 @@ pre.plain {
   box-shadow: none;
 }
 
-.external-icon {
-  transition: 0.1s linear color;
-  font-size: 11px;
-  margin: 0 5px;
-  color: var(--legacy-gray-light);
-  line-height: 1;
-  vertical-align: middle;
-
-  &:hover {
-    color: var(--legacy-gray);
-  }
-}
-
-.box-header a:hover .external-icon {
-  color: var(--legacy-gray);
-}
-
 /**
 * Avatar
 * ============================================================================
