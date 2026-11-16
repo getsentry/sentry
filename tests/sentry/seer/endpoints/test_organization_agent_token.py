@@ -1217,6 +1217,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             resource = self.create_detector(project=self.project, type="metric_issue")
         elif name == "environment":
             resource = self.create_environment(project=self.project, name="production")
+        elif name == "uptime_detector":
+            resource = self.create_uptime_detector(
+                project=self.project,
+                env=self._resource("environment"),
+                uptime_subscription=self.create_uptime_subscription(subscription_id=uuid4().hex),
+            )
         elif name == "event":
             resource = self.store_event(
                 data={
@@ -1766,6 +1772,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             return {"service_span": "permission-matrix-span", "project_id": self.project.id}
         if endpoint.endpoint_name == "OrganizationTraceItemAttributesEndpoint":
             return {"dataset": "spans", "project": [self.project.id]}
+        if endpoint.endpoint_name == "OrganizationMonitorIndexStatsEndpoint":
+            return {"monitor": [str(self._resource("monitor").guid)]}
+        if endpoint.endpoint_name == "OrganizationUptimeStatsEndpoint":
+            return {"uptimeDetectorId": [self._resource("uptime_detector").id]}
         if endpoint.endpoint_name == "OrganizationTraceLogsEndpoint":
             return {"traceId": uuid4().hex, "statsPeriod": "1h"}
         if endpoint.endpoint_name == "ProjectTraceItemDetailsEndpoint":

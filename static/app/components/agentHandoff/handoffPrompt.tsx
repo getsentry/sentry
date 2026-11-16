@@ -14,8 +14,8 @@ type WrapCode<T> = (code: string) => T;
 export function getHandoffPrompt(code: string, wrapCode: WrapCode<string>): string;
 export function getHandoffPrompt(code: string, wrapCode: WrapCode<ReactNode>): ReactNode;
 export function getHandoffPrompt(code: string, wrapCode: WrapCode<ReactNode>): ReactNode {
-  const guideUrl = `${ConfigStore.get('urlPrefix').replace(/\/$/, '')}/agent-handoff/`;
-  const start = `Follow the instructions verbatim at ${guideUrl}. Your handoff code is `;
+  const guideUrl = `${ConfigStore.get('urlPrefix').replace(/\/$/, '')}/agent-handoff.md`;
+  const start = `Read and follow ${guideUrl} verbatim. Your handoff code is `;
   const end = '.';
   const wrappedCode = wrapCode(code);
 

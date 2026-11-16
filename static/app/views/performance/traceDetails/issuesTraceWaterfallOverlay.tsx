@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import color from 'color';
 import type {LocationDescriptor} from 'history';
 import {useQueryState} from 'nuqs';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
 

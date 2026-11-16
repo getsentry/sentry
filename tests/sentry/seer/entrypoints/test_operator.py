@@ -22,6 +22,7 @@ from sentry.issues.action_log.types import (
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
+from sentry.notebooks.models.notebook import NotebookSourceType
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import (
     CodingAgentState,
@@ -1518,6 +1519,37 @@ class TestProcessInvestigationUpdates(TestCase):
         self._process({"slack": entrypoint_cls})
 
         entrypoint_cls.on_investigation_update.assert_not_called()
+
+    def test_calls_entrypoint_for_metric_open_period_without_cache(self) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self.investigation.update(
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source={"type": "metric_open_period", "ref": {"groupId": "1", "openPeriodId": "2"}},
+            source_key="open-period",
+            source_revision=1,
+        )
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_called_once_with(
+            cache_payload=None, run=self.orchestration_run
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_metric_open_period_records_failure_on_org_mismatch(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self.investigation.update(
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source={"type": "metric_open_period", "ref": {"groupId": "1", "openPeriodId": "2"}},
+            source_key="open-period",
+            source_revision=1,
+        )
+        self._set_cache("slack", {"organization_id": self.create_organization().id})
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_failure_metric(mock_record, "org_mismatch")
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_halts_without_operator_access(self, mock_record: Mock) -> None:

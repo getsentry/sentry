@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {FILTER_MASK} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
