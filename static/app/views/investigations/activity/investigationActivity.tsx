@@ -32,7 +32,11 @@ import {
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {isCommentEdited} from 'sentry/views/investigations/comments/utils';
 import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/block';
-import {getInvestigationSource} from 'sentry/views/investigations/source';
+import {STARTED_ACTIVITY_ELEMENT_ID} from 'sentry/views/investigations/detail/outline';
+import {
+  getInvestigationSource,
+  getOriginalPrompt,
+} from 'sentry/views/investigations/source';
 import type {
   InvestigationActionRequest,
   InvestigationComment,
@@ -169,6 +173,7 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
   const currentUser = useUser();
   const {trigger, createdBy} = investigation;
   const source = getInvestigationSource(investigation);
+  const originalPrompt = getOriginalPrompt(investigation);
   const isOwnInvestigation = createdBy === currentUser.id;
   const {data: members} = useMembers({
     ids: createdBy ? [createdBy] : [],
@@ -230,7 +235,7 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
   }
 
   return (
-    <ActivityLineRow as="li">
+    <ActivityLineRow as="li" id={STARTED_ACTIVITY_ELEMENT_ID}>
       <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
         <ActivityProgressMarker state="activity" label={t('Started')} />
       </Grid>
@@ -257,6 +262,13 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
           <TimeSince date={investigation.dateCreated} />
         </StartedText>
       </Flex>
+      {originalPrompt ? (
+        <ActivityLineContent>
+          <Text variant="muted" density="comfortable" wordBreak="break-word">
+            {`\u201C${originalPrompt}\u201D`}
+          </Text>
+        </ActivityLineContent>
+      ) : null}
     </ActivityLineRow>
   );
 }

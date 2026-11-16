@@ -187,6 +187,27 @@ describe('InvestigationActivity', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('quotes the original prompt under the start', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        source: {
+          type: 'manual',
+          ref: {},
+          revision: null,
+          prompt: 'Why is checkout slow?',
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const activity = await findActivity();
+    expect(within(activity).getByRole('listitem')).toHaveTextContent(
+      '\u201CWhy is checkout slow?\u201D'
+    );
+  });
+
   it('merges applied action requests into the comments by date', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,

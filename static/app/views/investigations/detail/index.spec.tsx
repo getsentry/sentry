@@ -267,6 +267,31 @@ describe('Investigation detail', () => {
     expect(screen.queryByRole('link', {name: 'View issue'})).not.toBeInTheDocument();
   });
 
+  it('links a manual investigation to its original prompt in the activity feed', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        source: {
+          type: 'manual',
+          ref: {},
+          revision: null,
+          prompt: 'Why did checkout latency increase?',
+        },
+      }),
+    });
+
+    renderView();
+
+    const created = (await screen.findByText('Investigation started')).closest(
+      'li'
+    )!;
+    expect(created).toHaveTextContent('\u201CWhy did checkout latency increase?\u201D');
+    expect(screen.queryByText('Manual investigation')).not.toBeInTheDocument();
+    created.scrollIntoView = jest.fn();
+    await userEvent.click(screen.getByRole('button', {name: 'Original prompt'}));
+    expect(created.scrollIntoView).toHaveBeenCalled();
+  });
+
   it('renders the summary as one paragraph above the investigation details', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
@@ -1873,8 +1898,28 @@ describe('Investigation detail', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the activity feed of a manual investigation while its run works', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.orchestration = {
+      phase: 'investigating',
+      status: 'processing',
+      heartbeatAt: '2026-08-27T11:06:30Z',
+      notebookRevision: 5,
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderView();
+
+    expect(await screen.findByRole('heading', {name: 'Activity'})).toBeInTheDocument();
+  });
+
   it('holds back the activity feed until the run has stopped', async () => {
     const investigation = investigationWithQueryResult();
+    investigation.sourceType = 'metric_open_period';
     investigation.orchestration = {
       phase: 'investigating',
       status: 'processing',

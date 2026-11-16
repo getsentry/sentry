@@ -66,6 +66,13 @@ export function getInvestigationSource(investigation: InvestigationDetail) {
   };
 }
 
+/** The prompt a manual investigation started with, or null without one. */
+export function getOriginalPrompt(investigation: InvestigationDetail) {
+  return investigation.sourceType === 'manual'
+    ? investigation.source?.prompt?.trim() || null
+    : null;
+}
+
 export function getSourceMonitor(
   source: InvestigationDetail['source'],
   detectorId: string

@@ -187,6 +187,8 @@ export type InvestigationDetail = InvestigationListItem & {
     ref: Record<string, unknown>;
     revision: number | null;
     type: string;
+    /** The question a manual investigation started with, when it has one. */
+    prompt?: string;
     snapshot?: Record<string, unknown>;
   };
 };
