@@ -87,6 +87,18 @@ const dataset: ListOrganizationTraceItemAttributesQueryDataset = "spans";
 const types: ListOrganizationTraceItemAttributesQueryAttributeType[] = ["string", "number"];
 ```
 
+### Types by path
+
+`ApiRoutes` maps each path, as written in the spec and relative to `API_BASE_PATH`, and HTTP method to its operation's name, `data` type, and status-keyed `responses` and `errors`. Use it when you build requests from a path rather than an operation function. It is type-only:
+
+```ts
+import type { ApiRoutes } from "@sentry/api";
+
+type ListProjects = ApiRoutes["/organizations/{organization_id_or_slug}/projects/"]["GET"];
+type Projects = ListProjects["responses"][200];
+type ProjectsQuery = ListProjects["data"]["query"];
+```
+
 ### Query defaults
 
 A few operations send a query parameter by default to skip expensive work most callers don't need. The operation's documentation states the default.
@@ -143,6 +155,19 @@ import { operations } from "@sentry/api/operations";
 const listProjects = operations.find(operation => operation.functionName === "listOrganizationProjects");
 listProjects?.routing; // { silo: "cell", organizationParameter: "organization_id_or_slug" }
 ```
+
+`matchOperation` finds the catalog operation for a method and a concrete path, such as one a raw request or a proxy sees, with its decoded path parameters:
+
+```ts
+import { matchOperation } from "@sentry/api/operations";
+
+const match = matchOperation("GET", "/api/0/organizations/acme/issues/?query=is:unresolved");
+match?.operation.operationId; // the operation's OpenAPI identifier
+match?.operation.routing; // { silo: "cell", organizationParameter: "organization_id_or_slug" }
+match?.params; // { organization_id_or_slug: "acme" }
+```
+
+The path may include `API_BASE_PATH`, an origin or a query string, and a missing trailing slash still matches. Where templates overlap, a literal segment wins over a parameter at the first segment where they differ, so `/snapshots/latest-base/` is not read as a `{snapshot_id}`. Only operations in the public catalog match; `matchOperation` returns `undefined` for others. To match a filtered catalog or your own templates, build a matcher with `createOperationMatcher`, which accepts any `{ method, path }` list and throws on first use if two templates for one method differ only in parameter names.
 
 `idempotent` tells retrying clients whether resending an identical request after a timeout or 5xx response is safe. It is always `true` for `GET`, `HEAD`, `OPTIONS`, and `TRACE`. Other methods are `true` only when Sentry marks the operation with the `x-sentry-idempotent` OpenAPI extension; `false` means not known to be idempotent, not known to be unsafe.
 
@@ -225,20 +250,35 @@ const sentry = createSentryClient(
 const { data, error } = await sentry.listOrganizations();
 ```
 
+The CSRF token goes only on unsafe-method requests (not `GET`, `HEAD`, `OPTIONS` or `TRACE`) to the page's origin or a similar one: the same host, a parent or subdomain of it, or a sibling subdomain such as `us.sentry.io` from `acme.sentry.io`. Hosts are compared by whole DNS labels. The page origin is `location.origin`; pass `origin` to set it, for example in tests. Without either, only relative URLs get the token.
+
 ### Routing requests by organization
 
-Set `resolveBaseUrl` to pick each request's base URL from its path before the
-URL is built, such as the region that serves the organization. It receives the
-configured `baseUrl` (`''` when unset), the path and query that follow it, and
-the organization and project the path targets (`parseApiPathScope` from
-`@sentry/api/client`; absent for unscoped paths). Its result replaces `baseUrl`
-for that request only; trailing slashes are removed.
+Set `resolveBaseUrl` to pick each request's base URL before the URL is built,
+such as the region that serves the organization. It receives the configured
+`baseUrl` (`''` when unset) and the path and query that follow it. For a
+generated operation it also receives `routing`, the operation's declaration
+from `@sentry/api/operations`, and `organization`, the value of the path
+parameter that `routing.organizationParameter` names. Raw requests have no
+`routing`. `scope` is the organization and project read from the path
+(`parseApiPathScope` from `@sentry/api/client`; absent for unscoped paths).
+Its result replaces `baseUrl` for that request only; trailing slashes are
+removed.
+
+`routeCellOperations` from `@sentry/api/client` builds a resolver from a lookup
+the host already has, such as cached `links.regionUrl` values from the
+organization listing. It sends operations declared `cell` to the region the
+lookup returns for their organization. Everything else keeps the configured
+base URL: `control` and `both` operations, `unknown` operations, raw requests,
+and organizations the lookup does not know. It never looks a region up itself,
+and it trusts the URLs the lookup returns.
 
 ```ts
+import { routeCellOperations } from "@sentry/api/client";
+
 const sentry = createSentryClient({
   baseUrl: "https://sentry.io",
-  resolveBaseUrl: async ({ baseUrl, scope }) =>
-    scope ? await regionUrlFor(scope.organization) : baseUrl,
+  resolveBaseUrl: routeCellOperations(organization => regionUrls.get(organization)),
 });
 // Sent to the organization's region, such as https://us.sentry.io.
 await sentry.listOrganizationIssues({ path: { organization_id_or_slug: "acme" } });
@@ -433,6 +473,32 @@ sentry.client.interceptors.error.use((error, response, request) => {
 });
 ```
 
+To keep an existing error class, map to it in the interceptor. The SDK does not import your class. `getSentryApiErrorDetails` collects what such a class usually carries: `method`, `path`, `status`, `statusText`, the parsed `responseJSON` (only when the body was JSON), `responseText`, and a `summary` such as `GET /api/0/organizations/ 404`:
+
+```ts
+import { getSentryApiErrorDetails, SentryApiError, type SentryApiErrorDetails } from "@sentry/api";
+
+class RequestError extends Error {
+  readonly status?: number;
+  readonly responseJSON?: unknown;
+  readonly responseText?: string;
+
+  constructor(details: SentryApiErrorDetails, options?: ErrorOptions) {
+    super(details.summary, options);
+    this.name = "RequestError";
+    this.status = details.status;
+    this.responseJSON = details.responseJSON;
+    this.responseText = details.responseText;
+  }
+}
+
+sentry.client.interceptors.error.use((error, _response, request) =>
+  error instanceof SentryApiError ? new RequestError(getSentryApiErrorDetails(error, request), { cause: error }) : error,
+);
+```
+
+Operations then return or throw a `RequestError` for HTTP failures; cancellations and fetch rejections pass through unchanged.
+
 ### Opt-in status narrowing
 
 Every operation with documented error responses has a generated `narrowError_<operation>` wrapper. It narrows the default HTTP `SentryApiError` to the operation's status-to-body type map, preserving its metadata. These wrappers remain standalone functions; pass `sentry.client` to reuse the client configured above:
@@ -510,6 +576,18 @@ if (page.nextCursor !== undefined) {
 ```
 
 Each page preserves its own raw `Response`, including status and headers. The transport has already read the body; use `page.data` for the parsed result. Code that constructs a `PaginatedResponse<T>` manually, such as test fixtures, must now supply its `response` field.
+
+`readSentryResponseHeaders` reads the other headers Sentry list endpoints send: `X-Hits` and `X-Max-Hits` as numbers (omitted when missing or malformed), `X-Sentry-Direct-Hit` as a boolean, and the raw `Link` header. `parseSentryLinks` parses `Link` by `rel`, keeping each target's `href` and `results` flag as well as its cursor:
+
+```ts
+import { parseSentryLinks, readSentryResponseHeaders } from "@sentry/api";
+
+const page = await sentry.fetchPage.listOrganizationIssues(options);
+const { link, hits, maxHits, directHit } = readSentryResponseHeaders(page.response.headers);
+const links = parseSentryLinks(link ?? null);
+links.previous?.results; // false on the first page
+links.next?.href; // the server's URL for the next page
+```
 
 ### Bounded collection
 
@@ -685,6 +763,41 @@ const core = createApiClientCore({ transport, headers: () => ({}), logger: conso
 const projects = await core.requestJson("https://sentry.example.com", "/organizations/acme/projects/");
 ```
 
+## Versions and upgrades
+
+The package follows [semver](https://semver.org) and releases from getsentry/sentry as `api@<version>` tags. Each release's notes are in [CHANGELOG.md](./CHANGELOG.md) and on its [GitHub release](https://github.com/getsentry/sentry/releases).
+
+- A merged change to Sentry's API spec releases a minor version automatically. Minor releases add operations, parameters and fields. They can also change a type to match what the API already returns.
+- A change to the package itself releases the bump its commits call for: a feature is a minor and a fix is a patch. Release a breaking change by hand, as a major, with the Release workflow.
+- Removing or renaming an export, including a generated operation, is a breaking change and waits for a major release.
+
+### Upgrading
+
+Within a major version, upgrading keeps your calls working. Rerun your typecheck anyway: since the types follow the API, a type that now matches the server can surface a mismatch in your code. For a new major, read the CHANGELOG's Breaking Changes for every major in between.
+
+Release candidates, when there are any, publish under the `next` tag: `npm install @sentry/api@next`. See [Release candidates](#release-candidates).
+
+### Deprecations
+
+When Sentry deprecates an API endpoint (`deprecated=True` in its `extend_schema`), the endpoint keeps working. Its operation function and client method get a `@deprecated` tag, so editors strike through the calls, and it has `deprecated: true` in `@sentry/api/operations` and `@sentry/api/docs`. To list the deprecated operations:
+
+```ts
+import { operations } from "@sentry/api/operations";
+
+const deprecated = operations.filter(operation => operation.deprecated).map(operation => operation.functionName);
+```
+
+Deprecate a package export with a `@deprecated` tag that says what to use instead. Deprecated operations and exports stay until the next major release.
+
+### Release candidates
+
+To ship a risky change, such as a new major version, as a release candidate first:
+
+1. Run getsentry/sentry's [Release workflow](https://github.com/getsentry/sentry/actions/workflows/release.yml) with workspace `static/packages/api` and an exact prerelease version, such as `3.0.0-rc.0`.
+2. It publishes to npm under the `next` tag, so `latest` stays on the last stable release, and the GitHub release is marked as a prerelease.
+3. While a prerelease is the latest `api@` release, merged spec changes don't release automatically. Cut the next candidate, such as `3.0.0-rc.1`, the same way.
+4. To release the stable version, run the workflow with it, such as `3.0.0`. Automatic releases resume after that.
+
 ## Spec files
 
 Each `api@<version>` release on [GitHub](https://github.com/getsentry/sentry/releases) has the files that version was built from as assets:
@@ -708,6 +821,17 @@ pnpm --filter @sentry/api run test:vitest
 ```
 
 Tests import the generated `src/`, `dist/` and `spec/` output, so build before testing. The script is `test:vitest`, not `test`, because the repository's `test-ci` and `test-all` pass Jest options to every workspace's `test` script, and these tests need the spec build.
+
+Every `ts` example in this README is typechecked against the packed package by `test/readme.test.ts`, each as its own module. When an example uses a value it doesn't define, such as `sentry` or `options`, declare it in that test's `context`.
+
+To check the packed package the way an outside project uses it, pack it and run `test/consumers/check.mjs` with each runtime to check. CI runs it on Node.js 22 and Bun. It installs the tarball into fresh projects from the npm registry, with no optional peers and then with each validator peer:
+
+```sh
+pnpm --filter @sentry/api pack --out /tmp/sentry-api.tgz
+node static/packages/api/test/consumers/check.mjs /tmp/sentry-api.tgz
+```
+
+CI also runs `test/consumers/exports.mjs` on the same tarball. It fails when an entry point or export of the latest `@sentry/api` on npm is gone, since that breaks code written against the release. A renamed operation counts as a removed one.
 
 ## License
 

@@ -53,6 +53,8 @@ const steps = [
   "generate-pagination",
   "generate-error-results",
   "generate-query-enum-types",
+  // A type-only map from path and method to each operation's types.
+  "generate-api-routes",
   "constrain-throw-options",
   // Client-side query defaults (lib/query-defaults.mjs) go into the operations
   // themselves, so bound methods and generated wrappers inherit them.
@@ -79,12 +81,13 @@ appendFileSync(
   [
     "",
     "export { API_BASE_PATH } from './api-base-path.gen.ts';",
-    "export { callWithTypedErrors, narrowError, SentryApiError } from './sentry-errors.ts';",
-    "export type { DocumentedSentryApiError, NarrowedResult, SentryApiResultError, SentryApiTransportError, SdkResult, UndocumentedSentryApiError } from './sentry-errors.ts';",
-    "export { parseSentryLinkHeader, unwrapResult, unwrapPaginatedResult, fetchPage, paginateAll, paginateUpTo, consumePage } from './sentry-pagination.ts';",
-    "export type { UnwrappedResult, PaginatedResponse, PaginatedCollection, PaginateAllOptions, PaginateUpToOptions, PageFetcher, BudgetedPageFetcher, CollectionPage, CollectionPageFetcher, PagePosition, PaginationContinuation } from './sentry-pagination.ts';",
+    "export { callWithTypedErrors, getSentryApiErrorDetails, narrowError, SentryApiError } from './sentry-errors.ts';",
+    "export type { DocumentedSentryApiError, NarrowedResult, SentryApiErrorDetails, SentryApiResultError, SentryApiTransportError, SdkResult, UndocumentedSentryApiError } from './sentry-errors.ts';",
+    "export { parseSentryLinkHeader, parseSentryLinks, readSentryResponseHeaders, unwrapResult, unwrapPaginatedResult, fetchPage, paginateAll, paginateUpTo, consumePage } from './sentry-pagination.ts';",
+    "export type { SentryLink, SentryResponseHeaders, UnwrappedResult, PaginatedResponse, PaginatedCollection, PaginateAllOptions, PaginateUpToOptions, PageFetcher, BudgetedPageFetcher, CollectionPage, CollectionPageFetcher, PagePosition, PaginationContinuation } from './sentry-pagination.ts';",
     "export * from './error-results.gen.ts';",
     "export type * from './query-enums.gen.ts';",
+    "export type { ApiRoutes } from './api-routes.gen.ts';",
     "export * from './pagination.gen.ts';",
     "export { createSentryClient } from './sentry-client.gen.ts';",
     "export type { SentryClient } from './sentry-client.gen.ts';",

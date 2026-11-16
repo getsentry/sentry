@@ -274,6 +274,20 @@ Valid fields include:
         description="Filter projects by name or slug.",
     )
 
+    PROJECT_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        enum=["latestDeploys", "unusedFeatures"],
+        description=(
+            "Parts of the response to skip computing. Specify `latestDeploys` to omit "
+            "`latestDeploys`, and `unusedFeatures` to leave out feature flags that the Sentry "
+            "web UI does not use from `features`. Unknown values are ignored."
+        ),
+    )
+
     EXTERNAL_USER_ID = OpenApiParameter(
         name="external_user_id",
         location="path",
@@ -1565,16 +1579,39 @@ class ExploreSavedQueriesParams:
         location="query",
         required=False,
         type=str,
-        description="""The property to sort results by. If not specified, the results are sorted by query name.
+        many=True,
+        description="""The property to sort results by. Repeat the parameter to sort by more than one. If not specified, the results are sorted by query name.
 
 Available fields are:
 - `name`
-- `dateCreated`
+- `dateAdded`
 - `dateUpdated`
 - `mostPopular`
 - `recentlyViewed`
 - `myqueries`
+- `mostStarred`
+- `starred`
+
+Prefix `name`, `dateAdded`, `dateUpdated`, `mostPopular` or `recentlyViewed` with `-` to reverse the order.
         """,
+    )
+
+    EXCLUDE = OpenApiParameter(
+        name="exclude",
+        location="query",
+        required=False,
+        type=str,
+        enum=["owned", "shared"],
+        description="Leave out the queries you created (`owned`) or the queries others created (`shared`).",
+    )
+
+    STARRED = OpenApiParameter(
+        name="starred",
+        location="query",
+        required=False,
+        type=str,
+        enum=["1"],
+        description="Pass `1` to return only the queries you starred, in your starred order.",
     )
 
 

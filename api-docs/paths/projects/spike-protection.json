@@ -2,7 +2,8 @@
   "post": {
     "tags": ["Projects"],
     "description": "Enables Spike Protection feature for some of the projects within the organization.",
-    "operationId": "Enable Spike Protection",
+    "operationId": "createOrganizationSpikeProtection",
+    "summary": "Enable Spike Protection",
     "parameters": [
       {
         "name": "organization_id_or_slug",
@@ -55,7 +56,8 @@
   "delete": {
     "tags": ["Projects"],
     "description": "Disables Spike Protection feature for some of the projects within the organization.",
-    "operationId": "Disable Spike Protection",
+    "operationId": "deleteOrganizationSpikeProtections",
+    "summary": "Disable Spike Protection",
     "parameters": [
       {
         "name": "organization_id_or_slug",

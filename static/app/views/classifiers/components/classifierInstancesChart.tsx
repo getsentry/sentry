@@ -13,7 +13,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
-import {getResultAttributeKey} from 'sentry/views/classifiers/utils';
+import {
+  CLASSIFIER_DETAIL_STATS_PERIOD,
+  getResultAttributeKey,
+} from 'sentry/views/classifiers/utils';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -25,7 +28,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
 const TITLE = t('Instances');
 
 const DATETIME: PageFilters['datetime'] = {
-  period: '24h',
+  period: CLASSIFIER_DETAIL_STATS_PERIOD,
   start: null,
   end: null,
   utc: null,
