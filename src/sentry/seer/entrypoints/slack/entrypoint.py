@@ -40,8 +40,10 @@ from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
+    investigation_entrypoint_registry,
 )
 from sentry.seer.entrypoints.slack.cache import SlackSeerAgentReply, SlackSeerAgentReplyCache
+from sentry.seer.entrypoints.slack.investigation import SlackInvestigationEntrypoint
 from sentry.seer.entrypoints.slack.messaging import (
     edit_thread_message,
     schedule_all_thread_updates,
@@ -1013,3 +1015,6 @@ def prepare_slack_thread_for_autofix_updates(
 # Register after class definition to avoid decorator type-narrowing when stacking two registries.
 autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAutofixEntrypoint)
 agent_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAgentEntrypoint)
+investigation_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(
+    SlackInvestigationEntrypoint
+)

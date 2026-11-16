@@ -40,7 +40,6 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
-from sentry.seer.entrypoints.registry import investigation_entrypoint_registry
 from sentry.seer.entrypoints.slack.investigation_status import (
     build_investigation_conclusion,
     build_investigation_status,
@@ -453,8 +452,3 @@ def _record_status_sent(*, data: SeerInvestigationStatus, links: set[Notificatio
         ),
         links=links,
     )
-
-
-investigation_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(
-    SlackInvestigationEntrypoint
-)
