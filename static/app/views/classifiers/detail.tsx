@@ -11,6 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import {ClassifiedConversationsTable} from './components/classifiedConversationsTable';
 import {ClassifierInstancesChart} from './components/classifierInstancesChart';
 import {
   ClassifierDisabledAlert,
@@ -30,21 +31,6 @@ function HeaderStat({label}: {label: string}) {
         {'\u2014'}
       </Text>
     </Stack>
-  );
-}
-
-function ComingSoon({height}: {height: `${number}px`}) {
-  return (
-    <Flex
-      align="center"
-      justify="center"
-      height={height}
-      border="primary"
-      radius="md"
-      background="secondary"
-    >
-      <Text variant="muted">{t('Coming soon')}</Text>
-    </Flex>
   );
 }
 
@@ -68,7 +54,7 @@ function ClassifierDetailContent({classifier}: {classifier: TelemetryClassifier}
             <Heading as="h3" size="md">
               {t('Matched conversations')}
             </Heading>
-            <ComingSoon height="480px" />
+            <ClassifiedConversationsTable classifier={classifier} />
           </Stack>
         </Stack>
         <Container border="primary" radius="md" padding="lg">
