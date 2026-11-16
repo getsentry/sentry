@@ -511,6 +511,29 @@ class IssueParams:
         many=True,
     )
 
+    STATS_GROUPS = OpenApiParameter(
+        name="groups",
+        description="The IDs of the issues to return stats for, up to 100.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
+        required=True,
+        many=True,
+    )
+
+    STATS_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        description=(
+            "Fields to remove from the response. Defaults to `base`, which leaves the ID, counts, "
+            "first and last seen, the unhandled flag and stats. Passing any value replaces the "
+            "default."
+        ),
+        enum=["stats", "lifetime", "base", "unhandled", "filtered"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+
     GROUP_DETAILS_EXPAND = OpenApiParameter(
         name="expand",
         description="Additional data to include in the response.",
@@ -1066,6 +1089,21 @@ class MonitorParams:
         type=str,
         description="The owner of the monitor, in the format `user:id` or `team:id`. May be specified multiple times.",
     )
+    STATS_MONITOR = OpenApiParameter(
+        name="monitor",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="The GUIDs of the monitors to return stats for, up to 20. Monitors you can't access are left out.",
+    )
+    STATS_RESOLUTION = OpenApiParameter(
+        name="resolution",
+        location="query",
+        required=False,
+        type=str,
+        description="Size of each bucket, as a number followed by `s`, `m`, `h` or `d`, such as `30m`. Defaults to a size picked for the time range. At most 2,500 buckets are allowed.",
+    )
     PROCESSING_ERROR_ID = OpenApiParameter(
         name="processing_error_id",
         location="path",
@@ -1073,6 +1111,23 @@ class MonitorParams:
         type=OpenApiTypes.STR,
         pattern=SENTRY_HEX_ID_PATTERN,
         description="The ID of the processing error. It is a 32-character hexadecimal string.",
+    )
+
+
+class StatsRangeParams:
+    SINCE = OpenApiParameter(
+        name="since",
+        location="query",
+        required=False,
+        type=float,
+        description="Start of the time range, as a Unix timestamp in seconds. Defaults to one day before `until`.",
+    )
+    UNTIL = OpenApiParameter(
+        name="until",
+        location="query",
+        required=False,
+        type=float,
+        description="End of the time range, as a Unix timestamp in seconds. Defaults to now.",
     )
 
 
@@ -1090,6 +1145,21 @@ class UptimeParams:
         required=False,
         type=str,
         description="The owner of the uptime alert, in the format `user:id` or `team:id`. May be specified multiple times.",
+    )
+    STATS_DETECTOR_ID = OpenApiParameter(
+        name="uptimeDetectorId",
+        location="query",
+        required=True,
+        many=True,
+        type=int,
+        description="The IDs of the uptime monitors to return stats for, up to 100. The request fails if any of them is missing or you can't access it.",
+    )
+    STATS_RESOLUTION = OpenApiParameter(
+        name="resolution",
+        location="query",
+        required=False,
+        type=str,
+        description="Size of each bucket, as a number followed by `s`, `m`, `h` or `d`. Must be one of 15s, 30s, 1m, 2m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h or 24h, and no longer than the time range. At most 10,100 buckets are allowed. Defaults to the smallest of these that is at least the size picked for the time range.",
     )
 
 

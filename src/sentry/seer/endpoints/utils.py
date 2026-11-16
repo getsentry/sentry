@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from sentry.api.authentication import ServiceAccountTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import UserRequired
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
@@ -47,6 +48,15 @@ def refuse_service_account_token(request: Request) -> None:
     """
     if isinstance(request.successful_authenticator, ServiceAccountTokenAuthentication):
         raise UserRequired()
+
+
+def seer_out_of_credits_response(
+    detail: str, denial_reason: SeerCreditDenialReason | None
+) -> Response:
+    return Response(
+        {"detail": detail, "code": SEER_OUT_OF_CREDITS_CODE, "denialReason": denial_reason},
+        status=status.HTTP_402_PAYMENT_REQUIRED,
+    )
 
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):

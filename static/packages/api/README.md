@@ -250,6 +250,8 @@ const sentry = createSentryClient(
 const { data, error } = await sentry.listOrganizations();
 ```
 
+The CSRF token goes only on unsafe-method requests (not `GET`, `HEAD`, `OPTIONS` or `TRACE`) to the page's origin or a similar one: the same host, a parent or subdomain of it, or a sibling subdomain such as `us.sentry.io` from `acme.sentry.io`. Hosts are compared by whole DNS labels. From an `https:` page, only `https:` targets get the token; `http:` pages are not restricted by scheme. The page origin is `location.origin`; pass `origin` to set it, for example in tests. Without either, only relative URLs get the token.
+
 ### Routing requests by organization
 
 Set `resolveBaseUrl` to pick each request's base URL before the URL is built,
@@ -280,6 +282,26 @@ const sentry = createSentryClient({
 });
 // Sent to the organization's region, such as https://us.sentry.io.
 await sentry.listOrganizationIssues({ path: { organization_id_or_slug: "acme" } });
+```
+
+Raw requests, such as `client.get` or `client.prepareRequest` with a
+hand-written path, keep the configured base URL by default. Pass
+`{ rawRequests: "lookup" }` to send those whose path names an organization
+through the lookup too, for example when the lookup also picks the account or
+server that knows the organization. Generated operations still follow their
+declarations.
+
+```ts
+import { routeCellOperations } from "@sentry/api/client";
+
+const sentry = createSentryClient({
+  baseUrl: "https://sentry.io",
+  resolveBaseUrl: routeCellOperations(organization => regionUrls.get(organization), {
+    rawRequests: "lookup",
+  }),
+});
+// Also sent to the organization's region.
+await sentry.client.get({ url: "/organizations/acme/issues/" });
 ```
 
 It runs once per request, including `prepareRequest`, after `requestValidator`
@@ -470,6 +492,32 @@ sentry.client.interceptors.error.use((error, response, request) => {
   return error;
 });
 ```
+
+To keep an existing error class, map to it in the interceptor. The SDK does not import your class. `getSentryApiErrorDetails` collects what such a class usually carries: `method`, `path`, `status`, `statusText`, the parsed `responseJSON` (only when the body was JSON), `responseText`, and a `summary` such as `GET /api/0/organizations/ 404`:
+
+```ts
+import { getSentryApiErrorDetails, SentryApiError, type SentryApiErrorDetails } from "@sentry/api";
+
+class RequestError extends Error {
+  readonly status?: number;
+  readonly responseJSON?: unknown;
+  readonly responseText?: string;
+
+  constructor(details: SentryApiErrorDetails, options?: ErrorOptions) {
+    super(details.summary, options);
+    this.name = "RequestError";
+    this.status = details.status;
+    this.responseJSON = details.responseJSON;
+    this.responseText = details.responseText;
+  }
+}
+
+sentry.client.interceptors.error.use((error, _response, request) =>
+  error instanceof SentryApiError ? new RequestError(getSentryApiErrorDetails(error, request), { cause: error }) : error,
+);
+```
+
+Operations then return or throw a `RequestError` for HTTP failures; cancellations and fetch rejections pass through unchanged.
 
 ### Opt-in status narrowing
 

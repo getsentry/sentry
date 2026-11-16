@@ -110,10 +110,10 @@ describe('SeerExplorerContent', () => {
   });
 
   describe('Show thinking', () => {
-    it('renders thinking traces when code mode tools is enabled', async () => {
+    it('renders thinking traces', async () => {
       const codeModeOrganization = OrganizationFixture({
         openMembership: true,
-        features: ['seer-explorer', 'seer-explorer-code-mode-tools'],
+        features: ['seer-explorer'],
         hideAiFeatures: false,
       });
 
