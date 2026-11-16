@@ -74,7 +74,7 @@ Use the actor type that matches who initiated the work.
 | `AGENT` | A Seer agent token acting on behalf of a user. The user's ID is in `delegated_user_id`. Preserve this type when propagating the context so downstream code can identify delegated activity. |
 | `SERVICE_ACCOUNT` | A service account acting under its own identity. `actor_id` is the service account ID, and there is no acting user. |
 | `INTEGRATION` | An external integration acting within an organization. For example, GitHub webhook handlers use `webhook_viewer_context()` to establish this context. |
-| `SYSTEM` | Work Sentry initiates itself, such as scheduled background work or cleanup. Preserve the originating actor when a job continues work on that actor's behalf. |
+| `SYSTEM` | Work Sentry initiates itself, such as scheduled background work or cleanup that users have no control over. Preserve the originating actor when a job continues work on that actor's behalf. |
 | `UNKNOWN` | The caller's identity could not be resolved, such as an anonymous request or an internal RPC with no propagated viewer context. |
 
 Use `get_acting_user_id(ctx)` when you need the user behind a `USER` or `AGENT` context. Organization and project IDs describe the context's scope.
