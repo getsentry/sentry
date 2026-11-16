@@ -46,6 +46,7 @@ from sentry.seer.endpoints.utils import (
     SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL,
     SEER_OUT_OF_CREDITS_CODE,
     ResolvedSeerRun,
+    refuse_service_account_token,
     resolve_seer_run,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
@@ -205,6 +206,8 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
             if not is_demo_mode_enabled() or request.method not in self.DEMO_ALLOWED_METHODS:
                 return False
             return True
+        if request.method == "POST":
+            refuse_service_account_token(request)
         return super().has_permission(request, view)
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
