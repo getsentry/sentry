@@ -248,6 +248,33 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
         assert "Fixes [SENTRY-123](https://sentry.example/issues/123)" in prompt
         assert "Fixes [LINEAR-456](https://linear.app/example/issue/LINEAR-456)" in prompt
 
+    def test_prompt_with_issue_keys_for_branch_commits_and_title(self) -> None:
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        prompt = generate_autofix_handoff_prompt(
+            state, issue_keys_for_branch_commits_and_title=("APP-1", "APP-2")
+        )
+
+        assert "linked to these external issues: APP-1, APP-2." in prompt
+        assert "in every commit message, and in the pull request title" in prompt
+
+    def test_prompt_without_issue_keys_for_branch_commits_and_title(self) -> None:
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        prompt = generate_autofix_handoff_prompt(state)
+
+        assert "external issues" not in prompt
+
     def test_prompt_without_short_id(self) -> None:
         """Test that 'Fixes' is not in prompt when short_id is None."""
         state = SeerRunState(
@@ -1299,6 +1326,48 @@ class TestTriggerCodingAgentHandoff(TestCase):
         prompt = mock_client.launch_coding_agents.call_args.kwargs["prompt"]
         assert "Fixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)" in prompt
 
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_trigger_coding_agent_handoff_includes_linked_jira_issues(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        self._make_repo_and_projectrepo()
+        jira = self.create_integration(
+            organization=self.organization, external_id="jira:1", provider="jira"
+        )
+        jira_server = self.create_integration(
+            organization=self.organization, external_id="jira_server:1", provider="jira_server"
+        )
+        github = self.create_integration(
+            organization=self.organization, external_id="github:1", provider="github"
+        )
+        self.create_integration_external_issue(group=self.group, integration=jira, key="APP-123")
+        self.create_integration_external_issue(
+            group=self.group, integration=jira_server, key="OPS_2-7"
+        )
+        self.create_integration_external_issue(
+            group=self.group, integration=github, key="owner/repo#9"
+        )
+        self.create_integration_external_issue(
+            group=self.group, integration=jira, key="not a jira key"
+        )
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        prompt = mock_client.launch_coding_agents.call_args.kwargs["prompt"]
+        assert "linked to these external issues: APP-123, OPS_2-7." in prompt
+        assert "owner/repo#9" not in prompt
+        assert "not a jira key" not in prompt
+        assert "Fixes APP-123" not in prompt
+
     @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_records_referrer(
@@ -1800,6 +1869,21 @@ class TestTriggerPushChanges(TestCase):
         assert payload["pr_description_suffix"] == (
             f"{self._fixes_line()}\nFixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
             f"\n{self._iteration_help()}"
+        )
+
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pr_description_suffix_skips_branch_commits_and_title_issues(
+        self, mock_post: MagicMock
+    ) -> None:
+        jira = self.create_integration(
+            organization=self.organization, external_id="jira:1", provider="jira"
+        )
+        self.create_integration_external_issue(group=self.group, integration=jira, key="APP-123")
+
+        payload = self._push(mock_post)
+
+        assert payload["pr_description_suffix"] == (
+            f"{self._fixes_line()}\n{self._iteration_help()}"
         )
 
     @patch("sentry.seer.autofix.autofix_agent.is_free_cohort_org", return_value=True)
