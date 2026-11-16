@@ -87,6 +87,18 @@ const dataset: ListOrganizationTraceItemAttributesQueryDataset = "spans";
 const types: ListOrganizationTraceItemAttributesQueryAttributeType[] = ["string", "number"];
 ```
 
+### Types by path
+
+`ApiRoutes` maps each path, as written in the spec and relative to `API_BASE_PATH`, and HTTP method to its operation's name, `data` type, and status-keyed `responses` and `errors`. Use it when you build requests from a path rather than an operation function. It is type-only:
+
+```ts
+import type { ApiRoutes } from "@sentry/api";
+
+type ListProjects = ApiRoutes["/organizations/{organization_id_or_slug}/projects/"]["GET"];
+type Projects = ListProjects["responses"][200];
+type ProjectsQuery = ListProjects["data"]["query"];
+```
+
 ### Query defaults
 
 A few operations send a query parameter by default to skip expensive work most callers don't need. The operation's documentation states the default.
@@ -721,6 +733,8 @@ pnpm --filter @sentry/api run test:vitest
 ```
 
 Tests import the generated `src/`, `dist/` and `spec/` output, so build before testing. The script is `test:vitest`, not `test`, because the repository's `test-ci` and `test-all` pass Jest options to every workspace's `test` script, and these tests need the spec build.
+
+Every `ts` example in this README is typechecked against the packed package by `test/readme.test.ts`, each as its own module. When an example uses a value it doesn't define, such as `sentry` or `options`, declare it in that test's `context`.
 
 ## License
 

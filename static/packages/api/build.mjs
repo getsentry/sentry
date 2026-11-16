@@ -53,6 +53,8 @@ const steps = [
   "generate-pagination",
   "generate-error-results",
   "generate-query-enum-types",
+  // A type-only map from path and method to each operation's types.
+  "generate-api-routes",
   "constrain-throw-options",
   // Client-side query defaults (lib/query-defaults.mjs) go into the operations
   // themselves, so bound methods and generated wrappers inherit them.
@@ -85,6 +87,7 @@ appendFileSync(
     "export type { UnwrappedResult, PaginatedResponse, PaginatedCollection, PaginateAllOptions, PaginateUpToOptions, PageFetcher, BudgetedPageFetcher, CollectionPage, CollectionPageFetcher, PagePosition, PaginationContinuation } from './sentry-pagination.ts';",
     "export * from './error-results.gen.ts';",
     "export type * from './query-enums.gen.ts';",
+    "export type { ApiRoutes } from './api-routes.gen.ts';",
     "export * from './pagination.gen.ts';",
     "export { createSentryClient } from './sentry-client.gen.ts';",
     "export type { SentryClient } from './sentry-client.gen.ts';",
