@@ -5,7 +5,7 @@ from cssselect import parse as cssselect_parse
 from cssselect.parser import Attrib, Class, CombinedSelector, Element, Hash
 from rest_framework.exceptions import ParseError
 
-SelectorType = Union[Attrib, Class, Element, Hash]
+SelectorType = Union[Attrib, Class, CombinedSelector, Element, Hash]
 
 
 class QueryType:
