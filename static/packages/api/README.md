@@ -511,6 +511,18 @@ if (page.nextCursor !== undefined) {
 
 Each page preserves its own raw `Response`, including status and headers. The transport has already read the body; use `page.data` for the parsed result. Code that constructs a `PaginatedResponse<T>` manually, such as test fixtures, must now supply its `response` field.
 
+`readSentryResponseHeaders` reads the other headers Sentry list endpoints send: `X-Hits` and `X-Max-Hits` as numbers (omitted when missing or malformed), `X-Sentry-Direct-Hit` as a boolean, and the raw `Link` header. `parseSentryLinks` parses `Link` by `rel`, keeping each target's `href` and `results` flag as well as its cursor:
+
+```ts
+import { parseSentryLinks, readSentryResponseHeaders } from "@sentry/api";
+
+const page = await sentry.fetchPage.listOrganizationIssues(options);
+const { link, hits, maxHits, directHit } = readSentryResponseHeaders(page.response.headers);
+const links = parseSentryLinks(link ?? null);
+links.previous?.results; // false on the first page
+links.next?.href; // the server's URL for the next page
+```
+
 ### Bounded collection
 
 ```ts
