@@ -1,6 +1,6 @@
 import {Stack} from '@sentry/scraps/layout';
 
-import {EmptyState} from './emptyState';
+import {EmptyState, SlackAgentReminder} from './emptyState';
 
 // Use the real decode exports without loading the Markdown renderer's ESM lexer in SSR.
 jest.mock('@sentry/scraps/markdown', () =>
@@ -14,7 +14,6 @@ describe('Seer empty state', () => {
       <Stack height="750px" background="primary">
         <EmptyState
           hasDraft
-          displaySlackAgentReminder
           onSuggestionClick={() => {}}
           suggestions={{
             isLoading: false,
@@ -26,6 +25,7 @@ describe('Seer empty state', () => {
             ],
           }}
         />
+        <SlackAgentReminder hasDraft />
       </Stack>
     ),
     {viewport: 476}
@@ -37,7 +37,6 @@ describe('Seer empty state', () => {
       () => (
         <Stack height="750px" background="primary">
           <EmptyState
-            displaySlackAgentReminder
             onSuggestionClick={() => {}}
             suggestions={
               isLoading
@@ -55,6 +54,7 @@ describe('Seer empty state', () => {
                   }
             }
           />
+          <SlackAgentReminder />
         </Stack>
       ),
       width => ({viewport: width})

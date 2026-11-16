@@ -34,7 +34,6 @@ const DRAFT_STAGGER_MS = 35;
 
 interface EmptyStateProps {
   composerRef?: RefObject<HTMLDivElement | null>;
-  displaySlackAgentReminder?: boolean;
   errorStatusCode?: number | null;
   hasDraft?: boolean;
   /** The conversation could not be loaded: the request failed, or it came back errored. */
@@ -51,7 +50,6 @@ export function EmptyState({
   isLoading = false,
   isError = false,
   errorStatusCode = null,
-  displaySlackAgentReminder = false,
   runId,
   onStartNewChat,
   onSuggestionClick,
@@ -72,9 +70,7 @@ export function EmptyState({
   const [shortest, medium, ...longer] = sortedSuggestions;
   const orderedSuggestions =
     shortest && medium ? [medium, shortest, ...longer] : sortedSuggestions;
-  const suggestionCount = suggestions?.isLoading
-    ? SUGGESTION_PLACEHOLDERS.length
-    : orderedSuggestions.length;
+  const suggestionCount = getSuggestionCount(suggestions);
   const runIdDisplay = runId?.toString() ?? 'null';
 
   useEffect(() => {
@@ -311,6 +307,7 @@ export function EmptyState({
               <DraftExtras width="100%" $hidden={hasDraft}>
                 <BeamCaption
                   as="div"
+                  size="md"
                   align="center"
                   variant="secondary"
                   density="comfortable"
@@ -352,27 +349,39 @@ export function EmptyState({
           </Grid>
         )}
       </Stack>
-      {!isLoading && !isError && displaySlackAgentReminder && (
-        <DraftExtras
-          padding="0 xl"
-          $hidden={hasDraft}
-          $offset={-12}
-          $delay={suggestionCount * DRAFT_STAGGER_MS}
-          aria-hidden={hasDraft || undefined}
-          inert={hasDraft}
-        >
-          <Alert variant="muted">
-            {tct('Want to chat in Slack? Just ask [mention] to debug issues.', {
-              mention: (
-                <Text monospace variant="promotion">
-                  @sentry
-                </Text>
-              ),
-            })}
-          </Alert>
-        </DraftExtras>
-      )}
     </Stack>
+  );
+}
+
+function getSuggestionCount(suggestions: ChatSuggestionsState | undefined) {
+  return suggestions?.isLoading
+    ? SUGGESTION_PLACEHOLDERS.length
+    : (suggestions?.suggestions.length ?? 0);
+}
+
+export function SlackAgentReminder({
+  hasDraft = false,
+  suggestions,
+}: Pick<EmptyStateProps, 'hasDraft' | 'suggestions'>) {
+  return (
+    <DraftExtras
+      padding="0 xl"
+      $hidden={hasDraft}
+      $offset={-12}
+      $delay={getSuggestionCount(suggestions) * DRAFT_STAGGER_MS}
+      aria-hidden={hasDraft || undefined}
+      inert={hasDraft}
+    >
+      <Alert variant="muted">
+        {tct('Want to chat in Slack? Just ask [mention] to debug issues.', {
+          mention: (
+            <Text size="md" monospace variant="promotion">
+              @sentry
+            </Text>
+          ),
+        })}
+      </Alert>
+    </DraftExtras>
   );
 }
 
@@ -459,7 +468,7 @@ function SuggestionItem({
           key={text ?? 'pending'}
           ref={textRef}
           as="div"
-          size="sm"
+          size="md"
           align="center"
           density="comfortable"
           wrap="normal"

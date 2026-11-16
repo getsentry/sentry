@@ -9,6 +9,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
+  isInaccessible,
   render,
   screen,
   userEvent,
@@ -23,6 +24,7 @@ import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits
 import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {
   seerCreditCheckApiOptions,
   type SeerCreditDenialReason,
@@ -1854,6 +1856,126 @@ describe('SeerExplorerContent', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
       await waitFor(() => expect(requestWindow).toHaveBeenCalled());
+    });
+  });
+
+  describe('Slack agent reminder', () => {
+    it('hides the reminder while drafting and restores it when cleared', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        method: 'GET',
+        body: [OrganizationIntegrationsFixture()],
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      const reminder = await screen.findByText(/Want to chat in Slack/);
+      expect(isInaccessible(reminder)).toBe(false);
+      const editor = await getSeerExplorerInput();
+      await userEvent.type(editor, 'Investigate this');
+      expect(isInaccessible(reminder)).toBe(true);
+      await userEvent.clear(editor);
+      expect(isInaccessible(reminder)).toBe(false);
+    });
+
+    it.each([
+      {state: 'not installed', integrations: [], hook: {}},
+      {
+        state: 'outdated',
+        integrations: [OrganizationIntegrationsFixture({outOfDate: true})],
+        hook: {},
+      },
+      {
+        state: 'loading',
+        integrations: [OrganizationIntegrationsFixture()],
+        hook: {isPolling: true},
+      },
+      {
+        state: 'failed to load',
+        integrations: [OrganizationIntegrationsFixture()],
+        hook: {isError: true},
+      },
+    ])('omits the reminder when $state', async ({integrations, hook}) => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        method: 'GET',
+        body: integrations,
+      });
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        ...hook,
+      });
+      const queryClient = makeTestQueryClient();
+      await queryClient.fetchQuery(
+        apiOptions.as<typeof integrations>()(
+          '/organizations/$organizationIdOrSlug/integrations/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            query: {providerKey: 'slack', includeConfig: 0},
+            staleTime: 0,
+          }
+        )
+      );
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <PictureInPictureProvider>
+            <SeerExplorerSessionsProvider>
+              <SeerExplorerContent
+                getPageReferrer={mockGetPageReferrer}
+                onClose={() => {}}
+              />
+            </SeerExplorerSessionsProvider>
+          </PictureInPictureProvider>
+        </QueryClientProvider>,
+        {organization}
+      );
+
+      await screen.findByTestId('seer-explorer-input');
+      expect(screen.queryByText(/Want to chat in Slack/)).not.toBeInTheDocument();
+    });
+
+    it('keeps the reminder for an empty read-only conversation', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        method: 'GET',
+        body: [OrganizationIntegrationsFixture()],
+      });
+      ConfigStore.set('user', UserFixture({id: '1'}));
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sessionData: {
+          blocks: [],
+          status: 'completed',
+          updated_at: '2024-01-01T00:00:00Z',
+          owner_user_id: 2,
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      expect(await screen.findByText(/Want to chat in Slack/)).toBeVisible();
+      expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
     });
   });
 
