@@ -27,7 +27,7 @@ monitors: 0025_drop_checkin_monitor_config
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notebooks: 0004_add_notebook_org_auth_token_creator
+notebooks: 0005_add_comment_mentions
 
 notifications: 0018_inbox_event_idempotency
 
