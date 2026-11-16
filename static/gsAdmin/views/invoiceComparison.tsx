@@ -52,6 +52,10 @@ type Summary = {
   rows_page_size: number;
   rows_total_pages: number;
   start: string;
+  // Absent from backends that list every row, including small mismatches.
+  hidden_small_mismatch_count?: number;
+  listed_row_count?: number;
+  min_listed_mismatch_cents?: number;
 };
 
 type ComparisonResponse = {
@@ -475,10 +479,23 @@ export function InvoiceComparison() {
               <Paginator
                 page={data.summary.rows_page}
                 totalPages={data.summary.rows_total_pages}
-                total={data.summary.row_count}
+                total={data.summary.listed_row_count ?? data.summary.row_count}
                 pageSize={data.summary.rows_page_size}
                 onChange={setRowsPage}
               />
+              {!!data.summary.hidden_small_mismatch_count &&
+                data.summary.min_listed_mismatch_cents !== undefined && (
+                  <Flex padding="md lg" borderBottom="primary">
+                    <Text size="sm" variant="muted">
+                      Hiding {data.summary.hidden_small_mismatch_count.toLocaleString()}{' '}
+                      {data.summary.hidden_small_mismatch_count === 1
+                        ? 'mismatch'
+                        : 'mismatches'}{' '}
+                      under {formatDollars(data.summary.min_listed_mismatch_cents)}. The
+                      summary still counts them.
+                    </Text>
+                  </Flex>
+                )}
               <Table>
                 <thead>
                   <tr>

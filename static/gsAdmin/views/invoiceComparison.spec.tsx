@@ -9,7 +9,11 @@ const COMPARISON_URL = '/_admin/cells/us/invoice-comparison/';
 const DE_URL = 'https://de.example.com/api/0/';
 const DE_COMPARISON_URL = '/_admin/cells/de/invoice-comparison/';
 
-function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
+function comparisonBody({
+  rowsPage = 1,
+  rowsTotalPages = 1,
+  hiddenSmallMismatchCount = 0,
+} = {}) {
   return {
     rows: [
       {
@@ -34,7 +38,10 @@ function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
       over_threshold_count: 1,
       over_threshold_pct: 1,
       queried_at: '2026-01-02T00:00:00+00:00',
-      row_count: 1,
+      row_count: 1 + hiddenSmallMismatchCount,
+      listed_row_count: 1,
+      hidden_small_mismatch_count: hiddenSmallMismatchCount,
+      min_listed_mismatch_cents: 100,
       rows_page: rowsPage,
       rows_page_size: 25,
       rows_total_pages: rowsTotalPages,
@@ -79,6 +86,22 @@ describe('InvoiceComparison', () => {
     );
     expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-11-09');
     expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-11-09');
+  });
+
+  it('notes how many small mismatches are hidden', async () => {
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody({hiddenSmallMismatchCount: 3}),
+    });
+
+    renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+    expect(
+      await screen.findByText(
+        'Hiding 3 mismatches under $1.00. The summary still counts them.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('1 row')).toBeInTheDocument();
   });
 
   it('ignores a URL window that is not days', async () => {
