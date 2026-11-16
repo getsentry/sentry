@@ -70,4 +70,17 @@ describe('aspnet onboarding docs', () => {
       )
     ).toBeInTheDocument();
   });
+
+  it('renders the metrics drawer for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.metricsOnboarding!},
+      {selectedProducts: [ProductSolution.METRICS]}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNet -Version/)
+      )
+    ).toBeInTheDocument();
+  });
 });

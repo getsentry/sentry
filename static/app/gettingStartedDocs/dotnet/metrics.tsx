@@ -8,7 +8,11 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-import {getInstallSnippetCoreCli, getInstallSnippetPackageManager} from './utils';
+import {
+  getInstallSnippetCoreCli,
+  getInstallSnippetPackageManager,
+  type DotNetSdkPackage,
+} from './utils';
 
 export const metricsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
@@ -40,7 +44,14 @@ SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisec
   ],
 });
 
-export const metrics: OnboardingConfig = {
+/**
+ * @param sdkPackage The NuGet package the platform's onboarding installs, when that isn't
+ * `Sentry`. Installing `Sentry` at a newer major version than the platform's package
+ * breaks the app, at build or at startup.
+ */
+export const metrics = ({
+  sdkPackage,
+}: {sdkPackage?: DotNetSdkPackage} = {}): OnboardingConfig => ({
   install: params => [
     {
       type: StepType.INSTALL,
@@ -60,12 +71,12 @@ export const metrics: OnboardingConfig = {
             {
               label: 'Package Manager',
               language: 'shell',
-              code: getInstallSnippetPackageManager(params),
+              code: getInstallSnippetPackageManager(params, sdkPackage),
             },
             {
               label: '.NET Core CLI',
               language: 'shell',
-              code: getInstallSnippetCoreCli(params),
+              code: getInstallSnippetCoreCli(params, sdkPackage),
             },
           ],
         },
@@ -117,4 +128,4 @@ SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisec
       ],
     },
   ],
-};
+});
