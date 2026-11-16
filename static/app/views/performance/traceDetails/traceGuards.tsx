@@ -4,6 +4,7 @@ import type {CollapsedNode} from './traceModels/traceTreeNode/collapsedNode';
 import type {EapSpanNode} from './traceModels/traceTreeNode/eapSpanNode';
 import type {NoInstrumentationNode} from './traceModels/traceTreeNode/noInstrumentationNode';
 import type {ParentAutogroupNode} from './traceModels/traceTreeNode/parentAutogroupNode';
+import type {ServerRenderNode} from './traceModels/traceTreeNode/serverRenderNode';
 import type {SiblingAutogroupNode} from './traceModels/traceTreeNode/siblingAutogroupNode';
 
 export function isMissingInstrumentationNode(
@@ -13,6 +14,14 @@ export function isMissingInstrumentationNode(
     node.value &&
     'type' in node.value &&
     node.value.type === 'missing_instrumentation'
+  );
+}
+
+export function isServerRenderNode(node: BaseNode): node is ServerRenderNode {
+  return !!(
+    node.value &&
+    'type' in node.value &&
+    node.value.type === 'server_render_placeholder'
   );
 }
 

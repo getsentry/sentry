@@ -1,10 +1,19 @@
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import cast
 
 from sentry_sdk import capture_message
 from slack_sdk.errors import SlackApiError, SlackRequestError
 
 _logger = logging.getLogger(__name__)
+
+
+class TypedSlackApiError(SlackApiError):
+    """SlackApiError with the constructor contract slack_sdk omits."""
+
+    def __init__(self, message: str, response: object) -> None:
+        cast("Callable[[str, object], None]", super().__init__)(message, response)
 
 
 @dataclass(frozen=True, eq=True)
@@ -30,6 +39,7 @@ SLACK_SDK_ERROR_CATEGORIES = (
     INVALID_BLOCKS := SlackSdkErrorCategory("invalid_blocks"),
     INVALID_ATTACHMENTS := SlackSdkErrorCategory("invalid_attachments"),
     INVALID_AUTH := SlackSdkErrorCategory("invalid_auth"),
+    MESSAGE_NOT_FOUND := SlackSdkErrorCategory("message_not_found"),
     NON_JSON_RESPONSE := SlackSdkErrorCategory("non_json_response"),
 )
 
@@ -47,6 +57,13 @@ SLACK_SDK_HALT_ERROR_CATEGORIES = (
     INTERNAL_ERROR,
     INVALID_AUTH,
     NON_JSON_RESPONSE,
+)
+
+# Errors that mean the message being edited no longer exists, so retrying can't succeed.
+SLACK_SDK_MESSAGE_GONE_ERROR_CATEGORIES = (
+    MESSAGE_NOT_FOUND,
+    CHANNEL_NOT_FOUND,
+    CHANNEL_ARCHIVED,
 )
 
 _CATEGORIES_BY_MESSAGE = {c.message: c for c in SLACK_SDK_ERROR_CATEGORIES}

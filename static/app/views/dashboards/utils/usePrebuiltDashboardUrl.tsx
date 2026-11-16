@@ -1,12 +1,13 @@
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardFilters, GlobalFilter} from 'sentry/views/dashboards/types';
-import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
+
+import {PrebuiltDashboardId} from './prebuiltConfigs';
+import {useGetPrebuiltDashboard} from './usePopulateLinkedDashboards';
 
 interface PrebuiltDashboardUrlOptions {
   /**

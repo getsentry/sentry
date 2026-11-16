@@ -1,11 +1,12 @@
 import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+
+import {useFeedbackApiOptions} from './useFeedbackApiOptions';
 
 type TFeedbackIds = 'all' | string[];
 
@@ -27,10 +28,8 @@ export function useFeedbackCache() {
 
   const updateCachedQueryKey = useCallback(
     (queryKey: readonly unknown[], payload: Partial<FeedbackIssue>) => {
-      queryClient.setQueryData(
-        queryKey,
-        (prev: ApiResponse<FeedbackIssue> | undefined) =>
-          prev ? {...prev, json: {...prev.json, ...payload}} : prev
+      queryClient.setQueryData(queryKey, (prev: ApiResponse<FeedbackIssue> | undefined) =>
+        prev ? {...prev, json: {...prev.json, ...payload}} : prev
       );
     },
     [queryClient]

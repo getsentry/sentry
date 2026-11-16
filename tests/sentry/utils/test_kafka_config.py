@@ -1,4 +1,5 @@
 import os
+from collections.abc import Iterator
 
 import pytest
 from django.conf import settings
@@ -11,9 +12,19 @@ from sentry.utils.kafka_config import (
     get_kafka_producer_cluster_options,
 )
 
-settings.KAFKA_CLUSTERS["default"] = {
-    "common": {"bootstrap.servers": os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")},
-}
+
+@pytest.fixture(autouse=True)
+def kafka_clusters() -> Iterator[None]:
+    with override_settings(
+        KAFKA_CLUSTERS={
+            "default": {
+                "common": {
+                    "bootstrap.servers": os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")
+                },
+            }
+        }
+    ):
+        yield
 
 
 def test_get_kafka_producer_cluster_options() -> None:

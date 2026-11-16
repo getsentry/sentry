@@ -1,6 +1,7 @@
 import {SessionField} from 'sentry/types/sessions';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
+
+import {getDefaultWidget} from './getDefaultWidget';
 
 describe('getDefaultWidget', () => {
   it('should return a default widget for errors', () => {

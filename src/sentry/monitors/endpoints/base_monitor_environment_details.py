@@ -8,12 +8,17 @@ from sentry.api.base import BaseEndpointMixin
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.monitors.models import MonitorEnvironment, MonitorStatus
+from sentry.models.project import Project
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 
 
 class MonitorEnvironmentDetailsMixin(BaseEndpointMixin):
     def update_monitor_environment(
-        self, request: Request, project, monitor, monitor_environment
+        self,
+        request: Request,
+        project: Project,
+        monitor: Monitor,
+        monitor_environment: MonitorEnvironment,
     ) -> Response:
         """
         Update a monitor environment.
@@ -34,7 +39,11 @@ class MonitorEnvironmentDetailsMixin(BaseEndpointMixin):
         return self.respond(serialize(monitor, request.user))
 
     def delete_monitor_environment(
-        self, request: Request, project, monitor, monitor_environment
+        self,
+        request: Request,
+        project: Project,
+        monitor: Monitor,
+        monitor_environment: MonitorEnvironment,
     ) -> Response:
         """
         Delete a monitor environment.

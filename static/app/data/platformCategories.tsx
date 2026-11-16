@@ -1,5 +1,6 @@
-import {platforms} from 'sentry/data/platforms';
 import type {PlatformKey} from 'sentry/types/platform';
+
+import {platforms} from './platforms';
 
 export enum PlatformCategory {
   FRONTEND = 0,
@@ -51,6 +52,7 @@ export const mobile: PlatformKey[] = [
   'javascript-capacitor',
   'javascript-cordova',
   'react-native',
+  'expo',
   'unity',
   'unreal',
   // Old platforms
@@ -183,6 +185,7 @@ export const gaming: PlatformKey[] = ['godot', 'native', 'unity', 'unreal', ...c
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
   'react-native',
+  'expo',
   'cordova',
   'electron',
 ];
@@ -298,6 +301,7 @@ export const withPerformanceOnboarding = new Set<PlatformKey>([
   'node-eve',
   'node-flue',
   'node-mastra',
+  'node-pi-durable',
 ]);
 
 // List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
@@ -377,6 +381,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'node-koa',
   'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -405,6 +410,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'python-wsgi',
   'elixir',
   'react-native',
+  'expo',
   'ruby',
   'ruby-rack',
   'ruby-rails',
@@ -434,6 +440,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'dotnet-winforms',
   'dotnet-wpf',
   'react-native',
+  'expo',
   'go',
   'go-echo',
   'go-fasthttp',
@@ -479,6 +486,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'node-koa',
   'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -555,6 +563,7 @@ export const profiling: PlatformKey[] = [
   'node-koa',
   'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -582,6 +591,7 @@ export const profiling: PlatformKey[] = [
   'python-tryton',
   'python-wsgi',
   'react-native',
+  'expo',
   'ruby-rack',
   'ruby-rails',
   'ruby',
@@ -611,6 +621,7 @@ export const releaseHealth: PlatformKey[] = [
   'cordova',
   'javascript-cordova',
   'react-native',
+  'expo',
   'flutter',
   'dart-flutter',
   'bun',
@@ -635,7 +646,6 @@ export const releaseHealth: PlatformKey[] = [
   'python-pymongo',
   'rust',
   'apple-macos',
-  'native',
   'native-crashpad',
   'native-breakpad',
   'native-qt',
@@ -653,6 +663,10 @@ export const releaseHealth: PlatformKey[] = [
   'dotnet-winforms',
   'dotnet-xamarin',
   'unity',
+  'unreal',
+  'nintendo-switch',
+  'playstation',
+  'xbox',
   'java',
   'kotlin',
 ];
@@ -725,6 +739,7 @@ export const replayMobilePlatforms: PlatformKey[] = [
   'android',
   'apple-ios',
   'react-native',
+  'expo',
   'flutter',
   // Old platforms
   'java-android',
@@ -773,6 +788,7 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 export const feedbackNpmPlatforms: readonly PlatformKey[] = [
   'ionic',
   'react-native',
+  'expo',
   'flutter',
   ...replayFrontendPlatforms,
 ];
@@ -869,6 +885,7 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
   'dart',
   'deno',
   'react-native',
+  'expo',
 ];
 
 const javascriptMetaFrameworks: readonly PlatformKey[] = [

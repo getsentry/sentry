@@ -34,7 +34,9 @@ class ControlFile(AbstractFile[ControlFileBlobIndex, ControlFileBlob]):
     def _create_blob_index(self, blob: ControlFileBlob, offset: int) -> ControlFileBlobIndex:
         return ControlFileBlobIndex.objects.create(file=self, blob=blob, offset=offset)
 
-    def _create_blob_from_file(self, contents: ContentFile, logger: Any) -> ControlFileBlob:
+    def _create_blob_from_file(
+        self, contents: "ContentFile[bytes]", logger: Any
+    ) -> ControlFileBlob:
         return ControlFileBlob.from_file(contents, logger)
 
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[ControlFileBlob]:

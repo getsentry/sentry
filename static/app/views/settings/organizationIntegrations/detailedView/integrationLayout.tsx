@@ -11,7 +11,7 @@ import type {AlertProps} from '@sentry/scraps/alert';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -29,8 +29,9 @@ import {getCategories, getIntegrationFeatureGate} from 'sentry/utils/integration
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {useIntegrationFeatures} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationFeatures';
 import {IntegrationStatus} from 'sentry/views/settings/organizationIntegrations/integrationStatus';
+
+import {useIntegrationFeatures} from './useIntegrationFeatures';
 
 export type IntegrationTab = 'overview' | 'configurations' | 'features';
 export interface AlertType extends AlertProps {
@@ -60,9 +61,9 @@ function TopSection({
         <Stack justify="center" align="start" paddingLeft="xl">
           <Flex align="center">
             <Name>{integrationName}</Name>
-            <StatusWrapper>
+            <Container paddingLeft="xl" marginBottom="xs">
               {installationStatus && <IntegrationStatus status={installationStatus} />}
-            </StatusWrapper>
+            </Container>
           </Flex>
           <Flex align="center">
             {tags.map(feature => (
@@ -98,29 +99,26 @@ function IntegrationTabs({
     [getTabDisplay]
   );
 
+  if (tabs.length <= 1) {
+    return null;
+  }
+
   return (
-    <TabsContainer>
-      <Tabs value={activeTab} onChange={onTabChange}>
-        <TabList>
-          {tabs.map(tab => (
-            <TabList.Item key={tab} textValue={getTabDisplay ? getTabDisplay(tab) : tab}>
-              <Capitalized>{renderTab(tab)}</Capitalized>
-            </TabList.Item>
-          ))}
-        </TabList>
-      </Tabs>
-    </TabsContainer>
+    <Tabs value={activeTab} onChange={onTabChange}>
+      <TabList>
+        {tabs.map(tab => (
+          <TabList.Item key={tab} textValue={getTabDisplay ? getTabDisplay(tab) : tab}>
+            <Capitalized>{renderTab(tab)}</Capitalized>
+          </TabList.Item>
+        ))}
+      </TabList>
+    </Tabs>
   );
 }
 
 // Requires CSS transform because of how the tab rendering works
 const Capitalized = styled('div')`
   text-transform: capitalize;
-`;
-
-const TabsContainer = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 function Body({
@@ -140,9 +138,11 @@ function Body({
     <Fragment>
       <BreadcrumbTitle title={title} />
       {alert}
-      {topSection}
-      {tabs}
-      {content}
+      <Stack gap="xl">
+        {topSection}
+        {tabs}
+        <Container>{content}</Container>
+      </Stack>
     </Fragment>
   );
 }
@@ -245,7 +245,7 @@ function InformationCard({
   return (
     <Fragment>
       <Flex align="center">
-        <IntegrationDescription>
+        <Container flexGrow={1}>
           {upgradeAlert}
           <Description text={description} />
           <FeatureList
@@ -263,19 +263,19 @@ function InformationCard({
               </Alert>
             </Alert.Container>
           ))}
-        </IntegrationDescription>
+        </Container>
         <Metadata>
           {author && (
-            <AuthorInfo>
+            <Container marginBottom="2xl">
               <CreatedContainer>{t('Created By')}</CreatedContainer>
               <div>{author}</div>
-            </AuthorInfo>
+            </Container>
           )}
           {resourceLinks.map(({title, url}, index) => (
-            <ExternalLinkContainer key={index}>
+            <Grid align="center" gap="md" columns="max-content 1fr" key={index}>
               <ResourceIcon title={title} />
               <ExternalLink href={url}>{title}</ExternalLink>
-            </ExternalLinkContainer>
+            </Grid>
           ))}
         </Metadata>
       </Flex>
@@ -309,19 +309,10 @@ export const IntegrationLayout = {
   ResourceIcon,
 };
 
-const IntegrationDescription = styled('div')`
-  flex-grow: 1;
-`;
-
 const Name = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 1.4em;
   margin-bottom: ${p => p.theme.space.xs};
-`;
-
-const StatusWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xs};
-  padding-left: ${p => p.theme.space.xl};
 `;
 
 const StyledTag = styled(Tag)`
@@ -362,21 +353,10 @@ const Metadata = styled('div')`
   flex-shrink: 0;
 `;
 
-const AuthorInfo = styled('div')`
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 12px;
-`;
-
-const ExternalLinkContainer = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
 `;

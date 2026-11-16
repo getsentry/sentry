@@ -5,7 +5,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
+
+import {getProfileContextData} from './profile';
 
 const PROFILE_ID = '61d2d7c5acf448ffa8e2f8f973e2cd36';
 const PROFILER_ID = '5e7250f0d25443daa3f59c20835aed31';

@@ -1,11 +1,14 @@
-import styled from '@emotion/styled';
+import {
+  Grid,
+  Container,
+  type GridProps,
+  type ContainerProps,
+} from '@sentry/scraps/layout';
 
-export const Layout = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: ${p => p.theme.space.xl};
-`;
+export function Layout(props: GridProps) {
+  return <Grid gap="xl" columns="repeat(12, 1fr)" {...props} />;
+}
 
-export const Full = styled('div')`
-  grid-column: span 12;
-`;
+export function Full(props: ContainerProps) {
+  return <Container column="span 12" {...props} />;
+}

@@ -2,8 +2,8 @@ import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -77,7 +77,7 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
         };
       });
     },
-    onError: () => addErrorMessage(t('Unable to save change')),
+    onError: () => toast.error(t('Unable to save change')),
   });
 
   return (

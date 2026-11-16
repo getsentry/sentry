@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import router, transaction
@@ -18,7 +18,13 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSerializer
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_TOO_MANY_REQUESTS,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import (
@@ -28,6 +34,7 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
+from sentry.auth.principal import require_user
 from sentry.core.endpoints.organization_member_utils import (
     ERR_RATE_LIMITED,
     ROLE_CHOICES,
@@ -172,6 +179,14 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         return valid_team_roles
 
 
+class _OrganizationErrorResponse(TypedDict):
+    organization: str
+
+
+class _EmailErrorResponse(TypedDict):
+    email: str
+
+
 @cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
@@ -179,6 +194,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -336,9 +352,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         request=OrganizationMemberRequestSerializer,
         responses={
             201: OrganizationMemberSerializer,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            429: RESPONSE_TOO_MANY_REQUESTS,
         },
         examples=OrganizationMemberExamples.CREATE_ORG_MEMBER,
     )
@@ -347,11 +365,14 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     ) -> (
         Response[OrganizationMemberResponse]
         | Response[DetailResponse]
+        | Response[_OrganizationErrorResponse]
+        | Response[_EmailErrorResponse]
         | Response[ValidationErrorResponse]
     ):
         """
         Add or invite a member to an organization.
         """
+        inviter = require_user(request)
         assigned_org_role = (
             request.data.get("orgRole")
             or request.data.get("role")
@@ -396,7 +417,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         if ratelimits.for_organization_member_invite(
             organization=organization,
             email=result["email"],
-            user=request.user,
+            user=inviter,
             auth=request.auth,
         ):
             metrics.incr(
@@ -420,7 +441,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             requester_teams = set(
                 OrganizationMember.objects.filter(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=inviter.id,
                     user_is_active=True,
                 ).values_list("teams__slug", flat=True)
             )
@@ -460,7 +481,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 email=result["email"],
                 role=assigned_org_role,
-                inviter_id=request.user.id,
+                inviter_id=inviter.id,
             )
 
             if settings.SENTRY_ENABLE_INVITES:
@@ -480,7 +501,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             referrer = request.query_params.get("referrer")
             om.send_invite_email(referrer)
             member_invited.send_robust(
-                member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
+                member=om, user=inviter, sender=self, referrer=request.data.get("referrer")
             )
 
         self.create_audit_entry(

@@ -2,13 +2,13 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {getTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import {t, tn} from 'sentry/locale';

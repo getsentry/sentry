@@ -8,11 +8,12 @@ import type {
   ExplorerAutofixState,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {SeerDrawerBody} from 'sentry/components/events/autofix/v3/body';
-import {SeerDrawerHeader} from 'sentry/components/events/autofix/v3/header';
-import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
 import * as Storybook from 'sentry/stories';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
+
+import {SeerDrawerBody} from './body';
+import {SeerDrawerHeader} from './header';
+import {PullRequestsCard} from './pullRequestsCard';
 
 const noop = () => {};
 
@@ -90,7 +91,7 @@ function makeAutofix(): ReturnType<typeof useExplorerAutofix> {
     isPolling: false,
     isProcessing: false,
     // Async no-ops — none of these are invoked by the static examples below.
-    startStep: () => Promise.resolve(0),
+    startStep: () => Promise.resolve({runId: 0, isSingleRun: false}),
     createPR: () => Promise.resolve(),
     reset: noop,
     triggerCodingAgentHandoff: () => Promise.resolve(),

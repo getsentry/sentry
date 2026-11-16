@@ -6,8 +6,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
-import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
+
+import {IntegrationButton} from './integrationButton';
+import {IntegrationContext} from './integrationContext';
 
 describe('AddIntegrationButton', () => {
   let org: Organization,

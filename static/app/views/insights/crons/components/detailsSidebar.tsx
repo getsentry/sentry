@@ -18,11 +18,11 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
+import {DetailsTimelineLegend} from './detailsTimelineLegend';
 import {MonitorQuickStartGuide} from './monitorQuickStartGuide';
 
 interface Props {
@@ -88,20 +88,20 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
       <Flex wrap="wrap" marginBottom="xl" gap="md">
         <Text>
           {scheduleAsText(monitor.config)}{' '}
-          {schedule_type === ScheduleType.CRONTAB && `(${timezone})`}
+          {schedule_type === ScheduleType.CRONTAB && `(${timezone ?? 'UTC'})`}
         </Text>
         {schedule_type === ScheduleType.CRONTAB && (
           <CrontabText>({schedule})</CrontabText>
         )}
       </Flex>
-      <Legend>
+      <Container marginBottom="xl">
         <SectionHeading>{t('Legend')}</SectionHeading>
         <DetailsTimelineLegend
           checkInMargin={checkin_margin}
           maxRuntime={max_runtime}
           showUnknownLegend={showUnknownLegend}
         />
-      </Legend>
+      </Container>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <Container marginBottom="xl">
         <DescriptionList striped>
@@ -175,10 +175,6 @@ const CheckIns = styled('div')`
   h4 {
     margin-top: 0;
   }
-`;
-
-const Legend = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const CrontabText = styled(Text)`

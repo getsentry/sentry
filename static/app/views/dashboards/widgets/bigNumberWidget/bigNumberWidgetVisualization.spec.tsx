@@ -2,8 +2,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
-import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+
+import {BigNumberWidgetVisualization} from './bigNumberWidgetVisualization';
 
 describe('BigNumberWidgetVisualization', () => {
   describe('Visualization', () => {

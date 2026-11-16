@@ -26,6 +26,7 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
         variant="primary"
         onClick={item.onAction}
         aria-label={item.textValue}
+        disabled={'disabled' in item && item.disabled}
       >
         {t('Save as')}
       </Button>

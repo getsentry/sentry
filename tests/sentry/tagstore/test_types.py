@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pickle
+from typing import Any
 
 import pytest
 
@@ -10,13 +11,13 @@ classes = pytest.mark.parametrize("cls", (TagKey, TagValue, GroupTagKey, GroupTa
 
 
 @classes
-def test_pickle(cls) -> None:
+def test_pickle(cls: type[Any]) -> None:
     value = cls(**{name: 1 for name in cls.__slots__})
     assert pickle.loads(pickle.dumps(value)) == value
 
 
 @classes
-def test_sorting(cls) -> None:
+def test_sorting(cls: type[Any]) -> None:
     value1 = cls(**{name: 1 for name in cls.__slots__})
     value2 = cls(**{name: 2 for name in cls.__slots__})
 

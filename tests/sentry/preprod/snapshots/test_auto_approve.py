@@ -5,7 +5,11 @@ from unittest.mock import MagicMock, call, patch
 import orjson
 
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
-from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodBuildConfiguration,
+    PreprodComparisonApproval,
+)
 from sentry.preprod.snapshots.manifest import (
     ComparisonImageResult,
     ComparisonManifest,
@@ -54,7 +58,7 @@ class BuildComparisonFingerprintsTest(TestCase):
             images=images,
         )
 
-    def test_mixed_statuses(self):
+    def test_mixed_statuses(self) -> None:
         manifest = self._make_manifest(
             {
                 "unchanged.png": ComparisonImageResult(
@@ -80,12 +84,12 @@ class BuildComparisonFingerprintsTest(TestCase):
             ImageFingerprint("renamed.png", "renamed", "f", "old.png"),
         }
 
-    def test_empty_manifest_returns_empty_set(self):
+    def test_empty_manifest_returns_empty_set(self) -> None:
         manifest = self._make_manifest({})
         fps = _build_comparison_fingerprints(manifest)
         assert fps == set()
 
-    def test_skips_changed_with_missing_head_hash(self):
+    def test_skips_changed_with_missing_head_hash(self) -> None:
         manifest = self._make_manifest(
             {
                 "no_hash.png": ComparisonImageResult(status="changed", base_hash="abc"),
@@ -97,7 +101,7 @@ class BuildComparisonFingerprintsTest(TestCase):
         fps = _build_comparison_fingerprints(manifest)
         assert fps == {ImageFingerprint("has_hash.png", "changed", "def")}
 
-    def test_skipped_images_excluded_from_fingerprints(self):
+    def test_skipped_images_excluded_from_fingerprints(self) -> None:
         manifest = self._make_manifest(
             {
                 "changed.png": ComparisonImageResult(
@@ -109,7 +113,7 @@ class BuildComparisonFingerprintsTest(TestCase):
         fps = _build_comparison_fingerprints(manifest)
         assert fps == {ImageFingerprint("changed.png", "changed", "b")}
 
-    def test_skips_renamed_with_missing_hash_or_previous_name(self):
+    def test_skips_renamed_with_missing_hash_or_previous_name(self) -> None:
         manifest = self._make_manifest(
             {
                 "no_hash.png": ComparisonImageResult(
@@ -126,11 +130,11 @@ class BuildComparisonFingerprintsTest(TestCase):
 
 
 class HashOnlyDiffsTest(TestCase):
-    def test_identical_sets_return_empty_list(self):
+    def test_identical_sets_return_empty_list(self) -> None:
         fps = {ImageFingerprint("a.png", "changed", "h1")}
         assert _hash_only_diffs(fps, set(fps)) == []
 
-    def test_hash_only_difference_is_returned(self):
+    def test_hash_only_difference_is_returned(self) -> None:
         head = {
             ImageFingerprint("a.png", "changed", "h1"),
             ImageFingerprint("b.png", "added", "same"),
@@ -141,22 +145,22 @@ class HashOnlyDiffsTest(TestCase):
         }
         assert _hash_only_diffs(head, sibling) == [_HashOnlyDiff("a.png", "h1", "h2")]
 
-    def test_renamed_hash_only_difference_is_returned(self):
+    def test_renamed_hash_only_difference_is_returned(self) -> None:
         head = {ImageFingerprint("new.png", "renamed", "h1", "old.png")}
         sibling = {ImageFingerprint("new.png", "renamed", "h2", "old.png")}
         assert _hash_only_diffs(head, sibling) == [_HashOnlyDiff("new.png", "h1", "h2")]
 
-    def test_renamed_with_different_previous_name_is_structural(self):
+    def test_renamed_with_different_previous_name_is_structural(self) -> None:
         head = {ImageFingerprint("new.png", "renamed", "h1", "old.png")}
         sibling = {ImageFingerprint("new.png", "renamed", "h1", "other.png")}
         assert _hash_only_diffs(head, sibling) is None
 
-    def test_status_difference_is_structural(self):
+    def test_status_difference_is_structural(self) -> None:
         head = {ImageFingerprint("a.png", "changed", "h1")}
         sibling = {ImageFingerprint("a.png", "added", "h1")}
         assert _hash_only_diffs(head, sibling) is None
 
-    def test_extra_head_image_is_structural(self):
+    def test_extra_head_image_is_structural(self) -> None:
         head = {
             ImageFingerprint("a.png", "changed", "h1"),
             ImageFingerprint("b.png", "changed", "h9"),
@@ -164,7 +168,7 @@ class HashOnlyDiffsTest(TestCase):
         sibling = {ImageFingerprint("a.png", "changed", "h1")}
         assert _hash_only_diffs(head, sibling) is None
 
-    def test_missing_head_image_is_structural(self):
+    def test_missing_head_image_is_structural(self) -> None:
         head = {ImageFingerprint("a.png", "changed", "h1")}
         sibling = {
             ImageFingerprint("a.png", "changed", "h1"),
@@ -172,12 +176,12 @@ class HashOnlyDiffsTest(TestCase):
         }
         assert _hash_only_diffs(head, sibling) is None
 
-    def test_removed_and_errored_never_produce_pairs(self):
+    def test_removed_and_errored_never_produce_pairs(self) -> None:
         head = {ImageFingerprint("a.png", "removed"), ImageFingerprint("b.png", "errored")}
         sibling = {ImageFingerprint("a.png", "removed"), ImageFingerprint("b.png", "errored")}
         assert _hash_only_diffs(head, sibling) == []
 
-    def test_pairs_are_sorted_by_name(self):
+    def test_pairs_are_sorted_by_name(self) -> None:
         head = {
             ImageFingerprint("z.png", "changed", "z1"),
             ImageFingerprint("a.png", "changed", "a1"),
@@ -195,7 +199,7 @@ class HashOnlyDiffsTest(TestCase):
 def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMock:
     session = MagicMock()
 
-    def _get(key):
+    def _get(key: str) -> MagicMock:
         result = MagicMock()
         if key in manifests_by_key:
             result.payload.read.return_value = manifests_by_key[key]
@@ -209,7 +213,7 @@ def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMoc
 
 @cell_silo_test
 class TryAutoApproveSnapshotTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
@@ -218,9 +222,9 @@ class TryAutoApproveSnapshotTest(TestCase):
     def _create_approved_sibling(
         self,
         pr_number: int,
-        comparison_images: dict,
+        comparison_images: dict[str, ComparisonImageResult],
         app_id: str = "com.example.app",
-        build_configuration=None,
+        build_configuration: PreprodBuildConfiguration | None = None,
     ) -> tuple[PreprodArtifact, str, bytes]:
         cc = self.create_commit_comparison(
             organization=self.organization,
@@ -286,7 +290,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         )
         return artifact, comparison_key, orjson.dumps(manifest.dict())
 
-    def _create_head_manifest(self, images: dict) -> ComparisonManifest:
+    def _create_head_manifest(self, images: dict[str, ComparisonImageResult]) -> ComparisonManifest:
         return ComparisonManifest(
             head_artifact_id=999,
             base_artifact_id=998,
@@ -336,7 +340,7 @@ class TryAutoApproveSnapshotTest(TestCase):
             head_artifact, head_manifest, plan, sibling_images or {}, session
         )
 
-    def test_find_approved_sibling_returns_human_sibling_manifest(self):
+    def test_find_approved_sibling_returns_human_sibling_manifest(self) -> None:
         images = {
             "screen1.png": ComparisonImageResult(
                 status="changed", head_hash="abc", base_hash="old1"
@@ -366,14 +370,14 @@ class TryAutoApproveSnapshotTest(TestCase):
         assert call(human_key) in session.get.call_args_list
         assert call(auto_key) not in session.get.call_args_list
 
-    def test_find_approved_sibling_returns_none_without_pr(self):
+    def test_find_approved_sibling_returns_none_without_pr(self) -> None:
         cc = self.create_commit_comparison(organization=self.organization, pr_number=None)
         head_artifact = self.create_preprod_artifact(
             project=self.project, commit_comparison=cc, app_id="com.example.app"
         )
         assert _find_approved_sibling(head_artifact, MagicMock()) is None
 
-    def test_find_approved_sibling_returns_none_without_snapshot_manifest_key(self):
+    def test_find_approved_sibling_returns_none_without_snapshot_manifest_key(self) -> None:
         images = {
             "screen1.png": ComparisonImageResult(
                 status="changed", head_hash="abc", base_hash="old1"
@@ -389,7 +393,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         assert _find_approved_sibling(head_artifact, session) is None
 
     @patch("sentry.analytics.record")
-    def test_auto_approves_when_fingerprints_match(self, mock_analytics):
+    def test_auto_approves_when_fingerprints_match(self, mock_analytics: MagicMock) -> None:
         shared_images = {
             "screen1.png": ComparisonImageResult(
                 status="changed", head_hash="abc", base_hash="old1"
@@ -455,7 +459,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_no_auto_approve_when_fingerprints_differ(self, mock_analytics):
+    def test_no_auto_approve_when_fingerprints_differ(self, mock_analytics: MagicMock) -> None:
         sibling_images = {
             "screen1.png": ComparisonImageResult(
                 status="changed", head_hash="abc", base_hash="old1"
@@ -496,7 +500,7 @@ class TryAutoApproveSnapshotTest(TestCase):
 
         assert_not_analytics_event(mock_analytics, PreprodStatusCheckApprovalCreatedEvent)
 
-    def test_no_auto_approve_when_no_pr_number(self):
+    def test_no_auto_approve_when_no_pr_number(self) -> None:
         cc = self.create_commit_comparison(
             organization=self.organization,
             pr_number=None,
@@ -517,7 +521,7 @@ class TryAutoApproveSnapshotTest(TestCase):
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         ).exists()
 
-    def test_no_auto_approve_when_no_approved_sibling(self):
+    def test_no_auto_approve_when_no_approved_sibling(self) -> None:
         cc = self.create_commit_comparison(
             organization=self.organization,
             pr_number=42,
@@ -540,7 +544,7 @@ class TryAutoApproveSnapshotTest(TestCase):
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         ).exists()
 
-    def test_no_auto_approve_when_no_changes(self):
+    def test_no_auto_approve_when_no_changes(self) -> None:
         sibling, comp_key, comp_json = self._create_approved_sibling(
             pr_number=42,
             comparison_images={
@@ -565,7 +569,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         ).exists()
         session.get.assert_not_called()
 
-    def test_handles_missing_comparison_manifest(self):
+    def test_handles_missing_comparison_manifest(self) -> None:
         sibling, comp_key, _ = self._create_approved_sibling(
             pr_number=42,
             comparison_images={
@@ -589,7 +593,7 @@ class TryAutoApproveSnapshotTest(TestCase):
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         ).exists()
 
-    def test_matches_on_app_id_and_build_config(self):
+    def test_matches_on_app_id_and_build_config(self) -> None:
         shared_images = {
             "screen1.png": ComparisonImageResult(
                 status="changed", head_hash="abc", base_hash="old1"
@@ -605,7 +609,7 @@ class TryAutoApproveSnapshotTest(TestCase):
 
         assert _find_approved_sibling(head_artifact, MagicMock()) is None
 
-    def test_no_auto_approve_when_sibling_not_approved_for_snapshots(self):
+    def test_no_auto_approve_when_sibling_not_approved_for_snapshots(self) -> None:
         cc = self.create_commit_comparison(
             organization=self.organization,
             pr_number=42,
@@ -644,7 +648,7 @@ class TryAutoApproveSnapshotTest(TestCase):
 
         assert _find_approved_sibling(head_artifact, MagicMock()) is None
 
-    def test_auto_approves_with_renamed_images(self):
+    def test_auto_approves_with_renamed_images(self) -> None:
         shared_images = {
             "new_name.png": ComparisonImageResult(
                 status="renamed", head_hash="abc", previous_image_file_name="old_name.png"
@@ -681,7 +685,7 @@ class TryAutoApproveSnapshotTest(TestCase):
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         ).exists()
 
-    def test_auto_approves_selective_build_against_full_build(self):
+    def test_auto_approves_selective_build_against_full_build(self) -> None:
         sibling_images = {
             "screen1.png": ComparisonImageResult(
                 status="changed", head_hash="abc", base_hash="old1"
@@ -734,7 +738,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         assert approval.extras["prev_approved_artifact_id"] == sibling.id
 
     @patch("sentry.analytics.record")
-    def test_auto_approves_when_sibling_results_unchanged(self, mock_analytics):
+    def test_auto_approves_when_sibling_results_unchanged(self, mock_analytics: MagicMock) -> None:
         sibling, comp_key, comp_json = self._create_approved_sibling(
             pr_number=42,
             comparison_images={
@@ -783,7 +787,7 @@ class TryAutoApproveSnapshotTest(TestCase):
             ),
         )
 
-    def test_no_auto_approve_when_sibling_result_changed(self):
+    def test_no_auto_approve_when_sibling_result_changed(self) -> None:
         sibling, comp_key, comp_json = self._create_approved_sibling(
             pr_number=42,
             comparison_images={
@@ -814,7 +818,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         )
         assert not PreprodComparisonApproval.objects.filter(preprod_artifact=head_artifact).exists()
 
-    def test_no_auto_approve_when_sibling_result_missing(self):
+    def test_no_auto_approve_when_sibling_result_missing(self) -> None:
         sibling, comp_key, comp_json = self._create_approved_sibling(
             pr_number=42,
             comparison_images={
@@ -840,7 +844,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         )
         assert not PreprodComparisonApproval.objects.filter(preprod_artifact=head_artifact).exists()
 
-    def test_no_auto_approve_when_sibling_result_hashes_mismatch(self):
+    def test_no_auto_approve_when_sibling_result_hashes_mismatch(self) -> None:
         sibling, comp_key, comp_json = self._create_approved_sibling(
             pr_number=42,
             comparison_images={
@@ -871,7 +875,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         )
         assert not PreprodComparisonApproval.objects.filter(preprod_artifact=head_artifact).exists()
 
-    def test_no_auto_approve_when_plan_has_no_sibling(self):
+    def test_no_auto_approve_when_plan_has_no_sibling(self) -> None:
         head_artifact = self._create_head_artifact()
         head_manifest = self._create_head_manifest(
             {"screen1.png": ComparisonImageResult(status="changed", head_hash="h", base_hash="b")}
@@ -881,7 +885,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         assert not PreprodComparisonApproval.objects.filter(preprod_artifact=head_artifact).exists()
         session.get.assert_not_called()
 
-    def test_no_auto_approve_when_status_differs_even_if_pixels_match(self):
+    def test_no_auto_approve_when_status_differs_even_if_pixels_match(self) -> None:
         sibling, comp_key, comp_json = self._create_approved_sibling(
             pr_number=42,
             comparison_images={
@@ -909,7 +913,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         assert not PreprodComparisonApproval.objects.filter(preprod_artifact=head_artifact).exists()
         session.get.assert_called_once_with(comp_key)
 
-    def test_sibling_selection_skips_auto_approved_builds(self):
+    def test_sibling_selection_skips_auto_approved_builds(self) -> None:
         images = {
             "screen1.png": ComparisonImageResult(
                 status="changed", head_hash="abc", base_hash="old1"
@@ -937,7 +941,7 @@ class TryAutoApproveSnapshotTest(TestCase):
         assert call(human_key) in session.get.call_args_list
         assert call(auto_key) not in session.get.call_args_list
 
-    def test_sibling_selection_keeps_human_approval_with_other_extras(self):
+    def test_sibling_selection_keeps_human_approval_with_other_extras(self) -> None:
         images = {
             "screen1.png": ComparisonImageResult(
                 status="changed", head_hash="abc", base_hash="old1"

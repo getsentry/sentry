@@ -6,16 +6,34 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeGuard
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    Literal,
+    NotRequired,
+    Protocol,
+    TypedDict,
+    TypeGuard,
+    cast,
+)
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 from sentry_sdk import traces
 
-from sentry import tagstore
+from sentry import features, tagstore
+from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.activity_response_schemas import group_activity_schema
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.api.serializers.models.event import SharedEventSerializerResponse
+from sentry.api.serializers.models.event_metadata import EventMetadataResponse
+from sentry.api.serializers.models.project import SharedProjectSerializerResponse
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
+from sentry.apidocs.formats import NumericId, Slug, Url, absolute_url, numeric_id, slug
+from sentry.auth.principal import has_user
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
 from sentry.integrations.base import IntegrationFeatures
@@ -51,11 +69,15 @@ from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
-from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.search.events.filter import (
+    FilterConvertParams,
+    convert_search_filter_to_snuba_query,
+    format_search_filter,
+)
 from sentry.services.eventstore.reprocessing.base import ReprocessingInfo
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
-from sentry.tagstore.types import GroupTagValue
+from sentry.tagstore.types import GroupTagValue, TagKeySerializerResponse
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.group import SUBSTATUS_TO_STR, GroupPriorityStr, GroupSubStatusStr, PriorityLevel
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -68,6 +90,8 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
 
 if TYPE_CHECKING:
+    from sentry.api.serializers.types import ReleaseSerializerResponse
+    from sentry.integrations.api.serializers.models.external_issue import ExternalIssueResponse
     from sentry.models.groupinbox import InboxDetails
     from sentry.models.groupowner import OwnersSerialized
     from sentry.sentry_apps.api.serializers.platform_external_issue import (
@@ -83,99 +107,245 @@ logger = logging.getLogger(__name__)
 
 def merge_list_dictionaries(
     dict1: MutableMapping[Any, list[Any]], dict2: Mapping[Any, Sequence[Any]]
-):
+) -> None:
     for key, val in dict2.items():
         dict1.setdefault(key, []).extend(val)
 
 
 class GroupAnnotation(TypedDict):
-    displayName: str
-    url: str
+    displayName: Annotated[str, ApiDescription("Display name of the linked external issue")]
+    url: Annotated[str, ApiDescription("URL of the linked external issue")]
 
 
 class GroupStatusDetailsResponseOptional(TypedDict, total=False):
-    ignoreCount: int
-    ignoreUntil: datetime
-    ignoreUserCount: int
-    ignoreUserWindow: int
-    ignoreWindow: int
-    actor: UserSerializerResponse
-    inNextRelease: bool
-    inRelease: str
-    inCommit: str
-    pendingEvents: int
-    info: ReprocessingInfo | None
+    ignoreCount: Annotated[
+        int | None,
+        ApiDescription("Number of additional events after which the issue stops being ignored"),
+    ]
+    ignoreUntil: Annotated[
+        datetime | None, ApiDescription("When the issue stops being ignored (ISO 8601)")
+    ]
+    ignoreUserCount: Annotated[
+        int | None,
+        ApiDescription(
+            "Number of additional affected users after which the issue stops being ignored"
+        ),
+    ]
+    ignoreUserWindow: Annotated[
+        int | None, ApiDescription("Time window in minutes for ignoreUserCount")
+    ]
+    ignoreWindow: Annotated[int | None, ApiDescription("Time window in minutes for ignoreCount")]
+    actor: Annotated[
+        UserSerializerResponse | None, ApiDescription("User who ignored or resolved the issue")
+    ]
+    inNextRelease: Annotated[
+        bool, ApiDescription("Whether the issue is resolved in the next release")
+    ]
+    inRelease: Annotated[str, ApiDescription("Version of the release the issue is resolved in")]
+    inCommit: Annotated[str, ApiDescription("Commit the issue is resolved in")]
+    pendingEvents: Annotated[
+        int, ApiDescription("Number of events still waiting to be reprocessed")
+    ]
+    info: Annotated[ReprocessingInfo | None, ApiDescription("Reprocessing progress details")]
 
 
 class GroupProjectResponse(TypedDict):
-    id: str
-    name: str
-    slug: str
-    platform: str | None
+    id: Annotated[NumericId, ApiDescription("ID of the project")]
+    name: Annotated[str, ApiDescription("Name of the project")]
+    slug: Annotated[Slug, ApiDescription("Slug of the project")]
+    platform: Annotated[str | None, ApiDescription("Platform of the project")]
 
 
 class BaseGroupResponseOptional(TypedDict, total=False):
-    isUnhandled: bool
-    count: str
-    userCount: int
-    firstSeen: datetime | None
-    lastSeen: datetime | None
-    derivedData: GroupDerivedDataResponse
+    isUnhandled: Annotated[bool, ApiDescription("Whether the issue includes unhandled events")]
+    count: Annotated[str, ApiDescription("Total number of events in the issue")]
+    userCount: Annotated[int, ApiDescription("Number of users affected by the issue")]
+    firstSeen: Annotated[
+        datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")
+    ]
+    lastSeen: Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
+    derivedData: Annotated[
+        GroupDerivedDataResponse,
+        ApiDescription(
+            "Additional data derived for the issue. Only included when requested with expand"
+        ),
+    ]
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
-    id: str
-    shareId: str | None
-    shortId: str
-    title: str
-    culprit: str | None
-    permalink: str
-    logger: str | None
-    level: GroupLevelStr
-    status: GroupStatusStr
-    statusDetails: GroupStatusDetailsResponseOptional
-    substatus: GroupSubStatusStr | None
-    isPublic: bool
-    platform: str | None
-    priority: GroupPriorityStr | None
-    priorityLockedAt: datetime | None
-    seerFixabilityScore: float | None
-    seerAutofixLastTriggered: datetime | None
-    seerExplorerAutofixLastTriggered: datetime | None
-    project: GroupProjectResponse
-    type: EventTypeStr
-    issueType: str
-    issueCategory: str
-    metadata: dict[str, Any]
-    numComments: int
-    assignedTo: ActorSerializerResponse | None
-    isBookmarked: bool
-    isSubscribed: bool
-    subscriptionDetails: SubscriptionDetails | None
-    hasSeen: bool
-    annotations: list[GroupAnnotation]
+    id: Annotated[NumericId, ApiDescription("ID of the issue")]
+    shareId: Annotated[
+        str | None,
+        ApiDescription("ID used in the issue's public share URL. Null when the issue isn't shared"),
+    ]
+    shortId: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    title: Annotated[str, ApiDescription("Title of the issue")]
+    culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    permalink: Annotated[Url, ApiDescription("URL of the issue in Sentry")]
+    logger: Annotated[str | None, ApiDescription("Logger of the issue's events")]
+    level: Annotated[GroupLevelStr, ApiDescription("Severity level of the issue")]
+    status: Annotated[GroupStatusStr, ApiDescription("Issue status")]
+    statusDetails: Annotated[
+        GroupStatusDetailsResponseOptional,
+        ApiDescription(
+            "Details of the issue's status, such as when an ignore expires or which release resolves it"
+        ),
+    ]
+    substatus: Annotated[
+        GroupSubStatusStr | None,
+        ApiDescription("Substatus of the issue, such as ongoing, regressed or escalating"),
+    ]
+    isPublic: Annotated[bool, ApiDescription("Whether the issue is shared publicly")]
+    platform: Annotated[str | None, ApiDescription("Platform of the issue's events")]
+    priority: Annotated[
+        GroupPriorityStr | None, ApiDescription("Priority of the issue: high, medium or low")
+    ]
+    priorityLockedAt: Annotated[
+        datetime | None,
+        ApiDescription(
+            "When the priority was last set manually, which stops automatic priority updates (ISO 8601)"
+        ),
+    ]
+    seerFixabilityScore: Annotated[
+        float | None, ApiDescription("Seer's score for how likely the issue is to be fixable")
+    ]
+    seerAutofixLastTriggered: Annotated[
+        datetime | None,
+        ApiDescription("When Seer Autofix was last triggered for the issue (ISO 8601)"),
+    ]
+    seerExplorerAutofixLastTriggered: Annotated[
+        datetime | None,
+        ApiDescription(
+            "When the Seer explorer agent last completed an Autofix step for the issue (ISO 8601)"
+        ),
+    ]
+    project: Annotated[GroupProjectResponse, ApiDescription("Project the issue belongs to")]
+    type: Annotated[
+        EventTypeStr, ApiDescription("Event type of the issue, such as error or default")
+    ]
+    issueType: Annotated[
+        str, ApiDescription("Issue type, such as error or performance_n_plus_one_db_queries")
+    ]
+    issueCategory: Annotated[str, ApiDescription("Issue category, such as error or performance")]
+    metadata: Annotated[EventMetadataResponse, ApiDescription("Issue metadata")]
+    numComments: Annotated[int, ApiDescription("Number of comments on the issue")]
+    assignedTo: Annotated[
+        ActorSerializerResponse | None, ApiDescription("User or team the issue is assigned to")
+    ]
+    isBookmarked: Annotated[
+        bool, ApiDescription("Whether the requesting user bookmarked the issue")
+    ]
+    isSubscribed: Annotated[
+        bool, ApiDescription("Whether the requesting user is subscribed to the issue")
+    ]
+    subscriptionDetails: Annotated[
+        SubscriptionDetails | None,
+        ApiDescription("Why the requesting user is subscribed to the issue"),
+    ]
+    hasSeen: Annotated[
+        bool,
+        ApiDescription("Whether the requesting user has seen the issue since it last occurred"),
+    ]
+    annotations: Annotated[
+        list[GroupAnnotation], ApiDescription("External issues linked to the issue")
+    ]
+
+
+class GroupReleaseVersionResponse(TypedDict):
+    version: Annotated[str, ApiDescription("Version of the release")]
+
+
+class GroupForecastResponse(TypedDict):
+    data: Annotated[
+        list[int],
+        ApiDescription(
+            "Forecast daily event counts, starting on the day the forecast was generated"
+        ),
+    ]
+    date_added: Annotated[
+        float, ApiDescription("When the forecast was generated, as a Unix timestamp")
+    ]
+
+
+class GroupSeenByResponse(UserSerializerResponse):
+    lastSeen: Annotated[datetime, ApiDescription("When the user last saw the issue (ISO 8601)")]
+
+
+class GroupParticipantResponse(UserSerializerResponse):
+    type: Annotated[Literal["user"], ApiDescription("Kind of participant. Always user")]
 
 
 class GroupDetailsResponseOptional(TypedDict, total=False):
     # Included by default; removable via `?collapse=release|tags|stats`
-    firstRelease: dict[str, Any] | None
-    lastRelease: dict[str, Any] | None
-    tags: list[dict[str, Any]]
-    stats: dict[str, list[list[float]]]
+    # A release that no longer exists serializes to just its version.
+    firstRelease: Annotated[
+        ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
+        ApiDescription("First release the issue was seen in. Omitted when release is collapsed"),
+    ]
+    lastRelease: Annotated[
+        ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
+        ApiDescription("Latest release the issue was seen in. Omitted when release is collapsed"),
+    ]
+    tags: Annotated[
+        list[TagKeySerializerResponse],
+        ApiDescription(
+            "Tag keys seen on the issue's events, with their top values. Omitted when tags is collapsed"
+        ),
+    ]
+    stats: Annotated[
+        dict[str, list[list[float]]],
+        ApiDescription(
+            "Event counts for the last 24 hours (hourly) and 30 days (daily), as [timestamp, count] pairs. Omitted when stats is collapsed"
+        ),
+    ]
     # Opt-in via `?expand=...`
-    inbox: InboxDetails | None
-    owners: list[OwnersSerialized] | None
-    forecast: dict[str, Any]
-    integrationIssues: list[dict[str, Any]]
-    sentryAppIssues: list[PlatformExternalIssueSerializerResponse]
-    latestEventHasAttachments: bool
+    inbox: Annotated[
+        InboxDetails | None,
+        ApiDescription("Why the issue is in the inbox. Only included when requested with expand"),
+    ]
+    owners: Annotated[
+        list[OwnersSerialized] | None,
+        ApiDescription("Suggested owners of the issue. Only included when requested with expand"),
+    ]
+    forecast: Annotated[
+        GroupForecastResponse,
+        ApiDescription(
+            "Escalation forecast for the issue. Only included when requested with expand"
+        ),
+    ]
+    integrationIssues: Annotated[
+        list[ExternalIssueResponse],
+        ApiDescription(
+            "External issues linked through integrations. Only included when requested with expand"
+        ),
+    ]
+    sentryAppIssues: Annotated[
+        list[PlatformExternalIssueSerializerResponse],
+        ApiDescription(
+            "External issues linked through Sentry apps. Only included when requested with expand"
+        ),
+    ]
+    latestEventHasAttachments: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the issue's latest event has attachments. Only included when requested with expand"
+        ),
+    ]
 
 
 class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
-    activity: list[dict[str, Any]]
-    seenBy: list[dict[str, Any]]
-    userReportCount: int
-    participants: list[dict[str, Any]]
+    activity: Annotated[
+        list[Annotated[dict[str, Any], ApiSchema(group_activity_schema)]],
+        ApiDescription("Recent activity on the issue, newest first"),
+    ]
+    seenBy: Annotated[
+        list[GroupSeenByResponse],
+        ApiDescription("Users who have seen the issue, with when they last saw it"),
+    ]
+    userReportCount: Annotated[int, ApiDescription("Number of user reports for the issue")]
+    participants: Annotated[
+        list[GroupParticipantResponse], ApiDescription("Users participating in the issue")
+    ]
 
 
 class SeenStats(TypedDict):
@@ -183,6 +353,12 @@ class SeenStats(TypedDict):
     first_seen: datetime | None
     last_seen: datetime | None
     user_count: int
+    filtered: NotRequired[SeenStats | None]
+    lifetime: NotRequired[SeenStats | None]
+
+
+class _SeenStatsQueryResult(TypedDict):
+    data: Sequence[Mapping[str, object]]
 
 
 class SeenStatsResponse(TypedDict):
@@ -199,9 +375,9 @@ def is_seen_stats(o: object) -> TypeGuard[SeenStats]:
 
 def _make_group_project_response(project: Project) -> GroupProjectResponse:
     return {
-        "id": str(project.id),
+        "id": numeric_id(project.id),
         "name": project.name,
-        "slug": project.slug,
+        "slug": slug(project.slug),
         "platform": project.platform,
     }
 
@@ -255,9 +431,9 @@ def _get_level_label(group: Group) -> GroupLevelStr:
 class GroupSerializerBase(Serializer, ABC):
     def __init__(
         self,
-        collapse=None,
-        expand=None,
-    ):
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
+    ) -> None:
         self.collapse = collapse
         self.expand = expand
 
@@ -294,7 +470,7 @@ class GroupSerializerBase(Serializer, ABC):
         # making unnecessary queries.
         prefetch_related_objects(item_list, "project__organization")
 
-        if user.is_authenticated and item_list:
+        if has_user(user) and item_list:
             bookmarks = set(
                 GroupBookmark.objects.filter(user_id=user.id, group__in=item_list).values_list(
                     "group_id", flat=True
@@ -374,6 +550,11 @@ class GroupSerializerBase(Serializer, ABC):
             if self._expand("derivedData")
             else {}
         )
+        if not features.has(
+            "organizations:seer-impact-assessment", organization=item_list[0].organization
+        ):
+            for derived_data in derived_data_by_group_id.values():
+                derived_data.pop("impact", None)
 
         result = {}
         for item in item_list:
@@ -400,7 +581,11 @@ class GroupSerializerBase(Serializer, ABC):
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
                 "annotations": annotations_by_group_id[item.id],
                 "ignore_until": ignore_item,
-                "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
+                "ignore_actor": (
+                    actors.get(ignore_item.actor_id)
+                    if ignore_item and ignore_item.actor_id is not None
+                    else None
+                ),
                 "resolution": resolution,
                 "resolution_type": resolution_type,
                 "resolution_actor": resolution_actor,
@@ -429,14 +614,15 @@ class GroupSerializerBase(Serializer, ABC):
         share_id = attrs["share_id"]
         priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
         issue_category = obj.issue_category.name.lower()
+        qualified_short_id = obj.qualified_short_id
 
         group_dict: BaseGroupSerializerResponse = {
-            "id": str(obj.id),
+            "id": numeric_id(obj.id),
             "shareId": share_id,
-            "shortId": obj.qualified_short_id,
+            "shortId": qualified_short_id,
             "title": obj.title,
             "culprit": obj.culprit,
-            "permalink": permalink,
+            "permalink": absolute_url(permalink),
             "logger": obj.logger or None,
             "level": _get_level_label(obj),
             "status": status_label,
@@ -446,7 +632,7 @@ class GroupSerializerBase(Serializer, ABC):
             "platform": obj.platform,
             "project": _make_group_project_response(obj.project),
             "type": obj.get_event_type(),
-            "metadata": obj.get_event_metadata(),
+            "metadata": cast(EventMetadataResponse, obj.get_event_metadata()),
             "numComments": obj.num_comments,
             "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
             "isBookmarked": attrs["is_bookmarked"],
@@ -469,35 +655,39 @@ class GroupSerializerBase(Serializer, ABC):
         if "derived_data" in attrs:
             group_dict["derivedData"] = attrs["derived_data"]
         if is_seen_stats(attrs):
-            group_dict.update(self._convert_seen_stats(attrs))
+            cast("dict[str, Any]", group_dict).update(self._convert_seen_stats(attrs))
         return group_dict
 
     @abstractmethod
     def _seen_stats_error(
-        self, error_issue_list: Sequence[Group], user
+        self, error_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         pass
 
     @abstractmethod
     def _seen_stats_generic(
-        self, generic_issue_list: Sequence[Group], user
+        self, generic_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         pass
 
-    def _expand(self, key) -> bool:
+    def _expand(self, key: str) -> bool:
         if self.expand is None:
             return False
 
         return key in self.expand
 
-    def _collapse(self, key) -> bool:
+    def _collapse(self, key: str) -> bool:
         if self.collapse is None:
             return False
         return key in self.collapse
 
-    def _get_status(self, attrs: Mapping[str, Any], obj: Group):
+    def _get_status(
+        self,
+        attrs: Mapping[str, Any],
+        obj: Group,
+    ) -> tuple[GroupStatusDetailsResponseOptional, GroupStatusStr]:
         status = obj.status
-        status_details = {}
+        status_details: GroupStatusDetailsResponseOptional = {}
         if attrs["ignore_until"]:
             snooze = attrs["ignore_until"]
             if snooze.is_valid(group=obj):
@@ -551,7 +741,9 @@ class GroupSerializerBase(Serializer, ABC):
             status_label = "unresolved"
         return status_details, status_label
 
-    def _get_seen_stats(self, item_list: Sequence[Group], user) -> Mapping[Group, SeenStats] | None:
+    def _get_seen_stats(
+        self, item_list: Sequence[Group], user: User | RpcUser | AnonymousUser
+    ) -> Mapping[Group, SeenStats] | None:
         """
         Returns a dictionary keyed by item that includes:
             - times_seen
@@ -582,11 +774,11 @@ class GroupSerializerBase(Serializer, ABC):
 
     def _get_group_snuba_stats(
         self, item_list: Sequence[Group], seen_stats: Mapping[Group, SeenStats] | None
-    ):
+    ) -> dict[int, dict[str, bool | None]] | None:
         if self._collapse("unhandled") and len(item_list) > 0:
             return None
         start = self._get_start_from_seen_stats(seen_stats)
-        unhandled = {}
+        unhandled: dict[int, bool | None] = {}
 
         cache_keys = []
         for item in item_list:
@@ -596,12 +788,16 @@ class GroupSerializerBase(Serializer, ABC):
         for item, cache_key in zip(item_list, cache_keys):
             unhandled[item.id] = cache_data.get(cache_key)
 
-        filter_keys: dict[str, list[int]] = {}
+        filter_keys: dict[str, Sequence[int]] = {}
+        project_ids: list[int] = []
+        group_ids: list[int] = []
         for item in item_list:
             if unhandled.get(item.id) is not None:
                 continue
-            filter_keys.setdefault("project_id", []).append(item.project_id)
-            filter_keys.setdefault("group_id", []).append(item.id)
+            project_ids.append(item.project_id)
+            group_ids.append(item.id)
+        if project_ids:
+            filter_keys = {"project_id": project_ids, "group_id": group_ids}
 
         if filter_keys:
             rv = raw_query(
@@ -623,7 +819,7 @@ class GroupSerializerBase(Serializer, ABC):
                     {"organization_id": item_list[0].project.organization_id} if item_list else None
                 ),
             )
-            to_cache = {}
+            to_cache: dict[str, bool | None] = {}
             for x in rv["data"]:
                 unhandled[x["group_id"]] = x["unhandled"]
                 to_cache[f"group-mechanism-handled:{x['group_id']}"] = x["unhandled"]
@@ -637,7 +833,7 @@ class GroupSerializerBase(Serializer, ABC):
         return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
 
     @staticmethod
-    def _get_start_from_seen_stats(seen_stats: Mapping[Group, SeenStats] | None):
+    def _get_start_from_seen_stats(seen_stats: Mapping[Group, SeenStats] | None) -> datetime:
         # Try to figure out what is a reasonable time frame to look into stats,
         # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
         # but it has to be at least 14 days, and not more than 90 days ago.
@@ -709,7 +905,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _resolve_resolutions(
-        groups: Sequence[Group], user
+        groups: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
         resolved_groups = [i for i in groups if i.status == GroupStatus.RESOLVED]
         if not resolved_groups:
@@ -808,7 +1004,7 @@ class GroupSerializerBase(Serializer, ABC):
         return integration_annotations
 
     @staticmethod
-    def _get_permalink(attrs, obj: Group) -> str:
+    def _get_permalink(attrs: Mapping[str, object], obj: Group) -> str:
         with traces.start_span(
             name="GroupSerializerBase.serialize.permalink.build",
             attributes={"sentry.op": "GroupSerializerBase.serialize.permalink.build"},
@@ -854,14 +1050,16 @@ class _EnvironmentSeenStatsFunc(Protocol):
 class GroupSerializer(GroupSerializerBase):
     def __init__(
         self,
-        collapse=None,
-        expand=None,
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
         environment_func: Callable[[], Environment | None] | None = None,
-    ):
+    ) -> None:
         GroupSerializerBase.__init__(self, collapse=collapse, expand=expand)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
-    def _seen_stats_error(self, item_list, user) -> Mapping[Group, SeenStats]:
+    def _seen_stats_error(
+        self, item_list: Sequence[Group], user: User | RpcUser | AnonymousUser
+    ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(
             item_list,
             tagstore.backend.get_groups_user_counts,
@@ -869,7 +1067,7 @@ class GroupSerializer(GroupSerializerBase):
         )
 
     def _seen_stats_generic(
-        self, generic_issue_list: Sequence[Group], user
+        self, generic_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(
             generic_issue_list,
@@ -895,15 +1093,17 @@ class GroupSerializer(GroupSerializerBase):
 
         project_id = issue_list[0].project_id
         item_ids = [g.id for g in issue_list]
-        tenant_ids = {"organization_id": issue_list[0].project.organization_id}
+        tenant_ids: dict[str, str | int] = {
+            "organization_id": issue_list[0].project.organization_id
+        }
         user_counts: Mapping[int, int] = user_counts_func(
             [project_id],
             item_ids,
             environment_ids=[environment.id] if environment is not None else None,
             tenant_ids=tenant_ids,
         )
-        first_seen: MutableMapping[int, datetime] = {}
-        last_seen: MutableMapping[int, datetime] = {}
+        first_seen: MutableMapping[int, datetime | None] = {}
+        last_seen: MutableMapping[int, datetime | None] = {}
         times_seen: MutableMapping[int, int] = {}
 
         if environment is not None:
@@ -938,15 +1138,24 @@ class GroupSerializer(GroupSerializerBase):
 
 
 class SharedGroupSerializerResponse(TypedDict):
-    culprit: str | None
-    id: str
-    isUnhandled: bool | None
-    issueCategory: str
-    permalink: str
-    shortId: str
-    title: str
-    latestEvent: dict[str, Any]
-    project: dict[str, Any]
+    culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    id: Annotated[str, ApiDescription("ID of the issue")]
+    isUnhandled: Annotated[
+        bool | None,
+        ApiDescription("Whether the issue includes unhandled events. Null when it isn't known"),
+    ]
+    issueCategory: Annotated[str, ApiDescription("Issue category, such as error or performance")]
+    permalink: Annotated[Url, ApiDescription("URL of the issue in Sentry")]
+    shortId: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    title: Annotated[str, ApiDescription("Title of the issue")]
+    latestEvent: Annotated[
+        SharedEventSerializerResponse | None,
+        ApiDescription(
+            "Latest event of the issue, without its user, tags, contexts, SDK, extra data, "
+            "processing errors or breadcrumbs. Null when the issue has no stored event"
+        ),
+    ]
+    project: Annotated[SharedProjectSerializerResponse, ApiDescription("Project of the issue")]
 
 
 class SharedGroupSerializer(GroupSerializer):
@@ -1023,12 +1232,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
         environment_ids: list[int] | None = None,
         start: datetime | None = None,
         end: datetime | None = None,
-        search_filters=None,
-        collapse=None,
-        expand=None,
-        organization_id=None,
-        project_ids=None,
-    ):
+        search_filters: Sequence[SearchFilter] | None = None,
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+    ) -> None:
         super().__init__(collapse=collapse, expand=expand)
         from sentry.search.snuba.executors import get_search_filter
 
@@ -1065,15 +1274,19 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
         conditions = []
         if search_filters is not None:
+            params = cast(
+                FilterConvertParams,
+                {
+                    "organization_id": organization_id,
+                    "project_id": project_ids,
+                    "environment_id": environment_ids,
+                },
+            )
             for search_filter in search_filters:
                 if search_filter.key.name not in self.skip_snuba_fields:
                     formatted_conditions, projects_to_filter, group_ids = format_search_filter(
                         search_filter,
-                        params={
-                            "organization_id": organization_id,
-                            "project_id": project_ids,
-                            "environment_id": environment_ids,
-                        },
+                        params=params,
                     )
 
                     # if no re-formatted conditions, use fallback method
@@ -1083,11 +1296,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                     elif group_ids:
                         new_condition = convert_search_filter_to_snuba_query(
                             search_filter,
-                            params={
-                                "organization_id": organization_id,
-                                "project_id": project_ids,
-                                "environment_id": environment_ids,
-                            },
+                            params=params,
                         )
 
                     if new_condition:
@@ -1095,7 +1304,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.conditions = conditions
 
     def _seen_stats_error(
-        self, error_issue_list: Sequence[Group], user
+        self, error_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self._parse_seen_stats_results(
             self._execute_error_seen_stats_query(
@@ -1111,7 +1320,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
 
     def _seen_stats_generic(
-        self, generic_issue_list: Sequence[Group], user
+        self, generic_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self._parse_seen_stats_results(
             self._execute_generic_seen_stats_query(
@@ -1128,8 +1337,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _execute_error_seen_stats_query(
-        item_list, start=None, end=None, conditions=None, environment_ids=None
-    ):
+        item_list: Sequence[Group],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+    ) -> _SeenStatsQueryResult:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1143,25 +1356,32 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        return aliased_query(
-            dataset=Dataset.Events,
-            start=start,
-            end=end,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            condition_resolver=get_snuba_column_name,
-            referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
-            tenant_ids=(
-                {"organization_id": item_list[0].project.organization_id} if item_list else None
+        return cast(
+            _SeenStatsQueryResult,
+            aliased_query(
+                dataset=Dataset.Events,
+                start=start,
+                end=end,
+                groupby=["group_id"],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                condition_resolver=get_snuba_column_name,
+                referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
+                tenant_ids=(
+                    {"organization_id": item_list[0].project.organization_id} if item_list else None
+                ),
             ),
         )
 
     @staticmethod
     def _execute_generic_seen_stats_query(
-        item_list, start=None, end=None, conditions=None, environment_ids=None
-    ):
+        item_list: Sequence[Group],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+    ) -> _SeenStatsQueryResult:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1174,25 +1394,31 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        return aliased_query(
-            dataset=Dataset.IssuePlatform,
-            start=start,
-            end=end,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            condition_resolver=get_snuba_column_name,
-            referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
-            tenant_ids=(
-                {"organization_id": item_list[0].project.organization_id} if item_list else None
+        return cast(
+            _SeenStatsQueryResult,
+            aliased_query(
+                dataset=Dataset.IssuePlatform,
+                start=start,
+                end=end,
+                groupby=["group_id"],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                condition_resolver=get_snuba_column_name,
+                referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
+                tenant_ids=(
+                    {"organization_id": item_list[0].project.organization_id} if item_list else None
+                ),
             ),
         )
 
     @staticmethod
     def _parse_seen_stats_results(
-        result, item_list, use_result_first_seen_times_seen, environment_ids=None
-    ):
+        result: _SeenStatsQueryResult,
+        item_list: Sequence[Group],
+        use_result_first_seen_times_seen: bool,
+        environment_ids: list[int] | None = None,
+    ) -> Mapping[Group, SeenStats]:
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
                 dict(filter(lambda key: key[0] != "group_id", issue.items()))
@@ -1231,22 +1457,31 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
 
 class SimpleGroupSerializerResponse(TypedDict):
-    id: str
-    title: str
-    culprit: str | None
-    shortId: str | None
-    level: GroupLevelStr
-    status: GroupStatusStr
-    substatus: GroupSubStatusStr | None
-    platform: str | None
-    project: GroupProjectResponse
-    type: EventTypeStr
-    issueType: str
-    issueCategory: str
-    metadata: dict[str, Any]
-    numComments: int
-    firstSeen: datetime | None
-    lastSeen: datetime | None
+    id: Annotated[NumericId, ApiDescription("ID of the issue")]
+    title: Annotated[str, ApiDescription("Title of the issue")]
+    culprit: Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    shortId: Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    level: Annotated[GroupLevelStr, ApiDescription("Severity level of the issue")]
+    status: Annotated[GroupStatusStr, ApiDescription("Issue status")]
+    substatus: Annotated[
+        GroupSubStatusStr | None,
+        ApiDescription("Substatus of the issue, such as ongoing, regressed or escalating"),
+    ]
+    platform: Annotated[str | None, ApiDescription("Platform of the issue's events")]
+    project: Annotated[GroupProjectResponse, ApiDescription("Project the issue belongs to")]
+    type: Annotated[
+        EventTypeStr, ApiDescription("Event type of the issue, such as error or default")
+    ]
+    issueType: Annotated[
+        str, ApiDescription("Issue type, such as error or performance_n_plus_one_db_queries")
+    ]
+    issueCategory: Annotated[str, ApiDescription("Issue category, such as error or performance")]
+    metadata: Annotated[EventMetadataResponse, ApiDescription("Issue metadata")]
+    numComments: Annotated[int, ApiDescription("Number of comments on the issue")]
+    firstSeen: Annotated[
+        datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")
+    ]
+    lastSeen: Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
 
 
 class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
@@ -1263,12 +1498,13 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
         **kwargs: Any,
     ) -> SimpleGroupSerializerResponse:
         issue_category = obj.issue_category.name.lower()
+        qualified_short_id = obj.qualified_short_id
 
         return SimpleGroupSerializerResponse(
-            id=str(obj.id),
+            id=numeric_id(obj.id),
             title=obj.title,
             culprit=obj.culprit,
-            shortId=obj.qualified_short_id,
+            shortId=qualified_short_id,
             level=_get_level_label(obj),
             status=_get_status_label(obj),
             substatus=_get_substatus_label(obj),
@@ -1277,7 +1513,7 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
             type=obj.get_event_type(),
             issueType=obj.issue_type.slug,
             issueCategory=issue_category,
-            metadata=obj.get_event_metadata(),
+            metadata=cast(EventMetadataResponse, obj.get_event_metadata()),
             numComments=obj.num_comments,
             firstSeen=obj.first_seen,
             lastSeen=obj.last_seen,

@@ -12,7 +12,7 @@ import type {
 } from 'sentry/types/workflowEngine/detectors';
 import {bytesToMB, mbToBytes} from 'sentry/views/settings/project/preprod/types';
 
-interface PreprodDetectorFormData {
+export interface PreprodDetectorFormData {
   description: string | null;
   highThreshold: string;
   lowThreshold: string;

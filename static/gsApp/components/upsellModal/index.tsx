@@ -1,8 +1,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {closeModal} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {closeModal} from '@sentry/scraps/modal';
+
 import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

@@ -1,10 +1,10 @@
 import {useCallback, useId} from 'react';
 import styled from '@emotion/styled';
 
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {InputGroup} from '@sentry/scraps/input';
 import type {InputProps} from '@sentry/scraps/input';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {t} from 'sentry/locale';
 import {selectText} from 'sentry/utils/selectText';
 

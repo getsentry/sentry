@@ -6,7 +6,7 @@ import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {PreprodBuildsSnapshotTable} from './preprodBuildsSnapshotTable';
 
 jest.mock('@sentry/scraps/badge', () => ({
-  ...jest.requireActual('sentry/components/core/badge/tag'),
+  ...jest.requireActual('@sentry/scraps/badge'),
 }));
 
 jest.mock('./preprodBuildsTableStyles', () => ({

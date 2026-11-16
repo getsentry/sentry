@@ -1,7 +1,8 @@
 import type React from 'react';
 
-import {WidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+
+import {WidgetBuilderContext} from './useWidgetBuilderContext';
 
 export {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 

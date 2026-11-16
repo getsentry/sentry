@@ -2,13 +2,14 @@ import type * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {rc, type Responsive} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
+import {rc} from '@sentry/scraps/layout/styles';
 import type {HeadingSize} from '@sentry/scraps/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 import {type BaseTextProps} from './text';
 
-type BaseHeadingProps = Omit<BaseTextProps, 'bold' | 'uppercase'>;
+type BaseHeadingProps = Omit<BaseTextProps, 'bold' | 'uppercase' | 'trim'>;
 
 type ExclusiveHeadingEllipsisProps =
   | {ellipsis?: true; wrap?: never}

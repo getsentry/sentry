@@ -5,21 +5,28 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/widgets';
 import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
-import {NavigationTypeSwitcher} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeSwitcher';
+import {SpanFields} from 'sentry/views/insights/types';
+
+import {NavigationTypeSwitcher} from './navigationTypeSwitcher';
 import {
   buildNavigationTypeGlobalFilter,
   NAVIGATION_TYPE_BUCKET_ORDER,
   NavigationTypeBucket,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
-import {SpanFields} from 'sentry/views/insights/types';
+} from './settings';
 
 describe('NavigationTypeSwitcher', () => {
   const organization = OrganizationFixture();
 
-  function mockCounts(
-    rows: Array<{'browser.navigation.type': string; 'count()': number}>
-  ) {
+  const METRIC_COUNT_FIELDS = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'].map(
+    vital =>
+      `count(value,browser.web_vital.${vital},distribution,${vital === 'cls' ? 'none' : 'millisecond'})`
+  );
+  const LCP_COUNT_FIELD = METRIC_COUNT_FIELDS[0]!;
+  const CLS_COUNT_FIELD = METRIC_COUNT_FIELDS[3]!;
+
+  function mockCounts(rows: Array<Record<string, string | number>>) {
     return MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {data: rows, meta: {fields: {}}},
@@ -85,7 +92,7 @@ describe('NavigationTypeSwitcher', () => {
     expect(await screen.findByRole('option', {name: /Page loads/})).toHaveTextContent(
       '1K'
     );
-    expect(screen.getByText(/spans have no navigation type/)).toBeInTheDocument();
+    expect(screen.getByText(/have no navigation type/)).toBeInTheDocument();
   });
 
   it('adds a bucket to the selection without dropping the other filters', async () => {
@@ -191,5 +198,59 @@ describe('NavigationTypeSwitcher', () => {
     expect(buildNavigationTypeGlobalFilter(NAVIGATION_TYPE_BUCKET_ORDER)).toEqual(
       WEB_VITALS_NAVIGATION_TYPE_FILTER
     );
+    expect(
+      buildNavigationTypeGlobalFilter(
+        NAVIGATION_TYPE_BUCKET_ORDER,
+        WidgetType.TRACEMETRICS
+      )
+    ).toEqual(
+      WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS.find(
+        filter => filter.tag.key === SpanFields.BROWSER_NAVIGATION_TYPE
+      )
+    );
+  });
+
+  it('counts and filters the web vital metrics on a metrics backed dashboard', async () => {
+    const mock = mockCounts([
+      {
+        [SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate',
+        [LCP_COUNT_FIELD]: 1000,
+        [CLS_COUNT_FIELD]: 200,
+      },
+    ]);
+    const onChange = jest.fn();
+
+    renderSwitcher(
+      [
+        buildNavigationTypeGlobalFilter(
+          [NavigationTypeBucket.PAGE_LOAD],
+          WidgetType.TRACEMETRICS
+        ),
+      ],
+      onChange
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: /Measured on/}));
+    expect(await screen.findByRole('option', {name: /Page loads/})).toHaveTextContent(
+      '1.2K'
+    );
+    expect(mock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'tracemetrics',
+          field: [SpanFields.BROWSER_NAVIGATION_TYPE, ...METRIC_COUNT_FIELDS],
+        }),
+      })
+    );
+
+    await userEvent.click(screen.getByRole('option', {name: /bfcache restores/}));
+
+    expect(onChange).toHaveBeenCalledWith([
+      buildNavigationTypeGlobalFilter(
+        [NavigationTypeBucket.PAGE_LOAD, NavigationTypeBucket.BFCACHE],
+        WidgetType.TRACEMETRICS
+      ),
+    ]);
   });
 });

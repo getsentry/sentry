@@ -6,11 +6,12 @@ from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import (
     IgnoreHealthChecksTraceBias,
 )
+from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_generate_trace_bias_rules(default_project) -> None:
+def test_generate_trace_bias_rules(default_project: Project) -> None:
     rules = IgnoreHealthChecksTraceBias().generate_rules(
         project=default_project, base_sample_rate=1.0
     )

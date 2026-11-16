@@ -24,6 +24,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {HoverOverlayGroupProvider} from '@sentry/scraps/useHoverOverlay';
 
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -37,7 +38,6 @@ import type {
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodeChanges} from './codeChanges';
@@ -569,8 +569,8 @@ export const OverviewCard = memo(function OverviewCardComponent({
   const inView = useIsInView(cardRef);
   useEffect(() => {
     if (inView && scmWindows) {
-      for (const window of scmWindows) {
-        requestScmWindow(window);
+      for (const scmWindow of scmWindows) {
+        requestScmWindow(scmWindow);
       }
     }
   }, [inView, scmWindows, requestScmWindow]);

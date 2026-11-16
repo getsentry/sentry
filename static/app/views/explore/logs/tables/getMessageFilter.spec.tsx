@@ -1,7 +1,8 @@
 import {LogFixture} from 'sentry-fixture/log';
 
-import {getMessageFilter} from 'sentry/views/explore/logs/tables/getMessageFilter';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {getMessageFilter} from './getMessageFilter';
 
 describe('getMessageFilter', () => {
   const baseRow = LogFixture({

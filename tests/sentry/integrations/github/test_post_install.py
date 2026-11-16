@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, call, patch
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -24,10 +25,10 @@ class GitHubIntegrationPostInstallTest(IntegrationTestCase):
     @patch("sentry.integrations.github.tasks.link_all_repos.link_all_repos.apply_async")
     def test_post_install_migrates_existing_repos(
         self,
-        mock_link_repos,
-        mock_migrate_repo,
-        mock_get_repositories,
-    ):
+        mock_link_repos: MagicMock,
+        mock_migrate_repo: MagicMock,
+        mock_get_repositories: MagicMock,
+    ) -> None:
         mock_repo1 = MagicMock()
         mock_repo1.id = 1
         mock_repo2 = MagicMock()
@@ -36,7 +37,11 @@ class GitHubIntegrationPostInstallTest(IntegrationTestCase):
 
         provider = GitHubIntegrationProvider()
         provider.post_install(
-            integration=self.integration, organization=self.organization, extra={"app_id": "app_1"}
+            integration=self.integration,
+            organization=serialize_rpc_organization(
+                self.organization, include_projects=False, include_teams=False
+            ),
+            extra={"app_id": "app_1"},
         )
 
         assert mock_migrate_repo.call_count == 2

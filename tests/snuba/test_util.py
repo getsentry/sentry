@@ -1,4 +1,6 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 from sentry.models.grouphash import GroupHash
 from sentry.receivers import create_default_projects
@@ -14,7 +16,7 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
         snuba.raw_query(
             start=datetime.now(),
             end=datetime.now(),
-            filter_keys={"project_id": {1}, "culprit": {"asdf"}},
+            filter_keys=cast("dict[str, Sequence[int]]", {"project_id": [1], "culprit": ["asdf"]}),
             aggregations=[["count()", "", "count"]],
             tenant_ids={"referrer": "bleh", "organization_id": 123},
         )
@@ -60,13 +62,14 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
         #    )
 
     def test_override_options(self) -> None:
-        assert snuba.OVERRIDE_OPTIONS == {"consistent": False}
-        with snuba.options_override({"foo": 1}):
-            assert snuba.OVERRIDE_OPTIONS == {"foo": 1, "consistent": False}
-            with snuba.options_override({"foo": 2}):
-                assert snuba.OVERRIDE_OPTIONS == {"foo": 2, "consistent": False}
-            assert snuba.OVERRIDE_OPTIONS == {"foo": 1, "consistent": False}
-        assert snuba.OVERRIDE_OPTIONS == {"consistent": False}
+        override_options = cast("dict[str, Any]", snuba.OVERRIDE_OPTIONS)
+        assert override_options == {"consistent": False}
+        with snuba.options_override(cast("dict[str, bool]", {"foo": 1})):
+            assert override_options == {"foo": 1, "consistent": False}
+            with snuba.options_override(cast("dict[str, bool]", {"foo": 2})):
+                assert override_options == {"foo": 2, "consistent": False}
+            assert override_options == {"foo": 1, "consistent": False}
+        assert override_options == {"consistent": False}
 
     def test_build_query_strings(self) -> None:
         snuba_query_no_query = SnubaQuery.objects.create(

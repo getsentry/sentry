@@ -9,10 +9,10 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
+import {makeDiscoverPathname} from './pathnames';
 
 type Props = {
   eventView: EventView;

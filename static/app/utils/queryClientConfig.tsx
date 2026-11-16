@@ -1,6 +1,6 @@
 import type {QueryClientConfig} from '@tanstack/react-query';
 
-import {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from './requestError/requestError';
 
 const nonRetryCodes = new Set<number | undefined>([400, 401, 402, 403, 404]);
 

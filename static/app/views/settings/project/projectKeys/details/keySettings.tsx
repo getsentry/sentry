@@ -1,19 +1,16 @@
 import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Confirm} from '@sentry/scraps/confirm';
+import {AutoSaveForm, DisplayField, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -22,10 +19,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
-import {KeyRateLimitsForm} from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
-import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
+
+import {KeyRateLimitsForm} from './keyRateLimitsForm';
+import {LoaderSettings} from './loaderSettings';
 
 type Props = {
   data: ProjectKey;
@@ -42,7 +39,6 @@ type Props = {
 const keySettingsSchema = z.object({
   name: z.string(),
   isActive: z.boolean(),
-  dateCreated: z.string(),
 });
 
 export function KeySettings({
@@ -53,8 +49,6 @@ export function KeySettings({
   data,
   updateData,
 }: Props) {
-  const api = useApi();
-
   const {keyId, projectId} = params;
   const apiEndpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
@@ -79,27 +73,24 @@ export function KeySettings({
     },
   };
 
+  const {mutateAsync: removeKey} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: apiEndpoint,
+        method: 'DELETE',
+      }),
+  });
+
   const handleRemove = async () => {
-    addLoadingMessage(t('Revoking key\u2026'));
+    toast.loading(t('Revoking key\u2026'));
 
     try {
-      await api.requestPromise(
-        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectId,
-            keyId,
-          },
-        }),
-        {
-          method: 'DELETE',
-        }
-      );
+      await removeKey();
 
       onRemove();
-      addSuccessMessage(t('Revoked key'));
+      toast.success(t('Revoked key'));
     } catch (_err) {
-      addErrorMessage(t('Unable to revoke key'));
+      toast.error(t('Unable to revoke key'));
     }
   };
 
@@ -147,20 +138,11 @@ export function KeySettings({
                   </field.Layout.Row>
                 )}
               </AutoSaveForm>
-              <AutoSaveForm
-                name="dateCreated"
-                schema={keySettingsSchema}
-                initialValue={data.dateCreated}
-                mutationOptions={mutationOptions}
-              >
-                {field => (
-                  <field.Layout.Row label={t('Created')}>
-                    <Text>
-                      <DateTime date={field.state.value} />
-                    </Text>
-                  </field.Layout.Row>
-                )}
-              </AutoSaveForm>
+              <DisplayField.Row label={t('Created')}>
+                <Text>
+                  <DateTime date={data.dateCreated} />
+                </Text>
+              </DisplayField.Row>
             </FieldGroup>
 
             <KeyRateLimitsForm

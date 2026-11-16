@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
@@ -23,7 +24,7 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization, version) -> Response:
+    def get(self, request: Request, organization: Organization, version: str) -> Response:
         """
         Retrieve Files Changed in a Release's Commits
         `````````````````````````````````````````````

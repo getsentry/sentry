@@ -1,8 +1,11 @@
+import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {EventMetadata} from 'sentry/types/event';
-import {EventOrGroupType} from 'sentry/types/event';
-import {getTitle} from 'sentry/utils/events';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+
+import {getAnalyticsDataForEvent, getTitle} from './events';
 
 describe('getTitle', () => {
   const errorGroup = (metadata: EventMetadata) =>
@@ -41,5 +44,24 @@ describe('getTitle', () => {
   // taking the original branch.
   it('leaves metadata without the flag alone', () => {
     expect(getTitle(errorGroup({function: 'ForceCrash'})).title).toBe('ForceCrash');
+  });
+});
+
+describe('getAnalyticsDataForEvent', () => {
+  it('counts breadcrumbs on the event', () => {
+    const crumb = {
+      type: BreadcrumbType.DEFAULT,
+      level: BreadcrumbLevelType.INFO,
+      timestamp: '2024-01-01T00:00:00Z',
+    };
+    const event = EventFixture({
+      entries: [{type: EntryType.BREADCRUMBS, data: {values: [crumb, crumb, crumb]}}],
+    });
+    expect(getAnalyticsDataForEvent(event).num_breadcrumbs).toBe(3);
+  });
+
+  it('reports zero breadcrumbs when the event has none', () => {
+    expect(getAnalyticsDataForEvent(EventFixture({entries: []})).num_breadcrumbs).toBe(0);
+    expect(getAnalyticsDataForEvent(null).num_breadcrumbs).toBe(0);
   });
 });

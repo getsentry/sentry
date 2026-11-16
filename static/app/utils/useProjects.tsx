@@ -1,15 +1,16 @@
 import {useEffect, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
+import {useStore} from 'zustand';
 
 import type {Client} from 'sentry/api';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {AvatarProject, Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
-import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {getApiUrl} from './api/getApiUrl';
+import type {RequestError} from './requestError/requestError';
+import {parseLinkHeader} from './parseLinkHeader';
+import {useApi} from './useApi';
+import {useOrganization} from './useOrganization';
 
 type ProjectPlaceholder = AvatarProject;
 
@@ -162,7 +163,7 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
   const api = useApi();
 
   const organization = useOrganization({allowNull: true});
-  const store = useLegacyStore(ProjectsStore);
+  const store = useStore(ProjectsStore);
 
   const orgId = propOrgId ?? organization?.slug;
 

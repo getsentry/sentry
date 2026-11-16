@@ -1,6 +1,6 @@
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {EAPChartsWidget} from './eapChartsWidget';
+import {EAPChartsWidget, EAPWidgetType} from './eapChartsWidget';
 
 describe('EAPChartsWidget', () => {
   const transactionName = 'test-transaction';
@@ -43,5 +43,27 @@ describe('EAPChartsWidget', () => {
     await waitFor(() => {
       expect(screen.getByText('Duration Breakdown')).toBeInTheDocument();
     });
+  });
+
+  it('selects a chart in a new history entry when an option is picked', async () => {
+    const {router} = render(
+      <EAPChartsWidget transactionName={transactionName} query="" />,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/insights/summary/'},
+        },
+      }
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Duration Breakdown'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Duration Percentiles'}));
+    await waitFor(() =>
+      expect(router.location.query.chartDisplay).toBe(EAPWidgetType.DURATION_PERCENTILES)
+    );
+    act(() => router.navigate(-1));
+
+    await waitFor(() => expect(router.location.query.chartDisplay).toBeUndefined());
   });
 });

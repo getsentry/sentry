@@ -8,11 +8,11 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
+from django.contrib.messages.storage.base import Message
 from django.contrib.sessions.backends.base import SessionBase
 from django.core.cache import cache
 from django.http import HttpRequest
 from packaging.version import parse as parse_version
-from rest_framework.request import Request
 
 import sentry
 from sentry import features, options
@@ -38,7 +38,6 @@ from sentry.types.cell import (
     find_all_multitenant_locality_names,
     find_all_signup_locality_names,
     get_cell_by_name,
-    get_global_directory,
     get_locality_by_name,
     get_locality_name_for_cell,
 )
@@ -56,6 +55,8 @@ from sentry.utils.settings import (
     should_show_beacon_consent_prompt,
 )
 
+AUTH_LOGIN_URL_NAMES = frozenset({"sentry-login", "sentry-auth-organization"})
+
 
 def _get_support_mail() -> str | None:
     """Returns the most appropriate support email address"""
@@ -63,7 +64,7 @@ def _get_support_mail() -> str | None:
     return options.get("system.support-email") or options.get("system.admin-email") or None
 
 
-def _get_version_info():
+def _get_version_info() -> dict[str, str | bool]:
     current = sentry.VERSION
 
     latest = options.get("sentry:latest_version") or current
@@ -78,7 +79,7 @@ def _get_version_info():
     }
 
 
-def _needs_upgrade():
+def _needs_upgrade() -> bool:
     version_configured = options.get("sentry:version-configured")
     if not version_configured:
         # If we were never previously upgraded (being a new install)
@@ -140,7 +141,7 @@ def _get_public_dsn() -> str | None:
     return result
 
 
-def _delete_activeorg(session):
+def _delete_activeorg(session: SessionBase | None) -> None:
     if session and "activeorg" in session:
         del session["activeorg"]
 
@@ -161,12 +162,11 @@ def _resolve_last_org(
             return None
 
         if user_is_authenticated and user is not None:
-            org_context = organization_service.get_organization_by_slug(
+            org_context = organization_service.get_access_context_by_slug(
                 slug=last_org_slug,
                 only_visible=False,
                 user_id=user.id,
-                include_projects=False,
-                include_teams=False,
+                include_resource_ids=False,
             )
 
     has_org_access = bool(org_context and org_context.member)
@@ -183,7 +183,7 @@ def _resolve_last_org(
 class _ClientConfig:
     def __init__(
         self,
-        request: Request | None = None,
+        request: HttpRequest | None = None,
         org_context: RpcUserOrganizationContext | None = None,
     ) -> None:
         self.request = request
@@ -239,7 +239,7 @@ class _ClientConfig:
         return _get_public_dsn()
 
     @property
-    def messages(self):
+    def messages(self) -> Iterable[Message]:
         if self.request is None:
             return []
         return get_messages(self.request)
@@ -288,8 +288,8 @@ class _ClientConfig:
         region_url = None
         if self.last_org:
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                organization_mapping = OrganizationMapping.objects.get(
-                    organization_id=self.last_org.id
+                organization_mapping = OrganizationMapping.objects.get_from_cache(
+                    organization_id=self.last_org.id, use_replica=True
                 )
                 region_url = generate_locality_url(
                     get_locality_name_for_cell(organization_mapping.cell_name)
@@ -302,14 +302,9 @@ class _ClientConfig:
         yield "sentryUrl", options.get("system.url-prefix")
 
         if self._is_superuser() and superuser.SUPERUSER_ORG_ID is not None:
-            org_context = organization_service.get_organization_by_id(
-                id=superuser.SUPERUSER_ORG_ID,
-                user_id=None,
-                include_projects=False,
-                include_teams=False,
-            )
-            if org_context and org_context.organization:
-                yield "superuserUrl", generate_organization_url(org_context.organization.slug)
+            organization = organization_service.get_org_by_id(id=superuser.SUPERUSER_ORG_ID)
+            if organization:
+                yield "superuserUrl", generate_organization_url(organization.slug)
 
     @cached_property
     def user_details(self) -> Mapping[str, Any] | None:
@@ -320,7 +315,7 @@ class _ClientConfig:
             filter={"user_ids": [self.user.id]},
             serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
-                auth=self.request.auth if self.request is not None else None,
+                auth=getattr(self.request, "auth", None) if self.request is not None else None,
                 user=serialize_generic_user(self.user),
             ),
         )
@@ -333,20 +328,6 @@ class _ClientConfig:
         if self._is_superuser():
             user_details["isSuperuser"] = self.user.is_superuser
         return user_details
-
-    @cached_property
-    def _member_locality_names(self) -> frozenset[str]:
-        # If the user is not authenticated they have no region membership
-        if not self.user or not self.user.id:
-            return frozenset()
-
-        cell_names = user_service.get_member_cell_names(user_id=self.user.id)
-        directory = get_global_directory()
-        return frozenset(
-            loc.name
-            for name in cell_names
-            if (loc := directory.get_locality_for_cell(name)) is not None
-        )
 
     @property
     def localities(self) -> list[Mapping[str, Any]]:
@@ -428,6 +409,16 @@ class _ClientConfig:
         ):
             return False
 
+        # The login pages never consume the preloaded organization data, and
+        # users are often sent there because they lack access to it (e.g. SSO
+        # re-authentication), so the requests would only fail.
+        if (
+            self.request
+            and self.request.resolver_match
+            and self.request.resolver_match.url_name in AUTH_LOGIN_URL_NAMES
+        ):
+            return False
+
         return True
 
     def get_context(self) -> Mapping[str, Any]:
@@ -498,7 +489,7 @@ class _ClientConfig:
 
 
 def get_client_config(
-    request=None, org_context: RpcUserOrganizationContext | None = None
+    request: HttpRequest | None = None, org_context: RpcUserOrganizationContext | None = None
 ) -> Mapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.

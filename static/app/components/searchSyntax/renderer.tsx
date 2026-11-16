@@ -54,7 +54,7 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
       return <NumberToken token={token} />;
 
     case Token.VALUE_BOOLEAN:
-      return <Boolean>{token.text}</Boolean>;
+      return <BooleanText>{token.text}</BooleanText>;
 
     case Token.VALUE_ISO_8601_DATE:
       return <DateTime>{token.text}</DateTime>;
@@ -263,10 +263,12 @@ function ListToken({
 }) {
   return (
     <InList>
-      {token.items.map(({value, separator}) => [
-        <ListComma key="comma">{separator}</ListComma>,
-        value && renderToken(value, cursor),
-      ])}
+      {token.items.map(({value, separator}, i) => (
+        <Fragment key={i}>
+          <ListComma>{separator}</ListComma>
+          {value && renderToken(value, cursor)}
+        </Fragment>
+      ))}
     </InList>
   );
 }
@@ -438,7 +440,7 @@ const LogicBoolean = styled('span')<{invalid: boolean}>`
   ${p => p.invalid && `color: ${p.theme.colors.red500}`}
 `;
 
-const Boolean = styled('span')`
+const BooleanText = styled('span')`
   color: ${p => p.theme.colors.pink500};
 `;
 

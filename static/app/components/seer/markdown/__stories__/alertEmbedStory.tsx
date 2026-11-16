@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 import {EmbedStory, EmbedVariant} from './embedStory';
@@ -21,17 +20,6 @@ const STORY_DETECTOR_ALERTS = [
   label: string;
   type: Detector['type'];
 }>;
-
-function issueAlertApiOptions(organizationSlug: string, issueAlertId?: string) {
-  return apiOptions.as<Automation[]>()(
-    '/organizations/$organizationIdOrSlug/workflows/',
-    {
-      path: issueAlertId ? {organizationIdOrSlug: organizationSlug} : skipToken,
-      query: {id: issueAlertId ? [issueAlertId] : undefined, per_page: 1},
-      staleTime: 0,
-    }
-  );
-}
 
 export function AlertEmbedStory() {
   const organization = useOrganization();
@@ -53,8 +41,11 @@ export function AlertEmbedStory() {
     detector => detector.workflowIds.length > 0
   )?.workflowIds[0];
   const automationQuery = useQuery({
-    ...issueAlertApiOptions(organization.slug, issueAlertId),
-    retry: false,
+    ...automationsApiOptions(organization, {
+      ids: issueAlertId ? [issueAlertId] : undefined,
+      limit: 1,
+    }),
+    enabled: Boolean(issueAlertId),
   });
   const issueAlert = automationQuery.data?.find(
     automation => automation.id === issueAlertId

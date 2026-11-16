@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
-import {FeatureTourModal} from 'sentry/components/modals/featureTourModal';
+import {FeatureTourModal} from './featureTourModal';
 
 const steps = [
   {

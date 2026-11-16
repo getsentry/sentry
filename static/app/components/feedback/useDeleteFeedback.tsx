@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import {toast} from '@sentry/scraps/toast';
+
 import {bulkDelete} from 'sentry/actionCreators/group';
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
-import {useRefetchFeedbackList} from 'sentry/components/feedback/list/useRefetchFeedbackList';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -11,6 +11,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
+
+import {useRefetchFeedbackList} from './list/useRefetchFeedbackList';
 
 export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   const organization = useOrganization();
@@ -25,7 +27,7 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   return useCallback(() => {
     openConfirmModal({
       onConfirm: async () => {
-        addLoadingMessage(t('Updating feedback...'));
+        toast.loading(t('Updating feedback...'));
         try {
           await bulkDelete(api, {
             orgId: organization.slug,

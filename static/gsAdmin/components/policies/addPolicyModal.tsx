@@ -1,4 +1,5 @@
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {PolicyFormModal} from 'admin/components/policies/policyFormModal';

@@ -1,6 +1,6 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import Papa from 'papaparse';
 
@@ -8,17 +8,17 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategoryExact} from 'sentry/types/core';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getCells} from 'sentry/utils/cells';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -38,6 +38,9 @@ const GIFTABLE_CATEGORIES = new Set([
   'log_byte',
   'seer_user',
   'trace_metric_byte',
+  'monitor_seat',
+  'uptime',
+  'size_analysis',
 ]);
 
 const MAX_BILLING_PERIODS = 60;
@@ -150,9 +153,8 @@ export function GiftRecurringCredits() {
   const userPermissions = ConfigStore.get('user')?.permissions;
   const hasBillingAdmin = !!userPermissions?.has?.('billing.admin');
 
-  const {data: billingConfig} = useApiQuery<BillingConfig>(
-    [getApiUrl('/billing-config/')],
-    {staleTime: Infinity}
+  const {data: billingConfig} = useQuery(
+    apiOptions.as<BillingConfig>()('/billing-config/', {staleTime: Infinity})
   );
 
   const categoryOptions = useMemo(() => {
@@ -256,7 +258,7 @@ export function GiftRecurringCredits() {
       // that stale file would be the one POSTed.
       setCsvFile(null);
       setCsvFileName(null);
-      addErrorMessage('Please upload a .csv file.');
+      toast.error('Please upload a .csv file.');
       return;
     }
     setCsvFile(file);
@@ -302,11 +304,11 @@ export function GiftRecurringCredits() {
       setResultsCategory(response.category);
       const errors = response.results.filter(row => row.status === 'error').length;
       if (errors > 0) {
-        addErrorMessage(
+        toast.error(
           `Gifting finished: ${errors} of ${response.results.length} orgs failed.`
         );
       } else {
-        addSuccessMessage(`Gifted recurring credits to ${response.results.length} orgs.`);
+        toast.success(`Gifted recurring credits to ${response.results.length} orgs.`);
       }
     },
     onError: (error: unknown) => {
@@ -322,7 +324,7 @@ export function GiftRecurringCredits() {
           detail = error.responseJSON.detail;
         }
       }
-      addErrorMessage(detail ?? 'Gift recurring credits request failed.');
+      toast.error(detail ?? 'Gift recurring credits request failed.');
     },
   });
 
@@ -466,7 +468,7 @@ export function GiftRecurringCredits() {
           onChange={e => setOrgTokens(e.target.value)}
           placeholder={'12345\nacme-corp'}
         />
-        <UploadRow>
+        <Flex align="center" gap="md">
           <UploadInput
             name="csv"
             type="file"
@@ -503,7 +505,7 @@ export function GiftRecurringCredits() {
               wins when both are set).
             </UploadHint>
           )}
-        </UploadRow>
+        </Flex>
         <Button
           variant="primary"
           type="submit"
@@ -514,7 +516,7 @@ export function GiftRecurringCredits() {
         </Button>
       </Column>
       {results && (
-        <ResultsSection data-test-id="results">
+        <Container marginTop="xl" data-test-id="results">
           <h4>Results</h4>
           {notInRegionOrgs.length > 0 && (
             <Alert.Container>
@@ -577,7 +579,7 @@ export function GiftRecurringCredits() {
               })}
             </tbody>
           </ResultsTable>
-        </ResultsSection>
+        </Container>
       )}
     </div>
   );
@@ -655,18 +657,8 @@ const UploadInput = styled('input')`
   opacity: 0;
 `;
 
-const UploadRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-`;
-
 const UploadHint = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const ResultsSection = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
 `;
 
 const ResultsTable = styled('table')`

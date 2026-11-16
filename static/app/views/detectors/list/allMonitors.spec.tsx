@@ -23,11 +23,12 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import AllMonitors from 'sentry/views/detectors/list/allMonitors';
 import {
   LLM_CONTEXT_MAX_ROWS,
   useLLMContext,
 } from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import AllMonitors from './allMonitors';
 
 describe('DetectorsList', () => {
   const organization = OrganizationFixture({
@@ -241,6 +242,28 @@ describe('DetectorsList', () => {
 
       await screen.findByText('Assigned Detector');
       expect(mockDetectorsRequestAssignee).toHaveBeenCalled();
+    });
+
+    it('pushes the query without the cursor when searching', async () => {
+      const {router} = render(<AllMonitors />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/monitors/', query: {cursor: '0:25:0', sort: 'name'}},
+        },
+      });
+      await screen.findByText('Detector 1');
+
+      await userEvent.type(
+        await screen.findByRole('combobox', {name: 'Add a search term'}),
+        'assignee:test@example.com{enter}'
+      );
+      await waitFor(() =>
+        expect(router.location.query).toEqual({
+          query: 'assignee:test@example.com',
+          sort: 'name',
+        })
+      );
+      expect(router.historyAction).toBe('PUSH');
     });
 
     it('can sort the table', async () => {

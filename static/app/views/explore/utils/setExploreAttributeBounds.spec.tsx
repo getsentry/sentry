@@ -1,4 +1,4 @@
-import {setExploreAttributeBounds} from 'sentry/views/explore/utils/setExploreAttributeBounds';
+import {setExploreAttributeBounds} from './setExploreAttributeBounds';
 
 describe('setExploreAttributeBounds', () => {
   it('sets a range when there is no existing query', () => {

@@ -1,10 +1,11 @@
 import {createStore} from 'reflux';
 
-import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
-import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {PageFilters, PinnedPageFilter, PageFilterDatetime} from 'sentry/types/core';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
+
+import type {PageFilterAdjustments} from './adjustments';
+import {getDefaultPageFilterSelection} from './constants';
 
 function datetimeHasSameValue(a: PageFilterDatetime, b: PageFilterDatetime): boolean {
   if (Object.keys(a).length !== Object.keys(b).length) {

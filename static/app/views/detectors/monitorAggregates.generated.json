@@ -1,0 +1,37 @@
+{
+  "spans": [
+    "count",
+    "count_unique",
+    "avg",
+    "p50",
+    "p75",
+    "p90",
+    "p95",
+    "p99",
+    "p100",
+    "max",
+    "min",
+    "sum",
+    "epm",
+    "failure_count",
+    "failure_rate",
+    "eps",
+    "apdex",
+    "user_misery",
+    "performance_score",
+    "opportunity_score"
+  ],
+  "logs": [
+    "count",
+    "count_unique",
+    "avg",
+    "p50",
+    "p75",
+    "p90",
+    "p95",
+    "p99",
+    "max",
+    "min",
+    "sum"
+  ]
+}

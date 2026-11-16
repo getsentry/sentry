@@ -1,15 +1,18 @@
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 
 
 class InCommitResult(TypedDict):
-    commit: str
-    repository: str
+    commit: Annotated[str, ApiDescription("SHA of the resolving commit")]
+    repository: Annotated[
+        str, ApiDescription("Name of the repository the commit belongs to, as it appears in Sentry")
+    ]
 
 
 @extend_schema_serializer()

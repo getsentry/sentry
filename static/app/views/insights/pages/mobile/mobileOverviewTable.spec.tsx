@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {MobileOverviewTable} from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
-import {DEFAULT_SORT} from 'sentry/views/insights/pages/mobile/settings';
+import {MobileOverviewTable} from './mobileOverviewTable';
+import {DEFAULT_SORT} from './settings';
 
 const EMPTY_RESPONSE = {
   data: [],

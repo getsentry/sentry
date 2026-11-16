@@ -1,4 +1,5 @@
 import unittest
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,6 +12,7 @@ from sentry.core.endpoints.scim.utils import SCIMFilterError, parse_filter_condi
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase, SCIMAzureTestCase, SCIMTestCase
@@ -32,7 +34,7 @@ CREATE_USER_POST_DATA = {
 }
 
 
-def generate_put_data(member: OrganizationMember, role: str = "") -> dict:
+def generate_put_data(member: OrganizationMember, role: str = "") -> dict[str, Any]:
     put_data = CREATE_USER_POST_DATA.copy()
     put_data["userName"] = member.email
     put_data["sentryOrgRole"] = role
@@ -389,6 +391,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -416,6 +419,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             flags=OrganizationMember.flags["partnership:restricted"],
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -432,6 +436,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -457,6 +462,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -482,6 +488,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -507,6 +514,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -523,6 +531,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -549,6 +558,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
     def test_delete_route(self) -> None:
         member = self.create_member(user=self.create_user(), organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -570,6 +580,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             flags=OrganizationMember.flags["partnership:restricted"],
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -708,6 +719,118 @@ class SCIMMemberDetailsTests(SCIMTestCase):
     # TODO: test patch with bad op
 
 
+class SCIMMemberCredentialTests(SCIMTestCase):
+    """SCIM accepts only the organization's SCIM integration, not other org credentials."""
+
+    endpoint = "sentry-api-0-organization-scim-member-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # A second Owner, so removing one is not blocked by the only-owner guard.
+        self.owner = self.create_member(
+            user=self.create_user(), organization=self.organization, role="owner"
+        )
+        self.manager = self.create_user()
+        self.manager_member = self.create_member(
+            user=self.manager,
+            organization=self.organization,
+            role="manager",
+            flags=OrganizationMember.flags["sso:linked"],
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthIdentity.objects.create(
+                user_id=self.manager.id,
+                auth_provider=self.auth_provider_inst,
+                ident="manager_ident",
+            )
+
+    def _bearer_get(self, token: str) -> Any:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        url = reverse(self.endpoint, args=[self.organization.slug, self.owner.id])
+        return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    def test_scim_token(self) -> None:
+        token = self.auth_provider_inst.get_scim_token()
+        assert token is not None
+        response = self._bearer_get(token)
+        assert response.status_code == 200, response.content
+
+    def test_additional_scim_integration_token(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            install = SentryAppInstallation.objects.get(
+                sentryappinstallationforprovider__organization_id=self.organization.id,
+                sentryappinstallationforprovider__provider=f"{self.provider}_scim",
+            )
+        token = self.create_internal_integration_token(user=self.user, install=install)
+        response = self._bearer_get(token.token)
+        assert response.status_code == 200, response.content
+
+    def test_rejects_user_auth_token(self) -> None:
+        token = self.create_user_auth_token(
+            user=self.manager, scope_list=["member:read", "member:write", "member:admin"]
+        )
+        response = self._bearer_get(token.token)
+        assert response.status_code == 403, response.content
+
+    def test_rejects_other_internal_integration_token(self) -> None:
+        other_app = self.create_internal_integration(
+            organization=self.organization,
+            scopes=("member:read", "member:write", "member:admin"),
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=other_app
+        )
+        response = self._bearer_get(token.token)
+        assert response.status_code == 403, response.content
+
+    def test_rejects_manager_session_delete(self) -> None:
+        self.login_as(user=self.manager, organization_id=self.organization.id)
+        self.get_error_response(
+            self.organization.slug, self.owner.id, method="delete", status_code=403
+        )
+        assert OrganizationMember.objects.filter(id=self.owner.id).exists()
+
+    def test_rejects_manager_session_deactivate(self) -> None:
+        self.login_as(user=self.manager, organization_id=self.organization.id)
+        patch_req = {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [{"op": "replace", "value": {"active": False}}],
+        }
+        self.get_error_response(
+            self.organization.slug,
+            self.owner.id,
+            raw_data=patch_req,
+            method="patch",
+            status_code=403,
+        )
+        assert OrganizationMember.objects.filter(id=self.owner.id).exists()
+
+    def test_rejects_manager_session_role_change(self) -> None:
+        self.login_as(user=self.manager, organization_id=self.organization.id)
+        self.get_error_response(
+            self.organization.slug,
+            self.manager_member.id,
+            method="put",
+            status_code=403,
+            **generate_put_data(self.manager_member, role="admin"),
+        )
+        self.manager_member.refresh_from_db()
+        assert self.manager_member.role == "manager"
+
+    def test_rejects_owner_session(self) -> None:
+        self.login_as(user=self.user, organization_id=self.organization.id)
+        self.get_error_response(
+            self.organization.slug,
+            self.manager_member.id,
+            method="put",
+            status_code=403,
+            **generate_put_data(self.manager_member, role="member"),
+        )
+        self.manager_member.refresh_from_db()
+        assert self.manager_member.role == "manager"
+
+
 class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
     endpoint = "sentry-api-0-organization-scim-member-details"
 
@@ -737,7 +860,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
 
     @patch("sentry.core.endpoints.scim.members.user_service")
     def test_delete_superuser_in_saas_default_org_revokes_privileges_and_deletes_membership(
-        self, mock_user_service
+        self, mock_user_service: MagicMock
     ) -> None:
         """
         In SaaS mode with default org, deleting a superuser should revoke
@@ -747,6 +870,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
         member = self.create_member(user=superuser, organization=self.organization)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -776,7 +900,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
 
     @patch("sentry.core.endpoints.scim.members.user_service")
     def test_delete_staff_in_saas_default_org_revokes_privileges_and_deletes_membership(
-        self, mock_user_service
+        self, mock_user_service: MagicMock
     ) -> None:
         """
         In SaaS mode with default org, deleting a staff member should revoke
@@ -786,6 +910,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
         member = self.create_member(user=staff_user, organization=self.organization)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -815,7 +940,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
 
     @patch("sentry.core.endpoints.scim.members.user_service")
     def test_delete_user_with_both_privileges_in_saas_default_org_revokes_both_and_deletes_membership(
-        self, mock_user_service
+        self, mock_user_service: MagicMock
     ) -> None:
         """
         In SaaS mode with default org, deleting a user with both superuser and
@@ -825,6 +950,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
         member = self.create_member(user=admin_user, organization=self.organization)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -870,7 +996,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
 
     @patch("sentry.core.endpoints.scim.members.user_service")
     def test_patch_inactive_superuser_in_saas_default_org_revokes_privileges_and_deletes_membership(
-        self, mock_user_service
+        self, mock_user_service: MagicMock
     ) -> None:
         """
         In SaaS mode with default org, PATCH with active=false for a superuser
@@ -880,6 +1006,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
         member = self.create_member(user=superuser, organization=self.organization)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
@@ -916,7 +1043,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
 
     @patch("sentry.core.endpoints.scim.members.user_service")
     def test_patch_inactive_staff_in_saas_default_org_revokes_privileges_and_deletes_membership(
-        self, mock_user_service
+        self, mock_user_service: MagicMock
     ) -> None:
         """
         In SaaS mode with default org, PATCH with active=false for a staff member
@@ -926,6 +1053,7 @@ class SCIMMemberSaasPrivilegeRevocationTests(SCIMTestCase):
         member = self.create_member(user=staff_user, organization=self.organization)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert member.user_id is not None
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )

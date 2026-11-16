@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {IconSearch} from '@sentry/icons/search';
 import type {IconVariant} from '@sentry/icons/svgIcon';
 
-import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {EmptyMessage} from './emptyMessage';
 
 /**
  * @deprecated Use `EmptyState` from `@sentry/scraps/emptyState` instead.

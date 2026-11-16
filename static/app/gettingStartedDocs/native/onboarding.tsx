@@ -8,9 +8,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
-import {logsVerify} from 'sentry/gettingStartedDocs/native/logs';
-import {getVerifySnippet} from 'sentry/gettingStartedDocs/native/utils';
 import {t, tct} from 'sentry/locale';
+
+import {logsVerify} from './logs';
+import {getVerifySnippet} from './utils';
 
 const getConfigureSnippet = (params: DocsParams) => `
 #include <sentry.h>

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from random import choice, randint
-from typing import Any
+from typing import Any, TypeVar
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID, uuid4
 
@@ -109,7 +109,10 @@ def _get_field_value(json: Any, field: SanitizableField) -> Any | None:
     return json.get("fields", {}).get(field.field, None)
 
 
-def _set_field_value(json: Any, field: SanitizableField, value: Any) -> Any:
+_T = TypeVar("_T")
+
+
+def _set_field_value(json: Any, field: SanitizableField, value: _T) -> _T:
     json.get("fields", {})[field.field] = value
     return value
 

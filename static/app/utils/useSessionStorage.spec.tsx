@@ -1,7 +1,6 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-
+import {sessionStorageWrapper} from './sessionStorage';
 import {useSessionStorage} from './useSessionStorage';
 
 describe('useSessionStorage', () => {

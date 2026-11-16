@@ -1,5 +1,5 @@
-import {useProjects} from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
+import {useProjects} from './useProjects';
+import {useUser} from './useUser';
 
 type Options = {
   /**

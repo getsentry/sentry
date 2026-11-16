@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 import {type AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
+import {hasValidContent} from 'sentry/views/seerExplorer/components/chat/shared';
 
 export function WorkingIndicator({
   blocks,
@@ -34,11 +35,14 @@ export function WorkingIndicator({
           return null;
         }
 
-        if (block.message.content && block.message.content !== 'Thinking...') {
+        if (
+          hasValidContent(block.message.content) &&
+          block.message.content !== 'Thinking...'
+        ) {
           return <Markdown key={block.id} raw={block.message.content} />;
         }
 
-        if (block.message.thinking_content) {
+        if (hasValidContent(block.message.thinking_content)) {
           return <Markdown key={block.id} raw={block.message.thinking_content} />;
         }
 

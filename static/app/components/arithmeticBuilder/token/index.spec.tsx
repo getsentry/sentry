@@ -10,7 +10,6 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import type {ArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
@@ -20,13 +19,10 @@ import {
   Parenthesis,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {
-  findNearestRow,
-  resolvePaddingClickRow,
-  TokenGrid,
-} from 'sentry/components/arithmeticBuilder/token/grid';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {FieldKind, getExploreEquationFieldDefinition} from 'sentry/utils/fields';
+
+import {findNearestRow, resolvePaddingClickRow, TokenGrid} from './grid';
 
 const aggregations = ['avg', 'avg_if', 'sum', 'epm', 'count', 'count_unique', 'count_if'];
 
@@ -1739,18 +1735,7 @@ describe('token', () => {
       });
       expect(freeTextInputs).toHaveLength(3);
 
-      const middleFreeTextRow = freeTextInputs[1]!.closest('[role="row"]');
-      if (!(middleFreeTextRow instanceof HTMLElement)) {
-        throw new Error('Expected mid-expression free text row');
-      }
-      const middleRules = getEmotionRules(middleFreeTextRow).join(' ');
-      // Collapsed mid gaps must keep a hit target (leading stays 0 to avoid wrap).
-      // getComputedStyle is stubbed in tests, so assert the emotion rules instead.
-      expect(middleRules).toMatch(/:not\(:first-child\):not\(:last-child\)/);
-      expect(middleRules).toMatch(/min-width:\s*9px/);
-
-      // Click the mid gap (regression: a zero-width spacer made this impossible),
-      // then restore the operator through that free-text input.
+      // Restore the operator through the mid-expression free-text input.
       await userEvent.click(freeTextInputs[1]!);
       expect(freeTextInputs[1]).toHaveFocus();
       await userEvent.type(freeTextInputs[1]!, '+', {skipClick: true});

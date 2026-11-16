@@ -3,12 +3,13 @@ import {IconCopy} from '@sentry/icons/copy';
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {useTabSelectionsMap} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
-import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {stepsToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+import {useAuthToken} from './authTokenGenerator';
+import {useTabSelectionsMap} from './selectedCodeTabContext';
+import type {OnboardingStep} from './types';
 
 interface CopyMarkdownButtonProps {
   getMarkdown: () => string;

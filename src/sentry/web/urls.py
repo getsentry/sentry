@@ -5,12 +5,16 @@ import re
 from django.conf import settings
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_safe
 from django.views.generic import RedirectView
 
+from sentry.agent_handoff.views import AgentHandoffView
 from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
+from sentry.conf.api_base_path import API_BASE_PATH
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.feedback.endpoints.error_page_embed import ErrorPageEmbedView
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
@@ -38,8 +42,6 @@ from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
-from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
-from sentry.web.frontend.oauth_device import OAuthDeviceView
 from sentry.web.frontend.oauth_device_authorization import OAuthDeviceAuthorizationView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
@@ -63,6 +65,9 @@ from social_auth.views import complete
 
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
+public_oauth_react_page_view = never_cache(
+    require_safe(GenericReactPageView.as_view(auth_required=False))
+)
 react_page_view = ReactPageView.as_view()
 
 urlpatterns: list[URLResolver | URLPattern] = [
@@ -168,6 +173,9 @@ urlpatterns += [
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
     ),
+    re_path(r"^agent-handoff\.md$", AgentHandoffView.as_view(), name="sentry-agent-handoff"),
+    # Prompts copied before the .md URL still point here.
+    re_path(r"^agent-handoff/$", AgentHandoffView.as_view(), name="sentry-agent-handoff-legacy"),
     # docs reference this for acquiring the sentry cli
     re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
     re_path(
@@ -176,8 +184,10 @@ urlpatterns += [
         name="get_cli_download_url",
     ),
     # Versioned API
+    # A regex route, not path(): route strings such as "^api/0/users/$" feed analytics and
+    # generated silo URL lists.
     re_path(
-        r"^api/0/",
+        rf"^{re.escape(API_BASE_PATH.removeprefix('/'))}/",
         include("sentry.api.urls"),
     ),
     # Legacy unversioned endpoints
@@ -203,7 +213,7 @@ urlpatterns += [
             [
                 re_path(
                     r"^authorize/$",
-                    OAuthAuthorizeView.as_view(),
+                    public_oauth_react_page_view,
                     name="sentry-oauth-authorize",
                 ),
                 re_path(
@@ -224,7 +234,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^device/$",
-                    OAuthDeviceView.as_view(),
+                    public_oauth_react_page_view,
                     name="sentry-oauth-device",
                 ),
             ]
@@ -842,6 +852,12 @@ urlpatterns += [
         react_page_view,
         name="issues",
     ),
+    # Inbox
+    re_path(
+        r"^inbox/",
+        react_page_view,
+        name="inbox",
+    ),
     # Alerts
     re_path(
         r"^alerts/",
@@ -871,6 +887,12 @@ urlpatterns += [
         r"^explore/",
         react_page_view,
         name="explore",
+    ),
+    # Seer
+    re_path(
+        r"^seer/",
+        react_page_view,
+        name="seer",
     ),
     # Traces
     re_path(

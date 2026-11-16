@@ -147,6 +147,25 @@ class OrganizationsListTest(OrganizationIndexTest):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org1.id)
 
+    def test_internal_integration_token_returns_installing_organization(self) -> None:
+        org = self.create_organization(owner=self.user)
+        self.create_organization(owner=self.user)
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=org, scopes=["org:read"]
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        response = self.client.get(reverse(self.endpoint))
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data] == [str(org.id)]
+
+        response = self.client.get(reverse(self.endpoint), {"member": 1})
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data] == [str(org.id)]
+
 
 @control_silo_test(cells=create_test_cells("us", "de"))
 class OrganizationsControlListTest(OrganizationIndexTest):
@@ -175,6 +194,25 @@ class OrganizationsControlListTest(OrganizationIndexTest):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org1.id)
+
+    def test_internal_integration_token_returns_installing_organization(self) -> None:
+        org = self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=org, scopes=["org:read"]
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        response = self.client.get(reverse(self.endpoint))
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data] == [str(org.id)]
+
+        response = self.client.get(reverse(self.endpoint), {"member": 1})
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data] == [str(org.id)]
 
     def test_ownership_across_cells(self) -> None:
         org_a = self.create_organization(cell="us", name="A", owner=self.user)
@@ -413,23 +451,6 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             data = {"name": "Denied co", "slug": "denied", "dataStorageLocation": "moon"}
             resp = self.get_error_response(**data)
             assert resp.status_code == 400, "Staff cannot create orgs in invalid locales"
-
-    @override_options(
-        {
-            "provision_organization.override.rate": 1.0,
-            "provision_organization.override.mapping": {"us": "de"},
-        }
-    )
-    def test_locality_to_cell_overrides(self) -> None:
-        # When these options are active we can redirect one storage location to another.
-        response = self.get_success_response(
-            name="implicit org", slug="implicit-org", dataStorageLocation="us"
-        )
-
-        organization_id = response.data["id"]
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            mapping = OrganizationMapping.objects.get(organization_id=organization_id)
-        assert mapping.cell_name == "de"
 
     def test_invalid_slug_values(self) -> None:
         with self.options({"api.rate-limit.org-create": 9001}):
@@ -812,9 +833,9 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.no_2fa_user = self.create_user()
         self.create_member(organization=self.org_2fa, user=self.no_2fa_user, role="member")
 
-    def assert_redirected_to_2fa(self):
+    def assert_redirected_to_2fa(self) -> None:
         response = self.get_success_response(self.org_2fa.slug, status_code=302)
-        assert self.path_2fa in response.url
+        assert self.path_2fa in response.headers["Location"]
 
     def test_preexisting_members_must_enable_2fa(self) -> None:
         self.login_as(self.no_2fa_user)
@@ -855,7 +876,7 @@ class OrganizationIndexMemberLimitTest(APITestCase):
     # This is a react view, not an API endpoint
     endpoint = "sentry-organization-index"
 
-    def setup_user(self, is_superuser=False):
+    def setup_user(self, is_superuser: bool = False) -> None:
         self.organization = self.create_organization()
         self.user = self.create_user(is_superuser=is_superuser)
         self.create_member(
@@ -869,7 +890,10 @@ class OrganizationIndexMemberLimitTest(APITestCase):
     def test_member_limit_redirect(self) -> None:
         self.setup_user()
         response = self.get_success_response(self.organization.slug, status_code=302)
-        assert f"/organizations/{self.organization.slug}/disabled-member/" in response.url
+        assert (
+            f"/organizations/{self.organization.slug}/disabled-member/"
+            in response.headers["Location"]
+        )
 
     def test_member_limit_superuser_no_redirect(self) -> None:
         self.setup_user(is_superuser=True)

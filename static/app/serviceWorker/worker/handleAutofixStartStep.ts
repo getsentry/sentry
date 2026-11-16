@@ -1,6 +1,7 @@
-import {workerFetch} from 'sentry/serviceWorker/worker/fetch';
-import {showNotification} from 'sentry/serviceWorker/worker/showNotification';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
+import {workerFetch} from './fetch';
+import {showNotification} from './showNotification';
 
 // Clone of sentry/components/events/autofix/useExplorerAutofix
 type AutofixExplorerStep = 'root_cause' | 'solution' | 'code_changes' | 'pr_iteration';

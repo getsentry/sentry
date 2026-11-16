@@ -1,4 +1,4 @@
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
@@ -7,6 +7,7 @@ from rest_framework import serializers
 
 from sentry import newsletter
 from sentry.auth import password_validation
+from sentry.auth.email import ascii_casefold
 from sentry.users.models.user import User
 from sentry.utils.dates import get_timezone_choices
 from sentry.utils.email.address import is_valid_email_address
@@ -23,13 +24,19 @@ class RegistrationRequest(TypedDict):
     timezone: NotRequired[str]
 
 
-class AuthVerifyValidator(serializers.Serializer):
+class AuthVerifyRequest(TypedDict, total=False):
+    password: str
+    challenge: str
+    response: str
+
+
+class AuthVerifyValidator(serializers.Serializer[AuthVerifyRequest]):
     password = serializers.CharField(required=False, trim_whitespace=False)
     # For u2f
     challenge = serializers.CharField(required=False, trim_whitespace=False)
     response = serializers.CharField(required=False, trim_whitespace=False)
 
-    def validate(self, data):
+    def validate(self, data: AuthVerifyRequest) -> AuthVerifyRequest:
         if "password" in data:
             return data
         if "challenge" in data and "response" in data:
@@ -49,7 +56,7 @@ class RegistrationValidator(serializers.Serializer[RegistrationRequest]):
         choices=get_timezone_choices(), required=False, allow_blank=True
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         if not newsletter.backend.is_enabled():
             self.fields.pop("subscribe")
@@ -57,11 +64,14 @@ class RegistrationValidator(serializers.Serializer[RegistrationRequest]):
     def validate_email(self, value: str) -> str:
         if not is_valid_email_address(value):
             raise serializers.ValidationError(_("Enter a valid email address."))
+        # Only ASCII case differences make two addresses the same, but login
+        # looks users up with username__iexact (Postgres UPPER()), so registration must
+        # also reject addresses that UPPER() folds onto an existing user
         if User.objects.filter(
             Q(username__iexact=value) | Q(email__iexact=value) | Q(email_unique__iexact=value)
         ).exists():
             raise serializers.ValidationError(EMAIL_ALREADY_REGISTERED)
-        return value.lower()
+        return ascii_casefold(value)
 
     def validate(self, data: RegistrationRequest) -> RegistrationRequest:
         try:

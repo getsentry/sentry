@@ -4,8 +4,9 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {useWidgetBuilderTraceItemConfig} from './useWidgetBuilderTraceItemConfig';
 
 describe('useWidgetBuilderTraceItemConfig', () => {
   afterEach(() => {

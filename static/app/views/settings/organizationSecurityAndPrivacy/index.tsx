@@ -1,4 +1,4 @@
-import {mutationOptions, useMutation} from '@tanstack/react-query';
+import {mutationOptions, useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -11,8 +11,8 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -20,13 +20,14 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   formatStoreCrashReports,
   getStoreCrashReportsValues,
   SettingScope,
 } from 'sentry/utils/crashReports';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy/index';
@@ -74,13 +75,11 @@ export default function OrganizationSecurityAndPrivacyContent() {
   const organization = useOrganization();
   const orgMutationOptions = getOrgMutationOptions(organization);
 
-  const {data: authProvider} = useApiQuery<AuthProvider>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/auth-provider/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {staleTime: Infinity}
+  const {data: authProvider} = useQuery(
+    apiOptions.as<AuthProvider>()('/organizations/$organizationIdOrSlug/auth-provider/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: Infinity,
+    })
   );
 
   const features = new Set(organization.features);
@@ -417,10 +416,10 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
         })
         .then(() => {
           scrubbingConfiguration.reset();
-          addSuccessMessage(t('Scrubbing configuration updated'));
+          toast.success(t('Scrubbing configuration updated'));
         })
         .catch(() => {
-          addErrorMessage(t('Unable to save change'));
+          toast.error(t('Unable to save change'));
         }),
   });
 

@@ -46,7 +46,7 @@ class LayoutSerializer(serializers.Serializer):
     - `ssqp` - Microsoft SSQP
     - `unified` - Unified Symbol Server Layout
     - `debuginfod` - debuginfod
-    - `nxsymstore` - Nintendo NXSymStore
+    - `nnsymstore` - Nintendo Symbol Store
 
     **`casing`** ***(string)*** - The layout of the folder structure. The options are:
     - `default` - Default (mixed case)
@@ -228,7 +228,7 @@ class SourceSerializer(serializers.Serializer):
         help_text="The Microsoft Entra client secret. Required for Azure sources, invalid for all others.",
     )
 
-    def validate(self, data):
+    def validate(self, data: dict[str, object]) -> dict[str, object]:
         if data["type"] == "http":
             required = ["type", "name", "url", "layout"]
             allowed = required + ["username", "password"]
@@ -297,6 +297,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="listProjectSymbolSources",

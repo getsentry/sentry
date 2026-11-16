@@ -10,10 +10,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useApi} from 'sentry/utils/useApi';
-import {
-  PERFORMANCE_WIDGET_CONTAINERS,
-  type PerformanceWidgetContainerTypes,
-} from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 import type {
   GenericPerformanceWidgetProps,
   WidgetDataConstraint,
@@ -24,6 +20,10 @@ import type {
 import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 import {DataStateSwitch} from './dataStateSwitch';
+import {
+  PERFORMANCE_WIDGET_CONTAINERS,
+  type PerformanceWidgetContainerTypes,
+} from './performanceWidgetContainer';
 import {QueryHandler} from './queryHandler';
 import {WidgetHeader} from './widgetHeader';
 

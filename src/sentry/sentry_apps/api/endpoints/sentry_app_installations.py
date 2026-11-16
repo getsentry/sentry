@@ -73,7 +73,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             ),
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         serializer = SentryAppInstallationsSerializer(data=request.data)
 
         if not serializer.is_valid():
