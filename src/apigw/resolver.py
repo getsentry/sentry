@@ -22,7 +22,7 @@ class Resolver(Extension):
         self.rr: dict[str, Any] = defaultdict(itertools.count)
 
     @listen_signal(Signals.after_loop)
-    def _init_pool(self, loop: Any) -> None:
+    def _init_pool(self, loop: asyncio.AbstractEventLoop) -> None:
         self._resolve = loop.getaddrinfo
         for addr in self.config.addrs:
             try:
