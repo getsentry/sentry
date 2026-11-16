@@ -12,6 +12,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
+from sentry.apidocs.constants import RESPONSE_NOT_FOUND
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.utils import DEVICE_CLASS
@@ -38,7 +39,8 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationEventsFacetsResponse", list[_KeyTopValues]
-            )
+            ),
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(self, request: Request, organization: Organization) -> Response:

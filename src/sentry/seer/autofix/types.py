@@ -18,9 +18,15 @@ class GithubAppPermissionsWarning(BaseModel):
     installation_url: str | None = None
 
 
+class PrIterationOutOfCreditsWarning(BaseModel):
+    """PR iteration stopped when the organization ran out of credits."""
+
+    warning_type: Literal["pr_iteration_out_of_credits"] = "pr_iteration_out_of_credits"
+
+
 # Discriminated on `warning_type`; add new warning models to this union.
 AutofixWarning = Annotated[
-    Union[GithubAppPermissionsWarning],
+    Union[GithubAppPermissionsWarning, PrIterationOutOfCreditsWarning],
     Field(discriminator="warning_type"),
 ]
 

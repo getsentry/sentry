@@ -638,6 +638,91 @@ describe('ExploreCharts', () => {
       expect(single).toBeEnabled();
     });
 
+    it('hides the heatmap chart type without explore-dev-features', async () => {
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['count(span.duration)']}]}
+        />,
+        {
+          organization: OrganizationFixture(),
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
+      expect(screen.getByRole('option', {name: 'Line'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Heatmap'})).not.toBeInTheDocument();
+    });
+
+    it('defaults count to a heatmap', async () => {
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['count(span.duration)']}]}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
+      expect(screen.getByRole('option', {name: 'Heatmap'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
+    it('switches count back to a heatmap', async () => {
+      const onSetVisualizes = jest.fn();
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['count(span.duration)'], chartType: ChartType.BAR},
+          ]}
+          onSetVisualizes={onSetVisualizes}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Heatmap'}));
+
+      expect(onSetVisualizes).toHaveBeenLastCalledWith([
+        {yAxes: ['count(span.duration)'], chartType: ChartType.HEATMAP},
+      ]);
+    });
+
+    it('disables the heatmap chart type for percentiles', async () => {
+      render(
+        <ControlledExploreCharts initialVisualizes={[{yAxes: ['p75(span.duration)']}]} />,
+        {
+          organization: OrganizationFixture({features: ['explore-dev-features']}),
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
+      expect(screen.getByRole('option', {name: 'Heatmap'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('draws unsupported heatmaps as line charts', async () => {
+      const useChartInfosPlottables = jest.spyOn(
+        chartVisualization,
+        'useChartInfosPlottables'
+      );
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['p75(span.duration)'], chartType: ChartType.HEATMAP},
+          ]}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
+      const chartInfos = useChartInfosPlottables.mock.lastCall![0];
+      expect(chartInfos.map(info => info.chartType)).toEqual([ChartType.LINE]);
+      useChartInfosPlottables.mockRestore();
+    });
+
     it('keeps the aggregates together when the chart is collapsed', async () => {
       const onSetVisualizes = jest.fn();
       render(

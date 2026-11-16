@@ -121,6 +121,43 @@ class OAuthTokenCodeTest(TestCase):
         assert data["token_type"] == "Bearer"
         assert "no-store" in resp["Cache-Control"]
 
+    def test_outbox_flush_failure_returns_token(self) -> None:
+        """A failed replication flush still returns the committed token."""
+        self.login_as(self.user)
+
+        with patch.object(
+            ApiToken, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "authorization_code",
+                    "redirect_uri": self.application.get_default_redirect_uri(),
+                    "code": self.grant.code,
+                    "client_id": self.application.client_id,
+                    "client_secret": self.client_secret,
+                },
+            )
+
+        mock_replication.assert_called()
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert not ApiGrant.objects.filter(id=self.grant.id).exists()
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
+        ).exists()
+
+        # Committed but not yet replicated.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
     def test_basic_auth_invalid_base64_character(self) -> None:
         self.login_as(self.user)
         invalid_value = f"{self._basic_auth_value()}$"

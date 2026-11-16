@@ -143,12 +143,14 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             CursorQueryParam,
             VisibilityParams.PER_PAGE,
             OrganizationParams.PROJECT_QUERY,
+            OrganizationParams.PROJECT_COLLAPSE,
         ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationProjectResponseDict", list[OrganizationProjectResponse]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -340,7 +342,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
-        # The new project's default team is the creator's own, which needs a person.
+        # Service accounts can't create projects for now, and the default team is the creator's.
         require_user(request)
         if not self.should_add_creator_to_team(request.user):
             raise NotAuthenticated("User is not authenticated")

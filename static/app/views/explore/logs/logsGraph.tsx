@@ -11,8 +11,8 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -183,9 +183,9 @@ function Graph({
   const {selection} = usePageFilters();
   const groupBys = useQueryParamsGroupBys();
 
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
   const droppedData = useDroppedDataLayer(
-    {dataset: DiscoverDatasets.OURLOGS, interval},
+    {dataset: DiscoverDatasets.OURLOGS, interval: chartInterval},
     {hidden: tableIsEmpty || tableIsPending}
   );
 
@@ -287,7 +287,7 @@ function Graph({
   const Actions = visualize.visible ? (
     <Fragment>
       {droppedData.layerControl ? (
-        <DroppedDataLayerControl {...droppedData.layerControl} />
+        <ChartLayersControl {...droppedData.layerControl} />
       ) : null}
       <CompactSelect
         trigger={triggerProps => (
@@ -308,8 +308,8 @@ function Graph({
         onChange={option => onChartTypeChange(option.value)}
       />
       <CompactSelect
-        value={interval}
-        onChange={({value}) => setInterval(value)}
+        value={chartInterval}
+        onChange={({value}) => setChartInterval(value)}
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
@@ -325,7 +325,7 @@ function Graph({
         menuTitle="Interval"
         options={intervalOptions}
       />
-      <ContextMenu interval={interval} visualize={visualize} />
+      <ContextMenu interval={chartInterval} visualize={visualize} />
       <Button
         aria-label={t('Collapse chart')}
         icon={<IconContract />}
@@ -343,7 +343,7 @@ function Graph({
   );
 
   const {period, start, end} = selection.datetime;
-  const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
+  const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${chartInterval}|${topEventsLimit}|${groupBys.join(',')}`;
 
   return (
     <Container minWidth="0" border="primary" radius="md" background="primary">

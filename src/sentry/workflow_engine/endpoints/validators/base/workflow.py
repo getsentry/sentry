@@ -345,6 +345,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         organization = self.context["organization"]
         request = self.context["request"]
 
+        # The workflow's primary key comes from the URL and must never be written from the payload.
+        validated_data.pop("id", None)
+
         detector_ids = None
         if "detector_ids" in validated_data:
             detector_ids = validated_data.pop("detector_ids")

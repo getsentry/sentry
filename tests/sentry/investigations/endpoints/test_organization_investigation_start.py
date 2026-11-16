@@ -47,7 +47,7 @@ class OrganizationInvestigationStartTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation_id,
+                "notebook_id": investigation_id,
             },
         )
 
@@ -293,7 +293,7 @@ class OrganizationInvestigationStartTest(APITestCase):
             schema = CustomGenerator().get_schema(public=True)
         path = (
             "/api/0/organizations/{organization_id_or_slug}/investigations/"
-            "{investigation_id}/orchestration/"
+            "{notebook_id}/orchestration/"
         )
         agentic = self.client.post(
             self.start_url, data={"source": {"type": "manual"}}, format="json"

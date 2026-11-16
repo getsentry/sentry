@@ -61,24 +61,16 @@ const config: KnipConfig = {
   compilers: {mdx: true},
   // Test package exports are development entry points, not production code.
   ignoreWorkspaces: ['tests/js!', 'tests/js/getsentry-test!'],
+  // @sentry/api is generated from the API spec at build time, so its sources
+  // and entry points only exist after `pnpm --filter @sentry/api run build`.
+  ignore: ['static/packages/api/**'],
   workspaces: {
     '.': {
       // The root runs app tests, but Jest is declared in the test package.
       jest: {config: 'tests/js/jest.config.ci.mjs'},
       entry: ['scripts/*.ts!', 'build-utils/mdx-plugins.ts'],
-      project: [
-        'static/**/*.{js,ts,tsx,mdx,less}!',
-        'config/**/*.ts',
-        // fixtures can be ignored in production - it's fine that they are only used in tests
-        '!static/**/{fixtures,__fixtures__}/**!',
-        // helper files for tests - it's fine that they are only used in tests
-        '!static/**/*{t,T}estUtils*.{js,ts,tsx}!',
-        // helper files for stories - it's fine that they are only used in tests
-        '!static/app/**/__stories__/*.{js,ts,tsx}!',
-        '!static/app/stories/**/*.{js,ts,tsx}!',
-        // Oxlint JS plugins are separate workspace packages
-        '!static/oxlint/**/*.ts!',
-      ],
+      // The root's project must list mdx since the mdx compiler is configured here
+      project: ['config/**/*.{ts,mdx}'],
       ignoreDependencies: [
         'jest', // CI runner and regression tests resolve Jest from tests/js.
         'tslib', // subdependency of many packages, declare the latest version
@@ -87,9 +79,6 @@ const config: KnipConfig = {
         // Referenced by its node_modules path in tests/js/createJestConfig.ts.
         'reflux',
       ],
-      // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
-      // so do not report them as unused files.
-      ignoreFiles: ['static/**/*.less'],
     },
     'static/app': {
       ...frontendWorkspace,

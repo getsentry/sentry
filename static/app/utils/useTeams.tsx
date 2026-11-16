@@ -6,7 +6,6 @@ import {fetchUserTeams} from 'sentry/actionCreators/teams';
 import type {Client} from 'sentry/api';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
 
 import {getApiUrl} from './api/getApiUrl';
@@ -173,7 +172,7 @@ async function fetchTeams(
 export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const api = useApi();
   const organization = useStore(OrganizationStore, state => state.organization);
-  const store = useLegacyStore(TeamStore);
+  const store = useStore(TeamStore);
 
   const orgId = organization?.slug;
 

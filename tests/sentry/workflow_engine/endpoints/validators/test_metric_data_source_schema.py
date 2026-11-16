@@ -130,6 +130,9 @@ def test_accepted_aggregates(data_source: dict[str, Any], title: str) -> None:
         ),
         _data_source("events_analytics_platform", ["trace_item_log"], "p100(severity)"),
         _data_source("events_analytics_platform", ["trace_item_log"], "failure_rate()"),
+        _data_source(
+            "events_analytics_platform", ["trace_item_log"], "equation|count() / count(message)"
+        ),
         _data_source("metrics", [], "count()"),
     ],
 )

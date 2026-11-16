@@ -12,6 +12,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
+import {formatTimeSeriesTransformations} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesTransformations';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import type {PlottableConfidence, PlottableTimeSeriesValueType} from './plottable';
@@ -85,6 +86,10 @@ export abstract class ContinuousTimeSeries<
 
   get label(): string {
     return this.config?.alias ?? formatTimeSeriesLabel(this.timeSeries);
+  }
+
+  get labelSuffix(): string {
+    return formatTimeSeriesTransformations(this.timeSeries.requestedTransformations);
   }
 
   get isEmpty(): boolean {

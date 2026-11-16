@@ -37,6 +37,16 @@ class DetailResponse(TypedDict):
     detail: str
 
 
+class NonFieldErrorsResponse(TypedDict):
+    """DRF's error-body shape for errors not tied to one field:
+    `{"non_field_errors": ["..."]}`.
+
+    Use for inline `Response({"non_field_errors": [...]}, status=4xx)` returns.
+    """
+
+    non_field_errors: list[str]
+
+
 ValidationErrorResponse: TypeAlias = dict[str, Any]
 """DRF's validation-error body shape: `{field_name: <errors>, ...}`.
 
@@ -56,6 +66,10 @@ typed `Response[T]` union arm, so use this alias as the union arm:
     def post(...) -> Response[FooResponse] | Response[ValidationErrorResponse]:
 
 and produce the body via `as_validation_errors(serializer)` below.
+
+When the union also has TypedDict arms, the Sentry mypy plugin rejects a dict
+literal body that matches none of them, even though this arm would accept it.
+Declare a TypedDict for the shape of an inline literal instead.
 """
 
 
