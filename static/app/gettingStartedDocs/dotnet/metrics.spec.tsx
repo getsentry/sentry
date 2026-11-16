@@ -18,10 +18,11 @@ describe('metrics', () => {
     ).toBeInTheDocument();
   });
 
-  it('installs the given package in both install tabs', async () => {
+  it('installs the given package and leaves out SentrySdk.Init for a host', async () => {
     renderWithOnboardingLayout(
       {
         onboarding: metrics({
+          hostInitializesSdk: true,
           sdkPackage: {name: 'Sentry.Maui', registryKey: 'sentry.dotnet.maui'},
         }),
       },
@@ -36,6 +37,13 @@ describe('metrics', () => {
         textWithMarkupMatcher(/Install-Package Sentry\.Maui -Version 1\.99\.9/)
       )
     ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Metrics\.EmitCounter/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Init\(/))
+    ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: '.NET Core CLI'}));
     expect(

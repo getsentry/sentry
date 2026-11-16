@@ -21,5 +21,5 @@ export const docs: Docs = {
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
   logsOnboarding: logs({logger: 'app.Logger', sdkPackage}),
-  metricsOnboarding: metrics({sdkPackage}),
+  metricsOnboarding: metrics({hostInitializesSdk: true, sdkPackage}),
 };

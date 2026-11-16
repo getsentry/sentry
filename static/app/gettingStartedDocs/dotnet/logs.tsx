@@ -76,8 +76,9 @@ ${logger}.LogWarning("A {Parameter} log message", "formatted");`,
 });
 
 /**
- * @param logger For platforms whose `UseSentry` options have `EnableLogs`: the `ILogger`
- * the verify snippet logs through. Leave it out for platforms that call `SentrySdk.Init`.
+ * @param logger For platforms that keep the `EnableLogs` opt-in, in the `UseSentry`
+ * callback or in `appsettings.json`: the `ILogger` the verify snippet logs through. Leave
+ * it out for platforms that call `SentrySdk.Init`.
  * @param sdkPackage The NuGet package the platform's onboarding installs, when that isn't
  * `Sentry`. Installing `Sentry` at a newer major version than the platform's package
  * breaks the app, at build or at startup.
@@ -93,7 +94,7 @@ export const logs = ({
         {
           type: 'text',
           text: tct(
-            'Logs in .NET are supported in Sentry .NET SDK version [code:5.14.0] and above.',
+            'Logs in .NET are supported in Sentry .NET SDK version [code:6.0.0] and above.',
             {
               code: <code />,
             }
@@ -126,7 +127,7 @@ export const logs = ({
               {
                 type: 'text',
                 text: tct(
-                  'To send the entries your app writes through [code:ILogger] to Sentry as logs, set [code:EnableLogs] to [code:true] in the options you pass to [code:UseSentry], or in the [code:Sentry] section of [code:appsettings.json].',
+                  'To send the entries your app writes through [code:ILogger] to Sentry as logs, set [code:EnableLogs] to [code:true] where you configure Sentry: in the [code:UseSentry] callback, or in the [code:Sentry] section of [code:appsettings.json].',
                   {
                     code: <code />,
                   }
@@ -137,7 +138,7 @@ export const logs = ({
               {
                 type: 'text',
                 text: tct(
-                  'From version [code:7.0.0] on, logs you send with [code:SentrySdk.Logger] need no extra option. On 6.x, also set [code:EnableLogs] to [code:true] in the options. Initialize the SDK:',
+                  'From version [code:7.0.0] on, logs you send with [code:SentrySdk.Logger] need no extra option. [code:EnableLogs], which 6.x needs, is gone from [code:SentryOptions]: remove it when you upgrade. Initialize the SDK:',
                   {
                     code: <code />,
                   }

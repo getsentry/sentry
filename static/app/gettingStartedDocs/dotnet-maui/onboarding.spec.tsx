@@ -86,5 +86,8 @@ describe('maui onboarding docs', () => {
         textWithMarkupMatcher(/Install-Package Sentry\.Maui -Version/)
       )
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Init\(/))
+    ).not.toBeInTheDocument();
   });
 });
