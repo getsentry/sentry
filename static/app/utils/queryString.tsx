@@ -34,6 +34,15 @@ export function addQueryParamsToExistingUrl(
 export type QueryValue = string | string[] | undefined | null;
 
 /**
+ * URL query params as `qs.parse` returns them. A repeated key with no value,
+ * such as `?a&a=1`, parses to `[null, '1']`.
+ */
+export type QueryParams = Record<
+  string,
+  string | Array<string | null> | null | undefined
+>;
+
+/**
  * Append a tag key:value to a query string.
  *
  * Handles spacing and quoting if necessary.
