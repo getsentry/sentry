@@ -5,6 +5,7 @@ import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
+  isSingleRunAutofix,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
@@ -14,7 +15,9 @@ import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 
+import {useOpenSingleRunChat, useRerunSingleRun} from './useToggleSingleRunChat';
 import {artifactToMarkdown} from './utils';
 
 /**
@@ -80,11 +83,27 @@ function useHandleRestart({
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
 }): () => void {
-  const {startStep} = aiAutofix;
+  const {rerun} = useRerunSingleRun(aiAutofix, {enabled: false});
+  const openSingleRunChat = useOpenSingleRunChat();
+  const chatDispatch = useSeerExplorerChatDispatch();
+  const runState = aiAutofix.runState;
+  const runId = getAutofixRunId(runState);
+  const asksInChat =
+    defined(runId) && isSingleRunAutofix(runState) && runState?.status === 'completed';
 
   return useCallback(() => {
-    startStep('root_cause');
-  }, [startStep]);
+    if (!asksInChat) {
+      rerun();
+      return;
+    }
+    openSingleRunChat(runId);
+    chatDispatch({
+      type: 'set pending restart',
+      payload: {
+        onSubmit: rerun,
+      },
+    });
+  }, [asksInChat, chatDispatch, openSingleRunChat, rerun, runId]);
 }
 
 function useHandleOpenSeerAgent({
