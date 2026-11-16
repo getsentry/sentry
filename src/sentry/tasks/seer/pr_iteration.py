@@ -75,6 +75,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     automated_iteration_allowed,
+    feedback_allowed_by_project,
     feedback_kind,
     feedback_text,
 )
@@ -128,6 +129,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     count_queued_autofix_feedback,
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
+    record_skipped_autofix_feedback,
     requeue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
@@ -775,6 +777,19 @@ def _drain_queued_autofix_feedback(
             seen_check_suite_keys.add(suite_key)
 
         consumable_items.append(item)
+
+    # Backstop for the project gate the producers apply before queueing: the
+    # setting can be turned off while feedback waits in the queue.
+    project_allowed_items: list[QueuedAutofixFeedback] = []
+    for item in consumable_items:
+        project_decision = feedback_allowed_by_project(
+            organization_id=organization_id, group_id=group.id, feedback=item.feedback
+        )
+        if project_decision.ok:
+            project_allowed_items.append(item)
+        else:
+            dropped.append(_dropped_feedback(item.feedback, project_decision.reason))
+    consumable_items = project_allowed_items
 
     # The same automated-iteration check `trigger_consume_pr_iteration_feedback`
     # applies before scheduling a consume. It has to run again here: the completion hook
@@ -2074,12 +2089,41 @@ def _trigger_pr_iteration_from_review(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
+    # Judged per item: with the project's setting off, only the comments that
+    # mention @sentry are queued, not the rest of their review.
+    skipped: list[tuple[Feedback, str]] = []
+    allowed_items: list[Feedback] = []
+    for feedback_obj in feedback_items:
+        project_decision = feedback_allowed_by_project(
+            organization_id=organization_id, group_id=group_id, feedback=feedback_obj
+        )
+        if project_decision.ok:
+            allowed_items.append(feedback_obj)
+        else:
+            skipped.append((feedback_obj, project_decision.reason))
+    feedback_items = allowed_items
+
+    # Nothing left to queue opens no iteration row: nothing will run it.
     log_ctx = bootstrap_iteration(
         logger=logger,
         run_state=agent_state,
         organization_id=organization_id,
         group_id=group_id,
+        create=bool(feedback_items),
     )
+    for feedback_obj, reason in skipped:
+        record_skipped_autofix_feedback(
+            log_ctx=log_ctx,
+            feedback=feedback_obj,
+            reason=reason,
+            referrer=AutofixReferrer.GITHUB_PR_REVIEW,
+            run_state=agent_state,
+        )
+    if not feedback_items:
+        metrics.incr("autofix.pr_iteration.review_trigger.not_requested")
+        logger.info("autofix.pr_iteration.review_trigger.not_requested", extra=log_extra)
+        return None
+
     for feedback_obj in feedback_items:
         enqueue_autofix_feedback(
             log_ctx=log_ctx,
