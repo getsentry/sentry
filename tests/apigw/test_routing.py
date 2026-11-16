@@ -240,7 +240,7 @@ def apigw_client() -> Iterator[Emmett55TestClient]:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        yield apigw_app.test_client()
+        yield Emmett55TestClient(apigw_app)
     finally:
         asyncio.set_event_loop(None)
         loop.close()
