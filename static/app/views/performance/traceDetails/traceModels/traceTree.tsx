@@ -1,11 +1,11 @@
 import {SEARCH_PAGE__SERVER_RENDERING__TYPE} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
-import qs from 'query-string';
+import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import type {QueryParams} from 'sentry/utils/queryString';
+import * as qs from 'sentry/utils/url/qs';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
@@ -1322,7 +1322,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     organization: Organization;
     replayTraces: ReplayTrace[];
     rerender: () => void;
-    urlParams: QueryParams;
+    urlParams: Location['query'];
     preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }): () => void {
     let cancelled = false;

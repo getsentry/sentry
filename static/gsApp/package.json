@@ -27,7 +27,6 @@
     "lodash": "^4.18.1",
     "moment-timezone": "0.6.2",
     "nuqs": "2.10.2",
-    "query-string": "10.0.0",
     "react": "19.3.0",
     "react-router": "8.4.0",
     "sentry": "workspace:@sentry-internal/app@*",

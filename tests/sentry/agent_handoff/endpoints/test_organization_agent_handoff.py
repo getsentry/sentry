@@ -54,6 +54,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         )
         record = consume_handoff(code, ip_address="127.0.0.1")
         assert record is not None
+        assert record.handoff_id == response.data["handoffId"]
         assert record.flow is HandoffFlow.GUIDED_NEXT_STEPS
         assert record.user_id == self.user.id
         assert record.organization_id == self.organization.id
@@ -98,7 +99,7 @@ class OrganizationAgentHandoffTest(APITestCase):
             "sentry.agent_handoff.flows.common.organization_service.has_active_onboarding_run",
             return_value=True,
         ):
-            self.get_success_response(
+            response = self.get_success_response(
                 self.organization.slug,
                 flow="onboarding",
                 context={"runId": "a" * 32},
@@ -108,24 +109,24 @@ class OrganizationAgentHandoffTest(APITestCase):
         assert_last_analytics_event(
             record,
             AgentHandoffPromptCreatedEvent(
+                handoff_id=response.data["handoffId"],
                 user_id=self.user.id,
                 organization_id=self.organization.id,
                 flow=HandoffFlow.ONBOARDING.value,
-                run_id="a" * 32,
                 ip_pinning=False,
             ),
         )
 
     @patch("sentry.analytics.record")
-    def test_records_prompt_created_without_run(self, record: MagicMock) -> None:
-        self.get_success_response(self.organization.slug, status_code=201)
+    def test_records_prompt_created_for_guided_next_steps(self, record: MagicMock) -> None:
+        response = self.get_success_response(self.organization.slug, status_code=201)
         assert_last_analytics_event(
             record,
             AgentHandoffPromptCreatedEvent(
+                handoff_id=response.data["handoffId"],
                 user_id=self.user.id,
                 organization_id=self.organization.id,
                 flow=HandoffFlow.GUIDED_NEXT_STEPS.value,
-                run_id=None,
                 ip_pinning=True,
             ),
         )

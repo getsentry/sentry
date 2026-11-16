@@ -22,7 +22,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
   return _initializeData({
     features: [...FEATURES, ...features],
     projects,
-    selectedProject: projects[0]!.id,
+    selectedProject: projects[0],
     ...settings,
   });
 };

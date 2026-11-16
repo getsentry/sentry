@@ -152,9 +152,9 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
         state: SeerRunState,
     ) -> None:
         """
-        Called whenever Seer runs the AgentOnCompletionHook: when an invocation yields, and when
-        a PR push the Agent queued finishes. Treat it as a refresh: make the external service
-        match ``state``, whichever of those caused the call.
+        Called whenever Seer runs the AgentOnCompletionHook: when an invocation yields or fails,
+        and when a PR push the Agent queued finishes. Treat it as a refresh: make the external
+        service match ``state``, whichever of those caused the call.
 
         The shape of the cached payload is determined by `create_agent_cache_payload`.
 

@@ -699,9 +699,6 @@ importers:
       qrcode.react:
         specifier: ^3.1.0
         version: 3.1.0(react@19.3.0)
-      query-string:
-        specifier: 10.0.0
-        version: 10.0.0
       re2js:
         specifier: ^2.8.7
         version: 2.8.7
@@ -959,9 +956,6 @@ importers:
       nuqs:
         specifier: 2.10.2
         version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      query-string:
-        specifier: 10.0.0
-        version: 10.0.0
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -1270,9 +1264,6 @@ importers:
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
-      query-string:
-        specifier: 10.0.0
-        version: 10.0.0
       react:
         specifier: ^19.0.0
         version: 19.3.0
@@ -1541,9 +1532,6 @@ importers:
       playwright:
         specifier: ^1.64.1
         version: 1.64.1
-      query-string:
-        specifier: 10.0.0
-        version: 10.0.0
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -6572,10 +6560,6 @@ packages:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
     engines: {node: '>=8'}
 
-  filter-obj@6.1.0:
-    resolution: {integrity: sha512-xdMtCAODmPloU9qtmPcdBV9Kd27NtMse+4ayThxqIHUES5Z2S6bGpap5PpdmNM56ub7y3i1eyr+vJJIIgWGKmA==}
-    engines: {node: '>=18'}
-
   find-root@1.1.0:
     resolution: {integrity: sha512-NKfW6bec6GfKc0SGx1e07QZY9PE99u0Bft/0rzSD5k3sO/vwkVUpDUKVm5Gpp5Ue3YfShPFTX2070tDs5kB9Ng==}
 
@@ -8399,10 +8383,6 @@ packages:
     resolution: {integrity: sha512-jd3COkaKVgGUW+ZHyEHCG9bH7RoaaiWuMgzsIBjUMVjLAaWGWpoUAVwljVvBHxRu/2qEHnadLGZrkutYUBPQJA==}
     engines: {node: '>=0.6'}
 
-  query-string@10.0.0:
-    resolution: {integrity: sha512-QYodx/Ywk8lCcOmsyupXVN91yWPAdjq0xVqE2FE2BHFYnma71C8txR8JCBptjzoUpkfAK7Qjua9VjYRTru4LYg==}
-    engines: {node: '>=22'}
-
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
@@ -8983,10 +8963,6 @@ packages:
 
   spdx-license-ids@3.0.21:
     resolution: {integrity: sha512-Bvg/8F5XephndSK3JffaRqdT+gyhfqIPwDHpX80tJrF8QQRYMo8sNMeaZ2Dp5+jhwKnUmIOyFFQfHRkjJm5nXg==}
-
-  split-on-first@4.0.0:
-    resolution: {integrity: sha512-pyrgNqiEBHA9KlEtg9quYGagtrlTyukL3ryQ+RmjRn9SYmcNQmfa+sWIsI+hlcL4WrmFdrt7IfM6o8ktBAooDQ==}
-    engines: {node: '>=20'}
 
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
@@ -14598,8 +14574,6 @@ snapshots:
     dependencies:
       to-regex-range: 5.0.1
 
-  filter-obj@6.1.0: {}
-
   find-root@1.1.0: {}
 
   find-up-simple@1.0.1: {}
@@ -17049,11 +17023,6 @@ snapshots:
       es-define-property: 1.0.1
       side-channel: 1.1.1
 
-  query-string@10.0.0:
-    dependencies:
-      filter-obj: 6.1.0
-      split-on-first: 4.0.0
-
   queue-microtask@1.2.3: {}
 
   quote-js-string@0.1.0: {}
@@ -17739,8 +17708,6 @@ snapshots:
       spdx-license-ids: 3.0.21
 
   spdx-license-ids@3.0.21: {}
-
-  split-on-first@4.0.0: {}
 
   sprintf-js@1.0.3: {}
 

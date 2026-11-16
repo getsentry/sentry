@@ -458,6 +458,7 @@ def trigger_autofix_agent(
     iteration_id: int | None = None,
     allow_free_cohort: bool = False,
     single_run: bool = False,
+    billing_feature: int | None = None,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -514,6 +515,7 @@ def trigger_autofix_agent(
             allow_free_cohort=allow_free_cohort,
             user=user,
             single_run=single_run,
+            billing_feature=billing_feature,
         )
         feature_run = trigger_autofix_feature(group, args)
         feature_run_id = feature_run.seer_run_state_id

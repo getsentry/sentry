@@ -1,6 +1,5 @@
-import qs from 'query-string';
-
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
+import * as qs from 'sentry/utils/url/qs';
 
 /**
  * Build the CSV export URL from the builds-list query params.
