@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from concurrent.futures import Future, wait
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from copy import deepcopy
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -988,6 +988,14 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                         .filter(
                             monitor_environment=monitor_environment,
                             status=CheckInStatus.IN_PROGRESS,
+                            # A stale in-progress check-in past the max timeout
+                            # must not be adopted by a later "latest" check-in:
+                            # updating one would be dropped as past the max
+                            # timeout, which breaks heartbeat monitors that
+                            # only send terminal check-ins without a
+                            # check-in id. Leave stale ones to be timed out by
+                            # the clock tasks instead.
+                            date_added__gte=start_time - timedelta(minutes=MAX_TIMEOUT),
                         )
                         .order_by("-date_added")[:1]
                         .get()

@@ -1087,6 +1087,42 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.IN_PROGRESS
         assert checkin.duration is None
 
+    def test_ok_checkin_does_not_adopt_stale_in_progress(self) -> None:
+        """A "latest" (empty check-in id) check-in must not adopt a stale
+        in-progress check-in that is past the max timeout.
+
+        Heartbeat monitors only send terminal check-ins without a check-in id.
+        If a stale in-progress check-in were adopted, the update would be
+        dropped as past the max timeout and the heartbeat would never be
+        recorded.
+        """
+        monitor = self._create_monitor(slug="my-monitor")
+
+        stale_checkin = MonitorCheckIn.objects.create(
+            monitor_environment=MonitorEnvironment.objects.get(monitor=monitor),
+            status=CheckInStatus.IN_PROGRESS,
+            date_added=monitor.date_added - timedelta(weeks=52),
+        )
+
+        # Empty check-in id signals "use the latest in-progress check-in"
+        self.send_checkin(
+            "my-monitor",
+            guid="00000000-0000-0000-0000-000000000000",
+            expected_error=ExpectNoProcessingError(),
+        )
+
+        # The stale in-progress check-in is untouched and the heartbeat was
+        # recorded as a new check-in.
+        checkin = MonitorCheckIn.objects.get(guid=stale_checkin.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.duration is None
+
+        checkins = MonitorCheckIn.objects.filter(monitor_environment__monitor_id=monitor.id)
+        assert len(checkins) == 2
+        new_checkin = [c for c in checkins if c.guid != stale_checkin.guid][0]
+        assert new_checkin.status == CheckInStatus.OK
+        assert new_checkin.duration is None
+
     def test_monitor_upsert(self) -> None:
         self.send_checkin(
             "my-monitor",
