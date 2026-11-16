@@ -17,6 +17,7 @@ import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+import {IssueDetailsBasePathProvider} from 'sentry/views/issueDetails/issueDetailsPath';
 
 import {
   MetricDetectorTriggeredSection,
@@ -1365,6 +1366,31 @@ describe('MetricDetectorTriggeredSection', () => {
         expect(router.location.pathname).toMatch(
           `/organizations/org-slug/issues/${defaultGroup.id}/events/${defaultEvent.id}/`
         );
+      });
+      expect(router.location.query.statsPeriod).toBeDefined();
+    });
+
+    it('pins the event under the base path provided by the host page', async () => {
+      const inboxPath = `/organizations/org-slug/inbox/issue/${defaultGroup.id}/`;
+      const {router} = render(
+        <IssueDetailsBasePathProvider groupId={defaultGroup.id} basePath={inboxPath}>
+          <MetricDetectorTriggeredSectionWithProvider {...defaultProps} />
+        </IssueDetailsBasePathProvider>,
+        {
+          initialRouterConfig: {
+            location: {pathname: inboxPath, query: {}},
+            routes: [
+              '/organizations/:orgId/inbox/issue/:id/',
+              '/organizations/:orgId/inbox/issue/:id/events/:eventId/',
+            ],
+          },
+        }
+      );
+
+      await screen.findByRole('region', {name: 'Triggered Condition'});
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(`${inboxPath}events/${defaultEvent.id}/`);
       });
       expect(router.location.query.statsPeriod).toBeDefined();
     });

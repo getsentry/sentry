@@ -41,7 +41,6 @@ import type {
 import {defined} from 'sentry/utils/defined';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -78,7 +77,7 @@ import type {
 } from 'sentry/views/investigations/types';
 import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
+import {useIssueDetailsPath} from 'sentry/views/issueDetails/issueDetailsPath';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
@@ -200,8 +199,7 @@ function useZoomTimeRangeToOpenPeriod({
   openPeriodEnd: string | null;
   openPeriodStart: string | null;
 }) {
-  const organization = useOrganization();
-  const groupId = useGroupId();
+  const getIssueDetailsPath = useIssueDetailsPath();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -224,15 +222,8 @@ function useZoomTimeRangeToOpenPeriod({
 
       const query = buildDetectorZoomQuery(location.query, zoomRange);
 
-      navigate(
-        {
-          pathname: normalizeUrl(
-            `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
-          ),
-          query,
-        },
-        {replace: true}
-      );
+      // Pin the event so the new time range can't select a different one
+      navigate({pathname: getIssueDetailsPath(eventId), query}, {replace: true});
     }
   });
 

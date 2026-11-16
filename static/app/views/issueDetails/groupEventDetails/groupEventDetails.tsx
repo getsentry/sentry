@@ -21,6 +21,7 @@ import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
+import {useIssueDetailsPath} from 'sentry/views/issueDetails/issueDetailsPath';
 import {ReprocessingProgress} from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -41,6 +42,7 @@ function GroupEventDetails() {
   const {eventId} = useParams<{eventId?: string}>();
   const groupId = useGroupId();
   const environments = useEnvironmentsFromUrl();
+  const getIssueDetailsPath = useIssueDetailsPath();
 
   const {
     data: event,
@@ -91,10 +93,7 @@ function GroupEventDetails() {
 
       if (shouldRedirect) {
         navigate(
-          {
-            pathname: `/organizations/${organization.slug}/issues/${groupId}/`,
-            query: location.query,
-          },
+          {pathname: getIssueDetailsPath(), query: location.query},
           {replace: true}
         );
         return;
@@ -104,11 +103,10 @@ function GroupEventDetails() {
     prevEnvironment,
     environments,
     location.query,
-    organization.slug,
     eventId,
-    groupId,
     prevEvent,
     navigate,
+    getIssueDetailsPath,
   ]);
 
   // Group and project should already be loaded, but we can render a loading state if it's not

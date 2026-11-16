@@ -10,6 +10,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {IssueDetailsContext} from 'sentry/views/issueDetails/context';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {getDetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorSection';
 
 import {MetricIssueChart} from './metricIssueChart';
@@ -70,7 +71,9 @@ describe('MetricIssueChart', () => {
 
     render(
       <IssueDetailsContext value={{...baseIssueDetailsContext, detectorDetails}}>
-        <MetricIssueChart group={group} event={event} />
+        <GroupIdProvider groupId={group.id}>
+          <MetricIssueChart group={group} event={event} />
+        </GroupIdProvider>
       </IssueDetailsContext>,
       {organization}
     );
@@ -94,7 +97,9 @@ describe('MetricIssueChart', () => {
 
     render(
       <IssueDetailsContext value={{...baseIssueDetailsContext, detectorDetails}}>
-        <MetricIssueChart group={group} event={event} />
+        <GroupIdProvider groupId={group.id}>
+          <MetricIssueChart group={group} event={event} />
+        </GroupIdProvider>
       </IssueDetailsContext>,
       {
         organization,
@@ -157,7 +162,9 @@ describe('MetricIssueChart', () => {
       <IssueDetailsContext
         value={{...baseIssueDetailsContext, detectorDetails, dispatch}}
       >
-        <MetricIssueChart group={group} event={event} />
+        <GroupIdProvider groupId={group.id}>
+          <MetricIssueChart group={group} event={event} />
+        </GroupIdProvider>
       </IssueDetailsContext>,
       {organization}
     );
@@ -177,7 +184,9 @@ describe('MetricIssueChart', () => {
 
     render(
       <IssueDetailsContext value={{...baseIssueDetailsContext, detectorDetails}}>
-        <MetricIssueChart group={group} event={event} />
+        <GroupIdProvider groupId={group.id}>
+          <MetricIssueChart group={group} event={event} />
+        </GroupIdProvider>
       </IssueDetailsContext>,
       {organization}
     );

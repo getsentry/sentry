@@ -24,8 +24,12 @@ import {
   useOpenPeriodCount,
   useOpenPeriods,
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
-import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
+import {
+  getOpenPeriodIssuePath,
+  getOpenPeriodOpeningEventId,
+} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
+import {useIssueDetailsPath} from 'sentry/views/issueDetails/issueDetailsPath';
 
 interface MetricIssueChartProps {
   event: Event | undefined;
@@ -134,13 +138,18 @@ function MetricIssueChartContent({
       intervalSeconds,
     });
 
+  const getIssueDetailsPath = useIssueDetailsPath();
   const navigateToOpenPeriodIssue = useCallback(
     (clickedOpenPeriod: GroupOpenPeriod) =>
       navigate({
-        pathname: getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug),
+        // Open periods of this issue stay wherever issue details is rendered
+        pathname:
+          clickedOpenPeriod.groupId === group.id
+            ? getIssueDetailsPath(getOpenPeriodOpeningEventId(clickedOpenPeriod))
+            : getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug),
         query: location.query,
       }),
-    [navigate, organization.slug, location.query]
+    [navigate, group.id, getIssueDetailsPath, organization.slug, location.query]
   );
 
   const {

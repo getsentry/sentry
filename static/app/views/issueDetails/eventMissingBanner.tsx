@@ -9,18 +9,16 @@ import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import {useGroupId} from './groupIdContext';
+import {useIssueDetailsPath} from './issueDetailsPath';
 import {RESERVED_EVENT_IDS} from './useGroupEvent';
 import {useDefaultIssueEvent} from './utils';
 
 export function EventMissingBanner() {
   const location = useLocation();
-  const organization = useOrganization();
   const defaultEventId = useDefaultIssueEvent();
-  const groupId = useGroupId();
+  const getIssueDetailsPath = useIssueDetailsPath();
   const {eventId: eventIdParam} = useParams<{
     eventId: string;
   }>();
@@ -31,7 +29,6 @@ export function EventMissingBanner() {
   const maxRetentionDays = useGetMaxRetentionDays(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const statsPeriod = maxRetentionDays ? `${maxRetentionDays}d` : '30d';
 
-  const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
 
   const specificEventTips = [
@@ -44,7 +41,7 @@ export function EventMissingBanner() {
         link: (
           <Link
             to={{
-              pathname: `${baseUrl}/recommended/`,
+              pathname: getIssueDetailsPath('recommended'),
               query: {
                 statsPeriod: `${MAX_PICKABLE_DAYS}d`,
                 ...(location.query.project ? {project: location.query.project} : {}),
@@ -64,7 +61,7 @@ export function EventMissingBanner() {
       link: (
         <Link
           to={{
-            pathname: `${baseUrl}/${eventId}/`,
+            pathname: getIssueDetailsPath(eventId),
             query: {
               statsPeriod,
               ...(location.query.project ? {project: location.query.project} : {}),
