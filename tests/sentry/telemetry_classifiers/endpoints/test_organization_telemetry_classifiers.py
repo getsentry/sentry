@@ -74,6 +74,29 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
 
         assert [c["id"] for c in response.data] == [str(other.id)]
 
+    def test_searches_by_name_or_result_attribute(self) -> None:
+        by_name = self.create_telemetry_classifier(
+            name="User Frustration", result_attribute="sentiment"
+        )
+        by_attribute = self.create_telemetry_classifier(
+            name="Mood", result_attribute="user.frustrated"
+        )
+        self.create_telemetry_classifier(name="Refusals", result_attribute="refusal")
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, query=" FRUSTRAT ")
+
+        assert [c["id"] for c in response.data] == [str(by_attribute.id), str(by_name.id)]
+
+    def test_empty_query_returns_all(self) -> None:
+        first = self.create_telemetry_classifier(result_attribute="first")
+        second = self.create_telemetry_classifier(result_attribute="second")
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, query="")
+
+        assert [c["id"] for c in response.data] == [str(second.id), str(first.id)]
+
     def test_excludes_other_organizations(self) -> None:
         own = self.create_telemetry_classifier()
         other_org = self.create_organization()

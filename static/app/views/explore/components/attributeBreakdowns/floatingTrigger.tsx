@@ -90,15 +90,37 @@ export function FloatingTrigger({chartIndex, params}: Props) {
   }, [selectionState, setSelectionState, chartIndex, navigate, location, organization]);
 
   return (
+    <FloatingTriggerMenu
+      onZoomIn={handleZoomIn}
+      onCompareAttributeBreakdowns={handleFindAttributeBreakdowns}
+      onClearSelection={clearSelection}
+    />
+  );
+}
+
+interface FloatingTriggerMenuProps {
+  onClearSelection: () => void;
+  onCompareAttributeBreakdowns: () => void;
+  onZoomIn: () => void;
+}
+
+export function FloatingTriggerMenu({
+  onZoomIn,
+  onCompareAttributeBreakdowns,
+  onClearSelection,
+}: FloatingTriggerMenuProps) {
+  const organization = useOrganization();
+
+  return (
     <List>
-      <ListItem onClick={handleZoomIn}>{t('Zoom in')}</ListItem>
-      <ListItem onClick={handleFindAttributeBreakdowns}>
+      <ListItem onClick={onZoomIn}>{t('Zoom in')}</ListItem>
+      <ListItem onClick={onCompareAttributeBreakdowns}>
         {t('Compare Attribute Breakdowns')}
       </ListItem>
       <ListItem
         onClick={() => {
           trackAnalytics('explore.floating_trigger.clear_selection', {organization});
-          clearSelection();
+          onClearSelection();
         }}
       >
         {t('Clear Selection')}

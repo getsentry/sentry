@@ -199,7 +199,7 @@ function InvestigationNotebookBlockInner({
           onConfirm: () =>
             deleteMutation.mutate({
               block,
-              investigationVersion: investigation.version,
+              notebookVersion: investigation.version,
             }),
         }),
     },

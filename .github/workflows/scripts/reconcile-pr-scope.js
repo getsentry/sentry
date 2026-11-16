@@ -24,6 +24,7 @@ export function deriveScopeState(pathFilterOutputs) {
   const frontendWarningExemptions = count(pathFilterOutputs, 'api_url_codegen_count');
   const backendWarningExemptions =
     count(pathFilterOutputs, 'embed_widget_codegen_count') +
+    count(pathFilterOutputs, 'nav_snapshot_codegen_count') +
     count(pathFilterOutputs, 'test_utility_only_paths_count');
 
   return {

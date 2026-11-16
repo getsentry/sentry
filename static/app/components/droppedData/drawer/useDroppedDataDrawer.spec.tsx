@@ -98,7 +98,6 @@ describe('useDroppedDataDrawer', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     localStorage.clear();
   });
 

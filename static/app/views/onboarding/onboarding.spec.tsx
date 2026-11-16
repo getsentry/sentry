@@ -41,6 +41,7 @@ describe('Onboarding', () => {
     TeamStore.loadInitialData([TeamFixture()]);
   });
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
       body: {providers: [GitHubIntegrationProviderFixture()]},
@@ -56,7 +57,6 @@ describe('Onboarding', () => {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
     sessionStorage.clear();
     jest.clearAllMocks();
   });
@@ -555,7 +555,7 @@ describe('Onboarding', () => {
         screen.getByRole('link', {name: 'See the full instructions'})
       ).toHaveAttribute(
         'href',
-        'https://sentry.io/agent-handoff/?preview=1&flow=onboarding'
+        'https://sentry.io/agent-handoff.md?preview=1&flow=onboarding'
       );
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
