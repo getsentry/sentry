@@ -1,6 +1,6 @@
 import {type Key, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';

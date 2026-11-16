@@ -91,7 +91,9 @@ export class Rect {
     return [this.centerX, this.centerY];
   }
 
-  static decode(query: string | readonly string[] | null | undefined): Rect | null {
+  static decode(
+    query: string | ReadonlyArray<string | null> | null | undefined
+  ): Rect | null {
     let maybeEncodedRect = query;
 
     if (typeof query === 'string') {
@@ -107,7 +109,12 @@ export class Rect {
     }
 
     const rect = new Rect(
-      ...(maybeEncodedRect.map(p => parseFloat(p)) as [number, number, number, number])
+      ...(maybeEncodedRect.map(p => parseFloat(p ?? '')) as [
+        number,
+        number,
+        number,
+        number,
+      ])
     );
 
     if (rect.isValid()) {

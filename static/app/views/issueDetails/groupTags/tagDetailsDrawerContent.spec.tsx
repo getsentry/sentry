@@ -1,5 +1,5 @@
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
-import * as qs from 'query-string';
+import qs from 'query-string';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
