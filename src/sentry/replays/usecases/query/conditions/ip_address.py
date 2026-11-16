@@ -56,6 +56,13 @@ def _has_no_ip_address() -> Condition:
     )
 
 
+def _column_for(value: IPAddress) -> tuple[Column, type[IPScalar]]:
+    for version, column, scalar in _COLUMNS:
+        if isinstance(value, version):
+            return column, scalar
+    raise TypeError(f"Unsupported IP address type: {type(value)}")
+
+
 def _address_conditions(values: list[IPAddress | None]) -> list[Condition]:
     """Return one row-wise condition per column that one of the values is stored in."""
     conditions = []
@@ -67,13 +74,27 @@ def _address_conditions(values: list[IPAddress | None]) -> list[Condition]:
 
 
 class SumOfIPAddressScalar(ComputedBase):
+    """Match IP addresses against the column for their version.
+
+    A single address only ever lives in one column, so "eq" and "neq" target that column alone.
+    A list can mix versions, so "in" and "not_in" build one condition per column and combine them:
+    a replay matches "in" when any column matches, and "not_in" only when no column matches.
+    The empty value ("") means the replay has no address in either column.
+    """
+
     @staticmethod
     def visit_eq(value: IPAddress | None) -> Condition:
-        return SumOfIPAddressScalar.visit_in([value])
+        if value is None:
+            return _has_no_ip_address()
+        column, scalar = _column_for(value)
+        return contains(scalar.visit_eq(column, str(value)))
 
     @staticmethod
     def visit_neq(value: IPAddress | None) -> Condition:
-        return SumOfIPAddressScalar.visit_not_in([value])
+        if value is None:
+            return _has_ip_address()
+        column, scalar = _column_for(value)
+        return _does_not_contain_address(scalar.visit_eq(column, str(value)))
 
     @staticmethod
     def visit_in(value: list[IPAddress | None]) -> Condition:
