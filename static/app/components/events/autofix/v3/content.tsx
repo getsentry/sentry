@@ -8,6 +8,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
+import {
+  AutofixOutOfCreditsAlert,
+  getAutofixContinueAction,
+} from 'sentry/components/events/autofix/autofixCredits';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getOrderedAutofixSections,
@@ -34,7 +38,7 @@ import {PullRequestsCard} from './pullRequestsCard';
 import {RootCauseCard} from './rootCauseCard';
 import {SeerEnableNotifications} from './seerEnableNotifications';
 import {SolutionCard} from './solutionCard';
-import {useToggleSingleRunChat} from './useToggleSingleRunChat';
+import {useIsSingleRunChatOpen, useOpenSingleRunChat} from './useToggleSingleRunChat';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -59,7 +63,9 @@ export function SeerDrawerContent({
     [autofix.runState]
   );
   const singleRun = isSingleRunAutofix(autofix.runState) ? autofix.runState : null;
-  const toggleSingleRunChat = useToggleSingleRunChat(getAutofixRunId(singleRun));
+  const singleRunId = getAutofixRunId(singleRun);
+  const openSingleRunChat = useOpenSingleRunChat();
+  const isSingleRunChatOpen = useIsSingleRunChatOpen(singleRunId);
 
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
@@ -72,12 +78,27 @@ export function SeerDrawerContent({
     );
   }
 
+  // One out-of-credits alert, at the top so it sits above any results. The
+  // triggers below it stay on screen, disabled.
   if (!autofix.runState && aiConfig.hasAutofix) {
-    return <AutofixStartCard autofix={autofix} group={group} />;
+    return (
+      <Stack gap="lg">
+        <AutofixOutOfCreditsAlert action="root_cause" reason="autofix-start" />
+        <AutofixStartCard autofix={autofix} group={group} />
+      </Stack>
+    );
   }
 
   return (
     <Stack gap="lg">
+      <AutofixOutOfCreditsAlert
+        action={getAutofixContinueAction({
+          isPolling: autofix.isPolling,
+          runState: autofix.runState,
+          sections,
+        })}
+        reason="autofix-continue"
+      />
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
       {!isSingleRunAutofix(autofix.runState) &&
         (autofix.runState?.status === 'completed' ||
@@ -88,7 +109,13 @@ export function SeerDrawerContent({
         )}
       {singleRun && (
         <NextStepWrap isSticky={stickyNextStep}>
-          <Button variant="primary" icon={<IconSeer />} onClick={toggleSingleRunChat}>
+          <Button
+            variant="primary"
+            icon={<IconSeer />}
+            onClick={() => singleRunId !== undefined && openSingleRunChat(singleRunId)}
+            disabled={isSingleRunChatOpen}
+            tooltipProps={{title: isSingleRunChatOpen ? t('Chat is open') : undefined}}
+          >
             {t('Open Autofix')}
           </Button>
         </NextStepWrap>

@@ -1,5 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {LinkButton} from '@sentry/scraps/button';
 
@@ -13,7 +15,6 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -37,7 +38,10 @@ export function FeatureFlagOnboardingLayout({
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;

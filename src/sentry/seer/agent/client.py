@@ -26,7 +26,7 @@ from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notebooks.access import has_investigations_access
+from sentry.notebooks.access import has_notebooks_access
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
@@ -313,6 +313,7 @@ class SeerAgentClient:
             enable_embeds: Allow the agent to emit rich inline embed widgets (e.g. formatted timestamps) as Markdoc tags. Only enable for surfaces that render these embeds (the Explorer chat in the Sentry UI). Disable for plaintext/markdown surfaces like Slack, where the tags would leak as raw text. Default is True.
             enable_investigation_tools: Let Code Mode read and change investigations: notebooks, cells and their runs, the agent workflow, and comments. Only takes effect where the investigation endpoints themselves would answer, i.e. with the organizations:investigations feature and open membership. Default is False.
             enable_inbox_tools: Let Code Mode read and update the user's personal inbox. Only takes effect where the inbox endpoints themselves would answer, i.e. for a user with the organizations:universal-inbox feature. Default is False.
+            enable_scm_connect_prompt: Let an interactive agent pause and ask the user to fix access when a tool cannot open a repository: no source control is connected, the repository's account isn't connected, or the repository isn't in Sentry. Pass True only when the user can install integrations (the org:integrations scope). Default is False.
     """
 
     def __init__(
@@ -340,6 +341,7 @@ class SeerAgentClient:
         enable_streaming: bool | None = None,
         enable_investigation_tools: bool = False,
         enable_inbox_tools: bool = False,
+        enable_scm_connect_prompt: bool = False,
     ):
         self.organization = organization
         self.user = user
@@ -375,7 +377,7 @@ class SeerAgentClient:
         self.enable_write_pull_request = enable_write_pull_request
         # The same gate the investigation endpoints apply, so Code Mode isn't handed
         # operations that would only 404.
-        self.enable_investigation_tools = enable_investigation_tools and has_investigations_access(
+        self.enable_investigation_tools = enable_investigation_tools and has_notebooks_access(
             organization, actor=user
         )
         # The inbox endpoints are personal, so they answer only with a user behind the run.
@@ -385,6 +387,8 @@ class SeerAgentClient:
             and has_user(user)
             and features.has("organizations:universal-inbox", organization, actor=user)
         )
+
+        self.enable_scm_connect_prompt = enable_scm_connect_prompt
 
         self.viewer_context = self._build_viewer_context()
 
@@ -459,6 +463,7 @@ class SeerAgentClient:
             "enable_bash_mode": self.enable_bash_mode,
             "enable_investigation_tools": self.enable_investigation_tools,
             "enable_inbox_tools": self.enable_inbox_tools,
+            "enable_scm_connect_prompt": self.enable_scm_connect_prompt,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -806,6 +811,7 @@ class SeerAgentClient:
             "enable_bash_mode": self.enable_bash_mode,
             "enable_investigation_tools": self.enable_investigation_tools,
             "enable_inbox_tools": self.enable_inbox_tools,
+            "enable_scm_connect_prompt": self.enable_scm_connect_prompt,
             "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
@@ -1005,6 +1011,7 @@ class SeerAgentClient:
         poll_timeout: float = 120.0,
         author: SeerCommitAuthor | None = None,
         allow_force_push: bool = True,
+        source: str | None = None,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -1019,6 +1026,7 @@ class SeerAgentClient:
             poll_timeout: Maximum seconds to wait
             author: Git commit author; None lets Seer pick one
             allow_force_push: Overwrite the branch if it has commits Seer didn't push
+            source: Stable caller-flow label, or None when unspecified; not the commit author
 
         Returns:
             SeerRunState: Final state with PR info
@@ -1036,6 +1044,7 @@ class SeerAgentClient:
         # Trigger PR creation
         payload: dict[str, Any] = {
             "type": "create_pr",
+            "source": source,
             "ready_for_review": ready_for_review,
             "verify_content": verify_content,
             "allow_force_push": allow_force_push,

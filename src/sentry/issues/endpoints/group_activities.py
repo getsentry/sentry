@@ -35,7 +35,10 @@ class GroupActivitiesEndpoint(GroupEndpoint):
         Retrieve all the Activities for a Group
         """
         activity_items = get_serialized_activity_items(
-            group, request.user, endpoint=activity_read_endpoint(request)
+            group,
+            request.user,
+            access=request.access,
+            endpoint=activity_read_endpoint(request),
         )
         if activity_items is not None:
             return Response({"activity": activity_items})

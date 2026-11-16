@@ -1,8 +1,7 @@
 import {useEffect} from 'react';
+import {useQueryState} from 'nuqs';
 
-import {decodeScalar} from 'sentry/utils/queryString';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -63,9 +62,8 @@ export function resolveProjectCreationPageOrigin({
  */
 export function useProjectCreationPageOrigin(): ProjectCreationPageOrigin {
   const organization = useOrganization();
-  const location = useLocation();
   const orgSlug = organization.slug;
-  const queryValue = decodeScalar(location.query[PROJECT_CREATION_ORIGIN_QUERY_KEY]);
+  const [queryValue] = useQueryState(PROJECT_CREATION_ORIGIN_QUERY_KEY);
 
   useEffect(() => {
     if (queryValue !== PROJECT_CREATION_ORIGIN_ORG_CREATION) {
@@ -81,5 +79,5 @@ export function useProjectCreationPageOrigin(): ProjectCreationPageOrigin {
     }
   }, [orgSlug, queryValue]);
 
-  return resolveProjectCreationPageOrigin({orgSlug, queryValue});
+  return resolveProjectCreationPageOrigin({orgSlug, queryValue: queryValue ?? undefined});
 }

@@ -768,7 +768,7 @@ class TestDeliverAgenticTriageResult(TestCase):
                 return_value=True,
             ) as mock_rate_limited,
             patch(
-                "sentry.seer.agentic_triage.delivery.is_seer_seat_based_tier_enabled",
+                "sentry.seer.agentic_triage.delivery.is_seer_seat_or_token_billed_enabled",
                 return_value=True,
             ),
             patch(

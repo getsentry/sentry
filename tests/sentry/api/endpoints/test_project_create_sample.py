@@ -1,9 +1,12 @@
+from unittest.mock import patch
+
 import orjson
 from django.urls import reverse
 
 from sentry.models.groupinbox import GroupInbox
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.samples import create_sample_event
 
 pytestmark = [requires_snuba]
 
@@ -133,6 +136,26 @@ class ProjectCreateSampleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert "groupID" in orjson.loads(response.content)
+
+    def test_expo_uses_react_native_sample(self) -> None:
+        project = self.create_project(teams=[self.team], name="foo", platform="expo")
+
+        url = reverse(
+            "sentry-api-0-project-create-sample",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        with patch(
+            "sentry.api.endpoints.project_create_sample.create_sample_event",
+            wraps=create_sample_event,
+        ) as mock_create_sample_event:
+            response = self.client.post(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert "groupID" in orjson.loads(response.content)
+        assert mock_create_sample_event.call_args.kwargs["platform"] == "react-native"
 
     def test_ruby(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="ruby")

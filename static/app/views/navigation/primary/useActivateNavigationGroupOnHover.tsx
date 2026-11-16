@@ -5,7 +5,11 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {
+  hasSecondaryNavigation,
+  useNavigationGroupHoverEnabled,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {isPrimaryNavigationLinkActive} from './components';
@@ -24,6 +28,9 @@ import {useMouseMovement} from './useMouseMovement';
  *    an extra delay is added to prevent other nav groups from being activated.
  * 2. If it looks like the user is skimming the side of the nav (e.g. they are browsing the secondary
  *    nav), an extra delay is added to prevent accidental activation.
+ *
+ * Hover activation is skipped when `useNavigationGroupHoverEnabled` is false, and for
+ * groups without a secondary navigation.
  */
 
 interface UseActivateNavigationGroupOnHoverProps {
@@ -33,12 +40,13 @@ export function useActivateNavigationGroupOnHover({
   ref,
 }: UseActivateNavigationGroupOnHoverProps) {
   const {layout, features, setActiveGroup, activeGroup} = usePrimaryNavigation();
-  const {view} = useSecondaryNavigation();
+  const {view, setView} = useSecondaryNavigation();
   const location = useLocation();
+  const hoverEnabled = useNavigationGroupHoverEnabled();
 
   const mouseAccelerationRef = useMouseMovement({
     ref,
-    disabled: layout !== 'sidebar',
+    disabled: layout !== 'sidebar' || !hoverEnabled,
   });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const windowHeight = useWindowHeight();
@@ -119,19 +127,28 @@ export function useActivateNavigationGroupOnHover({
     };
 
     const onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-      // On touch mobile devices, activate the group without navigating.
-      if (layout === 'mobile' && !features.hover) {
-        e.preventDefault();
+      if (layout === 'mobile') {
+        if (!hasSecondaryNavigation(group)) {
+          // There is nothing to show for this group, so navigate and close the menu.
+          setView('collapsed');
+        } else if (!features.hover) {
+          // On touch mobile devices, activate the group without navigating.
+          e.preventDefault();
+        }
       }
       setActiveGroup(group);
     };
 
+    // Hovering a group without a secondary navigation would only hide the
+    // secondary sidebar, so there is nothing to preview.
+    const canPreview = hoverEnabled && hasSecondaryNavigation(group);
+
     return {
       'aria-current': isActive ? ('location' as const) : undefined,
       'data-active-group': activeGroup === group ? 'true' : undefined,
-      onMouseEnter,
-      onMouseLeave,
       onClick,
+      onMouseEnter: canPreview ? onMouseEnter : undefined,
+      onMouseLeave: canPreview ? onMouseLeave : undefined,
     };
   };
 }

@@ -11,17 +11,11 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
-import {
-  GroupStatus,
-  ProgressState,
-  type Group,
-  type GroupStatusResolution,
-} from 'sentry/types/group';
+import {GroupStatus, type Group, type GroupStatusResolution} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -30,7 +24,7 @@ import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
 
 import {IssuePreviewActions} from './issuePreviewActions';
-import {useIssuePreviewSeer} from './issuePreviewSeer';
+import {isAwaitingResolution, useIssuePreviewSeer} from './issuePreviewSeer';
 import {IssuePreviewSeerActions} from './issuePreviewSeerActions';
 import type {IssueSummary} from './issuePreviewSummary';
 
@@ -153,13 +147,10 @@ export function IssuePreviewHeaderActions({
   project,
   summary,
 }: IssuePreviewHeaderActionsProps) {
-  const {autofix, state} = useIssuePreviewSeer();
+  const {autofix, creditCheck, state} = useIssuePreviewSeer();
   const shouldShowSeerActions = state === 'start' || state === 'summary';
 
-  if (
-    group.derivedData?.progress === ProgressState.FIX_APPLIED &&
-    getConfigForIssueType(group, project).actions.resolve.enabled
-  ) {
+  if (isAwaitingResolution(group, project)) {
     return (
       <IssuePreviewResolutionActions
         disabled={disabled}
@@ -169,7 +160,7 @@ export function IssuePreviewHeaderActions({
     );
   }
 
-  if (state === 'loading') {
+  if (state === 'loading' || creditCheck.isPending) {
     return <Placeholder width="120px" height="32px" />;
   }
 

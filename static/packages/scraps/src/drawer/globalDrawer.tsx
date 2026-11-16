@@ -111,6 +111,22 @@ const DrawerContext = createContext<DrawerContextType>({
   setPlacement: () => {},
 });
 
+/**
+ * Resolves an event target to the nearest Element. Mouse/touch event targets
+ * are not guaranteed to be Elements (e.g. text nodes or the Document), which
+ * lack DOM traversal methods like `closest`. Targets without an Element
+ * ancestor fall back to the document's root element.
+ */
+function getTargetElement(target: EventTarget | null): Element {
+  if (target instanceof Element) {
+    return target;
+  }
+  if (target instanceof Node && target.parentElement) {
+    return target.parentElement;
+  }
+  return document.documentElement;
+}
+
 function shouldCloseOnInteractOutsideByDefault(element: Element) {
   const overlay = element.closest('[data-overlay]');
   return !overlay || overlay.hasAttribute('data-drawer-backdrop');
@@ -195,12 +211,7 @@ export function GlobalDrawer({children}: GlobalDrawerProps) {
   const {shouldCloseOnInteractOutside = shouldCloseOnInteractOutsideByDefault} =
     currentDrawerConfig?.options ?? {};
   useOnClickOutside(panelRef, e => {
-    if (e.target === null) {
-      handleClickOutside();
-      return;
-    }
-
-    if (!shouldCloseOnInteractOutside(e.target as Element)) {
+    if (!shouldCloseOnInteractOutside(getTargetElement(e.target))) {
       return;
     }
     handleClickOutside();

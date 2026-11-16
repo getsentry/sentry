@@ -1498,7 +1498,7 @@ class ExploreSavedQueriesTest(APITestCase):
             assert response.data == {"detail": "You do not have access to query transformations."}
             assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
 
-    def test_save_invalid_transformation_pipeline(self) -> None:
+    def test_save_invalid_transformation_function(self) -> None:
         for visualization_field in ["visualize", "aggregateField"]:
             with self.feature(
                 {**self.features, "organizations:explore-interpolation-and-smoothing": True}

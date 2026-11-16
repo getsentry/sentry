@@ -94,61 +94,65 @@ function AddGiftBudgetModal({
         <form.AppField name="selectedBudgetId">
           {budgetField => (
             <Stack gap="lg">
-              <budgetField.Radio.Group
+              <budgetField.RadioGroup
                 value={budgetField.state.value}
                 onChange={budgetField.handleChange}
               >
-                <budgetField.Layout.Stack label="Reserved Budget">
-                  {reservedBudgetOptions.length > 1 && (
-                    <Text as="p">Select a reserved budget to add gift amount.</Text>
-                  )}
-                  {reservedBudgetOptions.length === 0 && (
-                    <Text as="p">No reserved budgets available.</Text>
-                  )}
-                  {reservedBudgetOptions.map(budget => (
-                    <budgetField.Radio.Item key={budget.id} value={budget.id}>
-                      <Container
-                        as="span"
-                        display="block"
-                        data-test-id={`reserved-budget-${budget.id}`}
-                        padding="xl"
-                        border="primary"
-                        radius="md"
-                        cursor="pointer"
-                        background={
-                          budgetField.state.value === budget.id ? 'secondary' : undefined
-                        }
-                      >
-                        <Stack as="span" gap="md">
-                          <Flex as="span" justify="between">
+                {({Item}) => (
+                  <budgetField.Layout.Stack label="Reserved Budget">
+                    {reservedBudgetOptions.length > 1 && (
+                      <Text as="p">Select a reserved budget to add gift amount.</Text>
+                    )}
+                    {reservedBudgetOptions.length === 0 && (
+                      <Text as="p">No reserved budgets available.</Text>
+                    )}
+                    {reservedBudgetOptions.map(budget => (
+                      <Item key={budget.id} value={budget.id}>
+                        <Container
+                          as="span"
+                          display="block"
+                          data-test-id={`reserved-budget-${budget.id}`}
+                          padding="xl"
+                          border="primary"
+                          radius="md"
+                          cursor="pointer"
+                          background={
+                            budgetField.state.value === budget.id
+                              ? 'secondary'
+                              : undefined
+                          }
+                        >
+                          <Stack as="span" gap="md">
+                            <Flex as="span" justify="between">
+                              <Text>
+                                <Text bold>Reserved Budget:</Text> $
+                                {(budget.reservedBudget / 100).toLocaleString()}
+                              </Text>
+                              <Text>
+                                <Text bold>Existing Free Budget:</Text> $
+                                {(budget.freeBudget / 100).toLocaleString()}
+                              </Text>
+                            </Flex>
                             <Text>
-                              <Text bold>Reserved Budget:</Text> $
-                              {(budget.reservedBudget / 100).toLocaleString()}
+                              <Text bold>Categories:</Text>{' '}
+                              {Object.keys(budget.categories)
+                                .map(category =>
+                                  getPlanCategoryName({
+                                    plan: subscription.planDetails,
+                                    category: category as DataCategory,
+                                    capitalize: false,
+                                    hadCustomDynamicSampling: true,
+                                  })
+                                )
+                                .join(', ') || 'None'}
                             </Text>
-                            <Text>
-                              <Text bold>Existing Free Budget:</Text> $
-                              {(budget.freeBudget / 100).toLocaleString()}
-                            </Text>
-                          </Flex>
-                          <Text>
-                            <Text bold>Categories:</Text>{' '}
-                            {Object.keys(budget.categories)
-                              .map(category =>
-                                getPlanCategoryName({
-                                  plan: subscription.planDetails,
-                                  category: category as DataCategory,
-                                  capitalize: false,
-                                  hadCustomDynamicSampling: true,
-                                })
-                              )
-                              .join(', ') || 'None'}
-                          </Text>
-                        </Stack>
-                      </Container>
-                    </budgetField.Radio.Item>
-                  ))}
-                </budgetField.Layout.Stack>
-              </budgetField.Radio.Group>
+                          </Stack>
+                        </Container>
+                      </Item>
+                    ))}
+                  </budgetField.Layout.Stack>
+                )}
+              </budgetField.RadioGroup>
               {budgetField.state.value && (
                 <form.AppField name="giftAmount">
                   {field => (

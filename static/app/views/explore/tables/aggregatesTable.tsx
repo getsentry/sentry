@@ -5,7 +5,7 @@ import {IconStack} from '@sentry/icons/stack';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -17,8 +17,8 @@ import {parseCursor} from 'sentry/utils/cursor';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {getQueryErrorMessage} from 'sentry/utils/discover/genericDiscoverQuery';
 import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -35,9 +35,9 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateCursor,
   useSetQueryParamsAggregateSortBys,
 } from 'sentry/views/explore/queryParams/context';
-import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
@@ -63,8 +63,8 @@ export function AggregatesTable({
 }: AggregatesTableProps) {
   const theme = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
   const {projects} = useProjects();
+  const setAggregateCursor = useSetQueryParamsAggregateCursor();
 
   const {result, eventView} = aggregatesTableResult;
 
@@ -111,9 +111,6 @@ export function AggregatesTable({
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
-
-  const cursorHandler: CursorHandler = (cursor, path, q) =>
-    navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}});
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'aggregates',
@@ -267,9 +264,11 @@ export function AggregatesTable({
         )}
       </SimpleTable>
       <Pagination
-        pageLinks={result.pageLinks}
-        paginationAnalyticsEvent={paginationAnalyticsEvent}
-        onCursor={cursorHandler}
+        {...getPaginationProps(result.pageLinks)}
+        onPageChange={(_cursor, delta) =>
+          paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+        }
+        onCursor={setAggregateCursor}
       />
     </Fragment>
   );

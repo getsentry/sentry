@@ -396,7 +396,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             assert self.model.name == "Test query"
             assert self.model.query == {"query": [{"fields": ["span.op"], "mode": "samples"}]}
 
-    def test_put_invalid_transformation_pipeline(self) -> None:
+    def test_put_invalid_transformation_function(self) -> None:
         for visualization_field in ["visualize", "aggregateField"]:
             url = reverse(
                 "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]

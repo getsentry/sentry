@@ -110,6 +110,12 @@ class MyPermission(SentryPermission):
     }
 ```
 
+New scopes in `SENTRY_SCOPES` (`src/sentry/conf/server.py`) use `<resource>:<action>`:
+
+- `<resource>` is the singular snake_case object being accessed, such as `saved_query` or `project_key`. Do not put the object in the action under a parent resource: `project_key:write`, not `project:keys`.
+- `<action>` is `read`, `write`, `admin`, or `create`, such as `project_key:create`. Use another verb only when those don't fit, and add it to `SCOPE_ACTIONS` in `tests/sentry/conf/test_scopes.py`.
+- `test_scope_names_follow_resource_action` enforces this. Older scopes that break it are listed in `LEGACY_SCOPE_NAMES` there; do not add to that list.
+
 ### Logging, Tracing, Metrics, Options
 
 Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()` → use the **`backend-conventions`** skill.
@@ -167,6 +173,10 @@ def my_function():
     from sentry.models.project import Project # NO!
     ...
 ```
+
+## Sentry<>Seer RPC (Deprecated)
+
+The Seer RPC surface (`src/sentry/seer/endpoints/seer_rpc.py`, `organization_seer_rpc.py`, `sentry/seer/sentry_data_models.py`) is being removed. Seer now reads Sentry data through the public Sentry API via codemode. Do not add new RPC methods or models; add or extend a public API endpoint instead.
 
 ## File Location Map
 

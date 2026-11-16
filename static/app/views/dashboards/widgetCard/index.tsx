@@ -53,12 +53,14 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
+import {useWidgetChartLayers} from './useWidgetChartLayers';
 import {VisualizationWidget} from './visualizationWidget';
 import {WidgetCardChartContainer} from './widgetCardChartContainer';
 import {
   getMenuOptions,
   useDroppedColumnsWarning,
   useTransactionsDeprecationWarning,
+  withMenuActionCallback,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
 import {readableConditions} from './widgetLLMContext';
@@ -100,6 +102,10 @@ type Props = {
   isPreview?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
+  /**
+   * Called with the item key whenever a context menu item is selected.
+   */
+  onContextMenuAction?: (key: string) => void;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -248,6 +254,15 @@ function WidgetCard(props: Props) {
     dashboardFilters,
   });
 
+  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
+  const chartLayers = useWidgetChartLayers({
+    widget,
+    interval: widgetInterval,
+    enabled: canUseTimeseriesVisualization,
+    // disableFullscreen is true while creating or editing a widget.
+    hidden: disableFullscreen,
+  });
+
   const onDataFetchStart = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -339,7 +354,7 @@ function WidgetCard(props: Props) {
     ? t('This is a preview only. To edit, you must add this dashboard.')
     : undefined;
 
-  const actions = props.showContextMenu
+  const menuOptions = props.showContextMenu
     ? getMenuOptions(
         dashboardFilters,
         organization,
@@ -356,6 +371,9 @@ function WidgetCard(props: Props) {
         canAskSeer ? askSeer : undefined
       )
     : [];
+  const actions = props.onContextMenuAction
+    ? withMenuActionCallback(menuOptions, props.onContextMenuAction)
+    : menuOptions;
 
   const errorBoundaryHandler = () => {
     return (
@@ -371,7 +389,6 @@ function WidgetCard(props: Props) {
     );
   };
 
-  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
     // Legend state requires a stable widget ID to persist to the URL.
     // Unsaved widgets (no ID yet, e.g. in the widget builder preview) skip this.
@@ -420,7 +437,9 @@ function WidgetCard(props: Props) {
               showConfidenceWarning={showConfidenceWarning}
               legendSelection={legendSelectionForWidget}
               onLegendSelectionChange={handleLegendSelectionChange}
-              disableFullscreen={disableFullscreen}
+              showReleases={chartLayers.showReleases}
+              droppedData={chartLayers.droppedData.band}
+              isDroppedDataLoading={chartLayers.droppedData.isLoading}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>

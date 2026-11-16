@@ -3,6 +3,7 @@ import {IconClock} from '@sentry/icons/clock';
 import {IconFile} from '@sentry/icons/file';
 import {IconJson} from '@sentry/icons/json';
 import {IconMobile} from '@sentry/icons/mobile';
+import type {UseQueryResult} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeBlock} from '@sentry/scraps/codeBlock';
@@ -15,8 +16,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {Placeholder} from 'sentry/components/placeholder';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {t} from 'sentry/locale';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
@@ -33,7 +32,7 @@ import {
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 interface BuildInstallHeaderProps {
-  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
+  buildDetailsQuery: UseQueryResult<BuildDetailsApiResponse>;
   projectId?: string;
 }
 

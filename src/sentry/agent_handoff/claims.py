@@ -1,10 +1,19 @@
+from enum import StrEnum
+
 from django.views.decorators.debug import sensitive_variables
 
-from sentry import options
+from sentry import analytics, options
 from sentry.agent_handoff.applications import get_handoff_application
-from sentry.agent_handoff.codes import consume_handoff
-from sentry.agent_handoff.flows import HandoffMode, get_flow_instructions
+from sentry.agent_handoff.codes import (
+    AgentHandoff,
+    HandoffExpired,
+    HandoffIPMismatch,
+    consume_handoff,
+)
+from sentry.agent_handoff.flows import get_flow
+from sentry.agent_handoff.flows.base import InvalidHandoffContext
 from sentry.agent_handoff.runbook import render_agent_runbook
+from sentry.analytics.events.agent_handoff import AgentHandoffClaimedEvent
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
     persist_authorization,
@@ -16,13 +25,48 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.users.models.user import User
 
 
+class ClaimOutcome(StrEnum):
+    ACCEPTED = "accepted"
+    EXPIRED = "expired"
+    IP_MISMATCH = "ip_mismatch"
+    INVALID = "invalid"
+
+
+def _record_claim(outcome: ClaimOutcome, handoff: AgentHandoff | None) -> None:
+    analytics.record(
+        AgentHandoffClaimedEvent(
+            outcome=outcome.value,
+            user_id=handoff.user_id if handoff else None,
+            organization_id=handoff.organization_id if handoff else None,
+            flow=handoff.flow.value if handoff else None,
+            run_id=handoff.context.run_id if handoff and handoff.context else None,
+        )
+    )
+
+
 @sensitive_variables()
-def claim_handoff(code: str) -> str | None:
+def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
     """Consume a handoff and render credentials after revalidating its authorization."""
-    handoff = consume_handoff(code)
+    try:
+        handoff = consume_handoff(code, ip_address=ip_address)
+    except HandoffExpired as error:
+        _record_claim(ClaimOutcome.EXPIRED, error.handoff)
+        return None
+    except HandoffIPMismatch as error:
+        _record_claim(ClaimOutcome.IP_MISMATCH, error.handoff)
+        raise
+
     if handoff is None:
+        _record_claim(ClaimOutcome.INVALID, None)
         return None
 
+    guide = _render_guide(handoff)
+    _record_claim(ClaimOutcome.ACCEPTED if guide is not None else ClaimOutcome.INVALID, handoff)
+    return guide
+
+
+@sensitive_variables()
+def _render_guide(handoff: AgentHandoff) -> str | None:
     user = User.objects.filter(id=handoff.user_id, is_active=True, is_suspended=False).first()
     application = get_handoff_application(handoff.scope_list)
     if user is None or application is None or application.id != handoff.application_id:
@@ -43,6 +87,15 @@ def claim_handoff(code: str) -> str | None:
     except InvalidOrganizationSelection:
         return None
 
+    try:
+        flow_instructions = get_flow(handoff.flow).render(
+            handoff.context,
+            user_id=user.id,
+            organization_id=context.organization.id,
+        )
+    except InvalidHandoffContext:
+        return None
+
     persist_authorization(application, user.id, handoff.scope_list, organization_id)
     _, setup_code = ApiSetupCode.mint(
         application=application,
@@ -57,10 +110,5 @@ def claim_handoff(code: str) -> str | None:
         sentry_url=options.get("system.url-prefix"),
         client_id=application.client_id,
         setup_code=setup_code,
-        flow_instructions=get_flow_instructions(
-            handoff.flow,
-            mode=HandoffMode.CLAIMED,
-            user_id=user.id,
-            organization_id=context.organization.id,
-        ),
+        flow_instructions=flow_instructions,
     )

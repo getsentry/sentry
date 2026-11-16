@@ -1,7 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 
@@ -26,41 +33,58 @@ describe('SeerOutOfCreditsCta', () => {
     });
   }
 
-  it('asks billing members to turn on auto-reload from the chat', async () => {
+  it('lets billing members turn on auto-reload from the chat in a modal', async () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
     );
     mockAutoTopUp(organization, false);
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/seer-wallet/`,
+      body: {
+        balance: 0,
+        creditPriceCents: 1,
+        percentUsed: 1,
+        included: {total: 500, remaining: 0, resetsAt: null},
+        purchased: {total: 0, remaining: 0, expiresAt: null},
+      },
+    });
 
-    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />, {
+      organization,
+    });
+    renderGlobalModal({organization});
 
     expect(
       await screen.findByText(
         'Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto-reload.'
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Turn on auto-reload'})).toHaveAttribute(
-      'href',
-      `/settings/${organization.slug}/billing/overview/`
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Turn on auto-reload'}));
+    expect(
+      await screen.findByRole('heading', {name: 'Auto-reload credits'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', {name: 'Credit amount'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
 
-  it('tells billing members when auto-reload has no top-ups left', async () => {
+  it('tells billing members with auto-reload on that the org hit its daily usage limit', async () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
     );
     mockAutoTopUp(organization, true);
 
-    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />, {
+      organization,
+    });
 
     // Nothing shows until the setting loads, so the "off" copy never flashes.
     expect(screen.queryByTestId('seer-out-of-credits')).not.toBeInTheDocument();
+    // Auto-reload tops the org up until the daily usage limit stops it.
     expect(
       await screen.findByText(
-        'Your organization does not have enough credits left for you to message Seer, and you have no auto top-ups remaining. Adjust your spend and turn on auto top-up.'
+        'Your organization hit its daily usage limit, so you cannot continue messaging Seer.'
       )
     ).toBeInTheDocument();
     expect(
@@ -68,14 +92,91 @@ describe('SeerOutOfCreditsCta', () => {
     ).toBeInTheDocument();
   });
 
+  it('tells billing members when the chat hit the daily usage limit', async () => {
+    const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
+    act(() =>
+      SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
+    );
+    // Auto-reload being off doesn't matter: the limit stopped the chat, and
+    // it's set alongside auto-reload.
+    mockAutoTopUp(organization, false);
+
+    render(
+      <SeerOutOfCreditsCta reason="agent-chat" denialReason="daily_cap_exceeded" />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        'Your organization hit its daily usage limit, so you cannot continue messaging Seer.'
+      )
+    ).toBeInTheDocument();
+    // Tests run in UTC with the clock frozen at 2017-10-17T02:41:20Z, so the
+    // limit resets at the next midnight UTC.
+    expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(
+      'This will reset at 12:00 AM UTC.'
+    );
+    expect(
+      screen.getByRole('button', {name: 'Configure auto-reload'})
+    ).toBeInTheDocument();
+  });
+
+  it('tells members to ask their admin about the daily usage limit', () => {
+    const organization = OrganizationFixture({access: ['org:read']});
+    act(() =>
+      SubscriptionStore.set(
+        organization.slug,
+        SubscriptionFixture({organization, canSelfServe: true})
+      )
+    );
+
+    render(
+      <SeerOutOfCreditsCta reason="agent-chat" denialReason="daily_cap_exceeded" />,
+      {organization}
+    );
+
+    expect(
+      screen.getByText(
+        'Your organization hit its daily usage limit, so you cannot continue messaging Seer. If you want to increase your limit, reach out to your admin.'
+      )
+    ).toBeInTheDocument();
+    // "Contact Admin" asks for credits, which won't lift the limit.
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('tells members when Autofix hit the daily usage limit', () => {
+    const organization = OrganizationFixture({access: ['org:read']});
+    act(() =>
+      SubscriptionStore.set(
+        organization.slug,
+        SubscriptionFixture({organization, canSelfServe: true})
+      )
+    );
+
+    render(
+      <SeerOutOfCreditsCta
+        reason="autofix-start"
+        denialReason="daily_cap_exceeded"
+        variant="muted"
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByText(
+        'Your organization hit its daily usage limit, so you cannot start an Autofix run. If you want to increase your limit, reach out to your admin.'
+      )
+    ).toBeInTheDocument();
+  });
+
   it.each([
     [
       'autofix-start',
-      'You do not have enough credits to start an Autofix run. Set up auto top up to keep your flow uninterrupted.',
+      'You do not have enough credits to start an Autofix run. Set up auto-reload to keep your flow uninterrupted.',
     ],
     [
       'autofix-continue',
-      'Your org does not have enough credits to continue your Autofix run. Set up auto top up to keep your flow uninterrupted.',
+      'Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted.',
     ],
   ] as const)('uses the %s copy', async (reason, copy) => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
@@ -84,7 +185,7 @@ describe('SeerOutOfCreditsCta', () => {
     );
     mockAutoTopUp(organization, false);
 
-    render(<SeerOutOfCreditsCta reason={reason} />, {organization});
+    render(<SeerOutOfCreditsCta reason={reason} denialReason={null} />, {organization});
 
     expect(await screen.findByText(copy)).toBeInTheDocument();
     expect(
@@ -118,7 +219,9 @@ describe('SeerOutOfCreditsCta', () => {
       method: 'POST',
     });
 
-    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />, {
+      organization,
+    });
 
     expect(
       await screen.findByText(
@@ -146,11 +249,11 @@ describe('SeerOutOfCreditsCta', () => {
   it.each([
     [
       'autofix-start',
-      'Your organization does not have enough credits to start an Autofix run. Ask your admin to increase your daily token limit or set up auto top-up.',
+      'Your organization does not have enough credits to start an Autofix run. Ask your admin to increase your daily usage limit or set up auto-reload.',
     ],
     [
       'autofix-continue',
-      'Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily token limit or set up auto top-up.',
+      'Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily usage limit or set up auto-reload.',
     ],
   ] as const)('uses the member %s copy', async (reason, copy) => {
     const organization = OrganizationFixture({access: ['org:read']});
@@ -165,7 +268,9 @@ describe('SeerOutOfCreditsCta', () => {
       body: {},
     });
 
-    render(<SeerOutOfCreditsCta reason={reason} variant="muted" />, {organization});
+    render(<SeerOutOfCreditsCta reason={reason} denialReason={null} variant="muted" />, {
+      organization,
+    });
 
     expect(await screen.findByText(copy)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Contact Admin'})).toBeEnabled();
@@ -192,7 +297,9 @@ describe('SeerOutOfCreditsCta', () => {
       },
     });
 
-    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />, {
+      organization,
+    });
 
     // "Contact Admin" can't be clicked before the earlier request has loaded.
     expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
@@ -221,7 +328,9 @@ describe('SeerOutOfCreditsCta', () => {
       },
     });
 
-    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />, {
+      organization,
+    });
 
     expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
     expect(prompts).toHaveBeenCalled();
@@ -239,7 +348,9 @@ describe('SeerOutOfCreditsCta', () => {
       )
     );
 
-    render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
+    render(<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />, {
+      organization,
+    });
 
     expect(screen.getByText(/Ask your admin to set up auto-reload/)).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

@@ -204,7 +204,9 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
 
         elif workflow_id := _to_valid_int_id("automationId", route_params.get("automationId")):
             workflow = Workflow.objects.filter(
-                id=workflow_id, organization_id=organization.id
+                id=workflow_id,
+                organization_id=organization.id,
+                type=Workflow.Type.ALERT,
             ).first()
             if workflow:
                 try:

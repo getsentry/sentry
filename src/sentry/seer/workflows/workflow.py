@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Iterator, Mapping, Sequence
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
-from typing import Any, assert_never
+from typing import Literal, overload
 
 from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
-from pydantic import BaseModel
 
-from sentry.constants import ALL_ACCESS_PROJECTS, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -20,66 +19,48 @@ from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
-    SeerWorkflowConfigProject,
     SeerWorkflowFilters,
     SeerWorkflowRun,
-    SeerWorkflowRunExtras,
-    SeerWorkflowRunStatus,
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
-    WorkflowRunSnapshot,
 )
-from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
+from sentry.seer.workflows.base import (
+    ConfigUpdate,
+    LockedConfig,
+    ProjectSelection,
+    ScopeSelection,
+    SeerServiceAccountGrant,
+    SelectedMonitors,
+    WorkflowUpdateError,
+    lock_config,
+    validate_service_account_grant,
+)
+from sentry.seer.workflows.definitions import get_definition
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
-    InvalidScopeError,
     ServiceAccountReplica,
-    validate_grantable_scopes,
 )
-from sentry.service_accounts.outbox import ServiceAccountOwnerKind, service_account_create_outbox
+from sentry.service_accounts.outbox import (
+    ServiceAccountOwnerKind,
+    service_account_create_outbox,
+)
 from sentry.service_accounts.services.service_account import (
     RpcServiceAccount,
     service_account_service,
 )
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
 
 
-class WorkflowUpdateError(ValueError):
-    """A rejected workflow update whose message is safe to show users."""
-
-
-@dataclass(frozen=True)
-class AllProjects:
-    pass
-
-
-@dataclass(frozen=True)
-class SelectedProjects:
-    project_ids: tuple[int, ...]
-
-
-type ProjectSelection = AllProjects | SelectedProjects
-
-
-@dataclass(frozen=True)
-class SeerServiceAccountGrant:
-    """The scopes and projects an automation's investigations run with."""
-
-    scopes: Sequence[str]
-    project_ids: Sequence[int] = ()
-    all_projects: bool = False
-
-
 @dataclass(frozen=True, kw_only=True)
 class SeerWorkflow:
-    """Apply each change to fresh state under the workflow config's row lock.
+    """Read and change one automation's saved configuration.
 
-    Returned models do not carry a lock or refresh automatically. Configuration
-    changes, including project selection, should go through these methods.
+    Each change applies to fresh state under the config's row lock. Returned models do not
+    carry a lock or refresh automatically. What starts the automation's runs and what they do
+    come from its strategy's ``AutomationDefinition``.
     """
 
     config_id: int
@@ -118,36 +99,70 @@ class SeerWorkflow:
                 ]
             )
 
+    @overload
     @classmethod
-    @contextmanager
-    def _create_config(
+    def create(
         cls,
         *,
-        database: str,
+        organization_id: int,
+        strategy: Literal[SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION],
+        enabled: bool = ...,
+        schedule: SeerWorkflowSchedule = ...,
+        scope: SelectedMonitors,
+        environments: Sequence[str] = ...,
+        extras: SeerWorkflowConfigExtras | None = ...,
+        service_account_grant: SeerServiceAccountGrant,
+    ) -> SeerWorkflow: ...
+
+    @overload
+    @classmethod
+    def create(
+        cls,
+        *,
+        organization_id: int,
+        strategy: Literal[SeerWorkflowStrategy.AGENTIC_TRIAGE_V2],
+        enabled: bool = ...,
+        schedule: SeerWorkflowSchedule = ...,
+        scope: ProjectSelection,
+        environments: Sequence[str] = ...,
+        extras: SeerWorkflowConfigExtras | None = ...,
+        service_account_grant: SeerServiceAccountGrant,
+    ) -> SeerWorkflow: ...
+
+    @classmethod
+    def create(
+        cls,
+        *,
         organization_id: int,
         strategy: SeerWorkflowStrategy,
-        enabled: bool,
-        filters: SeerWorkflowFilters,
-        service_account_grant: SeerServiceAccountGrant,
+        enabled: bool = False,
+        schedule: SeerWorkflowSchedule = SeerWorkflowSchedule.DAILY,
+        scope: ScopeSelection,
+        environments: Sequence[str] = (),
         extras: SeerWorkflowConfigExtras | None = None,
-    ) -> Iterator[SeerWorkflowConfig]:
+        service_account_grant: SeerServiceAccountGrant,
+    ) -> SeerWorkflow:
         """
-        Create a config within the org's automation limit, with an outbox that creates its
-        service account in control. Writes in the block share the config's
-        transaction, so a config is never committed without the outbox that links its
-        account.
+        Create a user-defined automation within the org's automation limit. ``scope`` takes
+        the form the strategy's trigger selects projects by, and ``environments=[]`` means all
+        environments. ``service_account_grant`` sets the access of the automation's service
+        account, which is independent of ``scope``. Callers must authorize the grant and audit it.
 
-        The outbox drains when the transaction commits. If that fails, the config is kept
-        without an account and the outbox retries in the background.
+        The config, its scope, and the outbox that creates its service account in control share
+        one transaction, so a config is never committed without the outbox that links its
+        account. The outbox drains when the transaction commits. If that fails, the config is
+        kept without an account and the outbox retries in the background.
         """
-        if not service_account_grant.all_projects:
-            _validate_project_ids(organization_id, set(service_account_grant.project_ids))
-        try:
-            validate_grantable_scopes(service_account_grant.scopes)
-        except InvalidScopeError as e:
-            raise WorkflowUpdateError(" ".join(e.messages)) from e
-
+        # TODO(telkins): Connect existing default Error Spike monitors when seeding the
+        # default automation, and connect new projects' default monitors as they are created.
+        if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
+            raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
         extras = extras or SeerWorkflowConfigExtras()
+        definition = get_definition(strategy)
+        definition.validate_settings(extras)
+        validate_service_account_grant(organization_id, service_account_grant)
+
+        database = router.db_for_write(SeerWorkflowConfig)
         try:
             with outbox_context(transaction.atomic(database), flush=True):
                 existing = (
@@ -167,7 +182,8 @@ class SeerWorkflow:
                     organization_id=organization_id,
                     strategy=strategy,
                     enabled=enabled,
-                    filters=filters.dict(),
+                    schedule=schedule,
+                    filters=SeerWorkflowFilters(environments=list(environments)).dict(),
                     extras=extras.dict(exclude_none=True),
                 )
                 service_account_create_outbox(
@@ -180,80 +196,29 @@ class SeerWorkflow:
                     all_projects=service_account_grant.all_projects,
                     created_by_id=extras.created_by,
                 ).save()
-                yield config
+
+                update = ConfigUpdate(LockedConfig(config), definition)
+                update.set_scope(scope)
+                if update.dirty_fields:
+                    config.save(using=database, update_fields=sorted(update.dirty_fields))
+                definition.trigger.sync(config)
+                transaction.on_commit(
+                    partial(
+                        logger.info,
+                        "seer.workflow.created",
+                        extra={
+                            "organization_id": organization_id,
+                            "config_id": config.id,
+                            "config_version": config.version,
+                            "strategy": config.strategy,
+                        },
+                    ),
+                    using=database,
+                )
         except (OutboxFlushError, OutboxDatabaseError):
             logger.exception(
                 "seer.workflow.service_account.flush_failed",
                 extra={"organization_id": organization_id},
-            )
-
-    @classmethod
-    def create(
-        cls,
-        *,
-        organization_id: int,
-        strategy: SeerWorkflowStrategy,
-        enabled: bool = False,
-        schedule: SeerWorkflowSchedule,
-        project_ids: Collection[int],
-        environments: Sequence[str] = (),
-        extras: SeerWorkflowConfigExtras | None = None,
-        service_account_grant: SeerServiceAccountGrant,
-    ) -> SeerWorkflow:
-        """
-        Create a user-defined automation. Use ``project_ids=[-1]`` to select all
-        projects and ``environments=[]`` for all environments. ``service_account_grant`` sets
-        the access of the automation's service account. Callers must authorize the grant and audit it.
-        """
-        if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
-            raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
-        if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            raise ValueError("Use create_with_monitors for metric workflows")
-
-        project_set = set(project_ids)
-        all_projects = project_set == ALL_ACCESS_PROJECTS
-        if all_projects:
-            # [-1] is not stored as project links, only in config.filters
-            project_set = set()
-        _validate_project_ids(organization_id, project_set)
-
-        database = router.db_for_write(SeerWorkflowConfig)
-        with cls._create_config(
-            database=database,
-            organization_id=organization_id,
-            strategy=strategy,
-            enabled=enabled,
-            filters=SeerWorkflowFilters(
-                all_projects=all_projects,
-                environments=list(environments),
-            ),
-            service_account_grant=service_account_grant,
-            extras=extras,
-        ) as config:
-            config.schedule = schedule
-            config.save(using=database, update_fields=["schedule"])
-            if project_set:
-                SeerWorkflowConfigProject.objects.using(database).bulk_create(
-                    [
-                        SeerWorkflowConfigProject(config=config, project_id=project_id)
-                        for project_id in sorted(project_set)
-                    ]
-                )
-            transaction.on_commit(
-                partial(
-                    logger.info,
-                    "seer.workflow.created",
-                    extra={
-                        "organization_id": organization_id,
-                        "config_id": config.id,
-                        "config_version": config.version,
-                        "strategy": config.strategy,
-                        "all_projects": all_projects,
-                        "project_ids": list(project_set),
-                        "project_count": len(project_set),
-                    },
-                ),
-                using=database,
             )
         return cls(config_id=config.id, organization_id=organization_id)
 
@@ -269,50 +234,6 @@ class SeerWorkflow:
     def filters(self) -> SeerWorkflowFilters:
         return SeerWorkflowFilters.parse_obj(self.get_config().filters)
 
-    def get_or_create_run(
-        self,
-        *,
-        trigger_key: str,
-        inputs: BaseModel,
-        extras: Mapping[str, Any] | None = None,
-    ) -> WorkflowRunCreationResult:
-        """Retries preserve the original configuration and inputs."""
-        if not trigger_key or len(trigger_key) > 256:
-            raise ValueError("Trigger keys must contain between 1 and 256 characters")
-
-        with self._lock_config() as config:
-            existing = self.get_runs().filter(trigger_key=trigger_key).first()
-            if existing is not None:
-                return WorkflowRunCreationResult(
-                    lifecycle=SeerWorkflowRunLifecycle(
-                        run_id=existing.id, organization_id=existing.organization_id
-                    ),
-                    created=False,
-                )
-
-            snapshot = WorkflowRunSnapshot(
-                config_version=config.version,
-                strategy=SeerWorkflowStrategy(config.strategy),
-                filters=config.filters,
-                project_ids=tuple(self._get_project_ids(config)),
-                output_policy=config.output_policy,
-                inputs=json.loads(inputs.json()),
-            )
-            run_extras = SeerWorkflowRunExtras.parse_obj({**(extras or {}), "snapshot": snapshot})
-            run = SeerWorkflowRun.objects.create(
-                organization_id=config.organization_id,
-                workflow_config=config,
-                trigger_key=trigger_key,
-                status=SeerWorkflowRunStatus.QUEUED,
-                extras=json.loads(run_extras.json()),
-            )
-            return WorkflowRunCreationResult(
-                lifecycle=SeerWorkflowRunLifecycle(
-                    run_id=run.id, organization_id=run.organization_id
-                ),
-                created=True,
-            )
-
     def get_runs(self) -> QuerySet[SeerWorkflowRun]:
         return (
             SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun))
@@ -322,16 +243,13 @@ class SeerWorkflow:
 
     def matches_scope(self, project_id: int, environment: str | None) -> bool:
         """Check the automation's scope before recording an admission decision."""
-        return self._matches_scope(self.get_config(), project_id, environment)
-
-    def has_quota_available(self) -> bool:
-        """Allow runs until automation quota enforcement is implemented."""
-        # TODO(telkins): Enforce automation quota before accepting a new run.
-        return True
+        config = self.get_config()
+        return get_definition(config.strategy).covers(config, project_id, environment)
 
     def get_project_ids(self) -> list[int]:
-        """Return active project IDs matching this workflow's filters, in ascending order."""
-        return self._get_project_ids(self.get_config())
+        """Return active project IDs in this workflow's scope, in ascending order."""
+        config = self.get_config()
+        return get_definition(config.strategy).project_ids(config)
 
     def has_all_projects(self) -> bool:
         """
@@ -339,7 +257,7 @@ class SeerWorkflow:
         Edge case: always false for empty selections, even if the org has no active projects.
         """
         config = self.get_config()
-        selected_projects = self._get_projects(config).values("id")
+        selected_projects = get_definition(config.strategy).trigger.projects(config).values("id")
         counts = Project.objects.filter(
             organization_id=config.organization_id, status=ObjectStatus.ACTIVE
         ).aggregate(
@@ -351,7 +269,8 @@ class SeerWorkflow:
     def delete(self) -> None:
         """Delete the config with its project links, runs, trigger bindings, and service account."""
         self._delete_service_account()
-        with self._lock_config() as config:
+        with lock_config(self.organization_id, self.config_id) as config:
+            get_definition(config.strategy).trigger.teardown(config)
             config.delete()
 
     def _delete_service_account(self) -> None:
@@ -392,159 +311,35 @@ class SeerWorkflow:
     def update_config(self) -> Iterator[ConfigUpdate]:
         """Lock the config row for a group of changes that commit or roll back together.
 
-        On a normal exit, any marked changes are saved atomically with a single version bump.
+        On a normal exit, any marked changes are saved atomically with a single version bump,
+        and the trigger is synced to match.
         Do not early return on error cases - propagate an exception so the transaction can roll back.
         """
-        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
-            update = self._new_config_update(self._config_queryset().select_for_update().get())
-            yield update
-            if update.changed:
-                update.config.version += 1
-                update.config.save(
-                    update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
-                )
-
-    @classmethod
-    def _new_config_update(cls, config: SeerWorkflowConfig) -> ConfigUpdate:
-        """Strategies with their own setters override this to return a ConfigUpdate subclass."""
-        return ConfigUpdate(config)
-
-    @contextmanager
-    def _lock_config(self) -> Iterator[SeerWorkflowConfig]:
-        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
-            yield self._config_queryset().select_for_update().get()
+        try:
+            with (
+                outbox_context(transaction.atomic(router.db_for_write(SeerWorkflowConfig))),
+                lock_config(self.organization_id, self.config_id) as config,
+            ):
+                definition = get_definition(config.strategy)
+                update = ConfigUpdate(config, definition)
+                yield update
+                if update.changed:
+                    config.version += 1
+                    config.save(
+                        update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
+                    )
+                # Even when unchanged, so a schedule that drifted from the config is repaired.
+                definition.trigger.sync(config)
+        except (OutboxFlushError, OutboxDatabaseError):
+            logger.exception(
+                "seer.workflow.update.flush_failed",
+                extra={"organization_id": self.organization_id, "config_id": self.config_id},
+            )
 
     def _config_queryset(self) -> QuerySet[SeerWorkflowConfig]:
         return SeerWorkflowConfig.objects.using(router.db_for_write(SeerWorkflowConfig)).filter(
             id=self.config_id, organization_id=self.organization_id
         )
-
-    def _matches_scope(
-        self, config: SeerWorkflowConfig, project_id: int, environment: str | None
-    ) -> bool:
-        """Check scope using a config snapshot without modifying it or acquiring a lock."""
-        filters = SeerWorkflowFilters.parse_obj(config.filters)
-        return (
-            config.enabled
-            and (not filters.environments or environment in filters.environments)
-            and self._get_projects(config).filter(id=project_id).exists()
-        )
-
-    def _get_project_ids(self, config: SeerWorkflowConfig) -> list[int]:
-        return list(self._get_projects(config).order_by("id").values_list("id", flat=True))
-
-    def _get_projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
-        """Return active projects in the config's scope; strategies may derive it differently."""
-        projects = Project.objects.filter(
-            organization_id=config.organization_id, status=ObjectStatus.ACTIVE
-        )
-        if not SeerWorkflowFilters.parse_obj(config.filters).all_projects:
-            projects = projects.filter(
-                id__in=SeerWorkflowConfigProject.objects.filter(config=config).values("project_id")
-            )
-        return projects
-
-
-@dataclass(frozen=True)
-class WorkflowRunCreationResult:
-    lifecycle: SeerWorkflowRunLifecycle
-    created: bool
-
-
-@dataclass
-class ConfigUpdate:
-    """Pending changes to a locked config row.
-
-    Only create one through ``SeerWorkflow.update_config``. Setters should mutate
-    ``config`` then mark what they changed after their last step that can fail.
-    """
-
-    # Config DB row to update. DO NOT call save() on this directly - use ``update_config``
-    config: SeerWorkflowConfig
-    dirty_fields: set[str] = field(default_factory=set)
-    related_changed: bool = False
-
-    @property
-    def changed(self) -> bool:
-        return bool(self.dirty_fields) or self.related_changed
-
-    def mark(self, *fields: str) -> None:
-        """Record changed columns on the config row."""
-        self.dirty_fields.update(fields)
-
-    def mark_related_changed(self) -> None:
-        """Record changes outside the row, like project links, that still bump the version."""
-        self.related_changed = True
-
-    def set_enabled(self, enabled: bool) -> None:
-        if self.config.enabled == enabled:
-            return
-        self.config.enabled = enabled
-        self.mark("enabled")
-
-    def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
-        new_extras = extras.dict(exclude_none=True)
-        current_extras = {k: v for k, v in self.config.extras.items() if v is not None}
-        if current_extras == new_extras:
-            return
-        self.config.extras = new_extras
-        self.mark("extras")
-
-    def set_project_selection(self, selection: ProjectSelection) -> None:
-        """Replace the selected projects, bumping the version only when the selection changes.
-
-        Callers must authorize the change; this only checks that the projects belong to the
-        workflow's organization.
-        """
-        match selection:
-            case AllProjects():
-                all_projects = True
-                project_ids: set[int] = set()
-            case SelectedProjects(project_ids=selected):
-                all_projects = False
-                project_ids = set(selected)
-            case _:
-                assert_never(selection)
-
-        config = self.config
-        if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            raise WorkflowUpdateError(
-                "Breached metric projects are selected by connecting monitors"
-            )
-        _validate_project_ids(config.organization_id, project_ids)
-
-        existing = set(
-            SeerWorkflowConfigProject.objects.filter(config=config).values_list(
-                "project_id", flat=True
-            )
-        )
-        removed = existing - project_ids
-        added = project_ids - existing
-        if removed or added:
-            SeerWorkflowConfigProject.objects.filter(config=config, project_id__in=removed).delete()
-            SeerWorkflowConfigProject.objects.bulk_create(
-                [
-                    SeerWorkflowConfigProject(config=config, project_id=project_id)
-                    for project_id in sorted(added)
-                ]
-            )
-            self.mark_related_changed()
-
-        filters = SeerWorkflowFilters.parse_obj(config.filters)
-        if filters.all_projects != all_projects:
-            filters.all_projects = all_projects
-            config.filters = config.filters | filters.dict()
-            self.mark("filters")
-
-
-def _validate_project_ids(organization_id: int, project_ids: set[int]) -> None:
-    valid_project_ids = set(
-        Project.objects.filter(organization_id=organization_id, id__in=project_ids).values_list(
-            "id", flat=True
-        )
-    )
-    if project_ids != valid_project_ids:
-        raise WorkflowUpdateError("Selected projects must exist in the workflow's organization")
 
 
 def _service_account_name(config_id: int, automation_name: str | None) -> str:

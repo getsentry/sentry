@@ -52,11 +52,7 @@ _SEER_PULL_REQUESTS: dict[str, Any] = {
                 "type": "object",
                 "description": "The pull request",
                 "properties": {
-                    "pr_number": {
-                        # The action log model's dict[str, str | ...] turns it into a string.
-                        "anyOf": [{"type": "integer"}, {"type": "string"}],
-                        "description": "Number of the pull request",
-                    },
+                    "pr_number": {"type": "integer", "description": "Number of the pull request"},
                     "pr_url": {"type": "string", "description": "URL of the pull request"},
                 },
             },
@@ -140,9 +136,6 @@ _DESCRIPTIONS = {
     "current_release_version": "Latest release when the issue was resolved, for semver releases",
     "age": "Hours without events after which the issue resolved",
     "commit": "The commit that resolves the issue",
-    "fingerprints": "Fingerprints that were unmerged",
-    "destination_id": "ID of the issue the events moved to",
-    "source_id": "ID of the issue the events moved from",
     "eventCount": "Number of events reprocessed",
     "oldGroupId": "ID of the issue the events were reprocessed from",
     "newGroupId": "ID of the issue the events were reprocessed into",
@@ -309,6 +302,36 @@ def _data_overrides(resolve: Callable[[Any], dict[str, Any]]) -> dict[str, dict[
             },
             required=("score", "level", "description", "citations", "sourceEventId"),
         ),
+        "investigation_linked": _object(
+            {
+                "investigation": _nullable(
+                    _object(
+                        {
+                            "id": {"type": "string", "description": "ID of the investigation"},
+                            "title": {"type": "string", "description": "Investigation title"},
+                            "status": {
+                                "type": "string",
+                                "enum": ["active", "archived"],
+                                "description": "Whether the investigation is archived",
+                            },
+                        },
+                        required=("id", "title", "status"),
+                    ),
+                    "The investigation that linked the issue, or null once it's deleted",
+                ),
+                "hypothesisId": {"type": "string", "description": "ID of the hypothesis"},
+                "hypothesisStatement": {
+                    "type": "string",
+                    "description": "The confirmed hypothesis whose evidence named the issue",
+                },
+                "reason": {
+                    "type": "string",
+                    "nullable": True,
+                    "description": "Why the evidence links the issue",
+                },
+            },
+            required=("investigation", "hypothesisId", "hypothesisStatement", "reason"),
+        ),
     }
 
 
@@ -382,11 +405,7 @@ def group_activity_schema() -> dict[str, Any]:
     branches = []
     for name, (activity_type, action) in sorted(_variant_actions().items()):
         data: dict[str, Any]
-        if name in ("unmerge_source", "unmerge_destination") and activity_type is not None:
-            # GroupActionLogEntrySerializer returns the stored IDs; only ActivitySerializer
-            # swaps them for the serialized issue.
-            data = {"anyOf": [overrides[name], _model_data_schema(activity_type, action)]}
-        elif name in overrides:
+        if name in overrides:
             data = overrides[name]
         elif activity_type is None:
             data = to_response_schema(

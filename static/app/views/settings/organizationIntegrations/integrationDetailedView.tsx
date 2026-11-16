@@ -1,5 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
+import {
+  mutationOptions,
+  useMutation,
+  useQueryClient,
+  useQuery,
+} from '@tanstack/react-query';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
@@ -25,7 +30,7 @@ import type {
   OrganizationIntegration,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import {
@@ -40,12 +45,7 @@ import {
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -155,24 +155,24 @@ export type IntegrationInformation = {
   providers: IntegrationProvider[];
 };
 
-function makeIntegrationQueryKey({
+function makeIntegrationApiOptions({
   orgSlug,
   integrationSlug,
 }: {
   integrationSlug: string;
   orgSlug: string;
-}): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
+}) {
+  return apiOptions.as<OrganizationIntegration[]>()(
+    '/organizations/$organizationIdOrSlug/integrations/',
     {
+      path: {organizationIdOrSlug: orgSlug},
       query: {
         provider_key: integrationSlug,
         includeConfig: 0,
       },
-    },
-  ];
+      staleTime: 0,
+    }
+  );
 }
 
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
@@ -198,35 +198,30 @@ export default function IntegrationDetailedView() {
     data: information,
     isPending: isInformationPending,
     isError: isInformationError,
-  } = useApiQuery<IntegrationInformation>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<IntegrationInformation>()(
+      '/organizations/$organizationIdOrSlug/config/integrations/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           provider_key: integrationSlug,
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+
+    retry: false,
+  });
 
   const {
     data: configurations = [],
     isPending: isConfigurationsPending,
     isFetching: isConfigurationsFetching,
     isError: isConfigurationsError,
-  } = useApiQuery<OrganizationIntegration[]>(
-    makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
+  } = useQuery({
+    ...makeIntegrationApiOptions({orgSlug: organization.slug, integrationSlug}),
+    retry: false,
+  });
 
   const integrationType = 'first_party';
   const provider = information?.providers[0];
@@ -326,10 +321,10 @@ export default function IntegrationDetailedView() {
     (integration: Integration) => {
       if (provider?.features.includes('coding-agent')) {
         queryClient.invalidateQueries({
-          queryKey: makeIntegrationQueryKey({
+          queryKey: makeIntegrationApiOptions({
             orgSlug: organization.slug,
             integrationSlug,
-          }),
+          }).queryKey,
         });
         queryClient.invalidateQueries({
           queryKey: [
@@ -356,36 +351,38 @@ export default function IntegrationDetailedView() {
         ),
       }),
     onMutate: async integration => {
-      const queryKey = makeIntegrationQueryKey({
+      const queryKey = makeIntegrationApiOptions({
         orgSlug: organization.slug,
         integrationSlug,
-      });
+      }).queryKey;
       // Cancel in-flight refetches so they can't clobber the optimistic update.
       await queryClient.cancelQueries({queryKey});
 
-      const previousConfigurations = getApiQueryData<OrganizationIntegration[]>(
-        queryClient,
-        queryKey
-      );
+      const previousConfigurations = queryClient.getQueryData(queryKey);
 
-      setApiQueryData<OrganizationIntegration[]>(queryClient, queryKey, current =>
-        (current ?? []).map(config =>
-          config.id === integration.id
-            ? {
-                ...config,
-                organizationIntegrationStatus: 'pending_deletion',
-              }
-            : config
-        )
-      );
+      queryClient.setQueryData(queryKey, previous => {
+        const current = previous?.json;
+        return {
+          ...previous,
+          headers: previous?.headers ?? {},
+          json: (current ?? []).map((config): OrganizationIntegration =>
+            config.id === integration.id
+              ? {
+                  ...config,
+                  organizationIntegrationStatus: 'pending_deletion',
+                }
+              : config
+          ),
+        };
+      });
 
       return {previousConfigurations};
     },
     onError: (_error, _integration, context) => {
       if (context?.previousConfigurations) {
-        setApiQueryData<OrganizationIntegration[]>(
-          queryClient,
-          makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
+        queryClient.setQueryData(
+          makeIntegrationApiOptions({orgSlug: organization.slug, integrationSlug})
+            .queryKey,
           context.previousConfigurations
         );
       }
@@ -394,7 +391,8 @@ export default function IntegrationDetailedView() {
     onSettled: () => {
       // Resync with the server once the delete settles.
       queryClient.invalidateQueries({
-        queryKey: makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
+        queryKey: makeIntegrationApiOptions({orgSlug: organization.slug, integrationSlug})
+          .queryKey,
       });
     },
   });

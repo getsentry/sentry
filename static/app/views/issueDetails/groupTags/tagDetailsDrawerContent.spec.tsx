@@ -1,5 +1,5 @@
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
-import * as qs from 'query-string';
+import qs from 'query-string';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -320,7 +320,7 @@ describe('TagDetailsDrawerContent', () => {
       interval: '1m',
       name: 'RequestError: GET /issues/ 404',
       project: '2',
-      query: 'issue:JAVASCRIPT-6QS (user.username:david)',
+      query: 'issue.id:1 (user.username:david)',
       queryDataset: 'error-events',
       statsPeriod: '14d',
       yAxis: ['count()', 'count_unique(user)'],

@@ -3,6 +3,7 @@ import {IconFile} from '@sentry/icons/file';
 import {IconFilter} from '@sentry/icons/filter';
 import {IconSubscribed} from '@sentry/icons/subscribed';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
+import {IconUser} from '@sentry/icons/user';
 
 import {Chip} from '@sentry/scraps/chip';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -12,9 +13,19 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 
-import {INBOX_EVENT_TYPES, INBOX_SUBJECT_TYPES, type InboxFilters} from './types';
+import {
+  INBOX_EVENT_TYPES,
+  INBOX_RECIPIENTS,
+  INBOX_SUBJECT_TYPES,
+  type InboxFilters,
+} from './types';
 import type {SetInboxFilters} from './useInboxFilters';
-import {hasInboxFilters, INBOX_EVENT_TYPE_CONFIG, INBOX_SUBJECT_CONFIG} from './utils';
+import {
+  hasInboxFilters,
+  INBOX_EVENT_TYPE_CONFIG,
+  INBOX_RECIPIENT_LABELS,
+  INBOX_SUBJECT_CONFIG,
+} from './utils';
 
 interface InboxFilterCategory {
   icon: ComponentType<SVGIconProps>;
@@ -34,6 +45,12 @@ const EVENT_TYPE_CATEGORY: InboxFilterCategory = {
   icon: IconSubscribed,
 };
 
+const RECIPIENT_CATEGORY: InboxFilterCategory = {
+  key: 'recipient',
+  label: t('Recipient'),
+  icon: IconUser,
+};
+
 function toggleValue<T>(values: T[], value: T): T[] {
   return values.includes(value)
     ? values.filter(existing => existing !== value)
@@ -46,8 +63,23 @@ function getFilterMenuItems(
 ): MenuItemProps[] {
   const SubjectTypeIcon = SUBJECT_TYPE_CATEGORY.icon;
   const EventTypeIcon = EVENT_TYPE_CATEGORY.icon;
+  const RecipientIcon = RECIPIENT_CATEGORY.icon;
 
   return [
+    {
+      key: RECIPIENT_CATEGORY.key,
+      label: RECIPIENT_CATEGORY.label,
+      leadingItems: <RecipientIcon />,
+      submenu: true,
+      children: INBOX_RECIPIENTS.map(recipient => ({
+        key: `recipient:${recipient}`,
+        label: INBOX_RECIPIENT_LABELS[recipient],
+        isSelected: filters.recipient.includes(recipient),
+        closeOnSelect: false,
+        onAction: () =>
+          setFilters(prev => ({recipient: toggleValue(prev.recipient, recipient)})),
+      })),
+    },
     {
       key: SUBJECT_TYPE_CATEGORY.key,
       label: SUBJECT_TYPE_CATEGORY.label,
@@ -116,6 +148,15 @@ export function InboxFilterPills({filters, setFilters}: InboxFilterControlProps)
 
   return (
     <Flex wrap="wrap" align="center" gap="sm">
+      {filters.recipient.length > 0 && (
+        <InboxFilterPill
+          category={RECIPIENT_CATEGORY}
+          valueLabels={filters.recipient.map(
+            recipient => INBOX_RECIPIENT_LABELS[recipient]
+          )}
+          onRemove={() => setFilters({recipient: null})}
+        />
+      )}
       {filters.subjectType.length > 0 && (
         <InboxFilterPill
           category={SUBJECT_TYPE_CATEGORY}

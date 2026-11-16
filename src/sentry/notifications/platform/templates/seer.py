@@ -56,6 +56,68 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
         )
 
 
+class SeerAutofixStopped(NotificationData):
+    reason: str
+    suggestion: str
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_STOPPED
+
+
+@template_registry.register(NotificationSource.SEER_AUTOFIX_STOPPED)
+class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutofixStopped(
+        organization_id=1,
+        reason="The error comes from an expired third-party API key.",
+        suggestion="Rotate the API key in your provider's dashboard.",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAutofixStopped) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer stopped early",
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=data.reason)]),
+                ParagraphSection(blocks=[PlainTextBlock(text=f"Suggestion: {data.suggestion}")]),
+            ],
+        )
+
+
+# NO_RELOADS is for billing members whose auto-reload is already on.
+AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Ask your admin to increase your daily token limit or set up auto-reload."
+AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
+AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
+
+
+class SeerAutofixOutOfCredits(NotificationData):
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS
+    has_billing_access: bool = False
+    auto_reload_enabled: bool = False
+
+    @property
+    def message(self) -> str:
+        if not self.has_billing_access:
+            return AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE
+        if self.auto_reload_enabled:
+            return AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE
+        return AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE
+
+
+@template_registry.register(NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS)
+class SeerAutofixOutOfCreditsTemplate(NotificationTemplate[SeerAutofixOutOfCredits]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutofixOutOfCredits(
+        source=NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS,
+        organization_id=1,
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAutofixOutOfCredits) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=data.message,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.message)])],
+        )
+
+
 class SeerAutofixCodeChange(TypedDict):
     repo_name: str
     diff: str
@@ -187,6 +249,38 @@ class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
         return NotificationRenderedTemplate(
             subject=data.error_title,
             body=[ParagraphSection(blocks=[PlainTextBlock(text=data.error_message)])],
+        )
+
+
+AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE = "Your organization does not have enough credits left for you to message Seer. Ask your admin to set up auto-reload."
+AGENT_OUT_OF_CREDITS_BILLING_MESSAGE = "Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto-reload."
+AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits left for you to message Seer, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
+
+
+class SeerAgentOutOfCredits(NotificationData):
+    source: NotificationSource = NotificationSource.SEER_AGENT_OUT_OF_CREDITS
+    has_billing_access: bool = False
+    auto_reload_enabled: bool = False
+
+    @property
+    def message(self) -> str:
+        if not self.has_billing_access:
+            return AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE
+        if self.auto_reload_enabled:
+            return AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE
+        return AGENT_OUT_OF_CREDITS_BILLING_MESSAGE
+
+
+@template_registry.register(NotificationSource.SEER_AGENT_OUT_OF_CREDITS)
+class SeerAgentOutOfCreditsTemplate(NotificationTemplate[SeerAgentOutOfCredits]):
+    category = NotificationCategory.SEER
+    example_data = SeerAgentOutOfCredits(organization_id=1)
+    hide_from_debugger = True
+
+    def render(self, data: SeerAgentOutOfCredits) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=data.message,
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.message)])],
         )
 
 

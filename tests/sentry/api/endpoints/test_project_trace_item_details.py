@@ -9,6 +9,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import (
 
 from sentry.api.conditional_get import MAX_AGE_OPTION_NAME, OPTION_NAME
 from sentry.api.endpoints.project_trace_item_details import (
+    TraceItemEvent,
     convert_rpc_attribute_to_json,
     serialize_event,
     serialize_meta,
@@ -220,6 +221,11 @@ def test_serialize_meta_resolves_deprecated_attribute_names(field_key: str) -> N
 
 
 class TestSerializeEvent:
+    def _first_breadcrumb(self, result: TraceItemEvent) -> dict[str, Any]:
+        breadcrumbs = result["breadcrumbs"]
+        assert isinstance(breadcrumbs, dict)
+        return breadcrumbs["values"][0]
+
     def _breadcrumb_attribute(self, values: list[dict[str, Any]]) -> dict[str, Any]:
         return {
             "name": "sentry.event.serialized_breadcrumbs",
@@ -236,7 +242,7 @@ class TestSerializeEvent:
         )
 
         assert result is not None
-        crumb = result["breadcrumbs"]["values"][0]
+        crumb = self._first_breadcrumb(result)
         assert crumb["timestamp"] == datetime(2026, 8, 5, 18, 52, 18, 308000, tzinfo=UTC)
 
     def test_leaves_string_breadcrumb_timestamp_untouched(self) -> None:
@@ -249,14 +255,14 @@ class TestSerializeEvent:
         )
 
         assert result is not None
-        crumb = result["breadcrumbs"]["values"][0]
+        crumb = self._first_breadcrumb(result)
         assert crumb["timestamp"] == "2026-08-05T18:52:18.308000Z"
 
     def test_handles_breadcrumb_without_timestamp(self) -> None:
         result = serialize_event([self._breadcrumb_attribute([{"type": "default"}])])
 
         assert result is not None
-        assert "timestamp" not in result["breadcrumbs"]["values"][0]
+        assert "timestamp" not in self._first_breadcrumb(result)
 
     def test_does_not_coerce_boolean_timestamp(self) -> None:
         # bool is a subclass of int; ensure we don't treat it as an epoch value.
@@ -265,7 +271,7 @@ class TestSerializeEvent:
         )
 
         assert result is not None
-        assert result["breadcrumbs"]["values"][0]["timestamp"] is True
+        assert self._first_breadcrumb(result)["timestamp"] is True
 
     def test_leaves_out_of_range_timestamp_untouched(self) -> None:
         # A millisecond-scale epoch is out of datetime's range; degrade to the
@@ -275,7 +281,7 @@ class TestSerializeEvent:
         )
 
         assert result is not None
-        assert result["breadcrumbs"]["values"][0]["timestamp"] == 1785955938308.0
+        assert self._first_breadcrumb(result)["timestamp"] == 1785955938308.0
 
     def test_passes_through_contexts_and_extra(self) -> None:
         result = serialize_event(

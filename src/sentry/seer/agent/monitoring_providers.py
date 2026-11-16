@@ -4,19 +4,29 @@ import abc
 import logging
 from collections.abc import Sequence
 
+from django.conf import settings
+from requests.exceptions import RequestException
+
 from sentry import features
+from sentry.auth.exceptions import IdentityNotValid
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
-from sentry.integrations.types import MONITORING_PROVIDERS
+from sentry.identity.services.identity.model import IdentityFilterArgs
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.seer.sentry_data_models import (
     HeaderAuthConnectionData,
     MonitoringProviderConnectionData,
+    RefreshMonitoringProviderTokenErrorResponse,
+    RefreshMonitoringProviderTokenSuccessResponse,
 )
 from sentry.seer.utils import encrypt_access_token_for_seer
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.registry import Registry
 
 logger = logging.getLogger(__name__)
@@ -178,3 +188,119 @@ def get_monitoring_provider_connections(
     ]
 
     return personal_connections + org_connections
+
+
+def refresh_monitoring_provider_integration_token(
+    *, organization_id: int, integration_id: int
+) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
+    """Replace an org integration's rejected MCP token without a user identity."""
+    if not settings.SEER_GHE_ENCRYPT_KEY:
+        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
+    integrations = integration_service.get_integrations(
+        integration_ids=[integration_id],
+        organization_id=organization_id,
+        providers=[IntegrationProviderSlug.LINEAR.value],
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+    )
+    if not integrations:
+        return RefreshMonitoringProviderTokenErrorResponse(error="integration_not_found")
+    token = integration_service.get_access_token(
+        organization_id=organization_id, integration_id=integration_id, force_refresh=True
+    )
+    if token is None:
+        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
+    encrypted_header = encrypt_access_token_for_seer(f"Bearer {token.token}")
+    if not encrypted_header:
+        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
+    return RefreshMonitoringProviderTokenSuccessResponse(
+        encrypted_auth_headers={"Authorization": encrypted_header},
+        expires=int(token.expires_at.timestamp()) if token.expires_at else None,
+    )
+
+
+def refresh_monitoring_provider_identity_token(
+    identity_id: int, *, organization_id: int | None = None, user_id: int | None = None
+) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
+    """
+    Refresh a monitoring provider identity's access token and return it encrypted for Seer.
+
+    ``organization_id`` and ``user_id`` limit it to that user's identity connected to that
+    organization. Only the Seer RPC, which has neither, omits them.
+    """
+    if not settings.SEER_GHE_ENCRYPT_KEY:
+        logger.error("Cannot encrypt monitoring provider access token without SEER_GHE_ENCRYPT_KEY")
+        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
+
+    identity_filter: IdentityFilterArgs = {"id": identity_id}
+    if user_id is not None:
+        identity_filter["user_id"] = user_id
+    identity = identity_service.get_identity(filter=identity_filter)
+    if identity is None:
+        logger.error(
+            "monitoring_provider.refresh.identity_not_found", extra={"identity_id": identity_id}
+        )
+        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
+
+    idp = identity_service.get_provider(provider_id=identity.idp_id)
+    if idp is None or idp.type not in MONITORING_PROVIDERS:
+        logger.error(
+            "monitoring_provider.refresh.identity_provider_not_found",
+            extra={
+                "identity_id": identity.id,
+                "idp_id": identity.idp_id,
+                "idp_type": idp.type if idp is not None else None,
+            },
+        )
+        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
+
+    if organization_id is not None:
+        connected_identities = identity_service.get_org_user_identities_by_provider_type(
+            organization_id=organization_id, user_id=identity.user_id, provider_type=idp.type
+        )
+        if not any(connected.id == identity.id for connected in connected_identities):
+            return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
+
+    provider = identity_manager.get(idp.type)
+    if not isinstance(provider, OAuth2Provider):
+        # Static-token providers (e.g. Datadog PAT) have no refresh flow.
+        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_not_supported")
+
+    try:
+        provider.refresh_identity(identity)
+    except IdentityNotValid:
+        logger.exception(
+            "monitoring_provider.refresh.identity_not_valid",
+            extra={
+                "identity_id": identity_id,
+                "provider": idp.type,
+                "has_refresh_token": "refresh_token" in identity.data,
+            },
+        )
+        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
+    except (ApiError, KeyError, RequestException):
+        logger.exception(
+            "monitoring_provider.refresh.failed",
+            extra={"identity_id": identity_id, "provider": idp.type},
+        )
+        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
+
+    access_token = identity.data.get("access_token")
+    if not access_token:
+        logger.error(
+            "monitoring_provider.refresh.access_token_not_found", extra={"identity_id": identity.id}
+        )
+        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
+
+    encrypted_auth_header = encrypt_access_token_for_seer(f"Bearer {access_token}")
+    if not encrypted_auth_header:
+        logger.error(
+            "monitoring_provider.refresh.access_token_encryption_failed",
+            extra={"identity_id": identity.id},
+        )
+        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
+
+    return RefreshMonitoringProviderTokenSuccessResponse(
+        encrypted_auth_headers={"Authorization": encrypted_auth_header},
+        expires=identity.data.get("expires"),
+    )

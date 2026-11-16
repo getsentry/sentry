@@ -106,7 +106,9 @@ it.each([
     await userEvent.click(button);
     await waitFor(() =>
       expect(
-        search ? screen.getByRole('textbox') : screen.getByRole('option', {name: 'Apple'})
+        search
+          ? screen.getByRole('searchbox')
+          : screen.getByRole('option', {name: 'Apple'})
       ).toHaveFocus()
     );
     expect(button).toHaveAttribute('aria-invalid', 'false');

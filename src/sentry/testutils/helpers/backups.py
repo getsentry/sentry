@@ -129,9 +129,9 @@ from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
-from sentry.telemetry_classifiers.models import (
-    TelemetryClassifier,
-    TelemetryClassifierDataset,
+from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.telemetry_classifiers.types import (
+    Dataset,
     TelemetryClassifierOutputType,
     TelemetryClassifierStatus,
 )
@@ -536,8 +536,8 @@ class ExhaustiveFixtures(Fixtures):
         TelemetryClassifier.objects.create(
             project=project,
             name=f"conversation-classifier-{slug}",
-            result_attribute="sentry.classifier.result",
-            dataset=TelemetryClassifierDataset.CONVERSATION,
+            result_attribute="result",
+            dataset=Dataset.CONVERSATION,
             filter_query="",
             status=TelemetryClassifierStatus.ENABLED,
             natural_language_prompt="Is this conversation useful?",

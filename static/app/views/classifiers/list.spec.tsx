@@ -61,7 +61,7 @@ describe('ClassifiersList', () => {
         id: '11',
         projectId: '2',
         name: 'Slow spans',
-        resultAttribute: 'sentry.classifier.slow_spans',
+        resultAttribute: 'slow_spans',
         dataset: 'trace_spans',
       }),
     ]);
@@ -73,13 +73,13 @@ describe('ClassifiersList', () => {
     ).closest('tr')!;
     expect(within(conversationRow).getByText('frontend')).toBeInTheDocument();
     expect(
-      within(conversationRow).getByText('sentry.classifier.user_frustration')
+      within(conversationRow).getByText('sentry.enrichment.user_frustration')
     ).toBeInTheDocument();
     expect(within(conversationRow).getByText('Conversations')).toBeInTheDocument();
 
     const spanRow = screen.getByRole('link', {name: 'Slow spans'}).closest('tr')!;
     expect(within(spanRow).getByText('backend')).toBeInTheDocument();
-    expect(within(spanRow).getByText('sentry.classifier.slow_spans')).toBeInTheDocument();
+    expect(within(spanRow).getByText('sentry.enrichment.slow_spans')).toBeInTheDocument();
     expect(within(spanRow).getByText('Spans')).toBeInTheDocument();
   });
 

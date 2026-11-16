@@ -1,14 +1,56 @@
 import {Fragment} from 'react';
 import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
+import {useMenuItem} from '@react-aria/menu';
 import {IconStar} from '@sentry/icons/star';
-import {render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {lightTheme} from '@sentry/scraps/theme';
 
+// Wraps useMenuItem so a test can count how often menu items render.
+jest.mock('@react-aria/menu', () => {
+  const actual = jest.requireActual('@react-aria/menu');
+  return {...actual, useMenuItem: jest.fn(actual.useMenuItem)};
+});
+
 describe('DropdownMenu', () => {
+  it.each(['default', 'custom'])(
+    'identifies the menu popup on the %s trigger',
+    async trigger => {
+      const items = [{key: 'project', label: 'Project'}];
+      render(
+        trigger === 'custom' ? (
+          <DropdownMenu
+            items={items}
+            trigger={props => (
+              <OverlayTrigger.IconButton
+                {...props}
+                icon={<IconStar />}
+                aria-label="More projects"
+              />
+            )}
+          />
+        ) : (
+          <DropdownMenu items={items} triggerLabel="More projects" />
+        ),
+        {wrapper: ThemeWrapper}
+      );
+
+      const button = screen.getByRole('button', {name: 'More projects'});
+      expect(button).toHaveAttribute('aria-haspopup', 'true');
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+
+      await userEvent.click(button);
+
+      expect(button).toHaveAttribute('aria-haspopup', 'true');
+      expect(button).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+    }
+  );
+
   it('filters a searchable root menu', async () => {
     render(
       <DropdownMenu
@@ -24,7 +66,7 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search projects'}),
+      screen.getByRole('searchbox', {name: 'Search projects'}),
       'python'
     );
 
@@ -476,7 +518,7 @@ describe('DropdownMenu', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
 
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    const search = screen.getByRole('searchbox', {name: 'Search projects'});
     expect(search).toHaveFocus();
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
@@ -535,7 +577,7 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    const search = screen.getByRole('searchbox', {name: 'Search projects'});
     expect(search).toHaveFocus();
 
     await userEvent.keyboard('{ArrowDown}');
@@ -565,7 +607,7 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    const search = screen.getByRole<HTMLInputElement>('textbox', {
+    const search = screen.getByRole<HTMLInputElement>('searchbox', {
       name: 'Search projects',
     });
     await userEvent.type(search, 'sentry');
@@ -584,7 +626,7 @@ describe('DropdownMenu', () => {
     expect(search.selectionStart).toBe(0);
 
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus()
     );
@@ -594,7 +636,7 @@ describe('DropdownMenu', () => {
     );
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
 
-    expect(screen.getByRole('textbox', {name: 'Search projects'})).toHaveValue('');
+    expect(screen.getByRole('searchbox', {name: 'Search projects'})).toHaveValue('');
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
   });
 
@@ -616,7 +658,7 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    const search = screen.getByRole('searchbox', {name: 'Search projects'});
     await userEvent.type(search, 'java');
 
     const escape = new KeyboardEvent('keydown', {
@@ -633,7 +675,7 @@ describe('DropdownMenu', () => {
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus()
     );
@@ -1031,6 +1073,422 @@ describe('DropdownMenu', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Item One'})
     ).not.toBeInTheDocument();
+  });
+
+  describe('virtualization', () => {
+    // jsdom does not lay out or scroll. Give elements a height so the menu has a
+    // viewport and room to scroll, and make scrollTo move the scroll position
+    // like a browser does.
+    const stubs: Array<[typeof Element.prototype, string, PropertyDescriptor]> = [
+      [HTMLElement.prototype, 'offsetHeight', {get: () => 100}],
+      [Element.prototype, 'clientHeight', {get: () => 100}],
+      [Element.prototype, 'scrollHeight', {get: () => 50_000}],
+      [
+        Element.prototype,
+        'scrollTo',
+        {
+          value(this: Element, options?: ScrollToOptions) {
+            this.scrollTop = options?.top ?? this.scrollTop;
+            this.dispatchEvent(new Event('scroll'));
+          },
+        },
+      ],
+    ];
+    const originals = stubs.map(
+      ([target, name]) =>
+        [target, name, Object.getOwnPropertyDescriptor(target, name)] as const
+    );
+
+    beforeEach(() => {
+      for (const [target, name, descriptor] of stubs) {
+        Object.defineProperty(target, name, {configurable: true, ...descriptor});
+      }
+    });
+
+    afterEach(() => {
+      for (const [target, name, descriptor] of originals) {
+        if (descriptor) {
+          Object.defineProperty(target, name, descriptor);
+        } else {
+          Reflect.deleteProperty(target, name);
+        }
+      }
+    });
+
+    const manyItems = Array.from({length: 500}, (_, index) => ({
+      key: `item-${index}`,
+      label: `Item ${index}`,
+    }));
+
+    function scrollMenuTo(top: number) {
+      const menu = screen.getByRole('menu');
+      menu.scrollTop = top;
+      fireEvent.scroll(menu);
+    }
+
+    it('renders only the items near the viewport in a long menu', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      const rendered = screen.getAllByRole('menuitemradio');
+      expect(rendered.length).toBeGreaterThan(0);
+      expect(rendered.length).toBeLessThan(manyItems.length);
+      expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toBeInTheDocument();
+    });
+
+    it('tells assistive technology the position of an item in the full menu', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      const item = screen.getByRole('menuitemradio', {name: 'Item 2'});
+      expect(item).toHaveAttribute('aria-posinset', '3');
+      expect(item).toHaveAttribute('aria-setsize', String(manyItems.length));
+    });
+
+    it('does not set positions in a menu that is not virtualized', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          items={manyItems}
+          virtualizeThreshold={Infinity}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      expect(screen.getByRole('menuitemradio', {name: 'Item 2'})).not.toHaveAttribute(
+        'aria-posinset'
+      );
+    });
+
+    it('updates a mounted item when its props change', async () => {
+      // Rows that did not change are not re-rendered while scrolling. A row whose
+      // item changed, such as a project that was just bookmarked, must still update.
+      const {rerender} = render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      scrollMenuTo(10);
+
+      rerender(
+        <DropdownMenu
+          triggerLabel="Menu"
+          items={manyItems.map(item =>
+            item.key === 'item-0' ? {...item, label: 'Item 0 (bookmarked)'} : item
+          )}
+        />
+      );
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Item 0 (bookmarked)'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not re-render mounted items when the menu scrolls', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      const mountedCount = screen.getAllByRole('menuitemradio').length;
+      jest.mocked(useMenuItem).mockClear();
+
+      scrollMenuTo(10);
+
+      // Only rows that newly scrolled into view render, not every mounted row.
+      expect(jest.mocked(useMenuItem).mock.calls.length).toBeLessThan(mountedCount);
+    });
+
+    it('reaches items outside the window with the keyboard', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toHaveFocus()
+      );
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Item 499'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.keyboard('{End}');
+
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'Item 499'})).toHaveFocus()
+      );
+    });
+
+    it('returns to search from the first item after scrolling away', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          search={{placeholder: 'Search items'}}
+          items={manyItems}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      const search = screen.getByRole('searchbox', {name: 'Search items'});
+      await waitFor(() => expect(search).toHaveFocus());
+
+      scrollMenuTo(20_000);
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('menuitemradio', {name: 'Item 0'})
+        ).not.toBeInTheDocument()
+      );
+
+      // Item 0 is not mounted, so ArrowDown scrolls it into view before
+      // focusing it.
+      await userEvent.keyboard('{ArrowDown}');
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toHaveFocus()
+      );
+      await userEvent.keyboard('{ArrowUp}');
+      expect(search).toHaveFocus();
+    });
+
+    it('keeps keyboard focus on an item scrolled out of view', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toHaveFocus()
+      );
+      await userEvent.keyboard('{ArrowDown}');
+      expect(screen.getByRole('menuitemradio', {name: 'Item 1'})).toHaveFocus();
+      // Let the virtualizer settle its scroll to Item 1 before scrolling away.
+      await act(() => new Promise(resolve => requestAnimationFrame(resolve)));
+
+      scrollMenuTo(10_000);
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('menuitemradio', {name: 'Item 2'})
+        ).not.toBeInTheDocument()
+      );
+
+      // The focused item stays mounted, so focus stays in the menu and the
+      // keyboard keeps working.
+      expect(screen.getByRole('menuitemradio', {name: 'Item 1'})).toHaveFocus();
+      await userEvent.keyboard('{ArrowDown}');
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'Item 2'})).toHaveFocus()
+      );
+    });
+
+    it('renders every item when the menu is under the threshold', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          virtualizeThreshold={manyItems.length}
+          items={manyItems}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(manyItems.length);
+    });
+
+    it('applies the parent menu threshold to submenus', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          virtualizeThreshold={manyItems.length}
+          items={[{key: 'more', label: 'More', submenu: true, children: manyItems}]}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'More'}));
+
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Item 499'})
+      ).toBeInTheDocument();
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(manyItems.length + 1);
+    });
+
+    const sectionedItems = ['A', 'B'].map(section => ({
+      key: `section-${section}`,
+      label: `Section ${section}`,
+      children: Array.from({length: 250}, (_, index) => ({
+        key: `${section}-${index}`,
+        label: `${section} ${index}`,
+      })),
+    }));
+
+    it('renders only the items near the viewport in a menu with sections', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={sectionedItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      const sectionA = screen.getByRole('group', {name: 'Section A'});
+      expect(
+        within(sectionA).getByRole('menuitemradio', {name: 'A 0'})
+      ).toBeInTheDocument();
+      expect(screen.getAllByRole('menuitemradio').length).toBeLessThan(500);
+      expect(screen.queryByRole('group', {name: 'Section B'})).not.toBeInTheDocument();
+    });
+
+    it('counts positions across sections', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={sectionedItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      await userEvent.keyboard('{End}');
+
+      const lastItem = await screen.findByRole('menuitemradio', {name: 'B 249'});
+      expect(lastItem).toHaveAttribute('aria-posinset', '500');
+      expect(lastItem).toHaveAttribute('aria-setsize', '500');
+    });
+
+    it('reaches items in a later section with the keyboard', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={sectionedItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'A 0'})).toHaveFocus()
+      );
+
+      await userEvent.keyboard('{End}');
+
+      await waitFor(() =>
+        expect(screen.getByRole('menuitemradio', {name: 'B 249'})).toHaveFocus()
+      );
+      // The item renders inside its section, which keeps its heading.
+      expect(
+        within(screen.getByRole('group', {name: 'Section B'})).getByRole(
+          'menuitemradio',
+          {name: 'B 249'}
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('keeps the item with the longest label mounted, so the menu does not widen while scrolling', async () => {
+      const items = manyItems.map(item =>
+        item.key === 'item-400'
+          ? {...item, label: 'A much longer label than the rest'}
+          : item
+      );
+      render(<DropdownMenu triggerLabel="Menu" items={items} />, {wrapper: ThemeWrapper});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Item 399'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'A much longer label than the rest'})
+      ).toBeInTheDocument();
+    });
+
+    it('counts the items inside sections against the threshold', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          virtualizeThreshold={500}
+          items={sectionedItems}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(500);
+    });
+
+    it('keeps virtualizing when a search leaves fewer items than the threshold', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          search={{placeholder: 'Search items'}}
+          items={manyItems}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      const item = screen.getByRole('menuitemradio', {name: 'Item 1'});
+
+      // Leaves Item 1 and Item 10–19 and 100–199, which is under the threshold.
+      // Rendering all 111 matches at once would be slow, so the menu still
+      // mounts only the matches near the viewport.
+      await userEvent.type(
+        screen.getByRole('searchbox', {name: 'Search items'}),
+        'Item 1'
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('menuitemradio', {name: 'Item 2'})
+        ).not.toBeInTheDocument()
+      );
+      const rendered = screen.getAllByRole('menuitemradio');
+      expect(rendered.length).toBeGreaterThan(0);
+      expect(rendered.length).toBeLessThan(111);
+      expect(screen.getByRole('menuitemradio', {name: 'Item 1'})).toBe(item);
+    });
+
+    it.each([
+      ['virtualized', undefined],
+      ['regular', Infinity],
+    ])(
+      'measures the separator after a section with the next item in a %s menu',
+      async (_, virtualizeThreshold) => {
+        render(
+          <DropdownMenu
+            triggerLabel="Menu"
+            virtualizeThreshold={virtualizeThreshold}
+            items={[
+              {
+                key: 'section',
+                label: 'Section',
+                children: manyItems.slice(0, 2),
+              },
+              {key: 'after', label: 'After the section'},
+              ...manyItems.slice(2),
+            ]}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+        // The separator and the item share one row element: the innermost
+        // element that holds both. Ancestors come first in document order.
+        const row = screen.getAllByRole('presentation').findLast(
+          element =>
+            within(element).queryByRole('menuitemradio', {
+              name: 'After the section',
+            }) && within(element).queryByRole('separator')
+        );
+        expect(row).toBeInTheDocument();
+        if (virtualizeThreshold === undefined) {
+          expect(row).toHaveAttribute('data-index');
+        } else {
+          expect(row).not.toHaveAttribute('data-index');
+        }
+      }
+    );
   });
 });
 

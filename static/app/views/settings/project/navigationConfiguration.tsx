@@ -60,7 +60,7 @@ export function getNavigationConfiguration({
           id: 'project_attributes',
           path: `${pathPrefix}/attributes/`,
           title: t('Attributes'),
-          badge: () => 'alpha',
+          badge: () => 'beta',
           description: t("Browse a project's log, metric, and span attributes"),
           keywords: [t('attribute'), t('attributes')],
           show: () => !!organization?.features?.includes('attribute-management'),

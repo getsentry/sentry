@@ -1,5 +1,5 @@
 import logging
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -9,8 +9,11 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.agent_handoff.applications import get_handoff_application
-from sentry.agent_handoff.codes import HandoffFlow, issue_handoff
+from sentry.agent_handoff.codes import HandoffContext, HandoffFlow, issue_handoff
+from sentry.agent_handoff.flows import get_flow
+from sentry.analytics.events.agent_handoff import AgentHandoffPromptCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
@@ -18,6 +21,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import require_user
 from sentry.organizations.services.organization.model import (
@@ -50,20 +54,50 @@ HANDOFF_SCOPES = (
 
 class AgentHandoffRequest(TypedDict):
     flow: str
+    context: HandoffContext
+    disable_ip_pinning: bool
 
 
 class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
     flow = serializers.ChoiceField(choices=list(HandoffFlow), default=HandoffFlow.GUIDED_NEXT_STEPS)
+    disable_ip_pinning = serializers.BooleanField(default=False)
+
+    # DRF reserves Serializer.context for rendering metadata.
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        return {
+            **super().get_fields(),
+            "context": serializers.JSONField(required=False, allow_null=True, default=None),
+        }
+
+    def validate(self, attrs: AgentHandoffRequest) -> AgentHandoffRequest:
+        context_serializer = get_flow(HandoffFlow(attrs["flow"])).get_context_serializer()
+        if context_serializer is None:
+            if attrs["context"] is not None:
+                raise serializers.ValidationError(
+                    {"context": ["Context is not supported for this flow."]}
+                )
+
+            return attrs
+
+        serializer = context_serializer(data=attrs["context"], context=self.context)
+        try:
+            # The enclosing serializer owns error-key casing for nested fields.
+            context = serializer.run_validation(serializer.initial_data)
+        except serializers.ValidationError as error:
+            raise serializers.ValidationError({"context": error.detail}) from error
+
+        return {**attrs, "context": context}
 
 
 class AgentHandoffResponse(TypedDict):
+    code: str
     prompt: str
     guideUrl: str
     expiresAt: str
 
 
 class AgentHandoffPermission(OrganizationPermission):
-    scope_map = {"POST": ["org:read"]}
+    scope_map = {"GET": ["org:read"], "POST": ["org:read"]}
 
 
 @extend_schema(tags=["Organizations"])
@@ -95,7 +129,10 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
     @extend_schema(
         operation_id="Create a private agent onboarding prompt",
         request=AgentHandoffRequestSerializer,
-        responses={201: inline_sentry_response_serializer("AgentHandoff", AgentHandoffResponse)},
+        responses={
+            201: inline_sentry_response_serializer("AgentHandoff", AgentHandoffResponse),
+            403: RESPONSE_FORBIDDEN,
+        },
     )
     def post(
         self,
@@ -108,25 +145,33 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         if organization_context.member is None:
             return Response({"detail": "Organization membership is required."}, status=403)
 
-        serializer = AgentHandoffRequestSerializer(data=request.data)
+        serializer = AgentHandoffRequestSerializer(
+            data=request.data, context={"user_id": user.id, "organization_id": organization.id}
+        )
         serializer.is_valid(raise_exception=True)
 
         application = get_handoff_application(HANDOFF_SCOPES)
         if application is None:
             return Response({"detail": "Agent onboarding is not configured."}, status=503)
 
+        values = serializer.validated_data
+        flow = HandoffFlow(values["flow"])
         issued = issue_handoff(
-            flow=HandoffFlow(serializer.validated_data["flow"]),
+            flow=flow,
+            context=values["context"],
             user_id=user.id,
             organization_id=organization.id,
             application_id=application.id,
             scope_list=HANDOFF_SCOPES,
+            ip_address=request.META["REMOTE_ADDR"],
+            disable_ip_pinning=serializer.validated_data["disable_ip_pinning"],
         )
         guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
+            "code": issued.code,
             "prompt": (
-                f"Fetch and follow the instructions at {guide_url}. "
-                f"Your secret token is `{issued.code}`."
+                f"Follow the instructions verbatim at {guide_url}. "
+                f"Your handoff code is `{issued.code}`."
             ),
             "guideUrl": guide_url,
             "expiresAt": issued.expires_at.isoformat(),
@@ -134,5 +179,14 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         logger.info(
             "agent-handoff.generated",
             extra={"user_id": user.id, "organization_id": organization.id},
+        )
+        analytics.record(
+            AgentHandoffPromptCreatedEvent(
+                user_id=user.id,
+                organization_id=organization.id,
+                flow=flow.value,
+                run_id=values["context"].run_id if values["context"] is not None else None,
+                ip_pinning=not values["disable_ip_pinning"],
+            )
         )
         return Response(data, status=201)

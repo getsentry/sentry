@@ -26,7 +26,7 @@ class ScheduleType(models.TextChoices):
 class ScheduledTrigger(DefaultFieldsModel):
     """
     A trigger: fires on its schedule for `target_id`, an identifier whose meaning depends on
-    `trigger_type`, by calling the action registered for the trigger type.
+    `trigger_type`, by dispatching it to the handler registered for the trigger type.
 
     Interval schedules fire every `interval_seconds`, anchored to when they were created.
     Cron schedules fire on `cron_expression`, evaluated in `timezone`.
@@ -58,7 +58,8 @@ class ScheduledTrigger(DefaultFieldsModel):
     class Meta:
         app_label = "cadence"
         db_table = "cadence_scheduledtrigger"
-        indexes = [models.Index(fields=["next_fire_at"])]
+        # `id` breaks ties so the tick can resume a claim from a (next_fire_at, id) cursor.
+        indexes = [models.Index(fields=["next_fire_at", "id"])]
         constraints = [
             models.UniqueConstraint(
                 fields=["organization", "trigger_type", "target_id"],

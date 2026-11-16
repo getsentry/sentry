@@ -42,7 +42,7 @@ function genTrialEndingModalOnClose(options: TrialModalProps) {
   // closed
   return () => {
     promptsUpdate(api, promptParams);
-    SubscriptionStore.set(options.organization.slug, subUpdate);
+    SubscriptionStore.update(options.organization.slug, subUpdate);
   };
 }
 

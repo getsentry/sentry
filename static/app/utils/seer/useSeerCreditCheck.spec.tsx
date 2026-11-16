@@ -109,7 +109,11 @@ describe('useSeerCreditCheck', () => {
     );
 
     expect(result.current).toEqual(
-      expect.objectContaining({hasEnoughCredits: true, isPending: false})
+      expect.objectContaining({
+        hasEnoughCredits: true,
+        hasCheckedSinceMount: true,
+        isPending: false,
+      })
     );
     expect(request).not.toHaveBeenCalled();
   });
@@ -124,6 +128,19 @@ describe('useSeerCreditCheck', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.hasEnoughCredits).toBe(true);
+    expect(result.current.hasCheckedSinceMount).toBe(true);
     expect(result.current.isPending).toBe(false);
+  });
+
+  it('says when the check has answered since the caller mounted', async () => {
+    MockApiClient.addMockResponse({url, body: {hasEnoughCredits: true}});
+
+    const {result} = renderHookWithProviders(
+      () => useSeerCreditCheck('agent_chat_message'),
+      {organization}
+    );
+
+    expect(result.current.hasCheckedSinceMount).toBe(false);
+    await waitFor(() => expect(result.current.hasCheckedSinceMount).toBe(true));
   });
 });

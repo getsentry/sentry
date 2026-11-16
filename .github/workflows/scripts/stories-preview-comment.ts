@@ -88,9 +88,10 @@ interface SyncArgs {
 // delete it on subsequent deploys.
 export const STORIES_COMMENT_MARKER = '<!-- STORIES_PREVIEW -->';
 
-// The story manifest globs both *.stories.tsx and *.mdx under static/app and
-// static/gsApp (build-utils/story-manifest.ts).
-const STORY_FILE_RE = /^static\/(app|gsApp)\/.*(\.stories\.tsx|\.mdx)$/;
+// The story manifest globs both *.stories.tsx and *.mdx under static/app,
+// static/gsApp, and static/packages/scraps/src (build-utils/story-manifest.ts).
+const STORY_FILE_RE =
+  /^static\/(app|gsApp|packages\/scraps\/src)\/.*(\.stories\.tsx|\.mdx)$/;
 
 // Snapshot, test, and spec files exercise components without changing their
 // implementation, so they should not surface story previews on their own.
@@ -100,7 +101,7 @@ const TEST_FILE_RE = /\.(snapshots?|spec|test)\.[jt]sx?$/;
 // surface its colocated story, if one exists.
 function isComponentFile(path: string): boolean {
   return (
-    /^static\/(app|gsApp)\/.*\.tsx$/.test(path) &&
+    /^static\/(app|gsApp|packages\/scraps\/src)\/.*\.tsx$/.test(path) &&
     !/\.stories\.tsx$/.test(path) &&
     !TEST_FILE_RE.test(path)
   );
@@ -171,6 +172,11 @@ function normalizeFilename(filename: string): string {
   );
 }
 
+// Mirror of isScrapsStoryFile (componentCategories.ts).
+function isScrapsStoryFile(path: string): boolean {
+  return path.startsWith('packages/scraps/src/');
+}
+
 // Mirror of inferFileCategory (storyTree.tsx).
 function inferFileCategory(path: string): StoryCategory {
   if (path.startsWith('gsApp/')) {
@@ -186,16 +192,17 @@ function inferFileCategory(path: string): StoryCategory {
   if (path.includes('components/core/patterns')) {
     return 'patterns';
   }
-  if (path.includes('components/core')) {
+  if (isScrapsStoryFile(path) || path.includes('components/core')) {
     return 'core';
   }
   return 'product';
 }
 
 /**
- * Maps a story's filesystem path (in `app/...` or `gsApp/...` form, i.e. with
- * `static/` stripped) to its `<category>/<slug>` route, mirroring the StoryTreeNode
- * constructor (storyTree.tsx).
+ * Maps a story's filesystem path (in `app/...`, `gsApp/...`, or
+ * `packages/scraps/src/...` form, i.e. with `static/` stripped) to its
+ * `<category>/<slug>` route, mirroring the StoryTreeNode constructor
+ * (storyTree.tsx).
  */
 export function storyRoute(filesystemPath: string): string {
   const label = normalizeFilename(formatName(inferComponentName(filesystemPath)));
@@ -225,7 +232,7 @@ function encodeRouteSegment(segment: string): string {
 function buildCommentBody(stories: string[], previewUrl: string): string {
   const links = stories
     .map(file => {
-      // The story manifest keys files as `app/...` or `gsApp/...` (static/ stripped).
+      // The story manifest keys files by their path with static/ stripped.
       const filesystemPath = file.replace(/^static\//, '');
       // Percent-encode each route segment so a path can't inject markdown link
       // syntax (e.g. `)`) into the URL and forge an attacker-controlled link.
@@ -312,6 +319,12 @@ const STORY_DEPENDENCIES: ReadonlyArray<{prefix: string; story: string}> = [
   {
     prefix: 'static/app/components/seer/markdown/embeds/',
     story: 'static/app/components/seer/markdown/seerMarkdown.mdx',
+  },
+  // Badge's docs stay in the app beside the app-only badges they also cover,
+  // so they are not colocated with the Scraps badge components.
+  {
+    prefix: 'static/packages/scraps/src/badge/',
+    story: 'static/app/components/core/badge/badge.mdx',
   },
 ];
 
