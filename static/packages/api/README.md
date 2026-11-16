@@ -250,7 +250,7 @@ const sentry = createSentryClient(
 const { data, error } = await sentry.listOrganizations();
 ```
 
-The CSRF token goes only on unsafe-method requests (not `GET`, `HEAD`, `OPTIONS` or `TRACE`) to the page's origin or a similar one: the same host, a parent or subdomain of it, or a sibling subdomain such as `us.sentry.io` from `acme.sentry.io`. Hosts are compared by whole DNS labels. The page origin is `location.origin`; pass `origin` to set it, for example in tests. Without either, only relative URLs get the token.
+The CSRF token goes only on unsafe-method requests (not `GET`, `HEAD`, `OPTIONS` or `TRACE`) to the page's origin or a similar one: the same host, a parent or subdomain of it, or a sibling subdomain such as `us.sentry.io` from `acme.sentry.io`. Hosts are compared by whole DNS labels. From an `https:` page, only `https:` targets get the token; `http:` pages are not restricted by scheme. The page origin is `location.origin`; pass `origin` to set it, for example in tests. Without either, only relative URLs get the token.
 
 ### Routing requests by organization
 
@@ -282,6 +282,26 @@ const sentry = createSentryClient({
 });
 // Sent to the organization's region, such as https://us.sentry.io.
 await sentry.listOrganizationIssues({ path: { organization_id_or_slug: "acme" } });
+```
+
+Raw requests, such as `client.get` or `client.prepareRequest` with a
+hand-written path, keep the configured base URL by default. Pass
+`{ rawRequests: "lookup" }` to send those whose path names an organization
+through the lookup too, for example when the lookup also picks the account or
+server that knows the organization. Generated operations still follow their
+declarations.
+
+```ts
+import { routeCellOperations } from "@sentry/api/client";
+
+const sentry = createSentryClient({
+  baseUrl: "https://sentry.io",
+  resolveBaseUrl: routeCellOperations(organization => regionUrls.get(organization), {
+    rawRequests: "lookup",
+  }),
+});
+// Also sent to the organization's region.
+await sentry.client.get({ url: "/organizations/acme/issues/" });
 ```
 
 It runs once per request, including `prepareRequest`, after `requestValidator`
@@ -455,6 +475,55 @@ if ("error" in result) {
 ```
 
 `error` is typed as `unknown`: a custom `fetch` or error interceptor can supply its own error. Fetch rejections, including cancellation, keep their original identity and have no HTTP response. They are returned or thrown according to `throwOnError`. Exceptions from serialization, validation, interceptors, or response body reading/decoding reject unchanged, even with `throwOnError: false`; that setting does not make a request exception-free.
+
+### Error codes
+
+Many Sentry errors have a `{"detail": {"code", "message", "extra"}}` body. For those, `SentryApiError` and its subclasses also have `code`, `detailMessage` (the body's `message`; `message` stays the error's own), and `extra`. Some endpoints put a string `code` at the top level instead, such as Seer's 402 `{"detail", "code", "denialReason"}`. Then `code` and `detailMessage` come from the body's `code` and `detail`, `extra` is empty, and the other fields stay on `body`. Other bodies leave the three fields unset. `code` is a `SentryErrorCode`: one of the `KnownSentryErrorCode` values, or any other string the server sends. The known codes come from the spec: the `SentryApiErrorBody` component, such as `sudo-required` or `sso-required`, and the `code` values operations document in their error responses, such as `seer_out_of_credits`. Map codes to your own copy with a `switch`, and fall back for codes you don't handle:
+
+```ts
+import { isSentryErrorCode, SentryApiError } from "@sentry/api";
+
+function describeError(error: unknown): string {
+  if (!(error instanceof SentryApiError)) return "Something went wrong.";
+  switch (error.code) {
+    case "sudo-required":
+      return "Confirm your password to continue.";
+    case "2fa-required":
+      return "This organization requires two-factor authentication.";
+    default:
+      return error.detailMessage || "The request failed.";
+  }
+}
+
+function loginUrlFor(error: unknown): unknown {
+  // Narrows `error` to a SentryApiError with that code, `detailMessage`, and `extra`.
+  return isSentryErrorCode(error, "sso-required") ? error.extra.loginUrl : undefined;
+}
+```
+
+### Auth challenges
+
+Some 401 and 403 responses ask the user to act in Sentry: `sso-required`, `sudo-required`, `superuser-required`, `staff-required`, `2fa-required`, `member-disabled-over-limit`, and `primary-email-verification-required`. The spec marks these codes with `x-sentry-auth-challenge`, and the SDK reads them from there. `getSentryAuthChallenge(error)` returns one as data, a `SentryAuthChallenge` with its `code`, `status`, `message`, and the code's string fields (`loginUrl` and `organizationSlug` for SSO, `orgSlug` for superuser, `username` for sudo and email verification, `next` for a disabled member). It returns `undefined` for any other error.
+
+To handle challenges where requests are sent, wrap `fetch` with `withAuthChallenges`. On a challenge it calls `onAuthChallenge(challenge, request)`. Re-authenticate however your app does, then return `"retry"` to send the request once more, or `"fail"` to keep the challenge response. The SDK opens no UI and never redirects or reloads. Without the wrapper, nothing is retried. The wrapper keeps a copy of each request body to replay.
+
+```ts
+import { createSentryClient, withAuthChallenges } from "@sentry/api";
+
+declare function confirmPassword(username: string | undefined): Promise<boolean>;
+
+const client = createSentryClient({
+  baseUrl: "https://sentry.example.com",
+  fetch: withAuthChallenges(fetch, {
+    async onAuthChallenge(challenge) {
+      if (challenge.code === "sudo-required") {
+        return (await confirmPassword(challenge.username)) ? "retry" : "fail";
+      }
+      return "fail";
+    },
+  }),
+});
+```
 
 ### Custom errors
 

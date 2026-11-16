@@ -544,6 +544,7 @@ describe('Onboarding', () => {
 
       expect(await screen.findByText('sntryh_****')).toBeInTheDocument();
       expect(screen.getByText('Recommended')).toBeInTheDocument();
+      expect(agenticRunRequestMock.mock.calls[0]?.[1]?.data.origin).toBe('onboarding');
       expect(
         screen.getByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();
@@ -555,7 +556,7 @@ describe('Onboarding', () => {
         screen.getByRole('link', {name: 'See the full instructions'})
       ).toHaveAttribute(
         'href',
-        'https://sentry.io/agent-handoff/?preview=1&flow=onboarding'
+        'https://sentry.io/agent-handoff.md?preview=1&flow=onboarding'
       );
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();

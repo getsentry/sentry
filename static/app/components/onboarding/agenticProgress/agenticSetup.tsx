@@ -24,7 +24,7 @@ interface AgenticSetupProps {
   hasProgressFailed: boolean;
   isAgentConnected: boolean;
   issueLinkReferrer: string;
-  onCopyCommand: (source: AgentSetupCopySource) => void;
+  onCopyCommand: (source: AgentSetupCopySource, handoffId: string) => void;
   onRefresh: () => void;
   onRetry: () => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;

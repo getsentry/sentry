@@ -85,7 +85,6 @@ describe('useSaveMetricsMultiQuery', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 

@@ -379,7 +379,6 @@
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",
     "prismjs": "^1.30.0",
-    "query-string": "10.0.0",
     "react-error-boundary": "^6.1.6",
     "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",

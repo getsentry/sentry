@@ -48,6 +48,15 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
+    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
+        """
+        Called when the organization doesn't have enough Seer credits for the requested step.
+        `started` is False when the run itself was refused, True when a later step of a run was.
+
+        Example Usage: Sending a message with a link to add credits, etc.
+        """
+        ...
+
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         """
         Called when an autofix run has been started successfully.
@@ -143,9 +152,9 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
         state: SeerRunState,
     ) -> None:
         """
-        Called whenever Seer runs the AgentOnCompletionHook: when an invocation yields, and when
-        a PR push the Agent queued finishes. Treat it as a refresh: make the external service
-        match ``state``, whichever of those caused the call.
+        Called whenever Seer runs the AgentOnCompletionHook: when an invocation yields or fails,
+        and when a PR push the Agent queued finishes. Treat it as a refresh: make the external
+        service match ``state``, whichever of those caused the call.
 
         The shape of the cached payload is determined by `create_agent_cache_payload`.
 
