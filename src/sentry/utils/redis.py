@@ -31,6 +31,12 @@ _REDIS_DEFAULT_CLIENT_ARGS = {
     "socket_timeout": 3.0
 }
 
+# A cluster's `client_args` can override these
+_REDIS_CLUSTER_DEFAULT_CLIENT_ARGS = {
+    # Per node, because of max_connections_per_node
+    "max_connections": 16,
+}
+
 
 class RedisClusterManager:
     def __init__(self, options_manager: OptionsManager) -> None:
@@ -134,8 +140,7 @@ class RedisClusterManager:
                         skip_full_coverage_check=True,
                         max_connections_per_node=True,
                         readonly_mode=readonly_mode,
-                        # A cluster's `client_args` can raise the per-node limit
-                        **{"max_connections": 16, **client_args},
+                        **{**_REDIS_CLUSTER_DEFAULT_CLIENT_ARGS, **client_args},
                     )
                 )
                 if key_prefix is not None:
