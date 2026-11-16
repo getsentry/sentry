@@ -5,15 +5,16 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
-import {CronDetectorDetails} from 'sentry/views/detectors/components/details/cron';
-import {ErrorDetectorDetails} from 'sentry/views/detectors/components/details/error';
-import {FallbackDetectorDetails} from 'sentry/views/detectors/components/details/fallback';
-import {MetricDetectorDetails} from 'sentry/views/detectors/components/details/metric';
-import {MobileBuildDetectorDetails} from 'sentry/views/detectors/components/details/mobileBuild';
-import {UptimeDetectorDetails} from 'sentry/views/detectors/components/details/uptime';
 import {detectorToLLMContext} from 'sentry/views/detectors/utils/detectorLLMContext';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {CronDetectorDetails} from './cron';
+import {ErrorDetectorDetails} from './error';
+import {FallbackDetectorDetails} from './fallback';
+import {MetricDetectorDetails} from './metric';
+import {MobileBuildDetectorDetails} from './mobileBuild';
+import {UptimeDetectorDetails} from './uptime';
 
 type DetectorDetailsContentProps = {
   detector: Detector;

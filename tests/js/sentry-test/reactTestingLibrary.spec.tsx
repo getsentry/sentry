@@ -45,6 +45,7 @@ describe('rerender', () => {
   let idCounter = 1;
 
   function NumberDisplay({number}: {number: number}) {
+    // oxlint-disable-next-line react/todo
     const id = useRef(idCounter++); // to ensure we don't remount a different instance
 
     return (

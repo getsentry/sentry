@@ -1,4 +1,4 @@
-import {isUUID} from 'sentry/utils/string/isUUID';
+import {isUUID} from './isUUID';
 
 describe('isUUID', () => {
   test('valid UUIDs should return true', () => {

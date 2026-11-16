@@ -6,6 +6,7 @@ import pytest
 from sentry.issues.ownership.grammar import (
     Matcher,
     Owner,
+    OwnershipRule,
     Rule,
     convert_codeowners_syntax,
     convert_schema_to_rules_text,
@@ -14,6 +15,7 @@ from sentry.issues.ownership.grammar import (
     load_schema,
     parse_code_owners,
     parse_rules,
+    remove_deleted_owners_from_schema,
 )
 from sentry.testutils.cases import TestCase
 
@@ -1428,3 +1430,36 @@ def test_parse_code_owners_exclusion_rule() -> None:
     assert teams == ["@getsentry/frontend"]
     assert usernames == []
     assert emails == []
+
+
+def _rule(*identifiers: str) -> OwnershipRule:
+    return {
+        "matcher": {"type": "path", "pattern": "*.py"},
+        "owners": [{"type": "user", "identifier": i} for i in identifiers],
+    }
+
+
+def test_remove_deleted_owners_from_schema_adjacent_deleted_owners() -> None:
+    rules = [_rule("deleted1@example.com", "deleted2@example.com", "valid@example.com")]
+    remove_deleted_owners_from_schema(rules, {"valid@example.com": 1})
+    assert rules == [_rule("valid@example.com")]
+
+
+def test_remove_deleted_owners_from_schema_adjacent_dead_rules() -> None:
+    rules = [
+        _rule("deleted1@example.com"),
+        _rule("deleted2@example.com"),
+        _rule("valid@example.com"),
+    ]
+    remove_deleted_owners_from_schema(rules, {"valid@example.com": 1})
+    assert rules == [_rule("valid@example.com")]
+
+
+def test_remove_deleted_owners_from_schema_keeps_ownerless_rules() -> None:
+    exclusion: OwnershipRule = {
+        "matcher": {"type": "codeowners", "pattern": "/apps/github"},
+        "owners": [],
+    }
+    rules = [_rule("deleted@example.com"), exclusion, _rule("valid@example.com")]
+    remove_deleted_owners_from_schema(rules, {"valid@example.com": 1})
+    assert rules == [exclusion, _rule("valid@example.com")]

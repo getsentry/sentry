@@ -1,4 +1,2 @@
 from .analytics import *  # NOQA
-from .client import ApiClient
-
-client = ApiClient()
+from .client import ApiClient, client  # NOQA

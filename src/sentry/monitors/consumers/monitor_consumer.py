@@ -44,6 +44,7 @@ from sentry.monitors.logic.monitor_environment import (
     monitor_has_newer_status_affecting_checkins,
     update_monitor_environment,
 )
+from sentry.monitors.logic.monitor_status import update_monitor_status
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -413,10 +414,7 @@ def update_existing_check_in(
     monitor = monitor_environment.monitor
     processing_errors: list[ProcessingError] = []
 
-    if (
-        existing_check_in.monitor_id != monitor.id
-        or existing_check_in.monitor_environment_id != monitor_environment.id
-    ):
+    if existing_check_in.monitor_environment_id != monitor_environment.id:
         mismatch_error: CheckinGuidProjectMismatch = {
             "type": ProcessingErrorType.CHECKIN_GUID_PROJECT_MISMATCH,
             "guid": existing_check_in.guid.hex,
@@ -432,7 +430,7 @@ def update_existing_check_in(
             "monitors.consumer.guid_exists",
             extra={
                 "guid": existing_check_in.guid.hex,
-                "slug": existing_check_in.monitor.slug,
+                "slug": existing_check_in.monitor_environment.monitor.slug,
                 "payload_slug": monitor.slug,
             },
         )
@@ -485,7 +483,7 @@ def update_existing_check_in(
             "monitors.consumer.check_in_closed",
             extra={
                 "guid": existing_check_in.guid.hex,
-                "slug": existing_check_in.monitor.slug,
+                "slug": monitor.slug,
                 "status": existing_check_in.status,
                 "updated_status": updated_status,
             },
@@ -517,7 +515,7 @@ def update_existing_check_in(
             "monitors.consumer.invalid_implicit_duration",
             extra={
                 "guid": existing_check_in.guid.hex,
-                "slug": existing_check_in.monitor.slug,
+                "slug": monitor.slug,
                 "duration": updated_duration,
             },
         )
@@ -576,11 +574,9 @@ def update_existing_check_in(
 
 
 def _cache_checkin_relations(
-    check_in: MonitorCheckIn, monitor: Monitor, monitor_environment: MonitorEnvironment
+    check_in: MonitorCheckIn, monitor_environment: MonitorEnvironment
 ) -> None:
     # Avoid re-fetching already loaded objects; only when the ids match
-    if check_in.monitor_id == monitor.id:
-        check_in.monitor = monitor
     if check_in.monitor_environment_id == monitor_environment.id:
         check_in.monitor_environment = monitor_environment
 
@@ -780,12 +776,18 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     monitor = None
     # 01
     # Retrieve or upsert monitor for this check-in
+    existing_monitor_environment = MonitorEnvironment.objects.get_existing(
+        project, monitor_slug, environment
+    )
     try:
-        (monitor, non_fatal_processing_errors) = _ensure_monitor_with_config(
-            project,
-            monitor_slug,
-            monitor_config,
-        )
+        if existing_monitor_environment and not monitor_config:
+            monitor = existing_monitor_environment.monitor
+        else:
+            (monitor, non_fatal_processing_errors) = _ensure_monitor_with_config(
+                project,
+                monitor_slug,
+                monitor_config,
+            )
     except ProcessingErrorsException as e:
         ensure_config_errors = list(e.processing_errors)
     except MonitorLimitsExceeded as e:
@@ -818,7 +820,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
+            update_monitor_status(monitor, ObjectStatus.DISABLED)
 
     if not monitor:
         metrics.incr(
@@ -898,9 +900,14 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     # 02
     # Retrieve or upsert monitor environment for this check-in
     try:
-        monitor_environment = MonitorEnvironment.objects.ensure_environment(
-            project, monitor, environment
-        )
+        if existing_monitor_environment:
+            # Use the monitor the upsert may have just updated
+            existing_monitor_environment.monitor = monitor
+            monitor_environment = existing_monitor_environment
+        else:
+            monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                project, monitor, environment
+            )
     except MonitorEnvironmentLimitsExceeded as e:
         metrics.incr(
             "monitors.checkin.result",
@@ -1027,7 +1034,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                         }
                         raise ProcessingErrorsException([env_mismatch_error], monitor)
 
-                _cache_checkin_relations(check_in, monitor, monitor_environment)
+                _cache_checkin_relations(check_in, monitor_environment)
                 span.set_attribute("outcome", "process_existing_checkin")
                 update_existing_check_in(
                     span,
@@ -1066,7 +1073,6 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
 
                 lookup = {
                     "guid": guid,
-                    "monitor": monitor,
                     "monitor_environment": monitor_environment,
                 }
                 # The guid lookup above found nothing, so create directly
@@ -1101,7 +1107,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                 # XXX(epurkhiser): Is this needed since we're already
                 # locking this entire process?
                 if not created:
-                    _cache_checkin_relations(check_in, monitor, monitor_environment)
+                    _cache_checkin_relations(check_in, monitor_environment)
                     span.set_attribute("outcome", "process_existing_checkin_race_condition")
                     update_existing_check_in(
                         span,
@@ -1121,12 +1127,6 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "created_new_checkin"},
                     )
-
-                    # When creating a brand new check-in (not updating an existing one),
-                    # if no monitor config was provided and the monitor was previously
-                    # marked as upserting, mark it as no longer upserting.
-                    if not monitor_config and monitor.is_upserting:
-                        monitor.update(is_upserting=False)
 
             track_outcome(
                 org_id=project.organization_id,

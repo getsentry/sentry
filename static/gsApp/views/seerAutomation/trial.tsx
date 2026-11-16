@@ -3,7 +3,6 @@ import {useNavigate} from 'react-router';
 import styled from '@emotion/styled';
 import {IconUpgrade} from '@sentry/icons/upgrade';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
-import seerConfigCheck from 'getsentry-images/spot/seer-config-check.svg';
 import seerConfigConnect2 from 'getsentry-images/spot/seer-config-connect-2.svg';
 import seerConfigHand2 from 'getsentry-images/spot/seer-config-hand-2.svg';
 import seerConfigMain from 'getsentry-images/spot/seer-config-main.svg';
@@ -11,12 +10,12 @@ import seerConfigMain from 'getsentry-images/spot/seer-config-main.svg';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {t, tct} from 'sentry/locale';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
@@ -43,11 +42,6 @@ const BUTTONS = [
     label: t('Make code changes'),
     imageSrc: seerConfigBug1,
     href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#code-generation',
-  },
-  {
-    label: t('Review your code'),
-    imageSrc: seerConfigCheck,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/code-review/',
   },
 ];
 
@@ -107,7 +101,7 @@ export default function SeerAutomationTrial() {
 
           <Text>
             {tct(
-              "With Seer, issues [em:almost] fix themselves. Choose your favorite coding agent and run Autofix on Issues as they're detected, and use Code Review to prevent bugs before they happen. [docs:Read the docs] for more.",
+              "With Seer, issues [em:almost] fix themselves. Choose your favorite coding agent and run Autofix on Issues as they're detected. [docs:Read the docs] for more.",
               {
                 em: <em />,
                 docs: (

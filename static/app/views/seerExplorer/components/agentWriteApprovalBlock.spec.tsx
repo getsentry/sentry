@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiAccessScope} from 'sentry/constants/scopes';
-import {AgentWriteApprovalBlock} from 'sentry/views/seerExplorer/components/agentWriteApprovalBlock';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
+
+import {AgentWriteApprovalBlock} from './agentWriteApprovalBlock';
 
 const APPROVAL_ID = '11111111-1111-4111-8111-111111111111';
 

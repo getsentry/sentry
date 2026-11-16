@@ -54,7 +54,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         )
         # Checkin will timeout in 30 minutes
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts,
@@ -147,7 +146,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
 
         # Timesout 90 minutes from when it started
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=checkin1_start,
@@ -158,7 +156,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         # Second check in was started now, giving us the overlapping
         # "concurrent" checkin scenario.
         checkin2 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts,
@@ -247,7 +244,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         # In progress started an hour ago
         checkin_start_time = ts - timedelta(hours=1)
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=checkin_start_time,
@@ -313,7 +309,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         )
         # Checkin will timeout in 5 minutes
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts,
@@ -387,7 +382,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         )
         # Checkin 24hr ago
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=check_in_24hr_ago,
@@ -395,7 +389,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
             timeout_at=check_in_24hr_ago + timedelta(minutes=30),
         )
         checkin2 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
             date_added=ts,
@@ -472,7 +465,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         )
         # Checkin will timeout in 30 minutes
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts,

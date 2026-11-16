@@ -6,22 +6,20 @@ import {LazyRender} from 'sentry/components/lazyRender';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
-} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTable';
-import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
-import {
-  getQueryMode,
-  type ReadableExploreQueryParts,
-} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {GroupBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/groupBy';
-import {MenuSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/menu';
-import {SearchBarSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/search';
-import {SortBySection} from 'sentry/views/explore/multiQueryMode/queryConstructors/sortBy';
-import {VisualizeSection} from 'sentry/views/explore/multiQueryMode/queryConstructors/visualize';
-import {MultiQueryModeChart} from 'sentry/views/explore/multiQueryMode/queryVisualizations/chart';
-import {MultiQueryTable} from 'sentry/views/explore/multiQueryMode/queryVisualizations/table';
+} from './hooks/useMultiQueryTable';
+import {useMultiQueryTimeseries} from './hooks/useMultiQueryTimeseries';
+import {GroupBySection} from './queryConstructors/groupBy';
+import {MenuSection} from './queryConstructors/menu';
+import {SearchBarSection} from './queryConstructors/search';
+import {SortBySection} from './queryConstructors/sortBy';
+import {VisualizeSection} from './queryConstructors/visualize';
+import {MultiQueryModeChart} from './queryVisualizations/chart';
+import {MultiQueryTable} from './queryVisualizations/table';
+import {getQueryMode, type ReadableExploreQueryParts} from './locationUtils';
 
 type Props = {
   index: number;
@@ -40,7 +38,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     sortBys,
     enabled: mode === Mode.AGGREGATE,
     queryExtras: {
-      caseInsensitive: caseInsensitive ? true : undefined,
+      caseInsensitive: caseInsensitive === '1' ? true : undefined,
     },
   });
 
@@ -51,7 +49,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     sortBys,
     enabled: mode === Mode.SAMPLES,
     queryExtras: {
-      caseInsensitive: caseInsensitive ? true : undefined,
+      caseInsensitive: caseInsensitive === '1' ? true : undefined,
     },
   });
 
@@ -59,7 +57,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     index,
     enabled: true,
     queryExtras: {
-      caseInsensitive: caseInsensitive ? true : undefined,
+      caseInsensitive: caseInsensitive === '1' ? true : undefined,
     },
   });
 

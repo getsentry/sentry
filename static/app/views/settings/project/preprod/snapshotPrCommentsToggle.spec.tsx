@@ -3,7 +3,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {SnapshotPrCommentsToggle} from 'sentry/views/settings/project/preprod/snapshotPrCommentsToggle';
+import {SnapshotPrCommentsToggle} from './snapshotPrCommentsToggle';
 
 describe('SnapshotPrCommentsToggle', () => {
   const {organization} = initializeOrg();

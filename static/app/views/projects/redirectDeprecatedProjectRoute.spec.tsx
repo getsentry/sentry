@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {redirectDeprecatedProjectRoute} from 'sentry/views/projects/redirectDeprecatedProjectRoute';
+
+import {redirectDeprecatedProjectRoute} from './redirectDeprecatedProjectRoute';
 
 jest.mock('sentry/utils/analytics');
 

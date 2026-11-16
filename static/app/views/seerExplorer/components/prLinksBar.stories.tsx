@@ -8,8 +8,6 @@ import {Text} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {PRLinksBar} from 'sentry/views/seerExplorer/components/prLinksBar';
-import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {
   SeerExplorerChatStateProvider,
   useSeerExplorerChatDispatch,
@@ -20,6 +18,9 @@ import type {
   RepoPRState,
   SeerExplorerResponse,
 } from 'sentry/views/seerExplorer/types';
+
+import {PRLinksBar} from './prLinksBar';
+import {SeerExplorerContent} from './seerExplorerContent';
 
 function prState(overrides: Partial<RepoPRState> & {repo_name: string}): RepoPRState {
   return {

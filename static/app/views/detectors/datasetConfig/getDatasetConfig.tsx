@@ -1,10 +1,10 @@
-import {DetectorErrorsConfig} from 'sentry/views/detectors/datasetConfig/errors';
-import {DetectorLogsConfig} from 'sentry/views/detectors/datasetConfig/logs';
-import {DetectorMetricsConfig} from 'sentry/views/detectors/datasetConfig/metrics';
-import {DetectorReleasesConfig} from 'sentry/views/detectors/datasetConfig/releases';
-import {DetectorSpansConfig} from 'sentry/views/detectors/datasetConfig/spans';
-import {DetectorTransactionsConfig} from 'sentry/views/detectors/datasetConfig/transactions';
-import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {DetectorErrorsConfig} from './errors';
+import {DetectorLogsConfig} from './logs';
+import {DetectorMetricsConfig} from './metrics';
+import {DetectorReleasesConfig} from './releases';
+import {DetectorSpansConfig} from './spans';
+import {DetectorTransactionsConfig} from './transactions';
+import {DetectorDataset} from './types';
 
 const DATASET_CONFIG_MAP = {
   [DetectorDataset.ERRORS]: DetectorErrorsConfig,

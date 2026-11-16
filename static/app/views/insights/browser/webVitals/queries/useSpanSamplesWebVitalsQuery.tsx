@@ -54,11 +54,11 @@ export function useSpanSamplesWebVitalsQuery({
   if (transaction !== undefined) {
     mutableSearch.addFilterValue(SpanFields.TRANSACTION, transaction);
   }
-  if (browserTypes) {
-    mutableSearch.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
+  if (browserTypes?.length) {
+    mutableSearch.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
   }
-  if (subregions) {
-    mutableSearch.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
+  if (subregions?.length) {
+    mutableSearch.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   let field: SpanFields | undefined;

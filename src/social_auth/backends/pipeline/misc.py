@@ -1,8 +1,16 @@
-from social_auth.backends import PIPELINE
+from django.http import HttpRequest
+
+from social_auth.backends import PIPELINE, BaseAuth
 from social_auth.utils import setting
 
 
-def save_status_to_session(request, auth, pipeline_index, *args, **kwargs):
+def save_status_to_session(
+    request: HttpRequest,
+    auth: BaseAuth,
+    pipeline_index: int,
+    *args: object,
+    **kwargs: object,
+) -> None:
     """Saves current social-auth status to session."""
     next_entry = setting("SOCIAL_AUTH_PIPELINE_RESUME_ENTRY")
 

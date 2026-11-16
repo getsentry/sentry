@@ -3,8 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import * as iconTools from 'sentry/components/events/contexts/contextIcon';
+import {ContextCard} from './contextCard';
+import * as iconTools from './contextIcon';
 
 describe('ContextCard', () => {
   const project = ProjectFixture();

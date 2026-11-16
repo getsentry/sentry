@@ -139,8 +139,9 @@ describe('InviteMissingMembersModal', () => {
     );
 
     const createMemberMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
+      url: `/organizations/${org.slug}/members/`,
       method: 'POST',
+      match: [MockApiClient.matchQuery({referrer: 'github_nudge_invite'})],
       body: {},
     });
 
@@ -156,9 +157,10 @@ describe('InviteMissingMembersModal', () => {
     missingMembers.forEach((member, i) => {
       expect(createMemberMock).toHaveBeenNthCalledWith(
         i + 1,
-        `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
+        `/organizations/${org.slug}/members/`,
         expect.objectContaining({
           data: {email: member.email, role: 'member', teams: []},
+          query: {referrer: 'github_nudge_invite'},
         })
       );
     });
@@ -175,8 +177,9 @@ describe('InviteMissingMembersModal', () => {
     );
 
     const createMemberMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
+      url: `/organizations/${org.slug}/members/`,
       method: 'POST',
+      match: [MockApiClient.matchQuery({referrer: 'github_nudge_invite'})],
       body: {},
     });
 
@@ -206,17 +209,19 @@ describe('InviteMissingMembersModal', () => {
 
     expect(createMemberMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
+      `/organizations/${org.slug}/members/`,
       expect.objectContaining({
         data: {email: 'hello@sentry.io', role: 'admin', teams: []},
+        query: {referrer: 'github_nudge_invite'},
       })
     );
 
     expect(createMemberMock).toHaveBeenNthCalledWith(
       2,
-      `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
+      `/organizations/${org.slug}/members/`,
       expect.objectContaining({
         data: {email: 'abcd@sentry.io', role: 'member', teams: [team.slug]},
+        query: {referrer: 'github_nudge_invite'},
       })
     );
   });

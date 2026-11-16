@@ -6,7 +6,7 @@ import {IconProfiling} from '@sentry/icons/profiling';
 import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
@@ -32,6 +32,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {toPercent} from 'sentry/utils/number/toPercent';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -260,7 +261,7 @@ export function SampledEventsTable({
         }}
       />
       <Pagination
-        pageLinks={pageLinks}
+        {...getPaginationProps(pageLinks)}
         onCursor={onCursor}
         size="md"
         caption={numEventsError ? undefined : paginationCaption}
@@ -413,7 +414,7 @@ function renderOperationDurationCell(row: Record<string, any>, theme: Theme) {
   let otherPercentage = 1;
 
   return (
-    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
+    <Flex position="relative" data-test-id="relative-ops-breakdown">
       {SPAN_OP_BREAKDOWN_FIELDS.map(field => {
         if (!(field in row) || typeof row[field] !== 'number') {
           return null;
@@ -456,7 +457,7 @@ function renderOperationDurationCell(row: Record<string, any>, theme: Theme) {
           <OtherRelativeOpsBreakdown />
         </Tooltip>
       </div>
-    </RelativeOpsBreakdown>
+    </Flex>
   );
 }
 
@@ -464,11 +465,6 @@ const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: relative;
   top: 1px;
   left: 4px;
-`;
-
-const RelativeOpsBreakdown = styled('div')`
-  position: relative;
-  display: flex;
 `;
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`

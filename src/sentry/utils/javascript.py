@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import BaseEvent
 
 SOURCE_MAPPING_URL_RE = re.compile(b"//# sourceMappingURL=(.*)$")
 
 
-def has_sourcemap(event: Event) -> bool:
+def has_sourcemap(event: BaseEvent) -> bool:
     if event.platform not in ("javascript", "node"):
         return False
 

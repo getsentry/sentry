@@ -12,7 +12,7 @@ interface UseTableCursorResult {
   cursor: string | undefined;
   /**
    * Handler function compatible with Pagination's onCursor prop.
-   * Only uses the cursor parameter, ignoring path, query, and delta.
+   * Only uses the cursor parameter, ignoring the navigation delta.
    */
   setCursor: CursorHandler;
   /**

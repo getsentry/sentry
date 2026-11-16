@@ -18,13 +18,13 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
             '[data-test-id="organization-settings-security-and-privacy"]'
         )
 
-    def renders_2fa_setting(self) -> bool:
-        return self.browser.wait_until("input[type='checkbox'][name='require2FA']")
+    def renders_2fa_setting(self) -> None:
+        self.browser.wait_until("input[type='checkbox'][name='require2FA']")
 
     def test_renders_2fa_setting_for_owner(self) -> None:
         self.browser.get(self.path)
         self.load_organization_helper()
-        assert self.renders_2fa_setting()
+        self.renders_2fa_setting()
 
     def test_renders_2fa_setting_for_manager(self) -> None:
         manager_user = self.create_user("manager@example.com")
@@ -32,7 +32,7 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         self.login_as(manager_user)
         self.browser.get(self.path)
         self.load_organization_helper()
-        assert self.renders_2fa_setting()
+        self.renders_2fa_setting()
 
     def test_setting_2fa_without_2fa_enabled(self) -> None:
         self.browser.get(self.path)

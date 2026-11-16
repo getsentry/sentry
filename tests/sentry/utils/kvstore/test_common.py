@@ -4,7 +4,7 @@ import itertools
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Generic
+from typing import Any, Generic
 
 import pytest
 
@@ -23,7 +23,7 @@ class Properties(Generic[K, V]):
 
 
 @pytest.fixture(params=["bigtable", "cache/default", "memory", "memory+cachewrapper", "redis"])
-def properties(request) -> Properties:
+def properties(request: pytest.FixtureRequest) -> Properties[Any, Any]:
     if request.param == "bigtable":
         from tests.sentry.utils.kvstore.test_bigtable import create_store
 
@@ -80,7 +80,7 @@ def properties(request) -> Properties:
         raise AssertionError("unknown kvstore label")
 
 
-def test_single_key_operations(properties: Properties) -> None:
+def test_single_key_operations(properties: Properties[Any, Any]) -> None:
     store = properties.store
     key, value = next(properties.keys), next(properties.values)
 
@@ -110,7 +110,7 @@ def test_single_key_operations(properties: Properties) -> None:
     store.delete(missing_key)
 
 
-def test_multiple_key_operations(properties: Properties) -> None:
+def test_multiple_key_operations(properties: Properties[Any, Any]) -> None:
     store = properties.store
 
     items = dict(itertools.islice(properties.items, 10))

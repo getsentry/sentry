@@ -28,6 +28,8 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.referrer import Referrer
@@ -36,6 +38,37 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.utils.snuba import bulk_snuba_queries
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+
+class DeleteGroupInboxTest(TestCase):
+    def test_deletes_only_matching_issue_items(self) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", 1)
+        groups = [self.create_group(project=self.project) for _ in range(2)]
+        items = [self.create_inbox_item(subject_id=str(group.id)) for group in groups]
+        for item in items:
+            self.create_inbox_item_event(item)
+        other_subject = self.create_inbox_item(
+            subject_type="notebook", subject_id=str(groups[0].id)
+        )
+        other_org = self.create_inbox_item(
+            organization=self.create_organization(), subject_id=str(groups[0].id)
+        )
+        survivor_events = [
+            self.create_inbox_item_event(item) for item in [other_subject, other_org]
+        ]
+
+        with mock.patch.dict(os.environ, {"_SENTRY_CLEANUP": "1"}), self.tasks():
+            deletions.exec_sync_many(groups)
+
+        assert not Group.objects.filter(id__in=[group.id for group in groups]).exists()
+        assert not InboxItem.objects.filter(id__in=[item.id for item in items]).exists()
+        assert not InboxItemEvent.objects.filter(
+            inbox_item_id__in=[item.id for item in items]
+        ).exists()
+        assert (
+            InboxItemEvent.objects.filter(id__in=[event.id for event in survivor_events]).count()
+            == 2
+        )
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
@@ -53,6 +86,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             data=self._generate_data(fingerprint="group1"),
             project_id=self.project.id,
         )
+        assert event.group is not None
         UserReport.objects.create(
             group_id=event.group.id, project_id=event.project_id, name="With group id"
         )
@@ -137,7 +171,8 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             )
 
         assert not Group.objects.filter(id=event.group.id).exists()
-        assert not Group.objects.filter(id=other_event.group_id).exists()
+        assert other_event.group is not None
+        assert not Group.objects.filter(id=other_event.group.id).exists()
         assert not nodestore.backend.get(self._get_node_id(event))
         assert not nodestore.backend.get(self._get_node_id(other_event))
 
@@ -150,7 +185,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         other_group = other_event.group
+        assert other_group is not None
         group = self.event.group
+        assert group is not None
         history_one = self.create_group_history(group=group, status=GroupHistoryStatus.ONGOING)
         history_two = self.create_group_history(
             group=group,
@@ -182,6 +219,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         os.environ["_SENTRY_CLEANUP"] = "1"
         try:
             group = self.event.group
+            assert group is not None
 
             with self.tasks():
                 delete_groups_for_project(
@@ -215,27 +253,28 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             data=self._generate_data(fingerprint="group3"),
             project_id=self.project.id,
         )
+        assert other_event.group is not None
 
         hashes = [
             grouphash.hash
             for grouphash in GroupHash.objects.filter(
-                project_id=self.project.id, group_id__in=[event.group.id, other_event.group_id]
+                project_id=self.project.id, group_id__in=[event.group.id, other_event.group.id]
             )
         ]
 
         with self.tasks():
             delete_groups_for_project(
-                object_ids=[event.group.id, other_event.group_id],
+                object_ids=[event.group.id, other_event.group.id],
                 transaction_id=uuid4().hex,
                 project_id=self.project.id,
             )
 
         assert not Group.objects.filter(id=event.group.id).exists()
-        assert not Group.objects.filter(id=other_event.group_id).exists()
+        assert not Group.objects.filter(id=other_event.group.id).exists()
         assert not nodestore.backend.get(self._get_node_id(event))
         assert not nodestore.backend.get(self._get_node_id(other_event))
 
-        assert Group.objects.filter(id=keep_event.group_id).exists()
+        assert Group.objects.filter(id=keep_event.group.id).exists()
         assert nodestore.backend.get(self._get_node_id(keep_event))
 
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
@@ -260,11 +299,14 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["invalid-group"]},
             project_id=self.project.id,
         ).group
+        assert error_group is not None
+        assert invalid_group is not None
         keep_event = self.store_event(
             data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["keep-group"]},
             project_id=self.project.id,
         )
         keep_group = keep_event.group
+        assert keep_group is not None
 
         Group.objects.filter(id=invalid_group.id).update(type=10000000)
 
@@ -306,6 +348,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        assert event_a.group_id is not None
         grouphash_a = GroupHash.objects.get(group_id=event_a.group_id)
         assert grouphash_a.metadata is not None
         assert grouphash_a.metadata.seer_matched_grouphash is None
@@ -360,6 +403,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         num_additional_grouphashes = 5
         # Create events with group hashes
         event_a = self.store_event(data={"fingerprint": ["a"]}, project_id=self.project.id)
+        assert event_a.group_id is not None
         grouphash_a = GroupHash.objects.get(group_id=event_a.group_id)
 
         # Create multiple events with different group hashes that reference grouphash_a
@@ -424,6 +468,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert GroupHash.objects.filter(project=self.project).count() == 2
 
+        assert event_1.group is not None
         delete_project_group_hashes(
             project_id=self.project.id,
             group_ids_filter=[event_1.group.id],
@@ -513,7 +558,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         return results[0] if results else None
 
     @property
-    def tenant_ids(self) -> dict[str, str]:
+    def tenant_ids(self) -> dict[str, str | int]:
         return {"referrer": self.referrer, "organization_id": self.organization.id}
 
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
@@ -532,6 +577,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # Assertions after creation
         assert occurrence_event.id != event.event_id
         assert event.group_id != issue_platform_group.id
+        assert event.group is not None
         assert event.group.issue_category == GroupCategory.ERROR
         assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
         assert issue_platform_group.type == FeedbackGroup.type_id
@@ -559,7 +605,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             )
 
         # The original error event and group still exist
-        assert Group.objects.filter(id=event.group_id).exists()
+        assert Group.objects.filter(id=event.group.id).exists()
         assert nodestore.backend.get(event_node_id)
         assert self.select_error_events(self.project.id) == expected_error
 

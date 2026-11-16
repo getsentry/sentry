@@ -3,8 +3,9 @@ import {FrameFixture} from 'sentry-fixture/frame';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Template} from 'sentry/components/events/interfaces/template';
 import {EntryType} from 'sentry/types/event';
+
+import {Template} from './template';
 
 it('renders template source context expanded in the new stack trace', () => {
   const frame = FrameFixture({

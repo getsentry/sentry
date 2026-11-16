@@ -25,3 +25,8 @@ aggregator:
   debounce_delay: 0
 auth:
   signature_max_age: 300
+health:
+  # The readiness probe reports a cached status that is refreshed on this interval
+  # (default 3s), so a fresh Relay otherwise looks unready for up to 3s after it has
+  # authenticated. relay_server waits on that probe before every test.
+  refresh_interval_ms: 100

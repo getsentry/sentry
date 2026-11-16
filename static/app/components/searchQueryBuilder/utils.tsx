@@ -1,7 +1,6 @@
 import type {ListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
 
-import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {
   BooleanOperator,
   FilterType,
@@ -18,6 +17,8 @@ import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
+import type {FieldDefinitionGetter} from './types';
+
 function getFilterKeysFromQuery(value: string | undefined): string[] {
   if (!value) {
     return [];
@@ -25,10 +26,22 @@ function getFilterKeysFromQuery(value: string | undefined): string[] {
 
   const keys = new Set<string>();
   const filterKeyPattern = /(?:^|[\s(])!?([^\s():]+):/g;
+  // Typed aggregate filters such as `avg(span.size):>1kb` are classified by
+  // their arguments, so the arguments need field metadata too.
+  const aggregateArgsPattern = /(?:^|[\s(])!?[\w.]+\(([^()]*)\):/g;
 
   for (const match of value.matchAll(filterKeyPattern)) {
     if (match[1]) {
       keys.add(match[1]);
+    }
+  }
+
+  for (const match of value.matchAll(aggregateArgsPattern)) {
+    for (const arg of match[1]?.split(',') ?? []) {
+      const key = arg.trim();
+      if (key && !key.startsWith('"')) {
+        keys.add(key);
+      }
     }
   }
 

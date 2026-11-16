@@ -85,6 +85,32 @@ describe('useFetchEventsTimeSeries', () => {
     expect(request).toHaveBeenCalledTimes(0);
   });
 
+  it('encodes ordered transformations at their original axis index', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+    });
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {
+          yAxis: ['count()', 'avg(span.duration)'],
+          transformations: [[], ['fill(locf)', 'smooth(sma,5)']],
+        },
+        REFERRER
+      )
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(request.mock.lastCall![1].query).toEqual(
+      expect.objectContaining({
+        yAxis: ['count()', 'avg(span.duration)'],
+        'transformations[1]': ['fill(locf)', 'smooth(sma,5)'],
+      })
+    );
+    expect(request.mock.lastCall![1].query).not.toHaveProperty('transformations[0]');
+  });
+
   it('requires a referrer', () => {
     expect(() => {
       renderHookWithProviders(() =>

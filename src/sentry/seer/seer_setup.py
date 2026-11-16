@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from sentry import features
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -10,9 +12,7 @@ from sentry.utils.settings import is_self_hosted
 
 
 def get_supported_scm_providers(organization: Organization | None = None) -> list[str]:
-    providers = list(SEER_SUPPORTED_SCM_PROVIDERS)
-    if organization is not None and features.has("organizations:seer-gitlab-support", organization):
-        providers.extend(SEER_GITLAB_SCM_PROVIDERS)
+    providers = [*SEER_SUPPORTED_SCM_PROVIDERS, *SEER_GITLAB_SCM_PROVIDERS]
     if organization is not None and features.has(
         "organizations:seer-cursor-origin-support", organization
     ):
@@ -21,13 +21,15 @@ def get_supported_scm_providers(organization: Organization | None = None) -> lis
 
 
 def has_seer_access(organization: Organization | RpcOrganization) -> bool:
-    return not is_self_hosted() and not bool(organization.get_option("sentry:hide_ai_features"))
+    return (not is_self_hosted() or settings.IS_DEV) and not bool(
+        organization.get_option("sentry:hide_ai_features")
+    )
 
 
 def has_seer_access_with_detail(
     organization: Organization | RpcOrganization,
 ) -> tuple[bool, str | None]:
-    if is_self_hosted():
+    if is_self_hosted() and not settings.IS_DEV:
         return False, "Seer is not available on this installation."
 
     if organization.get_option("sentry:hide_ai_features"):

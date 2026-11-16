@@ -15,11 +15,6 @@ import {
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
-  useLogsFrozenProjectIds,
-  useLogsFrozenSearch,
-} from 'sentry/views/explore/logs/logsFrozenContext';
-import {type LogsAggregatesResult} from 'sentry/views/explore/logs/types';
-import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -34,6 +29,9 @@ import {
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 
+import {useLogsFrozenProjectIds, useLogsFrozenSearch} from './logsFrozenContext';
+import {OurLogKnownFieldKey, type LogsAggregatesResult} from './types';
+
 interface UseLogsAggregatesTableOptions {
   enabled: boolean;
   limit?: number;
@@ -43,11 +41,31 @@ interface UseLogsAggregatesTableOptions {
 
 export type LogsAggregatesTableResult = ReturnType<typeof useLogsAggregatesTable>;
 
+export const LOGS_AGGREGATES_TRACE_FIELD = `any(${OurLogKnownFieldKey.TRACE_ID})`;
+export const LOGS_AGGREGATES_TIMESTAMP_FIELD = `any(${OurLogKnownFieldKey.TIMESTAMP})`;
+
+const LOGS_AGGREGATES_SAMPLE_FIELDS = [
+  LOGS_AGGREGATES_TRACE_FIELD,
+  LOGS_AGGREGATES_TIMESTAMP_FIELD,
+];
+
 export function getLogsAggregatesFields(
   groupBys: readonly string[],
   visualizes: readonly Visualize[]
 ): string[] {
   return [...groupBys.filter(Boolean), ...visualizes.map(visualize => visualize.yAxis)];
+}
+
+function getLogsAggregatesQueryFields(
+  groupBys: readonly string[],
+  visualizes: readonly Visualize[]
+): string[] {
+  return Array.from(
+    new Set([
+      ...LOGS_AGGREGATES_SAMPLE_FIELDS,
+      ...getLogsAggregatesFields(groupBys, visualizes),
+    ])
+  );
 }
 
 export function useLogsAggregatesTable({
@@ -184,9 +202,10 @@ function useLogsAggregatesApiOptions({
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const aggregateCursor = useQueryParamsAggregateCursor();
   const [caseInsensitive] = useCaseInsensitivity();
-  const fields = getLogsAggregatesFields(groupBys, visualizes);
+  const visibleFields = getLogsAggregatesFields(groupBys, visualizes);
+  const fields = getLogsAggregatesQueryFields(groupBys, visualizes);
   // Drop orderbys that point at series removed by `_if` validation.
-  const allowedFields = new Set(fields);
+  const allowedFields = new Set(visibleFields);
   const validSortBys = aggregateSortBys.filter(sort => allowedFields.has(sort.field));
   const resolvedSortBys = validSortBys.length
     ? validSortBys
@@ -216,7 +235,7 @@ function useLogsAggregatesApiOptions({
         per_page: limit ? limit : undefined,
         cursor: aggregateCursor,
         referrer,
-        caseInsensitive,
+        caseInsensitive: caseInsensitive ? '1' : undefined,
         sampling: queryExtras?.samplingMode,
       },
       staleTime: getStaleTimeForEventView(eventView),

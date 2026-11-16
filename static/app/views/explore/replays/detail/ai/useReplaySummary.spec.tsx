@@ -4,12 +4,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {
-  ReplaySummaryStatus,
-  ReplaySummaryTemp,
-} from 'sentry/views/explore/replays/detail/ai/utils';
 
 import {useReplaySummary} from './useReplaySummary';
+import {ReplaySummaryStatus, ReplaySummaryTemp} from './utils';
 
 jest.mock('sentry/utils/replays/playback/providers/replayReaderProvider');
 jest.mock('sentry/utils/useProjectFromId');

@@ -5,7 +5,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ConfirmDelete} from 'sentry/components/confirmDelete';
+import {ConfirmDelete} from './confirmDelete';
 
 describe('ConfirmDelete', () => {
   it('renders', async () => {

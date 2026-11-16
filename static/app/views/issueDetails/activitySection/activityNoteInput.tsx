@@ -65,6 +65,7 @@ export function ActivityNoteInput({
 
     const drafts = fetchFromStorage(storageKey) ?? {};
     if (Object.hasOwn(drafts, itemKey)) {
+      // oxlint-disable-next-line react/todo
       const {[itemKey]: _submittedDraft, ...remainingDrafts} = drafts;
       saveToStorage(storageKey, remainingDrafts);
     }

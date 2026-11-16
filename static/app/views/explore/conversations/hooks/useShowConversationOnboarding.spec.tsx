@@ -58,7 +58,6 @@ describe('useShowConversationOnboarding', () => {
   afterEach(() => {
     localStorage.clear();
     PageFiltersStore.reset();
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

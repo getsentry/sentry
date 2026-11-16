@@ -11,7 +11,7 @@ from slack_sdk.errors import SlackApiError, SlackRequestError
 from slack_sdk.webhook import WebhookClient
 
 from sentry import features
-from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
+from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
@@ -132,6 +132,8 @@ def _build_notification_payload(
     detector_serialized_response: DetectorSerializerResponse | None,
     notification_uuid: str | None,
     notes: str | None = None,
+    workflow_id: int | None = None,
+    workflow_name: str | None = None,
 ) -> tuple[str, str]:
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", organization):
@@ -155,6 +157,8 @@ def _build_notification_payload(
         chart_url=chart_url,
         notification_uuid=notification_uuid,
         notes=notes,
+        workflow_id=workflow_id,
+        workflow_name=workflow_name,
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
@@ -293,14 +297,13 @@ def send_incident_alert_notification(
     notification_uuid: str | None = None,
 ) -> bool:
     # Make sure organization integration is still active:
-    result = integration_service.organization_context(
+    active = integration_service.organization_context(
         organization_id=organization.id, integration_id=notification_context.integration_id
-    )
-    integration = result.integration
-    org_integration = result.organization_integration
-    if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
-        # Integration removed, but rule is still active.
+    ).active()
+    if active is None:
+        # Integration removed or disabled, but rule is still active.
         return False
+    integration, _ = active
 
     channel = notification_context.target_identifier
     if channel is None:
@@ -315,6 +318,8 @@ def send_incident_alert_notification(
         notification_uuid=notification_uuid,
         detector_serialized_response=detector_serialized_response,
         notes=notification_context.notes,
+        workflow_id=notification_context.workflow_id,
+        workflow_name=notification_context.workflow_name,
     )
     return _handle_workflow_engine_notification(
         organization=organization,

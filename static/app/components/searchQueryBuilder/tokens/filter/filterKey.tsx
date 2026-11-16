@@ -5,13 +5,8 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
-import {FilterKeyCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyCombobox';
-import {FilterKeyDetailsTooltip} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyDetailsTooltip';
-import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
   Token,
   type ParseResultToken,
@@ -20,6 +15,11 @@ import {
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
+
+import {FilterKeyCombobox} from './filterKeyCombobox';
+import {FilterKeyDetailsTooltip} from './filterKeyDetailsTooltip';
+import {UnstyledButton} from './unstyledButton';
+import {useFilterButtonProps} from './useFilterButtonProps';
 
 type FilterKeyProps = {
   item: Node<ParseResultToken>;

@@ -4,7 +4,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -18,12 +17,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
-import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
-import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
-import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {MetricsTabOnboarding} from './metricsOnboarding';
+import {MetricsTabContent} from './metricsTab';
+import {MultiMetricsQueryParamsProvider} from './multiMetricsQueryParams';
 
 const METRICS_TITLE = t('Application Metrics');
 
@@ -123,15 +123,7 @@ function MetricsHeader() {
           }}
         />
       )}
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={metricsFeedbackOptions}
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot name="feedback" feedbackOptions={metricsFeedbackOptions} />
     </Fragment>
   );
 }

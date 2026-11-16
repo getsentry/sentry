@@ -2,31 +2,32 @@ import logging
 
 
 class InstanceManager:
-    def __init__(self, class_list=None, instances=True):
+    def __init__(self, class_list: list[str] | None = None, instances: bool = True) -> None:
         if class_list is None:
             class_list = []
         self.instances = instances
+        self.cache: list[object] | None = None
         self.update(class_list)
 
-    def get_class_list(self):
+    def get_class_list(self) -> list[str]:
         return self.class_list
 
-    def add(self, class_path):
+    def add(self, class_path: str) -> None:
         self.cache = None
         self.class_list.append(class_path)
 
-    def remove(self, class_path):
+    def remove(self, class_path: str) -> None:
         self.cache = None
         self.class_list.remove(class_path)
 
-    def update(self, class_list):
+    def update(self, class_list: list[str]) -> None:
         """
         Updates the class list and wipes the cache.
         """
         self.cache = None
         self.class_list = class_list
 
-    def all(self):
+    def all(self) -> list[object]:
         """
         Returns a list of cached instances.
         """
@@ -38,7 +39,7 @@ class InstanceManager:
         if self.cache is not None:
             return self.cache
 
-        results = []
+        results: list[object] = []
         for cls_path in class_list:
             module_name, class_name = cls_path.rsplit(".", 1)
             try:

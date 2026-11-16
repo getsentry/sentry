@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -9,15 +9,25 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ingest import inbound_filters
+from sentry.models.project import Project
 
 
 class ProjectFilterResponse(TypedDict):
-    id: str
-    active: bool | list[str]
+    id: Annotated[
+        str,
+        ApiDescription("ID of the inbound filter, such as browser-extensions or legacy-browsers"),
+    ]
+    active: Annotated[
+        bool | list[str],
+        ApiDescription(
+            "Whether the filter is on. For legacy-browsers, the list of browsers it filters"
+        ),
+    ]
 
 
 @cell_silo_endpoint
@@ -43,7 +53,7 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.GET_PROJECT_FILTERS,
     )
-    def get(self, request: Request, project) -> Response[list[ProjectFilterResponse]]:
+    def get(self, request: Request, project: Project) -> Response[list[ProjectFilterResponse]]:
         """
         Retrieve a list of filters for a given project.
         `active` will be either a boolean or a list for the legacy browser filters.

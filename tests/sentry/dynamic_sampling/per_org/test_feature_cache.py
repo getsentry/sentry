@@ -11,7 +11,7 @@ from sentry.dynamic_sampling.per_org.feature_cache import (
     get_orgs_with_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.models.organization import OrganizationStatus
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.testutils.cases import TestCase
 
 FEATURE = "organizations:dynamic-sampling"
@@ -22,7 +22,7 @@ class FeatureCacheTest(TestCase):
         super().setUp()
         get_redis_client_for_ds().delete(ORGS_WITH_DYNAMIC_SAMPLING_CACHE_KEY)
 
-    def _org_with_project(self):
+    def _org_with_project(self) -> Organization:
         org = self.create_organization()
         self.create_project(organization=org)
         return org

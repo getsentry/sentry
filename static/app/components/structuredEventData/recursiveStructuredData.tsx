@@ -1,14 +1,12 @@
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {AnnotatedValue} from 'sentry/components/structuredEventData/annotatedValue';
-import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
-import {LinkHint} from 'sentry/components/structuredEventData/linkHint';
-import {
-  looksLikeStrippedValue,
-  naturalCaseInsensitiveSort,
-} from 'sentry/components/structuredEventData/utils';
 import {containsCRLF} from 'sentry/utils/string/containsCRLF';
+
+import {AnnotatedValue} from './annotatedValue';
+import {CollapsibleValue} from './collapsibleValue';
+import {LinkHint} from './linkHint';
+import {looksLikeStrippedValue, naturalCaseInsensitiveSort} from './utils';
 
 type Config = {
   isBoolean?: (value: unknown) => boolean;
@@ -189,6 +187,7 @@ export function RecursiveStructuredData({
 
   if (Array.isArray(value)) {
     const containerLen = getTotalChildrenFromMeta(meta);
+    // oxlint-disable-next-line react/todo
     for (i = 0; i < value.length; i++) {
       children.push(
         <div key={i}>
@@ -222,6 +221,7 @@ export function RecursiveStructuredData({
 
   const keys = Object.keys(value);
   keys.sort(naturalCaseInsensitiveSort);
+  // oxlint-disable-next-line react/todo
   for (i = 0; i < keys.length; i++) {
     const key = keys[i]!;
 

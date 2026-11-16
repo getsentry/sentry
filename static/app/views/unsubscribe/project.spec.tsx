@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import UnsubscribeProject from 'sentry/views/unsubscribe/project';
+import UnsubscribeProject from './project';
 
 describe('UnsubscribeProject', () => {
   let mockUpdate: jest.Mock;

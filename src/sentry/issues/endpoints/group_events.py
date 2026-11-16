@@ -68,6 +68,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 10.0
 
     def get_per_page(
         self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
@@ -87,6 +88,8 @@ class GroupEventsEndpoint(GroupEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             GlobalParams.ENVIRONMENT,
             EventParams.FULL_PAYLOAD,
             EventParams.SAMPLE,
@@ -114,7 +117,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         self, request: Request, group: Group
     ) -> Response[list[SimpleEventSerializerResponse]] | Response[DetailResponse]:
         """
-        Return a list of error events bound to an issue
+        Return a list of events bound to an issue.
         """
 
         try:

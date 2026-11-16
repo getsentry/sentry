@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -40,39 +41,51 @@ export function EmptyState({
   const theme = useTheme();
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
-    <Container>
+    <Stack flex="1" align="center" justify="center" padding={{zero: 'xl', '2xs': '3xl'}}>
       {isError ? (
         // Checked before `isLoading`: a failed load can still be polling with
         // backoff, and a spinner there would sit next to a disabled composer
         // with no way out.
         <Fragment>
           <IconSeer size="xl" />
-          <Text>
-            {errorStatusCode === 404
-              ? tct('Session not found (run_id=[runIdDisplay]).', {
-                  runIdDisplay,
-                })
-              : t('There was a problem loading the conversation.')}
-          </Text>
+          <Container marginTop="xl" maxWidth="300px">
+            <Text as="div" align="center" variant="secondary" density="comfortable">
+              {errorStatusCode === 404
+                ? tct('Session not found (run_id=[runIdDisplay]).', {
+                    runIdDisplay,
+                  })
+                : t('There was a problem loading the conversation.')}
+            </Text>
+          </Container>
           {onStartNewChat && (
             // The composer is disabled on this screen: sending would post into the
             // run that just failed rather than open a fresh one, so this is the way out.
-            <Text>
-              <Button variant="link" size="zero" onClick={onStartNewChat}>
-                {t('Start a new chat')}
-              </Button>
-            </Text>
+            <Container marginTop="xl" maxWidth="300px">
+              <Text as="div" align="center" variant="secondary" density="comfortable">
+                <Button variant="link" size="zero" onClick={onStartNewChat}>
+                  {t('Start a new chat')}
+                </Button>
+              </Text>
+            </Container>
           )}
         </Fragment>
       ) : isLoading ? (
         <Fragment>
           <LoadingIndicator size={32} />
-          <Text>{t('Ask Seer anything about your application.')}</Text>
+          <Container marginTop="xl" maxWidth="300px">
+            <Text as="div" align="center" variant="secondary" density="comfortable">
+              {t('Ask Seer anything about your application.')}
+            </Text>
+          </Container>
         </Fragment>
       ) : (
         <Fragment>
           <IconSeer size="xl" animation="idle" />
-          <Text>{t('Ask Seer anything about your application.')}</Text>
+          <Container marginTop="xl" maxWidth="300px">
+            <Text as="div" align="center" variant="secondary" density="comfortable">
+              {t('Ask Seer anything about your application.')}
+            </Text>
+          </Container>
           {onSuggestionClick && suggestions && (
             <Stack
               align="center"
@@ -90,42 +103,38 @@ export function EmptyState({
                     />
                   ))
                 : suggestions.suggestions.map((suggestion, index) => (
-                    <SuggestionButton
+                    <Container
                       key={index}
-                      size="sm"
-                      onClick={() => onSuggestionClick(suggestion, index)}
+                      flexGrow={{zero: 1, sm: 0}}
+                      width={{zero: '100%', sm: 'auto'}}
                     >
-                      {suggestion.text}
-                    </SuggestionButton>
+                      <SuggestionButton
+                        size="sm"
+                        onClick={() => onSuggestionClick(suggestion, index)}
+                      >
+                        {suggestion.text}
+                      </SuggestionButton>
+                    </Container>
                   ))}
             </Stack>
           )}
           {displaySlackAgentReminder && (
-            <Text>
-              {t('Want to chat in Slack? Just @ Sentry to debug and investigate issues.')}
-            </Text>
+            <Container marginTop="xl" maxWidth="300px">
+              <Text as="div" align="center" variant="secondary" density="comfortable">
+                {t(
+                  'Want to chat in Slack? Just @ Sentry to debug and investigate issues.'
+                )}
+              </Text>
+            </Container>
           )}
         </Fragment>
       )}
-    </Container>
+    </Stack>
   );
 }
 
-const Container = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: ${p => p.theme.space['3xl']};
-  text-align: center;
-
-  @container (max-width: 400px) {
-    padding: ${p => p.theme.space.xl};
-  }
-`;
-
 const SuggestionButton = styled(Button)`
+  width: 100%;
   height: auto;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
@@ -136,17 +145,4 @@ const SuggestionButton = styled(Button)`
     white-space: normal;
     text-wrap: balance;
   }
-
-  @container (max-width: 500px) {
-    flex-grow: 1;
-    width: 100%;
-  }
-`;
-
-const Text = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.4;
-  max-width: 300px;
 `;

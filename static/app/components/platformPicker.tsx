@@ -5,14 +5,12 @@ import {IconClose} from '@sentry/icons/close';
 import {IconProject} from '@sentry/icons/project';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {LoadingMask} from 'sentry/components/loadingMask';
-import {SearchBar} from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {consoles, gaming} from 'sentry/data/platformCategories';
 import {
@@ -23,11 +21,14 @@ import {
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {comparePlatformNames} from 'sentry/utils/platform';
+
+import {EmptyMessage} from './emptyMessage';
+import {LoadingMask} from './loadingMask';
+import {SearchBar} from './searchBar';
 
 const PlatformList = styled('div')`
   display: grid;
@@ -80,7 +81,7 @@ export function PlatformPicker({
   visibleSelection = true,
   loading = false,
 }: PlatformPickerProps) {
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
 
   const [category, setCategory] = useState(defaultCategory ?? categoryList[0]!.id);
   const [filter, setFilter] = useState(

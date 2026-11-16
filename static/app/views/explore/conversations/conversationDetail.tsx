@@ -1,30 +1,27 @@
 import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
-import {IconCopy} from '@sentry/icons/copy';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
-import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
-import {ConversationsBreadcrumbs} from 'sentry/views/explore/conversations/components/conversationsBreadcrumbs';
-import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
+
+import {ConversationsBreadcrumbs} from './components/conversationsBreadcrumbs';
+import {ConversationSummary} from './components/conversationSummary';
 import {
   CONVERSATION_VIEW_TABS,
   ConversationViewContent,
-} from 'sentry/views/explore/conversations/components/conversationView';
-import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
-import {
-  extractMessagesFromNodes,
-  messagesToMarkdown,
-} from 'sentry/views/explore/conversations/utils/conversationMessages';
+  type ConversationViewTab,
+} from './components/conversationView';
+import {ExportTranscriptButton} from './components/exportTranscriptButton';
+import {useConversation} from './hooks/useConversation';
+import {extractMessagesFromNodes} from './utils/conversationMessages';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -54,10 +51,13 @@ function ConversationDetailPage() {
     () => ({conversationId, startTimestamp, endTimestamp}),
     [conversationId, startTimestamp, endTimestamp]
   );
-
-  const {stats, nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
+  const {stats, nodes, nodeTraceMap, isLoading, hasNextPage, title} = useConversation({
+    ...conversation,
+    autoFetchAll: false,
+  });
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const isInitialLoading = isLoading && nodes.length === 0;
 
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
@@ -86,6 +86,17 @@ function ConversationDetailPage() {
     setQueryState({spanId: null, focusedTool: null});
   }, [setQueryState]);
 
+  const handleTabChange = (tab: ConversationViewTab) => {
+    if (tab !== queryState.tab) {
+      trackAnalytics('conversations.detail.tab-switch', {
+        organization,
+        fromTab: queryState.tab,
+        toTab: tab,
+      });
+    }
+    setQueryState({tab});
+  };
+
   const handleViewTimeline = useCallback(() => {
     setQueryState({tab: 'timeline'});
   }, [setQueryState]);
@@ -101,30 +112,20 @@ function ConversationDetailPage() {
           conversationId={conversationId}
           title={title}
           project={project}
-          isLoading={isLoading}
+          hasMoreSpans={hasNextPage}
+          isLoading={isInitialLoading}
         />
       </Container>
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
         <Flex flexShrink={0} align="center" justify="between" gap="md">
-          <Tabs value={queryState.tab} onChange={tab => setQueryState({tab})}>
+          <Tabs value={queryState.tab} onChange={handleTabChange}>
             <TabList variant="floating">
               <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
               <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
             </TabList>
           </Tabs>
-          {queryState.tab === 'transcript' && !isLoading && messages.length > 0 && (
-            <Button
-              size="xs"
-              icon={<IconCopy />}
-              onClick={() => {
-                trackAnalytics('conversations.detail.copy-conversation', {
-                  organization,
-                });
-                copyToClipboard(messagesToMarkdown(messages));
-              }}
-            >
-              {t('Copy Transcript')}
-            </Button>
+          {queryState.tab === 'transcript' && messages.length > 0 && (
+            <ExportTranscriptButton conversation={conversation} />
           )}
         </Flex>
         <ConversationViewContainer>

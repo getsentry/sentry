@@ -7,6 +7,7 @@ export function useStatusPageList() {
   const [mod, setMod] = useState<any>({});
 
   const loader = useCallback(async () => {
+    // oxlint-disable-next-line react/todo
     const loaded = await import('@sentry/status-page-list');
 
     if (isMountedRef.current) {

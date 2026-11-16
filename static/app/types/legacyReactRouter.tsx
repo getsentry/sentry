@@ -1,7 +1,7 @@
 /**
  * These are vendored from react-router v3
  *
- * Once we've fully migrated to react-router 6 we can drop these types
+ * Remove these legacy route types after callers migrate to native router matches.
  */
 import type {Location, LocationDescriptor} from 'history';
 

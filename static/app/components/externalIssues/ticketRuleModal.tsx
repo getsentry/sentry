@@ -1,28 +1,21 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
   JsonFormAdapterChoice,
   JsonFormAdapterChoiceValue,
   JsonFormAdapterFieldConfig,
 } from 'sentry/components/backendJsonFormAdapter/types';
-import {
-  applySavedDefaultToField,
-  getSavedChoicesMap,
-  STATIC_TICKET_FIELDS,
-} from 'sentry/components/externalIssues/ticketRuleModalUtils';
-import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
-import {getConfigName} from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -30,12 +23,19 @@ import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig} from 'sentry/types/integrations';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {
+  applySavedDefaultToField,
+  getSavedChoicesMap,
+  STATIC_TICKET_FIELDS,
+} from './ticketRuleModalUtils';
+import {useDynamicFields} from './useDynamicFields';
+import {getConfigName} from './utils';
 
 const IGNORED_FIELDS = ['Sprint'];
 
@@ -57,7 +57,7 @@ interface TicketRuleModalProps extends ModalRenderProps {
   ticketType: string;
 }
 
-function makeIntegrationIssueConfigTicketRuleQueryKey({
+function makeIntegrationIssueConfigTicketRuleApiOptions({
   orgSlug,
   integrationId,
   query = {},
@@ -65,16 +65,18 @@ function makeIntegrationIssueConfigTicketRuleQueryKey({
   integrationId: string;
   orgSlug: string;
   query?: Record<string, string>;
-}): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
+}) {
+  return apiOptions.as<IntegrationIssueConfig>()(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+    {
       path: {
         organizationIdOrSlug: orgSlug,
         integrationId,
       },
-    }),
-    {query: {ignored: IGNORED_FIELDS, ...query}},
-  ];
+      query: {ignored: IGNORED_FIELDS, ...query},
+      staleTime: Infinity,
+    }
+  );
 }
 
 export function TicketRuleModal({
@@ -118,11 +120,14 @@ export function TicketRuleModal({
     []
   );
 
-  const {url: endpointString} = parseQueryKey(
-    makeIntegrationIssueConfigTicketRuleQueryKey({
-      orgSlug: organization.slug,
-      integrationId: instance.integration,
-    })
+  const endpointString = getApiUrl(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        integrationId: instance.integration,
+      },
+    }
   );
 
   const initialConfigQuery = useMemo(() => {
@@ -144,14 +149,15 @@ export function TicketRuleModal({
     isPending,
     isError,
     error,
-  } = useApiQuery<IntegrationIssueConfig>(
-    makeIntegrationIssueConfigTicketRuleQueryKey({
+  } = useQuery({
+    ...makeIntegrationIssueConfigTicketRuleApiOptions({
       orgSlug: organization.slug,
       integrationId: instance.integration,
       query: initialConfigQuery,
     }),
-    {staleTime: Infinity, retry: false, refetchOnMount: 'always'}
-  );
+    retry: false,
+    refetchOnMount: 'always',
+  });
 
   // Dynamic reloads can change the schema, so always submit the latest field config.
   const issueConfigFields =
@@ -175,7 +181,7 @@ export function TicketRuleModal({
    * It starts as an object, with keys of certain field names, and empty values.
    * As the user updates the values, those dynamic fields require a refetch of the config, with what
    * the user entered as a query param. Since we can't conditionally call hooks, we have to avoid
-   * `useApiQuery`, and instead manually call the api, and update the cache ourselves.
+   * `useQuery`, and instead manually call the api, and update the cache ourselves.
    */
   const refetchWithDynamicFields = useCallback(
     async (dynamicValues: Record<string, FieldValue>) => {
@@ -186,15 +192,18 @@ export function TicketRuleModal({
           query: {action, ...dynamicValues},
           includeAllArgs: true,
         });
-        setApiQueryData(
-          queryClient,
-          makeIntegrationIssueConfigTicketRuleQueryKey({
+        queryClient.setQueryData(
+          makeIntegrationIssueConfigTicketRuleApiOptions({
             orgSlug: organization.slug,
             integrationId: instance.integration,
             query: initialConfigQuery,
-          }),
-          (existingData: IntegrationIssueConfig | undefined) =>
-            data ? data : existingData
+          }).queryKey,
+          previous => {
+            if (!data) {
+              return previous;
+            }
+            return {...previous, headers: previous?.headers ?? {}, json: data};
+          }
         );
       } catch (err: any) {
         if (err?.responseText) {
@@ -204,6 +213,7 @@ export function TicketRuleModal({
             level: 'error',
           });
         }
+        // oxlint-disable-next-line react/todo
       } finally {
         setIsDynamicallyRefetching(false);
       }
@@ -264,7 +274,7 @@ export function TicketRuleModal({
       }
 
       onSubmitAction(cleanData(values), fieldOptionsCache);
-      addSuccessMessage(t('Changes applied.'));
+      toast.success(t('Changes applied.'));
       closeModal();
     },
     [cleanData, onSubmitAction, closeModal, integrationDetails, asyncOptionsCache]
@@ -374,7 +384,8 @@ export function TicketRuleModal({
   }
 
   if (isError) {
-    const errorDetail = error?.responseJSON?.detail;
+    const errorDetail =
+      error instanceof RequestError ? error.responseJSON?.detail : undefined;
     const errorMessage =
       typeof errorDetail === 'string'
         ? errorDetail

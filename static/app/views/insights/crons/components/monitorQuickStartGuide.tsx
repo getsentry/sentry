@@ -18,7 +18,8 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {QuickStartProps} from 'sentry/views/insights/crons/components/manualCheckInGuides';
+
+import type {QuickStartProps} from './manualCheckInGuides';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
@@ -36,7 +37,7 @@ import {
   RubyCronQuickStart,
   RubyRailsCronQuickStart,
   RubySidekiqCronQuickStart,
-} from 'sentry/views/insights/crons/components/manualCheckInGuides';
+} from './manualCheckInGuides';
 
 interface Props {
   monitorSlug: string;

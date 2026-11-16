@@ -11,6 +11,7 @@ from sentry.incidents.typings.metric_detector import MetricIssueContext, OpenPer
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.services.eventstore.models import GroupEvent
@@ -40,6 +41,7 @@ class TestIssueNotificationContext(MetricAlertHandlerBase):
         self,
         group_event: GroupEvent | None = None,
         event_data: WorkflowEventData | None = None,
+        workflow_id: int | None = None,
     ) -> IssueNotificationContext:
         ed = event_data or self.event_data
         if group_event is not None:
@@ -53,7 +55,7 @@ class TestIssueNotificationContext(MetricAlertHandlerBase):
             action=self.action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),
-            workflow_id=self.workflow.id,
+            workflow_id=workflow_id if workflow_id is not None else self.workflow.id,
         )
         return IssueNotificationContext(invocation)
 
@@ -64,6 +66,25 @@ class TestIssueNotificationContext(MetricAlertHandlerBase):
         assert notification_context.target_identifier == "channel456"
         assert notification_context.integration_id == 1234567890
         assert notification_context.sentry_app_config is None
+        assert notification_context.workflow_id == self.workflow.id
+        assert notification_context.workflow_name == self.workflow.name
+
+    def test_notification_context_test_notification_has_no_workflow(self) -> None:
+        notification_context = self._make_context(
+            workflow_id=TEST_NOTIFICATION_ID
+        ).notification_context
+
+        assert notification_context.workflow_id is None
+        assert notification_context.workflow_name is None
+
+    def test_notification_context_missing_workflow(self) -> None:
+        workflow_id = self.workflow.id
+        self.workflow.delete()
+
+        notification_context = self._make_context(workflow_id=workflow_id).notification_context
+
+        assert notification_context.workflow_id is None
+        assert notification_context.workflow_name is None
 
     def test_alert_context(self) -> None:
         ctx = self._make_context()

@@ -20,7 +20,12 @@ export function FlagDrawerCTA({projectPlatform}: {projectPlatform?: PlatformKey}
   }
 
   return (
-    <BannerWrapper>
+    <BannerWrapper
+      display={{zero: 'block', '2xs': 'flex'}}
+      position="relative"
+      border="primary"
+      radius="md"
+    >
       <FeatureFlagCTAContent handleSetupButtonClick={handleSetupButtonClick} />
     </BannerWrapper>
   );

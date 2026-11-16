@@ -5,40 +5,6 @@ import type {Location} from 'history';
 import {UserAvatar} from '@sentry/scraps/avatar';
 
 import {DeviceName} from 'sentry/components/deviceName';
-import {
-  ContextIcon,
-  getLogoImage,
-  type ContextIconProps,
-} from 'sentry/components/events/contexts/contextIcon';
-import {getAccessibilityContextData} from 'sentry/components/events/contexts/knownContext/accessibility';
-import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
-import {getARTContextData} from 'sentry/components/events/contexts/knownContext/art';
-import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
-import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
-import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
-import {getDartContextData} from 'sentry/components/events/contexts/knownContext/dartContext';
-import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
-import {getFlutterContextData} from 'sentry/components/events/contexts/knownContext/flutterContext';
-import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
-import {getGPUCrashContextData} from 'sentry/components/events/contexts/knownContext/gpuCrash';
-import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
-import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
-import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
-import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
-import {getReactNativeContextData} from 'sentry/components/events/contexts/knownContext/reactNativeContext';
-import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
-import {getRuntimeContextData} from 'sentry/components/events/contexts/knownContext/runtime';
-import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
-import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
-import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
-import {getUserContextData} from 'sentry/components/events/contexts/knownContext/user';
-import {getWERContextData} from 'sentry/components/events/contexts/knownContext/wer';
-import {
-  getPlatformContextData,
-  getPlatformContextIcon,
-  getPlatformContextTitle,
-  PLATFORM_CONTEXT_KEYS,
-} from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -47,6 +13,36 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 
+import {getAccessibilityContextData} from './knownContext/accessibility';
+import {getAppContextData} from './knownContext/app';
+import {getARTContextData} from './knownContext/art';
+import {getBrowserContextData} from './knownContext/browser';
+import {getCloudResourceContextData} from './knownContext/cloudResource';
+import {getCultureContextData} from './knownContext/culture';
+import {getDartContextData} from './knownContext/dartContext';
+import {getDeviceContextData} from './knownContext/device';
+import {getFlutterContextData} from './knownContext/flutterContext';
+import {getGPUContextData} from './knownContext/gpu';
+import {getGPUCrashContextData} from './knownContext/gpuCrash';
+import {getMemoryInfoContext} from './knownContext/memoryInfo';
+import {getMissingInstrumentationContextData} from './knownContext/missingInstrumentation';
+import {getOperatingSystemContextData} from './knownContext/os';
+import {getProfileContextData} from './knownContext/profile';
+import {getReactNativeContextData} from './knownContext/reactNativeContext';
+import {getReplayContextData} from './knownContext/replay';
+import {getRuntimeContextData} from './knownContext/runtime';
+import {getStateContextData} from './knownContext/state';
+import {getThreadPoolInfoContext} from './knownContext/threadPoolInfo';
+import {getTraceContextData} from './knownContext/trace';
+import {getUserContextData} from './knownContext/user';
+import {getWERContextData} from './knownContext/wer';
+import {
+  getPlatformContextData,
+  getPlatformContextIcon,
+  getPlatformContextTitle,
+  PLATFORM_CONTEXT_KEYS,
+} from './platformContext/utils';
+import {ContextIcon, getLogoImage, type ContextIconProps} from './contextIcon';
 import {getContextKeys, getContextMeta} from './dataUtils';
 
 /**

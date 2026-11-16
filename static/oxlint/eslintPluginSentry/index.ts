@@ -11,17 +11,20 @@ import {noDefaultExports} from './noDefaultExports.ts';
 import {noDigitsInTn} from './noDigitsInTn.ts';
 import {noDynamicTranslations} from './noDynamicTranslations.ts';
 import {noFlagComments} from './noFlagComments.ts';
-import {noLegacyRouterImports} from './noLegacyRouterImports.ts';
+import {noGlobalReact} from './noGlobalReact.ts';
 import {noQueryDataTypeParameters} from './noQueryDataTypeParameters.ts';
 import {noRawCssInStyled} from './noRawCssInStyled.ts';
 import {noRedundantDefaultArgument} from './noRedundantDefaultArgument.ts';
 import {noRelativeImportPaths} from './noRelativeImportPaths.ts';
+import {noShadowDangerousGlobals} from './noShadowDangerousGlobals.ts';
 import {noStaticTranslations} from './noStaticTranslations.ts';
 import {noStyledShortcut} from './noStyledShortcut.ts';
 import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback.ts';
 import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon.ts';
 import {preferFakeTimers} from './preferFakeTimers.ts';
+import {preferNuqs} from './preferNuqs.ts';
 import {preferReactComponent} from './preferReactComponent.ts';
+import {preferRelativeChildImports} from './preferRelativeChildImports.ts';
 import {requireFakeTimerCleanup} from './requireFakeTimerCleanup.ts';
 import {sortInterfaceKeys} from './sortInterfaceKeys.ts';
 
@@ -34,18 +37,21 @@ export const rules = {
   'no-digits-in-tn': noDigitsInTn,
   'no-dynamic-translations': noDynamicTranslations,
   'no-flag-comments': noFlagComments,
-  'no-legacy-router-imports': noLegacyRouterImports,
+  'no-global-react': noGlobalReact,
   'no-query-data-type-parameters': noQueryDataTypeParameters,
   'no-raw-css-in-styled': noRawCssInStyled,
   'no-redundant-default-argument': noRedundantDefaultArgument,
   'no-relative-import-paths': noRelativeImportPaths,
+  'no-shadow-dangerous-globals': noShadowDangerousGlobals,
   'no-static-translations': noStaticTranslations,
   'no-styled-shortcut': noStyledShortcut,
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,
   'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
   'no-vanilla-emotion': noVanillaEmotion,
   'prefer-fake-timers': preferFakeTimers,
+  'prefer-nuqs': preferNuqs,
   'prefer-react-component': preferReactComponent,
+  'prefer-relative-child-imports': preferRelativeChildImports,
   'require-fake-timer-cleanup': requireFakeTimerCleanup,
   'sort-interface-keys': sortInterfaceKeys,
 };

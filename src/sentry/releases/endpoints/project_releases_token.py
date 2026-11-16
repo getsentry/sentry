@@ -12,10 +12,11 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.types.cell import get_local_locality
 
 
-def _get_webhook_url(project, plugin_id, token):
+def _get_webhook_url(project: Project, plugin_id: str, token: str) -> str:
     return get_local_locality().to_url(
         reverse(
             "sentry-release-hook",
@@ -28,7 +29,7 @@ def _get_webhook_url(project, plugin_id, token):
     )
 
 
-def _get_signature(project_id, plugin_id, token):
+def _get_signature(project_id: int, plugin_id: str, token: str) -> str:
     return hmac.new(
         key=token.encode("utf-8"),
         msg=(f"{plugin_id}-{project_id}").encode(),
@@ -45,12 +46,12 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
     }
     permission_classes = (StrictProjectPermission, DisallowImpersonatedTokenCreation)
 
-    def _regenerate_token(self, project):
+    def _regenerate_token(self, project: Project) -> str:
         token = uuid1().hex
         ProjectOption.objects.set_value(project, "sentry:release-token", token)
         return token
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         token = ProjectOption.objects.get_value(project, "sentry:release-token")
 
         if token is None:
@@ -61,7 +62,7 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
 
         return Response({"token": token, "webhookUrl": _get_webhook_url(project, "builtin", token)})
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         token = self._regenerate_token(project)
 
         return Response({"token": token, "webhookUrl": _get_webhook_url(project, "builtin", token)})

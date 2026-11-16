@@ -4,7 +4,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
+
+import {UserDropdown} from './userDropdown';
 
 describe('UserDropdown', () => {
   beforeEach(() => {

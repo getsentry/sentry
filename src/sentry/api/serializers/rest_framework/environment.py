@@ -7,11 +7,13 @@ ValidationError = serializers.ValidationError
 
 
 @extend_schema_field(str)
-class EnvironmentField(serializers.Field):
-    def to_representation(self, value):
+class EnvironmentField(
+    serializers.Field[Environment | None, str | None, Environment | None, object]
+):
+    def to_representation(self, value: Environment | None) -> Environment | None:
         return value
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: str | None) -> Environment | None:
         if data is None:
             return None
         try:

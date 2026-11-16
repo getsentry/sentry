@@ -1,17 +1,18 @@
 import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
 
 import {
-  UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
-  UPTIME_DEFAULT_RECOVERY_THRESHOLD,
-  uptimeFormDataToEndpointPayload,
-  uptimeSavedDetectorToFormData,
-} from 'sentry/views/detectors/components/forms/uptime/fields';
-import {
   UptimeComparisonType,
   UptimeMonitorMode,
   UptimeOpType,
   type UptimeAssertion,
 } from 'sentry/views/detectors/components/uptime/types';
+
+import {
+  UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
+  UPTIME_DEFAULT_RECOVERY_THRESHOLD,
+  uptimeFormDataToEndpointPayload,
+  uptimeSavedDetectorToFormData,
+} from './fields';
 
 describe('uptimeFormDataToEndpointPayload', () => {
   it('converts form data to endpoint payload', () => {

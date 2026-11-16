@@ -16,7 +16,8 @@ from django.utils import timezone
 
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.issues.derived.aggregators import AGGREGATORS
-from sentry.issues.derived.framework import Pipeline, State
+from sentry.issues.derived.framework import DerivedDataError, Pipeline, State
+from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.derived.tasks import generate_group_derived_data, process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -187,12 +188,21 @@ def _process_batch(
     if not entries:
         return False
 
-    result = p.run(entries, state=GroupDerivedDataStore.load(p, derived))
+    try:
+        result = p.run(entries, state=GroupDerivedDataStore.load(p, derived))
+        state_update = GroupDerivedDataStore.build_update(p, result)
+    except DerivedDataError as error:
+        report_derived_data_error(
+            error,
+            derived=derived,
+            operation="process" if persist else "replay",
+            pipeline_hash=p.pipeline_hash,
+        )
+        raise
 
     last = entries[-1]
     last_date = last.date_added
     last_id = last.id
-    state_update = GroupDerivedDataStore.build_update(p, result)
 
     if not persist:
         derived.cursor_date = last_date
@@ -350,15 +360,20 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
         except ObjectDoesNotExist:
             return
 
-        has_more = _process_batch(
-            pipeline,
-            derived,
-            INLINE_BATCH_SIZE,
-            derived_metrics=DerivedMetrics(
-                mode=strategy,
-                incremental=expected_incremental,
-            ),
-        )
+        try:
+            has_more = _process_batch(
+                pipeline,
+                derived,
+                INLINE_BATCH_SIZE,
+                derived_metrics=DerivedMetrics(
+                    mode=strategy,
+                    incremental=expected_incremental,
+                ),
+            )
+        except DerivedDataError:
+            # Already reported by _process_batch. Retrying the same computation
+            # asynchronously cannot repair it.
+            return
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.

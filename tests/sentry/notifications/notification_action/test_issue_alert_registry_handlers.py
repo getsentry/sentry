@@ -1,5 +1,7 @@
 import uuid
+from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -51,7 +53,7 @@ from sentry.workflow_engine.typings.notification_action import (
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-def pop_keys_from_data_blob(data_blob: dict, action_type: str) -> dict:
+def pop_keys_from_data_blob(data_blob: dict[str, Any], action_type: str) -> dict[str, Any]:
     """
     Remove standard action fields from each dictionary in the data blob.
 
@@ -94,11 +96,15 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
-            def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
+            def get_additional_fields(
+                cls, action: Action, mapping: ActionFieldMapping
+            ) -> dict[str, str]:
                 return {"tags": "environment,user,my_tag"}
 
             @classmethod
-            def get_target_display(cls, action: Action, mapping: ActionFieldMapping):
+            def get_target_display(
+                cls, action: Action, mapping: ActionFieldMapping
+            ) -> dict[str, object]:
                 return {}
 
         self.handler = TestHandler()
@@ -121,7 +127,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
     def test_create_rule_instance_from_action_missing_properties_raises_value_error(self) -> None:
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
-            def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping):
+            def get_additional_fields(
+                cls, action: Action, mapping: ActionFieldMapping
+            ) -> dict[str, str]:
                 return {"tags": "environment,user,my_tag"}
 
         handler = TestHandler()
@@ -251,8 +259,11 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
     @mock.patch("sentry.notifications.notification_action.types.activate_downstream_actions")
     @mock.patch("uuid.uuid4")
     def test_invoke_legacy_registry(
-        self, mock_uuid, mock_activate_downstream_actions, mock_invoke_future_with_error_handling
-    ):
+        self,
+        mock_uuid: MagicMock,
+        mock_activate_downstream_actions: MagicMock,
+        mock_invoke_future_with_error_handling: MagicMock,
+    ) -> None:
         # Test that invoke_legacy_registry correctly processes the action
         mock_uuid.return_value = uuid.UUID("12345678-1234-5678-1234-567812345678")
 
@@ -526,7 +537,9 @@ class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.handler: TicketingIssueAlertHandler
 
-    def _test_build_rule_action_blob(self, expected, action_type: Action.Type):
+    def _test_build_rule_action_blob(
+        self, expected: dict[str, Any], action_type: Action.Type
+    ) -> None:
         action_data = pop_keys_from_data_blob(expected, action_type)
         action = self.create_action(
             type=action_type,
@@ -545,7 +558,7 @@ class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
             **expected,
         }
 
-    def _form_ticketing_action_blob(self, expected):
+    def _form_ticketing_action_blob(self, expected: dict[str, Any]) -> dict[str, object]:
         dynamic_form_fields, additional_fields = TicketingActionDataBlobHelper.separate_fields(
             expected
         )
@@ -924,7 +937,7 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         self.mock_callback.assert_called_once()
 
     @mock.patch("logging.getLogger")
-    def test_safe_execute_exception_handling(self, mock_get_logger):
+    def test_safe_execute_exception_handling(self, mock_get_logger: MagicMock) -> None:
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
 
         mock_localized_logger = mock.Mock()
@@ -933,11 +946,11 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         test_exception = ValueError("Generic test error")
 
         class TestCallbackClass:
-            def __call__(self, event, futures):  # noqa: ARG002
+            def __call__(self, event: object, futures: object) -> None:  # noqa: ARG002
                 raise test_exception
 
             @property
-            def __name__(self):
+            def __name__(self) -> str:
                 return "test_callback"
 
         failing_callback = TestCallbackClass()
@@ -951,7 +964,7 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         )
 
     @mock.patch("logging.getLogger")
-    def test_generic_exception_with_no_name_attribute(self, mock_get_logger):
+    def test_generic_exception_with_no_name_attribute(self, mock_get_logger: MagicMock) -> None:
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
 
         mock_localized_logger = mock.Mock()
@@ -960,7 +973,7 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         test_exception = Exception("Test error")
 
         class CallableWithoutName:
-            def __call__(self, event, futures):  # noqa: ARG002
+            def __call__(self, event: object, futures: object) -> None:  # noqa: ARG002
                 raise test_exception
 
         callback_without_name = CallableWithoutName()

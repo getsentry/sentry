@@ -100,11 +100,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
-        with (
-            self.tasks(),
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -210,6 +206,64 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
                 organization_id=self.organization.id,
                 event=audit_log.get_event_id("REPO_ENABLED"),
             ).exists()
+
+    @responses.activate
+    @patch(
+        "sentry.plugins.providers.integration_repository.IntegrationRepositoryProvider.on_create_repository"
+    )
+    def test_restored_repos_run_on_create(self, mock_on_create: MagicMock, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/sentry",
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.DISABLED,
+            )
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        mock_on_create.assert_called_once()
+        assert mock_on_create.call_args.args[0].id == repo.id
+
+    @responses.activate
+    @patch(
+        "sentry.plugins.providers.integration_repository.IntegrationRepositoryProvider.on_create_repository",
+        side_effect=IntegrationError("hook creation failed"),
+    )
+    def test_restore_continues_when_on_create_fails(
+        self, mock_on_create: MagicMock, _: MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = [
+                Repository.objects.create(
+                    organization_id=self.organization.id,
+                    name=f"getsentry/{name}",
+                    external_id=external_id,
+                    provider="integrations:github",
+                    integration_id=self.integration.id,
+                    status=ObjectStatus.DISABLED,
+                )
+                for external_id, name in (("1", "sentry"), ("2", "snuba"))
+            ]
+        self._add_repos_response(
+            [
+                {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
+                {"id": 2, "full_name": "getsentry/snuba", "name": "snuba"},
+            ]
+        )
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        assert mock_on_create.call_count == 2
+        with assume_test_silo_mode(SiloMode.CELL):
+            for repo in repos:
+                repo.refresh_from_db()
+                assert repo.status == ObjectStatus.ACTIVE
 
     @responses.activate
     def test_no_changes_needed(self, _: MagicMock) -> None:

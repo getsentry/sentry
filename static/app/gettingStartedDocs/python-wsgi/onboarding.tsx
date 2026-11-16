@@ -7,6 +7,7 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {logsVerify} from 'sentry/gettingStartedDocs/python/logs';
 import {metricsVerify} from 'sentry/gettingStartedDocs/python/metrics';
 import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/utils';
@@ -20,15 +21,9 @@ from my_wsgi_app import app
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,${
-      params.isLogsSelected
-        ? `
-    # Enable sending logs to Sentry
-    enable_logs=True,`
-        : ''
-    }${
+    # To customize collected data (user info, request bodies, AI inputs/outputs),
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    # data_collection={"user_info": False},${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -144,6 +139,7 @@ export const onboarding: OnboardingConfig = {
           language: 'python',
           code: getVerifySnippet(),
         },
+        logsVerify(params),
         metricsVerify(params),
         {
           type: 'text',

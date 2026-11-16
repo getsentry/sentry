@@ -68,6 +68,7 @@ export function useLoadGettingStarted({
       }
 
       try {
+        // oxlint-disable-next-line react/todo
         const mod = await import(
           /* webpackExclude: /.spec/ */
           `sentry/gettingStartedDocs/${platform.id}`

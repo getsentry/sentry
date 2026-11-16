@@ -61,12 +61,15 @@ def get_exception(
 
 
 def get_crash_event(
-    filename="/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js", **kwargs
+    filename: str = "/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js",
+    **kwargs: object,
 ) -> dict[str, object]:
     return get_crash_event_with_frames(get_frames(filename=filename), **kwargs)
 
 
-def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -> dict[str, object]:
+def get_crash_event_with_frames(
+    frames: Sequence[Mapping[str, str]], **kwargs: object
+) -> dict[str, object]:
     result = {
         "event_id": "150d5b0b4f3a4797a3cd1345374ac484",
         "release": "com.samplenewarchitecture@1.0+1",

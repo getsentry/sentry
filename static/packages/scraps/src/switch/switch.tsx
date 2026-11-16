@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClose} from '@sentry/icons/close';

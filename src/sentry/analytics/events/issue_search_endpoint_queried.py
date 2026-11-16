@@ -8,6 +8,7 @@ class IssueSearchEndpointQueriedEvent(analytics.Event):
     project_ids: str  # This is a stringified list of project ids
     full_query_params: str
     query: str
+    is_api_token: bool
 
 
 analytics.register(IssueSearchEndpointQueriedEvent)

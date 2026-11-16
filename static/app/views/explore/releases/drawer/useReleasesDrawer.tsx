@@ -16,6 +16,7 @@ export function useReleasesDrawer() {
   const {data: ReleasesDrawer, isPending} = useQuery({
     queryKey: ['ReleasesDrawerComponent'],
     queryFn: async () => {
+      // oxlint-disable-next-line react/todo
       return (await import('sentry/views/explore/releases/drawer/releasesDrawer'))
         .ReleasesDrawer;
     },

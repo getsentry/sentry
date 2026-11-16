@@ -1,19 +1,15 @@
 import {useEffect, useRef} from 'react';
-import * as qs from 'query-string';
+import {createLoader, parseAsString} from 'nuqs';
+
+import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
 
 import type {TraceTree} from './traceModels/traceTree';
 
-function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
-  if (Array.isArray(maybePath)) {
-    return maybePath;
-  }
-
-  if (typeof maybePath === 'string') {
-    return [maybePath as TraceTree.NodePath];
-  }
-
-  return null;
-}
+const loadScrollToPathQueryParams = createLoader({
+  eventId: parseAsString,
+  node: parseAsRawList,
+  targetId: parseAsString,
+});
 
 export type UseTraceScrollToPath =
   | {eventId?: string; path?: TraceTree.NodePath[]}
@@ -21,10 +17,10 @@ export type UseTraceScrollToPath =
   | undefined;
 
 export function getScrollToPath(): UseTraceScrollToPath {
-  const queryParams = qs.parse(location.search);
+  const {eventId, node, targetId} = loadScrollToPathQueryParams(location.search);
   const scrollToNode = {
-    eventId: (queryParams.eventId ?? queryParams.targetId) as string | undefined,
-    path: decodeScrollQueue(queryParams.node) as TraceTree.NodePath[] | undefined,
+    eventId: eventId ?? targetId ?? undefined,
+    path: node.length > 0 ? (node as TraceTree.NodePath[]) : undefined,
   };
 
   if (scrollToNode && (scrollToNode.path || scrollToNode.eventId)) {

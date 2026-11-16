@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 from unittest import mock
 
 import pytest
+from django.http import HttpRequest
 from django.urls import path as url_path
 from drf_spectacular.settings import spectacular_settings
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -54,11 +55,11 @@ class GuardedEndpoint(Endpoint):
     permission_classes = ()
 
     @extend_schema(operation_id="guarded", parameters=[GuardedParams])
-    def get(self, request):
+    def get(self, request: HttpRequest) -> None:
         pass
 
     @extend_schema(operation_id="guardedBody", request=GuardedBody)
-    def post(self, request):
+    def post(self, request: HttpRequest) -> None:
         pass
 
 
@@ -66,7 +67,7 @@ class UnrelatedEndpoint(Endpoint):
     permission_classes = ()
 
     @extend_schema(operation_id="unrelated", parameters=[UnrelatedParams])
-    def get(self, request):
+    def get(self, request: HttpRequest) -> None:
         pass
 
 
@@ -185,7 +186,7 @@ class OnlyRequiredFieldOmittedEndpoint(Endpoint):
     permission_classes = ()
 
     @extend_schema(operation_id="onlyRequiredOmitted", request=OnlyRequiredFieldOmittedBody)
-    def put(self, request):
+    def put(self, request: HttpRequest) -> None:
         pass
 
 
@@ -229,7 +230,7 @@ def test_an_explicit_parameter_is_outside_the_guard() -> None:
             operation_id="explicit",
             parameters=[OpenApiParameter("kind", str, enum=["public", "internal"])],
         )
-        def get(self, request):
+        def get(self, request: HttpRequest) -> None:
             pass
 
     patterns = [url_path("explicit/", ExplicitEndpoint.as_view())]
@@ -254,7 +255,7 @@ class DeprecatedNestedEndpoint(Endpoint):
     permission_classes = ()
 
     @extend_schema(operation_id="deprecatedNested", request=DeprecatedNestedBody)
-    def post(self, request):
+    def post(self, request: HttpRequest) -> None:
         pass
 
 
@@ -279,7 +280,7 @@ class GuardedTypedEndpoint(Endpoint):
     permission_classes = ()
 
     @extend_schema(operation_id="typed", responses={200: GuardedTypedResponseSerializer})
-    def get(self, request):
+    def get(self, request: HttpRequest) -> None:
         pass
 
 
@@ -292,7 +293,8 @@ def _build_typed(hooks: Sequence[Hook] = ()) -> dict[str, Any]:
 def _typed_item(result: dict[str, Any], where: str) -> dict[str, Any]:
     """The GuardedItem object inside the response, as the owner or a list item."""
     response = result["components"]["schemas"]["GuardedTypedResponse"]["properties"]
-    return response["owner"] if where == "owner" else response["items"]["items"]
+    value = response["owner"] if where == "owner" else response["items"]["items"]
+    return value
 
 
 def test_a_typed_dict_omission_passes_the_guard_wherever_it_is_nested() -> None:
@@ -353,7 +355,7 @@ class UnionEndpoint(Endpoint):
     permission_classes = ()
 
     @extend_schema(operation_id="union", responses={200: UnionResponseSerializer})
-    def get(self, request):
+    def get(self, request: HttpRequest) -> None:
         pass
 
 
@@ -394,7 +396,7 @@ class ReplacedDefaultEndpoint(Endpoint):
         operation_id="replacedDefault",
         parameters=[ReplacedDefaultParams, OpenApiParameter("mode", str, description="Mode.")],
     )
-    def get(self, request):
+    def get(self, request: HttpRequest) -> None:
         pass
 
 
@@ -433,7 +435,7 @@ class CyclicEndpoint(Endpoint):
     permission_classes = ()
 
     @extend_schema(operation_id="cyclic", responses={200: CyclicRuleSerializer})
-    def get(self, request):
+    def get(self, request: HttpRequest) -> None:
         pass
 
 

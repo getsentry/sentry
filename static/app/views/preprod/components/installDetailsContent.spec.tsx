@@ -7,7 +7,7 @@ import {
   getDistributionErrorTooltip,
   getIpaDownloadUrl,
   InstallDetailsContent,
-} from 'sentry/views/preprod/components/installDetailsContent';
+} from './installDetailsContent';
 
 describe('getDistributionErrorTooltip', () => {
   it('returns the backend-provided message verbatim when present', () => {

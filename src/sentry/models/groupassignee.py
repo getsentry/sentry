@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextvars
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, TypedDict
 
@@ -12,10 +13,13 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.issues.derived.features import FIRST_ASSIGNMENT_ACTION_ID
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.processing import PIPELINE
 from sentry.issues.derived.replay import FeatureHistoryLimitExceeded, replay_feature_from_log
+from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -26,6 +30,7 @@ from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor, ActorType
 from sentry.utils import metrics
+from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -144,9 +149,11 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         force_autoassign: bool = False,
         assignment_source: AssignmentSource | None = None,
     ) -> GroupAssignmentState:
+        from sentry.inbox.issue import ISSUE_TEAM_ASSIGNED, ISSUE_USER_ASSIGNED, IssueAssignedData
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
-        from sentry.models.activity import Activity
+        from sentry.models.activity import Activity, ActivityIntegration
         from sentry.models.groupsubscription import GroupSubscription
+        from sentry.notifications.platform.inbox import create_inbox_items
         from sentry.users.models.user import User as UserModel
         from sentry.users.services.user import RpcUser
 
@@ -158,17 +165,27 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             "organizations:issue-summary-on-first-assignment", group.project.organization
         ):
             derived = GroupDerivedData.objects.get_or_none(group_id=group.id)
-            if derived is None or derived.pipeline_hash != PIPELINE.pipeline_hash:
-                try:
+            try:
+                if derived is None or derived.pipeline_hash != PIPELINE.pipeline_hash:
                     is_first_assignment = (
                         replay_feature_from_log(group.id, PIPELINE, FIRST_ASSIGNMENT_ACTION_ID)
                         is None
                     )
-                except FeatureHistoryLimitExceeded:
-                    is_first_assignment = False
-            else:
-                state = GroupDerivedDataStore.load(PIPELINE, derived)
-                is_first_assignment = state[FIRST_ASSIGNMENT_ACTION_ID] is None
+                else:
+                    state = GroupDerivedDataStore.load(PIPELINE, derived)
+                    is_first_assignment = state[FIRST_ASSIGNMENT_ACTION_ID] is None
+            except FeatureHistoryLimitExceeded:
+                is_first_assignment = False
+            except DerivedDataError as error:
+                report_derived_data_error(
+                    error,
+                    derived=derived,
+                    group_id=group.id,
+                    operation="assign",
+                    pipeline_hash=PIPELINE.pipeline_hash,
+                )
+                # An optional summary must not prevent assignment or be sent twice.
+                is_first_assignment = False
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
@@ -197,8 +214,10 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             affected = True
 
         if affected:
+            assignment_context = contextvars.copy_context()
             transaction.on_commit(
-                lambda: issue_assigned.send_robust(
+                lambda: assignment_context.run(
+                    issue_assigned.send_robust,
                     project=group.project,
                     group=group,
                     user=acting_user,
@@ -215,6 +234,28 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 user=acting_user,
                 data=data,
             )
+            integration = extra.get("integration") if extra is not None else None
+            try:
+                inbox_assignment_source = (
+                    ActivityIntegration(integration) if integration is not None else None
+                )
+            except ValueError:
+                logger.exception("groupassignee.inbox.invalid_integration")
+            else:
+                is_team = assignee_type == "team"
+                safe_execute(
+                    create_inbox_items,
+                    event_type=ISSUE_TEAM_ASSIGNED if is_team else ISSUE_USER_ASSIGNED,
+                    subject=group,
+                    data=IssueAssignedData(
+                        assignment_source=inbox_assignment_source,
+                    ),
+                    user_ids=[] if is_team else [assigned_to.id],
+                    team_ids=[assigned_to.id] if is_team else [],
+                    actor=InboxActor.user(acting_user.id)
+                    if acting_user is not None
+                    else SYSTEM_ACTOR,
+                )
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
 
             GroupOwner.invalidate_assignee_exists_cache(group.id)

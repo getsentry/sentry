@@ -5,8 +5,8 @@ import type {Group, IssueAttachment} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDetailsEventsQuery';
 import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 
 interface UseGroupEventAttachmentsOptions {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';

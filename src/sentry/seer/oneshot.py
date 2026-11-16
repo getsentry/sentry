@@ -107,7 +107,7 @@ def run_oneshot(
         body,
         organization,
         error_metric="seer.oneshot.error",
-        error_metric_tags={},
+        error_metric_tags={"oneshot": oneshot_id},
         user_id=user_id,
         timeout=timeout,
     )

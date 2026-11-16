@@ -8,7 +8,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from django.db.models import Q
+from django.db.models import Model, Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
@@ -52,6 +52,9 @@ SEER_LAST_RUN_RECENCY_WINDOW = timedelta(days=30)
 def assigned_to_filter(
     actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
+    if not actors:
+        # my_teams for a caller with no teams; Q() would match every group
+        return Q(pk__in=[])
     include_none = False
     types_to_actors = defaultdict(list)
     for actor in actors:
@@ -174,6 +177,9 @@ def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
 def assigned_or_suggested_filter(
     owners: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
+    if not owners:
+        # my_teams for a caller with no teams; Q() would match every group
+        return Q(pk__in=[])
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
 
@@ -186,43 +192,48 @@ def assigned_or_suggested_filter(
             (owner and owner.class_name()) if not isinstance(owner, SimpleLazyObject) else "User"
         ].append(owner)
 
-    query = Q()
+    # Collect every owner/assignee branch into a single `IN (... UNION ...)`. OR-ing separate
+    # `IN (subquery)` clauses forces Postgres to test every candidate group against each
+    # subquery; a single semi-join lets it start from the (usually small) set of owned group ids.
+    group_id_querysets: list[BaseQuerySet[Model, int]] = []
 
     if "Team" in types_to_owners:
         teams = types_to_owners["Team"]
-        query |= Q(
-            **{
-                f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(group__assignee_set__isnull=True),
-                    team__in=teams,
-                    project_id__in=project_ids,
-                    organization_id=organization_id,
-                )
-                .values_list("group_id", flat=True)
-                .distinct()
-            }
-        ) | assigned_to_filter(teams, projects, field_filter=field_filter)
+        group_id_querysets.append(
+            GroupOwner.objects.filter(
+                Q(group__assignee_set__isnull=True),
+                team__in=teams,
+                project_id__in=project_ids,
+                organization_id=organization_id,
+            ).values_list("group_id", flat=True)
+        )
+        group_id_querysets.append(
+            GroupAssignee.objects.filter(team__in=teams, project_id__in=project_ids).values_list(
+                "group_id", flat=True
+            )
+        )
 
     if "User" in types_to_owners:
         users = types_to_owners["User"]
         user_ids: list[int] = [u.id for u in users if u is not None]
-        query_ids = Q(user_id__in=user_ids)
-        owned_by_me = Q(
-            **{
-                f"{field_filter}__in": GroupOwner.objects.filter(
-                    query_ids,
-                    group__assignee_set__isnull=True,
-                    project_id__in=[p.id for p in projects],
-                    organization_id=organization_id,
-                )
-                .values_list("group_id", flat=True)
-                .distinct()
-            }
+        group_id_querysets.append(
+            GroupOwner.objects.filter(
+                user_id__in=user_ids,
+                group__assignee_set__isnull=True,
+                project_id__in=project_ids,
+                organization_id=organization_id,
+            ).values_list("group_id", flat=True)
+        )
+        group_id_querysets.append(
+            GroupAssignee.objects.filter(
+                user_id__in=user_ids, project_id__in=project_ids
+            ).values_list("group_id", flat=True)
         )
 
-        owner_query = owned_by_me | assigned_to_filter(users, projects, field_filter=field_filter)
-
-        query |= owner_query
+    query = Q()
+    if group_id_querysets:
+        first, *rest = group_id_querysets
+        query = Q(**{f"{field_filter}__in": first.union(*rest)})
 
     if include_none:
         query |= Q(
@@ -367,7 +378,7 @@ class ScalarCondition(Condition):
         # !has:field → operator is "=", value is "" → want records where field IS NULL
         if search_filter.value.raw_value == "" and search_filter.operator in ("=", "!="):
             django_operator = "__isnull"
-            value: bool | str | float | datetime | Sequence[float] | Sequence[str] = True
+            value: bool | str | float | datetime | Sequence[float] | Sequence[str] | None = True
         else:
             django_operator = self._get_operator(search_filter)
             value = search_filter.value.raw_value

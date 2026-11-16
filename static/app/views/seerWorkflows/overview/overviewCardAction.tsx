@@ -5,14 +5,11 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconOpen} from '@sentry/icons/open';
 import {IconSeer} from '@sentry/icons/seer';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, ButtonBar, LinkButton, type ButtonBarProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {
-  DropdownMenu,
-  type MenuItemProps,
-  DropdownMenuFooter,
-} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {Footer} from '@sentry/scraps/menu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -192,14 +189,14 @@ export function OverviewCardAction({
         shouldCloseOnBlur={false}
         onOpenChange={isOpen => isOpen && setMenuOpened(true)}
         menuFooter={
-          <DropdownMenuFooter>
+          <Footer>
             <MenuComponents.CTALinkButton
               icon={<IconAdd />}
               to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
             >
               {t('Add Integration')}
             </MenuComponents.CTALinkButton>
-          </DropdownMenuFooter>
+          </Footer>
         }
       />
     </ActionButtonBar>
@@ -210,9 +207,12 @@ export const ButtonSpinner = styled(LoadingIndicator)`
   margin: 0;
 `;
 
-export const ActionButtonBar = styled(ButtonBar)`
-  @container (width < ${p => p.theme.container.sm}) {
-    width: 100%;
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
+export function ActionButtonBar(props: ButtonBarProps) {
+  return (
+    <ButtonBar
+      width={{zero: '100%', sm: 'auto'}}
+      columns={{zero: 'minmax(0, 1fr)', sm: 'auto'}}
+      {...props}
+    />
+  );
+}

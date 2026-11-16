@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Iterator, Mapping
+from typing import Any, Self, cast
 
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import Stacktrace
@@ -10,7 +11,7 @@ from sentry.utils.safe import get_path
 __all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
 
 
-def upgrade_legacy_mechanism(data):
+def upgrade_legacy_mechanism(data: dict[str, Any] | None) -> dict[str, Any] | None:
     """
     Conversion from mechanism objects sent by old sentry-cocoa SDKs. It assumes
     "type": "generic" and moves "posix_signal", "mach_exception" into "meta".
@@ -127,7 +128,7 @@ class Mechanism(Interface):
     """
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data: dict[str, Any]) -> Self | None:
         for key in (
             "type",
             "synthetic",
@@ -145,7 +146,7 @@ class Mechanism(Interface):
 
         return super().to_python(data)
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         return prune_empty_keys(
             {
                 "type": self.type,
@@ -162,7 +163,7 @@ class Mechanism(Interface):
             }
         )
 
-    def iter_tags(self):
+    def iter_tags(self) -> Iterator[tuple[str, str]]:
         yield (self.path, self.type)
 
         if self.handled is not None:
@@ -170,47 +171,6 @@ class Mechanism(Interface):
 
     def __repr__(self) -> str:
         return f"{type(self).__name__} -> id:{self.exception_id}, parent_id:{self.parent_id}, source:{self.source}, type:{self.type}"
-
-
-def uncontribute_non_stacktrace_variants(variants):
-    """If we have multiple variants and at least one has a stacktrace, we
-    want to mark all non stacktrace variants non contributing.  The reason
-    for this is that otherwise we end up in very generic grouping which has
-    some negative consequences for the quality of the groups.
-    """
-    if len(variants) <= 1:
-        return variants
-    any_stacktrace_contributes = False
-    non_contributing_components = []
-    stacktrace_variants = set()
-
-    # In case any of the variants has a contributing stacktrace, we want
-    # to make all other variants non contributing.  Thr e
-    for key, component in variants.items():
-        if any(
-            s.contributes for s in component.iter_subcomponents(id="stacktrace", recursive=True)
-        ):
-            any_stacktrace_contributes = True
-            stacktrace_variants.add(key)
-        else:
-            non_contributing_components.append(component)
-
-    if any_stacktrace_contributes:
-        if len(stacktrace_variants) == 1:
-            hint_suffix = "but the %s variant does" % next(iter(stacktrace_variants))
-        else:
-            # this branch is basically dead because we only have two
-            # variants right now, but this is so this does not break in
-            # the future.
-            hint_suffix = "others do"
-        for component in non_contributing_components:
-            component.update(
-                contributes=False,
-                hint="ignored because this variant does not contain a "
-                "stacktrace, but %s" % hint_suffix,
-            )
-
-    return variants
 
 
 class SingleException(Interface):
@@ -236,7 +196,7 @@ class SingleException(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data: dict[str, Any]) -> Self | None:
         if get_path(data, "stacktrace", "frames", filter=True):
             stacktrace = Stacktrace.to_python(data["stacktrace"])
         else:
@@ -273,7 +233,7 @@ class SingleException(Interface):
 
         return super().to_python(new_data)
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         mechanism = (
             isinstance(self.mechanism, Mechanism)
             and self.mechanism.to_json()
@@ -306,7 +266,9 @@ class SingleException(Interface):
             }
         )
 
-    def get_api_context(self, is_public=False, platform=None):
+    def get_api_context(
+        self, is_public: bool = False, platform: str | None = None
+    ) -> Mapping[str, Any]:
         mechanism = (
             isinstance(self.mechanism, Mechanism)
             and self.mechanism.get_api_context(is_public=is_public, platform=platform)
@@ -339,7 +301,12 @@ class SingleException(Interface):
             "rawType": self.raw_type,
         }
 
-    def get_api_meta(self, meta, is_public=False, platform=None):
+    def get_api_meta(
+        self,
+        meta: Mapping[str, Any],
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:
         mechanism_meta = (
             self.mechanism.get_api_meta(meta["mechanism"], is_public=is_public, platform=platform)
             if isinstance(self.mechanism, Mechanism) and meta.get("mechanism")
@@ -405,20 +372,23 @@ class Exception(Interface):
     score = 2000
     grouping_variants = ["system", "app"]
 
-    def exceptions(self):
-        return get_path(self.values, filter=True)
+    def exceptions(self) -> list[SingleException | None]:
+        exceptions = get_path(self.values, filter=True)
+        return exceptions
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self, key: int | slice
+    ) -> SingleException | None | list[SingleException | None]:
         return self.exceptions()[key]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[SingleException | None]:
         return iter(self.exceptions())
 
     def __len__(self) -> int:
         return len(self.exceptions())
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data: dict[str, Any]) -> Self | None:
         values = []
         for i, v in enumerate(get_path(data, "values", default=[])):
             if not v:
@@ -432,7 +402,7 @@ class Exception(Interface):
     # TODO(ja): Fix all following methods when to_python is refactored. All
     # methods below might throw if None exceptions are in ``values``.
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         return prune_empty_keys(
             {
                 "values": [v and v.to_json() for v in self.values] or None,
@@ -440,7 +410,9 @@ class Exception(Interface):
             }
         )
 
-    def get_api_context(self, is_public=False, platform=None):
+    def get_api_context(
+        self, is_public: bool = False, platform: str | None = None
+    ) -> Mapping[str, Any]:
         return {
             "values": [
                 v.get_api_context(is_public=is_public, platform=platform) for v in self.values if v
@@ -451,7 +423,12 @@ class Exception(Interface):
             "excOmitted": self.exc_omitted,
         }
 
-    def get_api_meta(self, meta, is_public=False, platform=None):
+    def get_api_meta(
+        self,
+        meta: Mapping[str, Any],
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:
         if not meta:
             return meta
 
@@ -469,7 +446,7 @@ class Exception(Interface):
 
         return {"values": result}
 
-    def to_string(self, event) -> str:
+    def to_string(self, event: Any) -> str:
         if not self.values:
             return ""
 
@@ -488,13 +465,29 @@ class Exception(Interface):
                 )
         return "".join(output).strip()
 
-    def get_stacktrace(self, *args, **kwargs):
+    def get_stacktrace(
+        self,
+        event: Any,
+        system_frames: bool = True,
+        newest_first: bool | None = None,
+        max_frames: int | None = None,
+        header: bool = True,
+    ) -> str:
         exc = self.values[-1]
         if exc.stacktrace:
-            return exc.stacktrace.get_stacktrace(*args, **kwargs)
+            return cast(
+                "str",
+                exc.stacktrace.get_stacktrace(
+                    event,
+                    system_frames=system_frames,
+                    newest_first=newest_first,
+                    max_frames=max_frames,
+                    header=header,
+                ),
+            )
         return ""
 
-    def iter_tags(self):
+    def iter_tags(self) -> Iterator[tuple[str, str]]:
         if not self.values or not self.values[-1]:
             return
 

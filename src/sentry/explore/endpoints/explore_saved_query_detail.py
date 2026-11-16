@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -16,6 +18,7 @@ from sentry.api.serializers.models.exploresavedquery import (
     ExploreSavedQueryModelSerializer,
     ExploreSavedQueryResponse,
 )
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -25,6 +28,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.explore_saved_query_examples import ExploreExamples
 from sentry.apidocs.parameters import ExploreSavedQueryParams, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.auth.principal import acting_user_id
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryLastVisited
@@ -35,13 +39,20 @@ class ExploreSavedQueryBase(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
 
-    def convert_args(self, request: Request, organization_id_or_slug, id, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str,
+        id: str,
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:
             kwargs["query"] = ExploreSavedQuery.objects.get(
-                id=id,
-                organization=kwargs["organization"],
+                id=to_valid_int_id("id", id, raise_404=True),
+                organization=cast(Organization, kwargs["organization"]),
             )
         except ExploreSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
@@ -58,7 +69,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
@@ -175,35 +186,51 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         return Response(status=204)
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
 
-    def post(self, request: Request, organization, query) -> Response:
+    @extend_schema(
+        operation_id="Record a Visit to an Organization's Explore Saved Query",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ExploreSavedQueryParams.EXPLORE_SAVED_QUERY_ID],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization, query: ExploreSavedQuery
+    ) -> Response[None]:
         """
-        Update last_visited and increment visits counter
+        Record that the requesting user visited a saved query. Increments the query's
+        visit count and updates its last visited time.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
         self.check_object_permissions(request, query)
 
-        query.visits = F("visits") + 1
+        query.visits = cast(int, F("visits") + 1)
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 
-        ExploreSavedQueryLastVisited.objects.update_or_create(
-            organization=organization,
-            user_id=request.user.id,
-            explore_saved_query=query,
-            defaults={"last_visited": timezone.now()},
-        )
+        user_id = acting_user_id(request.user)
+        if user_id is not None:
+            ExploreSavedQueryLastVisited.objects.update_or_create(
+                organization=organization,
+                user_id=user_id,
+                explore_saved_query=query,
+                defaults={"last_visited": timezone.now()},
+            )
 
         return Response(status=204)

@@ -1,6 +1,6 @@
 from datetime import datetime
 from datetime import timezone as dt_timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
@@ -21,7 +21,9 @@ from sentry.testutils.cases import TestCase
 
 class WritePreprodSizeMetricToEAPTest(TestCase):
     @patch("sentry.preprod.eap.write._eap_producer.produce")
-    def test_write_preprod_size_metric_encodes_all_fields_correctly(self, mock_produce):
+    def test_write_preprod_size_metric_encodes_all_fields_correctly(
+        self, mock_produce: MagicMock
+    ) -> None:
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="abc123",
@@ -131,7 +133,9 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
         assert attrs["git_pr_number"].int_value == 42
 
     @patch("sentry.preprod.eap.write._eap_producer.produce")
-    def test_write_preprod_size_metric_handles_optional_fields(self, mock_produce):
+    def test_write_preprod_size_metric_handles_optional_fields(
+        self, mock_produce: MagicMock
+    ) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -171,7 +175,9 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
 
 class WritePreprodBuildDistributionToEAPTest(TestCase):
     @patch("sentry.preprod.eap.write._eap_producer.produce")
-    def test_write_preprod_build_distribution_encodes_all_fields_correctly(self, mock_produce):
+    def test_write_preprod_build_distribution_encodes_all_fields_correctly(
+        self, mock_produce: MagicMock
+    ) -> None:
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="abc123",
@@ -290,7 +296,9 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
         assert attrs["git_pr_number"].int_value == 42
 
     @patch("sentry.preprod.eap.write._eap_producer.produce")
-    def test_write_preprod_build_distribution_handles_optional_fields(self, mock_produce):
+    def test_write_preprod_build_distribution_handles_optional_fields(
+        self, mock_produce: MagicMock
+    ) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,

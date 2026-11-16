@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import re
+from typing import Any, cast
 
 from django.apps import apps
 from django.conf import settings
 from django.db import models
+from django.db.models import QuerySet
 
 from sentry.db.models import control_silo_model
+from sentry.users.models.user import User
 
 from .utils import setting
 
@@ -40,18 +43,20 @@ class UserSocialAuth(models.Model):
         """Return associated user unicode representation"""
         return f"{self.user} - {self.provider.title()}"
 
-    def get_backend(self):
+    def get_backend(
+        self,
+    ) -> Any:
         from .utils import get_backend
 
         return get_backend(instance=self)
 
     @property
-    def tokens(self):
+    def tokens(self) -> dict[str, object]:
         from .utils import tokens
 
         return tokens(instance=self)
 
-    def revoke_token(self, drop_token=True):
+    def revoke_token(self, drop_token: bool = True) -> None:
         """Attempts to revoke permissions for provider."""
         if "access_token" in self.tokens:
             success = self.get_backend().revoke_token(self.tokens["access_token"], self.uid)
@@ -59,7 +64,7 @@ class UserSocialAuth(models.Model):
                 self.extra_data.pop("access_token", None)
                 self.save()
 
-    def refresh_token(self):
+    def refresh_token(self) -> None:
         refresh_token = self.extra_data.get("refresh_token")
         if refresh_token:
             backend = self.get_backend()
@@ -78,11 +83,11 @@ class UserSocialAuth(models.Model):
                 self.save()
 
     @classmethod
-    def clean_username(cls, value):
+    def clean_username(cls, value: str) -> str:
         return CLEAN_USERNAME_REGEX.sub("", value)
 
     @classmethod
-    def user_username(cls, user):
+    def user_username(cls, user: object) -> object:
         if hasattr(user, "USERNAME_FIELD"):
             # Django 1.5 custom user model, 'username' is just for internal
             # use, doesn't imply that the model should have an username field
@@ -92,7 +97,7 @@ class UserSocialAuth(models.Model):
         return getattr(user, field_name)
 
     @classmethod
-    def username_field(cls, values):
+    def username_field(cls, values: dict[str, object]) -> dict[str, object]:
         user_model = cls.user_model()
         if hasattr(user_model, "USERNAME_FIELD"):
             # Django 1.5 custom user model, 'username' is just for internal
@@ -101,7 +106,7 @@ class UserSocialAuth(models.Model):
         return values
 
     @classmethod
-    def simple_user_exists(cls, *args, **kwargs):
+    def simple_user_exists(cls, *args: object, **kwargs: object) -> bool:
         """
         Return True/False if a User instance exists with the given arguments.
         Arguments are directly passed to filter() manager method.
@@ -111,42 +116,42 @@ class UserSocialAuth(models.Model):
         return cls.user_model().objects.filter(*args, **kwargs).exists()
 
     @classmethod
-    def create_user(cls, *args, **kwargs):
-        kwargs = cls.username_field(kwargs)
+    def create_user(cls, *args: Any, **kwargs: Any) -> User:
+        kwargs = cast("dict[str, Any]", cls.username_field(kwargs))
         return cls.user_model().objects.create_user(*args, **kwargs)
 
     @classmethod
-    def get_user(cls, pk):
+    def get_user(cls, pk: str | int) -> User | None:
         try:
             return cls.user_model().objects.get(pk=pk)
         except cls.user_model().DoesNotExist:
             return None
 
     @classmethod
-    def get_user_by_email(cls, email):
+    def get_user_by_email(cls, email: str) -> User:
         """Case insensitive search"""
         # Do case-insensitive match, since real-world email address is
         # case-insensitive.
         return cls.user_model().objects.get(email__iexact=email)
 
     @classmethod
-    def resolve_user_or_id(cls, user_or_id):
+    def resolve_user_or_id(cls, user_or_id: object) -> User:
         if isinstance(user_or_id, cls.user_model()):
             return user_or_id
-        return cls.user_model().objects.get(pk=user_or_id)
+        return cls.user_model().objects.get(pk=cast("str | int", user_or_id))
 
     @classmethod
-    def get_social_auth_for_user(cls, user):
+    def get_social_auth_for_user(cls, user: User) -> QuerySet[UserSocialAuth]:
         return user.social_auth.all()
 
     @classmethod
-    def create_social_auth(cls, user, uid, provider):
+    def create_social_auth(cls, user: User, uid: object, provider: str) -> UserSocialAuth:
         if not isinstance(uid, str):
             uid = str(uid)
         return cls.objects.create(user_id=user.id, uid=uid, provider=provider)
 
     @classmethod
-    def get_social_auth(cls, provider, uid, user):
+    def get_social_auth(cls, provider: str, uid: str, user: User) -> UserSocialAuth | None:
         try:
             instance = cls.objects.get(provider=provider, uid=uid, user_id=user.id)
             return instance
@@ -154,20 +159,21 @@ class UserSocialAuth(models.Model):
             return None
 
     @classmethod
-    def username_max_length(cls):
+    def username_max_length(cls) -> int:
         return cls._field_length("USERNAME_FIELD", "username")
 
     @classmethod
-    def email_max_length(cls):
+    def email_max_length(cls) -> int:
         return cls._field_length("EMAIL_FIELD", "email")
 
     @classmethod
-    def _field_length(self, setting_name, default_name):
+    def _field_length(self, setting_name: str, default_name: str) -> int:
         model = UserSocialAuth.user_model()
         field_name = getattr(model, setting_name, default_name)
-        return model._meta.get_field(field_name).max_length
+        field = cast("models.Field[Any, Any]", model._meta.get_field(field_name))
+        return cast(int, field.max_length)
 
     @classmethod
-    def user_model(cls):
+    def user_model(cls) -> type[User]:
         db, name = AUTH_USER_MODEL.split(".")
         return apps.get_model(db, name)

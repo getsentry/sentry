@@ -2,8 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
-import {PathMapping} from 'sentry/components/connectRepository/pathMapping';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import {PathMapping} from './pathMapping';
+import type {PathMappingValue} from './type';
 
 function renderMapping({
   value = {stackRoot: '', sourceRoot: '', branch: ''},

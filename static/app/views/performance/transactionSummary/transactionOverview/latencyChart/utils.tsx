@@ -1,24 +1,25 @@
 import type {Location} from 'history';
+import {createParser, parseAsInteger} from 'nuqs';
 
-import {decodeInteger} from 'sentry/utils/queryString';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 
 export const ZOOM_START = 'startDuration';
 export const ZOOM_END = 'endDuration';
 
+const histogramZoomParsers = {
+  // A present but unparseable start still zooms from 0.
+  [ZOOM_START]: createParser({
+    parse: value => parseAsInteger.parse(value) ?? 0,
+    serialize: String,
+  }),
+  [ZOOM_END]: parseAsInteger,
+};
+
 export function decodeHistogramZoom(location: Location) {
-  let min: number | undefined;
-  let max: number | undefined;
+  const zoom = loadQueryParamsFromLocation(histogramZoomParsers, location);
 
-  if (ZOOM_START in location.query) {
-    min = decodeInteger(location.query[ZOOM_START], 0);
-  }
-
-  if (ZOOM_END in location.query) {
-    const decodedMax = decodeInteger(location.query[ZOOM_END]);
-    if (typeof decodedMax === 'number') {
-      max = decodedMax;
-    }
-  }
-
-  return {min, max};
+  return {
+    min: zoom[ZOOM_START] ?? undefined,
+    max: zoom[ZOOM_END] ?? undefined,
+  };
 }

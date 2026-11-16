@@ -1,0 +1,84 @@
+name: Update public suffix list
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 16 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-public-suffix-list
+  cancel-in-progress: false
+
+env:
+  PSL_PATH: src/sentry/uptime/autodetect/public_suffix_list.dat
+
+jobs:
+  update:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Download public suffix list
+        run: |
+          curl -fsSL --retry 3 -o "$PSL_PATH" https://publicsuffix.org/list/public_suffix_list.dat
+          grep -q '===END PRIVATE DOMAINS===' "$PSL_PATH"
+
+      - name: Get internal bot token
+        id: bot
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private-key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Publish update pull request
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          BOT_LOGIN: ${{ steps.bot.outputs.app-slug }}[bot]
+        run: |
+          if git diff --quiet -- "$PSL_PATH"; then
+            exit 0
+          fi
+          gh auth setup-git
+          BOT_ID=$(gh api "users/$BOT_LOGIN" --jq .id)
+          git config user.name "$BOT_LOGIN"
+          git config user.email "$BOT_ID+$BOT_LOGIN@users.noreply.github.com"
+          BRANCH="bot/update-public-suffix-list"
+          git switch -C "$BRANCH"
+          git add -- "$PSL_PATH"
+          git commit -m "chore(uptime): Update public suffix list"
+          git push -f origin "$BRANCH"
+          PR=$(gh pr list --base master --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -z "$PR" ]; then
+            gh pr create --base master --head "$BRANCH" \
+              --title "chore(uptime): Update public suffix list" \
+              --body 'Weekly copy of https://publicsuffix.org/list/public_suffix_list.dat, which uptime uses to find the domain and suffix of a URL.'
+          fi
+
+      # Tells us when this workflow stops running.
+      - name: Send cron check-in
+        if: always()
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_WORKFLOW_CRONS_DSN }}
+          STATUS: ${{ job.status == 'success' && 'ok' || 'error' }}
+        run: |
+          if [ -z "$SENTRY_DSN" ]; then
+            exit 0
+          fi
+          KEY=${SENTRY_DSN#*://}
+          KEY=${KEY%%@*}
+          HOST=${SENTRY_DSN#*@}
+          HOST=${HOST%%/*}
+          PROJECT=${SENTRY_DSN##*/}
+          curl -fsS --retry 3 -X POST \
+            "https://$HOST/api/$PROJECT/cron/update-public-suffix-list/$KEY/" \
+            -H 'Content-Type: application/json' \
+            -d "{\"status\": \"$STATUS\", \"monitor_config\": {\"schedule\": {\"type\": \"crontab\", \"value\": \"37 16 * * 1\"}, \"checkin_margin\": 180, \"max_runtime\": 30, \"timezone\": \"UTC\"}}"

@@ -1,6 +1,6 @@
 ---
 name: generate-frontend-forms
-description: Guide for creating forms using Sentry's new form system. Use when implementing forms, form fields, validation, or auto-save functionality.
+description: Guide for creating forms using Sentry's new form system. Use when implementing forms, form fields, display-only form content, validation, or auto-save functionality.
 ---
 
 # Form System Guide
@@ -23,6 +23,7 @@ import {z} from 'zod';
 import {
   AutoSaveForm,
   defaultFormOptions,
+  DisplayField,
   setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
@@ -98,7 +99,7 @@ function MyForm() {
 
 ## Field Components
 
-All fields are accessed via the `field` render prop and follow consistent patterns.
+Registered fields are accessed via the `field` render prop and follow consistent patterns. For display-only information without an input, use `DisplayField` as described below.
 
 ### Input Field (Text)
 
@@ -135,6 +136,8 @@ All fields are accessed via the `field` render prop and follow consistent patter
 ```
 
 ### Select Field (Single)
+
+Use `field.Select` for form choices. Do not compose a form select from bare `Menu` components; those are internal presentation primitives for shared controls.
 
 ```tsx
 <form.AppField name="country">
@@ -186,6 +189,10 @@ All fields are accessed via the `field` render prop and follow consistent patter
 </form.AppField>
 ```
 
+### Checkbox Group (Multiple Selections)
+
+Use `field.CheckboxGroup` with a render callback `{({Item}) => ...}` for multiple selections stored as one string array. Pass `field.state.value` as `value` and `field.handleChange` as `onChange` so that item values use the array's element type. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
+
 ### TextArea Field
 
 ```tsx
@@ -221,42 +228,11 @@ All fields are accessed via the `field` render prop and follow consistent patter
 </form.AppField>
 ```
 
-### Radio Field
+### Radio Group
 
-Radio fields use a composable API with `Radio.Group` and `Radio.Item`. `Radio.Group` provides group context that changes how the label is rendered for proper accessibility semantics.
+Use `field.RadioGroup` with a render callback `{({Item}) => ...}`. Pass `field.state.value` as `value` and `field.handleChange` as `onChange` so that item values and changes use the field's value type.
 
-> **Important**: The layout (and its label) **must** be rendered _inside_ `Radio.Group`. The group context is provided by `Radio.Group`, so placing the layout outside will result in incorrect accessibility semantics.
-
-```tsx
-<form.AppField name="priority">
-  {field => (
-    <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-      <field.Layout.Stack label="Priority">
-        <field.Radio.Item value="low">Low</field.Radio.Item>
-        <field.Radio.Item value="medium">Medium</field.Radio.Item>
-        <field.Radio.Item value="high" description="Urgent issues">
-          High
-        </field.Radio.Item>
-      </field.Layout.Stack>
-    </field.Radio.Group>
-  )}
-</form.AppField>
-```
-
-For horizontal arrangement of radio items, use a `Flex` or `Stack` wrapper inside the layout:
-
-```tsx
-import {Flex} from '@sentry/scraps/layout';
-
-<field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-  <field.Layout.Row label="Priority">
-    <Flex gap="lg">
-      <field.Radio.Item value="low">Low</field.Radio.Item>
-      <field.Radio.Item value="high">High</field.Radio.Item>
-    </Flex>
-  </field.Layout.Row>
-</field.Radio.Group>;
-```
+Render the layout and its label inside the callback to preserve the group's accessibility semantics. Read the [radio group docs](../../../static/app/components/core/form/fields.mdx#radio) for vertical and horizontal examples.
 
 ### Custom Fields with BaseField
 
@@ -304,7 +280,7 @@ Use `field.Base` instead of building custom wrappers that duplicate this logic. 
 
 ## Layouts
 
-Two layout options are available for positioning labels and fields.
+Use `field.Layout.Stack` or `field.Layout.Row` for registered fields. These layouts require field context and provide label/input association. For display-only information, use `DisplayField.Stack` or `DisplayField.Row` instead.
 
 ### Stack Layout (Vertical)
 
@@ -382,6 +358,38 @@ You are allowed to create new layouts if necessary, or not use any layouts at al
 | `variant`  | `"compact"` | Shows hint text in tooltip instead of below label             |
 
 ---
+
+## Display-Only Information
+
+Use `DisplayField.Row` or `DisplayField.Stack` for dates, status text, and other information without an input. Import `DisplayField` from `@sentry/scraps/form` and render it directly in a `FieldGroup` or alongside registered fields:
+
+```tsx
+<DisplayField.Row label={t('Created')}>
+  <Text>
+    <DateTime date={data.dateCreated} />
+  </Text>
+</DisplayField.Row>
+```
+
+- `Row` uses the same responsive layout as `field.Layout.Row`: it stacks below the `md` container breakpoint when a query container is present. Without a query container, it stays in a row.
+- `Stack` always places the value below the term.
+- Both accept `label`, `children`, `hintText`, `padding`, and `variant="compact"`. Compact mode puts the hint in a tooltip; otherwise it appears below the term in a row and after the value in a stack.
+- They render `dl`/`dt`/`dd`, without a `<label>`, input association, validation, or error-focus registration. No form or field context is required.
+- Style the displayed value explicitly, for example with `<Text>`; `DisplayField` does not wrap its children in `Text`.
+
+Do not register display-only information with `AppField` or `AutoSaveForm`, or add it to the schema or `defaultValues` just for layout. For a value derived from form state, calculate it during render with `form.Subscribe` rather than storing a second value with `form.setFieldValue`:
+
+```tsx
+<form.Subscribe selector={state => state.values.provider}>
+  {provider => (
+    <DisplayField.Stack label={t('Selected provider')}>
+      <Text>{provider ?? t('None selected')}</Text>
+    </DisplayField.Stack>
+  )}
+</form.Subscribe>
+```
+
+A read-only input is still a real input. Keep `AppField`, `field.Layout.*`, and `field.Input readOnly` for values that users select or copy from an input. Keep custom controls that handle form state on `field.Base`; do not replace them with `DisplayField`.
 
 ## Field Groups
 
@@ -942,7 +950,7 @@ z.string().min(1, 'Email address is required');
 mutationOptions={{
   mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
   onSuccess: () => {
-    addSuccessMessage('Saved!'); // ❌ noisy and disruptive
+    toast.success('Saved!'); // ❌ noisy and disruptive
   },
 }}
 
@@ -1054,7 +1062,8 @@ When creating a new form:
 - [ ] Set `defaultValues` matching schema shape (use `z.input<typeof schema>` if schema has `.refine()`)
 - [ ] Set `validators: {onDynamic: schema}`
 - [ ] Wrap with `<form.AppForm form={form}>`
-- [ ] Use `<form.AppField>` for each field
+- [ ] Use `<form.AppField>` for each registered input, including read-only inputs
+- [ ] Use `DisplayField.Row` or `DisplayField.Stack` for display-only information; keep it out of form state
 - [ ] Choose appropriate layout (Stack or Row)
 - [ ] Narrow unknown errors to `RequestError` at the call site, convert them with `requestErrorToFieldErrors`, then call `setFieldErrors`
 - [ ] Add `<form.SubmitButton>` for submission
@@ -1073,12 +1082,13 @@ When creating auto-save fields:
 
 ## File References
 
-| File                                                   | Purpose                     |
-| ------------------------------------------------------ | --------------------------- |
-| `static/app/components/core/form/scrapsForm.tsx`       | Main form hook              |
-| `static/app/components/core/form/autoSaveForm.tsx`     | Auto-save wrapper           |
-| `static/app/components/core/form/formErrorContext.tsx` | Host error-mapper contract  |
-| `static/app/scrapsProviders/formError.tsx`             | Sentry request-error mapper |
-| `static/app/components/core/form/field/*.tsx`          | Individual field components |
-| `static/app/components/core/form/layout/index.tsx`     | Layout components           |
-| `static/app/components/core/form/form.stories.tsx`     | Usage examples              |
+| File                                                         | Purpose                     |
+| ------------------------------------------------------------ | --------------------------- |
+| `static/packages/scraps/src/form/scrapsForm.tsx`             | Main form hook              |
+| `static/packages/scraps/src/form/autoSaveForm.tsx`           | Auto-save wrapper           |
+| `static/packages/scraps/src/form/formErrorContext/index.tsx` | Host error-mapper contract  |
+| `static/app/scrapsProviders/formError.tsx`                   | Sentry request-error mapper |
+| `static/packages/scraps/src/form/field/*.tsx`                | Individual field components |
+| `static/packages/scraps/src/form/layout/index.tsx`           | Layout components           |
+| `static/packages/scraps/src/form/displayField.tsx`           | Display-only layouts        |
+| `static/app/components/core/form/form.mdx`                   | Usage examples              |

@@ -10,11 +10,13 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useAutofixCreditCheck} from 'sentry/components/events/autofix/autofixCredits';
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+
+import {useOpenSingleRunChat} from './useToggleSingleRunChat';
 
 interface AutofixStartCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -26,6 +28,13 @@ interface AutofixStartCardProps {
    */
   onStarted?: () => void;
   referrer?: string;
+  /**
+   * Swaps the "Have Seer..." explainer for the muted out-of-credits notice,
+   * above the disabled start button. The issue sidebar sets this; the Seer
+   * drawer and Autofix tab show their own alert at the top of their content
+   * instead.
+   */
+  showOutOfCreditsNotice?: boolean;
 }
 
 export function AutofixStartCard({
@@ -33,38 +42,57 @@ export function AutofixStartCard({
   group,
   onStarted,
   referrer,
+  showOutOfCreditsNotice,
 }: AutofixStartCardProps) {
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
-  const [enableBashMode] = useForceBashMode();
+  const creditCheck = useAutofixCreditCheck('root_cause');
 
   const [startingRun, setStartingRun] = useState(false);
+  const isStarting = startingRun || autofix.isWaitingForRun;
+  const openSingleRunChat = useOpenSingleRunChat();
   const handleStartRootCause = async () => {
     setStartingRun(true);
-    try {
-      await startStep('root_cause', {enableBashMode: enableBashMode || undefined});
-    } catch {
+    const run = await startStep('root_cause').catch(() => null);
+    setStartingRun(false);
+    if (!run) {
       return;
-    } finally {
-      setStartingRun(false);
     }
-    onStarted?.();
+    if (run.isSingleRun) {
+      openSingleRunChat(run.runId);
+    } else {
+      onStarted?.();
+    }
   };
 
   return (
     <Stack gap="md">
-      <AutofixStartCardContent />
+      {/* The Billing Gates design gives the sidebar one card: the notice takes the explainer's place. */}
+      {showOutOfCreditsNotice && !creditCheck.hasEnoughCredits ? (
+        <SeerOutOfCreditsCta
+          reason="autofix-start"
+          denialReason={creditCheck.denialReason}
+          variant="muted"
+        />
+      ) : (
+        <AutofixStartCardContent />
+      )}
       <Button
         size="md"
-        icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
+        icon={<IconBug />}
         aria-label={t('Start Analysis')}
         variant="primary"
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
-        disabled={startingRun}
+        busy={isStarting}
+        // Held disabled until this mount's credit check answers, so it is never
+        // clickable before the answer arrives, even with an earlier one cached.
+        disabled={
+          isStarting || !creditCheck.hasCheckedSinceMount || !creditCheck.hasEnoughCredits
+        }
       >
         {t('Start Analysis')}
       </Button>
@@ -72,7 +100,7 @@ export function AutofixStartCard({
   );
 }
 
-export function AutofixStartCardContent() {
+function AutofixStartCardContent() {
   return (
     <Flex
       border="muted"

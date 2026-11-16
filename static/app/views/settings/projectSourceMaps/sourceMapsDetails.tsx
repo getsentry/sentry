@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconDownload} from '@sentry/icons/download';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -22,16 +23,16 @@ import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
-import {DebugIdBundleDetails} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDetails';
-import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
+
+import {DebugIdBundleDeleteButton} from './debugIdBundleDeleteButton';
+import {DebugIdBundleDetails} from './debugIdBundleDetails';
+import {useDeleteDebugIdBundle} from './useDeleteDebugIdBundle';
 
 enum DebugIdBundleArtifactType {
   INVALID = 0,
@@ -112,12 +113,14 @@ type Props = {
 export function SourceMapsDetails({bundleId, project}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const location = useLocation();
   const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
 
-  // query params
-  const query = decodeScalar(location.query.query);
-  const cursor = decodeScalar(location.query.cursor);
+  const query = queryParams.query || undefined;
+  const cursor = queryParams.cursor || undefined;
 
   const isDebugIdBundle = isUUID(bundleId);
 
@@ -218,12 +221,9 @@ export function SourceMapsDetails({bundleId, project}: Props) {
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query: newQuery},
-      });
+      setQueryParams({cursor: null, query: newQuery}, {history: 'push'});
     },
-    [navigate, location]
+    [setQueryParams]
   );
 
   return (
@@ -341,11 +341,11 @@ export function SourceMapsDetails({bundleId, project}: Props) {
             })}
       </SimpleTable>
       <Pagination
-        pageLinks={
+        {...getPaginationProps(
           isDebugIdBundle
             ? (debugIdBundlesArtifactsResponse?.headers.Link ?? '')
             : (artifactsResponse?.headers.Link ?? '')
-        }
+        )}
       />
     </Fragment>
   );

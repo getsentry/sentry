@@ -6,7 +6,7 @@ import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -16,8 +16,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {DiscoverExportModalButton} from 'sentry/views/discover/table/discoverExportModalButton';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
+
+import {DiscoverExportModalButton} from './discoverExportModalButton';
 
 type Props = {
   error: string | null;

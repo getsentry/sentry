@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {t} from 'sentry/locale';
+
+import {useInviteMembersContext} from './inviteMembersContext';
 
 export function ErrorAlert() {
   const {error} = useInviteMembersContext();

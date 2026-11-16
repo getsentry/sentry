@@ -1,12 +1,15 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
 import urllib3
 from django.urls import reverse
 from django.utils.timezone import now
+from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.insights.models import InsightsStarredSegment
@@ -24,8 +27,10 @@ KNOWN_PREFLIGHT_ID = "ca056dd858a24299"
 
 
 class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
-    def do_request(self, query, features=None, **kwargs):
-        return super().do_request(query, features, **kwargs)
+    def do_request(
+        self, query: dict[str, Any], features: dict[str, bool] | None = None
+    ) -> Response:
+        return super().do_request(query, features)
 
     def test_routing_hint_round_trip_for_older_span(self) -> None:
         timestamp = before_now(days=40)
@@ -135,6 +140,25 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             assert obj["id"] == obj["span_id"]
         assert meta["dataset"] == "spans"
 
+    def test_high_accuracy_flex_time_order_by_timestamp(self) -> None:
+        older = self.create_span({"description": "older"}, start_ts=self.ten_mins_ago)
+        newer = self.create_span({"description": "newer"}, start_ts=self.nine_mins_ago)
+        self.store_spans([older, newer])
+
+        response = self.do_request(
+            {
+                "field": ["id", "timestamp", "span.description"],
+                "query": "",
+                "orderby": ["-timestamp", "-id"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [row["span.description"] for row in response.data["data"]] == ["newer", "older"]
+
     def test_sentry_tags_vs_tags(self) -> None:
         self.store_spans(
             [
@@ -225,7 +249,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["span.description"] == "EXEC *"
         assert meta["dataset"] == "spans"
 
-    def test_device_class_filter(self):
+    def test_device_class_filter(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -262,7 +286,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["device.class"] == "high"
         assert data[0]["count()"] == 1
 
-    def test_device_class_filter_for_empty(self):
+    def test_device_class_filter_for_empty(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -299,7 +323,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["device.class"] == "Unknown"
         assert data[0]["count()"] == 2
 
-    def test_device_class_filter_for_unknown(self):
+    def test_device_class_filter_for_unknown(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -336,7 +360,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["device.class"] == "Unknown"
         assert data[0]["count()"] == 2
 
-    def test_device_class_filter_out_unknown(self):
+    def test_device_class_filter_out_unknown(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -377,7 +401,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[2]["device.class"] == "high"
         assert data[2]["count()"] == 1
 
-    def test_device_class_sort_descending(self):
+    def test_device_class_sort_descending(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -792,7 +816,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.data["meta"]["units"] == {"count()": None}
         assert response.data["data"] == [{"count()": 0}]
 
-    def _test_simple_measurements(self, keys):
+    def _test_simple_measurements(self, keys: list[tuple[str, str, str | None]]) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1170,7 +1194,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         ]
         assert meta["dataset"] == "spans"
 
-    def _test_aggregate_filter(self, queries):
+    def _test_aggregate_filter(self, queries: list[str]) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1259,7 +1283,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert links["next"]["results"] == "true"
 
         assert links["next"]["href"] is not None
-        response = self.client_get(links["next"]["href"], format="json")
+        response = self.client_get(links["next"]["href"])
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {
@@ -1278,7 +1302,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert links["next"]["results"] == "false"
 
         assert links["previous"]["href"] is not None
-        response = self.client_get(links["previous"]["href"], format="json")
+        response = self.client_get(links["previous"]["href"])
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {
@@ -1325,7 +1349,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
-    def test_case_sensitivity_filtering(self):
+    def test_case_sensitivity_filtering(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1386,7 +1410,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
-    def test_case_sensitivity_filtering_with_list(self):
+    def test_case_sensitivity_filtering_with_list(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1452,7 +1476,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
-    def test_case_sensitivity_with_wildcards(self):
+    def test_case_sensitivity_with_wildcards(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -5214,7 +5238,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
-    def test_count_if_two_args(self):
+    def test_count_if_two_args(self) -> None:
         """count_if should have an operator"""
         self.store_spans(
             [
@@ -5324,6 +5348,29 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["sum(ai.total_tokens.used)"] == 150
         assert meta["dataset"] == "spans"
         assert meta["fields"]["sum(ai.total_tokens.used)"] == "integer"
+
+    def test_field_equation(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    duration=2000,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+        equation = "equation|span.duration / 1000"
+        response = self.do_request(
+            {
+                "field": ["description", equation],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0][equation] == 2.0
 
     def test_equation_simple(self) -> None:
         self.store_spans(
@@ -7417,7 +7464,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         ]
         assert meta["dataset"] == "spans"
 
-    def test_non_org_project_filter(self):
+    def test_non_org_project_filter(self) -> None:
         organization2 = self.create_organization()
         project2 = self.create_project(organization=organization2)
         self.store_spans(
@@ -7468,7 +7515,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == []
         assert meta["dataset"] == "spans"
 
-    def test_count_span_duration(self):
+    def test_count_span_duration(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -7488,7 +7535,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 200
         assert response.data["data"] == [{"count(span.duration)": 1}]
 
-    def test_wildcard_operator_with_backslash(self):
+    def test_wildcard_operator_with_backslash(self) -> None:
         span = self.create_span({"description": r"foo\bar"}, start_ts=self.ten_mins_ago)
         self.store_spans([span])
         base_request = {
@@ -7587,7 +7634,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert span3["span_id"] not in returned_ids
 
-    def test_no_project_sent_spans(self):
+    def test_no_project_sent_spans(self) -> None:
         project1 = self.create_project(flags=0)
         project2 = self.create_project(flags=0)
 
@@ -7604,7 +7651,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.data["data"] == []
 
     @mock.patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
-    def test_sent_spans_project_optimization(self, mock_table_rpc):
+    def test_sent_spans_project_optimization(self, mock_table_rpc: MagicMock) -> None:
         project1 = self.create_project(flags=0)
         project2 = self.create_project(flags=0)
 
@@ -7636,7 +7683,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         mock_table_rpc.assert_called_once()
         assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]
 
-    def test_equation_with_literal_0(self):
+    def test_equation_with_literal_0(self) -> None:
         self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])
         response = self.do_request(
             {
@@ -7714,7 +7761,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert meta["dataset"] == "spans"
 
-    def test_failure_count_and_rate_none(self):
+    def test_failure_count_and_rate_none(self) -> None:
         response = self.do_request(
             {
                 "field": ["failure_rate()", "failure_count()", "count()"],
@@ -7731,7 +7778,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             }
         ]
 
-    def test_failure_count_and_rate_zero(self):
+    def test_failure_count_and_rate_zero(self) -> None:
         self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])
 
         response = self.do_request(
@@ -7804,3 +7851,100 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 400, response.content
         assert "Unknown function formula.altisaur" in response.data["detail"]
+
+    def test_boolean_search_term_by_itself(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "OR",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+    def test_single_term_wrapped_in_brackets(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "(span.description:foo)",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "span.status": "success",
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+
+    def test_chained_or_statements(self) -> None:
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            )
+            for _ in range(50)
+        ]
+        traces = [f"trace:{span['trace_id']}" for span in spans]
+        self.store_spans(spans)
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": f"({' OR '.join(traces)})",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Maximum Number Of Boolean Conditions" in response.data["detail"].title()
+
+    def test_has_filter_on_span_id(self) -> None:
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            )
+        ]
+        self.store_spans(spans)
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "has:span_id",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["description"] == "foo"

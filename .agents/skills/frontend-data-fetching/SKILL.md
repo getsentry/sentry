@@ -9,6 +9,7 @@ Use `apiOptions` with `useQuery` from TanStack Query. **Do not use `useApiQuery`
 
 ```typescript
 import {skipToken, useQuery} from '@tanstack/react-query';
+
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 // Basic usage
@@ -96,6 +97,7 @@ By default, `apiOptions` selects only the JSON body from the response. If you ne
 
 ```typescript
 import {useQuery} from '@tanstack/react-query';
+
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 
 const {data} = useQuery({

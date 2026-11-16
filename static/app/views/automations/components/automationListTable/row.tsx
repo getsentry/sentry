@@ -9,9 +9,10 @@ import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/aut
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {ListItemCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
-import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/connectedDetectors';
-import {ProjectsCell} from 'sentry/views/automations/components/automationListTable/projectsCell';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
+
+import {AutomationListConnectedDetectors} from './connectedDetectors';
+import {ProjectsCell} from './projectsCell';
 
 type AutomationListRowProps = {
   automation: Automation;

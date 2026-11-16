@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import cast
 from unittest import mock
 
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -329,7 +330,10 @@ class ReconcileMilestonesTest(TestCase):
         return _state(blocks=[block])
 
     def _extras(self, milestone: str) -> dict[str, object]:
-        return SeerRunMilestone.objects.get(seer_run=self.seer_run, milestone=milestone).extras
+        return cast(
+            "dict[str, object]",
+            SeerRunMilestone.objects.get(seer_run=self.seer_run, milestone=milestone).extras,
+        )
 
     def test_reconcile_writes_then_refreshes_extras_on_rerun(self) -> None:
         reconcile_milestones(self.seer_run, self._root_cause_state("first"))

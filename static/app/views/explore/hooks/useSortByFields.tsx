@@ -6,8 +6,9 @@ import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/field
 import {classifyTagKey, prettifyTagKey} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import type {TraceItemAttributeConfig} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+
+import {useTraceItemAttributes} from './useTraceItemAttributes';
+import type {TraceItemAttributeConfig} from './useTraceItemAttributes';
 
 interface Props {
   config: TraceItemAttributeConfig;

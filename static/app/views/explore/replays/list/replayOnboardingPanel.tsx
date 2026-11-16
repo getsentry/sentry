@@ -23,8 +23,9 @@ import {
   WidgetContainer,
 } from 'sentry/views/explore/profiling/landing/styles';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
-import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {ReplayPanel} from './replayPanel';
 
 export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
@@ -62,7 +63,17 @@ export function ReplayOnboardingPanel() {
       {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
       )}
-      <ReplayPanel image={<HeroImage src={emptyStateImg} />}>
+      <ReplayPanel
+        image={
+          <Container
+            width={{zero: '100%', xl: '220px', '3xl': '300px'}}
+            maxWidth="300px"
+            margin="0 auto"
+          >
+            <HeroImage src={emptyStateImg} />
+          </Container>
+        }
+      >
         <SetupReplaysCTA primaryAction={primaryAction} disabled={primaryActionDisabled} />
       </ReplayPanel>
     </Fragment>
@@ -261,18 +272,8 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
 const HeroImage = styled('img')`
   display: block;
   width: 100%;
-  max-width: 300px;
   height: auto;
-  margin: 0 auto;
   user-select: none;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    width: 220px;
-  }
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    width: 300px;
-  }
 `;
 
 const ButtonList = styled((props: GridProps) => (
