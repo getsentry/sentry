@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useRef} from 'react';
-import type * as qs from 'query-string';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -21,6 +20,7 @@ import {
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
+import type * as qs from 'sentry/utils/url/qs';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

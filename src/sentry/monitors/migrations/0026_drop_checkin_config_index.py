@@ -23,10 +23,12 @@ class Migration(CheckedMigration):
             database_operations=[
                 SafeRunSQL(
                     f'DROP INDEX CONCURRENTLY IF EXISTS "{INDEX}"',
-                    reverse_sql=(
+                    # A failed concurrent create leaves an invalid index that IF NOT EXISTS would skip.
+                    reverse_sql=[
+                        f'DROP INDEX CONCURRENTLY IF EXISTS "{INDEX}"',
                         f'CREATE INDEX CONCURRENTLY IF NOT EXISTS "{INDEX}" '
-                        'ON "sentry_monitorcheckin" ("checkin_config_id")'
-                    ),
+                        'ON "sentry_monitorcheckin" ("checkin_config_id")',
+                    ],
                     hints={"tables": ["sentry_monitorcheckin"]},
                     # The drop waits for open transactions on a hot table.
                     use_statement_timeout=False,

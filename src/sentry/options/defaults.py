@@ -487,7 +487,19 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "cleanup.inbox-items.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "cleanup.inbox-events.sample-rate",
+    default=0.0,
+    type=Float,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.inbox-items.sample-rate",
     default=0.0,
     type=Float,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
