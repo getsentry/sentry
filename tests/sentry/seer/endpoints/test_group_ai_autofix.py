@@ -1351,7 +1351,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             group=group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
-            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
+            billing_feature=None,
             stopping_point=None,
             run_id=42,
             user_context=None,

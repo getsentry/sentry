@@ -217,6 +217,7 @@ class TestTriggerAutofixFeature(TestCase):
         with (
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
             patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.logger.warning") as warn,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
             mock_client_cls.return_value.start_feature_run.return_value = fake_run
@@ -232,6 +233,8 @@ class TestTriggerAutofixFeature(TestCase):
             )
 
         assert run is fake_run
+        warn.assert_called_once()
+        assert warn.call_args.args == ("autofix_feature.dispatch.missing_billing_feature",)
         mock_quotas.backend.check_seer_quota.assert_called_once_with(
             org_id=self.organization.id,
             data_category=DataCategory.SEER_AUTOFIX,

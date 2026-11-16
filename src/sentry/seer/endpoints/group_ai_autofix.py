@@ -617,8 +617,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         )
 
                 # The client can supply referrer. Resolve attribution from the request instead.
-                billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
+                billing_feature: int | None = None
                 if is_autofix_kickoff:
+                    billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
                     actor = resolve_action_actor(request)
                     source = resolve_action_source(request)
                     if actor.actor_type == GroupActorType.SENTRY_APP:
