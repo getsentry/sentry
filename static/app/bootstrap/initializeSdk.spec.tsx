@@ -1,9 +1,11 @@
+import type {Event} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {ERROR_MAP as origErrorMap} from 'sentry/utils/requestError/requestError';
 
 import {
   addEndpointTagToRequestError,
+  handleTooMuchRecursionErrors,
   initializeSdk,
   isEventWithFileUrl,
   isFilteredRequestErrorEvent,
@@ -125,6 +127,58 @@ describe('initializeSdk', () => {
         },
       })
     ).toBeNull();
+  });
+});
+
+describe('handleTooMuchRecursionErrors', () => {
+  it('fingerprints by the frame that threw', () => {
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            type: 'InternalError',
+            value: 'too much recursion',
+            stacktrace: {
+              frames: [
+                {filename: 'rrweb.js', function: 'processMutation'},
+                {filename: './gsApp/utils/useReplayInit.tsx', function: 'replayMaskFn'},
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    handleTooMuchRecursionErrors(event);
+
+    expect(event.fingerprint).toEqual([
+      'too-much-recursion',
+      './gsApp/utils/useReplayInit.tsx:replayMaskFn',
+    ]);
+    expect(event.tags).toEqual({
+      tooMuchRecursionFrame: './gsApp/utils/useReplayInit.tsx:replayMaskFn',
+    });
+  });
+
+  it('groups events without a stack trace together', () => {
+    const event: Event = {
+      exception: {values: [{type: 'InternalError', value: 'too much recursion'}]},
+    };
+
+    handleTooMuchRecursionErrors(event);
+
+    expect(event.fingerprint).toEqual(['too-much-recursion', 'no-stacktrace']);
+  });
+
+  it('leaves other errors untouched', () => {
+    const event: Event = {
+      exception: {values: [{type: 'TypeError', value: 'too much recursion'}]},
+    };
+
+    handleTooMuchRecursionErrors(event);
+
+    expect(event.fingerprint).toBeUndefined();
+    expect(event.tags).toBeUndefined();
   });
 });
 

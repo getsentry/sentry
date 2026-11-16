@@ -206,6 +206,7 @@ export function initializeSdk(config: Config) {
       }
 
       handlePossibleUndefinedResponseBodyErrors(event);
+      handleTooMuchRecursionErrors(event);
       addEndpointTagToRequestError(event);
       lastEventId = event.event_id || hint.event_id;
 
@@ -330,6 +331,29 @@ function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
       ? ['UndefinedResponseBodyError as main error']
       : ['UndefinedResponseBodyError as cause error'];
   }
+}
+
+/**
+ * Firefox throws `InternalError: too much recursion` from its regex engine when
+ * its stack check or memory allocation fails, even for trivial regexes on short
+ * stacks. Many of these events have no stack trace, so they all end up grouped
+ * under one generic title. Fingerprint them by the frame that threw so each
+ * call site, including any real recursion bug, gets its own issue.
+ */
+export function handleTooMuchRecursionErrors(event: Event): void {
+  const mainError = event.exception?.values?.at(-1);
+
+  if (mainError?.type !== 'InternalError' || mainError.value !== 'too much recursion') {
+    return;
+  }
+
+  const topFrame = mainError.stacktrace?.frames?.at(-1);
+  const location = topFrame
+    ? `${topFrame.module || topFrame.filename || '<unknown>'}:${topFrame.function || '<anonymous>'}`
+    : 'no-stacktrace';
+
+  event.tags = {...event.tags, tooMuchRecursionFrame: location};
+  event.fingerprint = ['too-much-recursion', location];
 }
 
 export function addEndpointTagToRequestError(event: Event): void {
