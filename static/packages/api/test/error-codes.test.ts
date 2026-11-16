@@ -9,7 +9,7 @@ import {
   type SentryAuthChallenge,
   withAuthChallenges,
 } from "@sentry/api";
-import { createApiError } from "../src/api-client/errors.ts";
+import { createApiClientCore } from "../src/api-client/core.ts";
 
 const sentryBody = (code: string, extra: Record<string, unknown> = {}, message = "Message") => ({
   detail: { code, message, extra },
@@ -57,7 +57,13 @@ describe("Sentry error codes", () => {
     const result = await narrowError_getOrganization({ client: sentry.client, path });
     expect(result.ok).toBe(false);
     expect(!result.ok && result.error.code).toBe("2fa-required");
-    expect(createApiError("Unauthorized", 401, undefined, sentryBody("member-disabled-over-limit")).code).toBe("member-disabled-over-limit");
+    const core = createApiClientCore({
+      transport: { request: async () => Response.json(sentryBody("member-disabled-over-limit"), { status: 401 }) },
+      headers: () => ({}),
+      logger: { warn: () => {} },
+    });
+    expect(await core.request("https://sentry.example.com", "/organizations/").catch((e: unknown) => e))
+      .toMatchObject({ status: 401, code: "member-disabled-over-limit" });
   });
 
   test("isSentryErrorCode narrows by code", () => {
@@ -84,6 +90,7 @@ describe("auth challenges", () => {
       { code: "member-disabled-over-limit", status: 401, message: "Message", next: "/organizations/org-slug/disabled-member/" }],
     [401, sentryBody("2fa-required"), { code: "2fa-required", status: 401, message: "Message" }],
     [403, sentryBody("superuser-required"), { code: "superuser-required", status: 403, message: "Message" }],
+    [403, sentryBody("superuser-required", { orgSlug: "org-slug" }), { code: "superuser-required", status: 403, message: "Message", orgSlug: "org-slug" }],
     [403, sentryBody("staff-required"), { code: "staff-required", status: 403, message: "Message" }],
     [401, sentryBody("sso-required", { loginUrl: 1 }), { code: "sso-required", status: 401, message: "Message", loginUrl: undefined, organizationSlug: undefined }],
     [401, sentryBody("data-secrecy"), undefined],
@@ -135,6 +142,17 @@ describe("withAuthChallenges", () => {
     expect((await twice.sentry.getOrganization({ path })).error).toMatchObject({ code: "sudo-required" });
     expect(twice.fetch).toHaveBeenCalledTimes(2);
     expect(twice.handler).toHaveBeenCalledOnce();
+  });
+
+  test("replays even when releasing the challenge body fails", async () => {
+    const unreleasable = () => {
+      const response = sudo();
+      Object.defineProperty(response, "body", { value: { cancel: () => Promise.reject(new Error("cancel failed")) } });
+      return response;
+    };
+    const { fetch, sentry } = setup([unreleasable, () => Response.json({ slug: "org-slug" })], () => "retry");
+    expect((await sentry.getOrganization({ path })).data).toEqual({ slug: "org-slug" });
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   test("does not call the handler for other responses", async () => {

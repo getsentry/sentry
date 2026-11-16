@@ -11,7 +11,8 @@ export type SentryAuthChallenge = ChallengeBase &
     | { code: "sso-required"; loginUrl?: string; organizationSlug?: string }
     | { code: "sudo-required" | "primary-email-verification-required"; username?: string }
     | { code: "member-disabled-over-limit"; next?: string }
-    | { code: "superuser-required" | "staff-required" | "2fa-required" }
+    | { code: "superuser-required"; orgSlug?: string }
+    | { code: "staff-required" | "2fa-required" }
   );
 
 /** `retry` sends the request once more, after the consumer re-authenticated; `fail` keeps the response. */
@@ -46,7 +47,7 @@ function readSentryAuthChallenge(status: number, body: unknown): SentryAuthChall
     case "member-disabled-over-limit":
       return { ...base, code: "member-disabled-over-limit", next: extra("next") };
     case "superuser-required":
-      return { ...base, code: "superuser-required" };
+      return { ...base, code: "superuser-required", orgSlug: extra("orgSlug") };
     case "staff-required":
       return { ...base, code: "staff-required" };
     case "2fa-required":
@@ -89,7 +90,8 @@ export function withAuthChallenges(fetch: Fetch, options: { onAuthChallenge: Aut
     if (!challenge || (await options.onAuthChallenge(challenge, replay.clone())) !== "retry") {
       return response;
     }
-    await response.body?.cancel();
+    // Release the challenge body without waiting: a failed cancel must not stop the replay.
+    response.body?.cancel().catch(() => {});
     return fetch(replay);
   };
 }

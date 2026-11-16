@@ -483,7 +483,7 @@ function loginUrlFor(error: unknown): unknown {
 
 ### Auth challenges
 
-Some 401 and 403 responses ask the user to act in Sentry: `sso-required`, `sudo-required`, `superuser-required`, `staff-required`, `2fa-required`, `member-disabled-over-limit`, and `primary-email-verification-required`. `getSentryAuthChallenge(error)` returns one as data, a `SentryAuthChallenge` with its `code`, `status`, `message`, and the code's string fields (`loginUrl` and `organizationSlug` for SSO, `username` for sudo and email verification, `next` for a disabled member). It returns `undefined` for any other error.
+Some 401 and 403 responses ask the user to act in Sentry: `sso-required`, `sudo-required`, `superuser-required`, `staff-required`, `2fa-required`, `member-disabled-over-limit`, and `primary-email-verification-required`. `getSentryAuthChallenge(error)` returns one as data, a `SentryAuthChallenge` with its `code`, `status`, `message`, and the code's string fields (`loginUrl` and `organizationSlug` for SSO, `orgSlug` for superuser, `username` for sudo and email verification, `next` for a disabled member). It returns `undefined` for any other error.
 
 To handle challenges where requests are sent, wrap `fetch` with `withAuthChallenges`. On a challenge it calls `onAuthChallenge(challenge, request)`. Re-authenticate however your app does, then return `"retry"` to send the request once more, or `"fail"` to keep the challenge response. The SDK opens no UI and never redirects or reloads. Without the wrapper, nothing is retried. The wrapper keeps a copy of each request body to replay.
 
