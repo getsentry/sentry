@@ -4,7 +4,7 @@ import pick from 'lodash/pick';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {FieldKind} from 'sentry/utils/fields';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import type {
   DashboardFilters,
   GlobalFilter,
@@ -91,7 +91,7 @@ export function getLinkedDashboardUrl({
   }
 
   const url = normalizeUrl(
-    `/organizations/${organizationSlug}/dashboard/${linkedDashboard.dashboardId}/?${stringify(
+    `/organizations/${organizationSlug}/dashboard/${linkedDashboard.dashboardId}/?${qs.stringify(
       {
         [DashboardFilterKeys.GLOBAL_FILTER]: newTemporaryFilters.map(filter =>
           JSON.stringify(filter)

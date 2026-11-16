@@ -32,7 +32,7 @@ import type {Overrides} from 'sentry/types/overrides';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
 
 import {capitalize} from './string/capitalize';
-import {parse} from './url/qs';
+import * as qs from './url/qs';
 import {trackAnalytics} from './analytics';
 import {isActiveSuperuser} from './isActiveSuperuser';
 
@@ -181,7 +181,7 @@ export const convertIntegrationTypeToSnakeCase = (
 
 export const safeGetQsParam = (param: string) => {
   try {
-    const query = parse(window.location.search) || {};
+    const query = qs.parse(window.location.search) || {};
     return query[param];
   } catch {
     return;

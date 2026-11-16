@@ -17,7 +17,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
@@ -206,7 +206,7 @@ export function getMetricsUrl({
   const orgSlug = typeof organization === 'string' ? organization : organization.slug;
   return (
     makeMetricsPathname({organizationSlug: orgSlug, path: '/'}) +
-    `?${stringify(queryParams, {skipNull: true})}`
+    `?${qs.stringify(queryParams, {skipNull: true})}`
   );
 }
 

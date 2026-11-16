@@ -12,7 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils/defined';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 
 export type TitleCellProps = {
   link: LocationDescriptor | null;
@@ -79,7 +79,7 @@ export function TitleCell({
       href = link;
     } else {
       const pathname = link.pathname ?? '';
-      const search = link.search ?? (link.query ? `?${stringify(link.query)}` : '');
+      const search = link.search ?? (link.query ? `?${qs.stringify(link.query)}` : '');
       const hash = link.hash ?? '';
       href = `${pathname}${search}${hash}`;
     }

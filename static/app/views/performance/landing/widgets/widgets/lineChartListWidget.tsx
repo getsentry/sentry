@@ -23,7 +23,7 @@ import {
 } from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -750,7 +750,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           const cacheMissRate = listItem[fieldString] as any;
 
           const target = normalizeUrl(
-            `${moduleRoute}/?${stringify({transaction, project: listItem['project.id']})}`
+            `${moduleRoute}/?${qs.stringify({transaction, project: listItem['project.id']})}`
           );
 
           return (

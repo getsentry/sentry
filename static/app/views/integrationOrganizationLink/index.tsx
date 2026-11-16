@@ -32,7 +32,7 @@ import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {parseAsSingleScalar} from 'sentry/views/explore/queryParams/parsers';
@@ -203,7 +203,7 @@ export default function IntegrationOrganizationLink() {
       // Preserve the `next` param (e.g. Vercel's marketplace return URL) so the
       // integration's configure page can offer a "Complete on <provider>" link
       // back to where the install was initiated.
-      const search = nextParam ? `?${stringify({next: nextParam})}` : '';
+      const search = nextParam ? `?${qs.stringify({next: nextParam})}` : '';
       testableWindowLocation.assign(
         `${organization?.links.organizationUrl || ''}${normalizedUrl}${search}`
       );

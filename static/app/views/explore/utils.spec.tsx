@@ -7,7 +7,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {parse} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {Mode} from './contexts/pageParamsContext/mode';
@@ -837,7 +837,7 @@ describe('getSavedQueryTraceItemUrl', () => {
 
   function parseSavedQueryUrl(savedQuery: SavedQuery) {
     const url = getSavedQueryTraceItemUrl({savedQuery, organization});
-    return parse(new URL(url, 'https://sentry.io').search);
+    return qs.parse(new URL(url, 'https://sentry.io').search);
   }
 
   function getCaseInsensitiveParam(savedQuery: SavedQuery) {

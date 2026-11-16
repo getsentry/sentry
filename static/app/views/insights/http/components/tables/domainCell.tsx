@@ -1,7 +1,7 @@
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -26,7 +26,7 @@ export function DomainCell({projectId, domain}: Props) {
   return (
     <Flex align="center" wrap="nowrap" gap="md">
       <OverflowEllipsisTextContainer>
-        <Link to={`${moduleURL}/domains/?${stringify(queryString)}`}>
+        <Link to={`${moduleURL}/domains/?${qs.stringify(queryString)}`}>
           {domain && domain.length > 0 ? domain : NULL_DOMAIN_DESCRIPTION}
         </Link>
       </OverflowEllipsisTextContainer>

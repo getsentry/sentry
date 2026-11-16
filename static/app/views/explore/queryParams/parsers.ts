@@ -11,7 +11,7 @@ import {
 } from 'nuqs';
 
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 
 import {Mode} from './mode';
 
@@ -57,7 +57,7 @@ export function loadQueryParamsFromLocation<Parsers extends ParserMap>(
   parsers: Parsers,
   location: Location
 ) {
-  return createLoader(parsers)(stringify(location.query));
+  return createLoader(parsers)(qs.stringify(location.query));
 }
 
 export function applyQueryParamsUpdates<Parsers extends ParserMap>(

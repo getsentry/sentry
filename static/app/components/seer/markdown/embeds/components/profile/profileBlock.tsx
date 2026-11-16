@@ -29,7 +29,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {stringifyUrl} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -213,7 +213,7 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
         }
       : undefined;
 
-    return stringifyUrl({
+    return qs.stringifyUrl({
       url: normalizeUrl(
         generateProfileFlamechartRoute({organization, projectSlug, profileId})
       ),

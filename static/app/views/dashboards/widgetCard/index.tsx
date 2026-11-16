@@ -26,7 +26,7 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {parse, stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -290,11 +290,11 @@ function WidgetCard(props: Props) {
           const pathname = normalizeUrl(
             `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`
           );
-          const params = parse(location.search);
+          const params = qs.parse(location.search);
           if (!params.interval && widgetInterval) {
             params.interval = widgetInterval;
           }
-          const query = stringify(params);
+          const query = qs.stringify(params);
           const widgetUrl = `${window.location.origin}${pathname}${
             query ? `?${query}` : ''
           }`;

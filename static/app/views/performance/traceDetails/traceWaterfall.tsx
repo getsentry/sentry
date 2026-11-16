@@ -28,7 +28,7 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import {parse} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -186,7 +186,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       filters,
       replayTraces: props.replayTraces,
       organization: props.organization,
-      urlParams: parse(location.search),
+      urlParams: qs.parse(location.search),
       rerender: forceRerender,
       preferences: traceState.preferences,
     });
@@ -333,14 +333,14 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         }
 
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
-          const currentQueryStringPath = parse(location.search).node;
+          const currentQueryStringPath = qs.parse(location.search).node;
           const nextNodePath = node.pathToNode();
           // Updating the query string with the same path is problematic because it causes
           // the entire sentry app to rerender, which is enough to cause jank and drop frames
           if (JSON.stringify(currentQueryStringPath) === JSON.stringify(nextNodePath)) {
             return;
           }
-          const {eventId: _eventId, ...query} = parse(location.search);
+          const {eventId: _eventId, ...query} = qs.parse(location.search);
           navigate(
             {
               pathname: location.pathname,
@@ -481,7 +481,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     // and then we will perform a search to find the node the user is interested in.
 
     if (!disableUrlSync) {
-      const query = parse(location.search);
+      const query = qs.parse(location.search);
       if (query.fov && typeof query.fov === 'string') {
         viewManager.maybeInitializeTraceViewFromQS(query.fov);
       }

@@ -31,7 +31,7 @@ import {SentryOverlayProvider} from 'sentry/scrapsProviders/overlay';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
-import {parse, stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -266,7 +266,7 @@ class TestRouter {
 
   get location() {
     // Return parsed query params for convenience
-    const query = parse(this.router.state.location.search);
+    const query = qs.parse(this.router.state.location.search);
 
     return {
       ...this.router.state.location,
@@ -321,7 +321,7 @@ function parseQueryString(query: Record<string, string | number | string[]> | un
   if (!query) {
     return '';
   }
-  const queryString = stringify(query);
+  const queryString = qs.stringify(query);
   return queryString ? `?${queryString}` : '';
 }
 

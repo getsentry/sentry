@@ -1,7 +1,7 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 import {getMetricMonitorUrl} from './getMetricMonitorUrl';
@@ -37,5 +37,5 @@ export function getAlertsUrl({
     referrer,
     eventTypes,
   });
-  return `${loc.pathname}?${stringify(loc.query)}`;
+  return `${loc.pathname}?${qs.stringify(loc.query)}`;
 }

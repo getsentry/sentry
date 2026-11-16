@@ -1,6 +1,6 @@
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import type {Organization} from 'sentry/types/organization';
-import {stringifyUrl} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 
 export type ReplaysQueryData = EmbedOutput<'replaysQuery'>;
@@ -15,7 +15,7 @@ export function getReplaysQueryHref(
 ): string {
   const {query, sort, projects, environments, statsPeriod, start, end} = data;
 
-  return stringifyUrl({
+  return qs.stringifyUrl({
     url: makeReplaysPathname({organization, path: '/'}),
     query: {
       query,

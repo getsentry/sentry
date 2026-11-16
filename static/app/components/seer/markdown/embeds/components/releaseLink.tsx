@@ -3,7 +3,7 @@ import {IconReleases} from '@sentry/icons/releases';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {stringifyUrl} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
@@ -14,7 +14,7 @@ export function getReleaseHref(
   {version, projectId}: Pick<EmbedOutput<'release'>, 'version' | 'projectId'>,
   organization: Organization
 ): string {
-  return stringifyUrl(
+  return qs.stringifyUrl(
     {
       url: makeReleasesPathname({
         organization,

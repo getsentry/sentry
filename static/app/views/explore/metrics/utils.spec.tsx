@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {parse} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 
@@ -82,7 +82,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
   const organization = OrganizationFixture();
 
   function decodeMetricFromUrl(url: string) {
-    const query = parse(new URL(url, 'https://sentry.io').search);
+    const query = qs.parse(new URL(url, 'https://sentry.io').search);
     const metricParam = Array.isArray(query.metric) ? query.metric[0] : query.metric;
     return decodeMetricsQueryParams(metricParam!);
   }

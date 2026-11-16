@@ -28,7 +28,7 @@ import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSe
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -153,7 +153,7 @@ export function getExploreUrl({
     makeTracesPathname({
       organization,
       path: '/',
-    }) + `?${stringify(queryParams, {skipNull: true})}`
+    }) + `?${qs.stringify(queryParams, {skipNull: true})}`
   );
 }
 
@@ -285,7 +285,7 @@ export function getExploreMultiQueryUrl({
     referrer,
   };
 
-  return `/organizations/${organization.slug}/explore/traces/compare/?${stringify(queryParams, {skipNull: true})}`;
+  return `/organizations/${organization.slug}/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
 export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {
@@ -652,7 +652,7 @@ function getConversationsUrlFromSavedQueryUrl({
     title: savedQuery.name,
   };
 
-  let queryString = stringify(queryParams, {skipNull: true});
+  let queryString = qs.stringify(queryParams, {skipNull: true});
   if (savedQuery.agent?.length) {
     queryString += `&agent=${savedQuery.agent.map(encodeURIComponent).join(',')}`;
   }
@@ -681,7 +681,7 @@ function getReplayUrlFromSavedQueryUrl({
     title: savedQuery.name,
   };
 
-  const queryString = stringify(queryParams, {skipNull: true});
+  const queryString = qs.stringify(queryParams, {skipNull: true});
   return `${makeReplaysPathname({organization, path: '/'})}?${queryString}`;
 }
 
@@ -892,7 +892,7 @@ function getDiscoverSavedQueryUrl({
 }) {
   const {pathname, query} =
     EventView.fromSavedQuery(savedQuery).getResultsViewShortUrlTarget(organization);
-  const search = stringify(query);
+  const search = qs.stringify(query);
   return search ? `${pathname}?${search}` : pathname;
 }
 

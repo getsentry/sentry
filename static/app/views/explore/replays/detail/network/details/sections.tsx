@@ -19,7 +19,7 @@ import {
   isRequestFrame,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import {parse} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
 
@@ -181,7 +181,7 @@ export function ResponseHeadersSection({item}: SectionProps) {
 }
 
 export function QueryParamsSection({item}: SectionProps) {
-  const queryParams = parse(item.description?.split('?')?.[1] ?? '');
+  const queryParams = qs.parse(item.description?.split('?')?.[1] ?? '');
   return (
     <SectionItem title={t('Query String Parameters')}>
       <Indent>

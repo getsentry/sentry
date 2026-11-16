@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {type ModuleName} from 'sentry/views/insights/types';
@@ -32,7 +32,9 @@ export function SpanGroupDetailsLink({moduleName, group, projectId, description}
     <OverflowEllipsisTextContainer>
       {group ? (
         <StyledLink
-          to={normalizeUrl(`${moduleURL}/spans/span/${group}/?${stringify(queryString)}`)}
+          to={normalizeUrl(
+            `${moduleURL}/spans/span/${group}/?${qs.stringify(queryString)}`
+          )}
         >
           {description}
         </StyledLink>

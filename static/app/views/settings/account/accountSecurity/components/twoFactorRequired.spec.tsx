@@ -5,7 +5,7 @@ import {OrganizationsFixture} from 'sentry-fixture/organizations';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import AccountSecurity from 'sentry/views/settings/account/accountSecurity/';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 
@@ -108,7 +108,7 @@ describe('TwoFactorRequired', () => {
       token: 'abcde',
       url: '/accept/5/abcde/',
     };
-    Cookies.set(INVITE_COOKIE, stringify(cookieData));
+    Cookies.set(INVITE_COOKIE, qs.stringify(cookieData));
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [AuthenticatorsFixture().Totp({isEnrolled: true})],

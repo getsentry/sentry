@@ -9,7 +9,7 @@ import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -76,7 +76,7 @@ function getIssueDetailsPath({
   orgSlug: string;
   query: Query;
 }) {
-  const search = stringify({...query, openPeriod: openPeriodId});
+  const search = qs.stringify({...query, openPeriod: openPeriodId});
   const pathname = normalizeUrl(`/organizations/${orgSlug}/issues/${groupId}/`);
 
   return search ? `${pathname}?${search}` : pathname;
@@ -363,7 +363,7 @@ function makeCreateRedirectPath(
   alertType: string | undefined,
   project?: Project
 ) {
-  const search = stringify({
+  const search = qs.stringify({
     detectorType: getDetectionType(alertType),
     project: project?.id,
   });
@@ -449,7 +449,7 @@ function makeLegacyCreateRedirectPath({
     query: query.query ?? template?.query,
     referrer: query.referrer ?? undefined,
   });
-  return `${target.pathname}?${stringify(target.query)}`;
+  return `${target.pathname}?${qs.stringify(target.query)}`;
 }
 
 export function MonitorCreateRedirect() {

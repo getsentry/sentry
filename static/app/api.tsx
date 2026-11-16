@@ -19,7 +19,7 @@ import {uniqueId} from './utils/guid';
 import {RequestError} from './utils/requestError/requestError';
 import {sanitizePath} from './utils/requestError/sanitizePath';
 import {testableWindowLocation} from './utils/testableWindowLocation';
-import {stringify} from './utils/url/qs';
+import * as qs from './utils/url/qs';
 import type {ReactRouter3Navigate} from './utils/useNavigate';
 import {EXPERIMENTAL_SPA} from './constants';
 
@@ -170,7 +170,7 @@ export const initApiClientErrorHandling = () =>
 function buildRequestUrl(baseUrl: string, path: string, options: RequestOptions) {
   let params: string;
   try {
-    params = stringify(options.query);
+    params = qs.stringify(options.query);
   } catch (err) {
     Sentry.withScope(scope => {
       scope.setExtra('path', path);
@@ -432,7 +432,7 @@ export class Client {
     // object for GET requests. jQuery just sticks it onto the URL as query
     // parameters
     if (method === 'GET' && data) {
-      const queryString = typeof data === 'string' ? data : stringify(data);
+      const queryString = typeof data === 'string' ? data : qs.stringify(data);
 
       if (queryString.length > 0) {
         fullUrl = fullUrl + (fullUrl.includes('?') ? '&' : '?') + queryString;

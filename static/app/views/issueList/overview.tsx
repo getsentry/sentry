@@ -46,7 +46,7 @@ import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRo
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -350,7 +350,7 @@ function IssueListOverviewInner({
           }),
           {
             method: 'GET',
-            data: stringify(statsRequestParams),
+            data: qs.stringify(statsRequestParams),
           }
         );
 
@@ -422,7 +422,7 @@ function IssueListOverviewInner({
         }),
         {
           method: 'GET',
-          data: stringify(requestParams),
+          data: qs.stringify(requestParams),
           includeAllArgs: true,
         }
       );

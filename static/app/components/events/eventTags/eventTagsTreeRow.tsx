@@ -22,7 +22,7 @@ import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -332,7 +332,7 @@ function EventTagsTreeValue({
       );
       break;
     case 'transaction': {
-      const transactionQuery = stringify({
+      const transactionQuery = qs.stringify({
         project: event.projectID,
         transaction: content.value,
         referrer,

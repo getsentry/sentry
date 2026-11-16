@@ -6,7 +6,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {Tagged} from 'type-fest';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 
 import type {ImageAvatarProps} from './imageAvatar/imageAvatar';
 import type {LetterAvatarProps} from './letterAvatar/letterAvatar';
@@ -109,7 +109,7 @@ function useImageSrc(definition?: ImageDefinition): {
   const resolvedSrc = definition
     ? definition.type === 'gravatar'
       ? gravatarHash
-        ? `${ConfigStore.get('gravatarBaseUrl')}/avatar/${gravatarHash}?${stringify({
+        ? `${ConfigStore.get('gravatarBaseUrl')}/avatar/${gravatarHash}?${qs.stringify({
             // Default remote size to 120px
             s: 120,
             // If gravatar is not found we need the request to return an error,

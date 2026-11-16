@@ -4,7 +4,7 @@ import type {EventTag} from 'sentry/types/event';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
 import type {Sort} from './discover/fields';
-import {stringify} from './url/qs';
+import * as qs from './url/qs';
 import {safeURL} from './url/safeURL';
 import {ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS, type FieldKey} from './fields';
 
@@ -28,7 +28,7 @@ export function addQueryParamsToExistingUrl(
   const params = JSON.parse(JSON.stringify(queryParams));
   const query = {...Object.fromEntries(searchEntries), ...params};
 
-  return `${url.protocol}//${url.host}${url.pathname}?${stringify(query)}`;
+  return `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(query)}`;
 }
 
 export type QueryValue = string | string[] | undefined | null;

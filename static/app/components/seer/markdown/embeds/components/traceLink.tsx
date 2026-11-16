@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
-import {stringifyUrl} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
@@ -27,7 +27,7 @@ export function getTraceHref(
   // Seer reports ISO timestamps but the waterfall reads unix seconds. Without
   // one it falls back to scanning a default window, so pass it through whenever
   // Seer knows when the trace happened.
-  return stringifyUrl({
+  return qs.stringifyUrl({
     url: pathname,
     query: {
       timestamp: getTimeStampFromTableDateField(timestamp),

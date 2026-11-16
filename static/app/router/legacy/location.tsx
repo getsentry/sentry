@@ -2,7 +2,7 @@ import type {Location as RouterLocation, To} from 'react-router';
 import * as Sentry from '@sentry/react';
 import type {Location as LegacyLocation, LocationDescriptor, Query} from 'history';
 
-import {parse, stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 
 /**
  * Sentry still accepts React Router 3-style destinations with `.query` and
@@ -57,9 +57,9 @@ export function legacyLocationDescriptorToTo(path: LocationDescriptor): To {
     to.pathname = pathname;
 
     if (query) {
-      query = {...query, ...parse(search!)};
+      query = {...query, ...qs.parse(search!)};
     } else {
-      query = parse(search!);
+      query = qs.parse(search!);
     }
   }
 
@@ -70,7 +70,7 @@ export function legacyLocationDescriptorToTo(path: LocationDescriptor): To {
     to.search = path.search;
   }
   if (query) {
-    to.search = `?${stringify(query)}`;
+    to.search = `?${qs.stringify(query)}`;
   }
 
   // XXX(epurkhiser): We ignore the location state param
@@ -91,7 +91,7 @@ export function toLegacyLocation<Q extends Query = DefaultQuery>(
   return {
     pathname,
     search,
-    query: parse(search) as Q,
+    query: qs.parse(search) as Q,
     hash,
     state,
     key,

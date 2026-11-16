@@ -1,5 +1,5 @@
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 
 /**
  * Build the CSV export URL from the builds-list query params.
@@ -14,6 +14,6 @@ export function getBuildsExportHref(
   delete exportParams.cursor;
 
   return resolveHostname(
-    `/api/0/organizations/${organizationSlug}/builds-export/?${stringify(exportParams)}`
+    `/api/0/organizations/${organizationSlug}/builds-export/?${qs.stringify(exportParams)}`
   );
 }

@@ -3,7 +3,7 @@ import * as moment from 'moment-timezone';
 
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import type {Config} from 'sentry/types/system';
-import {parse, type ParsedQuery} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 
 // zh-cn => zh_CN
 function convertToDjangoLocaleFormat(language: string) {
@@ -48,11 +48,11 @@ async function getTranslations(language: string) {
  * - "en" as default
  */
 export async function initializeLocale(config: Config) {
-  let queryString: ParsedQuery = {};
+  let queryString: qs.ParsedQuery = {};
 
   // Parse query string for `lang`
   try {
-    queryString = parse(window.location.search) || {};
+    queryString = qs.parse(window.location.search) || {};
   } catch {
     // ignore if this fails to parse
     // this can happen if we have an invalid query string

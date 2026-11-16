@@ -11,7 +11,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {stringifyUrl} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
@@ -49,7 +49,7 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
       path: '/',
       organization,
     }) +
-    stringifyUrl({
+    qs.stringifyUrl({
       url: '?',
       query: {
         feedbackSlug: projectSlug ? `${projectSlug}:${feedbackItem.id}` : feedbackItem.id,

@@ -10,7 +10,7 @@ import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ConversationLeftPanel,
@@ -152,7 +152,7 @@ function TraceAiConversationsContent({
 
   const conversationUrl = isConversationScoped
     ? normalizeUrl(
-        `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${encodeURIComponent(activeConversationId)}/?${stringify(
+        `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${encodeURIComponent(activeConversationId)}/?${qs.stringify(
           {
             referrer: 'trace-view',
             ...(selectedSpanId && activeSubTab === 'transcript'

@@ -17,7 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {parse} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -89,7 +89,7 @@ const createExploreUrl = (
   organization: Organization
 ): string => {
   const parsedUrl = safeURL(baseUrl);
-  const queryParams = parse(parsedUrl?.search ?? '');
+  const queryParams = qs.parse(parsedUrl?.search ?? '');
 
   if (queryParams.aggregateField) {
     // we need to parse the aggregateField because it comes in stringified but needs to be passed in JSON format

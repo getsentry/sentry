@@ -11,7 +11,7 @@ import {DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {parse} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 
 import type {RendererExtra} from './fieldRenderers';
@@ -218,7 +218,7 @@ describe('Logs Field Renderers', () => {
 
       const link = screen.getByRole('link', {name: traceId});
 
-      return parse(link.getAttribute('href')!.split('?')[1]!);
+      return qs.parse(link.getAttribute('href')!.split('?')[1]!);
     };
 
     it('drops the date range when the log has a timestamp', () => {
@@ -302,7 +302,7 @@ describe('Logs Field Renderers', () => {
       expect(pathname).toBe(
         `/organizations/${organization.slug}/explore/logs/trace/${traceId}/`
       );
-      expect(parse(search!)).toEqual({
+      expect(qs.parse(search!)).toEqual({
         node: `span-${spanId}`,
         source: 'logs',
         tab: 'waterfall',
@@ -324,7 +324,7 @@ describe('Logs Field Renderers', () => {
 
       const href = screen.getByRole('link', {name: spanId}).getAttribute('href')!;
 
-      expect(parse(href.split('?')[1]!)).not.toHaveProperty('node');
+      expect(qs.parse(href.split('?')[1]!)).not.toHaveProperty('node');
     });
   });
 });

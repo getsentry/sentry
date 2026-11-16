@@ -22,7 +22,7 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {stringify} from 'sentry/utils/url/qs';
+import * as qs from 'sentry/utils/url/qs';
 import {getBodySearchTerms} from 'sentry/views/explore/bodySearchTerms';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
@@ -485,7 +485,7 @@ export function getLogsUrl({
   const orgSlug = typeof organization === 'string' ? organization : organization.slug;
   return (
     makeLogsPathname({organizationSlug: orgSlug, path: '/'}) +
-    `?${stringify(queryParams, {skipNull: true})}`
+    `?${qs.stringify(queryParams, {skipNull: true})}`
   );
 }
 
