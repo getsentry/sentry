@@ -456,7 +456,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         # Do not bill for dashboard generation.
         if not is_dashboard_generate_run:
             credits = check_seer_operation(
-                organization, SeerFeature.SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
+                organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
             )
             if not credits.has_enough_credits:
                 return seer_out_of_credits_response(

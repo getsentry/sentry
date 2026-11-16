@@ -93,7 +93,7 @@ def handle_ui_feedback(
 
     # Check credits here, since the queued feedback is consumed after this request returns.
     credits = check_seer_operation(
-        group.organization, SeerFeature.AUTOFIX_WEB, SeerOperation.AUTOFIX_PR_ITERATION
+        group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
     )
     if not credits.has_enough_credits:
         return seer_out_of_credits_response(
