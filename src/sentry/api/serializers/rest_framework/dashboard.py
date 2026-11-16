@@ -605,6 +605,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return self.context.get("widget_id") is not None or self._has_tracemetrics_table_feature()
 
+    def _has_unified_visualize_feature(self) -> bool:
+        return features.has(
+            "organizations:dashboards-trace-metrics-unified-visualize",
+            self.context["organization"],
+            actor=self.context["request"].user,
+        )
+
     def _has_tracemetrics_table_feature(self) -> bool:
         return features.has(
             "organizations:tracemetrics-dashboard-table",
@@ -697,7 +704,25 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         if not data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
             return data
 
-        if data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
+        # Tracemetrics timeseries widgets only support a single equation per query
+        # unless the unified visualize list is enabled, which plots equations
+        # alongside other aggregates.
+        if (
+            data.get("display_type")
+            in {
+                DashboardWidgetDisplayTypes.LINE_CHART,
+                DashboardWidgetDisplayTypes.AREA_CHART,
+                DashboardWidgetDisplayTypes.BAR_CHART,
+            }
+            and not self._has_unified_visualize_feature()
+        ):
+            for query in data.get("queries") or []:
+                aggregates = query.get("aggregates") or []
+                if any(is_equation(aggregate) for aggregate in aggregates) and len(aggregates) > 1:
+                    raise serializers.ValidationError(
+                        {"queries": "Tracemetrics timeseries widgets support at most one equation."}
+                    )
+        elif data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
             for query in data.get("queries") or []:
                 aggregates = query.get("aggregates") or []
                 if any(is_equation(aggregate) for aggregate in aggregates):
