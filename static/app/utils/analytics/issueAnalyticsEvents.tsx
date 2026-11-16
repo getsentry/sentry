@@ -146,7 +146,6 @@ export type IssueEventParameters = {
     group_id?: string;
     parent_group_id?: string;
     project_id?: string;
-    shouldBeGrouped?: string;
   };
   'issue_details.similar_issues.drawer_opened': {
     group_id: string;

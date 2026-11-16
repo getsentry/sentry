@@ -221,11 +221,23 @@ describe('Settings navigation tour', () => {
     );
   });
 
-  it('stays open when the user clicks elsewhere on the page', async () => {
-    render(<Tour />, {organization});
+  it('is dismissed by a click elsewhere, which still reaches the page', async () => {
+    const handlePageClick = jest.fn();
+    render(
+      <div>
+        <Button onClick={handlePageClick}>Give Feedback</Button>
+        <Tour />
+      </div>,
+      {organization}
+    );
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
-    await userEvent.click(document.body);
-    expect(screen.getByText('Tour entry')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Give Feedback'}));
+    expect(handlePageClick).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+    const dismissals = dismissRequest.mock.calls.filter(
+      ([, options]) => options.data.status === 'dismissed'
+    );
+    expect(dismissals).toHaveLength(1);
   });
 
   it('ends without dismissing the guide when the user enters settings', async () => {

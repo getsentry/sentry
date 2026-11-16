@@ -40,6 +40,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.groupshare import GroupShare
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.notebooks.access import NOTEBOOKS_FEATURE
 from sentry.organizations.services.organization import organization_service
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay, mock_replay_viewed
@@ -51,11 +52,12 @@ from sentry.service_accounts.models import GRANTABLE_SCOPES
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, OurLogTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
 from sentry.viewer_context import (
     Actor,
     ActorType,
@@ -607,6 +609,18 @@ OUTER_BOUNDARY_MUTATION_STATUSES = {
 
 AGENT_SUDO_BOUNDARY_MUTATIONS = frozenset({("TeamDetailsEndpoint", "DELETE")})
 
+# Public rows that are also user-global: agent tokens and service accounts must never read
+# a person's account, so those credentials are denied rather than matching the oracle.
+USER_GLOBAL_ENDPOINT_NAMES = frozenset(
+    endpoint.endpoint_name for endpoint in USER_GLOBAL_GET_ENDPOINTS
+)
+NON_PERSON_AUTHENTICATIONS = frozenset(
+    {
+        MatrixAuthentication.AGENT_TOKEN,
+        MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
+        MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
+    }
+)
 # Org auth tokens can only be managed without a token (a session, or a viewer context,
 # which carries no token either) or by an OAuth application token with `org:tokens`. Every
 # other matrix credential must be denied.
@@ -625,26 +639,11 @@ SERVICE_ACCOUNT_SCOPES = frozenset(organization_roles.get("owner").scopes & GRAN
 
 
 class ServiceAccountGap(StrEnum):
-    CONTROL_SILO = "service account auth is cell-only"
-    NO_MEMBERSHIP = "checks the caller's own membership or org role, which a service account lacks"
     NO_TEAM_ACCESS = "service accounts reach no teams in v1"
 
 
 # Rows that don't match the oracle yet. Strict, so a fixed row fails until removed here.
 SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
-    "OrganizationIntegrationChannelValidate": ServiceAccountGap.CONTROL_SILO,
-    "OrganizationIntegrationChannels": ServiceAccountGap.CONTROL_SILO,
-    "OrganizationIntegrationDetails": ServiceAccountGap.CONTROL_SILO,
-    "OrganizationIntegrationDetails_delete": ServiceAccountGap.CONTROL_SILO,
-    "OrganizationIntegrations": ServiceAccountGap.CONTROL_SILO,
-    "OrganizationSentryAppComponents": ServiceAccountGap.CONTROL_SILO,
-    "OrganizationSentryApps": ServiceAccountGap.CONTROL_SILO,
-    "SentryAppDetails": ServiceAccountGap.CONTROL_SILO,
-    "SentryAppDetails_delete": ServiceAccountGap.CONTROL_SILO,
-    "SentryAppDetails_put": ServiceAccountGap.CONTROL_SILO,
-    "SentryAppInstallationExternalIssueActions_post": ServiceAccountGap.CONTROL_SILO,
-    "SentryAppInstallationExternalRequests": ServiceAccountGap.CONTROL_SILO,
-    "EventAttachmentDetails": ServiceAccountGap.NO_MEMBERSHIP,
     "ExternalTeam_post": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
@@ -654,13 +653,15 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "TeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
     "TeamMembers": ServiceAccountGap.NO_TEAM_ACCESS,
     "TeamProjects": ServiceAccountGap.NO_TEAM_ACCESS,
-    "TeamProjects_post": ServiceAccountGap.NO_TEAM_ACCESS,
 }
 
-# Rows that act on the caller as a person (saved views, stars, a personal team) or manage
-# members (including SCIM), so a service account is denied with user-required instead of matching the oracle.
+# Rows that act on the caller as a person (saved views, stars, a personal team, a Sentry
+# App request that names the acting user, deleting a Sentry App), manage members
+# (including SCIM) or create a project, which service accounts can't do for now. A service
+# account is denied with user-required instead of matching the oracle.
 SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
+        "OrganizationDashboardsStarred",
         "OrganizationGroupSearchViews_post",
         "OrganizationMemberDetails",
         "OrganizationMemberDetails_delete",
@@ -686,6 +687,10 @@ SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
         "OrganizationSCIMTeamIndex_post",
         "OrganizationStarredServiceSpans_delete",
         "OrganizationStarredServiceSpans_post",
+        "SentryAppDetails_delete",
+        "SentryAppInstallationExternalIssueActions_post",
+        "SentryAppInstallationExternalRequests",
+        "TeamProjects_post",
     }
 )
 
@@ -1134,7 +1139,7 @@ class OrganizationAgentTokenTest(APITestCase):
 @pytest.mark.seer_agent_token_matrix
 @requires_snuba
 @override_settings(SEER_API_SHARED_SECRET=SECRET, SENTRY_SELF_HOSTED=False)
-class AgentTokenPublicGetMatrixTest(APITestCase):
+class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
     """Differential, full-stack authentication coverage for the public API.
 
     Every row uses a real database user, organization membership, team, and project.
@@ -1212,6 +1217,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             resource = self.create_detector(project=self.project, type="metric_issue")
         elif name == "environment":
             resource = self.create_environment(project=self.project, name="production")
+        elif name == "uptime_detector":
+            resource = self.create_uptime_detector(
+                project=self.project,
+                env=self._resource("environment"),
+                uptime_subscription=self.create_uptime_subscription(subscription_id=uuid4().hex),
+            )
         elif name == "event":
             resource = self.store_event(
                 data={
@@ -1418,6 +1429,19 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 )
             )
             resource = replay_id
+        elif name == "trace_log":
+            trace_id = uuid4().hex
+            log = self.create_ourlog(
+                {"trace_id": trace_id}, timestamp=timezone.now() - timedelta(minutes=1)
+            )
+            response = requests.post(
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
+                files={"eap_items_0": log.SerializeToString()},
+                timeout=30,
+            )
+            assert response.status_code == 200, response.content
+            # EAP stores item IDs little-endian, so they come back reversed.
+            resource = {"item_id": log.item_id[::-1].hex(), "trace_id": trace_id}
         elif name == "replay_deletion_job":
             now = timezone.now()
             resource = self.create_replay_deletion_job(
@@ -1503,6 +1527,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             self.project.update_option("sentry:symbol_sources", json.dumps([resource]))
         elif name == "workflow":
             resource = self.create_workflow(organization=self.org)
+        elif name == "notebook":
+            resource = self.create_notebook(
+                organization=self.org, created_by=self.owner, title="Permission matrix"
+            )
+        elif name == "notebook_block":
+            resource = self.create_notebook_block(
+                notebook=self._resource("notebook"), position=0, kind="text"
+            )
         else:
             raise AssertionError(f"unknown matrix resource {name!r}")
 
@@ -1546,6 +1578,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return str(member.id)
         if placeholder == "attachment_id":
             return str(self._resource("event_attachment").id)
+        if placeholder == "user_id":
+            return "me"
         if placeholder == "token_id":
             return str(self._resource("org_auth_token").id)
         if placeholder == "dashboard_id":
@@ -1612,6 +1646,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return str(self._resource("service_hook").id)
         if placeholder == "workflow_id":
             return str(self._resource("workflow").id)
+        if placeholder == "notebook_id":
+            return str(self._resource("notebook").id)
+        if placeholder == "block_id":
+            return str(self._resource("notebook_block").id)
         if placeholder == "key":
             return "environment"
         if placeholder == "filter_id":
@@ -1638,6 +1676,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if placeholder == "image_identifier":
             self._resource("preprod_snapshot")
             return "permission-matrix.png"
+        if placeholder == "item_id":
+            return str(self._resource("trace_log")["item_id"])
         if placeholder == "resource_type_name":
             return "User"
         if placeholder == "schema_uri":
@@ -1673,6 +1713,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return {"file": "src/matrix.py", "platform": "python"}
         if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
             return {"channel": "permission-matrix"}
+        if endpoint.endpoint_name == "DsnLookupEndpoint":
+            return {"dsn": self._resource("project_key").dsn_public}
         if endpoint.endpoint_name == "OrganizationEventsEndpoint":
             return {
                 "field": ["id", "project"],
@@ -1730,8 +1772,16 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             return {"service_span": "permission-matrix-span", "project_id": self.project.id}
         if endpoint.endpoint_name == "OrganizationTraceItemAttributesEndpoint":
             return {"dataset": "spans", "project": [self.project.id]}
+        if endpoint.endpoint_name == "OrganizationGroupIndexStatsEndpoint":
+            return {"groups": [self._resource("group").id]}
+        if endpoint.endpoint_name == "OrganizationMonitorIndexStatsEndpoint":
+            return {"monitor": [str(self._resource("monitor").guid)]}
+        if endpoint.endpoint_name == "OrganizationUptimeStatsEndpoint":
+            return {"uptimeDetectorId": [self._resource("uptime_detector").id]}
         if endpoint.endpoint_name == "OrganizationTraceLogsEndpoint":
             return {"traceId": uuid4().hex, "statsPeriod": "1h"}
+        if endpoint.endpoint_name == "ProjectTraceItemDetailsEndpoint":
+            return {"item_type": "logs", "trace_id": self._resource("trace_log")["trace_id"]}
         if endpoint.endpoint_name == "OrganizationTraceItemStatsEndpoint":
             return {
                 "statsType": ["attributeDistributions"],
@@ -1777,12 +1827,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             "DataForwardingIndexEndpoint": "organizations:data-forwarding",
             "DiscoverSavedQueryDetailEndpoint": "organizations:discover-query",
             "DiscoverSavedQueriesEndpoint": "organizations:discover-query",
+            "ExploreSavedQueriesEndpoint": "organizations:visibility-explore-view",
             "ExternalTeamDetailsEndpoint": "organizations:integrations-codeowners",
             "ExternalTeamEndpoint": "organizations:integrations-codeowners",
             "ExternalUserDetailsEndpoint": "organizations:integrations-codeowners",
             "ExternalUserEndpoint": "organizations:integrations-codeowners",
             "EventAttachmentDetailsEndpoint": "organizations:event-attachments",
             "GroupIntegrationDetailsEndpoint": "organizations:integrations-issue-basic",
+            "OrganizationDashboardsStarredEndpoint": "organizations:dashboards-starred",
             "OrganizationEventsEndpoint": "organizations:discover-basic",
             "OrganizationGroupSearchViewsEndpoint": "organizations:issue-views",
             "OrganizationProfilingChunksEndpoint": "organizations:continuous-profiling",
@@ -1802,6 +1854,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             flags["projects:custom-inbound-filters"] = True
         if "Replay" in endpoint.endpoint_name:
             flags["organizations:session-replay"] = True
+        if endpoint.endpoint_name.startswith("OrganizationNotebook"):
+            flags[NOTEBOOKS_FEATURE] = True
         return flags
 
     def _mint_agent_token(
@@ -2048,6 +2102,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "query": "is:unresolved",
                 "version": 2,
             },
+            ("ExploreSavedQueriesEndpoint", "POST"): {
+                "name": "Permission matrix explore query",
+                "projects": [self.project.id],
+                "query": [{"fields": ["span.op"], "mode": "samples", "query": ""}],
+                "range": "24h",
+            },
             ("DiscoverSavedQueryDetailEndpoint", "PUT"): {
                 "name": "Updated permission matrix query",
                 "projects": [self.project.id],
@@ -2181,6 +2241,28 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 },
                 "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
                 "workflowIds": [self._resource("workflow").id],
+            },
+            ("OrganizationNotebookIndexEndpoint", "POST"): {
+                "title": "Permission matrix investigation",
+                "projectIds": [self.project.id],
+            },
+            ("OrganizationNotebookBlockIndexEndpoint", "POST"): {
+                "notebookVersion": self._resource("notebook").version,
+                "kind": "text",
+                "content": "Permission matrix block",
+            },
+            ("OrganizationNotebookBlockOrderEndpoint", "PUT"): {
+                "notebookVersion": self._resource("notebook").version,
+                "blockIds": [self._resource("notebook_block").id],
+            },
+            ("OrganizationNotebookBlockDetailsEndpoint", "PUT"): {
+                "notebookVersion": self._resource("notebook").version,
+                "version": self._resource("notebook_block").version,
+                "content": "Updated permission matrix block",
+            },
+            ("OrganizationNotebookBlockDetailsEndpoint", "DELETE"): {
+                "notebookVersion": self._resource("notebook").version,
+                "version": self._resource("notebook_block").version,
             },
             ("OrganizationMonitorIndexEndpoint", "POST"): {
                 "project": self.project.slug,
@@ -2619,6 +2701,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         expected_baseline_status = OUTER_BOUNDARY_GET_STATUSES.get(endpoint.endpoint_name, 200)
         assert baseline.status_code == expected_baseline_status, baseline.content
         if (
+            endpoint.endpoint_name in USER_GLOBAL_ENDPOINT_NAMES
+            and authentication in NON_PERSON_AUTHENTICATIONS
+        ) or (
             endpoint.endpoint_name in SESSION_OR_OAUTH_APP_ONLY_ENDPOINTS
             and authentication not in TOKENLESS_AUTHENTICATIONS
         ):

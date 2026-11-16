@@ -23,6 +23,7 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.utils.detector_filters import get_visible_detector_types
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorId, DetectorType, WorkflowId
 
@@ -185,7 +186,10 @@ def validate_detectors_exist_and_have_permissions(
 def validate_workflows_exist(
     workflow_ids: list[int], organization: Organization
 ) -> QuerySet[Workflow]:
-    workflows = Workflow.objects.filter(organization=organization, id__in=workflow_ids)
+    # Users should not be able to reference the ids of hidden workflows
+    workflows = Workflow.objects.filter(
+        organization=organization, id__in=workflow_ids, type__in=VISIBLE_WORKFLOW_TYPES
+    )
     found_workflow_ids = set(workflows.values_list("id", flat=True))
     missing_workflow_ids = set(workflow_ids) - found_workflow_ids
 
@@ -217,14 +221,15 @@ def can_edit_workflows(workflows: Sequence[Workflow], request: Request) -> bool:
     """
     Check write permissions after enforcing access to each workflow.
 
-    Organization alert writers can edit workflows. Otherwise, every workflow must
-    have connections and the caller must be able to edit every connection.
+    Organization admins can edit any workflow. Organization alert writers can edit
+    workflows whose connected projects they can all access. Otherwise, every workflow
+    must have connections and the caller must be able to edit every connection.
     """
     workflow_ids = {workflow.id for workflow in workflows}
     if not workflow_ids:
         return False
 
-    if any(request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES):
+    if request.access.has_scope("org:write") or request.access.has_scope("org:admin"):
         return True
 
     detector_workflows = list(
@@ -232,6 +237,14 @@ def can_edit_workflows(workflows: Sequence[Workflow], request: Request) -> bool:
             "detector", "detector__project"
         )
     )
+
+    if request.access.has_scope("alerts:write"):
+        return all(
+            detector_workflow.detector.project is not None
+            and request.access.has_project_access(detector_workflow.detector.project)
+            for detector_workflow in detector_workflows
+        )
+
     connected_workflow_ids = {
         detector_workflow.workflow_id for detector_workflow in detector_workflows
     }
@@ -378,10 +391,13 @@ def connect_detectors_to_workflows(
             return detector_workflows_to_add
 
         if update:
+            # Since users do not receive hidden workflow ids through the API,
+            # these connections need to be left untouched
             existing_detector_workflows = list(
                 DetectorWorkflow.objects.filter(
                     detector_id=detector_id,
                     detector__in=Detector.objects.by_organization(organization.id),
+                    workflow__type__in=VISIBLE_WORKFLOW_TYPES,
                 )
             )
             new_workflow_ids = set(workflow_ids) - {

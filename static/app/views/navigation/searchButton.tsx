@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import {IconSearch} from '@sentry/icons/search';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
@@ -14,11 +15,32 @@ import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
-export function SearchButton(props: Pick<ButtonProps, 'className'>) {
+/**
+ * Returns a callback that toggles the command palette from a button click.
+ */
+export function useToggleCommandPalette() {
   const organization = useOrganization({allowNull: true});
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
   const {openSeerExplorer} = useSeerExplorerContext();
+
+  return useCallback(() => {
+    if (!organization) {
+      return;
+    }
+    toggleCommandPalette(
+      {},
+      organization,
+      state,
+      dispatch,
+      'button',
+      isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+    );
+  }, [organization, state, dispatch, openSeerExplorer]);
+}
+
+export function SearchButton(props: Pick<ButtonProps, 'className'>) {
+  const toggle = useToggleCommandPalette();
   return (
     <Button
       {...props}
@@ -33,19 +55,7 @@ export function SearchButton(props: Pick<ButtonProps, 'className'>) {
           </Flex>
         ),
       }}
-      onClick={() => {
-        if (!organization) {
-          return;
-        }
-        toggleCommandPalette(
-          {},
-          organization,
-          state,
-          dispatch,
-          'button',
-          isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
-        );
-      }}
+      onClick={toggle}
     />
   );
 }

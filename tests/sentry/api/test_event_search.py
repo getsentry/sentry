@@ -1353,6 +1353,8 @@ def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern: str) -> None:
         pytest.param("tags[foo:bar,number]:0", "tags[foo:bar,number]", "0"),
         pytest.param("tags[foo,boolean]:true", "tags[foo,boolean]", "true"),
         pytest.param("tags[foo:bar,boolean]:true", "tags[foo:bar,boolean]", "true"),
+        pytest.param("tags[foo,array]:bar", "tags[foo,array]", "bar"),
+        pytest.param("tags[foo:bar,array]:baz", "tags[foo:bar,array]", "baz"),
         pytest.param("flags[foo]:true", "flags[foo]", "true"),
         pytest.param("flags[foo,string]:true", "flags[foo,string]", "true"),
         pytest.param("flags[foo:bar,string]:true", "flags[foo:bar,string]", "true"),
@@ -1376,6 +1378,8 @@ def test_handles_special_character_in_tags_and_flags(query: str, key: str, value
         pytest.param("has:tags[foo:bar,string]", "tags[foo:bar,string]"),
         pytest.param("has:tags[foo:bar,number]", "tags[foo:bar,number]"),
         pytest.param("has:tags[foo:bar,boolean]", "tags[foo:bar,boolean]"),
+        pytest.param("has:tags[foo,array]", "tags[foo,array]"),
+        pytest.param("has:tags[foo:bar,array]", "tags[foo:bar,array]"),
         pytest.param("has:flags[foo]", "flags[foo]"),
         pytest.param("has:flags[foo,string]", "flags[foo,string]"),
         pytest.param("has:flags[foo,number]", "flags[foo,number]"),
@@ -1663,6 +1667,18 @@ def test_rejects_regex_filters_when_a_query_has_more_than_the_maximum_count() ->
 
 def test_parses_a_regex_value_on_an_array_includes_key_as_its_array_attribute() -> None:
     filters = parse_search_query("tags[foo[*],array]://^a//", config=regex_config)
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="tags[foo,array]"),
+            operator="=",
+            value=SearchValue("^a", use_raw_value=True, is_regex=True),
+        )
+    ]
+
+
+def test_parses_a_regex_value_on_an_explicit_array_tag_key_as_its_array_attribute() -> None:
+    filters = parse_search_query("tags[foo,array]://^a//", config=regex_config)
 
     assert filters == [
         SearchFilter(

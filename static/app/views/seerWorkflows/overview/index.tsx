@@ -353,10 +353,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       windows.push(ids.slice(start, start + SCM_WINDOW_SIZE));
     }
     const map = new Map<string, string[][]>();
-    windows.forEach((window, index) => {
+    windows.forEach((scmWindow, index) => {
       const nextWindow = windows[index + 1];
-      const toRequest = nextWindow ? [window, nextWindow] : [window];
-      for (const id of window) {
+      const toRequest = nextWindow ? [scmWindow, nextWindow] : [scmWindow];
+      for (const id of scmWindow) {
         map.set(id, toRequest);
       }
     });

@@ -35,6 +35,7 @@ import {IconClose} from '@sentry/icons/close';
 import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
@@ -69,8 +70,12 @@ import {
   type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {
+  useNavigationGroupHoverEnabled,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const MotionContainer = motion.create(Container);
@@ -118,6 +123,9 @@ function SecondarySidebarPanel({
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const {layout, activeGroup} = usePrimaryNavigation();
+  // Group switches only animate to smooth over hover previews.
+  const shouldAnimateGroupSwitch = useNavigationGroupHoverEnabled();
+  const isSettingsNavigation = useSettingsNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -151,14 +159,20 @@ function SecondarySidebarPanel({
       width={isMobile ? '100%' : `${size}px`}
       ref={isMobile ? undefined : containerRef}
     >
-      <AnimatePresence mode="popLayout" initial={false}>
+      <AnimatePresence
+        // Settings swaps the whole navigation, so start a fresh presence instead
+        // of animating from the previous group.
+        key={isSettingsNavigation ? 'settings' : 'app'}
+        mode="popLayout"
+        initial={false}
+      >
         <MotionContainer
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={{x: -6, opacity: 0}}
+          initial={shouldAnimateGroupSwitch ? {x: -6, opacity: 0} : false}
           animate={{x: 0, opacity: 1}}
-          exit={{x: 6, opacity: 0}}
+          exit={shouldAnimateGroupSwitch ? {x: 6, opacity: 0} : undefined}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -331,8 +345,12 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
 
 function SecondaryNavigationToggle() {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
+  const {collapsible, view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
+
+  if (!collapsible) {
+    return null;
+  }
 
   if (layout === 'mobile') {
     return (
@@ -890,6 +908,11 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
 
   return (
     <DndContext
+      // dnd-kit renders its position: fixed live region inline by default. While the
+      // panel animates, its transform turns that region into an absolute element
+      // below the scrolled list. If the list overflows, the page grows a scrollbar
+      // and the main content shifts.
+      accessibility={{container: document.body}}
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
@@ -1105,6 +1128,18 @@ const GrabHandleAnimation = styled('div')`
     ${p => p.theme.focusRing()}
   }
 `;
+
+interface SecondaryNavigationFeatureBadgeProps {
+  type: FeatureBadgeProps['type'];
+}
+
+/**
+ * Feature badges can sit before the link label, so a tooltip on the right
+ * would cover the label of the hovered link.
+ */
+function SecondaryNavigationFeatureBadge({type}: SecondaryNavigationFeatureBadgeProps) {
+  return <FeatureBadge type={type} tooltipProps={{position: 'top'}} />;
+}
 
 interface SecondaryNavigationIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
@@ -1346,4 +1381,5 @@ export const SecondaryNavigation = {
   ReorderableList: SecondaryNavigationReorderableList,
   ReorderableLink: SecondaryNavigationReorderableLink,
   Indicator: SecondaryNavigationIndicator,
+  FeatureBadge: SecondaryNavigationFeatureBadge,
 };

@@ -6,6 +6,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {createSerializer, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Table, type TableColumnConfig} from '@sentry/scraps/table';
@@ -22,12 +23,10 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {getNextCheckInEnv} from 'sentry/utils/monitor/cron';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useApi} from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -36,7 +35,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {
   checkInStatusPrecedent,
-  makeMonitorDetailsQueryKey,
+  monitorDetailsApiOptions,
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/crons/utils';
@@ -92,12 +91,12 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
     recomputeOnWindowFocus: true,
   });
 
-  const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
+  const monitorDetailsQueryKey = monitorDetailsApiOptions(
     organization,
     monitor.project.slug,
     monitor.slug,
     {environment}
-  );
+  ).queryKey;
 
   const {data: monitorStats, isPending} = useMonitorStats({
     monitors: [monitor.id],
@@ -123,14 +122,17 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
       return;
     }
 
-    setApiQueryData<Monitor>(queryClient, monitorDetailsQueryKey, oldMonitorDetails => {
-      return oldMonitorDetails
+    queryClient.setQueryData(monitorDetailsQueryKey, previous =>
+      previous
         ? {
-            ...oldMonitorDetails,
-            environments: oldMonitorDetails.environments.filter(e => e.name !== env),
+            ...previous,
+            json: {
+              ...previous.json,
+              environments: previous.json.environments.filter(e => e.name !== env),
+            },
           }
-        : undefined;
-    });
+        : undefined
+    );
 
     onEnvironmentUpdated?.();
   };

@@ -14,7 +14,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import analytics, options
+from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeRedeemedEvent
 from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
@@ -27,6 +28,7 @@ from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
@@ -64,6 +66,7 @@ class _TokenGrantResult(TypedDict, total=False):
 
 
 @control_silo_view
+@ai_machine_readable
 class OAuthTokenView(View):
     # Token responses must not be cached per RFC 6749 §5.1/§5.2. We apply
     # never_cache at dispatch so every response from this endpoint is marked
@@ -701,7 +704,14 @@ class OAuthTokenView(View):
             # The code is consumed by any redemption attempt, including an expired one.
             setup_code_id = setup_code.id
             setup_code.delete()
+            analytics_args = {
+                "user_id": setup_code.user_id,
+                "organization_id": setup_code.organization_id,
+                "application_id": application.id,
+                "setup_code_id": setup_code_id,
+            }
             if setup_code.is_expired():
+                analytics.record(OAuthSetupCodeRedeemedEvent(**analytics_args, outcome="expired"))
                 return self.error(
                     request=request, name="invalid_grant", reason="setup code expired"
                 )
@@ -713,6 +723,7 @@ class OAuthTokenView(View):
                 scoping_organization_id=setup_code.organization_id,
             )
 
+        analytics.record(OAuthSetupCodeRedeemedEvent(**analytics_args, outcome="exchanged"))
         metrics.incr("oauth_setup_code.token_exchange", sample_rate=1.0)
         logger.info(
             "oauth.setup-code-exchanged",

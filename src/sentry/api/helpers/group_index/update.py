@@ -794,6 +794,8 @@ def prepare_response(
                     group,
                     acting_user,
                     endpoint=activity_read_endpoint(request),
+                    # Slack and Discord actions have no request access.
+                    access=getattr(request, "access", None),
                     limit=ACTIVITIES_COUNT - 1,
                 )
                 if activity_items is not None:

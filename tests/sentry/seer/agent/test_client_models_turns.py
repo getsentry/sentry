@@ -94,6 +94,20 @@ def test_turns_and_pr_states_without_push_log(push_log_fields: dict[str, Any]) -
     assert "pr_push_log" not in state.dict()
 
 
+@pytest.mark.parametrize(
+    ("request_fields", "expected_source"),
+    [({}, None), ({"source": None}, None), ({"source": "autofix"}, "autofix")],
+)
+def test_push_request_source_is_optional(
+    request_fields: dict[str, Any], expected_source: str | None
+) -> None:
+    entry = PushLogEntry.parse_obj(
+        {"request": {"repo_name": "acme/web", "action": "create", **request_fields}}
+    )
+
+    assert entry.request.source == expected_source
+
+
 def test_push_log_index_links_each_call_to_its_push() -> None:
     old = PushLogEntry(
         request=PushRequest(repo_name="acme/old", action="create", idempotency_key="codemode:1")

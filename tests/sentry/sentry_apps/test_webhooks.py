@@ -37,10 +37,15 @@ def test_is_subscribed_matches_exact_event() -> None:
     assert not is_subscribed(["metric_alert.open"], "metric_alert.critical")
 
 
-def test_seer_errored_is_never_delivered_to_sentry_apps() -> None:
-    # Internal only until its payload is settled; adding it to EVENT_EXPANSION would expose it.
-    every_seer_event = [*EVENT_EXPANSION[SentryAppResourceType.SEER], "seer.errored"]
-    assert not is_subscribed(every_seer_event, SentryAppEventType.SEER_ERRORED)
+@pytest.mark.parametrize(
+    "event_type", [SentryAppEventType.SEER_ERRORED, SentryAppEventType.SEER_STOPPED]
+)
+def test_internal_seer_events_are_never_delivered_to_sentry_apps(
+    event_type: SentryAppEventType,
+) -> None:
+    # Internal only until their payloads are settled; adding them to EVENT_EXPANSION would expose them.
+    every_seer_event = [*EVENT_EXPANSION[SentryAppResourceType.SEER], event_type.value]
+    assert not is_subscribed(every_seer_event, event_type)
 
 
 @cell_silo_test

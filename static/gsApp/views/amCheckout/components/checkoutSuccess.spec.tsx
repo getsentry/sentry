@@ -64,7 +64,6 @@ describe('CheckoutSuccess', () => {
               amount: 0,
               type: 'reserved_errors',
               description: 'Reserved errors',
-              // @ts-expect-error The billing platform preview has sent null data
               data: null,
               period_end: '',
               period_start: '',

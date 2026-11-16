@@ -12,6 +12,7 @@ from sentry.explore.endpoints.explore_saved_queries import (
     sync_prebuilt_queries,
     sync_prebuilt_queries_starred,
 )
+from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import (
     ExploreSavedQuery,
     ExploreSavedQueryDataset,
@@ -19,6 +20,7 @@ from sentry.explore.models import (
     ExploreSavedQueryStarred,
 )
 from sentry.explore.types import SavedQueryRef, SavedQueryType
+from sentry.search.eap.constants import QueryPriorities
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -1498,7 +1500,7 @@ class ExploreSavedQueriesTest(APITestCase):
             assert response.data == {"detail": "You do not have access to query transformations."}
             assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
 
-    def test_save_invalid_transformation_pipeline(self) -> None:
+    def test_save_invalid_transformation_function(self) -> None:
         for visualization_field in ["visualize", "aggregateField"]:
             with self.feature(
                 {**self.features, "organizations:explore-interpolation-and-smoothing": True}
@@ -2329,6 +2331,89 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         data = response.data
         assert data["query"][0].get("metric") is None
+
+    def test_post_saves_query_priority(self) -> None:
+        for dataset in ("spans", "logs"):
+            with self.feature(self.features):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": f"{dataset} priority",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [{"fields": ["timestamp"], "mode": "samples"}],
+                        "range": "24h",
+                        "queryPriority": "faster",
+                    },
+                )
+            assert response.status_code == 201, response.content
+            assert response.data["dataset"] == dataset
+            assert response.data["queryPriority"] == "faster"
+            model = ExploreSavedQuery.objects.get(id=response.data["id"])
+            assert model.query_priority == QueryPriorities.FASTER
+
+
+def _query_priority_serializer_context() -> dict[str, object]:
+    return {
+        "params": {
+            "project_id": [],
+            "start": before_now(days=1),
+            "end": before_now(minutes=1),
+        },
+        "organization": None,
+        "user": None,
+    }
+
+
+def _query_priority_payload(**extra: object) -> dict[str, object]:
+    return {
+        "name": "priority",
+        "dataset": "spans",
+        "projects": [],
+        "query": [{"fields": ["timestamp"], "mode": "samples"}],
+        **extra,
+    }
+
+
+def test_saved_query_serializer_invalid_query_priority_uses_camel_case() -> None:
+    serializer = ExploreSavedQuerySerializer(
+        data=_query_priority_payload(queryPriority="nope"),
+        context=_query_priority_serializer_context(),
+    )
+
+    assert not serializer.is_valid()
+    assert "queryPriority" in serializer.errors
+    assert "query_priority" not in serializer.errors
+
+
+def test_saved_query_serializer_accepts_camel_case_query_priority() -> None:
+    serializer = ExploreSavedQuerySerializer(
+        data=_query_priority_payload(queryPriority="faster"),
+        context=_query_priority_serializer_context(),
+    )
+
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["query_priority"] == QueryPriorities.FASTER
+
+
+def test_saved_query_serializer_ignores_snake_case_query_priority() -> None:
+    serializer = ExploreSavedQuerySerializer(
+        data=_query_priority_payload(query_priority="faster"),
+        context=_query_priority_serializer_context(),
+    )
+
+    assert serializer.is_valid(), serializer.errors
+    assert "query_priority" not in serializer.validated_data
+
+
+def test_saved_query_serializer_prefers_camel_case_query_priority() -> None:
+    serializer = ExploreSavedQuerySerializer(
+        data=_query_priority_payload(queryPriority="faster", query_priority="normal"),
+        context=_query_priority_serializer_context(),
+    )
+
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["query_priority"] == QueryPriorities.FASTER
 
 
 @with_feature(["organizations:granular-permission-scopes", "organizations:visibility-explore-view"])

@@ -11,6 +11,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {useFormErrorMapper} from '@sentry/scraps/form/formErrorContext';
 import {InfoTip} from '@sentry/scraps/info';
@@ -21,7 +22,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingError} from 'sentry/components/loadingError';

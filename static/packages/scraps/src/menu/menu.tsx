@@ -136,7 +136,7 @@ export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
             <IconSearch size="xs" variant="muted" />
           </Flex>
         </InputGroup.LeadingItems>
-        <InputGroup.Input size="xs" {...props} />
+        <InputGroup.Input size="xs" type="search" {...props} />
       </InputGroup>
     </Container>
   );
@@ -177,6 +177,9 @@ type Priority = 'primary' | 'danger' | 'default';
 // right edge, and `TRAILING_ACTION_SPACE` keeps the label clear of it.
 const TRAILING_ACTION_INSET = 'lg';
 const TRAILING_ACTION_SPACE = '3xl';
+
+/** Space token between the items of a dropdown menu section. */
+export const SECTION_ITEM_SPACE = '2xs';
 
 const ITEM_PADDING_BY_SIZE = {
   xs: 'xs md xs lg',
@@ -339,6 +342,8 @@ export interface MenuItemTrailingAction {
   /** Accessible name for the button, also shown as its tooltip. */
   label: string;
   onAction: () => void;
+  /** Shows a loading indicator in place of the icon while the action runs. */
+  busy?: boolean;
 }
 
 export type ListItemProps = {
@@ -615,6 +620,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
             icon={trailingAction.icon}
             aria-label={trailingAction.label}
             tooltipProps={{title: trailingAction.label}}
+            busy={trailingAction.busy}
             onClick={trailingAction.onAction}
           />
         </Flex>

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -1266,6 +1267,67 @@ describe('Dashboards > Detail', () => {
       );
     });
 
+    it('records the seer run id from the URL when a generated dashboard is saved', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        method: 'POST',
+        body: DashboardFixture([], {id: '5', title: 'Generated'}),
+      });
+      render(<CreateDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboards/new/',
+          route: DASHBOARD_NEW_ROUTE,
+          query: {seerRunId: '123'},
+        }),
+        organization: initialData.organization,
+      });
+
+      await userEvent.click(await screen.findByText('Save and Finish'));
+
+      await waitFor(() => {
+        expect(Sentry.metrics.count).toHaveBeenCalledWith(
+          'dashboards.seer.create.save',
+          1,
+          {
+            attributes: {
+              organization_slug: 'org-slug',
+              dashboard_id: '5',
+              seer_run_id: 123,
+            },
+          }
+        );
+      });
+    });
+
+    it('tags the save failure with the seer run id from the URL when a generated dashboard fails to save', async () => {
+      const setTagSpy = jest.spyOn(Sentry.Scope.prototype, 'setTag');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        method: 'POST',
+        statusCode: 400,
+        body: {detail: 'Invalid dashboard'},
+      });
+      render(<CreateDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboards/new/',
+          route: DASHBOARD_NEW_ROUTE,
+          query: {seerRunId: '123'},
+        }),
+        organization: initialData.organization,
+      });
+
+      await userEvent.click(await screen.findByText('Save and Finish'));
+
+      await waitFor(() => {
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+          'Generated dashboard failed to save',
+          expect.anything()
+        );
+      });
+      expect(setTagSpy).toHaveBeenCalledWith('seer.run_id', '123');
+      setTagSpy.mockRestore();
+    });
+
     it('opens the widget viewer with saved dashboard filters', async () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
@@ -1453,6 +1515,47 @@ describe('Dashboards > Detail', () => {
             globalFilter: '',
           })
         );
+      });
+    });
+
+    it('writes blank filter params while keeping other params when saved filters are cleared', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture(widgets, {
+          id: '1',
+          title: 'Custom Errors',
+          filters: {release: ['sentry-android-shop@1.2.0']},
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/',
+        body: [
+          ReleaseFixture({
+            shortVersion: 'sentry-android-shop@1.2.0',
+            version: 'sentry-android-shop@1.2.0',
+          }),
+        ],
+      });
+      const {router} = render(<ViewEditDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          route: DASHBOARD_ROUTE,
+          query: {statsPeriod: '7d', environment: ['alpha', 'beta']},
+        }),
+        organization: initialData.organization,
+      });
+
+      await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
+      await userEvent.click(screen.getAllByText('Clear')[0]!);
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(router.location.query).toEqual({
+          statsPeriod: '7d',
+          environment: ['alpha', 'beta'],
+          release: '',
+          globalFilter: '',
+        });
       });
     });
 
@@ -2351,6 +2454,52 @@ describe('Dashboards > Detail', () => {
             name: 'From Widget Library',
           })
         );
+        expect(await screen.findByText('Widget Library')).toBeInTheDocument();
+      });
+
+      it('opens the widget library when the widget builder URL sets openWidgetTemplates', async () => {
+        render(
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {id: '1'})}
+            onDashboardUpdate={jest.fn()}
+          />,
+          {
+            organization: initialData.organization,
+            ...makeDashboardRouterConfig({
+              pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
+              route: DASHBOARD_NEW_WIDGET_BUILDER_ROUTE,
+              query: {openWidgetTemplates: 'true'},
+            }),
+          }
+        );
+
+        expect(await screen.findByText('Widget Library')).toBeInTheDocument();
+      });
+
+      it('opens the widget library when navigating to a widget builder URL that sets openWidgetTemplates', async () => {
+        const {router} = render(
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {id: '1'})}
+            onDashboardUpdate={jest.fn()}
+          />,
+          {
+            organization: initialData.organization,
+            ...makeDashboardRouterConfig({
+              pathname: '/organizations/org-slug/dashboard/1/',
+              routes: [DASHBOARD_ROUTE, DASHBOARD_NEW_WIDGET_BUILDER_ROUTE],
+            }),
+          }
+        );
+        await screen.findByRole('button', {name: 'Add Widget'});
+
+        act(() =>
+          router.navigate(
+            '/organizations/org-slug/dashboard/1/widget-builder/widget/new/?openWidgetTemplates=true'
+          )
+        );
+
         expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
 

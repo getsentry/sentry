@@ -126,9 +126,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             "projects": [
                 {"slug": project.slug, "platform": project.platform} for project in projects
             ],
-            "code_mode": features.has(
-                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
-            ),
+            "code_mode": True,
             "actions_enabled": actions_enabled,
         }
         if actions_enabled:
@@ -204,7 +202,9 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
 
         elif workflow_id := _to_valid_int_id("automationId", route_params.get("automationId")):
             workflow = Workflow.objects.filter(
-                id=workflow_id, organization_id=organization.id
+                id=workflow_id,
+                organization_id=organization.id,
+                type=Workflow.Type.ALERT,
             ).first()
             if workflow:
                 try:

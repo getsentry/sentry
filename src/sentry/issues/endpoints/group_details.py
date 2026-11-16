@@ -52,7 +52,11 @@ from sentry.issues.action_log import (
     publish_action,
 )
 from sentry.issues.action_log.read_metrics import activity_read_endpoint
-from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
+from sentry.issues.action_log.request import (
+    has_recent_view,
+    resolve_action_actor,
+    resolve_action_source,
+)
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
@@ -87,6 +91,9 @@ from sentry.utils import metrics
 from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
+
+# A ViewAction is published at most once per group/source/actor in this interval.
+VIEW_ACTION_PUBLISH_INTERVAL = timedelta(hours=4)
 
 
 def get_group_global_count(group: Group) -> str:
@@ -376,7 +383,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     data.update({"latestEventHasAttachments": num_attachments > 0})
 
             activity_items = get_serialized_activity_items(
-                group, request.user, endpoint=activity_read_endpoint(request)
+                group,
+                request.user,
+                access=request.access,
+                endpoint=activity_read_endpoint(request),
             )
             if activity_items is None:
                 activity = Activity.objects.get_activities_for_group(group, 100)
@@ -396,13 +406,27 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
                 data["stats"] = {"24h": hourly_stats, "30d": daily_stats}
 
-            publish_action(
-                ViewAction(),
-                source=resolve_action_source(request),
-                group_id=group.id,
-                project=group.project,
-                actor=resolve_action_actor(request),
-            )
+            view_source = resolve_action_source(request)
+            view_actor = resolve_action_actor(request)
+            if not options.get("issues.action_log.view_rate_limit.killswitch") and has_recent_view(
+                group.id, source=view_source, actor=view_actor, within=VIEW_ACTION_PUBLISH_INTERVAL
+            ):
+                metrics.incr(
+                    "issues.action_log.view_rate_limited",
+                    sample_rate=1.0,
+                    tags={
+                        "source": view_source,
+                        "actor_type": view_actor.actor_type.name.lower(),
+                    },
+                )
+            else:
+                publish_action(
+                    ViewAction(),
+                    source=view_source,
+                    group_id=group.id,
+                    project=group.project,
+                    actor=view_actor,
+                )
 
             try:
                 self._report_status_inconsistency(group)

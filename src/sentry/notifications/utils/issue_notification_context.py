@@ -77,11 +77,11 @@ class IssueNotificationContext:
 
     @cached_property
     def group(self) -> Group:
-        return self._invocation.event_data.group
+        return self._invocation.event_data.require_group()
 
     @cached_property
     def trigger_status(self) -> TriggerStatus:
-        group_status = self._invocation.event_data.group.status
+        group_status = self._invocation.event_data.require_group().status
         if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
             return TriggerStatus.RESOLVED
         return TriggerStatus.ACTIVE

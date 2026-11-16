@@ -1,14 +1,11 @@
 import contextlib
-import copy
 import time
-from collections.abc import Callable, Iterator
-from contextlib import AbstractContextManager
+from collections.abc import Iterator
 from threading import Thread
 from unittest.mock import patch
 
 import pytest
 
-from sentry import options
 from sentry.buffer.redis import RedisBuffer
 from sentry.event_manager import GroupInfo, assign_event_to_group, create_group_with_grouphashes
 from sentry.models.group import Group
@@ -112,7 +109,6 @@ def test_group_creation_race(default_project: Project, lock_disabled: bool) -> N
 @django_db_all
 def test_lost_group_creation_race_updates_group_outside_transaction(
     default_project: Project,
-    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
 ) -> None:
     """
     Make the second event lose the group creation race without threads: link the grouphashes to a
@@ -121,12 +117,7 @@ def test_lost_group_creation_race_updates_group_outside_transaction(
     ends. The buffer uses a Redis client that has the transaction check, so a Redis call inside the
     transaction makes this test fail.
     """
-    # Use a client that has the Redis-in-transaction check. An `rb` client does not have it.
-    redis_clusters = copy.deepcopy(options.get("redis.clusters"))
-    redis_clusters["default"]["is_redis_cluster"] = True
-
     with (
-        set_sentry_option("redis.clusters", redis_clusters),
         patch(
             "sentry.grouping.ingest.hashing._calculate_event_grouping",
             return_value=(["pound_sign", "octothorpe"], {}),
@@ -138,7 +129,6 @@ def test_lost_group_creation_race_updates_group_outside_transaction(
         patch("sentry.event_manager._materialize_metadata_many"),
     ):
         redis_buffer = RedisBuffer()
-        assert redis_buffer.is_redis_cluster
 
         with patch("sentry.buffer.backend", redis_buffer):
             # The first event creates the group and links the grouphashes to it

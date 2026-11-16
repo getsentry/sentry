@@ -23,6 +23,7 @@ from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
 from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.response_types import (
     DetailResponse,
+    NonFieldErrorsResponse,
     ValidationErrorResponse,
     as_validation_errors,
 )
@@ -46,8 +47,6 @@ from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.utils.webhooks import has_error_events
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger(__name__)
@@ -127,6 +126,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     ) -> (
         Response[SentryAppSerializerResponse]
         | Response[DetailResponse]
+        | Response[NonFieldErrorsResponse]
         | Response[ValidationErrorResponse]
     ):
         """
@@ -173,7 +173,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            assert isinstance(request.user, (User, RpcUser)), (
+            assert request.user.is_authenticated, (
                 "User must be authenticated to update a Sentry App"
             )
             updated_app = SentryAppUpdater(

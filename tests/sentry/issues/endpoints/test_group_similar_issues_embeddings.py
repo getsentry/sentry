@@ -666,7 +666,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.data == []
 
-    @mock.patch("sentry.issues.endpoints.group_similar_issues_embeddings.get_stacktrace_string")
+    @mock.patch("sentry.issues.related.similar_stacktrace.get_stacktrace_string")
     def test_no_stacktrace_string(self, mock_get_stacktrace_string: mock.MagicMock) -> None:
         mock_get_stacktrace_string.return_value = ""
 

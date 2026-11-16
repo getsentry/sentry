@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
 import {bulkDelete} from 'sentry/actionCreators/group';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';

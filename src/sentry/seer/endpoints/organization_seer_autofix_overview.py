@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, NamedTuple, cast
@@ -35,12 +35,17 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 from sentry.seer.agent.client_models import AgentFilePatch, FilePatch
 from sentry.seer.agent.client_utils import fetch_run_statuses
+from sentry.seer.autofix.utils import (
+    get_token_based_billing_repo_filter,
+    is_seer_token_based_billing_onboarding_enabled,
+)
 from sentry.seer.constants import SEER_GITHUB_SCM_PROVIDERS
 from sentry.seer.endpoints.organization_seer_autofix_overview_types import (
     CodeChangeFilePayload,
@@ -248,15 +253,30 @@ def _coding_agent_repo_eligibility(
 ) -> dict[int, _RepoEligibility]:
     github_providers = set(SEER_GITHUB_SCM_PROVIDERS)
     eligibility = {pid: _RepoEligibility(False, False) for pid in project_ids}
-    rows = (
-        SeerProjectRepository.objects.filter(
-            project_repository__project_id__in=project_ids,
-            project_repository__repository__status=ObjectStatus.ACTIVE,
-            project_repository__repository__provider__in=get_supported_scm_providers(organization),
+    rows: Iterable[tuple[int, str | None]]
+    if is_seer_token_based_billing_onboarding_enabled(organization):
+        rows = (
+            ProjectRepository.objects.filter(
+                get_token_based_billing_repo_filter(organization, prefix="repository__"),
+                project_id__in=project_ids,
+            )
+            .values_list("project_id", "repository__provider")
+            .distinct()
         )
-        .values_list("project_repository__project_id", "project_repository__repository__provider")
-        .distinct()
-    )
+    else:
+        rows = (
+            SeerProjectRepository.objects.filter(
+                project_repository__project_id__in=project_ids,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+                project_repository__repository__provider__in=get_supported_scm_providers(
+                    organization
+                ),
+            )
+            .values_list(
+                "project_repository__project_id", "project_repository__repository__provider"
+            )
+            .distinct()
+        )
     for project_id, provider in rows:
         prev = eligibility[project_id]
         eligibility[project_id] = _RepoEligibility(

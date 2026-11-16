@@ -1,8 +1,5 @@
-import {Fragment} from 'react';
-
 import {FeatureBadge} from '@sentry/scraps/badge';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -36,24 +33,14 @@ export default function ErrorsContent() {
 
 function ErrorsHeader() {
   return (
-    <Fragment>
-      <TopBar.Slot
-        name="breadcrumbs"
-        title={{
-          type: 'page-title',
-          label: t('Errors'),
-          trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
-        }}
-      />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
-    </Fragment>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: t('Errors'),
+        trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+      }}
+    />
   );
 }
 

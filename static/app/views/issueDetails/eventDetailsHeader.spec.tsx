@@ -76,7 +76,9 @@ describe('EventDetailsHeader', () => {
         organization,
       }
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
+    );
 
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
     // Date selection is based on first seen unless selected by the user
@@ -231,7 +233,9 @@ describe('EventDetailsHeader', () => {
         organization,
       }
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
+    );
     expect(screen.queryByText('Duration')).not.toBeInTheDocument();
   });
 

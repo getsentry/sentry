@@ -233,7 +233,9 @@ describe('SearchQueryBuilder', () => {
 
       await userEvent.keyboard(keys);
 
-      expect(await screen.findByRole('textbox', {name: 'Search commands'})).toHaveFocus();
+      expect(
+        await screen.findByRole('searchbox', {name: 'Search commands'})
+      ).toHaveFocus();
     }
   );
 
@@ -3472,6 +3474,54 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
         await userEvent.keyboard('foo\\*{enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:foo\\*',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves a typed wildcard when clicking the typed option', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard('foo*');
+        await userEvent.click(await screen.findByRole('option', {name: 'foo*'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:foo*',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves a typed escaped asterisk when clicking the typed option', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard('foo\\*');
+        await userEvent.click(await screen.findByRole('option', {name: 'foo*'}));
 
         await waitFor(() => {
           expect(mockOnChange).toHaveBeenCalledWith(

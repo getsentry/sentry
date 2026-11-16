@@ -5,7 +5,10 @@ import {t} from 'sentry/locale';
 import type {Measurement} from 'sentry/types/event';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {isBrowserRequestNode} from 'sentry/views/performance/traceDetails/traceApi/utils';
-import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {
+  isEAPSpanNode,
+  isServerRenderNode,
+} from 'sentry/views/performance/traceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceEAPSpanRow} from 'sentry/views/performance/traceDetails/traceRow/traceEAPSpanRow';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
@@ -128,7 +131,11 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       }
       visited.add(node);
 
-      if (isEAPSpanNode(node) && node.value.is_transaction) {
+      if (
+        (isEAPSpanNode(node) && node.value.is_transaction) ||
+        // The "server render" placeholder stands for a server transaction, so show it like one
+        isServerRenderNode(node)
+      ) {
         collapsedChildren.push(node);
         continue;
       }

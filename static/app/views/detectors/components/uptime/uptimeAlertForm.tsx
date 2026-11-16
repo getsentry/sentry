@@ -7,11 +7,11 @@ import {Observer} from 'mobx-react-lite';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Confirm} from 'sentry/components/confirm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {HiddenField} from 'sentry/components/forms/fields/hiddenField';

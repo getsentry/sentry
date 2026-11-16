@@ -1,8 +1,9 @@
 import {useCallback, type ReactNode} from 'react';
-import type {Location, LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
+import {parseAsString} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -25,7 +26,6 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory, type DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -33,6 +33,10 @@ import {
   canUseMetricsStatsBytesUI,
   canUseMetricsStatsUI,
 } from 'sentry/views/explore/metrics/metricsFlags';
+import {
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -69,6 +73,15 @@ export const PAGE_QUERY_PARAMS = [
   // From show data discarded on client toggle
   'clientDiscard',
 ];
+
+const pageStateParsers = {
+  clientDiscard: parseAsString,
+  cursor: parseAsScalar,
+  dataCategory: parseAsString,
+  query: parseAsScalar,
+  sort: parseAsScalar,
+  transform: parseAsScalar,
+};
 
 type PageStateOnUrl = {
   clientDiscard?: boolean;
@@ -109,9 +122,7 @@ type OrganizationStatsInnerProps = OrganizationStatsProps & {
   renderUsageStatsOrg?: (args: UsageStatsOrgRenderArgs) => ReactNode;
 };
 
-function getDataCategoryInfo(location: Location): DataCategoryInfo {
-  const dataCategoryPlural = location?.query?.dataCategory;
-
+function getDataCategoryInfo(dataCategoryPlural: string | null): DataCategoryInfo {
   const categories = Object.values(DATA_CATEGORY_INFO);
   // Only consider categories that are shown in the usage chart (showExternalStats).
   // Categories that don't have showExternalStats (e.g. monitorSeats) are not
@@ -254,18 +265,19 @@ export function OrganizationStatsInner({
   selection,
   renderUsageStatsOrg,
 }: OrganizationStatsInnerProps) {
-  const dataCategoryInfo = getDataCategoryInfo(location);
+  const pageState = loadQueryParamsFromLocation(pageStateParsers, location);
+  const dataCategoryInfo = getDataCategoryInfo(pageState.dataCategory);
   const dataCategory = dataCategoryInfo.plural;
   const dataCategoryName = dataCategoryInfo.titleName;
   const dataCategoryApiName = dataCategoryInfo.name;
   const dataDatetime = getDataDatetime(selection.datetime);
-  const clientDiscard = location?.query?.clientDiscard === 'true';
+  const clientDiscard = pageState.clientDiscard === 'true';
   // Validation and type-casting should be handled by chart
-  const chartTransform = decodeScalar(location?.query?.transform);
+  const chartTransform = pageState.transform ?? undefined;
   // Validation and type-casting should be handled by table
-  const tableSort = decodeScalar(location?.query?.sort);
-  const tableQuery = decodeScalar(location?.query?.query);
-  const tableCursor = decodeScalar(location?.query?.cursor);
+  const tableSort = pageState.sort ?? undefined;
+  const tableQuery = pageState.query ?? undefined;
+  const tableCursor = pageState.cursor ?? undefined;
   // Project selection from GlobalSelectionHeader
   const projectIds = selection.projects;
   const isSingleProject = projectIds.length === 1 && !projectIds.includes(-1);

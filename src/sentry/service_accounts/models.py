@@ -35,6 +35,7 @@ __all__ = (
     "ServiceAccountReplica",
     "ServiceAccountProjectReplica",
     "ServiceAccountToken",
+    "ServiceAccountTokenReplica",
 )
 
 # Matches the `name` serializer in the service account API.
@@ -302,7 +303,7 @@ class ServiceAccountProjectReplica(Model):
 
 
 @control_silo_model
-class ServiceAccountToken(Model):
+class ServiceAccountToken(ReplicatedControlModel):
     """
     A long-lived credential an org admin creates for a service account. Requests made with
     it act as the account, never as the admin who created it.
@@ -313,6 +314,7 @@ class ServiceAccountToken(Model):
 
     # A relocated token would need a new secret, so admins create new tokens instead.
     __relocation_scope__ = RelocationScope.Excluded
+    category = OutboxCategory.SERVICE_ACCOUNT_TOKEN_UPDATE
 
     service_account = FlexibleForeignKey(
         "service_accounts.ServiceAccount", on_delete=models.CASCADE
@@ -340,3 +342,49 @@ class ServiceAccountToken(Model):
         db_table = "service_accounts_serviceaccounttoken"
 
     __repr__ = sane_repr("organization_id", "service_account_id", "name")
+
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.services.replica import cell_replica_service
+        from sentry.service_accounts.services.service_account.serial import (
+            serialize_service_account_token,
+        )
+
+        cell_replica_service.upsert_replicated_service_account_token(
+            token=serialize_service_account_token(self),
+            cell_name=cell_name,
+        )
+
+
+@cell_silo_model
+class ServiceAccountTokenReplica(Model):
+    """
+    The cell's copy of a `ServiceAccountToken`, written by its outbox. Revoking the token
+    keeps this row with `date_deactivated` set, so callers must check it, `date_expires` and
+    the account's `is_active`.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    service_account = FlexibleForeignKey(
+        "service_accounts.ServiceAccountReplica", on_delete=models.CASCADE
+    )
+    token_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccountToken", null=False, on_delete="CASCADE", unique=True
+    )
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    token_hashed = models.TextField()
+    scope_list = ArrayField(models.TextField(), default=list)
+    date_expires = models.DateTimeField(null=True)
+    date_deactivated = models.DateTimeField(null=True)
+
+    class Meta:
+        app_label = "service_accounts"
+        db_table = "service_accounts_serviceaccounttokenreplica"
+        indexes = [
+            models.Index(
+                fields=["token_hashed"],
+                name="sa_token_replica_hash_idx",
+            ),
+        ]
+
+    __repr__ = sane_repr("organization_id", "token_id")

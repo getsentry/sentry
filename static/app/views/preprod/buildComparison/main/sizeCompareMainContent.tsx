@@ -4,7 +4,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconDownload} from '@sentry/icons/download';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {IconSearch} from '@sentry/icons/search';
-import {useMutation} from '@tanstack/react-query';
+import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
@@ -18,10 +18,10 @@ import {toast} from '@sentry/scraps/toast';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {parseApiError} from 'sentry/utils/parseApiError';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -40,6 +40,7 @@ import {
 import {
   getCompareApiUrl,
   getCompareBuildPath,
+  sizeComparisonApiOptions,
 } from 'sentry/views/preprod/utils/buildLinkUtils';
 
 import {BuildComparisonMetricCards} from './buildComparisonMetricCards';
@@ -85,9 +86,12 @@ export function SizeCompareMainContent() {
     baseArtifactId,
   });
 
-  const sizeComparisonQuery = useApiQuery<SizeComparisonApiResponse>([compareUrl], {
-    staleTime: 0,
-    enabled: !!headArtifactId && !!baseArtifactId,
+  const sizeComparisonQuery = useQuery({
+    ...sizeComparisonApiOptions({
+      organizationSlug: organization.slug,
+      headArtifactId,
+      baseArtifactId,
+    }),
     refetchInterval: query => {
       const mainComparison = getMainComparison(query.state.data?.json);
       return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
@@ -96,31 +100,32 @@ export function SizeCompareMainContent() {
 
   const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
 
+  const projectSlug = sizeComparisonQuery.data?.head_build_details.project_slug;
+  const headSizeMetricId = mainArtifactComparison?.head_size_metric_id;
+  const baseSizeMetricId = mainArtifactComparison?.base_size_metric_id;
+
   // Query the comparison download endpoint to get detailed data
-  const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: sizeComparisonQuery.data?.head_build_details.project_slug!,
-            headSizeMetricId: mainArtifactComparison?.head_size_metric_id!,
-            baseSizeMetricId: mainArtifactComparison?.base_size_metric_id!,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: 0,
-      enabled:
-        !!mainArtifactComparison?.head_size_metric_id &&
-        !!mainArtifactComparison?.base_size_metric_id &&
-        !!organization.slug &&
-        !!baseArtifactId &&
-        mainArtifactComparison?.state === SizeAnalysisComparisonState.SUCCESS,
-    }
-  );
+  const comparisonDataQuery = useQuery({
+    ...apiOptions.as<SizeAnalysisComparisonResults>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/',
+      {
+        path:
+          projectSlug &&
+          headSizeMetricId &&
+          baseSizeMetricId &&
+          organization.slug &&
+          mainArtifactComparison?.state === SizeAnalysisComparisonState.SUCCESS
+            ? {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: projectSlug,
+                headSizeMetricId,
+                baseSizeMetricId,
+              }
+            : skipToken,
+        staleTime: 0,
+      }
+    ),
+  });
 
   const {mutate: triggerComparison, isPending: isComparing} = useMutation<
     void,
@@ -184,9 +189,10 @@ export function SizeCompareMainContent() {
   }
 
   if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
-    const errorMessage = sizeComparisonQuery.error
-      ? parseApiError(sizeComparisonQuery.error)
-      : 'Unknown API Error';
+    const errorMessage =
+      sizeComparisonQuery.error instanceof RequestError
+        ? parseApiError(sizeComparisonQuery.error)
+        : 'Unknown API Error';
     return (
       <BuildError
         title={t('Size comparison data unavailable')}
@@ -264,9 +270,10 @@ export function SizeCompareMainContent() {
   }
 
   if (comparisonDataQuery.isError || !comparisonDataQuery.data) {
-    const errorMessage = comparisonDataQuery.error
-      ? parseApiError(comparisonDataQuery.error)
-      : 'Unknown API Error';
+    const errorMessage =
+      comparisonDataQuery.error instanceof RequestError
+        ? parseApiError(comparisonDataQuery.error)
+        : 'Unknown API Error';
     return (
       <BuildError
         title={t('Failed to load comparison details')}
