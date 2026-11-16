@@ -5,7 +5,6 @@ import {
   FIELD_TAGS,
   SEMVER_TAGS,
   SPAN_OP_BREAKDOWN_FIELDS,
-  TRACING_FIELDS,
   TRANSACTION_ONLY_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
