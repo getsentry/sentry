@@ -38,7 +38,21 @@ class Migration(CheckedMigration):
                         f'ALTER TABLE "sentry_monitorcheckin" DROP CONSTRAINT IF EXISTS "{CHECK}"',
                         f'ALTER TABLE "sentry_monitorcheckin" ADD CONSTRAINT "{CHECK}" '
                         'CHECK ("checkin_config_id" IS NOT NULL) NOT VALID',
-                        f'ALTER TABLE "sentry_monitorcheckin" VALIDATE CONSTRAINT "{CHECK}"',
+                    ],
+                    reverse_sql=(
+                        f'ALTER TABLE "sentry_monitorcheckin" DROP CONSTRAINT IF EXISTS "{CHECK}"'
+                    ),
+                    hints={"tables": ["sentry_monitorcheckin"]},
+                ),
+                SafeRunSQL(
+                    f'ALTER TABLE "sentry_monitorcheckin" VALIDATE CONSTRAINT "{CHECK}"',
+                    reverse_sql=migrations.RunSQL.noop,
+                    hints={"tables": ["sentry_monitorcheckin"]},
+                    # Scans the whole table, so it can't fit in the statement timeout.
+                    use_statement_timeout=False,
+                ),
+                SafeRunSQL(
+                    [
                         'ALTER TABLE "sentry_monitorcheckin" '
                         'ALTER COLUMN "checkin_config_id" SET NOT NULL',
                         f'ALTER TABLE "sentry_monitorcheckin" DROP CONSTRAINT "{CHECK}"',
@@ -48,7 +62,6 @@ class Migration(CheckedMigration):
                         'ALTER COLUMN "checkin_config_id" DROP NOT NULL'
                     ),
                     hints={"tables": ["sentry_monitorcheckin"]},
-                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[
