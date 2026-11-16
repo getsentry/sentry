@@ -282,9 +282,7 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    const created = (await screen.findByText('Investigation started')).closest(
-      'li'
-    )!;
+    const created = (await screen.findByText('Investigation started')).closest('li')!;
     expect(created).toHaveTextContent('\u201CWhy did checkout latency increase?\u201D');
     expect(screen.queryByText('Manual investigation')).not.toBeInTheDocument();
     created.scrollIntoView = jest.fn();
