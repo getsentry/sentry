@@ -734,6 +734,8 @@ pnpm --filter @sentry/api run test:vitest
 
 Tests import the generated `src/`, `dist/` and `spec/` output, so build before testing. The script is `test:vitest`, not `test`, because the repository's `test-ci` and `test-all` pass Jest options to every workspace's `test` script, and these tests need the spec build.
 
+Every `ts` example in this README is typechecked against the packed package by `test/readme.test.ts`, each as its own module. When an example uses a value it doesn't define, such as `sentry` or `options`, declare it in that test's `context`.
+
 ## License
 
 FSL-1.1-Apache-2.0. See [LICENSE.md](LICENSE.md).
