@@ -12,6 +12,7 @@ __all__ = [
     "SumOfClickSelectorComposite",
     "SumOfDeadClickSelectorComposite",
     "SumOfIntegerIdScalar",
+    "SumOfIPAddressScalar",
     "SumOfRageClickSelectorComposite",
     "SumOfStringArray",
     "SumOfStringScalar",
@@ -30,6 +31,7 @@ from .aggregate import (
 )
 from .duration import SimpleAggregateDurationScalar
 from .error_ids import ErrorIdsArray
+from .ip_address import SumOfIPAddressScalar
 from .selector import (
     ClickArray,
     ClickScalar,

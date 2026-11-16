@@ -228,12 +228,11 @@ class UUIDScalar(GenericBase):
 class IPScalar(GenericBase):
     """IP address scalar condition base class."""
 
-    # ClickHouse function that casts the string value to the column's IP type.
-    cast_function: str
+    clickhouse_to_ip_function: str
 
     @classmethod
     def _cast(cls, value: str) -> Function:
-        return Function(cls.cast_function, parameters=[value])
+        return Function(cls.clickhouse_to_ip_function, parameters=[value])
 
     @classmethod
     def visit_eq(cls, expression: Expression, value: str | None) -> Condition:
@@ -259,13 +258,13 @@ class IPScalar(GenericBase):
 class IPv4Scalar(IPScalar):
     """IPv4 scalar condition class."""
 
-    cast_function = "toIPv4"
+    clickhouse_to_ip_function = "toIPv4"
 
 
 class IPv6Scalar(IPScalar):
     """IPv6 scalar condition class."""
 
-    cast_function = "toIPv6"
+    clickhouse_to_ip_function = "toIPv6"
 
 
 class GenericArray(GenericBase):

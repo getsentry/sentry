@@ -40,6 +40,7 @@ from sentry.replays.usecases.query.conditions import (
     SumOfClickSelectorComposite,
     SumOfDeadClickSelectorComposite,
     SumOfIntegerIdScalar,
+    SumOfIPAddressScalar,
     SumOfRageClickSelectorComposite,
     SumOfStringArray,
     SumOfStringScalar,
@@ -47,7 +48,6 @@ from sentry.replays.usecases.query.conditions import (
 )
 from sentry.replays.usecases.query.conditions.aggregate import SumOfUUIDScalar
 from sentry.replays.usecases.query.conditions.event_ids import SumOfErrorIdScalar, SumOfInfoIdScalar
-from sentry.replays.usecases.query.conditions.ip_address import SumOfIPAddressScalar
 from sentry.replays.usecases.query.conditions.tags import SumOfTagAggregate
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 
