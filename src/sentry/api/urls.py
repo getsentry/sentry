@@ -621,6 +621,9 @@ from sentry.seer.endpoints.organization_seer_monitoring_providers import (
     OrganizationSeerMonitoringIntegrationTokenEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
+from sentry.seer.endpoints.organization_seer_repo_access import (
+    OrganizationSeerRepoAccessEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
@@ -2608,6 +2611,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-scm-info/$",
         OrganizationSeerAutofixScmInfoEndpoint.as_view(),
         name="sentry-api-0-organization-seer-autofix-scm-info",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/repo-access/$",
+        OrganizationSeerRepoAccessEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-repo-access",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",
