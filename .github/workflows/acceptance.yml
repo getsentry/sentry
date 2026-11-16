@@ -33,7 +33,6 @@ jobs:
     # Map a step output to a job output
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
-      backend_all: ${{ steps.changes.outputs.backend_all }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -61,11 +60,12 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        # XXX: Use 5 runners when backend changes are present, 10 runners for frontend-only changes
-        instance: ${{ needs.files-changed.outputs.backend_all == 'true' && fromJSON('[0, 1, 2, 3, 4]') || fromJSON('[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]') }}
+        # Each shard spends about 2 minutes on setup, so more shards cost far more
+        # runner time than they save in wall time.
+        instance: [0, 1, 2, 3, 4]
     env:
-      # XXX: MATRIX_INSTANCE_TOTAL must match the matrix size (5 for backend changes, 10 for frontend-only)
-      MATRIX_INSTANCE_TOTAL: ${{ needs.files-changed.outputs.backend_all == 'true' && '5' || '10' }}
+      # Must match the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 5
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
