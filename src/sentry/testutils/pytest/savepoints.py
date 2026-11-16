@@ -19,7 +19,13 @@ SUBTRANSACTION_CACHE_SIZE = 64
 LOOP_REPORT_THRESHOLD = 6
 SAVEPOINT_LOOP_PROPERTY = "savepoint_loop"
 SAVEPOINT_BASELINE_PROPERTY = "savepoint_baseline_hit"
-SAVEPOINT_BASELINE_INI = "savepoint_baseline"
+# Functions whose transactions overflow today; their overflows are reported instead of failing.
+# Only remove entries. Other repos add theirs through the pytest_savepoint_baseline hook.
+SAVEPOINT_BASELINE = frozenset(
+    {
+        "src/sentry/backup/imports.py:_import",
+    }
+)
 SUMMARY_NODEIDS_PER_OPENER = 3
 STATEMENT_HEAD_CHARS = 24
 LOCKING_CLAUSE_TAIL_CHARS = 120
@@ -126,6 +132,13 @@ class ConnectionState:
         if not self.stack:
             return None
         return self.stack[-1].txn
+
+
+class SavepointHookSpecs:
+    @pytest.hookspec
+    def pytest_savepoint_baseline(self) -> list[str]:
+        """Baseline entries to add to SAVEPOINT_BASELINE, as "path:function" strings."""
+        raise NotImplementedError
 
 
 def outward_frames() -> Iterator[FrameType]:
@@ -501,18 +514,15 @@ def evaluate_usage(
 
 
 def read_baseline(config: pytest.Config) -> frozenset[str]:
-    entries = config.getini(SAVEPOINT_BASELINE_INI)
+    entries = set(SAVEPOINT_BASELINE)
+    contributed = config.hook.pytest_savepoint_baseline()
+    for repo_entries in contributed:
+        entries.update(repo_entries)
     return frozenset(entries)
 
 
-def pytest_addoption(parser: pytest.Parser) -> None:
-    parser.addini(
-        SAVEPOINT_BASELINE_INI,
-        type="linelist",
-        default=[],
-        help="Functions whose transactions overflow the subtransaction cache today; "
-        "their overflows are reported instead of failing the test.",
-    )
+def pytest_addhooks(pluginmanager: pytest.PytestPluginManager) -> None:
+    pluginmanager.add_hookspecs(SavepointHookSpecs)
 
 
 @pytest.fixture(autouse=True)
@@ -552,16 +562,14 @@ def collect_loop_hits(stats: dict[str, list[Any]]) -> dict[str, list[LoopHit]]:
     return hits_by_opener
 
 
-def write_baseline_summary(terminalreporter: Any, baseline: frozenset[str]) -> None:
+def write_baseline_summary(terminalreporter: Any) -> None:
     known_overflows = reported_properties(terminalreporter.stats, SAVEPOINT_BASELINE_PROPERTY)
+    if not known_overflows:
+        return
+    overflowing_entries = {overflow["entry"] for overflow in known_overflows}
     terminalreporter.section("savepoint baseline")
-    for entry in sorted(baseline):
+    for entry in sorted(overflowing_entries):
         entry_overflows = [overflow for overflow in known_overflows if overflow["entry"] == entry]
-        if not entry_overflows:
-            terminalreporter.write_line(
-                f"{entry}: no overflow in this run; remove the entry once its code is fixed"
-            )
-            continue
         ordered = sorted(entry_overflows, key=lambda overflow: overflow["peak_held_ids"])
         ordered.reverse()
         worst = ordered[0]["peak_held_ids"]
@@ -600,7 +608,5 @@ def write_loop_summary(terminalreporter: Any) -> None:
 
 
 def pytest_terminal_summary(terminalreporter: Any) -> None:
-    baseline = read_baseline(terminalreporter.config)
-    if baseline:
-        write_baseline_summary(terminalreporter, baseline)
+    write_baseline_summary(terminalreporter)
     write_loop_summary(terminalreporter)
