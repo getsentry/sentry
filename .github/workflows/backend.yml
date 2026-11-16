@@ -642,7 +642,7 @@ jobs:
           fi
 
       - name: apply any requirements changes
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
+        if: steps.token.outcome == 'success' && github.event_name == 'pull_request' && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
@@ -673,7 +673,7 @@ jobs:
           python3 -m tools.api_urls_to_typescript
 
       - name: Apply any file changes
-        if: github.ref != 'refs/heads/master' && always()
+        if: github.event_name == 'pull_request' && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
@@ -820,7 +820,7 @@ jobs:
           steps.token.outcome == 'success' &&
           steps.run.outcome == 'success' &&
           steps.regen-blocklist.outcome == 'success' &&
-          github.ref != 'refs/heads/master' &&
+          github.event_name == 'pull_request' &&
           always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
