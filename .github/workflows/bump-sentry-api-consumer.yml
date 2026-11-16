@@ -59,6 +59,11 @@ jobs:
     name: Bump @sentry/api
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # One bump at a time per consumer, so overlapping dispatches can't race on
+    # the same branch or merge. github.repository is the caller here.
+    concurrency:
+      group: bump-sentry-api-consumer-${{ github.repository }}
+      cancel-in-progress: false
     steps:
       - name: Get auth token
         id: token
