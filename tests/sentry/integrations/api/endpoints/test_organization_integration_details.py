@@ -7,6 +7,7 @@ from sentry import audit_log
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.models.integration import Integration
@@ -451,7 +452,12 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         assert response.data == {"detail": "Could not fetch project list from Jira."}
 
     def test_create_issue_config_identity_error_returns_generic_detail(self) -> None:
-        for error in (IdentityNotValid(), Identity.DoesNotExist(), ApiError("raw provider body")):
+        for error in (
+            IdentityNotValid(),
+            InvalidIdentity(),
+            Identity.DoesNotExist(),
+            ApiError("raw provider body"),
+        ):
             response = self._get_create_with_error(error)
             assert "raw provider body" not in response.data["detail"]
             assert response.data["detail"].startswith("Couldn't load the issue form")

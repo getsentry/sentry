@@ -26,6 +26,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.api.bases.organization_integrations import (
     OrganizationIntegrationBaseEndpoint,
 )
@@ -109,7 +110,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
                     )
                 except IntegrationError as e:
                     return Response({"detail": str(e)}, status=400)
-                except (ApiError, IdentityNotValid, Identity.DoesNotExist) as e:
+                except (ApiError, IdentityNotValid, InvalidIdentity, Identity.DoesNotExist) as e:
                     # ApiError text is the raw provider response, so don't show it.
                     logger.info(
                         "organization_integration.create_issue_config_failed",
