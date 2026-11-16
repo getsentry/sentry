@@ -41,12 +41,19 @@ fi
 
 # Craft takes the next version from the latest tag in HEAD's history. A newer
 # tag outside it means HEAD predates that release, and the run for that
-# release's merge covers this commit.
-tags=$(git tag --list "$tag_prefix*" --sort=-version:refname)
+# release's merge covers this commit. The suffix setting sorts a prerelease
+# such as 2.6.0-rc.0 before 2.6.0.
+tags=$(git -c versionsort.suffix=- tag --list "$tag_prefix*" --sort=-version:refname)
 newest=${tags%%[[:space:]]*}
 if [ "$newest" != "$base" ]; then
   skip "HEAD predates release $newest."
 fi
+
+# A bump of a prerelease promotes it: minor turns 3.0.0-rc.0 into 3.0.0. So
+# while a prerelease is the latest, people cut the next release by hand.
+case "$base" in
+  *-*) skip "The latest release, $base, is a prerelease. Cut the next one with the Release workflow." ;;
+esac
 
 released=$(mktemp -d)
 trap 'rm -rf "$released"' EXIT
