@@ -6,6 +6,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.integrations.linear.client import LINEAR_TOKEN_URL
+from sentry.integrations.supabase.client import SUPABASE_TOKEN_URL
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
@@ -243,6 +244,8 @@ class TestOrganizationSeerMonitoringIdentityToken(SeerMonitoringProviderEndpoint
     SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY,
     LINEAR_CLIENT_ID="sentry-app-id",
     LINEAR_CLIENT_SECRET="sentry-app-secret",
+    SUPABASE_CLIENT_ID="sentry-app-id",
+    SUPABASE_CLIENT_SECRET="sentry-app-secret",
 )
 @with_feature(FEATURES)
 @cell_silo_test
@@ -287,6 +290,75 @@ class TestOrganizationSeerMonitoringIntegrationToken(SeerMonitoringProviderEndpo
             == "Bearer new-app-token"
         )
         assert "new-refresh-token" not in response.content.decode()
+
+    @responses.activate
+    def test_service_account_refreshes_supabase_organization_grant(self) -> None:
+        supabase = self.create_integration(
+            organization=self.organization,
+            provider="supabase",
+            external_id="org-slug",
+            metadata={"refresh_token": "supabase-refresh-token"},
+        )
+        responses.add(
+            responses.POST,
+            SUPABASE_TOKEN_URL,
+            status=201,
+            json={
+                "access_token": "supabase-access-token",
+                "refresh_token": "rotated-refresh-token",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+            },
+        )
+
+        response = self.client.post(
+            self._url(supabase.id),
+            HTTP_X_VIEWER_CONTEXT=self._service_account_header(["seer:write"]),
+        )
+
+        assert response.status_code == 200, response.content
+        assert _decrypt(response.data["encrypted_auth_headers"]["Authorization"]) == (
+            "Bearer supabase-access-token"
+        )
+        assert response.data["expires"] is not None
+        assert "rotated-refresh-token" not in response.content.decode()
+        assert "sentry-app-secret" not in response.content.decode()
+
+    @responses.activate
+    def test_cannot_refresh_another_organizations_supabase_grant(self) -> None:
+        supabase = self.create_integration(
+            organization=self.create_organization(owner=self.user),
+            provider="supabase",
+            external_id="other-org-slug",
+            metadata={"refresh_token": "other-refresh-token"},
+        )
+
+        response = self.client.post(
+            self._url(supabase.id),
+            HTTP_X_VIEWER_CONTEXT=self._user_header(self.member.id),
+        )
+
+        assert response.status_code == 404
+        assert response.data == {"detail": "integration_not_found"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_supabase_provider_failure_returns_bad_gateway(self) -> None:
+        supabase = self.create_integration(
+            organization=self.organization,
+            provider="supabase",
+            external_id="org-slug",
+            metadata={"refresh_token": "supabase-refresh-token"},
+        )
+        responses.add(responses.POST, SUPABASE_TOKEN_URL, status=503)
+
+        response = self.client.post(
+            self._url(supabase.id),
+            HTTP_X_VIEWER_CONTEXT=self._service_account_header(["seer:write"]),
+        )
+
+        assert response.status_code == 502
+        assert response.data == {"detail": "refresh_failed"}
 
     @responses.activate
     def test_cannot_refresh_another_organizations_integration(self) -> None:

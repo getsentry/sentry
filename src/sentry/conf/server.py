@@ -718,6 +718,10 @@ VISUALSTUDIO_SCOPES = ["vso.work_write", "vso.project", "vso.code", "vso.release
 LINEAR_CLIENT_ID = ""
 LINEAR_CLIENT_SECRET = ""
 
+# Supabase integration (OAuth app credentials)
+SUPABASE_CLIENT_ID = ""
+SUPABASE_CLIENT_SECRET = ""
+
 SOCIAL_AUTH_PIPELINE = (
     "social_auth.backends.pipeline.user.get_username",
     "social_auth.backends.pipeline.social.social_auth_user",
@@ -2671,6 +2675,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.grafana.integration.GrafanaIntegrationProvider",
     "sentry.integrations.linear.integration.LinearIntegrationProvider",
+    "sentry.integrations.supabase.integration.SupabaseIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
     "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
