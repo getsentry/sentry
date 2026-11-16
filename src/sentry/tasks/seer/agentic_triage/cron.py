@@ -87,6 +87,11 @@ PER_ORG_FEATURE_NAMES = [
     "organizations:seat-based-seer-enabled",
 ]
 
+# Token billing makes the Seer quota check pass for every pay-as-you-go org, so
+# scheduled runs stay with the orgs that already had them before the switch.
+TOKEN_BILLING_CUTOFF = datetime(2026, 12, 8, tzinfo=UTC)
+TOKEN_BILLING_PRIOR_RUN_WINDOW = timedelta(days=30)
+
 
 class SeerAgenticTriageRunOptions(TypedDict):
     """Fully-resolved options for an agentic triage run. Persisted directly onto
@@ -365,6 +370,17 @@ def run_agentic_triage_for_org(
             logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
             return None
 
+    if (
+        schedule_id is not None
+        and features.has("organizations:token-billed-seer-enabled", organization)
+        and not _had_scheduled_run_before_token_billing(organization)
+    ):
+        logger.info(
+            "night_shift.token_billed_without_prior_runs",
+            extra={"organization_id": organization.id},
+        )
+        return None
+
     # Manual project runs scope to a single project, whose tweaks feed the run
     # options; cron and org-wide manual runs have no single project.
     single_project_id = project_ids[0] if project_ids and len(project_ids) == 1 else None
@@ -416,6 +432,16 @@ def run_agentic_triage_for_org(
         execute_in_task=execute_in_task,
     )
     return run.id
+
+
+def _had_scheduled_run_before_token_billing(organization: Organization) -> bool:
+    return SeerWorkflowRun.objects.filter(
+        organization=organization,
+        workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+        trigger_key__isnull=False,
+        date_added__gte=TOKEN_BILLING_CUTOFF - TOKEN_BILLING_PRIOR_RUN_WINDOW,
+        date_added__lt=TOKEN_BILLING_CUTOFF,
+    ).exists()
 
 
 def _is_agentic_triage_enabled(organization: Organization) -> bool:

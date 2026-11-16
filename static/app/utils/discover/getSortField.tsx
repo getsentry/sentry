@@ -41,8 +41,10 @@ const SPECIAL_FIELD_SORT_FIELDS = {
   'span.status_code': 'span.status_code',
   'performance_score(measurements.score.total)':
     'performance_score(measurements.score.total)',
+  'performance_score()': 'performance_score()',
   'opportunity_score(measurements.score.total)':
     'opportunity_score(measurements.score.total)',
+  'opportunity_score()': 'opportunity_score()',
   'browser.name': 'browser.name',
   browser: 'browser',
   'os.name': 'os.name',

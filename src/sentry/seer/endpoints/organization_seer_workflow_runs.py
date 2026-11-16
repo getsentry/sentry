@@ -19,6 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import seer_workflow_examples as SeerWorkflowExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -29,7 +30,6 @@ from sentry.notebooks.access import has_notebooks_access
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-    SEER_CRON_WORKFLOW_STRATEGIES,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -38,7 +38,8 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
-from sentry.seer.workflows.breached_metrics import MetricBreachTrigger
+from sentry.seer.workflows.breached_metrics import MetricBreachInputs
+from sentry.seer.workflows.definitions import is_scheduled
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.safe import get_path
@@ -277,6 +278,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             202: inline_sentry_response_serializer(
                 "SeerWorkflowRunCreate", WorkflowRunCreateResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
         },
     )
     def post(self, request: Request, organization: Organization) -> Response:
@@ -408,14 +410,14 @@ def serialize_trigger(
     `existing_group_ids` holds the preloaded IDs of trigger groups that have not been deleted.
     """
     strategy = getattr(run, "strategy")
-    if strategy in SEER_CRON_WORKFLOW_STRATEGIES:
+    if is_scheduled(strategy):
         return {"type": "cron"}
     if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(
         run.extras, "snapshot", "inputs"
     ):
         try:
             inputs = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot.inputs
-            trigger = MetricBreachTrigger.parse_obj(inputs)
+            trigger = MetricBreachInputs.parse_obj(inputs)
             detector = detectors.get(trigger.detector_id)
             if detector is not None and (
                 detector.project_id != trigger.project_id

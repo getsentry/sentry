@@ -51,7 +51,7 @@ export function AutofixResetPrompt({
           icon={<IconRefresh size="xs" />}
           aria-label={t('Re-run from here')}
           disabled={!userContext.trim()}
-          onClick={() => onReset(userContext)}
+          onClick={() => onReset(userContext.trim())}
         >
           {t('Re-run from here')}
         </Button>

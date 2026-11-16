@@ -52,6 +52,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -376,6 +377,7 @@ def create_monitor(project: Project, environment: Environment) -> None:
     MonitorCheckIn.objects.create(
         monitor_environment=monitor_env,
         status=CheckInStatus.OK if monitor_env.status == MonitorStatus.OK else CheckInStatus.ERROR,
+        checkin_config_id=get_checkin_config_id(monitor.config),
     )
 
 

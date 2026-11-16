@@ -42,7 +42,10 @@ from sentry.notifications.notification_action.utils import (
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.seer.models.workflow import SeerWorkflowRunExecution, SeerWorkflowStrategy
-from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
+from sentry.seer.workflows.breached_metrics import (
+    InvestigateBreachedMetricAction,
+    MetricBreachInputs,
+)
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
@@ -428,12 +431,25 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         )
         run = Factories.create_seer_workflow_run(self.organization, workflow_config=config)
         execution = Factories.create_seer_workflow_run_execution(run)
-        workflow = BreachedMetricWorkflow(config_id=config.id, organization_id=self.organization.id)
+        inputs = MetricBreachInputs(
+            event_id="a" * 32,
+            occurrence_id="b" * 32,
+            detector_id=self.detector.id,
+            evidence={},
+            observed_at=now,
+            group_id=self.group.id,
+            project_id=self.project.id,
+            binding_id=1,
+            workflow_id=1,
+            action_id=1,
+        )
 
         with patch(
             "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay"
         ):
-            error = workflow._dispatch_investigation(config, self.group, execution)
+            error = InvestigateBreachedMetricAction()._start_investigation(
+                config, inputs, execution
+            )
 
         assert error is None
         notebook = SeerWorkflowOutputLink.objects.get(execution=execution).notebook

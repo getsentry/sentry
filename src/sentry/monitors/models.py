@@ -27,7 +27,6 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    LegacyTextJSONField,
     Model,
     UUIDField,
     cell_silo_model,
@@ -552,16 +551,11 @@ class MonitorCheckIn(Model):
     max_runtime.
     """
 
-    monitor_config = LegacyTextJSONField(null=True)
-    """
-    Legacy snapshot of the monitor configuration at the time of the check-in.
-    No longer written; replaced by `checkin_config`.
-    """
-
     checkin_config = FlexibleForeignKey(
         "monitors.MonitorCheckInConfig",
-        null=True,
         on_delete=models.PROTECT,
+        # Nothing looks up check-ins by config, and config rows are never deleted
+        db_index=False,
     )
     """
     References the MonitorCheckInConfig holding a snapshot of the monitor
@@ -592,8 +586,11 @@ class MonitorCheckIn(Model):
             # column
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
-            # Note: If we remove all indexes that start with `status`, we need to add the index back on the column
-            models.Index(fields=["status", "timeout_at"]),
+            models.Index(
+                fields=["timeout_at"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="sentry_monitorcheckin_timeout",
+            ),
             # used for dispatch_mark_unknown
             models.Index(
                 fields=["-date_added"],

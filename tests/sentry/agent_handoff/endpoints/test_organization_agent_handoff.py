@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlsplit
 
 from django.conf import settings
@@ -7,9 +7,11 @@ from rest_framework.test import APIClient
 
 from sentry.agent_handoff.codes import HandoffFlow, ProjectSetupContext, consume_handoff
 from sentry.agent_handoff.endpoints.organization_agent_handoff import HANDOFF_SCOPES
+from sentry.analytics.events.agent_handoff import AgentHandoffPromptCreatedEvent
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apisetupcode import ApiSetupCode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test
 
@@ -41,7 +43,7 @@ class OrganizationAgentHandoffTest(APITestCase):
             status_code=201,
         )
         url = urlsplit(response.data["guideUrl"])
-        assert url.path == "/agent-handoff/"
+        assert url.path == "/agent-handoff.md"
         assert not url.query
         assert not url.fragment
         code = response.data["code"]
@@ -52,6 +54,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         )
         record = consume_handoff(code, ip_address="127.0.0.1")
         assert record is not None
+        assert record.handoff_id == response.data["handoffId"]
         assert record.flow is HandoffFlow.GUIDED_NEXT_STEPS
         assert record.user_id == self.user.id
         assert record.organization_id == self.organization.id
@@ -89,6 +92,44 @@ class OrganizationAgentHandoffTest(APITestCase):
         assert handoff is not None
         assert handoff.flow is HandoffFlow.ONBOARDING
         assert handoff.context == ProjectSetupContext(run_id="a" * 32)
+
+    @patch("sentry.analytics.record")
+    def test_records_prompt_created(self, record: MagicMock) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.common.organization_service.has_active_onboarding_run",
+            return_value=True,
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                flow="onboarding",
+                context={"runId": "a" * 32},
+                disableIpPinning=True,
+                status_code=201,
+            )
+        assert_last_analytics_event(
+            record,
+            AgentHandoffPromptCreatedEvent(
+                handoff_id=response.data["handoffId"],
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                flow=HandoffFlow.ONBOARDING.value,
+                ip_pinning=False,
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    def test_records_prompt_created_for_guided_next_steps(self, record: MagicMock) -> None:
+        response = self.get_success_response(self.organization.slug, status_code=201)
+        assert_last_analytics_event(
+            record,
+            AgentHandoffPromptCreatedEvent(
+                handoff_id=response.data["handoffId"],
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                flow=HandoffFlow.GUIDED_NEXT_STEPS.value,
+                ip_pinning=True,
+            ),
+        )
 
     def test_select_create_project_flow(self) -> None:
         with patch(

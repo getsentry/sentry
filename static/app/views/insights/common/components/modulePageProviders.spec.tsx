@@ -19,7 +19,6 @@ describe('ModulePageProviders', () => {
 
   afterEach(() => {
     jest.resetAllMocks();
-    PageFiltersStore.reset();
   });
 
   it('renders without module feature', async () => {

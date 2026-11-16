@@ -25,7 +25,13 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectResponse, DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
@@ -665,6 +671,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         request=None,
         responses={
             200: DetailedProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -715,8 +722,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         request=ProjectAdminSerializer,
         responses={
             200: DetailedProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
         },
         examples=ProjectExamples.DETAILED_PROJECT,
     )
