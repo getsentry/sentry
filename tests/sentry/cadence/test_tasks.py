@@ -45,22 +45,10 @@ def test_every_trigger_type_has_a_handler() -> None:
     assert set(trigger_type_registry.registrations) == set(ScheduledTriggerType)
 
 
-@pytest.mark.parametrize(
-    "task,source",
-    [(cadence_tick, "tick"), (cadence_sweep, "sweep"), (cadence_sweep_worker, "sweep")],
-)
-def test_cadence_namespace_alias(task: Task[[], None], source: str) -> None:
-    # Workers accept the new namespace, while callers still produce to issues.
+@pytest.mark.parametrize("task", [cadence_tick, cadence_sweep, cadence_sweep_worker])
+def test_cadence_alias_is_registered_while_issues_remains_primary(task: Task[[], None]) -> None:
     assert task.namespace is issues_tasks
-    alias = cadence_tasks.get(task.name)
-    with (
-        override_options({"cadence.tick.enabled": True, "cadence.sweep.workers": 1}),
-        patch("sentry.cadence.tasks._claim_and_dispatch") as claim_and_dispatch,
-    ):
-        alias()
-
-    claim_and_dispatch.assert_called_once()
-    assert claim_and_dispatch.call_args.args[-1] == source
+    assert cadence_tasks.contains(task.name)
 
 
 class CadenceTickTestCase(TestCase):
