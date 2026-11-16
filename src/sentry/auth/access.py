@@ -259,6 +259,25 @@ class Access(abc.ABC):
         pass
 
 
+MEMBERSHIP_SCOPE_REPLACEMENTS = {
+    "member:read": "membership:read",
+    "member:write": "membership:write",
+    "member:invite": "membership:invite",
+    "member:admin": "membership:admin",
+}
+
+
+def has_member_scope(access: Access, member_scope: str) -> bool:
+    """Whether `access` holds `member_scope` or the membership scope that replaces it.
+
+    Use for in-code member scope checks, so a token holding only membership scopes gets the
+    same treatment as one holding the member scopes they replace.
+    """
+    return access.has_scope(member_scope) or access.has_scope(
+        MEMBERSHIP_SCOPE_REPLACEMENTS[member_scope]
+    )
+
+
 def _intersect_member_and_token_scopes(
     member_scopes: Collection[str], token_scopes: Iterable[str] | None
 ) -> frozenset[str]:

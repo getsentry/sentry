@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermissionMixin
+from sentry.auth.access import has_member_scope
 from sentry.auth.principal import has_user
 from sentry.db.models.fields.bounded import BoundedAutoField
 from sentry.models.organization import Organization
@@ -58,8 +59,9 @@ class MemberPermission(OrganizationPermission):
         if request.method != "POST":
             return True
 
-        scopes = request.access.scopes
-        is_role_above_member = "member:admin" in scopes or "member:write" in scopes
+        is_role_above_member = has_member_scope(request.access, "member:admin") or has_member_scope(
+            request.access, "member:write"
+        )
         if isinstance(organization, RpcUserOrganizationContext):
             organization = organization.organization
         return is_role_above_member or not organization.flags.disable_member_invite

@@ -12,6 +12,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.auth.access import has_member_scope
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -71,9 +72,9 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             return True
         if request.access.has_scope("org:write"):
             return True
-        if request.access.has_scope("member:admin"):
+        if has_member_scope(request.access, "member:admin"):
             return True
-        if request.access.has_scope("member:write"):
+        if has_member_scope(request.access, "member:write"):
             return True
         if request.access.has_team_scope(access_request.team, "team:admin"):
             return True

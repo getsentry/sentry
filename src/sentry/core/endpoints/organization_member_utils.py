@@ -9,7 +9,7 @@ from rest_framework.request import Request
 
 from sentry import roles
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.auth.access import Access
+from sentry.auth.access import Access, has_member_scope
 from sentry.auth.principal import is_owned_by_acting_user
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.locks import locks
@@ -205,7 +205,7 @@ def can_admin_team(access: Access, team: Team) -> bool:
     return access.has_team_membership(team) and (
         access.has_team_scope(team, "team:write")
         or access.has_scope("org:write")
-        or access.has_scope("member:write")
+        or has_member_scope(access, "member:write")
     )
 
 
@@ -229,7 +229,7 @@ def get_allowed_org_roles(
         return roles.get_all()
 
     # The member:admin scope is not required to invite a new member (when creating_org_invite is True).
-    if not request.access.has_scope("member:admin") and not creating_org_invite:
+    if not has_member_scope(request.access, "member:admin") and not creating_org_invite:
         return ()
 
     if member is None:

@@ -8,6 +8,7 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.core.endpoints.organization_member_details import ERR_INSUFFICIENT_SCOPE
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -1498,6 +1499,51 @@ class OrganizationMemberDetailsMembershipScopeTest(OrganizationMemberTestBase):
         self.get_error_response(
             self.organization.slug, self.other.id, method="put", role="admin", status_code=403
         )
-        self.get_error_response(
-            self.organization.slug, self.other.id, method="delete", status_code=403
+        # DELETE accepts member:read, and so membership:read, so members can remove
+        # themselves. Removing someone else needs member:invite or member:admin.
+        response = self.get_error_response(
+            self.organization.slug, self.other.id, method="delete", status_code=400
         )
+        assert response.data["detail"] == ERR_INSUFFICIENT_SCOPE
+        assert OrganizationMember.objects.filter(id=self.other.id).exists()
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:invite")
+    def test_membership_invite_can_only_reinvite_like_member_invite(self) -> None:
+        member_user = self.create_user()
+        self.create_member(organization=self.organization, user=member_user, role="member")
+        own_invite = self.create_member(
+            organization=self.organization,
+            email="own-invite@example.com",
+            role="member",
+            inviter_id=member_user.id,
+        )
+        team = self.create_team(organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=member_user, scope_list=["membership:invite"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        self.get_error_response(
+            self.organization.slug, own_invite.id, method="put", teams=[team.slug], status_code=403
+        )
+        assert not own_invite.teams.exists()
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:admin")
+    def test_membership_admin_can_change_member_role(self) -> None:
+        self._use_token(["membership:admin"])
+        self.get_success_response(
+            self.organization.slug, self.other.id, method="put", orgRole="manager"
+        )
+        self.other.refresh_from_db()
+        assert self.other.role == "manager"
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:admin")
+    def test_membership_admin_can_remove_member(self) -> None:
+        self._use_token(["membership:admin"])
+        self.get_success_response(
+            self.organization.slug, self.other.id, method="delete", status_code=204
+        )
+        assert not OrganizationMember.objects.filter(id=self.other.id).exists()

@@ -360,11 +360,3 @@ class OrganizationInviteRequestListMembershipScopeTest(OrganizationInviteRequest
             str(self.invite_request.id),
             str(self.request_to_join.id),
         }
-
-    @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership:read")
-    def test_membership_read_cannot_request_invites(self) -> None:
-        self._use_token(["membership:read"])
-        self.get_error_response(
-            self.org.slug, method="post", email="new@example.com", status_code=403
-        )

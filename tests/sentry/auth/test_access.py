@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import cast
 from unittest.mock import Mock, patch
 
+import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest
 from django.test import override_settings
@@ -11,7 +12,7 @@ from rest_framework.request import Request
 
 from sentry.api.permissions import SentryPermission
 from sentry.auth import access
-from sentry.auth.access import Access, NoAccess
+from sentry.auth.access import Access, NoAccess, has_member_scope
 from sentry.auth.principal import set_request_principal
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.scope_declaration import (
@@ -1557,3 +1558,20 @@ class SystemAccessTest(TestCase):
         assert not result.has_team_membership(team)
         assert result.has_scope("project:read")
         assert result.has_team_access(team)
+
+
+@pytest.mark.parametrize(
+    ("scopes", "member_scope", "expected"),
+    [
+        (["member:admin"], "member:admin", True),
+        (["membership:admin"], "member:admin", True),
+        (["membership:invite"], "member:invite", True),
+        (["membership:invite"], "member:admin", False),
+        (["membership:write"], "member:write", True),
+        (["member:write"], "member:admin", False),
+    ],
+)
+def test_has_member_scope(scopes: list[str], member_scope: str, expected: bool) -> None:
+    token_access = Mock(spec=Access)
+    token_access.has_scope.side_effect = lambda scope: scope in scopes
+    assert has_member_scope(token_access, member_scope) is expected

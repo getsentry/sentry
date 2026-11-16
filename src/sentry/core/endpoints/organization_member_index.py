@@ -33,6 +33,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.access import has_member_scope
 from sentry.auth.authenticators import available_authenticators
 from sentry.auth.principal import require_user
 from sentry.core.endpoints.organization_member_utils import (
@@ -428,8 +429,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
-        is_member = not request.access.has_scope("member:admin") and (
-            request.access.has_scope("member:invite")
+        is_member = not has_member_scope(request.access, "member:admin") and (
+            has_member_scope(request.access, "member:invite")
         )
         # if Open Team Membership is disabled and Member Invites are enabled, members can only invite members to teams they are in
         members_can_only_invite_to_members_teams = (

@@ -1088,3 +1088,40 @@ class OrganizationMemberListMembershipScopeTest(OrganizationMemberListTestBase):
         self.get_error_response(
             self.organization.slug, method="post", email="new@example.com", status_code=403
         )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:invite")
+    def test_membership_invite_can_only_invite_to_own_teams(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        member_user = self.create_user()
+        self.create_member(organization=self.organization, user=member_user, role="member")
+        team = self.create_team(organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=member_user, scope_list=["membership:invite"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        response = self.get_error_response(
+            self.organization.slug,
+            method="post",
+            email="new@example.com",
+            teams=[team.slug],
+            status_code=400,
+        )
+        assert (
+            response.data["detail"] == "You cannot assign members to teams you are not a member of."
+        )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:write")
+    def test_membership_write_can_invite_members(self) -> None:
+        self._use_token(["membership:write"])
+        self.get_success_response(
+            self.organization.slug,
+            method="post",
+            email="new@example.com",
+            orgRole="member",
+            status_code=201,
+        )
