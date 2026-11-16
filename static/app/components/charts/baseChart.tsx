@@ -379,10 +379,7 @@ export interface BaseChartProps {
   yAxis?: YAXisComponentOption | null;
 }
 
-/**
- * Under merge, ECharts re-shows the tooltip with series and axis indices from
- * before the update, which throws if the update removed them.
- */
+// Merged updates re-show the tooltip with the old series/axis indices, which throws if they're gone.
 function removesTooltipTargets(prev: EChartsOption, next: EChartsOption) {
   const count = (value: unknown) => (Array.isArray(value) ? value.length : value ? 1 : 0);
   return (['series', 'xAxis', 'yAxis'] as const).some(
