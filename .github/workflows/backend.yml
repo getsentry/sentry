@@ -122,6 +122,7 @@ jobs:
     timeout-minutes: 20
     env:
       SENTRY_API_SPEC_DIR: ${{ github.workspace }}/.artifacts/api-spec
+      SENTRY_API_TARBALL: ${{ github.workspace }}/.artifacts/sentry-api.tgz
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -144,6 +145,28 @@ jobs:
 
       - name: Test
         run: pnpm --filter @sentry/api run test:vitest
+
+      # Install the packed package into clean projects on the oldest supported
+      # Node.js (engines.node) and on Bun, and use it there.
+      - name: Pack
+        run: pnpm --filter @sentry/api pack --out "$SENTRY_API_TARBALL"
+
+      - name: Check for exports removed since the latest release
+        run: node static/packages/api/test/consumers/exports.mjs "$SENTRY_API_TARBALL"
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version: '22'
+
+      - name: Check the packed package on Node.js 22
+        run: node static/packages/api/test/consumers/check.mjs "$SENTRY_API_TARBALL"
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.14'
+
+      - name: Check the packed package on Bun
+        run: bun static/packages/api/test/consumers/check.mjs "$SENTRY_API_TARBALL"
 
   # Selective testing - only on PRs, determine which tests to run based on coverage data.
   # This job is skipped on push-to-master where the full suite runs instead.

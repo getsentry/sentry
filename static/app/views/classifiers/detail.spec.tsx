@@ -93,6 +93,39 @@ describe('ClassifierDetail', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the number of classified conversations', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({
+        id: '10',
+        projectId: '1',
+        resultAttribute: 'user_frustration',
+      }),
+    });
+    const countRequest = MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {data: [{'count_unique(gen_ai.conversation.id)': 1234}]},
+      match: [
+        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+      ],
+    });
+
+    renderDetail();
+
+    expect(await screen.findByText('1.2K')).toBeInTheDocument();
+    expect(countRequest).toHaveBeenCalledWith(
+      eventsUrl,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'enrichment_attributes',
+          query: `has:${RESULT_FIELD}`,
+          project: [1],
+          statsPeriod: '24h',
+        }),
+      })
+    );
+  });
+
   it('lists the classified conversations with their result', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,

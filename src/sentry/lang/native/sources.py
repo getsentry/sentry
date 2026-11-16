@@ -5,7 +5,8 @@ import logging
 import os
 from collections.abc import Callable, Iterator
 from copy import deepcopy
-from typing import Any
+from functools import cache
+from typing import Any, cast
 
 import google.auth
 import jsonschema
@@ -16,6 +17,7 @@ from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
+from jsonschema.protocols import Validator
 from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features, options
@@ -583,6 +585,19 @@ def secret_fields(source_type: str) -> Iterator[str]:
     yield from []
 
 
+@cache
+def _sources_validator() -> Validator:
+    # `parse_sources` runs for every symbolication request of a project with custom sources, and
+    # `jsonschema.validate` checks the schema against its metaschema on every call, which is slow.
+    # So build the validator once: the class `jsonschema.validate` would pick, with no format
+    # checker. An invalid schema raises `SchemaError` on every call, since `cache` doesn't store
+    # exceptions.
+    schema = cast(dict[str, Any], SOURCES_WITHOUT_APPSTORE_CONNECT)
+    validator_cls: type[Validator] = jsonschema.validators.validator_for(schema)
+    validator_cls.check_schema(schema)
+    return validator_cls(schema)
+
+
 def validate_sources(
     sources: list[dict[str, Any]], schema: dict[str, Any] = SOURCES_WITHOUT_APPSTORE_CONNECT
 ) -> None:
@@ -591,7 +606,15 @@ def validate_sources(
     their IDs are ok.
     """
     try:
-        jsonschema.validate(sources, schema)
+        if schema is SOURCES_WITHOUT_APPSTORE_CONNECT:
+            # The stubs type instances as dicts, but any JSON value works.
+            instance: Any = sources
+            # Raise the error `jsonschema.validate` would: the most relevant, not the first.
+            error = jsonschema.exceptions.best_match(_sources_validator().iter_errors(instance))
+            if error is not None:
+                raise error
+        else:
+            jsonschema.validate(sources, schema)
     except jsonschema.ValidationError:
         raise InvalidSourcesError(f"Failed to validate source {redact_source_secrets(sources)}")
 
