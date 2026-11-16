@@ -166,15 +166,12 @@ class SupabaseIntegration(IntegrationInstallation):
 
 class SupabaseIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.SUPABASE.value
+    name = "Supabase for Seer"
     metadata = metadata
     integration_cls = SupabaseIntegration
     features = frozenset([IntegrationFeatures.SEER_CONTEXT])
     requires_feature_flag = True
     allow_multiple = False
-
-    @property
-    def name(self) -> str:
-        return "Supabase"
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [SupabaseOAuthApiStep()]

@@ -78,6 +78,9 @@ class SupabaseIntegrationProviderTest(IntegrationTestCase):
         assert isinstance(installation, SupabaseIntegration)
         return installation
 
+    def test_provider_name_marks_seer_only_integration(self) -> None:
+        assert self.provider().name == "Supabase for Seer"
+
     def test_build_integration_stores_organization_grant(self) -> None:
         provider = self.provider()
         provider.set_pipeline(self.pipeline)
