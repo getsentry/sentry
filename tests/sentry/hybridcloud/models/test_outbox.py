@@ -599,6 +599,22 @@ class CellOutboxTest(TestCase):
             {"category": "ORGANIZATION_UPDATE", "outbox_name": "sentry.CellOutbox"}
         ]
 
+    @override_options(
+        {"hybridcloud.outbox.sync_drain_caller_tag.categories": ["ORGANIZATION_UPDATE"]}
+    )
+    @patch("sentry.hybridcloud.models.outbox._current_caller", side_effect=RuntimeError)
+    @patch.object(CellOutbox, "drain_shard")
+    @patch("sentry.hybridcloud.models.outbox.metrics.timer")
+    def test_sync_shard_drain_still_drains_when_caller_lookup_fails(
+        self, mock_timer: Mock, mock_drain_shard: Mock, mock_current_caller: Mock
+    ) -> None:
+        with self.captureOnCommitCallbacks(execute=True):
+            with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+                Organization(id=10).outbox_for_update().save()
+
+        assert [t["caller"] for t in _drain_timer_tags(mock_timer)] == ["unknown"]
+        mock_drain_shard.assert_called_once_with()
+
     def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):
             Organization(id=10).outbox_for_update().save()

@@ -241,8 +241,13 @@ class OutboxBase(Model):
     def _drain_shard_with_metrics(self) -> None:
         category = OutboxCategory(self.category).name
         tags = {"category": category, "outbox_name": self._meta.label}
-        if category in options.get("hybridcloud.outbox.sync_drain_caller_tag.categories"):
-            tags["caller"] = _current_caller()
+        # Tagging must never block the drain.
+        try:
+            if category in options.get("hybridcloud.outbox.sync_drain_caller_tag.categories"):
+                tags["caller"] = _current_caller()
+        except Exception:
+            logger.exception("outbox.sync_drain_caller_tag.failed")
+            tags["caller"] = "unknown"
         with metrics.timer("outbox.sync_shard_drain.duration", tags=tags):
             self.drain_shard()
 
