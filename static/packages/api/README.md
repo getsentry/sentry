@@ -239,18 +239,31 @@ const { data, error } = await sentry.listOrganizations();
 
 ### Routing requests by organization
 
-Set `resolveBaseUrl` to pick each request's base URL from its path before the
-URL is built, such as the region that serves the organization. It receives the
-configured `baseUrl` (`''` when unset), the path and query that follow it, and
-the organization and project the path targets (`parseApiPathScope` from
-`@sentry/api/client`; absent for unscoped paths). Its result replaces `baseUrl`
-for that request only; trailing slashes are removed.
+Set `resolveBaseUrl` to pick each request's base URL before the URL is built,
+such as the region that serves the organization. It receives the configured
+`baseUrl` (`''` when unset) and the path and query that follow it. For a
+generated operation it also receives `routing`, the operation's declaration
+from `@sentry/api/operations`, and `organization`, the value of the path
+parameter that `routing.organizationParameter` names. Raw requests have no
+`routing`. `scope` is the organization and project read from the path
+(`parseApiPathScope` from `@sentry/api/client`; absent for unscoped paths).
+Its result replaces `baseUrl` for that request only; trailing slashes are
+removed.
+
+`routeCellOperations` from `@sentry/api/client` builds a resolver from a lookup
+the host already has, such as cached `links.regionUrl` values from the
+organization listing. It sends operations declared `cell` to the region the
+lookup returns for their organization. Everything else keeps the configured
+base URL: `control` and `both` operations, `unknown` operations, raw requests,
+and organizations the lookup does not know. It never looks a region up itself,
+and it trusts the URLs the lookup returns.
 
 ```ts
+import { routeCellOperations } from "@sentry/api/client";
+
 const sentry = createSentryClient({
   baseUrl: "https://sentry.io",
-  resolveBaseUrl: async ({ baseUrl, scope }) =>
-    scope ? await regionUrlFor(scope.organization) : baseUrl,
+  resolveBaseUrl: routeCellOperations(organization => regionUrls.get(organization)),
 });
 // Sent to the organization's region, such as https://us.sentry.io.
 await sentry.listOrganizationIssues({ path: { organization_id_or_slug: "acme" } });
