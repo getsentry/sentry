@@ -101,7 +101,7 @@ def _expose_health_data(data: ReleaseHealthOverview | None) -> HealthData | None
         "totalProjectSessions24h": data["total_project_sessions_24h"],
         "adoption": data["adoption"],
         "sessionsAdoption": data["sessions_adoption"],
-        "stats": cast("dict[str, Any]", data.get("stats")),
+        "stats": {str(k): v for k, v in (data.get("stats") or {}).items()},
         # XXX: legacy key, should be removed later.
         "hasHealthData": data["has_health_data"],
     }
@@ -112,7 +112,7 @@ def _expose_project(project: _ProjectDict) -> SerializedProject:
         "id": project["id"],
         "slug": project["slug"],
         "name": project["name"],
-        "newGroups": cast(int, project["new_groups"]),
+        "newGroups": project["new_groups"] or 0,
         "platform": project["platform"],
         "platforms": project["platforms"],
         # XXX: Legacy should be removed

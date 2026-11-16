@@ -108,7 +108,9 @@ class ReleaseWithVersionSerializer(ReleaseSerializer):
             raise serializers.ValidationError("Release with name %s is not allowed" % value)
         return value
 
-    def validate_owner(self, owner: User | RpcUser) -> User | RpcUser:
+    def validate_owner(self, owner: User | RpcUser | None) -> User | RpcUser | None:
+        if owner is None:
+            return owner
         if not OrganizationMember.objects.filter(
             organization=self.context["organization"], user_id=owner.id
         ).exists():
