@@ -1,6 +1,9 @@
-from typing import Any, NotRequired, TypedDict
+from collections.abc import Mapping
+from typing import Any, NotRequired, TypedDict, cast
 
 from rest_framework import serializers
+
+from sentry.api.serializers.rest_framework.base import snake_to_camel_case
 
 
 class ConditionEvaluationResponse(TypedDict):
@@ -23,7 +26,7 @@ class ConditionGroupEvaluationResponse(TypedDict):
 
 
 class DeferredWorkflowResponse(TypedDict):
-    triggerGroupId: NotRequired[str]
+    triggerGroupId: NotRequired[str | None]
     filterGroupIds: list[str]
     passingFilterGroupIds: list[str]
 
@@ -65,73 +68,34 @@ class EvaluationArtifactResponse(EvaluationArtifactResponseOptional):
     outcome: str
 
 
-class ConditionEvaluationSerializer(serializers.Serializer[Any]):
-    conditionId = serializers.CharField(source="condition_id")
-    conditionType = serializers.CharField(source="condition_type")
-    inputType = serializers.CharField(source="input_type")
-    comparison = serializers.CharField()
-    # Condition input is opaque product data. Preserve its keys, types, and nulls.
-    input = serializers.JSONField()
-    triggered = serializers.BooleanField()
-    error = serializers.CharField(required=False)
-    result = serializers.JSONField(required=False)
+def _stringify_id(value: Any) -> Any:
+    return str(value) if isinstance(value, int) and not isinstance(value, bool) else value
 
 
-class ConditionGroupEvaluationSerializer(serializers.Serializer[Any]):
-    triggered = serializers.BooleanField()
-    error = serializers.CharField(required=False)
-    logicType = serializers.CharField(source="logic_type")
-    result = serializers.BooleanField()
-    conditionEvaluations = ConditionEvaluationSerializer(source="condition_evaluations", many=True)
+def _convert(key: str, value: Any) -> Any:
+    """camelCase nested keys and stringify integer IDs (`*_id`, `*_ids` elements)."""
+    if key == "input":
+        # Condition input is opaque product data. Preserve its keys, types, and nulls.
+        return value
+    if isinstance(value, Mapping):
+        return {snake_to_camel_case(k): _convert(k, v) for k, v in value.items()}
+    if isinstance(value, list):
+        if key.endswith("_ids"):
+            return [_stringify_id(v) for v in value]
+        return [_convert(key, v) for v in value]
+    if key.endswith("_id"):
+        return _stringify_id(value)
+    return value
 
 
-class DeferredWorkflowSerializer(serializers.Serializer[Any]):
-    triggerGroupId = serializers.CharField(source="trigger_group_id", required=False)
-    filterGroupIds = serializers.ListField(source="filter_group_ids", child=serializers.CharField())
-    passingFilterGroupIds = serializers.ListField(
-        source="passing_filter_group_ids", child=serializers.CharField()
-    )
-
-
-class EvaluationArtifactSerializer(serializers.Serializer[Any]):
+def serialize_evaluation_artifact(row: Mapping[str, Any]) -> EvaluationArtifactResponse:
     """The same envelope and condition representation for detector and workflow artifacts."""
-
-    id = serializers.CharField(source="item_id")
-    traceId = serializers.CharField(source="trace_id")
-    timestamp = serializers.DateTimeField()
-    projectId = serializers.CharField(source="project_id")
-    evaluationType = serializers.CharField(source="evaluation_type")
-    outcome = serializers.CharField()
-    error = serializers.CharField(required=False)
-    detectorId = serializers.CharField(source="detector_id", required=False)
-    detectorType = serializers.CharField(source="detector_type", required=False)
-    eventId = serializers.CharField(source="event_id", required=False)
-    triggered = serializers.BooleanField(required=False)
-    groupKey = serializers.CharField(source="group_key", required=False)
-    priority = serializers.IntegerField(required=False)
-    triggerEvaluation = ConditionGroupEvaluationSerializer(
-        source="trigger_evaluation", required=False
+    attributes = {k: v for k, v in row.items() if k not in ("item_id", "timestamp")}
+    return cast(
+        EvaluationArtifactResponse,
+        {
+            "id": row["item_id"],
+            "timestamp": serializers.DateTimeField().to_representation(row["timestamp"]),
+            **_convert("", attributes),
+        },
     )
-    evaluationPhase = serializers.CharField(source="evaluation_phase", required=False)
-    workflowId = serializers.CharField(source="workflow_id", required=False)
-    groupId = serializers.CharField(source="group_id", required=False)
-    filterEvaluations = ConditionGroupEvaluationSerializer(
-        source="filter_evaluations", many=True, required=False
-    )
-    triggeredActionIds = serializers.ListField(
-        source="triggered_action_ids", child=serializers.CharField(), required=False
-    )
-    delayed = DeferredWorkflowSerializer(required=False)
-    eventKind = serializers.CharField(source="event_kind", required=False)
-    issueStatus = serializers.IntegerField(source="issue_status", required=False)
-    issueSubstatus = serializers.IntegerField(source="issue_substatus", required=False)
-    issuePriority = serializers.IntegerField(source="issue_priority", required=False)
-    environmentId = serializers.CharField(source="environment_id", required=False)
-    isResolved = serializers.BooleanField(source="is_resolved", required=False)
-    isNew = serializers.BooleanField(source="is_new", required=False)
-    isRegression = serializers.BooleanField(source="is_regression", required=False)
-    isNewGroupEnvironment = serializers.BooleanField(
-        source="is_new_group_environment", required=False
-    )
-    hasEscalated = serializers.BooleanField(source="has_escalated", required=False)
-    activityType = serializers.JSONField(source="activity_type", required=False)

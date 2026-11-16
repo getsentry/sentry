@@ -29,15 +29,17 @@ from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.evaluation_artifact import (
     EvaluationArtifactResponse,
-    EvaluationArtifactSerializer,
+    serialize_evaluation_artifact,
 )
 from sentry.workflow_engine.processors.evaluations.base import EvaluationPhase, EvaluationType
+from sentry.workflow_engine.processors.evaluations.detector import DetectorEvaluationOutcome
 from sentry.workflow_engine.processors.evaluations.eap import EAP_RETENTION_DAYS
 from sentry.workflow_engine.processors.evaluations.query import (
     EVALUATION_FILTER_TYPES,
     build_evaluation_filter,
     query_evaluation_artifacts,
 )
+from sentry.workflow_engine.processors.evaluations.workflow import WorkflowEvaluationOutcome
 
 FEATURE_FLAG = "organizations:workflow-engine-evaluation-artifacts-eap"
 _ATTRIBUTE_PARAM_TYPES = {
@@ -47,6 +49,10 @@ _ATTRIBUTE_PARAM_TYPES = {
 _ATTRIBUTE_PARAM_CHOICES = {
     "evaluation_type": [member.value for member in EvaluationType],
     "evaluation_phase": [member.value for member in EvaluationPhase],
+    "outcome": sorted(
+        {member.value for member in DetectorEvaluationOutcome}
+        | {member.value for member in WorkflowEvaluationOutcome}
+    ),
 }
 
 
@@ -150,5 +156,5 @@ class OrganizationEvaluationArtifactsEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn),
-            on_results=lambda rows: EvaluationArtifactSerializer(rows, many=True).data,
+            on_results=lambda rows: [serialize_evaluation_artifact(row) for row in rows],
         )

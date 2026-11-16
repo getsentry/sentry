@@ -1,25 +1,35 @@
-from datetime import timedelta
+from datetime import UTC, timedelta
 from typing import Any
+from unittest import mock
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from requests.utils import parse_header_links
 from rest_framework.test import APIClient
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import cell_silo_test
+from sentry.types.activity import ActivityType
 from sentry.workflow_engine.endpoints.organization_evaluation_artifacts import FEATURE_FLAG
+from sentry.workflow_engine.models import DataConditionGroup
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionEvaluation,
+    DataConditionGroupEvaluation,
+    DeferredWorkflowEvaluationResult,
+    ProcessWorkflowsResult,
+    WorkflowEvaluation,
+    WorkflowEvaluationOutcome,
+)
 from sentry.workflow_engine.processors.evaluations.detector import (
     DetectorEvaluation,
     ProcessDetectorsResult,
 )
-from sentry.workflow_engine.processors.evaluations.eap import (
-    _build_trace_item,
-    _evaluation_attributes,
-)
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.processors.evaluations.eap import EAPEmitter, _build_trace_item
+from sentry.workflow_engine.processors.evaluations.types import WorkflowEngineResult
+from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 
 
 @cell_silo_test
@@ -53,6 +63,24 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
         )
         self.store_eap_items([item])
         return item
+
+    def emit_artifacts(self, result: WorkflowEngineResult) -> list[TraceItem]:
+        """Store exactly what the production EAP emitter produces for the result."""
+        items: list[TraceItem] = []
+        with (
+            freeze_time(self.timestamp),
+            mock.patch(
+                "sentry.workflow_engine.processors.evaluations.eap._produce_trace_item",
+                side_effect=lambda **kwargs: items.append(kwargs["trace_item"]),
+            ),
+        ):
+            EAPEmitter().send(self.organization, result)
+        self.store_eap_items(items)
+        return items
+
+    @staticmethod
+    def expected_timestamp(item: TraceItem) -> str:
+        return item.timestamp.ToDatetime(tzinfo=UTC).isoformat().replace("+00:00", "Z")
 
     def test_filters_and_shared_condition_serialization(self) -> None:
         condition = {
@@ -140,8 +168,10 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
         assert response.data[0]["error"] == error
         response = self.get_success_response(self.organization.slug, error=error.strip())
         assert response.data == []
-        response = self.get_success_response(self.organization.slug, outcome=" error ")
-        assert response.data == []
+        response = self.get_error_response(
+            self.organization.slug, outcome=" error ", status_code=400
+        )
+        assert "detail" in response.data
 
     def test_detector_without_condition_group(self) -> None:
         evaluation = DetectorEvaluation(
@@ -159,14 +189,14 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
             evaluations={"group-key": evaluation},
         )
-        item = self.store_artifact(next(_evaluation_attributes(result)))
+        [item] = self.emit_artifacts(result)
 
         response = self.get_success_response(self.organization.slug, detector_id=10)
         assert response.data == [
             {
                 "id": item.item_id.hex(),
                 "traceId": item.trace_id,
-                "timestamp": self.timestamp.isoformat().replace("+00:00", "Z"),
+                "timestamp": self.expected_timestamp(item),
                 "projectId": str(self.project.id),
                 "evaluationType": "detector",
                 "outcome": "triggered",
@@ -176,6 +206,101 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
                 "triggered": True,
                 "groupKey": "group-key",
                 "priority": DetectorPriorityLevel.HIGH.value,
+            }
+        ]
+
+    def test_groupless_deferred_workflow_round_trip(self) -> None:
+        environment = self.create_environment(project=self.project)
+        activity = Activity.objects.create(
+            project=self.project, group=None, type=ActivityType.SET_RESOLVED.value
+        )
+        event_data = WorkflowEventData(
+            event=activity, group=None, has_escalated=False, workflow_env=environment
+        )
+        condition = self.create_data_condition(comparison={"threshold": 10})
+        evaluation = WorkflowEvaluation(
+            workflow_id=20,
+            detector_id=10,
+            detector_type="error",
+            result=DeferredWorkflowEvaluationResult(
+                delayed_when_group_id=None,
+                delayed_if_group_ids=frozenset({31, 30}),
+                passing_if_group_ids=frozenset({31}),
+            ),
+            triggered=False,
+            data={
+                "trigger_group_eval": DataConditionGroupEvaluation(
+                    result=False,
+                    triggered=False,
+                    data={
+                        "condition_evaluations": [
+                            DataConditionEvaluation(
+                                condition=condition,
+                                data=event_data,
+                                result=False,
+                                triggered=False,
+                            )
+                        ],
+                        "logic_type": DataConditionGroup.Type.ANY,
+                    },
+                ),
+                "filter_group_evals": [],
+                "event": event_data,
+            },
+        )
+        result = ProcessWorkflowsResult(
+            evaluations={evaluation.workflow_id: evaluation},
+            event_id=event_data.event_id,
+            group_id=None,
+            outcome=WorkflowEvaluationOutcome.COMPLETED,
+            project_id=self.project.id,
+            detector_id=10,
+            detector_type="error",
+        )
+        [item] = self.emit_artifacts(result)
+
+        response = self.get_success_response(self.organization.slug, workflow_id=20)
+        assert response.data == [
+            {
+                "id": item.item_id.hex(),
+                "traceId": item.trace_id,
+                "timestamp": self.expected_timestamp(item),
+                "projectId": str(self.project.id),
+                "evaluationType": "workflow",
+                "evaluationPhase": "initial",
+                "outcome": "deferred",
+                "triggered": False,
+                "workflowId": "20",
+                "detectorId": "10",
+                "detectorType": "error",
+                "eventId": str(activity.id),
+                "eventKind": "activity",
+                "activityType": "set_resolved",
+                "hasEscalated": False,
+                "environmentId": str(environment.id),
+                "triggerEvaluation": {
+                    "triggered": False,
+                    "logicType": "any",
+                    "result": False,
+                    "conditionEvaluations": [
+                        {
+                            "conditionId": str(condition.id),
+                            "conditionType": "eq",
+                            "inputType": "WorkflowEventData",
+                            "comparison": '{"threshold":10}',
+                            "input": {"has_escalated": False, "workflow_env": environment.id},
+                            "triggered": False,
+                            "result": False,
+                        }
+                    ],
+                },
+                "filterEvaluations": [],
+                "triggeredActionIds": [],
+                "delayed": {
+                    "triggerGroupId": None,
+                    "filterGroupIds": ["30", "31"],
+                    "passingFilterGroupIds": ["31"],
+                },
             }
         ]
 
@@ -278,6 +403,7 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
                 "activity_type": "set_resolved",
             }
         )
+        other_project = self.create_project(organization=self.organization)
         response = self.get_success_response(
             self.organization.slug,
             item_id=first.item_id.hex(),
@@ -286,6 +412,7 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
             triggered_action_ids=50,
             activity_type=1234,
             trigger_evaluation="{}",
+            project_id=other_project.id,
         )
         assert {row["id"] for row in response.data} == {
             first.item_id.hex(),
@@ -336,8 +463,6 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
         assert [row["id"] for row in response.data] == [visible.item_id.hex()]
         self.get_error_response(self.organization.slug, project=denied.id, status_code=403)
         self.get_error_response(self.organization.slug, project=foreign.id, status_code=403)
-        response = self.get_success_response(self.organization.slug, project_id=denied.id)
-        assert response.data == []
 
     def test_batch_outcome_without_evaluations(self) -> None:
         item = self.store_artifact(

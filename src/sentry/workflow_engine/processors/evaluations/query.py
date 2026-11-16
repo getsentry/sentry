@@ -17,6 +17,7 @@ from sentry.search.eap.rpc_utils import (
 )
 from sentry.utils import json
 from sentry.utils.snuba_rpc import table_rpc
+from sentry.workflow_engine.processors.evaluations.eap import JSON_ATTRIBUTES
 
 # Only these attributes are supported as API filters.
 EVALUATION_FILTER_TYPES: dict[str, AttributeKey.Type.ValueType] = {
@@ -24,16 +25,15 @@ EVALUATION_FILTER_TYPES: dict[str, AttributeKey.Type.ValueType] = {
     "workflow_id": AttributeKey.TYPE_INT,
     "group_id": AttributeKey.TYPE_INT,
     "event_id": AttributeKey.TYPE_STRING,
-    "project_id": AttributeKey.TYPE_INT,
     "detector_type": AttributeKey.TYPE_STRING,
     "outcome": AttributeKey.TYPE_STRING,
     "error": AttributeKey.TYPE_STRING,
     "evaluation_type": AttributeKey.TYPE_STRING,
     "evaluation_phase": AttributeKey.TYPE_STRING,
 }
-JSON_ATTRIBUTES = frozenset({"trigger_evaluation", "filter_evaluations", "delayed"})
 _EVALUATION_ATTRIBUTE_TYPES: dict[str, AttributeKey.Type.ValueType] = {
     **EVALUATION_FILTER_TYPES,
+    "project_id": AttributeKey.TYPE_INT,
     "trace_id": AttributeKey.TYPE_STRING,
     "triggered": AttributeKey.TYPE_BOOLEAN,
     "group_key": AttributeKey.TYPE_STRING,
@@ -60,9 +60,7 @@ def build_evaluation_filter(filters: Mapping[str, Sequence[Any]]) -> TraceItemFi
     conditions: list[TraceItemFilter | None] = []
     for name, values in filters.items():
         attr_type = EVALUATION_FILTER_TYPES[name]
-        key = AttributeKey(
-            name="sentry.project_id" if name == "project_id" else name, type=attr_type
-        )
+        key = AttributeKey(name=name, type=attr_type)
         conditions.append(
             or_trace_item_filters(
                 *[

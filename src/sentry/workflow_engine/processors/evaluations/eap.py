@@ -56,6 +56,8 @@ EVALUATION_NAMESPACE = uuid.UUID("15de19a5-09c3-48d0-80ef-f9ff2c62af57")
 EAP_PRODUCER_NAME = "sentry.workflow_engine.evaluations.eap"
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 EAP_RETENTION_DAYS = 7  # TODO - We'll probably need to store metric issues for longer
+# Nested attributes EAP cannot store natively; persisted as JSON-encoded strings.
+JSON_ATTRIBUTES = frozenset({"trigger_evaluation", "filter_evaluations", "delayed"})
 type EAPAttributeValue = (
     None
     | bool
@@ -149,11 +151,7 @@ def _build_trace_item(
         downsampled_retention_days=0,  # Only store the full data, don't down-sample.
         # EAP persists scalars and primitive arrays, not nested protobuf key/value lists.
         attributes={
-            key: anyvalue(
-                json.dumps(value)
-                if key in {"trigger_evaluation", "filter_evaluations", "delayed"}
-                else value
-            )
+            key: anyvalue(json.dumps(value) if key in JSON_ATTRIBUTES else value)
             for key, value in attributes.items()
         },
         client_sample_rate=1.0,
