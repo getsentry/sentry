@@ -1,14 +1,14 @@
 import type * as React from 'react';
 import {createRef} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {render, screen} from '@testing-library/react';
+import {render, renderHook, screen} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {lightTheme} from '@sentry/scraps/theme';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {ExternalLink, Link, type LinkProps} from './link';
-import {LinkBehaviorContextProvider} from './linkBehaviorContext';
+import {LinkBehaviorContextProvider, useResolveLinkHref} from './linkBehaviorContext';
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
@@ -36,11 +36,17 @@ describe('Link without a router', () => {
         search: '?old=true',
         query: {tag: ['one', 'two'], flag: null, absent: undefined},
       },
-      '/issues/?flag&tag=one&tag=two',
+      '/issues/?tag=one&tag=two&flag=null',
+    ],
+    [
+      {query: {query: 'a b+c~*', empty: '', count: 0, enabled: false, tags: []}},
+      '?query=a+b%2Bc%7E*&empty=&count=0&enabled=false',
     ],
   ])('renders %j as %s', (to, href) => {
     render(<Link to={to}>Issues</Link>, {wrapper: ThemeWrapper});
     expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute('href', href);
+    const {result} = renderHook(() => useResolveLinkHref());
+    expect(result.current(to)).toBe(href);
   });
 
   it('forwards refs and filters router-only props', () => {
@@ -121,6 +127,42 @@ describe('Link without a router', () => {
 });
 
 describe('Link with a supplied behavior', () => {
+  it('resolves collection hrefs through the supplied resolver', () => {
+    const {result} = renderHook(() => useResolveLinkHref(), {
+      wrapper: ({children}) => (
+        <LinkBehaviorContextProvider
+          value={{
+            component: () => null,
+            behavior: props => props,
+            resolveHref: to => `/normalized/${typeof to === 'string' ? to : to.pathname}`,
+          }}
+        >
+          {children}
+        </LinkBehaviorContextProvider>
+      ),
+    });
+    expect(result.current({pathname: 'issues/'})).toBe('/normalized/issues/');
+  });
+
+  it('normalizes collection destinations when no resolver is supplied', () => {
+    const {result} = renderHook(() => useResolveLinkHref(), {
+      wrapper: ({children}) => (
+        <LinkBehaviorContextProvider
+          value={{
+            component: () => null,
+            behavior: props => ({
+              ...props,
+              to: {pathname: '/normalized/', query: {q: 'a b'}},
+            }),
+          }}
+        >
+          {children}
+        </LinkBehaviorContextProvider>
+      ),
+    });
+    expect(result.current('/issues/')).toBe('/normalized/?q=a+b');
+  });
+
   it('uses the supplied component and keeps behavior-added handlers', async () => {
     const onClick = jest.fn((event: React.MouseEvent) => event.preventDefault());
     const onFocus = jest.fn();

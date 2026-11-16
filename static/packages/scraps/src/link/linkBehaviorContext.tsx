@@ -6,6 +6,11 @@ import type {LinkProps} from './link';
 type LinkBehavior<T extends LinkProps> = {
   behavior: (props: T) => T;
   component: FunctionComponent<T>;
+  /**
+   * Resolve the original destination, including application normalization, to an href.
+   * Defaults to applying `behavior` and serializing with URLSearchParams.
+   */
+  resolveHref?: (to: T['to']) => string;
 };
 
 const LinkBehaviorContext = createContext<LinkBehavior<LinkProps> | null>(null);
@@ -39,32 +44,16 @@ export const useLinkBehavior = <T extends LinkProps>(props: T) => {
   return {Component: component, behavior: () => behavior(props)};
 };
 
-function encodeQueryComponent(value: unknown): string {
-  return encodeURIComponent(String(value)).replace(
-    /[!'()*]/g,
-    char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
-  );
-}
-
-/**
- * Follows the app's `sentry/utils/url/qs`, which this package cannot import:
- * sorted keys, repeated keys for arrays, a bare key for `null`, and no key for
- * `undefined`.
- */
 function stringifyQuery(query: Record<string, unknown>): string {
-  return Object.keys(query)
-    .sort()
-    .flatMap(key => {
-      const value = query[key];
-      return (Array.isArray(value) ? value : [value])
-        .filter(item => item !== undefined)
-        .map(item =>
-          item === null
-            ? encodeQueryComponent(key)
-            : `${encodeQueryComponent(key)}=${encodeQueryComponent(item)}`
-        );
-    })
-    .join('&');
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item !== undefined) {
+        params.append(key, String(item));
+      }
+    }
+  }
+  return params.toString();
 }
 
 function destinationToHref(to: LinkProps['to']): string {
@@ -80,8 +69,12 @@ function destinationToHref(to: LinkProps['to']): string {
 export function useResolveLinkHref() {
   const linkBehavior = useContext(LinkBehaviorContext);
   return useCallback(
-    (to: LinkProps['to']) =>
-      destinationToHref(linkBehavior ? linkBehavior.behavior({to}).to : to),
+    (to: LinkProps['to']) => {
+      if (linkBehavior?.resolveHref) {
+        return linkBehavior.resolveHref(to);
+      }
+      return destinationToHref(linkBehavior ? linkBehavior.behavior({to}).to : to);
+    },
     [linkBehavior]
   );
 }
