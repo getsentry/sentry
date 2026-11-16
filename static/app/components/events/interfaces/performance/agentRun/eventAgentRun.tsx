@@ -1,10 +1,11 @@
 import {useCallback} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {TraceLinkedIssues} from 'sentry/components/events/interfaces/performance/traceLinkedIssues';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -132,7 +133,8 @@ export function AgentActivityFullTraceButton({
 }
 
 /**
- * The Agent Activity view of the trace preview: the steps around the failing one.
+ * The Agent Activity view of the trace preview: the trace's other issues, then the
+ * steps around the failing one.
  */
 export function EventAgentActivity({
   event,
@@ -151,22 +153,25 @@ export function EventAgentActivity({
   const fullActivityLink = getAgentActivityLink(failingNode.id);
 
   return (
-    <Container border="primary" radius="md" overflow="hidden">
-      <HiddenStepsRow count={hiddenBefore} position="top" to={fullActivityLink} />
-      <Container padding="xs">
-        <AiSpanTimeline
-          nodes={steps}
-          selectedNodeKey={failingNode.id}
-          onSelectNode={node => {
-            trackAnalytics('issue_details.agent_run.step_clicked', {
-              organization,
-              source: 'timeline',
-            });
-            navigate(getAgentActivityLink(node.id));
-          }}
-        />
+    <Stack gap="md">
+      <TraceLinkedIssues event={event} />
+      <Container border="primary" radius="md" overflow="hidden">
+        <HiddenStepsRow count={hiddenBefore} position="top" to={fullActivityLink} />
+        <Container padding="xs">
+          <AiSpanTimeline
+            nodes={steps}
+            selectedNodeKey={failingNode.id}
+            onSelectNode={node => {
+              trackAnalytics('issue_details.agent_run.step_clicked', {
+                organization,
+                source: 'timeline',
+              });
+              navigate(getAgentActivityLink(node.id));
+            }}
+          />
+        </Container>
+        <HiddenStepsRow count={hiddenAfter} position="bottom" to={fullActivityLink} />
       </Container>
-      <HiddenStepsRow count={hiddenAfter} position="bottom" to={fullActivityLink} />
-    </Container>
+    </Stack>
   );
 }
