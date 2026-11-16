@@ -30,6 +30,7 @@ from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.out_of_credits import mark_out_of_credits
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -310,6 +311,32 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["pr_iteration_paused"] is True
         assert response.data["autofix"]["pr_iteration_pause_reason"] == "user_stop"
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_warns_pr_iteration_out_of_credits_while_the_run_is_marked(
+        self, mock_get_explorer_state: MagicMock
+    ) -> None:
+        group = self.create_group()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=888)
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(self._get_url(group.id), format="json")
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["warnings"] == []
+
+        mark_out_of_credits(run_id=888, organization_id=self.organization.id)
+
+        response = self.client.get(self._get_url(group.id), format="json")
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["warnings"] == [
+            {"warning_type": "pr_iteration_out_of_credits"}
+        ]
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_reports_an_errored_pause_apart_from_a_user_stop(
@@ -773,9 +800,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["feature_id"] == AUTOFIX_FEATURE_ID
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_seer_write_token_handoff_project_open_pr_is_not_a_single_run(
+    def test_post_seer_write_token_handoff_project_manual_run_needs_no_publish_scope(
         self, mock_trigger_explorer: MagicMock
     ) -> None:
+        # Manual runs don't hand off, so the project's open_pr setting doesn't apply.
         group = self.create_group()
         group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
         group.project.update_option("sentry:seer_automation_handoff_point", "root_cause")

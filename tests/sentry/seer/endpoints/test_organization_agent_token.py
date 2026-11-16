@@ -40,6 +40,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.groupshare import GroupShare
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.notebooks.access import NOTEBOOKS_FEATURE
 from sentry.organizations.services.organization import organization_service
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay, mock_replay_viewed
@@ -660,6 +661,7 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
 # account is denied with user-required instead of matching the oracle.
 SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
+        "OrganizationDashboardsStarred",
         "OrganizationGroupSearchViews_post",
         "OrganizationMemberDetails",
         "OrganizationMemberDetails_delete",
@@ -1215,6 +1217,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             resource = self.create_detector(project=self.project, type="metric_issue")
         elif name == "environment":
             resource = self.create_environment(project=self.project, name="production")
+        elif name == "uptime_detector":
+            resource = self.create_uptime_detector(
+                project=self.project,
+                env=self._resource("environment"),
+                uptime_subscription=self.create_uptime_subscription(subscription_id=uuid4().hex),
+            )
         elif name == "event":
             resource = self.store_event(
                 data={
@@ -1519,6 +1527,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             self.project.update_option("sentry:symbol_sources", json.dumps([resource]))
         elif name == "workflow":
             resource = self.create_workflow(organization=self.org)
+        elif name == "notebook":
+            resource = self.create_notebook(
+                organization=self.org, created_by=self.owner, title="Permission matrix"
+            )
+        elif name == "notebook_block":
+            resource = self.create_notebook_block(
+                notebook=self._resource("notebook"), position=0, kind="text"
+            )
         else:
             raise AssertionError(f"unknown matrix resource {name!r}")
 
@@ -1630,6 +1646,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             return str(self._resource("service_hook").id)
         if placeholder == "workflow_id":
             return str(self._resource("workflow").id)
+        if placeholder == "notebook_id":
+            return str(self._resource("notebook").id)
+        if placeholder == "block_id":
+            return str(self._resource("notebook_block").id)
         if placeholder == "key":
             return "environment"
         if placeholder == "filter_id":
@@ -1752,6 +1772,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             return {"service_span": "permission-matrix-span", "project_id": self.project.id}
         if endpoint.endpoint_name == "OrganizationTraceItemAttributesEndpoint":
             return {"dataset": "spans", "project": [self.project.id]}
+        if endpoint.endpoint_name == "OrganizationGroupIndexStatsEndpoint":
+            return {"groups": [self._resource("group").id]}
+        if endpoint.endpoint_name == "OrganizationMonitorIndexStatsEndpoint":
+            return {"monitor": [str(self._resource("monitor").guid)]}
+        if endpoint.endpoint_name == "OrganizationUptimeStatsEndpoint":
+            return {"uptimeDetectorId": [self._resource("uptime_detector").id]}
         if endpoint.endpoint_name == "OrganizationTraceLogsEndpoint":
             return {"traceId": uuid4().hex, "statsPeriod": "1h"}
         if endpoint.endpoint_name == "ProjectTraceItemDetailsEndpoint":
@@ -1801,12 +1827,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             "DataForwardingIndexEndpoint": "organizations:data-forwarding",
             "DiscoverSavedQueryDetailEndpoint": "organizations:discover-query",
             "DiscoverSavedQueriesEndpoint": "organizations:discover-query",
+            "ExploreSavedQueriesEndpoint": "organizations:visibility-explore-view",
             "ExternalTeamDetailsEndpoint": "organizations:integrations-codeowners",
             "ExternalTeamEndpoint": "organizations:integrations-codeowners",
             "ExternalUserDetailsEndpoint": "organizations:integrations-codeowners",
             "ExternalUserEndpoint": "organizations:integrations-codeowners",
             "EventAttachmentDetailsEndpoint": "organizations:event-attachments",
             "GroupIntegrationDetailsEndpoint": "organizations:integrations-issue-basic",
+            "OrganizationDashboardsStarredEndpoint": "organizations:dashboards-starred",
             "OrganizationEventsEndpoint": "organizations:discover-basic",
             "OrganizationGroupSearchViewsEndpoint": "organizations:issue-views",
             "OrganizationProfilingChunksEndpoint": "organizations:continuous-profiling",
@@ -1826,6 +1854,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             flags["projects:custom-inbound-filters"] = True
         if "Replay" in endpoint.endpoint_name:
             flags["organizations:session-replay"] = True
+        if endpoint.endpoint_name.startswith("OrganizationNotebook"):
+            flags[NOTEBOOKS_FEATURE] = True
         return flags
 
     def _mint_agent_token(
@@ -2072,6 +2102,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                 "query": "is:unresolved",
                 "version": 2,
             },
+            ("ExploreSavedQueriesEndpoint", "POST"): {
+                "name": "Permission matrix explore query",
+                "projects": [self.project.id],
+                "query": [{"fields": ["span.op"], "mode": "samples", "query": ""}],
+                "range": "24h",
+            },
             ("DiscoverSavedQueryDetailEndpoint", "PUT"): {
                 "name": "Updated permission matrix query",
                 "projects": [self.project.id],
@@ -2205,6 +2241,28 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                 },
                 "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
                 "workflowIds": [self._resource("workflow").id],
+            },
+            ("OrganizationNotebookIndexEndpoint", "POST"): {
+                "title": "Permission matrix investigation",
+                "projectIds": [self.project.id],
+            },
+            ("OrganizationNotebookBlockIndexEndpoint", "POST"): {
+                "notebookVersion": self._resource("notebook").version,
+                "kind": "text",
+                "content": "Permission matrix block",
+            },
+            ("OrganizationNotebookBlockOrderEndpoint", "PUT"): {
+                "notebookVersion": self._resource("notebook").version,
+                "blockIds": [self._resource("notebook_block").id],
+            },
+            ("OrganizationNotebookBlockDetailsEndpoint", "PUT"): {
+                "notebookVersion": self._resource("notebook").version,
+                "version": self._resource("notebook_block").version,
+                "content": "Updated permission matrix block",
+            },
+            ("OrganizationNotebookBlockDetailsEndpoint", "DELETE"): {
+                "notebookVersion": self._resource("notebook").version,
+                "version": self._resource("notebook_block").version,
             },
             ("OrganizationMonitorIndexEndpoint", "POST"): {
                 "project": self.project.slug,

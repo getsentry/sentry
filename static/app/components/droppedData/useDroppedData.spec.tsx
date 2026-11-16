@@ -56,10 +56,6 @@ describe('useDroppedData', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('requests dropped events and returns them', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-dropped/`,

@@ -6,7 +6,11 @@ from rest_framework.exceptions import PermissionDenied
 
 from sentry.auth.access import ServiceAccountAccess, from_service_account_auth, from_user
 from sentry.models.organization import Organization
-from sentry.notebooks.access import NOTEBOOK_SCOPES, has_notebooks_access
+from sentry.notebooks.access import (
+    NOTEBOOK_SCOPES,
+    has_notebooks_access,
+    service_account_reaches,
+)
 from sentry.notebooks.services.notebooks import (
     NotebookValidationError,
     _validate_project_ids,
@@ -45,15 +49,8 @@ def resolve_investigation_service_account(
     ):
         raise PermissionDenied
 
-    selected = _validate_project_ids(organization.id, project_ids)
-    if selected:
-        if not set(selected).issubset(access.accessible_project_ids):
-            raise PermissionDenied
-    else:
-        # The account is already authenticated. An empty selection needs the explicit
-        # all-project grant, including access to future projects.
-        if not access.has_all_projects:
-            raise PermissionDenied
+    if not service_account_reaches(access, _validate_project_ids(organization.id, project_ids)):
+        raise PermissionDenied
     return context
 
 

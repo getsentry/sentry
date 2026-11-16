@@ -176,7 +176,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     idempotent_methods = frozenset({"PUT", "DELETE"})
 
     @extend_schema(
-        operation_id="Retrieve an Integration's Issue Config for an Issue",
+        operation_id="getOrganizationIssueIntegration",
+        summary="Retrieve an Integration's Issue Config for an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -260,7 +261,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create an External Issue and Link It to an Issue",
+        operation_id="createOrganizationIssueIntegration",
+        summary="Create an External Issue and Link It to an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -422,7 +424,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         return Response(context, status=201)
 
     @extend_schema(
-        operation_id="Link an Existing External Issue to an Issue",
+        operation_id="updateOrganizationIssueIntegration",
+        summary="Link an Existing External Issue to an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -636,7 +639,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         return Response(context, status=201 if changed else 200)
 
     @extend_schema(
-        operation_id="Unlink an External Issue from an Issue",
+        operation_id="deleteOrganizationIssueIntegration",
+        summary="Unlink an External Issue from an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
