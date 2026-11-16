@@ -64,6 +64,21 @@ def test_conversation_probe_fetches_only_span_id() -> None:
     assert run_query.call_args.kwargs["config"].auto_fields is False
 
 
+def test_spans_are_ordered_by_start_time_then_span_id() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+
+    with (
+        patch.object(Spans, "get_resolver"),
+        patch.object(
+            Spans, "run_bulk_table_queries", return_value={"spans": {"data": []}}
+        ) as run_queries,
+    ):
+        endpoint._fetch_spans_and_aggregates(MagicMock(), "conversation-id", offset=100, limit=100)
+
+    [spans_query] = run_queries.call_args.args[0]
+    assert spans_query.orderby == ["precise.start_ts", "span_id"]
+
+
 def test_conversation_probes_use_disjoint_windows() -> None:
     endpoint = OrganizationAIConversationDetailsEndpoint()
     now = before_now()
@@ -834,6 +849,46 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         span_timestamps = [span["precise.start_ts"] for span in response.data["spans"]]
         assert span_timestamps == sorted(span_timestamps)
+
+    def test_pagination_orders_equal_start_times_by_span_id(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+        span_ids = ["d" * 16, "a" * 16, "c" * 16, "b" * 16]
+
+        spans = []
+        for span_id in span_ids:
+            span = self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                op="gen_ai.chat",
+                trace_id=trace_id,
+                store=False,
+            )
+            span["span_id"] = span_id
+            spans.append(span)
+        self.store_spans(spans)
+
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "per_page": "2",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        first_page = [span["span_id"] for span in response.data["spans"]]
+
+        links = parse_link_header(response.headers["Link"])
+        next_link = next(link for link in links.values() if link["rel"] == "next")
+        query["cursor"] = next_link["cursor"]
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        second_page = [span["span_id"] for span in response.data["spans"]]
+
+        assert first_page == ["a" * 16, "b" * 16]
+        assert second_page == ["c" * 16, "d" * 16]
 
     def test_only_returns_matching_conversation(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
