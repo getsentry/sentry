@@ -439,6 +439,7 @@ function ConfigureIntegration() {
   const [{tab: tabParam}, setQueryParams] = useQueryStates({
     tab: parseAsString,
     cursor: parseAsString,
+    query: parseAsString,
   });
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -598,8 +599,8 @@ function ConfigureIntegration() {
     allTabs.find(([key]) => key === tabParam)?.[0] ?? allTabs[0]?.[0] ?? 'settings';
 
   const onTabChange = (value: Tab) => {
-    // XXX: Omit the cursor to prevent paginating the next tab's queries.
-    setQueryParams({tab: value, cursor: null}, {history: 'push'});
+    // XXX: Omit the cursor and search to prevent filtering the next tab's queries.
+    setQueryParams({tab: value, cursor: null, query: null}, {history: 'push'});
   };
 
   /**

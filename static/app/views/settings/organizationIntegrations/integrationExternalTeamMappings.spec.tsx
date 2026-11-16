@@ -26,7 +26,7 @@ describe('IntegrationExternalTeamMappings', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,
-      match: [MockApiClient.matchQuery({hasExternalTeams: 'true'})],
+      match: [MockApiClient.matchQuery({query: 'hasExternalTeams:true'})],
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -99,5 +99,74 @@ describe('IntegrationExternalTeamMappings', () => {
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
     });
+  });
+
+  it('searches mapped teams and CODEOWNERS suggestions', async () => {
+    const externalTeam = (id: string, teamId: string, externalName: string) => ({
+      id,
+      teamId,
+      externalName,
+      provider: 'github',
+      integrationId: integration.id,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      match: [MockApiClient.matchQuery({query: 'hasExternalTeams:true'})],
+      body: [
+        TeamFixture({
+          id: '1',
+          slug: 'payments',
+          externalTeams: [externalTeam('11', '1', '@getsentry/payments')],
+        }),
+        TeamFixture({
+          id: '2',
+          slug: 'pubsub',
+          externalTeams: [externalTeam('12', '2', '@getsentry/pubsub')],
+        }),
+      ],
+    });
+    const searchRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      match: [MockApiClient.matchQuery({query: 'hasExternalTeams:true pubsub'})],
+      body: [
+        TeamFixture({
+          id: '2',
+          slug: 'pubsub',
+          externalTeams: [externalTeam('12', '2', '@getsentry/pubsub')],
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/codeowners-associations/`,
+      body: {
+        'project-1': {
+          associations: {},
+          errors: {
+            missing_external_teams: ['@getsentry/pubsub-infra', '@getsentry/billing'],
+          },
+        },
+      },
+    });
+
+    render(<IntegrationExternalTeamMappings integration={integration} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('@getsentry/payments')).toBeInTheDocument();
+    expect(screen.getByText('@getsentry/billing')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByPlaceholderText('Search teams'), 'pubsub');
+
+    await waitFor(() => expect(searchRequest).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.queryByText('@getsentry/payments')).not.toBeInTheDocument()
+    );
+    expect(screen.getByText('@getsentry/pubsub')).toBeInTheDocument();
+    expect(screen.getByText('@getsentry/pubsub-infra')).toBeInTheDocument();
+    expect(screen.queryByText('@getsentry/billing')).not.toBeInTheDocument();
   });
 });
