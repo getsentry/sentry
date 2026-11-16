@@ -9,7 +9,6 @@ interface SlashCommandHandlers {
   /** `/investigate` runs when sent, since it takes a question, so the menu only completes it. */
   canInvestigate?: boolean;
   onBashMode?: (value: boolean) => void;
-  onCodeMode?: (value: 'off' | 'only') => void;
   onConversations?: () => void;
   onMaxSize?: () => void;
   onMedSize?: () => void;
@@ -231,7 +230,6 @@ function useSlashCommands({
   onNew,
   onFeedback,
   onConversations,
-  onCodeMode,
   canInvestigate,
 }: SlashCommandHandlers): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
@@ -284,22 +282,6 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(isSentryEmployee && onCodeMode
-        ? [
-            {
-              title: '/code-mode-off',
-              key: '/code-mode-off',
-              description: 'Disable code mode tools',
-              handler: () => onCodeMode('off'),
-            },
-            {
-              title: '/code-mode-only',
-              key: '/code-mode-only',
-              description: 'Use only code mode tools (no standard tools)',
-              handler: () => onCodeMode('only'),
-            },
-          ]
-        : []),
       ...(isSentryEmployee && onBashMode
         ? [
             {
@@ -333,7 +315,6 @@ function useSlashCommands({
       onMedSize,
       onFeedback,
       onBashMode,
-      onCodeMode,
       onConversations,
       canInvestigate,
       isSentryEmployee,

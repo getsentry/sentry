@@ -55,7 +55,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: null,
   overrideBashModeEnabled: false,
-  overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
   requestError: null,
@@ -64,7 +63,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCodeModeEnable: jest.fn(),
 };
 
 describe('SeerExplorerContent', () => {

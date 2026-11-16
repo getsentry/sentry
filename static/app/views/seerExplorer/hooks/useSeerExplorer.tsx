@@ -114,24 +114,6 @@ export const useSeerExplorer = () => {
   const capturePageContext = usePageContextCapture();
   const {getPageReferrer} = usePageReferrer();
   const timezone = useTimezone();
-  type CodeModeValue = 'off' | 'only';
-  const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
-    useLocalStorageState<CodeModeValue>(
-      'seer-explorer.override.code-mode',
-      (storedValue?: unknown): CodeModeValue => {
-        if (storedValue === 'off' || storedValue === 'only') {
-          return storedValue;
-        }
-        // Migrate the legacy boolean
-        if (storedValue === false) {
-          return 'off';
-        }
-        // Everything else, including the retired 'on' and its legacy `true`, gets the server's own
-        // default for a flagged org. This value is sent on every request, so it is not really an
-        // override until someone picks one.
-        return 'only';
-      }
-    );
   const [overrideBashModeEnabled, setOverrideBashModeEnabled] = useLocalStorageState(
     'seer-explorer.override.bash-mode',
     false
@@ -260,7 +242,6 @@ export const useSeerExplorer = () => {
       insertIndex: number;
       orgSlug: string;
       overrideBashModeEnabled: boolean;
-      overrideCodeModeEnable: 'off' | 'only';
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
       /** The pending prompt this send took from chat state, put back if it fails. */
@@ -291,7 +272,6 @@ export const useSeerExplorer = () => {
           page_location: params.pageLocation,
           sent_at: params.sentAt,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
-          override_code_mode_enable: params.overrideCodeModeEnable,
           chat_prompt: params.chatPrompt?.text,
           chat_prompt_context: params.chatPrompt?.context,
         },
@@ -581,7 +561,6 @@ export const useSeerExplorer = () => {
         ],
         screenshot,
         overrideBashModeEnabled,
-        overrideCodeModeEnable,
       });
     },
     [
@@ -593,7 +572,6 @@ export const useSeerExplorer = () => {
       getPageReferrer,
       organization,
       overrideBashModeEnabled,
-      overrideCodeModeEnable,
       pendingChatPrompt,
       sendMessageMutate,
       setLastSentMessage,
@@ -773,7 +751,5 @@ export const useSeerExplorer = () => {
     respondToUserInput,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
-    overrideCodeModeEnable,
-    setOverrideCodeModeEnable,
   };
 };

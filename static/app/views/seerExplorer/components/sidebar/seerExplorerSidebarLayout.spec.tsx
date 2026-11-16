@@ -34,7 +34,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: null,
   overrideBashModeEnabled: false,
-  overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
   requestError: null,
@@ -43,7 +42,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCodeModeEnable: jest.fn(),
 };
 
 // Non-zero size so the SplitPanel isn't gated out (jsdom reports 0×0). Wide
