@@ -156,6 +156,19 @@ const listProjects = operations.find(operation => operation.functionName === "li
 listProjects?.routing; // { silo: "cell", organizationParameter: "organization_id_or_slug" }
 ```
 
+`matchOperation` finds the catalog operation for a method and a concrete path, such as one a raw request or a proxy sees, with its decoded path parameters:
+
+```ts
+import { matchOperation } from "@sentry/api/operations";
+
+const match = matchOperation("GET", "/api/0/organizations/acme/issues/?query=is:unresolved");
+match?.operation.operationId; // the operation's OpenAPI identifier
+match?.operation.routing; // { silo: "cell", organizationParameter: "organization_id_or_slug" }
+match?.params; // { organization_id_or_slug: "acme" }
+```
+
+The path may include `API_BASE_PATH`, an origin or a query string, and a missing trailing slash still matches. Where templates overlap, a literal segment wins over a parameter at the first segment where they differ, so `/snapshots/latest-base/` is not read as a `{snapshot_id}`. Only operations in the public catalog match; `matchOperation` returns `undefined` for others. To match a filtered catalog or your own templates, build a matcher with `createOperationMatcher`, which accepts any `{ method, path }` list and throws on first use if two templates for one method differ only in parameter names.
+
 `idempotent` tells retrying clients whether resending an identical request after a timeout or 5xx response is safe. It is always `true` for `GET`, `HEAD`, `OPTIONS`, and `TRACE`. Other methods are `true` only when Sentry marks the operation with the `x-sentry-idempotent` OpenAPI extension; `false` means not known to be idempotent, not known to be unsafe.
 
 The catalog is generated from the same schema and SDK output as each release. Consumers own search, grouping, ranking, and command aliases; the catalog does not fetch a live schema or infer undocumented API behavior.
@@ -236,6 +249,8 @@ const sentry = createSentryClient(
 
 const { data, error } = await sentry.listOrganizations();
 ```
+
+The CSRF token goes only on unsafe-method requests (not `GET`, `HEAD`, `OPTIONS` or `TRACE`) to the page's origin or a similar one: the same host, a parent or subdomain of it, or a sibling subdomain such as `us.sentry.io` from `acme.sentry.io`. Hosts are compared by whole DNS labels. The page origin is `location.origin`; pass `origin` to set it, for example in tests. Without either, only relative URLs get the token.
 
 ### Routing requests by organization
 
@@ -536,6 +551,18 @@ if (page.nextCursor !== undefined) {
 
 Each page preserves its own raw `Response`, including status and headers. The transport has already read the body; use `page.data` for the parsed result. Code that constructs a `PaginatedResponse<T>` manually, such as test fixtures, must now supply its `response` field.
 
+`readSentryResponseHeaders` reads the other headers Sentry list endpoints send: `X-Hits` and `X-Max-Hits` as numbers (omitted when missing or malformed), `X-Sentry-Direct-Hit` as a boolean, and the raw `Link` header. `parseSentryLinks` parses `Link` by `rel`, keeping each target's `href` and `results` flag as well as its cursor:
+
+```ts
+import { parseSentryLinks, readSentryResponseHeaders } from "@sentry/api";
+
+const page = await sentry.fetchPage.listOrganizationIssues(options);
+const { link, hits, maxHits, directHit } = readSentryResponseHeaders(page.response.headers);
+const links = parseSentryLinks(link ?? null);
+links.previous?.results; // false on the first page
+links.next?.href; // the server's URL for the next page
+```
+
 ### Bounded collection
 
 ```ts
@@ -770,6 +797,15 @@ pnpm --filter @sentry/api run test:vitest
 Tests import the generated `src/`, `dist/` and `spec/` output, so build before testing. The script is `test:vitest`, not `test`, because the repository's `test-ci` and `test-all` pass Jest options to every workspace's `test` script, and these tests need the spec build.
 
 Every `ts` example in this README is typechecked against the packed package by `test/readme.test.ts`, each as its own module. When an example uses a value it doesn't define, such as `sentry` or `options`, declare it in that test's `context`.
+
+To check the packed package the way an outside project uses it, pack it and run `test/consumers/check.mjs` with each runtime to check. CI runs it on Node.js 22 and Bun. It installs the tarball into fresh projects from the npm registry, with no optional peers and then with each validator peer:
+
+```sh
+pnpm --filter @sentry/api pack --out /tmp/sentry-api.tgz
+node static/packages/api/test/consumers/check.mjs /tmp/sentry-api.tgz
+```
+
+CI also runs `test/consumers/exports.mjs` on the same tarball. It fails when an entry point or export of the latest `@sentry/api` on npm is gone, since that breaks code written against the release. A renamed operation counts as a removed one.
 
 ## License
 

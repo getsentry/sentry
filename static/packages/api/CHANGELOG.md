@@ -1,3 +1,33 @@
+## 2.7.0
+
+### New Features ✨
+
+- (api) Match a method and concrete path to a catalog operation by @BYK with @sentry-junior in [#131235](https://github.com/getsentry/sentry/pull/131235)
+
+## 2.6.1
+
+### Internal Changes 🔧
+
+- (api) Share trailing-slash trimming between base URL helpers by @BYK with @sentry-junior in [#131206](https://github.com/getsentry/sentry/pull/131206)
+
+## 2.6.0
+
+### New Features ✨
+
+#### Api
+
+- Pass each operation's routing declaration to resolveBaseUrl by @BYK with @sentry-junior in [#131228](https://github.com/getsentry/sentry/pull/131228)
+- Add a type-only ApiRoutes map by path and method by @BYK with @sentry-junior in [#131221](https://github.com/getsentry/sentry/pull/131221)
+- Add Sentry's routing declarations to the operations catalog by @BYK with @sentry-junior in [#131222](https://github.com/getsentry/sentry/pull/131222)
+
+### Documentation 📚
+
+- (api) Document versioning, upgrades, deprecations and release candidates by @BYK with @sentry-junior in [#131218](https://github.com/getsentry/sentry/pull/131218)
+
+### Internal Changes 🔧
+
+- (api) Typecheck the README examples against the packed package by @BYK with @sentry-junior in [#131217](https://github.com/getsentry/sentry/pull/131217)
+
 ## 2.5.3
 
 ### Documentation 📚
