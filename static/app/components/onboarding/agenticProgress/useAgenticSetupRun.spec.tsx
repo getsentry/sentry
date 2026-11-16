@@ -17,47 +17,50 @@ describe('useAgenticSetupRun', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('polls live progress and resumes the same run after the host pauses it', async () => {
-    jest.useFakeTimers();
-    const initializationRequest = MockApiClient.addMockResponse({
-      url: endpoint,
-      method: 'POST',
-      body: initialRun,
-    });
-    const liveRun = AgenticProgressRunFixture({
-      stages: [
-        {stage: 'connect_mcp', status: 'completed', eventNote: null, extra: null},
-        {stage: 'instrument_app', status: 'active', eventNote: null, extra: null},
-      ],
-    });
-    const progressRequest = MockApiClient.addMockResponse({
-      url: `${endpoint}${initialRun.runId}/`,
-      body: liveRun,
-    });
+  it.each(['connect_agent', 'connect_mcp'] as const)(
+    'polls live progress and recognizes the %s connection stage',
+    async connectionStage => {
+      jest.useFakeTimers();
+      const initializationRequest = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'POST',
+        body: initialRun,
+      });
+      const liveRun = AgenticProgressRunFixture({
+        stages: [
+          {stage: connectionStage, status: 'completed', eventNote: null, extra: null},
+          {stage: 'instrument_app', status: 'active', eventNote: null, extra: null},
+        ],
+      });
+      const progressRequest = MockApiClient.addMockResponse({
+        url: `${endpoint}${initialRun.runId}/`,
+        body: liveRun,
+      });
 
-    const {result, rerender} = renderHookWithProviders(
-      ({enabled}: {enabled: boolean}) => {
-        const [session, setSession] = useState<AgenticRunSession>();
+      const {result, rerender} = renderHookWithProviders(
+        ({enabled}: {enabled: boolean}) => {
+          const [session, setSession] = useState<AgenticRunSession>();
 
-        return useAgenticSetupRun({enabled, session, onSessionChange: setSession});
-      },
-      {organization, initialProps: {enabled: true}}
-    );
+          return useAgenticSetupRun({enabled, session, onSessionChange: setSession});
+        },
+        {organization, initialProps: {enabled: true}}
+      );
 
-    await waitFor(() => expect(result.current.run).toEqual(liveRun));
-    expect(result.current.isAgentConnected).toBe(true);
-    expect(progressRequest).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(result.current.run).toEqual(liveRun));
+      expect(result.current.isAgentConnected).toBe(true);
+      expect(progressRequest).toHaveBeenCalledTimes(1);
 
-    await act(() => jest.advanceTimersByTimeAsync(5_000));
-    expect(progressRequest).toHaveBeenCalledTimes(2);
+      await act(() => jest.advanceTimersByTimeAsync(5_000));
+      expect(progressRequest).toHaveBeenCalledTimes(2);
 
-    rerender({enabled: false});
-    await act(() => jest.advanceTimersByTimeAsync(15_000));
-    expect(progressRequest).toHaveBeenCalledTimes(2);
+      rerender({enabled: false});
+      await act(() => jest.advanceTimersByTimeAsync(15_000));
+      expect(progressRequest).toHaveBeenCalledTimes(2);
 
-    rerender({enabled: true});
-    await waitFor(() => expect(progressRequest).toHaveBeenCalledTimes(3));
-    expect(result.current.run).toEqual(liveRun);
-    expect(initializationRequest).toHaveBeenCalledTimes(1);
-  });
+      rerender({enabled: true});
+      await waitFor(() => expect(progressRequest).toHaveBeenCalledTimes(3));
+      expect(result.current.run).toEqual(liveRun);
+      expect(initializationRequest).toHaveBeenCalledTimes(1);
+    }
+  );
 });

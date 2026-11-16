@@ -17,7 +17,7 @@ describe('AgenticProgressList', () => {
     render(
       <AgenticProgressList
         stages={[
-          {stage: 'connect_mcp', status: 'completed', eventNote: null, extra: null},
+          {stage: 'connect_agent', status: 'completed', eventNote: null, extra: null},
           {
             stage: 'analyze_project',
             status: 'completed',

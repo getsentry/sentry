@@ -458,7 +458,7 @@ describe('Onboarding', () => {
         body: AgenticProgressRunFixture({
           stages: [
             {
-              stage: 'connect_mcp',
+              stage: 'connect_agent',
               status: 'completed',
               eventNote: null,
               extra: null,
@@ -625,7 +625,7 @@ describe('Onboarding', () => {
           runStatus,
           stages: [
             {
-              stage: 'connect_mcp',
+              stage: 'connect_agent',
               status: connectionStatus,
               eventNote: null,
               extra: null,

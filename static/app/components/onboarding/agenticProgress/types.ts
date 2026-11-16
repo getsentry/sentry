@@ -4,6 +4,7 @@ export type AgenticRunSession = {
 };
 
 type AgenticProgressStage =
+  | 'connect_agent'
   | 'connect_mcp'
   | 'analyze_project'
   | 'create_project'

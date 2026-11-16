@@ -33,7 +33,7 @@ function makeAgenticProgressRun(
 }
 
 const pendingStages: AgenticProgressStageState[] = [
-  {stage: 'connect_mcp', status: 'completed', eventNote: null, extra: null},
+  {stage: 'connect_agent', status: 'completed', eventNote: null, extra: null},
   {stage: 'analyze_project', status: null, eventNote: null, extra: null},
   {stage: 'create_project', status: null, eventNote: null, extra: null},
   {stage: 'instrument_app', status: null, eventNote: null, extra: null},
@@ -54,7 +54,7 @@ export default Storybook.story('Agentic Onboarding Progress', story => {
         run={makeAgenticProgressRun({
           sequence: 9,
           stages: [
-            {stage: 'connect_mcp', status: 'completed', eventNote: null, extra: null},
+            {stage: 'connect_agent', status: 'completed', eventNote: null, extra: null},
             {
               stage: 'analyze_project',
               status: 'completed',
@@ -168,7 +168,7 @@ function InteractiveProgressStory() {
     )
   );
   const activeStageIndex = stages.findIndex(
-    stage => stage.stage !== 'connect_mcp' && !terminalStatuses.has(stage.status ?? '')
+    stage => stage.stage !== 'connect_agent' && !terminalStatuses.has(stage.status ?? '')
   );
   const isComplete = activeStageIndex === -1;
 

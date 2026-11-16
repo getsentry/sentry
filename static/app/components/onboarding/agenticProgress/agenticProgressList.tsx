@@ -29,6 +29,7 @@ type AgenticProgressStage = AgenticProgressStageState['stage'];
 type AgenticProgressStageStatus = NonNullable<AgenticProgressStageState['status']>;
 
 const STAGE_LABELS: Record<AgenticProgressStage, string> = {
+  connect_agent: t('Connect agent'),
   connect_mcp: t('Connect agent'),
   analyze_project: t('Analyzing your application'),
   create_project: t('Creating project(s)'),

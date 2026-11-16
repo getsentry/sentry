@@ -17,7 +17,7 @@ export function AgenticProgressRunFixture(
       {
         eventNote: null,
         extra: null,
-        stage: 'connect_mcp',
+        stage: 'connect_agent',
         status: null,
       },
     ],
