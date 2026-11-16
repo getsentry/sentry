@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+import pytest
 from django.db import connections, router, transaction
 
 from sentry.db.models.manager.base import flush_manager_local_cache
@@ -47,6 +50,28 @@ class GetFromCacheTest(TestCase):
         assert Organization.objects.get_from_cache(slug=org.slug) == org
         assert Organization.objects.get_from_cache(pk=org.id) == org
         assert Organization.objects.get_from_cache(id=org.id) == org
+
+    def test_replica_miss_falls_back_to_primary(self) -> None:
+        org = self.create_organization()
+        self.clear()
+
+        with patch.object(
+            Organization.objects, "using_replica", return_value=Organization.objects.none()
+        ) as using_replica:
+            assert Organization.objects.get_from_cache(id=org.id, use_replica=True) == org
+        using_replica.assert_called_once_with()
+
+        flush_manager_local_cache()
+        with self.assertNumQueries(0):
+            assert Organization.objects.get_from_cache(id=org.id, use_replica=True) == org
+
+    def test_replica_and_primary_miss_raises(self) -> None:
+        with patch.object(
+            Organization.objects, "using_replica", return_value=Organization.objects.none()
+        ):
+            with pytest.raises(Organization.DoesNotExist) as excinfo:
+                Organization.objects.get_from_cache(id=0, use_replica=True)
+        assert excinfo.value.__context__ is None
 
 
 class PostUpdateCacheInvalidationTest(TransactionTestCase):
