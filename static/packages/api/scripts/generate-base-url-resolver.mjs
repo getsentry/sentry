@@ -94,7 +94,8 @@ export type BaseUrlResolver = (request: BaseUrlRequest) => string | Promise<stri
   update("client/client.gen.ts", source => {
     source = replaceOnce(source,
       "import type { Client, Config, RequestOptions, ResolvedRequestOptions } from './types.gen';",
-      `import { parseApiPathScope } from '../api-client/api-path-scope';
+      `import { withoutTrailingSlashes } from '../api-client/api-base-url';
+import { parseApiPathScope } from '../api-client/api-path-scope';
 import type { BaseUrlRequest, BaseUrlResolver, Client, Config, RequestOptions, ResolvedRequestOptions } from './types.gen';`);
     source = replaceOnce(source,
       "export const createClient = (config: Config = {}): PreparedClient => {",
@@ -119,12 +120,7 @@ const resolveBaseUrl = async (
       request.organization = String(organization);
     }
   }
-  const resolved = await resolve(request);
-  let end = resolved.length;
-  while (end > 0 && resolved.charAt(end - 1) === '/') {
-    end -= 1;
-  }
-  return resolved.slice(0, end);
+  return withoutTrailingSlashes(await resolve(request));
 };
 
 export const createClient = (config: Config = {}): PreparedClient => {`);
