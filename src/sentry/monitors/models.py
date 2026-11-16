@@ -553,7 +553,6 @@ class MonitorCheckIn(Model):
 
     checkin_config = FlexibleForeignKey(
         "monitors.MonitorCheckInConfig",
-        null=True,
         on_delete=models.PROTECT,
         # Nothing looks up check-ins by config, and config rows are never deleted
         db_index=False,
