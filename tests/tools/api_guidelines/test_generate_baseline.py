@@ -13,6 +13,7 @@ import pytest
 from tools.api_guidelines import generate_baseline
 from tools.api_guidelines.generate_baseline import (
     build_entries,
+    diff_entries,
     main,
     write_exceptions,
 )
@@ -336,3 +337,181 @@ def test_generator_total_matches_flake_on_the_same_tree(fake_repo: Path) -> None
     # if flake itself breaks (maybe the plugin fails to import), stdout is empty, so show its error
     assert len(flake_findings) == 4, result.stderr
     assert _counted_findings(fake_repo / "out.json") == len(flake_findings)
+
+
+OTHER_PATH = "src/sentry/api/endpoints/other.py"
+
+# one finding, in a file that a --files run on PATH shouldn't touch
+OTHER_ENDPOINT = """\
+class OtherEndpoint(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return request.GET.get("q")
+"""
+
+
+def _entries(output: Path) -> list[dict[str, object]]:
+    """Reads the entries of a generated file"""
+    return json.loads(output.read_text())["entries"]
+
+
+def _find(entries: list[dict[str, object]], scope: str, key: str) -> dict[str, object] | None:
+    """The entry with this scope and key, or None when there isn't one"""
+    for entry in entries:
+        if entry["scope"] == scope and entry["key"] == key:
+            return entry
+    return None
+
+
+def _edit_endpoint(repo: Path, old: str, new: str) -> None:
+    """Changes the example endpoint's code, i.e to fix or add a finding before a --files run"""
+    endpoint = repo / PATH
+    endpoint.write_text(endpoint.read_text().replace(old, new))
+
+
+def test_files_stops_without_an_existing_file(fake_repo: Path) -> None:
+    assert _run_main(fake_repo, "--files", PATH) == 1
+    assert not (fake_repo / "out.json").exists()
+
+
+def test_files_keeps_status_reason_and_first_seen_and_takes_the_new_count(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert _run_main(fake_repo) == 0
+
+    # mark the get entry as reviewed as if the file had been edited by hand
+    output = fake_repo / "out.json"
+    entries = _entries(output)
+    reviewed = _find(entries, "ExampleEndpoint.get", "query:id")
+    assert reviewed is not None
+    reviewed["status"] = "accepted"
+    reviewed["reason"] = "id selects the object"
+    reviewed["first_seen"] = "2026-11-02"
+    write_exceptions(entries, output)
+
+    # one of the two reads of id goes away -> the count drops from 2 to 1
+    _edit_endpoint(fake_repo, '        b = request.GET.get("id") # line 6\n', "")
+    assert _run_main(fake_repo, "--files", PATH) == 0
+
+    entry = _find(_entries(output), "ExampleEndpoint.get", "query:id")
+    assert entry is not None
+    assert entry["count"] == 1
+    assert entry["status"] == "accepted"
+    assert entry["reason"] == "id selects the object"
+    assert entry["first_seen"] == "2026-11-02"
+    assert "0 new, 0 fixed, 1 with a changed count" in capsys.readouterr().out
+
+
+def test_files_reports_new_and_fixed_findings(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert _run_main(fake_repo) == 0
+
+    # reading title instead of name fixes body:name and adds body:title
+    _edit_endpoint(fake_repo, 'request.data.get("name")', 'request.data.get("title")')
+    assert _run_main(fake_repo, "--files", PATH, "--date", "2026-11-16") == 0
+
+    entries = _entries(fake_repo / "out.json")
+    assert _find(entries, "ExampleEndpoint.put", "body:name") is None
+    new = _find(entries, "ExampleEndpoint.put", "body:title")
+    assert new is not None
+    # a new finding gets this run's date and the defaults
+    assert new["first_seen"] == "2026-11-16"
+    assert new["status"] == "debt-breaking"
+    # the entries that didn't change keep the first run's date
+    old = _find(entries, "ExampleEndpoint.get", "query:id")
+    assert old is not None
+    assert old["first_seen"] == TODAY
+
+    out = capsys.readouterr().out
+    assert "1 new, 1 fixed, 0 with a changed count" in out
+    assert "new    S026 src/sentry/api/endpoints/example.py ExampleEndpoint.put body:title" in out
+    assert "fixed  S026 src/sentry/api/endpoints/example.py ExampleEndpoint.put body:name" in out
+
+
+def test_files_drops_the_entries_of_a_deleted_file(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert _run_main(fake_repo) == 0
+
+    (fake_repo / PATH).unlink()
+    assert _run_main(fake_repo, "--files", PATH) == 0
+
+    assert _entries(fake_repo / "out.json") == []
+    assert "0 new, 3 fixed, 0 with a changed count" in capsys.readouterr().out
+
+
+def test_files_leaves_unlisted_files_alone(fake_repo: Path) -> None:
+    (fake_repo / OTHER_PATH).write_text(OTHER_ENDPOINT)
+    assert _run_main(fake_repo) == 0
+    output = fake_repo / "out.json"
+    before = _find(_entries(output), "OtherEndpoint.get", "query:q")
+    assert before is not None
+
+    # other.py's finding is fixed on disk but it isn't in `--files` so its entry stays
+    (fake_repo / OTHER_PATH).unlink()
+    assert _run_main(fake_repo, "--files", PATH) == 0
+
+    assert _find(_entries(output), "OtherEndpoint.get", "query:q") == before
+    assert _counted_findings(output) == 5
+
+
+def test_files_skips_paths_outside_src_and_non_python_files(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert _run_main(fake_repo) == 0
+    output = fake_repo / "out.json"
+    before = output.read_text()
+
+    # PATH is deleted so if it were rescanned its entries would go away
+    (fake_repo / PATH).unlink()
+    assert (
+        _run_main(fake_repo, "--files", "README.md", "tests/example.py", "src/sentry/foo.txt") == 0
+    )
+
+    assert output.read_text() == before
+    assert "Rescanned 0 files" in capsys.readouterr().out
+
+
+def test_files_normalizes_dot_slash_paths(fake_repo: Path) -> None:
+    assert _run_main(fake_repo) == 0
+
+    _edit_endpoint(fake_repo, '        b = request.GET.get("id") # line 6\n', "")
+    assert _run_main(fake_repo, "--files", f"./{PATH}") == 0
+
+    entries = _entries(fake_repo / "out.json")
+    entry = _find(entries, "ExampleEndpoint.get", "query:id")
+    assert entry is not None
+    assert entry["count"] == 1
+    # the old entry was replaced and not left next to the new one
+    assert len(entries) == 3
+
+
+def _entry(key: str, count: int) -> dict[str, object]:
+    """A small entry for the diff_entries tests, only the fields it reads"""
+    return {
+        "rule": "S026",
+        "path": PATH,
+        "scope": "ExampleEndpoint.get",
+        "key": key,
+        "count": count,
+        "owner": "issues-feed",
+    }
+
+
+def test_diff_entries_finds_added_removed_and_changed() -> None:
+    old = [_entry("query:a", 1), _entry("query:b", 2), _entry("query:c", 1)]
+    new = [_entry("query:a", 1), _entry("query:b", 3), _entry("query:d", 1)]
+
+    added, removed, changed = diff_entries(old_entries=old, new_entries=new)
+
+    assert added == [_entry("query:d", 1)]
+    assert removed == [_entry("query:c", 1)]
+    assert changed == [(_entry("query:b", 2), _entry("query:b", 3))]
+
+
+def test_diff_entries_with_no_changes() -> None:
+    entries = [_entry("query:a", 1)]
+
+    assert diff_entries(old_entries=entries, new_entries=entries) == ([], [], [])

@@ -6,14 +6,25 @@ from pathlib import Path
 from tools.flake8_plugin import ApiInputViolation, get_api_violations
 
 
-def collect_findings(root: Path) -> list[tuple[str, ApiInputViolation]]:
+def collect_findings(
+    root: Path, paths: list[str] | None = None
+) -> list[tuple[str, ApiInputViolation]]:
     """Collects every API rule finding under root/src as a list. Callers pick the rules they need,
     i.e the baseline only keeps BASELINED_RULES while the report card shows every rule
     `root` the repo's top folder, the one that contains /src
+    `paths` a list of paths that we should only collect findings for and not all of `root`. None scans every file under root/src
     Returns a list of (`path`, `ApiInputViolation`) pairs where path is repo-based (i.e, "src/sentry/etc")
     """
-
-    files = sorted((root / "src").rglob("*.py"))
+    files: list[Path] = []
+    if paths is None:
+        # scan every file under src/
+        files = sorted((root / "src").rglob("*.py"))
+    else:
+        for path in sorted(paths):
+            file = root / path
+            # skip deleted files
+            if file.exists():
+                files.append(file)
 
     # [("path", ApiInputViolation())]
     path_violation: list[tuple[str, ApiInputViolation]] = []
