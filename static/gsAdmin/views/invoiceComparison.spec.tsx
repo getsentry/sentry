@@ -123,7 +123,7 @@ describe('InvoiceComparison', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('ignores a URL window that is not days', async () => {
+  it('ignores a URL window that is not days or UTC minutes', async () => {
     jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-10T05:25:00.000Z'));
     const mock = MockApiClient.addMockResponse({
       url: COMPARISON_URL,
@@ -161,6 +161,90 @@ describe('InvoiceComparison', () => {
 
     expect(router.location.query.start).toBe('2026-11-02');
     expect(router.location.query.end).toBe('2026-11-03');
+  });
+
+  describe('times', () => {
+    it('queries the UTC times from the URL', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09T10:00Z', end: '2026-11-09T12:30Z'});
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      expect(mock.mock.calls[0][1].query).toEqual(
+        expect.objectContaining({start: '2026-11-09T10:00Z', end: '2026-11-09T12:30Z'})
+      );
+      expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-11-09');
+      expect(screen.getByLabelText('Start time (UTC)')).toHaveValue('10:00');
+      expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-11-09');
+      expect(screen.getByLabelText('End time (UTC, exclusive)')).toHaveValue('12:30');
+    });
+
+    it('writes typed times to the URL on Run, and leaves empty ones as days', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      const {router} = renderComparison({start: '2026-11-09', end: '2026-11-09'});
+      await userEvent.type(screen.getByLabelText('Start time (UTC)'), '10:00');
+      await userEvent.click(screen.getByRole('button', {name: 'Run comparison'}));
+
+      expect(router.location.query.start).toBe('2026-11-09T10:00Z');
+      expect(router.location.query.end).toBe('2026-11-09');
+    });
+
+    it('ignores an impossible time in the URL', async () => {
+      jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-10T05:25:00.000Z'));
+      const mock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09T25:00Z', end: '2026-11-09T26:00Z'});
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      expect(mock.mock.calls[0][1].query).toEqual(
+        expect.objectContaining({start: '2026-11-09', end: '2026-11-09'})
+      );
+    });
+
+    it('warns when the backend ignores the times', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-01-01T10:00Z', end: '2026-01-01T12:00Z'});
+
+      expect(
+        await screen.findByText(/This region doesn't support times yet/)
+      ).toBeInTheDocument();
+    });
+
+    it('does not warn when the backend applies the times', async () => {
+      const body = comparisonBody();
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: {
+          ...body,
+          summary: {
+            ...body.summary,
+            start: '2026-01-01T10:00:00+00:00',
+            end: '2026-01-01T12:00:00+00:00',
+          },
+        },
+      });
+
+      renderComparison({start: '2026-01-01T10:00Z', end: '2026-01-01T12:00Z'});
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      expect(
+        screen.queryByText(/This region doesn't support times yet/)
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('mismatch cutoff', () => {

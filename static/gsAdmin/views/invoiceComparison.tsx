@@ -134,22 +134,52 @@ function formatCountOrNA(n: number | null | undefined) {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-// The window covers whole UTC days. Most invoices of both kinds are created
-// in a burst just after 00:00 UTC, and the platform one can land an hour or
-// more after the legacy one. A window that starts or ends between them shows
-// one side only, so the endpoint takes days rather than times.
+// A bound is a UTC day (`YYYY-MM-DD`), which covers that whole day, or a UTC
+// minute (`YYYY-MM-DDTHH:MMZ`); the range runs from the start up to, but not
+// including, an end time. The endpoint still reads whole days around the range
+// and lists the orgs with an invoice inside it: most invoices of both kinds
+// are created in a burst just after 00:00 UTC, and the platform one can land
+// an hour or more after the legacy one, so cutting the invoices at the bound
+// would show one side only.
 
 // The UTC day (`YYYY-MM-DD`, the value of a `date` input) that contains `ms`.
 function utcDay(ms: number): string {
   return Number.isNaN(ms) ? '' : new Date(ms).toISOString().slice(0, 10);
 }
 
-// The URL carries days only. Anything else is ignored.
-function parseDayParam(value: unknown): string | undefined {
-  const day = firstQueryValue(value);
-  return day && /^\d{4}-\d{2}-\d{2}$/.test(day) && utcDay(Date.parse(day)) === day
-    ? day
-    : undefined;
+function formatBound(day: string, time: string): string {
+  return time ? `${day}T${time}Z` : day;
+}
+
+function boundDay(bound: string): string {
+  return bound.slice(0, 10);
+}
+
+// `HH:MM`, the value of a `time` input, or '' for a whole-day bound.
+function boundTime(bound: string): string {
+  return bound.slice(11, 16);
+}
+
+// The URL carries bounds only. Anything else, such as an impossible day or
+// time, is ignored.
+function parseBoundParam(value: unknown): string | undefined {
+  const match = firstQueryValue(value)?.match(
+    /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2})Z)?$/
+  );
+  if (!match) {
+    return undefined;
+  }
+  const [bound, day = '', time = ''] = match;
+  if (utcDay(Date.parse(day)) !== day) {
+    return undefined;
+  }
+  if (time) {
+    const ms = Date.parse(bound);
+    if (Number.isNaN(ms) || new Date(ms).toISOString().slice(11, 16) !== time) {
+      return undefined;
+    }
+  }
+  return bound;
 }
 
 const PAGE_SIZE_OPTIONS: readonly number[] = [25, 50, 100, 250];
@@ -196,8 +226,8 @@ export function InvoiceComparison() {
   // date inputs before they click Run.
   const [queryRegion, setQueryRegion] = useQueryState('region', parseAsString);
   const cell = cells.find(c => c.name === queryRegion) ?? cells[0] ?? null;
-  const queryStart = parseDayParam(location.query.start);
-  const queryEnd = parseDayParam(location.query.end);
+  const queryStart = parseBoundParam(location.query.start);
+  const queryEnd = parseBoundParam(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
   const minMismatch =
@@ -213,27 +243,31 @@ export function InvoiceComparison() {
   // since an old start (`compare_invoices` reads the whole window, then
   // paginates), so don't query until both are set.
   const urlHasBound = Boolean(queryStart || queryEnd);
-  const startDay = urlHasBound ? (queryStart ?? '') : defaultDay;
-  const endDay = urlHasBound ? (queryEnd ?? '') : defaultDay;
-  const hasWindow = Boolean(startDay && endDay);
+  const startBound = urlHasBound ? (queryStart ?? '') : defaultDay;
+  const endBound = urlHasBound ? (queryEnd ?? '') : defaultDay;
+  const hasWindow = Boolean(startBound && endBound);
 
-  const [startInput, setStartInput] = useState(startDay);
-  const [endInput, setEndInput] = useState(endDay);
+  const [startInput, setStartInput] = useState(boundDay(startBound));
+  const [startTimeInput, setStartTimeInput] = useState(boundTime(startBound));
+  const [endInput, setEndInput] = useState(boundDay(endBound));
+  const [endTimeInput, setEndTimeInput] = useState(boundTime(endBound));
   const [minMismatchInput, setMinMismatchInput] = useState(String(minMismatch));
   const minMismatchInputValue = parseDollars(minMismatchInput);
 
-  // Keep the date inputs in sync with the window being shown on back/forward
-  // and in-app navigation (e.g. opening a shared link). Keyed on the shown
-  // days rather than the URL, so pinning the default window into an empty
-  // URL doesn't clobber dates typed but not yet run.
-  const [shownDays, setShownDays] = useState({startDay, endDay});
-  if (shownDays.startDay !== startDay || shownDays.endDay !== endDay) {
-    setShownDays({startDay, endDay});
-    if (startDay) {
-      setStartInput(startDay);
+  // Keep the date and time inputs in sync with the window being shown on
+  // back/forward and in-app navigation (e.g. opening a shared link). Keyed on
+  // the shown bounds rather than the URL, so pinning the default window into
+  // an empty URL doesn't clobber bounds typed but not yet run.
+  const [shownBounds, setShownBounds] = useState({startBound, endBound});
+  if (shownBounds.startBound !== startBound || shownBounds.endBound !== endBound) {
+    setShownBounds({startBound, endBound});
+    if (startBound) {
+      setStartInput(boundDay(startBound));
+      setStartTimeInput(boundTime(startBound));
     }
-    if (endDay) {
-      setEndInput(endDay);
+    if (endBound) {
+      setEndInput(boundDay(endBound));
+      setEndTimeInput(boundTime(endBound));
     }
   }
   const [shownMinMismatch, setShownMinMismatch] = useState(minMismatch);
@@ -246,8 +280,8 @@ export function InvoiceComparison() {
   // reproduces the window being shown. Left out for a one-sided URL so the
   // bound that is there isn't replaced.
   const pinnedWindow = useMemo(
-    () => (hasWindow ? {start: startDay, end: endDay} : {}),
-    [hasWindow, startDay, endDay]
+    () => (hasWindow ? {start: startBound, end: endBound} : {}),
+    [hasWindow, startBound, endBound]
   );
 
   const {data, isLoading, isError, error, isPlaceholderData} = useQuery({
@@ -255,8 +289,8 @@ export function InvoiceComparison() {
       path: cell && hasWindow ? {region: cell.name} : skipToken,
       host: cell?.locality_url,
       query: {
-        start: hasWindow ? startDay : undefined,
-        end: hasWindow ? endDay : undefined,
+        start: hasWindow ? startBound : undefined,
+        end: hasWindow ? endBound : undefined,
         rows_page: rowsPage,
         rows_page_size: pageSize,
         min_mismatch_cents: Math.round(minMismatch * 100),
@@ -327,6 +361,13 @@ export function InvoiceComparison() {
   // tests for the contract.
   const rows = data?.rows ?? [];
 
+  // Backends from before timestamp ranges drop the time and echo the day only.
+  const timesIgnored =
+    !!data &&
+    !isPlaceholderData &&
+    ((!!boundTime(startBound) && !data.summary.start.includes('T')) ||
+      (!!boundTime(endBound) && !data.summary.end.includes('T')));
+
   const setRowsPage = (page: number) => {
     navigate({
       pathname: location.pathname,
@@ -360,8 +401,8 @@ export function InvoiceComparison() {
       pathname: location.pathname,
       query: {
         ...location.query,
-        start: startInput,
-        end: endInput,
+        start: formatBound(startInput, startTimeInput),
+        end: formatBound(endInput, endTimeInput),
         rows_page: '1',
         page_size: String(pageSize),
         min_mismatch: String(minMismatchInputValue),
@@ -373,12 +414,15 @@ export function InvoiceComparison() {
     <Fragment>
       <p>
         Per-org totals comparing legacy <code>Invoice</code> and shadow{' '}
-        <code>PlatformInvoice</code> records <strong>generated</strong> in the selected
-        whole UTC days from the first to the last selected day (filtered on{' '}
-        <code>date_added</code>). <strong>Legacy invoices</strong> (count and dollar
-        total) are scoped to orgs that have invoices on both sides — legacy-only orgs
-        haven't been onboarded to the platform yet, so counting them would inflate the
-        parity tallies with orgs that can't be expected to match.{' '}
+        <code>PlatformInvoice</code> records <strong>generated</strong> from the first to
+        the last selected day (filtered on <code>date_added</code>).{' '}
+        <strong>All days and times are UTC.</strong> Leave a time empty to cover that
+        whole day. With times, only orgs with an invoice from the start time up to, but
+        not including, the end time are compared, but their totals still cover the whole
+        days so a pair split by a time shows both sides. <strong>Legacy invoices</strong>{' '}
+        (count and dollar total) are scoped to orgs that have invoices on both sides —
+        legacy-only orgs haven't been onboarded to the platform yet, so counting them
+        would inflate the parity tallies with orgs that can't be expected to match.{' '}
         <strong>Platform invoices</strong> reflect every <code>PlatformInvoice</code> in
         the window; in production milestone-1 those are equivalent to both-sided since{' '}
         <code>InvoicerService</code> only generates platform invoices for orgs with a{' '}
@@ -412,12 +456,30 @@ export function InvoiceComparison() {
               />
             </Stack>
             <Stack gap="xs">
+              <FieldLabel htmlFor="start_time">Start time (UTC)</FieldLabel>
+              <Input
+                id="start_time"
+                type="time"
+                value={startTimeInput}
+                onChange={e => setStartTimeInput(e.target.value)}
+              />
+            </Stack>
+            <Stack gap="xs">
               <FieldLabel htmlFor="end">Last day (UTC)</FieldLabel>
               <Input
                 id="end"
                 type="date"
                 value={endInput}
                 onChange={e => setEndInput(e.target.value)}
+              />
+            </Stack>
+            <Stack gap="xs">
+              <FieldLabel htmlFor="end_time">End time (UTC, exclusive)</FieldLabel>
+              <Input
+                id="end_time"
+                type="time"
+                value={endTimeInput}
+                onChange={e => setEndTimeInput(e.target.value)}
               />
             </Stack>
             <Stack gap="xs">
@@ -460,6 +522,15 @@ export function InvoiceComparison() {
       {/* isPending stays true while the query is skipped (no cell, or a
           one-sided window), which would spin forever. */}
       {isLoading && <LoadingIndicator>Comparing…</LoadingIndicator>}
+
+      {timesIgnored && (
+        <Alert.Container>
+          <Alert variant="warning">
+            This region doesn't support times yet, so these results cover the whole UTC
+            days.
+          </Alert>
+        </Alert.Container>
+      )}
 
       {isError && (
         <Alert.Container>
