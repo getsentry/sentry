@@ -198,8 +198,28 @@ describe('sortCategories', () => {
   });
 });
 
+// Billing platform plans key Seer credits by line item, as sentry has no data
+// category for them, and send their names lowercased.
+const SEER_CREDITS = 'seer-credits-line-item' as DataCategory;
+const billingPlatformPlan = {
+  ...PlanDetailsLookupFixture('am3_team'),
+  categoryDisplayNames: {
+    [SEER_CREDITS]: {plural: 'seer credits', singular: 'seer credit'},
+  },
+};
+
 describe('getPlanCategoryName', () => {
   const plan = PlanDetailsLookupFixture('am3_team');
+
+  it('keeps Seer capitalized in a lowercase name', () => {
+    expect(
+      getPlanCategoryName({
+        plan: billingPlatformPlan,
+        category: SEER_CREDITS,
+        capitalize: false,
+      })
+    ).toBe('Seer credits');
+  });
 
   it('should capitalize category', () => {
     expect(getPlanCategoryName({plan, category: DataCategory.TRANSACTIONS})).toBe(
@@ -238,6 +258,16 @@ describe('getPlanCategoryName', () => {
 
 describe('getSingularCategoryName', () => {
   const plan = PlanDetailsLookupFixture('am3_team');
+
+  it('keeps Seer capitalized in a lowercase name', () => {
+    expect(
+      getSingularCategoryName({
+        plan: billingPlatformPlan,
+        category: SEER_CREDITS,
+        capitalize: false,
+      })
+    ).toBe('Seer credit');
+  });
 
   it('should capitalize category', () => {
     expect(getSingularCategoryName({plan, category: DataCategory.TRANSACTIONS})).toBe(
