@@ -1020,7 +1020,8 @@ describe('DetectorEdit', () => {
       await userEvent.keyboard('Foo{enter}');
 
       const description = screen.getByRole('textbox', {name: 'description'});
-      await userEvent.type(description, 'This is my metric monitor description');
+      await userEvent.click(description);
+      await userEvent.paste('This is my metric monitor description');
 
       await userEvent.type(
         screen.getByRole('spinbutton', {name: 'High threshold'}),
@@ -2168,7 +2169,8 @@ describe('DetectorEdit', () => {
       });
 
       const description = screen.getByRole('textbox', {name: 'description'});
-      await userEvent.type(description, 'This is my cron monitor description');
+      await userEvent.click(description);
+      await userEvent.paste('This is my cron monitor description');
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
