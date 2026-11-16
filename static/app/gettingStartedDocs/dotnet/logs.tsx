@@ -82,11 +82,17 @@ ${logger}.LogWarning("A {Parameter} log message", "formatted");`,
  * @param sdkPackage The NuGet package the platform's onboarding installs, when that isn't
  * `Sentry`. Installing `Sentry` at a newer major version than the platform's package
  * breaks the app, at build or at startup.
+ * @param docsGuide The docs guide whose logs page to link, for platforms that have one.
  */
 export const logs = ({
   logger,
   sdkPackage,
-}: {logger?: string; sdkPackage?: DotNetSdkPackage} = {}): OnboardingConfig => ({
+  docsGuide,
+}: {
+  docsGuide?: string;
+  logger?: string;
+  sdkPackage?: DotNetSdkPackage;
+} = {}): OnboardingConfig => ({
   install: params => [
     {
       type: StepType.INSTALL,
@@ -158,7 +164,11 @@ export const logs = ({
           text: tct(
             'For more detailed information on logging configuration, see the [link:logs documentation].',
             {
-              link: <ExternalLink href="https://docs.sentry.io/platforms/dotnet/logs/" />,
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/dotnet/${docsGuide ? `guides/${docsGuide}/` : ''}logs/`}
+                />
+              ),
             }
           ),
         },
