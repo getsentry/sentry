@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.models import AnonymousUser
@@ -49,6 +49,9 @@ INSUFFICIENT_SCOPE_ATTR = "_insufficient_scope_required"
 class SentryAPIException(APIException):
     code = ""
     message = ""
+    # The keys this exception's `extra` can carry. The API schema publishes them
+    # (sentry.apidocs.error_codes), and a test checks them against `__init__`.
+    extra_keys: ClassVar[tuple[str, ...]] = ()
 
     def __init__(
         self,
@@ -80,6 +83,7 @@ class BadRequest(SentryAPIException):
 class ParameterValidationError(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "parameter-validation-error"
+    extra_keys = ("context",)
 
     def __init__(self, message: str, context: list[str] | None = None) -> None:
         super().__init__(message=message, context=".".join(context or []))
@@ -89,6 +93,7 @@ class SsoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "sso-required"
     message = "Must login via SSO"
+    extra_keys = ("loginUrl", "organizationSlug")
 
     def __init__(
         self,
@@ -111,6 +116,7 @@ class MemberDisabledOverLimit(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "member-disabled-over-limit"
     message = "Organization over member limit"
+    extra_keys = ("next",)
 
     def __init__(self, organization: Organization | RpcOrganization) -> None:
         super().__init__(
@@ -122,6 +128,8 @@ class SuperuserRequired(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
     code = "superuser-required"
     message = "You need to re-authenticate for superuser."
+    # Only organization-scoped superuser checks pass it.
+    extra_keys = ("orgSlug",)
 
 
 class UserRequired(SentryAPIException):
@@ -147,6 +155,7 @@ class SudoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "sudo-required"
     message = "Account verification required."
+    extra_keys = ("username",)
 
     def __init__(self, user: User | RpcUser | AnonymousUser) -> None:
         super().__init__(username=user.username)
@@ -156,6 +165,7 @@ class PrimaryEmailVerificationRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "primary-email-verification-required"
     message = "Primary email verification required."
+    extra_keys = ("username",)
 
     def __init__(self, user: User | RpcUser | AnonymousUser) -> None:
         super().__init__(username=user.username)
