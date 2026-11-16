@@ -1,4 +1,5 @@
-from typing import Any
+from collections.abc import Generator
+from contextlib import contextmanager
 from unittest.mock import patch
 
 from django.conf import settings
@@ -6,7 +7,8 @@ from django.conf import settings
 from sentry.roles.manager import RoleManager
 
 
-def granular_roles_granting(*scopes: str) -> Any:
+@contextmanager
+def granular_roles_granting(*scopes: str) -> Generator[None]:
     """Patch every granular organization role to also grant `scopes`.
 
     For testing endpoints that accept a scope before any role grants it. Token scopes are
@@ -17,7 +19,8 @@ def granular_roles_granting(*scopes: str) -> Any:
     granular_roles = tuple(
         {**role, "scopes": {*role["scopes"], *scopes}} for role in settings.SENTRY_GRANULAR_ROLES
     )
-    return patch(
+    with patch(
         "sentry.roles.granular_manager",
         RoleManager(granular_roles, settings.SENTRY_TEAM_ROLES, settings.SENTRY_DEFAULT_ROLE),
-    )
+    ):
+        yield
