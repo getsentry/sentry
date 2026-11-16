@@ -459,7 +459,7 @@ def trigger_autofix_agent(
     allow_free_cohort: bool = False,
     single_run: bool = False,
     billing_feature: int | None = None,
-    sent_at: list[str] | None = None,
+    rca_load_test: bool = False,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -512,7 +512,7 @@ def trigger_autofix_agent(
             insert_index=insert_index,
             step_args=step_args,
             user_context=user_context,
-            sent_at=sent_at,
+            rca_load_test=rca_load_test,
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
             user=user,

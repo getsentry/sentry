@@ -86,7 +86,7 @@ class AutofixFeaturePayload(BaseModel):
     insert_index: int | None = None
     # Not to be confused with user_org_context, this is free-form context added by the user.
     user_context: str | None = None
-    sent_at: list[str] | None = None
+    rca_load_test: bool = False
     stopping_point: str | None = None
 
 
@@ -113,7 +113,7 @@ class AutofixSingleRunFeaturePayload(BaseModel):
     reasoning_effort: Literal["low", "medium", "high"] = "medium"
     repo_pins: RepoPins | None = None
     user_context: str | None = None
-    sent_at: list[str] | None = None
+    rca_load_test: bool = False
     should_run_repo_checks: bool = False
     pr_internal_settings: AutofixSingleRunPrInternalSettings | None = None
     # The project's coding agent writes the fix, so Seer finishes after the root cause instead of

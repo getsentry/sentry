@@ -645,7 +645,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_called_once()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_post_forwards_load_test_timestamp_only_in_development(
+    def test_post_forwards_load_test_flag_only_in_development(
         self, mock_trigger_explorer: MagicMock
     ) -> None:
         group = self.create_group()
@@ -654,17 +654,17 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        for is_dev in (True, False):
+        for is_dev, load_test in ((True, True), (True, False), (False, True)):
             with self.settings(IS_DEV=is_dev):
                 response = self.client.post(
                     self._get_url(group.id),
-                    data={"step": "root_cause", "sent_at": [""]},
+                    data={"step": "root_cause", "rca_load_test": load_test},
                     format="json",
                 )
 
             assert response.status_code == 202, response.data
-            assert mock_trigger_explorer.call_args.kwargs.get("sent_at") == (
-                [""] if is_dev else None
+            assert mock_trigger_explorer.call_args.kwargs.get("rca_load_test", False) == (
+                is_dev and load_test
             )
 
     def _mint_agent_token(self) -> str:

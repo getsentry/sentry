@@ -325,11 +325,8 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer[dict[str, Any]]):
         help_text="Optional user context to append to the step prompt.",
         allow_blank=True,
     )
-    sent_at = serializers.ListField(
-        child=serializers.ChoiceField(choices=[""], allow_blank=True),
-        required=False,
-        allow_empty=False,
-        max_length=1,
+    rca_load_test = serializers.BooleanField(
+        default=False,
         help_text="Suppress the prompt timestamp for local RCA load tests.",
     )
     repo_name = serializers.CharField(
@@ -660,8 +657,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         run_id=resolved_run_id,
                         user_context=user_context,
                         **(
-                            {"sent_at": data["sent_at"]}
-                            if settings.IS_DEV and step == "root_cause" and "sent_at" in data
+                            {"rca_load_test": True}
+                            if settings.IS_DEV and step == "root_cause" and data["rca_load_test"]
                             else {}
                         ),
                         insert_index=data.get("insert_index"),
