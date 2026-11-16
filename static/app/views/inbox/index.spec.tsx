@@ -148,6 +148,14 @@ describe('Inbox', () => {
     expect(await screen.findByText('Your inbox is empty')).toBeInTheDocument();
   });
 
+  it('links to the Inbox notification settings', async () => {
+    render(<Inbox />, {organization});
+
+    expect(
+      await screen.findByRole('button', {name: 'Inbox notification settings'})
+    ).toHaveAttribute('href', '/settings/account/notifications/inbox/');
+  });
+
   it('shows an error state when items fail to load', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/inbox/',

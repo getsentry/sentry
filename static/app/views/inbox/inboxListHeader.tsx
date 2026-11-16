@@ -1,7 +1,8 @@
 import {useTheme} from '@emotion/react';
+import {IconSettings} from '@sentry/icons/settings';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -75,12 +76,22 @@ export function InboxListHeader({filters, setFilters}: InboxListHeaderProps) {
     <Stack gap="md" padding="md xl" borderBottom="primary">
       <Flex align="center" justify="between" gap="md" minHeight={theme.form.sm.height}>
         <Flex align="center" gap="2xl" minWidth={0}>
-          <Checkbox
-            aria-label={t('Select all')}
-            checked={isAllSelected}
-            disabled={knownIds.length === 0}
-            onChange={() => (isAllSelected === true ? deselectAll() : selectAll())}
-          />
+          <Flex align="center" gap="sm">
+            <Checkbox
+              aria-label={t('Select all')}
+              checked={isAllSelected}
+              disabled={knownIds.length === 0}
+              onChange={() => (isAllSelected === true ? deselectAll() : selectAll())}
+            />
+            <LinkButton
+              size="xs"
+              variant="transparent"
+              icon={<IconSettings />}
+              aria-label={t('Inbox notification settings')}
+              tooltipProps={{title: t('Go to Inbox notification settings')}}
+              to="/settings/account/notifications/inbox/"
+            />
+          </Flex>
           {isAnySelected && (
             <Text size="sm" variant="muted" wrap="nowrap">
               {t('%s selected', countSelected)}
