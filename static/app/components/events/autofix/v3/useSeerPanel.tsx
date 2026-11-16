@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {getReferrerFromBlocks} from 'sentry/components/events/autofix/autofixReferrer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
@@ -82,8 +82,8 @@ function useHandleRestart({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
-}): () => void {
-  const {rerun} = useRerunSingleRun(aiAutofix, {enabled: false});
+}): (() => void) | undefined {
+  const {rerun, disabled} = useRerunSingleRun(aiAutofix, {enabled: true});
   const openSingleRunChat = useOpenSingleRunChat();
   const chatDispatch = useSeerExplorerChatDispatch();
   const runState = aiAutofix.runState;
@@ -91,19 +91,24 @@ function useHandleRestart({
   const asksInChat =
     defined(runId) && isSingleRunAutofix(runState) && runState?.status === 'completed';
 
-  return useCallback(() => {
-    if (!asksInChat) {
-      rerun();
+  return useMemo(() => {
+    if (disabled) {
       return;
     }
-    openSingleRunChat(runId);
-    chatDispatch({
-      type: 'set pending restart',
-      payload: {
-        onSubmit: rerun,
-      },
-    });
-  }, [asksInChat, chatDispatch, openSingleRunChat, rerun, runId]);
+    return () => {
+      if (!asksInChat) {
+        rerun();
+        return;
+      }
+      openSingleRunChat(runId);
+      chatDispatch({
+        type: 'set pending restart',
+        payload: {
+          onSubmit: rerun,
+        },
+      });
+    };
+  }, [asksInChat, chatDispatch, disabled, openSingleRunChat, rerun, runId]);
 }
 
 function useHandleOpenSeerAgent({
