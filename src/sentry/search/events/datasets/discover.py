@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -20,7 +20,7 @@ from snuba_sdk import (
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.group import Group
+from sentry.models.group import Group, parse_short_id
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -1718,8 +1718,16 @@ class DiscoverDatasetConfig(DatasetConfig):
         operator = search_filter.operator
         value = to_list(search_filter.value.value)
         # `unknown` is a special value for when there is no issue associated with the event
-        group_short_ids = [v for v in value if v and v != "unknown"]
+        # Numeric values are group ids and are used directly; other values are
+        # qualified short ids (e.g. ``PROJECT-123``).
+        group_short_ids = [
+            v for v in value if v and v != "unknown" and not (isinstance(v, str) and v.isdigit())
+        ]
+        numeric_group_ids = [
+            int(v) for v in value if isinstance(v, str) and v and v != "unknown" and v.isdigit()
+        ]
         general_group_filter_values = [0 for v in value if not v or v == "unknown"]
+        general_group_filter_values.extend(numeric_group_ids)
 
         if group_short_ids and self.builder.params.organization is not None:
             try:
@@ -1806,12 +1814,46 @@ class DiscoverDatasetConfig(DatasetConfig):
                 1,
             )
 
+    def _resolve_issue_id_values(self, value: Sequence[str] | str) -> Sequence[str | int]:
+        """Coerce ``issue.id`` filter values into group ids.
+
+        Values may be numeric group ids (ints or numeric strings) or qualified
+        short ids (e.g. ``PROJECT-123``), which are resolved against the
+        organization. Unresolvable short ids raise ``InvalidIssueSearchQuery``.
+        """
+        values = value if isinstance(value, (list, tuple)) else [value]
+        short_ids = [v for v in values if isinstance(v, str) and v and not v.isdigit()]
+        resolved: dict[str, int] = {}
+        if short_ids and self.builder.params.organization is not None:
+            try:
+                groups = Group.objects.by_qualified_short_id_bulk(
+                    self.builder.params.organization.id,
+                    short_ids,
+                    # org-wide: the Snuba query is already scoped to the requested projects.
+                    project_ids=None,
+                )
+            except Group.DoesNotExist:
+                raise InvalidIssueSearchQuery(short_ids)
+            except Exception:
+                raise InvalidSearchQuery(f"Invalid value '{short_ids}' for 'issue.id' filter")
+            group_ids = {(g.project.slug.lower(), g.short_id): g.id for g in groups}
+            for short_id_raw in short_ids:
+                parsed = parse_short_id(short_id_raw)
+                if parsed is None or (parsed.project_slug, parsed.short_id) not in group_ids:
+                    raise InvalidIssueSearchQuery(short_ids)
+                resolved[short_id_raw] = group_ids[(parsed.project_slug, parsed.short_id)]
+
+        coerced = [
+            int(v) if isinstance(v, str) and v.isdigit() else resolved.get(v, v) for v in values
+        ]
+        return coerced if isinstance(value, (list, tuple)) else coerced[0]
+
     def _issue_id_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         name = search_filter.key.name
         value = search_filter.value.value
 
         lhs = self.builder.column(name)
-        rhs = value
+        rhs = self._resolve_issue_id_values(value)
 
         # Transactions has no group_id column, so issue.id resolves to a tag
         # (tags[issue.id]) and Snuba requires tag values to be strings. No
@@ -1833,7 +1875,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             and [v for v in value if not v]
         ):
             if search_filter.is_in_filter:
-                rhs = [v if v else 0 for v in value]
+                rhs = [v if v else 0 for v in rhs]
             else:
                 rhs = 0
 

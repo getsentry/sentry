@@ -45,7 +45,14 @@ def _get_group_ids(params: SnubaParams, issue_identifiers: list[str], resolver: 
         # All project_ids will exist.
         group_id_issue_map.update(cache.get(project_id, {}))
 
-    return sorted(group_id_issue_map[issue_id] for issue_id in issue_identifiers)
+    # Numeric values are group ids and are used directly; other values are
+    # qualified short ids resolved by the resolver's cache.
+    return sorted(
+        int(issue_id)
+        if isinstance(issue_id, str) and issue_id.isdigit()
+        else group_id_issue_map[issue_id]
+        for issue_id in issue_identifiers
+    )
 
 
 def _convert_has_issue_filter(

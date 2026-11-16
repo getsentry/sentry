@@ -18,7 +18,7 @@ from sentry.api.event_search import (
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.group import Group
+from sentry.models.group import Group, parse_short_id
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releases.util import SemverFilter
@@ -161,6 +161,40 @@ def _transaction_status_filter_converter(
     return [name, search_filter.operator, internal_value]
 
 
+def _resolve_issue_id_values(
+    value: Sequence[str] | str,
+    params: FilterConvertParams | None,
+) -> Sequence[str | int]:
+    """Coerce ``issue.id`` filter values into group ids.
+
+    Values may be numeric group ids (ints or numeric strings) or qualified
+    short ids (e.g. ``PROJECT-123``), which are resolved against the
+    organization when one is available in ``params``.
+    """
+    values = value if isinstance(value, (list, tuple)) else [value]
+    short_ids = [v for v in values if isinstance(v, str) and v and not v.isdigit()]
+    resolved: dict[str, int] = {}
+    if short_ids and params and "organization_id" in params:
+        try:
+            groups = Group.objects.by_qualified_short_id_bulk(
+                params["organization_id"],
+                short_ids,
+                # org-wide: the Snuba query is already scoped to the requested projects.
+                project_ids=None,
+            )
+        except Exception:
+            raise InvalidSearchQuery(f"Invalid value '{short_ids}' for 'issue.id' filter")
+        group_ids = {(g.project.slug.lower(), g.short_id): g.id for g in groups}
+        for short_id_raw in short_ids:
+            parsed = parse_short_id(short_id_raw)
+            if parsed is None or (parsed.project_slug, parsed.short_id) not in group_ids:
+                raise InvalidSearchQuery(f"Invalid value '{short_ids}' for 'issue.id' filter")
+            resolved[short_id_raw] = group_ids[(parsed.project_slug, parsed.short_id)]
+
+    coerced = [int(v) if isinstance(v, str) and v.isdigit() else resolved.get(v, v) for v in values]
+    return coerced if isinstance(value, (list, tuple)) else coerced[0]
+
+
 def _issue_id_filter_converter(
     search_filter: SearchFilter,
     name: str,
@@ -181,9 +215,11 @@ def _issue_id_filter_converter(
         # consistently
         name_expr = ["coalesce", [name, 0]]
         if search_filter.is_in_filter:
-            value = [v if v else 0 for v in value]
+            value = [v if v else 0 for v in _resolve_issue_id_values(value, params)]
         else:
             value = 0
+    else:
+        value = _resolve_issue_id_values(value, params)
 
     # Skip isNull check on group_id value as we want to
     # allow snuba's prewhere optimizer to find this condition.
@@ -800,7 +836,9 @@ def format_search_filter(
     elif name == ISSUE_ID_ALIAS and value != "":
         # A blank term value means that this is a 'has' filter
         if term.operator in EQUALITY_OPERATORS:
-            group_ids = to_list(value)
+            # These ids narrow the postgres group queryset, so qualified short
+            # ids must be resolved to group ids here.
+            group_ids = to_list(_resolve_issue_id_values(value, params))
         else:
             converted_filter = convert_search_filter_to_snuba_query(term, params=params)
             if converted_filter:
@@ -810,8 +848,16 @@ def format_search_filter(
         operator = term.operator
         value = to_list(value)
         # `unknown` is a special value for when there is no issue associated with the event
-        group_short_ids = [v for v in value if v and v != "unknown"]
+        # Numeric values are group ids and are used directly; other values are
+        # qualified short ids (e.g. ``PROJECT-123``).
+        group_short_ids = [
+            v for v in value if v and v != "unknown" and not (isinstance(v, str) and v.isdigit())
+        ]
+        numeric_group_ids = [
+            int(v) for v in value if isinstance(v, str) and v and v != "unknown" and v.isdigit()
+        ]
         filter_values: list[str | int] = ["" for v in value if not v or v == "unknown"]
+        filter_values.extend(numeric_group_ids)
 
         if group_short_ids and params and "organization_id" in params:
             try:
@@ -831,7 +877,7 @@ def format_search_filter(
             operator,
             SearchValue(
                 cast(
-                    "Sequence[str] | str",
+                    "Sequence[str | int] | str | int",
                     filter_values if term.is_in_filter else filter_values[0],
                 )
             ),

@@ -255,6 +255,8 @@ class SearchResolver:
             return
 
         collected = collect_issue_short_ids_from_parsed_terms(parsed_terms)
+        # Numeric values are group ids and are used directly, no Group lookup needed.
+        collected = {v for v in collected if not v.isdigit()}
         if not collected:
             return
         try:

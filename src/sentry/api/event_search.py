@@ -43,6 +43,26 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
 from sentry.utils.validators import is_event_id, is_span_id
 
+# Qualified issue short id form (e.g. ``PROJECT-123``); strict enough to reject
+# values containing spaces or wildcards.
+_SHORT_ID_PATTERN = re.compile(r"^[A-Za-z0-9]+[-_][A-Za-z0-9]+$")
+
+
+def _is_issue_id_string_value(value: Any) -> bool:
+    """Whether an ``issue.id`` filter value can be a qualified short id string.
+
+    Numeric strings and empty strings (``has:issue.id`` placeholders) are also
+    allowed through; the filter converters handle them.
+    """
+
+    def _matches(v: Any) -> bool:
+        return isinstance(v, str) and (v == "" or v.isdigit() or bool(_SHORT_ID_PATTERN.match(v)))
+
+    if isinstance(value, (list, tuple)):
+        return bool(value) and all(_matches(v) for v in value)
+    return _matches(value)
+
+
 # A wildcard is an asterisk prefixed by an even number of back slashes.
 # If there are an odd number of back slashes, then the back slash immediately
 # before the asterisk is actually escaping the asterisk.
@@ -1033,6 +1053,11 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
                 f"{search_key.name}: Invalid boolean: {search_value.raw_value}. Expected true, 1, false, or 0."
             )
         if self.is_numeric_key(search_key.name):
+            # `issue.id` also accepts qualified short ids (e.g. ``PROJECT-123``)
+            # in addition to numeric group ids, so let those values through;
+            # the filter converters resolve them to group ids.
+            if search_key.name == "issue.id" and _is_issue_id_string_value(search_value.raw_value):
+                return SearchFilter(search_key, operator, search_value)
             raise InvalidSearchQuery(
                 f"{search_key.name}: Invalid number: {search_value.raw_value}. Expected number then optional k, m, or b suffix (e.g. 500k)."
             )

@@ -843,6 +843,22 @@ class SearchResolverQueryTest(TestCase):
             group2.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
         )
 
+    def test_issue_filter_accepts_numeric_group_id(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization, projects=[self.project]),
+            config=SearchResolverConfig(),
+            definitions=OCCURRENCE_DEFINITIONS,
+        )
+        group = self.create_group(project=self.project)
+        where, _, _ = resolver.resolve_query(f"issue:{group.id}")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_int=group.id),
+            )
+        )
+
     def test_has_trace(self) -> None:
         where, having, _ = self.resolver.resolve_query("has:trace")
         trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)

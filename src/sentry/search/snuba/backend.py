@@ -587,6 +587,47 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         raise NotImplementedError
 
 
+def _make_issue_id_filter(
+    ids: Sequence[int | str], project_ids: Sequence[int], organization: Any
+) -> Q:
+    """Build a group id filter from ``issue.id`` filter values.
+
+    Values may be numeric group ids (ints or numeric strings) or qualified short
+    ids (e.g. ``PROJECT-123``). Unresolvable short ids produce an empty match so
+    the search returns no results instead of raising, mirroring numeric ids that
+    do not exist.
+    """
+    values = ids if isinstance(ids, list) else [ids]
+    numeric_ids = []
+    short_ids = []
+    for value in values:
+        if value == "":
+            continue
+        if isinstance(value, str) and value.isdigit():
+            numeric_ids.append(int(value))
+        elif isinstance(value, str):
+            short_ids.append(value)
+        else:
+            numeric_ids.append(value)
+
+    group_ids = set(numeric_ids)
+    if short_ids:
+        try:
+            groups = Group.objects.by_qualified_short_id_bulk(
+                organization.id,
+                short_ids,
+                # Scoped to the selected projects so a short id referencing a
+                # project outside the search scope does not resolve.
+                project_ids=project_ids,
+            )
+        except Group.DoesNotExist:
+            pass
+        else:
+            group_ids.update(g.id for g in groups)
+
+    return Q(id__in=sorted(group_ids))
+
+
 def _make_detector_filter(detector_ids: Sequence[int | str]) -> Q:
     assert not isinstance(detector_ids, str)
     valid_detector_ids = []
@@ -676,9 +717,13 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 # The search parser encodes `has:issue.id` as `issue.id != ''` and
                 # `!has:issue.id` as `issue.id = ''`. Filter out empty strings before
                 # casting to int so those queries don't raise a ValueError.
-                lambda ids: Q(
-                    id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids]) if v != ""]
-                )
+                # `issue.id` also accepts qualified short ids (e.g. ``PROJECT-123``),
+                # which are resolved to group ids scoped to the selected projects.
+                functools.partial(
+                    _make_issue_id_filter,
+                    project_ids=[p.id for p in projects],
+                    organization=organization,
+                ),
             ),
         }
 

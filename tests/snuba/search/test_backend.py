@@ -3012,6 +3012,19 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == set()
 
+        # Qualified short id syntax
+        results = self.make_query(
+            search_filter_query=f"issue.id:{self.group1.qualified_short_id}",
+        )
+        assert set(results) == {self.group1}
+
+        # Short id outside the selected projects should not resolve
+        results = self.make_query(
+            projects=[self.project2],
+            search_filter_query=f"issue.id:{self.group1.qualified_short_id}",
+        )
+        assert set(results) == set()
+
     def test_issue_shortid_filter_disjoint_with_status(self) -> None:
         # When the postgres candidate set and the snuba group_id condition
         # have no overlap, the search should return empty rather than surface

@@ -29,6 +29,7 @@ from sentry.search.events.filter import (
     parse_semver,
 )
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.exceptions import InvalidIssueSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
@@ -1407,6 +1408,35 @@ class SnQLBooleanSearchQueryTest(TestCase):
                 ]
             )
         ]
+        assert having == []
+
+    def test_issue_id_short_id(self) -> None:
+        query = f"issue.id:{self.group1.qualified_short_id}"
+        where, having = self.query_filter.resolve_conditions(query)
+        assert where == [_cond("group_id", Op.EQ, self.group1.id)]
+        assert having == []
+
+    def test_issue_id_short_id_does_not_exist(self) -> None:
+        query = "issue.id:JOURNALIST-99999"
+        with pytest.raises(InvalidIssueSearchQuery):
+            self.query_filter.resolve_conditions(query)
+
+    def test_issue_id_in_numeric_and_short_id(self) -> None:
+        query = f"issue.id:[{self.group1.qualified_short_id},{self.group2.id}]"
+        where, having = self.query_filter.resolve_conditions(query)
+        assert where == [_cond("group_id", Op.IN, sorted([self.group1.id, self.group2.id]))]
+        assert having == []
+
+    def test_issue_numeric_group_id(self) -> None:
+        query = f"issue:{self.group1.id}"
+        where, having = self.query_filter.resolve_conditions(query)
+        assert where == [_cond("group_id", Op.EQ, self.group1.id)]
+        assert having == []
+
+    def test_issue_in_numeric_and_short_id(self) -> None:
+        query = f"issue:[{self.group1.qualified_short_id},{self.group2.id}]"
+        where, having = self.query_filter.resolve_conditions(query)
+        assert where == [_cond("group_id", Op.IN, sorted([self.group1.id, self.group2.id]))]
         assert having == []
 
 
