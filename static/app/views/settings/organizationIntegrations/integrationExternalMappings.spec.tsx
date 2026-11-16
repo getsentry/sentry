@@ -212,30 +212,29 @@ describe('IntegrationExternalMappings', () => {
     await userEvent.click(screen.getByTestId('confirm-button'));
     expect(onDeleteMock).toHaveBeenCalled();
   });
-});
+  it('filters the search input', async () => {
+    createMockSuggestions();
+    render(
+      <IntegrationExternalMappings
+        integration={GitHubIntegrationFixture()}
+        mappings={MOCK_TEAM_MAPPINGS}
+        type="team"
+        onCreate={onCreateMock}
+        onDelete={onDeleteMock}
+        defaultOptions={[]}
+        getBaseFormEndpoint={() =>
+          getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+            path: {organizationIdOrSlug: organization.slug},
+          })
+        }
+      />,
+      {additionalWrapper: NuqsAdapter}
+    );
 
-it('filters the search input', async () => {
-  createMockSuggestions();
-  render(
-    <IntegrationExternalMappings
-      integration={GitHubIntegrationFixture()}
-      mappings={MOCK_TEAM_MAPPINGS}
-      type="team"
-      onCreate={onCreateMock}
-      onDelete={onDeleteMock}
-      defaultOptions={[]}
-      getBaseFormEndpoint={() =>
-        getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
-          path: {organizationIdOrSlug: organization.slug},
-        })
-      }
-    />,
-    {additionalWrapper: NuqsAdapter}
-  );
+    expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
 
-  expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
-
-  const searchInput = screen.getByTestId('mapping-search-input');
-  await userEvent.type(searchInput, 'ghost');
-  expect(searchInput).toHaveValue('ghost');
+    const searchInput = screen.getByTestId('mapping-search-input');
+    await userEvent.type(searchInput, 'ghost');
+    expect(searchInput).toHaveValue('ghost');
+  });
 });

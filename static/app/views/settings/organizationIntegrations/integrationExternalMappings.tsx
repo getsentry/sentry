@@ -230,7 +230,7 @@ export function IntegrationExternalMappings(props: Props) {
         <Input
           type="search"
           data-test-id="mapping-search-input"
-          placeholder={tct('Search external [type] mappings', {type})}
+          placeholder={t('Search external %s mappings', type)}
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
