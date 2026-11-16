@@ -164,14 +164,14 @@ def _transaction_status_filter_converter(
 def _resolve_issue_id_values(
     value: Sequence[str] | str,
     params: FilterConvertParams | None,
-) -> Sequence[str | int]:
+) -> Sequence[str | int] | str | int:
     """Coerce ``issue.id`` filter values into group ids.
 
     Values may be numeric group ids (ints or numeric strings) or qualified
     short ids (e.g. ``PROJECT-123``), which are resolved against the
     organization when one is available in ``params``.
     """
-    values = value if isinstance(value, (list, tuple)) else [value]
+    values: Sequence[str] = value if isinstance(value, (list, tuple)) else [value]
     short_ids = [v for v in values if isinstance(v, str) and v and not v.isdigit()]
     resolved: dict[str, int] = {}
     if short_ids and params and "organization_id" in params:
@@ -191,7 +191,9 @@ def _resolve_issue_id_values(
                 raise InvalidSearchQuery(f"Invalid value '{short_ids}' for 'issue.id' filter")
             resolved[short_id_raw] = group_ids[(parsed.project_slug, parsed.short_id)]
 
-    coerced = [int(v) if isinstance(v, str) and v.isdigit() else resolved.get(v, v) for v in values]
+    coerced: list[str | int] = [
+        int(v) if isinstance(v, str) and v.isdigit() else resolved.get(v, v) for v in values
+    ]
     return coerced if isinstance(value, (list, tuple)) else coerced[0]
 
 
@@ -878,12 +880,8 @@ def format_search_filter(
         term = SearchFilter(
             SearchKey("issue.id"),
             operator,
-            SearchValue(
-                cast(
-                    "Sequence[str | int] | str | int",
-                    filter_values if term.is_in_filter else filter_values[0],
-                )
-            ),
+            # group ids may be ints or short-id placeholder strings
+            SearchValue(cast("Any", filter_values if term.is_in_filter else filter_values[0])),
         )
         converted_filter = convert_search_filter_to_snuba_query(term)
         if converted_filter:

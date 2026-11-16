@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -1817,14 +1818,16 @@ class DiscoverDatasetConfig(DatasetConfig):
                 1,
             )
 
-    def _resolve_issue_id_values(self, value: Sequence[str] | str) -> Sequence[str | int]:
+    def _resolve_issue_id_values(
+        self, value: Sequence[str] | str
+    ) -> Sequence[str | int] | str | int:
         """Coerce ``issue.id`` filter values into group ids.
 
         Values may be numeric group ids (ints or numeric strings) or qualified
         short ids (e.g. ``PROJECT-123``), which are resolved against the
         organization. Unresolvable short ids raise ``InvalidIssueSearchQuery``.
         """
-        values = value if isinstance(value, (list, tuple)) else [value]
+        values: Sequence[str] = value if isinstance(value, (list, tuple)) else [value]
         short_ids = [v for v in values if isinstance(v, str) and v and not v.isdigit()]
         resolved: dict[str, int] = {}
         if short_ids and self.builder.params.organization is not None:
@@ -1846,7 +1849,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     raise InvalidIssueSearchQuery(short_ids)
                 resolved[short_id_raw] = group_ids[(parsed.project_slug, parsed.short_id)]
 
-        coerced = [
+        coerced: list[str | int] = [
             int(v) if isinstance(v, str) and v.isdigit() else resolved.get(v, v) for v in values
         ]
         return coerced if isinstance(value, (list, tuple)) else coerced[0]
@@ -1856,7 +1859,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         value = search_filter.value.value
 
         lhs = self.builder.column(name)
-        rhs = self._resolve_issue_id_values(value)
+        rhs: Any = self._resolve_issue_id_values(value)
 
         # Transactions has no group_id column, so issue.id resolves to a tag
         # (tags[issue.id]) and Snuba requires tag values to be strings. No
