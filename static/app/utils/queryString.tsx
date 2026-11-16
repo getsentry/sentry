@@ -112,11 +112,20 @@ export function decodeScalar(value: QueryValue, fallback?: string): string | und
   return typeof unwrapped === 'string' ? unwrapped : fallback;
 }
 
-export function decodeList(value: string[] | string | undefined | null): string[] {
+/**
+ * A repeated key with no value, such as `?field=a&field`, parses to
+ * `['a', null]`, so array items are filtered to strings.
+ */
+export function decodeList(
+  value: ReadonlyArray<string | null> | string | undefined | null
+): string[] {
   if (!value) {
     return [];
   }
-  return Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+  return typeof value === 'string' ? [value] : [];
 }
 
 // This function has multiple signatures to help with typing in callers.
