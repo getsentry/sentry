@@ -314,10 +314,14 @@ class IntegrationConfigSerializerResponse(IntegrationSerializerResponse, total=F
 
 class IntegrationConfigSerializer(IntegrationSerializer):
     def __init__(
-        self, organization_id: int | None = None, params: Mapping[str, Any] | None = None
+        self,
+        organization_id: int | None = None,
+        params: Mapping[str, Any] | None = None,
+        create_issue_config: list[IntegrationIssueConfigField] | None = None,
     ) -> None:
         self.organization_id = organization_id
         self.params = params or {}
+        self.create_issue_config = create_issue_config
 
     def serialize(
         self,
@@ -335,6 +339,16 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
         if not self.organization_id:
             return cast("IntegrationConfigSerializerResponse", {**base, "configOrganization": []})
+
+        if self.params.get("action") == "create" and self.create_issue_config is not None:
+            return cast(
+                "IntegrationConfigSerializerResponse",
+                {
+                    **base,
+                    "configOrganization": [],
+                    "createIssueConfig": self.create_issue_config,
+                },
+            )
 
         try:
             installation = obj.get_installation(organization_id=self.organization_id)
@@ -370,8 +384,14 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
-    def __init__(self, params: Mapping[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        params: Mapping[str, Any] | None = None,
+        create_issue_config: list[IntegrationIssueConfigField] | None = None,
+    ) -> None:
         self.params = params or {}
+        # Precomputed by the details endpoint so provider errors become a 400 there.
+        self.create_issue_config = create_issue_config
 
     def get_attrs(
         self,
@@ -415,13 +435,29 @@ class OrganizationIntegrationSerializer(Serializer):
         # API request for config options.
         integration: RpcIntegration = attrs.get("integration")  # type: ignore[assignment]
         organization: RpcOrganization | None = attrs.get("organization")
-        integration_config = serialize(
+        integration_config: Mapping[str, Any] | None = serialize(
             objects=integration,
             user=user,
-            serializer=IntegrationConfigSerializer(obj.organization_id, params=self.params),
+            serializer=IntegrationConfigSerializer(
+                obj.organization_id,
+                params=self.params,
+                create_issue_config=self.create_issue_config,
+            ),
             include_config=include_config,
             organization=organization,
         )
+        if integration_config is None:
+            # The nested serializer already logged the provider error. Leave the config
+            # keys out: the ticket rule form falls back to its saved fields only when
+            # createIssueConfig is missing, and an empty list would wipe them on save.
+            logger.warning(
+                "organization_integration.config_fallback",
+                extra={
+                    "integration_id": integration.id,
+                    "integration_provider": integration.provider,
+                },
+            )
+            integration_config = serialize(integration, user, IntegrationSerializer())
         serialized_integration: MutableMapping[str, Any] = {**integration_config}
 
         organization_integration_fields = {

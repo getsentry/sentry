@@ -1,8 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 import responses
+from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.integrations.gitlab.integration import GitlabIntegration
@@ -59,6 +61,16 @@ class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
         assert response.data["id"] == str(self.integration.id)
         assert response.data["configOrganization"]
         assert response.data["configData"] == {"sync_status_forward": {}}
+
+    def test_config_failure_returns_base_fields(self) -> None:
+        with patch.object(
+            GitlabIntegration, "get_organization_config", side_effect=ApiError("provider down")
+        ):
+            response = self.get_success_response(self.organization.slug, self.integration.id)
+
+        assert response.data["id"] == str(self.integration.id)
+        assert response.data["externalId"] == "gitlab:1"
+        assert "configOrganization" not in response.data
 
 
 @control_silo_test
@@ -417,3 +429,29 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         assert "/rest/api/2/project/search" in jira_request_urls[0]
         assert "/rest/api/2/issue/createmeta" in jira_request_urls[1]
         assert all("/rest/api/2/statuses/search" not in url for url in jira_request_urls)
+
+    def _get_create_with_error(self, error: Exception) -> Response:
+        installation = MagicMock(
+            spec=JiraIntegration,
+            wraps=self.integration.get_installation(self.organization.id),
+        )
+        installation.get_create_issue_config.side_effect = error
+        with patch.object(RpcIntegration, "get_installation", return_value=installation):
+            return self.get_error_response(
+                self.organization.slug,
+                self.integration.id,
+                qs_params={"action": "create"},
+                status_code=400,
+            )
+
+    def test_create_issue_config_integration_error_returns_detail(self) -> None:
+        response = self._get_create_with_error(
+            IntegrationError("Could not fetch project list from Jira.")
+        )
+        assert response.data == {"detail": "Could not fetch project list from Jira."}
+
+    def test_create_issue_config_identity_error_returns_generic_detail(self) -> None:
+        for error in (IdentityNotValid(), Identity.DoesNotExist(), ApiError("raw provider body")):
+            response = self._get_create_with_error(error)
+            assert "raw provider body" not in response.data["detail"]
+            assert response.data["detail"].startswith("Couldn't load the issue form")

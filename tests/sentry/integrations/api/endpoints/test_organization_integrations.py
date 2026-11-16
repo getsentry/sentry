@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
 from sentry.hybridcloud.rpc.service import RpcRemoteException
+from sentry.integrations.example.integration import ExampleIntegration
 from sentry.organizations.services.organization import organization_service
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -75,7 +77,22 @@ class OrganizationIntegrationsListTest(APITestCase):
         ):
             response = self.get_success_response(self.organization.slug)
 
-        assert response.data == expected
+        unaffected = [i for i in response.data if i["provider"]["key"] != "github"]
+        assert unaffected == expected
+        github = next(i for i in response.data if i["provider"]["key"] == "github")
+        assert github["externalId"] == "github:1"
+        assert "configOrganization" not in github
+
+    def test_config_failure_still_lists_integration(self) -> None:
+        with patch.object(
+            ExampleIntegration, "get_organization_config", side_effect=ApiError("provider down")
+        ):
+            response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 4
+        example = next(i for i in response.data if i["id"] == str(self.integration.id))
+        assert example["externalId"] == "example:1"
+        assert "configOrganization" not in example
 
     def test_config_shares_full_organization_for_github(self) -> None:
         for number in range(30):
