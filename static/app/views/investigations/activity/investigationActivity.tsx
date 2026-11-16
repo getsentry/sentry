@@ -39,7 +39,6 @@ import type {
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
 import {getActorName} from 'sentry/views/investigations/utils';
-import {AssigneePill} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/assigneeChip';
 import {InlineChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/inlineChip';
 import {
   ActivityLineContent,
@@ -182,10 +181,12 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
         ? currentUser
         : members?.find(member => member.id === createdBy);
 
-  // References use the issue activity feed's inline chips.
+  // The person is already the row's avatar, so only their name follows, like
+  // the actor of an issue activity note. Other references use the issue
+  // activity feed's inline chips.
   let details: React.ReactNode = null;
   if (user) {
-    details = tct('by [actor]', {actor: <AssigneePill assignee={user} />});
+    details = tct('by [actor]', {actor: <Text bold>{getActorName(user)}</Text>});
   } else if (trigger?.type === 'automation') {
     details = tct('by [automation] automation', {
       automation: (

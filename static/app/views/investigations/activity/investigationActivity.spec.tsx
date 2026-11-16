@@ -82,7 +82,7 @@ describe('InvestigationActivity', () => {
     ).toBeInTheDocument();
     expect(items[1]).toHaveTextContent('First');
     expect(within(items[1]!).getByText('Ada Lovelace commented')).toBeInTheDocument();
-    expect(items[2]).toHaveTextContent(/Investigation started by.*Foo Bar/);
+    expect(items[2]).toHaveTextContent(/Investigation started by Foo Bar/);
   });
 
   it('names the member who started the investigation', async () => {
@@ -106,7 +106,7 @@ describe('InvestigationActivity', () => {
       await within(activity).findByText('Grace Hopper', {exact: false})
     ).toBeInTheDocument();
     expect(within(activity).getByRole('listitem')).toHaveTextContent(
-      /Investigation started by.*Grace Hopper/
+      /Investigation started by Grace Hopper/
     );
   });
 
@@ -227,7 +227,7 @@ describe('InvestigationActivity', () => {
       within(items[1]!).getByRole('link', {name: 'Checkout errors'})
     ).toHaveAttribute('href', '/organizations/org-slug/monitors/789/');
     expect(items[2]).toHaveTextContent('Before the change');
-    expect(items[3]).toHaveTextContent(/Investigation started by.*Foo Bar/);
+    expect(items[3]).toHaveTextContent(/Investigation started by Foo Bar/);
     expect(within(activity).queryByText(/Raise the threshold/)).not.toBeInTheDocument();
   });
 
