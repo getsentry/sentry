@@ -265,7 +265,7 @@ describe('SeerDrawerContent', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add context'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Context'}));
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Context for Seer'}),
       'Started after the Celery upgrade'

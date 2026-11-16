@@ -84,73 +84,87 @@ export function AutofixStartCard({
           variant="muted"
         />
       ) : null}
-      <Flex border="muted" radius="md" padding="lg" gap="lg" align="center" wrap="wrap">
-        {showNotice ? null : (
-          <Fragment>
-            <ImageContainer align="center" height="40px">
-              <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
-            </ImageContainer>
-            <Stack gap="xs" flex="1" minWidth="200px">
-              <Text bold>{t('Let Seer find the root cause and fix it')}</Text>
-              <Text variant="muted">
-                {t(
-                  'It investigates this issue, writes a code fix, and can open a pull request for you to review.'
-                )}
-              </Text>
-            </Stack>
-          </Fragment>
-        )}
-        <Flex gap="md" wrap="wrap">
-          {showContext ? null : (
-            <Button size="md" onClick={() => setShowContext(true)}>
-              {t('Add context')}
-            </Button>
+      <Flex border="muted" radius="md" padding="lg" containerType="inline-size">
+        <Flex
+          gap="lg"
+          width="100%"
+          direction={{zero: 'column', xs: 'row'}}
+          align={{zero: 'start', xs: 'center'}}
+          wrap={{zero: 'nowrap', xs: 'wrap'}}
+        >
+          {showNotice ? null : (
+            <Fragment>
+              <ImageContainer>
+                <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
+              </ImageContainer>
+              <Stack gap="sm" flex="1">
+                <Text bold>{t('Let Seer find the root cause and fix it')}</Text>
+                <Text variant="muted">
+                  {t(
+                    'Our agent investigates your issue, writes a code fix, and can open a pull request for you to review.'
+                  )}
+                </Text>
+              </Stack>
+            </Fragment>
           )}
-          <Button
-            size="md"
-            icon={<IconBug />}
-            aria-label={t('Start Analysis')}
-            variant="primary"
-            onClick={handleStartRootCause}
-            analyticsEventKey="autofix.start_fix_clicked"
-            analyticsEventName="Autofix: Start Fix Clicked"
-            analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
-            busy={isStarting}
-            // Held disabled until this mount's credit check answers, so it is never
-            // clickable before the answer arrives, even with an earlier one cached.
-            disabled={isStartDisabled}
-          >
-            {t('Start Analysis')}
-          </Button>
+          <Stack gap="md" align="start">
+            {showContext ? null : (
+              <Button size="md" onClick={() => setShowContext(true)}>
+                {t('Add Context')}
+              </Button>
+            )}
+            <Button
+              size="md"
+              icon={<IconBug />}
+              aria-label={t('Start Analysis')}
+              variant="primary"
+              onClick={handleStartRootCause}
+              analyticsEventKey="autofix.start_fix_clicked"
+              analyticsEventName="Autofix: Start Fix Clicked"
+              analyticsParams={{
+                group_id: group.id,
+                mode: 'explorer',
+                referrer,
+              }}
+              busy={isStarting}
+              // Held disabled until this mount's credit check answers, so it is never
+              // clickable before the answer arrives, even with an earlier one cached.
+              disabled={isStartDisabled}
+            >
+              {t('Start Analysis')}
+            </Button>
+          </Stack>
+          {showContext ? (
+            <ContextInput
+              autoFocus
+              aria-label={t('Context for Seer')}
+              placeholder={t('Anything Seer should know? Optional')}
+              maxLength={AUTOFIX_USER_CONTEXT_MAX_LENGTH}
+              value={userContext}
+              onChange={event => setUserContext(event.target.value)}
+              onKeyDown={event => {
+                if (
+                  event.key === 'Enter' &&
+                  !event.nativeEvent.isComposing &&
+                  !isStartDisabled
+                ) {
+                  handleStartRootCause();
+                }
+              }}
+            />
+          ) : null}
         </Flex>
-        {showContext ? (
-          <ContextInput
-            autoFocus
-            aria-label={t('Context for Seer')}
-            placeholder={t('Anything Seer should know? Optional')}
-            maxLength={AUTOFIX_USER_CONTEXT_MAX_LENGTH}
-            value={userContext}
-            onChange={event => setUserContext(event.target.value)}
-            onKeyDown={event => {
-              if (
-                event.key === 'Enter' &&
-                !event.nativeEvent.isComposing &&
-                !isStartDisabled
-              ) {
-                handleStartRootCause();
-              }
-            }}
-          />
-        ) : null}
       </Flex>
     </Stack>
   );
 }
 
-const ImageContainer = styled(Flex)`
+const ImageContainer = styled('div')`
   flex: none;
+  height: 80px;
 `;
 
 const ContextInput = styled(Input)`
+  width: 100%;
   flex-basis: 100%;
 `;
