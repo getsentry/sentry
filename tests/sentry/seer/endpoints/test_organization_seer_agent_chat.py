@@ -200,14 +200,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 400
 
-    @with_feature("organizations:seer-explorer-code-mode-tools")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_code_mode_feature_selects_only(self, mock_client_class: MagicMock) -> None:
-        """The flag means Code Mode instead of the classic tools, not alongside them.
-
-        Running both gives the agent two ways to do everything and it mixes them, so the
-        surface being dogfooded is never the one that ships.
-        """
+    def test_selects_code_mode_only(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -217,10 +211,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "only"
 
-    @with_feature("organizations:seer-explorer-code-mode-tools")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_frontend_override_still_selects_the_mode(self, mock_client_class: MagicMock) -> None:
-        """The override is how the two surfaces get compared, so it outranks the flag."""
+    def test_frontend_override_turns_code_mode_off(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -228,17 +220,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         response = self.client.post(
             self.url, {"query": "hi", "override_code_mode_enable": "off"}, format="json"
         )
-
-        assert response.status_code == 200
-        assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "off"
-
-    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_no_code_mode_feature_stays_off(self, mock_client_class: MagicMock) -> None:
-        mock_client = MagicMock()
-        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
-        mock_client_class.return_value = mock_client
-
-        response = self.client.post(self.url, {"query": "hi"}, format="json")
 
         assert response.status_code == 200
         assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "off"
@@ -359,7 +340,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_bash_mode=False,
             enable_coding=False,
             enable_write_pull_request=False,
-            enable_code_mode_tools="off",
+            enable_code_mode_tools="only",
             enable_investigation_tools=True,
             enable_inbox_tools=True,
             enable_scm_connect_prompt=False,
@@ -530,7 +511,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_bash_mode=False,
             enable_coding=False,
             enable_write_pull_request=False,
-            enable_code_mode_tools="off",
+            enable_code_mode_tools="only",
             enable_investigation_tools=True,
             enable_inbox_tools=True,
             enable_scm_connect_prompt=False,
