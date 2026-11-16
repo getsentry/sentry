@@ -24,6 +24,7 @@ const WORKSPACE = 'pnpm-workspace.yaml';
 const PACKAGE_JSON = 'package.json';
 const LOCKFILE = 'pnpm-lock.yaml';
 const ROLLING_BRANCH = 'bot/bump-sentry-api';
+// The default commit author. BUMP_AUTHOR_NAME and BUMP_AUTHOR_EMAIL override it.
 const BOT_NAME = 'github-actions[bot]';
 const BOT_EMAIL = '41898282+github-actions[bot]@users.noreply.github.com';
 
@@ -113,7 +114,7 @@ const PINS = {
 
 const MODES = ['merge', 'rolling-pr'];
 
-/** The validated `BUMP_PIN` and `BUMP_MODE` settings. */
+/** The validated `BUMP_PIN` and `BUMP_MODE` settings, and the commit author. */
 export function readConfig(env) {
   if (!Object.hasOwn(PINS, env.BUMP_PIN ?? '')) {
     throw new Error(
@@ -125,7 +126,14 @@ export function readConfig(env) {
       `BUMP_MODE must be one of ${MODES.join(', ')}, got: ${env.BUMP_MODE}`
     );
   }
-  return {pin: PINS[env.BUMP_PIN], mode: env.BUMP_MODE};
+  return {
+    pin: PINS[env.BUMP_PIN],
+    mode: env.BUMP_MODE,
+    author: {
+      name: env.BUMP_AUTHOR_NAME || BOT_NAME,
+      email: env.BUMP_AUTHOR_EMAIL || BOT_EMAIL,
+    },
+  };
 }
 
 function run(command, args, options = {}) {
@@ -142,16 +150,16 @@ function run(command, args, options = {}) {
 }
 
 /** Commit the pin on `branch`, starting from the current checkout. */
-function commitPin(pin, branch, title) {
+function commitPin(pin, author, branch, title) {
   run('git', ['checkout', '-B', branch]);
   run('git', ['add', pin.file, LOCKFILE]);
   run('git', ['commit', '-m', title], {
     env: {
       ...process.env,
-      GIT_AUTHOR_NAME: BOT_NAME,
-      GIT_AUTHOR_EMAIL: BOT_EMAIL,
-      GIT_COMMITTER_NAME: BOT_NAME,
-      GIT_COMMITTER_EMAIL: BOT_EMAIL,
+      GIT_AUTHOR_NAME: author.name,
+      GIT_AUTHOR_EMAIL: author.email,
+      GIT_COMMITTER_NAME: author.name,
+      GIT_COMMITTER_EMAIL: author.email,
     },
   });
 }
@@ -173,20 +181,20 @@ function openPr(branch) {
 }
 
 /** Open a PR for the pin and merge it. */
-function bumpAndMerge(pin, latest, title, body) {
+function bumpAndMerge(pin, author, latest, title) {
   // A run that stopped before the merge leaves this branch, and maybe its PR,
   // behind. Overwrite the branch and reuse an open PR so the next run finishes.
   const branch = `bot/bump-sentry-api-to-${latest}`;
-  commitPin(pin, branch, title);
+  commitPin(pin, author, branch, title);
   run('git', ['push', '--force', 'origin', `HEAD:refs/heads/${branch}`]);
   if (!openPr(branch)) {
-    run('gh', ['pr', 'create', '--head', branch, '--title', title, '--body', body]);
+    run('gh', ['pr', 'create', '--fill', '--head', branch]);
   }
   run('gh', ['pr', 'merge', branch, '--squash', '--admin', '--delete-branch']);
 }
 
 /** Keep one unmerged PR on the newest release. */
-function bumpRollingPr(pin, latest, current, title, body) {
+function bumpRollingPr(pin, author, latest, current, title, body) {
   const pr = openPr(ROLLING_BRANCH);
   // The remote branch's commit, or empty when it does not exist. Pushing with
   // it as the lease fails if the branch moves while this runs.
@@ -210,7 +218,7 @@ function bumpRollingPr(pin, latest, current, title, body) {
       `${base}..${remote}`,
     ])
       .split('\n')
-      .filter(email => email && email !== BOT_EMAIL).length;
+      .filter(email => email && email !== author.email).length;
   }
 
   const plan = planBump({latest, main: current, branch, foreignCommits});
@@ -227,7 +235,7 @@ function bumpRollingPr(pin, latest, current, title, body) {
 
   console.log(`Pinning ${PACKAGE} ${latest} (the default branch has ${current}).`);
   pin.write(latest);
-  commitPin(pin, ROLLING_BRANCH, title);
+  commitPin(pin, author, ROLLING_BRANCH, title);
   // A leftover branch from a closed PR is overwritten too.
   run('git', [
     'push',
@@ -252,14 +260,13 @@ function bumpRollingPr(pin, latest, current, title, body) {
 }
 
 function main() {
-  const {pin, mode} = readConfig(process.env);
+  const {pin, mode, author} = readConfig(process.env);
   const latest = run('npm', ['view', PACKAGE, 'version']);
   if (!isRelease(latest)) {
     throw new Error(`Expected a release version of ${PACKAGE}, got: ${latest}`);
   }
   const current = pin.version(readFileSync(pin.file, 'utf8'));
 
-  const title = `chore(deps): Bump ${PACKAGE} to ${latest}`;
   const release = `[${latest}](https://github.com/getsentry/sentry/releases/tag/api@${latest})`;
   if (mode === 'merge') {
     if (current === latest) {
@@ -268,19 +275,15 @@ function main() {
     }
     console.log(`Bumping ${PACKAGE} from ${current} to ${latest}.`);
     pin.write(latest);
-    bumpAndMerge(
-      pin,
-      latest,
-      title,
-      `Pins ${PACKAGE} to ${release}. getsentry/sentry's \`bump-sentry-api-consumer.yml\` opened and merged this PR.`
-    );
+    bumpAndMerge(pin, author, latest, `Bump ${PACKAGE} to ${latest}`);
     return;
   }
   bumpRollingPr(
     pin,
+    author,
     latest,
     current,
-    title,
+    `chore(deps): Bump ${PACKAGE} to ${latest}`,
     `Pins ${PACKAGE} to ${release}, so CI checks this repository against the release. getsentry/sentry's \`bump-sentry-api-consumer.yml\` updates this PR when a newer release ships and never merges it.`
   );
 }

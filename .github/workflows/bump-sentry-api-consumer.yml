@@ -36,6 +36,16 @@ on:
         required: false
         type: string
         default: package.json
+      commit-author-name:
+        description: 'Author of the bump commits. Defaults to github-actions[bot].'
+        required: false
+        type: string
+        default: ''
+      commit-author-email:
+        description: 'Email of commit-author-name.'
+        required: false
+        type: string
+        default: ''
     secrets:
       app-private-key:
         description: 'Private key of the app-client-id app.'
@@ -85,4 +95,6 @@ jobs:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           BUMP_PIN: ${{ inputs.pin }}
           BUMP_MODE: ${{ inputs.mode }}
+          BUMP_AUTHOR_NAME: ${{ inputs.commit-author-name }}
+          BUMP_AUTHOR_EMAIL: ${{ inputs.commit-author-email }}
         run: node .bump-sentry-api/.github/workflows/scripts/bump-sentry-api.js

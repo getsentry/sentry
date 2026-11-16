@@ -86,3 +86,16 @@ test('accepts only known pins and modes', () => {
   assert.throws(() => readConfig({BUMP_PIN: 'toString', BUMP_MODE: 'merge'}), /BUMP_PIN/);
   assert.throws(() => readConfig({BUMP_PIN: 'catalog'}), /BUMP_MODE/);
 });
+
+test('commits as github-actions[bot] unless the caller names an author', () => {
+  const config = {BUMP_PIN: 'dependency', BUMP_MODE: 'merge'};
+  assert.equal(readConfig(config).author.name, 'github-actions[bot]');
+  assert.deepEqual(
+    readConfig({
+      ...config,
+      BUMP_AUTHOR_NAME: 'bot[bot]',
+      BUMP_AUTHOR_EMAIL: '1+bot[bot]@example.com',
+    }).author,
+    {name: 'bot[bot]', email: '1+bot[bot]@example.com'}
+  );
+});
