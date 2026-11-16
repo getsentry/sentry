@@ -106,21 +106,36 @@ describe("auth challenges", () => {
     expect(getSentryAuthChallenge(new SentryApiError(undefined, sentryBody("sudo-required"), undefined, false))).toBeUndefined();
   });
 
-  test("carries the extra fields the spec's SentryApiErrorBody lists for each code", () => {
-    const spec = JSON.parse(readFileSync(new URL("../spec/openapi-derefed.json", import.meta.url), "utf8"));
-    type Variant = { properties: { code: { enum: [string] }; extra: { properties: Record<string, unknown> } }; "x-sentry-status": number };
-    const variants: Variant[] = spec.components.schemas.SentryApiErrorBody.properties.detail.oneOf;
-    const challenges = variants.flatMap((variant) => {
+  type Variant = {
+    properties: { code: { enum: [string] }; extra: { properties: Record<string, unknown> } };
+    "x-sentry-status": number;
+    "x-sentry-auth-challenge": boolean;
+  };
+  const variants: Variant[] = JSON.parse(readFileSync(new URL("../spec/openapi-derefed.json", import.meta.url), "utf8"))
+    .components.schemas.SentryApiErrorBody.properties.detail.oneOf;
+  const specChallengeCodes = variants
+    .filter((variant) => variant["x-sentry-auth-challenge"])
+    .map((variant) => variant.properties.code.enum[0])
+    .sort();
+
+  test("classifies exactly the codes the spec marks, with the extra fields it lists", () => {
+    expect(specChallengeCodes).not.toHaveLength(0);
+    for (const variant of variants) {
+      const code = variant.properties.code.enum[0];
       const extra = Object.fromEntries(Object.keys(variant.properties.extra.properties).map((key) => [key, `${key}-value`]));
-      const body = sentryBody(variant.properties.code.enum[0], extra);
-      const challenge = getSentryAuthChallenge(errorWith(variant["x-sentry-status"], body));
-      return challenge ? [{ challenge, extra }] : [];
-    });
-    expect(challenges.map(({ challenge }) => challenge.code).sort()).toEqual([
-      "2fa-required", "member-disabled-over-limit", "primary-email-verification-required", "sso-required",
-      "staff-required", "sudo-required", "superuser-required",
-    ]);
-    for (const { challenge, extra } of challenges) expect(challenge).toMatchObject(extra);
+      const challenge = getSentryAuthChallenge(errorWith(variant["x-sentry-status"], sentryBody(code, extra)));
+      if (variant["x-sentry-auth-challenge"]) {
+        expect(challenge).toMatchObject({ code, ...extra });
+      } else {
+        expect(challenge).toBeUndefined();
+      }
+    }
+  });
+
+  test("the README lists the codes the spec marks", () => {
+    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+    const sentence = readme.match(/Some 401 and 403 responses ask the user to act in Sentry: ([^.]+)\./)?.[1] ?? "";
+    expect([...sentence.matchAll(/`([^`]+)`/g)].map((match) => match[1]).sort()).toEqual(specChallengeCodes);
   });
 });
 

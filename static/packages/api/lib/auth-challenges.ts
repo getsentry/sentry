@@ -1,20 +1,10 @@
-import { SENTRY_ERROR_EXTRA_KEYS } from "./error-codes.gen.ts";
+import { SENTRY_AUTH_CHALLENGE_CODES, SENTRY_ERROR_EXTRA_KEYS } from "./error-codes.gen.ts";
 import { readSentryErrorDetail, SentryApiError } from "./sentry-errors.ts";
-import type { KnownSentryErrorCode, SentryErrorExtra } from "./sentry-errors.ts";
+import type { SentryErrorExtra } from "./sentry-errors.ts";
 
 type ChallengeBase = { status: number; message: string };
 
-const CHALLENGE_CODES = [
-  "sso-required",
-  "sudo-required",
-  "primary-email-verification-required",
-  "member-disabled-over-limit",
-  "superuser-required",
-  "staff-required",
-  "2fa-required",
-] as const satisfies readonly KnownSentryErrorCode[];
-
-type ChallengeCode = (typeof CHALLENGE_CODES)[number];
+type ChallengeCode = (typeof SENTRY_AUTH_CHALLENGE_CODES)[number];
 
 /**
  * A 401 or 403 the user can clear by acting in Sentry, such as logging in with
@@ -41,7 +31,7 @@ function readSentryAuthChallenge(status: number, body: unknown): SentryAuthChall
   if (!detail) {
     return undefined;
   }
-  const code = CHALLENGE_CODES.find((challengeCode) => challengeCode === detail.code);
+  const code = SENTRY_AUTH_CHALLENGE_CODES.find((challengeCode) => challengeCode === detail.code);
   if (!code) {
     return undefined;
   }
