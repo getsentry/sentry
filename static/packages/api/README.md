@@ -156,6 +156,19 @@ const listProjects = operations.find(operation => operation.functionName === "li
 listProjects?.routing; // { silo: "cell", organizationParameter: "organization_id_or_slug" }
 ```
 
+`matchOperation` finds the catalog operation for a method and a concrete path, such as one a raw request or a proxy sees, with its decoded path parameters:
+
+```ts
+import { matchOperation } from "@sentry/api/operations";
+
+const match = matchOperation("GET", "/api/0/organizations/acme/issues/?query=is:unresolved");
+match?.operation.operationId; // the operation's OpenAPI identifier
+match?.operation.routing; // { silo: "cell", organizationParameter: "organization_id_or_slug" }
+match?.params; // { organization_id_or_slug: "acme" }
+```
+
+The path may include `API_BASE_PATH`, an origin or a query string, and a missing trailing slash still matches. Where templates overlap, a literal segment wins over a parameter at the first segment where they differ, so `/snapshots/latest-base/` is not read as a `{snapshot_id}`. Only operations in the public catalog match; `matchOperation` returns `undefined` for others. To match a filtered catalog or your own templates, build a matcher with `createOperationMatcher`, which accepts any `{ method, path }` list and throws on first use if two templates for one method differ only in parameter names.
+
 `idempotent` tells retrying clients whether resending an identical request after a timeout or 5xx response is safe. It is always `true` for `GET`, `HEAD`, `OPTIONS`, and `TRACE`. Other methods are `true` only when Sentry marks the operation with the `x-sentry-idempotent` OpenAPI extension; `false` means not known to be idempotent, not known to be unsafe.
 
 The catalog is generated from the same schema and SDK output as each release. Consumers own search, grouping, ranking, and command aliases; the catalog does not fetch a live schema or infer undocumented API behavior.
