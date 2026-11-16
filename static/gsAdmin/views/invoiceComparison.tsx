@@ -172,6 +172,19 @@ function parsePageSizeParam(value: unknown): number {
   return PAGE_SIZE_OPTIONS.includes(n) ? n : DEFAULT_PAGE_SIZE;
 }
 
+const DEFAULT_MIN_MISMATCH_DOLLARS = 1;
+
+// A non-negative dollar amount, or undefined. `Number('')` is 0, so an
+// empty field would otherwise silently mean "show every mismatch".
+function parseDollars(value: unknown): number | undefined {
+  const raw = firstQueryValue(value)?.trim();
+  if (!raw) {
+    return undefined;
+  }
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
 export function InvoiceComparison() {
   const cells = getCells();
   const location = useLocation();
@@ -187,6 +200,8 @@ export function InvoiceComparison() {
   const queryEnd = parseDayParam(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
+  const minMismatch =
+    parseDollars(location.query.min_mismatch) ?? DEFAULT_MIN_MISMATCH_DOLLARS;
 
   // Without a window in the URL (first visit, or a link that only carries
   // pagination params) query yesterday, the last complete UTC day, so the
@@ -204,6 +219,8 @@ export function InvoiceComparison() {
 
   const [startInput, setStartInput] = useState(startDay);
   const [endInput, setEndInput] = useState(endDay);
+  const [minMismatchInput, setMinMismatchInput] = useState(String(minMismatch));
+  const minMismatchInputValue = parseDollars(minMismatchInput);
 
   // Keep the date inputs in sync with the window being shown on back/forward
   // and in-app navigation (e.g. opening a shared link). Keyed on the shown
@@ -218,6 +235,11 @@ export function InvoiceComparison() {
     if (endDay) {
       setEndInput(endDay);
     }
+  }
+  const [shownMinMismatch, setShownMinMismatch] = useState(minMismatch);
+  if (shownMinMismatch !== minMismatch) {
+    setShownMinMismatch(minMismatch);
+    setMinMismatchInput(String(minMismatch));
   }
 
   // Written into every URL this page rewrites, so a refresh or shared link
@@ -237,6 +259,7 @@ export function InvoiceComparison() {
         end: hasWindow ? endDay : undefined,
         rows_page: rowsPage,
         rows_page_size: pageSize,
+        min_mismatch_cents: Math.round(minMismatch * 100),
       },
       staleTime: 0,
     }),
@@ -327,7 +350,7 @@ export function InvoiceComparison() {
   };
 
   const onSubmit = () => {
-    if (!startInput || !endInput) {
+    if (!startInput || !endInput || minMismatchInputValue === undefined) {
       return;
     }
     // Re-running the comparison persists the chosen window to the URL and
@@ -341,6 +364,7 @@ export function InvoiceComparison() {
         end: endInput,
         rows_page: '1',
         page_size: String(pageSize),
+        min_mismatch: String(minMismatchInputValue),
       },
     });
   };
@@ -397,6 +421,18 @@ export function InvoiceComparison() {
               />
             </Stack>
             <Stack gap="xs">
+              <FieldLabel htmlFor="min_mismatch">Hide mismatches under ($)</FieldLabel>
+              <Input
+                id="min_mismatch"
+                type="number"
+                min={0}
+                step="0.01"
+                value={minMismatchInput}
+                aria-invalid={minMismatchInputValue === undefined}
+                onChange={e => setMinMismatchInput(e.target.value)}
+              />
+            </Stack>
+            <Stack gap="xs">
               <FieldLabel>Results per page</FieldLabel>
               <CompactSelect
                 trigger={triggerProps => (
@@ -410,7 +446,11 @@ export function InvoiceComparison() {
                 onChange={opt => setPageSize(Number(opt.value))}
               />
             </Stack>
-            <Button variant="primary" onClick={onSubmit} disabled={!cell}>
+            <Button
+              variant="primary"
+              onClick={onSubmit}
+              disabled={!cell || minMismatchInputValue === undefined}
+            >
               Run comparison
             </Button>
           </Flex>

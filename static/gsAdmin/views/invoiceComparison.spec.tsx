@@ -163,6 +163,66 @@ describe('InvoiceComparison', () => {
     expect(router.location.query.end).toBe('2026-11-03');
   });
 
+  describe('mismatch cutoff', () => {
+    it('hides mismatches under $1 by default', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      expect(mock.mock.calls[0][1].query).toEqual(
+        expect.objectContaining({min_mismatch_cents: 100})
+      );
+      expect(screen.getByLabelText('Hide mismatches under ($)')).toHaveValue(1);
+    });
+
+    it('queries the cutoff from the URL', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09', min_mismatch: '2.5'});
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      expect(mock.mock.calls[0][1].query).toEqual(
+        expect.objectContaining({min_mismatch_cents: 250})
+      );
+      expect(screen.getByLabelText('Hide mismatches under ($)')).toHaveValue(2.5);
+    });
+
+    it('writes a typed cutoff to the URL on Run', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      const {router} = renderComparison({start: '2026-11-09', end: '2026-11-09'});
+      const input = screen.getByLabelText('Hide mismatches under ($)');
+      await userEvent.clear(input);
+      await userEvent.type(input, '0');
+      await userEvent.click(screen.getByRole('button', {name: 'Run comparison'}));
+
+      expect(router.location.query.min_mismatch).toBe('0');
+      expect(router.location.query.rows_page).toBe('1');
+    });
+
+    it('disables Run while the cutoff is empty', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09'});
+      await userEvent.clear(screen.getByLabelText('Hide mismatches under ($)'));
+
+      expect(screen.getByRole('button', {name: 'Run comparison'})).toBeDisabled();
+    });
+  });
+
   it('queries the whole UTC days from the URL', async () => {
     const mock = MockApiClient.addMockResponse({
       url: COMPARISON_URL,
