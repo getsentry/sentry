@@ -899,12 +899,10 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         )
         self.store_spans([root, child])
 
-        with patch(
-            "sentry.api.endpoints.project_trace_item_details.sentry_sdk.capture_exception"
-        ) as mock_capture:
+        with patch("sentry.seer.agent.tools.logger") as mock_logger:
             result = get_trace_waterfall(trace_id, self.organization.id)
         # EAP returns "" for the link-less child, which must not count as a bad payload.
-        mock_capture.assert_not_called()
+        mock_logger.warning.assert_not_called()
 
         assert isinstance(result, EAPTrace)
         spans = [result.trace[0], *result.trace[0]["children"]]
@@ -4523,7 +4521,7 @@ def test_parse_span_links_skips_malformed_links(raw_links: str) -> None:
         "children": [linked_child],
     }
 
-    _parse_span_links([span])
+    assert _parse_span_links([span]) == 1
 
     assert "links" not in span
     assert span["additional_attributes"] == {"span.status_code": "200"}
@@ -4541,8 +4539,28 @@ def test_parse_span_links_keeps_valid_links_next_to_malformed_ones() -> None:
         "children": [],
     }
 
-    _parse_span_links([span])
+    assert _parse_span_links([span]) == 1
 
     assert span["links"] == [
         {"traceId": "d099bf9ad5a143cf8f83a98081d0ed3b", "itemId": "8873a98879faf06d"}
     ]
+
+
+def test_parse_span_links_counts_malformed_links_across_the_tree() -> None:
+    bad_link = '[{"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b"}]'
+    spans: list[dict[str, Any]] = [
+        {
+            "event_id": f"{i:016x}",
+            "additional_attributes": {"sentry.links": bad_link},
+            "children": [
+                {
+                    "event_id": f"{i + 100:016x}",
+                    "additional_attributes": {"sentry.links": bad_link},
+                    "children": [],
+                }
+            ],
+        }
+        for i in range(3)
+    ]
+
+    assert _parse_span_links(spans) == 6

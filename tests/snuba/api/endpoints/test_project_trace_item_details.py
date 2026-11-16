@@ -8,6 +8,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry.api.endpoints.project_trace_item_details import serialize_links
 from sentry.testutils.cases import (
     APITestCase,
     OccurrenceTestCase,
@@ -974,3 +975,22 @@ class ProjectTraceItemDetailsEndpointTest(
         assert by_name["transaction"]["value"] == "/api/users"
         assert by_name["transaction"]["type"] == "str"
         assert "sentry.segment.name" not in by_name
+
+
+def test_serialize_links_reports_malformed_links_once() -> None:
+    raw = json.dumps(
+        [
+            {"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b"},
+            {"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b"},
+            {"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b", "span_id": "8873a98879faf06d"},
+        ]
+    )
+    attributes = [{"name": "sentry.links", "value": {"valStr": raw}}]
+
+    with mock.patch(
+        "sentry.api.endpoints.project_trace_item_details.sentry_sdk.capture_message"
+    ) as mock_capture:
+        links = serialize_links(attributes)
+
+    assert links == [{"traceId": "d099bf9ad5a143cf8f83a98081d0ed3b", "itemId": "8873a98879faf06d"}]
+    mock_capture.assert_called_once()

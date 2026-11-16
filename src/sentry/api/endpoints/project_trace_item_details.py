@@ -434,26 +434,35 @@ def serialize_links(attributes: list[dict[str, Any]]) -> list[TraceItemLink] | N
     value = link_attribute.get("value", {}).get("valStr", None)
     if value is None:
         return None
-    return parse_links_json(value)
+    links, malformed = parse_links_json(value)
+    if malformed:
+        with sentry_sdk.new_scope() as scope:
+            scope.set_extra("malformed_links", malformed)
+            sentry_sdk.capture_message("Could not parse span links", level="warning")
+    return links
 
 
-def parse_links_json(raw: str) -> list[TraceItemLink] | None:
-    """Parse the JSON stored in `sentry.links`, keeping every link that can be serialized."""
+def parse_links_json(raw: str) -> tuple[list[TraceItemLink] | None, int]:
+    """Parse the JSON stored in `sentry.links`, keeping every link that can be serialized.
+
+    Returns the links and how many could not be parsed, so callers report failures once
+    instead of once per link.
+    """
     try:
         links = json.loads(raw)
-    except json.JSONDecodeError as e:
-        sentry_sdk.capture_exception(e)
-        return None
+    except json.JSONDecodeError:
+        return None, 1
     if not isinstance(links, list):
-        return None
+        return None, 1
 
     parsed = []
+    malformed = 0
     for link in links:
         try:
             parsed.append(serialize_link(link))
-        except (AttributeError, KeyError, TypeError) as e:
-            sentry_sdk.capture_exception(e)
-    return parsed
+        except (AttributeError, KeyError, TypeError):
+            malformed += 1
+    return parsed, malformed
 
 
 def serialize_link(link: dict[str, Any]) -> TraceItemLink:

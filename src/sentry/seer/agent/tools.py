@@ -633,17 +633,25 @@ def execute_trace_table_query(
 SPAN_LINKS_ATTRIBUTE = "sentry.links"
 
 
-def _parse_span_links(items: Sequence[dict[str, Any]]) -> None:
-    """Replace the raw `sentry.links` JSON on each span with parsed `links`, in place."""
+def _parse_span_links(items: Sequence[dict[str, Any]]) -> int:
+    """Replace the raw `sentry.links` JSON on each span with parsed `links`, in place.
+
+    Returns how many links could not be parsed across the whole tree.
+    """
+    malformed = 0
     for item in items:
         attributes = item.get("additional_attributes")
         raw_links = (
             attributes.pop(SPAN_LINKS_ATTRIBUTE, None) if isinstance(attributes, dict) else None
         )
         # EAP returns "" for spans without the attribute.
-        if raw_links and isinstance(raw_links, str) and (links := parse_links_json(raw_links)):
-            item["links"] = links
-        _parse_span_links(item.get("children", []))
+        if raw_links and isinstance(raw_links, str):
+            links, span_malformed = parse_links_json(raw_links)
+            malformed += span_malformed
+            if links:
+                item["links"] = links
+        malformed += _parse_span_links(item.get("children", []))
+    return malformed
 
 
 def get_trace_waterfall(
@@ -711,7 +719,11 @@ def get_trace_waterfall(
         config=SearchResolverConfig(fields_acl=FieldsACL(attributes={SPAN_LINKS_ATTRIBUTE})),
     )
     trace = cast(list[dict[str, Any]], events)
-    _parse_span_links(trace)
+    if malformed_links := _parse_span_links(trace):
+        logger.warning(
+            "get_trace_waterfall.malformed_span_links",
+            extra={"trace_id": full_trace_id, "malformed_links": malformed_links},
+        )
 
     return EAPTrace(
         trace_id=full_trace_id,
