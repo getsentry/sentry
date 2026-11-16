@@ -11,6 +11,8 @@ The official, auto-generated TypeScript client for Sentry's public REST API.
 npm install @sentry/api
 ```
 
+Installed directly, the package supports Node.js 22 and later, as `engines.node` in `package.json` declares. A consumer that bundles it into its own build, like the [Sentry CLI](https://github.com/getsentry/toolkit/tree/main/packages/cli), ships its own runtime floor and tests the bundled copy itself. The CLI's packed-runtime CI covers its copy on Node.js 20.
+
 ## Usage
 
 Configure a client once, then call its typed operation methods:
