@@ -8,7 +8,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import {Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -32,6 +32,7 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   onFullScreenViewClick?: () => void | Promise<void>;
   revealTooltip?: 'always' | 'hover';
   title?: string;
+  titleSummary?: React.ReactNode;
   warnings?: React.ReactNode[];
 }
 
@@ -76,7 +77,16 @@ export function WidgetFrame(props: WidgetFrameProps) {
             </Tooltip>
           )}
 
-          <Widget.WidgetTitle title={props.title} />
+          {props.titleSummary ? (
+            <Flex align="baseline" gap="sm" minWidth="0">
+              <Container minWidth="0">
+                <Widget.WidgetTitle title={props.title} />
+              </Container>
+              <Flex flexShrink={0}>{props.titleSummary}</Flex>
+            </Flex>
+          ) : (
+            <Widget.WidgetTitle title={props.title} />
+          )}
 
           {props.badgeProps &&
             (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
