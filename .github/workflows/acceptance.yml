@@ -111,12 +111,13 @@ jobs:
           retention-days: 1
 
   acceptance:
-    # When select-tests is skipped or fails, its outputs are empty and the
-    # whole suite runs. It reports shard-count 0 when no test needs to run.
+    # When select-tests is skipped or fails, its outputs are unset and the
+    # whole suite runs. An unset output is null, which compares equal to '0',
+    # so check selected before shard-count.
     if: >-
       always() && !cancelled() &&
       (needs.files-changed.outputs.acceptance == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
-      needs.select-tests.outputs.shard-count != '0'
+      !(needs.select-tests.outputs.selected == 'true' && needs.select-tests.outputs.shard-count == '0')
     needs: [files-changed, select-tests]
     name: acceptance
     # Arm runners on pull requests only; master stays on amd64 for now.
