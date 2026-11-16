@@ -46,6 +46,22 @@ function withExtension(specifier, fromFile) {
 const addImportExtensions = context => file => {
   const { factory } = context;
   const visit = node => {
+    // Inferred types can be written as `import("./module").Name`.
+    if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+      const before = node.argument.literal.text;
+      const after = withExtension(before, file.fileName);
+      const argument = after === before
+        ? node.argument
+        : factory.updateLiteralTypeNode(node.argument, factory.createStringLiteral(after));
+      return factory.updateImportTypeNode(
+        node,
+        argument,
+        node.attributes,
+        node.qualifier,
+        ts.visitNodes(node.typeArguments, visit, ts.isTypeNode),
+        node.isTypeOf,
+      );
+    }
     if (!(ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) || !node.moduleSpecifier) {
       return ts.visitEachChild(node, visit, context);
     }
