@@ -8,6 +8,9 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
+)
 from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
@@ -197,6 +200,7 @@ def _trigger_autofix_task(
                 referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
+                billing_feature=SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
             )
             with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
                 Activity.objects.create_group_activity(

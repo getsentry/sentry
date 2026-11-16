@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
     SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+    SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
 )
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsResponse,
@@ -234,7 +235,7 @@ class TestTriggerAutofixFeature(TestCase):
         )
         mock_client_cls.return_value.continue_feature_run.assert_not_called()
         start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
-        assert start_kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
+        assert start_kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
         assert start_kwargs["title"] == (
             f"Autofix RCA — {self.group.qualified_short_id or self.group.id}"
         )
@@ -281,10 +282,13 @@ class TestTriggerAutofixFeature(TestCase):
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     allow_free_cohort=True,
+                    billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
                 ),
             )
 
         assert run is fake_run
+        start_kwargs = MockClient.return_value.start_feature_run.call_args.kwargs
+        assert start_kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
         mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
 

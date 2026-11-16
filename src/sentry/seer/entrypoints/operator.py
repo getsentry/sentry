@@ -2,6 +2,7 @@ import logging
 from typing import Any, NotRequired, TypedDict
 
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
     SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
 )
 from taskbroker_client.retry import Retry
@@ -275,6 +276,7 @@ class SeerAutofixOperator[CachePayloadT]:
                             referrer=AutofixReferrer.SLACK,
                             run_id=None,
                             user=user,
+                            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
                         )
                         run_id = run.seer_run_state_id
                         Activity.objects.create_group_activity(

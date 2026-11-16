@@ -7,6 +7,7 @@ import pytest
 from django.test import override_settings
 from django.utils import timezone
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
     SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
 )
 
@@ -186,6 +187,10 @@ class SeerOperatorTest(TestCase):
                 stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
             )
 
+        assert (
+            mock_trigger_autofix.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS
+        )
         activity = Activity.objects.get(group=self.group, type=ActivityType.TRIGGER_AUTOFIX.value)
         assert activity.user_id == self.user.id
         assert activity.data == {"referrer": AutofixReferrer.SLACK.value}
