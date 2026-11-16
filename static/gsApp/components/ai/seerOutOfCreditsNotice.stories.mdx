@@ -15,13 +15,14 @@ import {SeerOutOfCreditsNotice} from 'getsentry/components/ai/seerOutOfCreditsNo
 
 Product code renders `SeerOutOfCreditsCta` with the surface the org can't
 afford, and getsentry fills it in: the copy depends on the surface, whether the
-viewer has billing access, and whether auto-reload is already on. Open source has
+viewer has billing access, why the credit check denied credit, and whether
+auto-reload is already on. Open source has
 no credits and renders nothing. These demos render the `SeerOutOfCreditsNotice`
 underneath it. The copy and buttons follow the Billing Gates designs in Figma.
 
 ```jsx
-<SeerOutOfCreditsCta reason="agent-chat" />
-<SeerOutOfCreditsCta reason="autofix-start" variant="muted" />
+<SeerOutOfCreditsCta reason="agent-chat" denialReason={creditCheck.denialReason} />
+<SeerOutOfCreditsCta reason="autofix-start" denialReason={creditCheck.denialReason} variant="muted" />
 ```
 
 ## Agent chat
@@ -46,25 +47,50 @@ auto-reload modal. The chat uses full-size buttons; Autofix uses small ones.
 />
 ```
 
-## Agent chat, auto-reload already on
+## Daily usage limit
 
-With auto-reload on, running out means the org used every top-up it allows, so
-billing members configure it instead.
+The org has credits but hit its daily usage limit: the credit check's
+`denialReason` is `daily_cap_exceeded`, or a billing member has auto-reload on,
+which reloads credits until the limit stops it. The notice says when the limit
+resets, at the next midnight UTC in the viewer's timezone. Billing members
+configure auto-reload, where the limit is set. Members can't raise the limit,
+and more credits won't lift it, so they get no button and are told to ask their
+admin. Autofix uses the same copy for its own steps.
 
 <Storybook.Demo>
-  <SeerOutOfCreditsNotice
-    reason="agent-chat"
-    escalation="configure"
-    autoReloadEnabled
-    onConfigureAutoReload={() => {}}
-  />
+  <Stack gap="md" width="100%">
+    <SeerOutOfCreditsNotice
+      reason="agent-chat"
+      denialReason="daily_cap_exceeded"
+      escalation="configure"
+      onConfigureAutoReload={() => {}}
+    />
+    <SeerOutOfCreditsNotice
+      reason="agent-chat"
+      denialReason="daily_cap_exceeded"
+      escalation="contact"
+    />
+    <SeerOutOfCreditsNotice
+      reason="autofix-continue"
+      denialReason="daily_cap_exceeded"
+      escalation="configure"
+      onConfigureAutoReload={() => {}}
+    />
+  </Stack>
 </Storybook.Demo>
 
 ```jsx
 <SeerOutOfCreditsNotice
   reason="agent-chat"
+  denialReason="daily_cap_exceeded"
   escalation="configure"
-  autoReloadEnabled
+  onConfigureAutoReload={openAutoReloadModal}
+/>
+<SeerOutOfCreditsNotice reason="agent-chat" denialReason="daily_cap_exceeded" escalation="contact" />
+<SeerOutOfCreditsNotice
+  reason="autofix-continue"
+  denialReason="daily_cap_exceeded"
+  escalation="configure"
   onConfigureAutoReload={openAutoReloadModal}
 />
 ```
@@ -219,9 +245,9 @@ The auto-reload button and "Contact Admin" do the real thing: the modal reads an
 saves your org's Seer wallet, and "Contact Admin" emails your billing members.
 
 <Storybook.Demo>
-  <SeerOutOfCreditsCta reason="agent-chat" />
+  <SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />
 </Storybook.Demo>
 
 ```jsx
-<SeerOutOfCreditsCta reason="agent-chat" />
+<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />
 ```

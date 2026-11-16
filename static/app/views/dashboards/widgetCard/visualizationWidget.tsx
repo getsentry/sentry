@@ -8,14 +8,13 @@ import {Container, Flex, Stack, type ContainerProps} from '@sentry/scraps/layout
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -75,7 +74,8 @@ interface VisualizationWidgetProps {
   selection: PageFilters;
   widget: TWidget;
   dashboardFilters?: DashboardFilters;
-  disableFullscreen?: boolean;
+  droppedData?: DroppedDataProps;
+  isDroppedDataLoading?: boolean;
   isFullScreen?: boolean;
   legendSelection?: LegendSelection;
   onDataFetchStart?: () => void;
@@ -87,6 +87,7 @@ interface VisualizationWidgetProps {
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
   showConfidenceWarning?: boolean;
+  showReleases?: boolean;
   tableItemLimit?: number;
   widgetInterval?: string;
 }
@@ -104,7 +105,9 @@ function VisualizationWidgetComponent({
   legendSelection,
   onLegendSelectionChange,
   isFullScreen,
-  disableFullscreen,
+  droppedData,
+  isDroppedDataLoading,
+  showReleases = true,
 }: VisualizationWidgetProps) {
   const onWidgetError = useWidgetErrorCallback();
 
@@ -122,8 +125,6 @@ function VisualizationWidgetComponent({
       }
     : undefined;
 
-  // Mobile build sizes are not associated with Sentry releases
-  const showReleases = widget.widgetType !== WidgetType.PREPROD_APP_SIZE;
   const {releases: releasesWithDate} = useReleaseStats(selection, {
     enabled: showReleases,
   });
@@ -180,7 +181,8 @@ function VisualizationWidgetComponent({
             legendSelection={decodedLegendSelection}
             onLegendSelectionChange={handleLegendSelectionChange}
             isFullScreen={isFullScreen}
-            disableFullscreen={disableFullscreen}
+            droppedData={droppedData}
+            isDroppedDataLoading={isDroppedDataLoading}
             widgetInterval={timeseriesInterval ?? widgetInterval}
           />
         );
@@ -188,16 +190,6 @@ function VisualizationWidgetComponent({
     </WidgetCardDataLoader>
   );
 }
-
-// Only these widget datasets map to an Outcomes category on the backend
-// (DATASET_TO_CATEGORY in data_annotations.py). Everything else gets no band.
-const WIDGET_TYPE_TO_DROPPED_DATA_DATASET: Partial<Record<WidgetType, DiscoverDatasets>> =
-  {
-    [WidgetType.SPANS]: DiscoverDatasets.SPANS,
-    [WidgetType.LOGS]: DiscoverDatasets.OURLOGS,
-    [WidgetType.TRACEMETRICS]: DiscoverDatasets.TRACEMETRICS,
-    [WidgetType.ERRORS]: DiscoverDatasets.ERRORS,
-  };
 
 function shouldMemoizeVisualizationWidget(
   prevProps: VisualizationWidgetProps,
@@ -226,9 +218,10 @@ interface VisualizationWidgetContentProps {
   confidence?: Confidence;
   dashboardFilters?: DashboardFilters;
   dataScanned?: 'full' | 'partial';
-  disableFullscreen?: boolean;
+  droppedData?: DroppedDataProps;
   errorMessage?: string;
   ingestion?: IngestionMeta;
+  isDroppedDataLoading?: boolean;
   isFullScreen?: boolean;
   isSampled?: boolean | null;
   legendSelection?: LegendSelection;
@@ -259,7 +252,8 @@ function VisualizationWidgetContent({
   legendSelection,
   onLegendSelectionChange,
   isFullScreen,
-  disableFullscreen,
+  droppedData,
+  isDroppedDataLoading,
   widgetInterval,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
@@ -267,26 +261,6 @@ function VisualizationWidgetContent({
   const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
   const location = useLocation();
   const {selection} = usePageFilters();
-
-  // The band reflects the page filters, not this widget's own projects/query, so
-  // it won't follow a fullscreen zoom. Parameterize useDroppedData for per-widget
-  // scope before GA.
-  const droppedDataDataset = widget.widgetType
-    ? WIDGET_TYPE_TO_DROPPED_DATA_DATASET[widget.widgetType]
-    : undefined;
-  const droppedData = useDroppedDataLayer(
-    {
-      dataset: droppedDataDataset ?? DiscoverDatasets.SPANS,
-      interval: widgetInterval ?? '',
-    },
-    {
-      enabled:
-        defined(droppedDataDataset) &&
-        organization.features.includes('dashboards-data-fidelity-annotations'),
-      // disableFullscreen is true while creating or editing a widget.
-      hidden: disableFullscreen,
-    }
-  );
 
   const timeSeriesWithPlottable = timeseriesResults
     .map(({timeSeries, seriesName, queryIndex}) => {
@@ -452,7 +426,7 @@ function VisualizationWidgetContent({
     </WidgetFooterTable>
   ) : null;
 
-  if (loading || (droppedData.isLoading && !errorMessage)) {
+  if (loading || (isDroppedDataLoading && !errorMessage)) {
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
 
@@ -529,7 +503,7 @@ function VisualizationWidgetContent({
             legendSelection={legendSelection}
             onLegendSelectionChange={onLegendSelectionChange}
             renderTooltipSeriesDetails={renderTooltipSeriesDetails}
-            droppedData={droppedData.band}
+            droppedData={droppedData}
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -554,7 +528,7 @@ function VisualizationWidgetContent({
           legendSelection={legendSelection}
           onLegendSelectionChange={onLegendSelectionChange}
           renderTooltipSeriesDetails={renderTooltipSeriesDetails}
-          droppedData={droppedData.band}
+          droppedData={droppedData}
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>

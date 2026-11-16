@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
@@ -143,6 +143,7 @@ class AgentRunOptions(TypedDict):
     enable_write_pull_request: NotRequired[bool]
     enable_investigation_tools: NotRequired[bool]
     enable_inbox_tools: NotRequired[bool]
+    enable_scm_connect_prompt: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
@@ -426,6 +427,8 @@ def collect_user_org_context(
     user: RequestPrincipal | None,
     organization: Organization,
     request: HttpRequest | Request | None = None,
+    *,
+    priority_project_repo_ids: Collection[int] = (),
 ) -> UserOrgContext:
     """Collect user and organization context for a new agent run."""
     all_projects = Project.objects.filter(
@@ -433,7 +436,10 @@ def collect_user_org_context(
     ).values("id", "slug")
 
     prefs_by_pid = bulk_read_preferences_from_sentry_db(
-        organization.id, [p["id"] for p in all_projects], limit_repos=True
+        organization.id,
+        [p["id"] for p in all_projects],
+        limit_repos=True,
+        priority_project_repo_ids=priority_project_repo_ids,
     )
     repos_by_pid = {
         str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()

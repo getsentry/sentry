@@ -307,6 +307,27 @@ class OrganizationTraceItemStatsEndpointTest(
             item["label"] == "mobile" or item["label"] == "tablet" for item in device_data
         )
 
+    def test_aggregate_filter_returns_400(self) -> None:
+        self._store_span()
+
+        for query, names in [
+            ("count(span.duration):466", "count(span.duration)"),
+            ("browser:chrome count():>1", "count()"),
+            ("browser:chrome OR (device:desktop count():>1)", "count()"),
+            ("count():>1 OR (browser:chrome cuont():>2)", "count(), cuont()"),
+        ]:
+            response = self.do_request(
+                query={
+                    "query": query,
+                    "statsType": ["attributeDistributions"],
+                }
+            )
+            assert response.status_code == 400, response.data
+            assert (
+                response.data["detail"]
+                == f"Aggregate filters are not supported for trace item stats: {names}"
+            )
+
     def test_pagination_traverses_all_pages(self) -> None:
         # Four custom attributes sharing a prefix so substringMatch yields a
         # deterministic total, independent of the default span attributes.
@@ -499,3 +520,12 @@ class OrganizationTraceItemStatsEndpointTest(
         for call in stats_calls:
             assert call.kwargs["params"].start < oldest - timedelta(hours=1)
             assert call.kwargs["params"].end > newest
+
+    def test_many_attributes(self) -> None:
+        self._store_span(tags={f"attr_{i}": "value" for i in range(2500)})
+
+        response = self.do_request(query={"statsType": ["attributeDistributions"], "limit": 2500})
+        assert response.status_code == 200, response.data
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        assert "attr_0" in attribute_distribution
+        assert "attr_2499" in attribute_distribution

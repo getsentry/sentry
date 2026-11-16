@@ -67,7 +67,7 @@ function getInitialAmount(autoTopUp: SeerWalletAutoTopUp, creditPriceCents: numb
 }
 
 /**
- * Seer auto-load settings. The modal loads the wallet itself so it can be
+ * Seer auto-reload settings. The modal loads the wallet itself so it can be
  * opened from anywhere; on the billing page the wallet card has already loaded
  * it, so it shows straight from the cache.
  */
@@ -77,7 +77,7 @@ function AutoTopUpModal(props: AutoTopUpModalProps) {
   const autoTopUpQuery = useQuery(seerWalletAutoTopUpOptions(organization));
 
   // The wallet only includes credit pricing for billing roles, the only ones
-  // offered auto-load.
+  // offered auto-reload.
   const creditPriceCents = balanceQuery.data?.creditPriceCents;
 
   if (balanceQuery.data && autoTopUpQuery.data && creditPriceCents !== undefined) {
@@ -101,7 +101,7 @@ function AutoTopUpModal(props: AutoTopUpModalProps) {
     <Fragment>
       <Header closeButton>
         <Heading as="h2" size="xl">
-          {t('Auto-load credits')}
+          {t('Auto-reload credits')}
         </Heading>
       </Header>
       <Body>
@@ -134,7 +134,7 @@ function AutoTopUpForm({
 }: AutoTopUpFormProps) {
   const queryClient = useQueryClient();
   const isTurningOn = !autoTopUp.enabled;
-  // The backend only bills a load once the balance is below the threshold.
+  // The backend only bills an auto-reload once the balance is below the threshold.
   const isChargedNow = isTurningOn && balanceCredits < autoTopUp.thresholdCredits;
   const [isConfirmingTurnOff, setIsConfirmingTurnOff] = useState(false);
   const [initialAmount] = useState(() => getInitialAmount(autoTopUp, creditPriceCents));
@@ -162,14 +162,14 @@ function AutoTopUpForm({
       queryClient.invalidateQueries({
         queryKey: seerWalletBalanceOptions(organization).queryKey,
       });
-      // Turning on auto-load can unblock Seer, so let gated buttons recheck.
+      // Turning on auto-reload can unblock Seer, so let gated buttons recheck.
       queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
       if (!data.enabled) {
-        toast.success(t('Auto-load turned off'));
+        toast.success(t('Auto-reload turned off'));
       } else if (isTurningOn) {
-        toast.success(t('Auto-load turned on'));
+        toast.success(t('Auto-reload turned on'));
       } else {
-        toast.success(t('Auto-load settings saved'));
+        toast.success(t('Auto-reload settings saved'));
       }
       closeModal();
     },
@@ -182,7 +182,7 @@ function AutoTopUpForm({
       setError(
         fieldErrors
           ? Object.values(fieldErrors).flat().join(' ')
-          : t('Unable to save your auto-load settings.')
+          : t('Unable to save your auto-reload settings.')
       );
     },
   });
@@ -192,7 +192,7 @@ function AutoTopUpForm({
       <Fragment>
         <Header closeButton>
           <Heading as="h2" size="xl">
-            {t('Turn off auto-load?')}
+            {t('Turn off auto-reload?')}
           </Heading>
         </Header>
         <Body>
@@ -225,7 +225,7 @@ function AutoTopUpForm({
       <Header closeButton>
         <Stack gap="xs">
           <Heading as="h2" size="xl">
-            {t('Auto-load credits')}
+            {t('Auto-reload credits')}
           </Heading>
           <Text size="lg" variant="muted">
             {t(
@@ -349,7 +349,7 @@ function AutoTopUpForm({
         <Flex justify={isTurningOn ? 'end' : 'between'} align="center" width="100%">
           {!isTurningOn && (
             <Button variant="link" onClick={() => setIsConfirmingTurnOff(true)}>
-              {t('Turn off auto-load')}
+              {t('Turn off auto-reload')}
             </Button>
           )}
           <Grid flow="column" align="center" gap="md">

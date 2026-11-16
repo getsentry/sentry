@@ -26,7 +26,6 @@ function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
         status: 'mismatch',
       },
     ],
-    unmatched: [],
     summary: {
       start: '2026-01-01',
       end: '2026-01-01',
@@ -39,10 +38,6 @@ function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
       rows_page: rowsPage,
       rows_page_size: 25,
       rows_total_pages: rowsTotalPages,
-      unmatched_org_count: 0,
-      unmatched_page: 1,
-      unmatched_page_size: 25,
-      unmatched_total_pages: 1,
     },
   };
 }
@@ -73,7 +68,7 @@ describe('InvoiceComparison', () => {
       body: comparisonBody(),
     });
 
-    renderComparison({page_size: '25', rows_page: '1', unmatched_page: '1'});
+    renderComparison({page_size: '25', rows_page: '1'});
 
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(

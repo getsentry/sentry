@@ -1,0 +1,359 @@
+#blk_router {
+  min-height: 100vh;
+}
+
+#login_as {
+  z-index: 1000000;
+}
+
+/**
+* body.auth
+* ============================================================================
+*/
+
+body.narrow {
+  padding: 0;
+  background: #fff;
+
+  h3,
+  h4 {
+    line-height: 1.2;
+  }
+
+  .app > .container {
+    padding-top: 40px;
+    max-width: 860px;
+
+    .box-header {
+      padding: 15px 30px 12px;
+
+      .logo-with-action {
+        display: flex;
+        align-items: center;
+      }
+
+      a {
+        font-size: 20px;
+
+        &:hover {
+          color: var(--legacy-gray-dark);
+        }
+      }
+    }
+
+    .with-padding {
+      padding: 20px 30px 0;
+
+      .form-actions {
+        margin: 20px 0 0;
+        padding: 20px 0;
+
+        a.pull-right {
+          font-size: 15px;
+          color: var(--legacy-gray-50);
+
+          &:hover {
+            color: var(--legacy-gray-80);
+          }
+        }
+      }
+    }
+  }
+}
+
+/* Integration templates use body.auth! */
+
+body.auth {
+  .app > .container {
+    padding-top: 5vh;
+    max-width: 740px;
+  }
+
+  .box {
+    border: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    display: flex;
+    width: 100%;
+  }
+
+  .box-modal {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .auth-sidebar {
+    padding-top: 20px;
+    width: 60px;
+    background: #564f64;
+    background-image: linear-gradient(
+      -180deg,
+      rgba(52, 44, 62, 0) 0%,
+      rgba(52, 44, 62, 0.5) 100%
+    );
+    box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.1);
+    border-radius: 4px 0 0 4px;
+    margin-top: -1px;
+    margin-bottom: -1px;
+    text-align: center;
+
+    a {
+      color: #fff;
+      font-size: 22px;
+      line-height: 1.5;
+    }
+  }
+
+  .org-login {
+    flex: 1;
+  }
+
+  .auth-container {
+    padding-left: 40px;
+    padding-right: 40px;
+
+    &.border-bottom {
+      border-bottom: 1px solid var(--legacy-trim);
+    }
+
+    ul,
+    ol,
+    p,
+    blockquote {
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .help-center-link {
+      color: #6c5fc7;
+    }
+  }
+
+  .tab-content .auth-container {
+    padding-top: 30px;
+    padding-bottom: 40px;
+    display: flex;
+  }
+
+  .auth-footer {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+
+    > .btn {
+      margin-right: 6px;
+    }
+
+    .secondary {
+      flex: 1;
+      text-align: right;
+      color: var(--legacy-gray-light);
+
+      &:hover {
+        color: var(--legacy-gray-dark);
+      }
+    }
+  }
+
+  .auth-toggle {
+    display: flex;
+  }
+}
+
+/**
+* Container / Content
+* ============================================================================
+*/
+
+.app {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+
+  /* Necessary for the correct positioning of dropdown menus/overlays */
+  position: relative;
+}
+
+.container {
+  position: relative;
+  padding-left: 30px;
+  padding-right: 30px;
+  width: 100% !important;
+  flex: 1;
+}
+
+/* So loader can take up full height so that footer is fixed to bottom of screen */
+.loading-full-layout {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/**
+* Windowed
+* ============================================================================
+*/
+
+.windowed-small {
+  .app > .container {
+    padding-top: 60px !important;
+    max-width: 600px !important;
+    margin: 0 auto;
+
+    .box-header h3 {
+      max-width: 100%;
+      font-size: 16px;
+    }
+  }
+
+  footer {
+    display: none;
+  }
+}
+
+/**
+* Pattern background / backdrop
+* ============================================================================
+*/
+
+.pattern-bg {
+  background: #f2f1f3 url(sentry-images/pattern/sentry-pattern.png);
+  background-size: 340px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  opacity: 0.4;
+}
+
+/**
+* Print
+* ============================================================================
+*/
+
+@media print {
+  body {
+    color: var(--legacy-gray-darkest);
+  }
+
+  header {
+    display: none;
+  }
+
+  .content {
+    padding: 0 !important;
+  }
+
+  footer {
+    display: none;
+  }
+}
+
+/**
+* Responsive Desktop
+* ============================================================================
+*/
+
+@media (max-width: 1200px) {
+  .container {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .messages-container {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}
+
+/**
+* Responsive small screens
+* ============================================================================
+*/
+
+@media (max-width: 767px) {
+  body {
+    padding-top: 0;
+
+    /* Hide fake sidebar on mobile */
+    background: none;
+  }
+
+  .app {
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
+
+  .container {
+    padding: 0 14px;
+  }
+
+  .narrow .app > .container,
+  .narrow.windowed-small .app > .container {
+    padding-top: 30px !important;
+  }
+
+  .nav-tabs {
+    > li {
+      text-transform: capitalize;
+      margin-right: 11px;
+
+      &:last-child {
+        margin: 0;
+      }
+
+      a {
+        font-size: 14px;
+        margin-right: 0;
+      }
+    }
+  }
+
+  body.auth {
+    .app > .container {
+      .box-content.with-padding {
+        padding: 20px 20px 10px;
+      }
+    }
+
+    .box {
+      flex-direction: column;
+    }
+
+    .auth-sidebar {
+      width: 100%;
+      text-align: left;
+      padding: 20px;
+      border-radius: 4px 4px 0 0;
+
+      a {
+        line-height: 1;
+        position: relative;
+        top: 3px;
+      }
+    }
+
+    .auth-container {
+      flex-wrap: wrap;
+      padding-left: 20px;
+      padding-right: 20px;
+
+      > div {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        border: 0;
+      }
+    }
+
+    .tab-pane {
+      .auth-container {
+        padding: 20px;
+      }
+    }
+  }
+}

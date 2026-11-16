@@ -319,7 +319,8 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   // In the Explorer chat the notice sits above the composer, where it stays in
   // view as the chat scrolls. Anywhere else the card shows its own.
   const showsOutOfCreditsNotice = useReportAutofixOutOfCredits(
-    showsNextAction && !creditCheck.hasEnoughCredits
+    showsNextAction && !creditCheck.hasEnoughCredits,
+    creditCheck.denialReason
   );
 
   return (
@@ -335,7 +336,11 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
         )}
         {/* Muted: the buttons it explains stay right below it. */}
         {showsOutOfCreditsNotice && (
-          <SeerOutOfCreditsCta reason="autofix-continue" variant="muted" />
+          <SeerOutOfCreditsCta
+            reason="autofix-continue"
+            denialReason={creditCheck.denialReason}
+            variant="muted"
+          />
         )}
         {showsNextAction && (
           <Flex gap="sm">

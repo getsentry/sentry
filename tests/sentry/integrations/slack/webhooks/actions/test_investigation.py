@@ -19,12 +19,17 @@ from sentry.integrations.slack.webhooks.actions.investigation import (
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notebooks.models import Notebook
+from sentry.notifications.models.notificationthread import (
+    NotificationThread,
+    NotificationThreadObjectType,
+)
 from sentry.notifications.platform.tracking import NotificationLink
 from sentry.notifications.platform.types import NotificationSource
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.operator import process_investigation_updates
 from sentry.seer.entrypoints.slack.entrypoint import (
     SlackInvestigationCachePayload,
+    SlackInvestigationThreadState,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -164,6 +169,11 @@ class SeerInvestigationStartActionTest(BaseEventTest):
     def investigations(self) -> list[Notebook]:
         return list(Notebook.objects.filter(organization=self.organization))
 
+    def investigation_state(self, investigation: Notebook) -> SlackInvestigationThreadState:
+        return NotificationThread.objects.get(
+            object_type=NotificationThreadObjectType.INVESTIGATION, object_id=investigation.id
+        ).provider_data
+
     def test_unlinked_user_gets_link_prompt(self) -> None:
         response = self.click(slack_user={"id": "slack:unlinked", "team_id": "TXXXXXXX1"})
 
@@ -279,6 +289,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         update_kwargs = self.mock_update.call_args.kwargs
         assert update_kwargs["channel"] == CHANNEL_ID
         assert update_kwargs["ts"] == MESSAGE_TS
+        assert update_kwargs["blocks"] is None
         (button,) = update_kwargs["attachments"][0]["blocks"][1]["elements"]
         assert button["text"]["text"] == "Open investigation"
         assert button["url"].startswith(f"{link}?referrer=seer-investigation-started-slack")
@@ -305,11 +316,25 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             channel_id=CHANNEL_ID,
             thread_ts=MESSAGE_TS,
             alert_message_ts=MESSAGE_TS,
-            status_message_ts="1702424399.000100",
             slack_user_id=self.external_id,
-            last_sent_state=ANY,
-            final_sent=False,
         )
+        assert self.investigation_state(investigation) == {
+            "status_message_ts": "1702424399.000100",
+            "last_sent_state": ANY,
+        }
+
+    @with_feature(FEATURES)
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    def test_alert_without_start_button_skips_update(self, mock_record_sent: MagicMock) -> None:
+        message = self.get_original_message()
+        del message["attachments"][0]["blocks"][1]
+        with patch.object(self, "get_original_message", return_value=message):
+            response = self.click()
+
+        assert response.status_code == 200
+        self.mock_update.assert_not_called()
+        self.mock_post_message.assert_called_once()
+        mock_record_sent.assert_called_once_with(ANY, links=set())
 
     @with_feature(FEATURES)
     @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
@@ -382,7 +407,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             entrypoint_key="slack", investigation_id=investigation.id
         )
         assert cache_payload is not None
-        assert cache_payload["status_message_ts"] == "1702424399.000100"
+        assert self.investigation_state(investigation)["status_message_ts"] == "1702424399.000100"
 
     @with_feature(FEATURES)
     def test_slack_timeout_during_thread_post_still_caches(self) -> None:
@@ -396,7 +421,9 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             entrypoint_key="slack", investigation_id=investigation.id
         )
         assert cache_payload is not None
-        assert cache_payload["status_message_ts"] is None
+        assert not NotificationThread.objects.filter(
+            object_type=NotificationThreadObjectType.INVESTIGATION, object_id=investigation.id
+        ).exists()
 
     @with_feature(FEATURES)
     @patch(

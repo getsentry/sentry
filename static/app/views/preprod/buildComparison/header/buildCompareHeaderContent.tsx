@@ -61,7 +61,8 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   const isSentryEmployee = useIsSentryEmployee();
 
   const sizeInfo = buildDetails?.size_info;
-  const project = ProjectsStore.getBySlug(buildDetails?.project_slug);
+  const projectSlug = buildDetails?.project_slug;
+  const project = projectSlug ? ProjectsStore.getBySlug(projectSlug) : undefined;
   const headBuildPath = headArtifactId
     ? getSizeBuildPath({
         organizationSlug: organization.slug,

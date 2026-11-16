@@ -534,6 +534,7 @@ const base = defineConfig({
     '@sentry/no-query-data-type-parameters': 'error',
     '@sentry/no-raw-css-in-styled': 'error',
     '@sentry/no-redundant-default-argument': 'error',
+    '@sentry/no-shadow-dangerous-globals': 'error',
     '@sentry/no-static-translations': 'error',
     '@sentry/no-styled-shortcut': 'error',
     '@sentry/no-unnecessary-use-callback': 'error',

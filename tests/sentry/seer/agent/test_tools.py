@@ -57,6 +57,7 @@ from sentry.seer.sentry_data_models import (
     ExecuteTimeseriesQueryErrorResponse,
     ExecuteTimeseriesQuerySuccessResponse,
     IssueDetailsResponse,
+    RepositoryDefinitionFailure,
     RepositoryDefinitionResponse,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -3048,6 +3049,16 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         assert result.event_id == event2.event_id
 
 
+# Each provider Seer reads code from: its integration's name and domain, and the path its
+# repository names start with.
+SEER_SCM_ACCOUNTS = [
+    ("github", "acme-labs", "github.com/acme-labs", "acme-labs"),
+    ("github_enterprise", "acme-labs", "ghe.example.com/acme-labs", "acme-labs"),
+    ("gitlab", "My Group / Sub", "gitlab.com/my-group/sub", "my-group/sub"),
+    ("cursor_origin", "acme-labs", "https://cursor.com/codebase/acme-labs", "acme-labs"),
+]
+
+
 class TestGetRepositoryDefinition(APITransactionTestCase):
     def test_get_repository_definition_success(self) -> None:
         """Test successful repository lookup"""
@@ -3065,7 +3076,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/seer",
         )
 
-        assert result is not None
+        assert isinstance(result, RepositoryDefinitionResponse)
         assert result.repository_id == repo.id
         assert result.organization_id == self.organization.id
         assert result.integration_id == "123"
@@ -3136,6 +3147,110 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert not self._finds(self.organization, "my-group/sub/app")
 
+    def _lookup(self, organization: Organization, repo_full_name: str) -> Any:
+        return get_repository_definition(
+            organization_id=organization.id,
+            repo_full_name=repo_full_name,
+            report_failure_reason=True,
+        )
+
+    def _connect(
+        self, organization: Organization, provider: str, name: str = "", domain_name: str = ""
+    ) -> None:
+        self.create_integration(
+            organization=organization,
+            provider=provider,
+            external_id=f"{provider}:{organization.id}",
+            name=name,
+            metadata={"domain_name": domain_name},
+        )
+
+    @with_feature("organizations:seer-cursor-origin-support")
+    def test_failure_when_no_integrations(self) -> None:
+        no_integration = RepositoryDefinitionFailure(failure_reason="no_scm_integration")
+        assert self._lookup(self.organization, "acme-labs/app") == no_integration
+        assert self._lookup(self.organization, "invalid-format") == no_integration
+
+        # A provider Seer can't read code from doesn't count.
+        self._connect(self.organization, "bitbucket")
+        assert self._lookup(self.organization, "acme-labs/app") == no_integration
+
+    def test_failure_when_the_only_integrations_are_inactive(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:disabled-for-org",
+            oi_params={"status": ObjectStatus.DISABLED},
+        )
+        self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            external_id="gitlab:pending-deletion",
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        assert self._lookup(self.organization, "acme-labs/app") == RepositoryDefinitionFailure(
+            failure_reason="no_scm_integration"
+        )
+
+    def test_cursor_origin_does_not_count_without_seer_support(self) -> None:
+        self._connect(self.organization, "cursor_origin")
+
+        assert self._lookup(self.organization, "acme-labs/app") == RepositoryDefinitionFailure(
+            failure_reason="no_scm_integration"
+        )
+
+    @with_feature("organizations:seer-cursor-origin-support")
+    def test_failure_for_each_provider(self) -> None:
+        for provider, name, domain_name, path in SEER_SCM_ACCOUNTS:
+            organization = self.create_organization()
+            self._connect(organization, provider, name, domain_name)
+            not_connected = RepositoryDefinitionFailure(
+                failure_reason="scm_account_not_connected", connected_accounts=[path]
+            )
+            not_in_sentry = RepositoryDefinitionFailure(
+                failure_reason="repo_not_in_sentry", connected_accounts=[path]
+            )
+            with self.subTest(provider=provider):
+                assert self._lookup(organization, "other-org/app") == not_connected
+                # One that only starts the same isn't that account.
+                assert self._lookup(organization, f"{path}-2/app") == not_connected
+                assert self._lookup(organization, f"{path}/app") == not_in_sentry
+                assert self._lookup(organization, f"{path.upper()}/app") == not_in_sentry
+                # The lookup misses a name with the host in front even when Sentry has the
+                # repository, so it can't say why. Another account's is still not connected.
+                assert self._lookup(organization, f"{domain_name}/app") is None
+                assert self._lookup(organization, f"{domain_name}-2/app") == not_connected
+                # A name with no owner can't be under any account.
+                assert self._lookup(organization, "invalid-format") is None
+
+    def test_failure_for_gitlab_group_names(self) -> None:
+        self._connect(self.organization, "gitlab", "My Group / Sub", "gitlab.com/my-group/sub")
+
+        for repo_name in ("My Group / Sub / App", "my-group/sub/nested/app"):
+            result = self._lookup(self.organization, repo_name)
+            assert result.failure_reason == "repo_not_in_sentry"
+        # The lookup reads a display name only as it is, so it misses these even when Sentry has
+        # the repository, and can't say why.
+        for repo_name in ("My Group/Sub/App", "my group / sub / app"):
+            assert self._lookup(self.organization, repo_name) is None
+
+    def test_failure_when_the_account_has_no_url(self) -> None:
+        self._connect(self.organization, "github", "acme-labs")
+
+        result = self._lookup(self.organization, "other-org/app")
+        assert result.failure_reason == "scm_account_not_connected"
+
+    @with_feature("organizations:seer-cursor-origin-support")
+    def test_failure_checks_every_connected_account(self) -> None:
+        for provider, name, domain_name, _ in SEER_SCM_ACCOUNTS:
+            self._connect(self.organization, provider, name, domain_name)
+
+        result = self._lookup(self.organization, "my-group/sub/app")
+        assert result.failure_reason == "repo_not_in_sentry"
+        # Each account once, as the path a lookup reads.
+        assert result.connected_accounts == ["acme-labs", "my-group/sub"]
+
     def test_get_repository_definition_not_found(self) -> None:
         """Test that nonexistent repository returns None"""
         result = get_repository_definition(
@@ -3198,7 +3313,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/seer",
         )
 
-        assert result is not None
+        assert isinstance(result, RepositoryDefinitionResponse)
         assert result.integration_id is None
 
     def test_get_repository_definition_unsupported_provider(self) -> None:
@@ -3235,43 +3350,111 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/seer",
         )
 
-        assert result is not None
+        assert isinstance(result, RepositoryDefinitionResponse)
         assert result.provider == "integrations:github_enterprise"
 
-    def test_get_repository_definition_multiple_providers(self) -> None:
-        """Test that when multiple repos with different supported providers exist, first one is returned"""
-        # Create two repos with same name but different providers
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/seer",
-            provider="integrations:github",
-            external_id="12345678",
-            integration_id=123,
-            status=ObjectStatus.ACTIVE,
+    def _create_repo(self, **kwargs: Any) -> Repository:
+        defaults: dict[str, Any] = {
+            "organization_id": self.organization.id,
+            "name": "getsentry/seer",
+            "provider": "integrations:github",
+            "external_id": "12345678",
+            "integration_id": 123,
+            "status": ObjectStatus.ACTIVE,
+        }
+        return Repository.objects.create(**{**defaults, **kwargs})
+
+    def test_get_repository_definition_github_and_gitlab_mirror_is_ambiguous(self) -> None:
+        """A GitHub repo and its GitLab mirror share a URL path: refuse rather than guess."""
+        # The same goes for one name on two supported providers, and for the two rows with one
+        # name and provider that a re-installed integration leaves. Here one row matches by name
+        # and the other by URL path.
+        self._create_repo(
+            name="acme/app", url="https://github.com/acme/app", provider="integrations:github"
         )
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/seer",
-            provider="integrations:github_enterprise",
-            external_id="87654321",
-            integration_id=456,
-            status=ObjectStatus.ACTIVE,
+        self._create_repo(
+            name="Acme / App",
+            url="https://gitlab.com/acme/app",
+            provider="integrations:gitlab",
+            external_id="1",
+            config={"path": "acme/app"},
         )
 
-        # Should return one of them without raising MultipleObjectsReturned
+        assert self._lookup(self.organization, "acme/app") == RepositoryDefinitionFailure(
+            failure_reason="repo_ambiguous"
+        )
+
+    def test_get_repository_definition_ambiguous_is_none_unless_asked(self) -> None:
+        """Callers that don't ask for a reason get None, as for not-found."""
+        self._create_repo(external_id="12345678")
+        self._create_repo(external_id="87654321")
+
         result = get_repository_definition(
             organization_id=self.organization.id,
             repo_full_name="getsentry/seer",
         )
 
-        assert result is not None
-        # Should return the first matching repo (in this case, GitHub)
-        assert result.provider in [
-            "integrations:github",
-            "integrations:github_enterprise",
+        assert result is None
+
+    def _lookup_by_external_id(self, repo_full_name: str, external_id: str) -> Any:
+        return get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name=repo_full_name,
+            external_id=external_id,
+            report_failure_reason=True,
+        )
+
+    def test_get_repository_definition_external_id_on_two_providers_narrowed_by_name(
+        self,
+    ) -> None:
+        """One external_id on two providers: the name picks which of the two."""
+        self._create_repo(name="getsentry/a", provider="integrations:github")
+        b = self._create_repo(name="getsentry/b", provider="integrations:github_enterprise")
+
+        result = self._lookup_by_external_id("getsentry/b", "12345678")
+
+        assert isinstance(result, RepositoryDefinitionResponse)
+        assert result.repository_id == b.id
+
+    def test_get_repository_definition_external_id_on_two_providers_same_name_is_ambiguous(
+        self,
+    ) -> None:
+        """When the name matches both, it can't pick one."""
+        self._create_repo(provider="integrations:github")
+        self._create_repo(provider="integrations:github_enterprise")
+
+        assert self._lookup_by_external_id(
+            "getsentry/seer", "12345678"
+        ) == RepositoryDefinitionFailure(failure_reason="repo_ambiguous")
+
+    def test_get_repository_definition_ambiguous_external_id_skips_name_fallback(self) -> None:
+        """An external_id the name can't narrow stops the lookup; it doesn't fall back to the
+        name, which would find a repository the external_id doesn't name."""
+        self._create_repo(name="getsentry/a", provider="integrations:github")
+        self._create_repo(name="getsentry/b", provider="integrations:github_enterprise")
+        self._create_repo(name="getsentry/c", external_id="99999999")
+
+        assert self._lookup_by_external_id(
+            "getsentry/c", "12345678"
+        ) == RepositoryDefinitionFailure(failure_reason="repo_ambiguous")
+
+    @patch("sentry.seer.agent.tools.metrics.incr")
+    def test_get_repository_definition_counts_each_resolution(self, mock_incr: MagicMock) -> None:
+        """Every lookup is counted by outcome, so the ambiguous share can be measured."""
+        self._create_repo(name="getsentry/one", external_id="1")
+        self._create_repo(name="getsentry/two", external_id="2")
+        self._create_repo(name="getsentry/two", external_id="3")
+
+        self._lookup(self.organization, "getsentry/one")
+        self._lookup(self.organization, "getsentry/two")
+        self._lookup(self.organization, "getsentry/missing")
+
+        resolution_calls = [
+            call.kwargs["tags"]["resolution"]
+            for call in mock_incr.call_args_list
+            if call.args == ("seer.rpc.get_repository_definition.resolution",)
         ]
-        assert result.owner == "getsentry"
-        assert result.name == "seer"
+        assert resolution_calls == ["resolved", "ambiguous", "not_found"]
 
     def test_get_repository_definition_filters_unsupported_with_supported(self) -> None:
         """Test that unsupported providers are ignored even when a supported one exists"""
@@ -3299,7 +3482,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/seer",
         )
 
-        assert result is not None
+        assert isinstance(result, RepositoryDefinitionResponse)
         assert result.provider == "integrations:github"
         assert result.external_id == "12345678"
 
@@ -3319,7 +3502,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/project/seer",
         )
 
-        assert result is not None
+        assert isinstance(result, RepositoryDefinitionResponse)
         assert result.owner == "getsentry"
         assert result.name == "project/seer"
 
@@ -3341,7 +3524,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             external_id="12345678",
         )
 
-        assert result is not None
+        assert isinstance(result, RepositoryDefinitionResponse)
         # Should return the CURRENT name from the database
         assert result.owner == "getsentry"
         assert result.name == "new-name"

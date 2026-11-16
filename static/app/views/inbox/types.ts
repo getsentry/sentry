@@ -4,6 +4,10 @@ export const INBOX_SUBJECT_TYPES = ['issue', 'notebook'] as const;
 
 export type InboxSubjectType = (typeof INBOX_SUBJECT_TYPES)[number];
 
+export const INBOX_RECIPIENTS = ['team', 'user'] as const;
+
+export type InboxRecipient = (typeof INBOX_RECIPIENTS)[number];
+
 export const INBOX_EVENT_TYPES = [
   'issue.user_assigned',
   'issue.team_assigned',
@@ -92,5 +96,6 @@ export type InboxSubject = Pick<InboxItem, 'subjectId' | 'subjectType'>;
 
 export interface InboxFilters {
   eventType: InboxEventType[];
+  recipient: InboxRecipient[];
   subjectType: InboxSubjectType[];
 }

@@ -311,6 +311,7 @@ const config: Config.InitialOptions = {
   testMatch: testMatch ?? ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: [
     '<rootDir>/tests/sentry/lang/javascript/',
+    '<rootDir>/static/packages/api/',
     '<rootDir>/static/packages/scraps/',
     '<rootDir>/static/packages/icons/',
     '<rootDir>/static/packages/search-syntax/',

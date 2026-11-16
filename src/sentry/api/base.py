@@ -83,6 +83,7 @@ from .authentication import (
     AgentTokenAuthentication,
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
+    ServiceAccountTokenAuthentication,
     UserAuthTokenAuthentication,
     ViewerContextAuthentication,
     update_token_access_record,
@@ -126,6 +127,7 @@ DEFAULT_AUTHENTICATION = (
     *map(import_string, settings.SENTRY_EXTRA_API_AUTHENTICATION),
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
+    ServiceAccountTokenAuthentication,
     AgentTokenAuthentication,
     ApiKeyAuthentication,
     ViewerContextAuthentication,
@@ -305,6 +307,7 @@ class Endpoint(APIView):
     idempotent_methods: frozenset[HTTP_METHOD_NAME] | None = None
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
+    # Origins that serve this endpoint, for the API docs; the schema build adds the base path.
     servers: list[dict[str, Any]] | None = None
     # For endpoints people may call with any credential, API tokens included, but a caller
     # with no user (e.g. a service account) may not: it gets a 403 user-required, counted

@@ -1,22 +1,19 @@
-import {TeamFixture} from 'sentry-fixture/team';
-
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {TeamStore} from './teamStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+
 import {useLegacyStore} from './useLegacyStore';
 
 describe('useLegacyStore', () => {
-  const team = TeamFixture();
-
-  beforeEach(() => TeamStore.reset());
+  beforeEach(() => PageFiltersStore.reset());
 
   it('should update on change to store', () => {
-    const {result} = renderHook(useLegacyStore, {initialProps: TeamStore});
+    const {result} = renderHook(useLegacyStore, {initialProps: PageFiltersStore});
 
-    expect(result.current.teams).toEqual([]);
+    expect(result.current.selection.projects).toEqual([]);
 
-    act(() => TeamStore.loadInitialData([team]));
+    act(() => PageFiltersStore.updateProjects([1], null));
 
-    expect(result.current.teams).toEqual([team]);
+    expect(result.current.selection.projects).toEqual([1]);
   });
 });

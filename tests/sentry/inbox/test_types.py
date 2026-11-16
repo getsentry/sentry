@@ -11,11 +11,7 @@ from openapi_schema_validator import OAS30Validator
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
 from sentry.inbox.event_retention import cleanup_inbox_item_events
-from sentry.inbox.issue import (
-    ISSUE_USER_MENTIONED,
-    IssueMentionedData,
-    record_issue_user_mention,
-)
+from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import (
     InboxCountResponse,
@@ -62,6 +58,9 @@ class StubItemType[SubjectT](InboxItemType[SubjectT]):
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         raise NotImplementedError
 
+    def filter_recipients(self, *, subject: SubjectT, user_ids: Sequence[int]) -> list[int]:
+        return list(user_ids)
+
 
 @dataclass(frozen=True, kw_only=True)
 class SubjectReference:
@@ -96,19 +95,21 @@ def test_register_types() -> None:
     reference_type = StubItemType[SubjectReference]("test.reference")
     issue_event = InboxEventType(
         event_type="test.issue.user_mentioned",
+        summary=InboxEventSummary.ISSUE_USER_MENTIONED,
         item_type=issue_type,
         data_class=MentionedData,
         notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
     )
     reference_event = InboxEventType(
         event_type="test.reference.mentioned",
+        summary=InboxEventSummary.NOTEBOOK_MENTIONED,
         item_type=reference_type,
         data_class=MentionedData,
         notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
     )
     assert_type(issue_event, InboxEventType[Group, MentionedData])
     assert_type(reference_event, InboxEventType[SubjectReference, MentionedData])
-    data = issue_event.data_class(summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123)
+    data = issue_event.data_class(comment_id=123)
     assert_type(data, MentionedData)
 
     inbox_item_type_registry.register(issue_type.subject_type)(issue_type)
@@ -246,10 +247,10 @@ class InboxEventRetentionTest(TestCase):
             patch("sentry.inbox.event_retention.MAX_EVENTS_PER_ITEM", 1),
             BurstTaskRunner() as drain,
         ):
-            record_issue_user_mention(
-                group=self.group,
-                comment_id=123,
-                mentioned_user_ids=[self.user.id],
+            ISSUE_USER_MENTIONED.record(
+                subject=self.group,
+                data=IssueMentionedData(comment_id=123),
+                recipient_user_ids=[self.user.id],
                 actor=SYSTEM_ACTOR,
             )
             drain()
@@ -290,10 +291,10 @@ class RecordTest(TestCase):
             patch.object(cleanup_inbox_item_events, "delay") as enqueue,
         ):
             with transaction.atomic(using=router.db_for_write(InboxItem)):
-                record_issue_user_mention(
-                    group=group,
-                    comment_id=123,
-                    mentioned_user_ids=[first, second],
+                ISSUE_USER_MENTIONED.record(
+                    subject=group,
+                    data=IssueMentionedData(comment_id=123),
+                    recipient_user_ids=[first, second],
                     actor=SYSTEM_ACTOR,
                 )
                 enqueue.assert_not_called()
@@ -310,10 +311,10 @@ class RecordTest(TestCase):
             pytest.raises(RuntimeError, match="rollback"),
             transaction.atomic(using=router.db_for_write(InboxItem)),
         ):
-            record_issue_user_mention(
-                group=group,
-                comment_id=123,
-                mentioned_user_ids=[user.id],
+            ISSUE_USER_MENTIONED.record(
+                subject=group,
+                data=IssueMentionedData(comment_id=123),
+                recipient_user_ids=[user.id],
                 actor=SYSTEM_ACTOR,
             )
             raise RuntimeError("rollback")
@@ -325,17 +326,18 @@ class RecordTest(TestCase):
         other = self.create_user()
 
         with patch("sentry.inbox.types.metrics.incr") as incr:
-            ISSUE_USER_MENTIONED.record(
+            recorded = ISSUE_USER_MENTIONED.record(
                 subject=self.group,
-                data=IssueMentionedData(
-                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
-                ),
+                data=IssueMentionedData(comment_id=123),
                 recipient_user_ids=iter([actor.id, self.user.id, other.id, self.user.id]),
                 actor=InboxActor.user(actor.id),
             )
 
         items = list(InboxItem.objects.order_by("user_id"))
         assert [item.user_id for item in items] == sorted([self.user.id, other.id])
+        assert sorted((event.inbox_item.id, event.id) for event in recorded) == sorted(
+            (item.id, item.events.get().id) for item in items
+        )
         for item in items:
             event = item.events.get()
             assert item.subject_id == str(self.group.id)
@@ -346,7 +348,7 @@ class RecordTest(TestCase):
             assert event.actor_type == InboxActorType.USER
             assert event.actor_id == actor.id
             assert event.type == "issue.user_mentioned"
-            assert event.data == {"summary": "Mentioned you in a comment", "comment_id": 123}
+            assert event.data == {"comment_id": 123}
         incr.assert_any_call(
             "inbox.events.recorded", amount=2, tags={"event_type": "issue.user_mentioned"}
         )
@@ -355,14 +357,13 @@ class RecordTest(TestCase):
         group = self.group
         for recipients in ([], [123, 123]):
             with self.assertNumQueries(0):
-                ISSUE_USER_MENTIONED.record(
+                recorded = ISSUE_USER_MENTIONED.record(
                     subject=group,
-                    data=IssueMentionedData(
-                        summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
-                    ),
+                    data=IssueMentionedData(comment_id=123),
                     recipient_user_ids=recipients,
                     actor=InboxActor.user(123),
                 )
+            assert recorded == []
 
     @override_options({"cleanup.inbox-events.enabled": False})
     def test_query_count_for_multiple_recipients(self) -> None:
@@ -374,9 +375,7 @@ class RecordTest(TestCase):
             with self.subTest(recipient_count=len(user_ids)), self.assertNumQueries(5):
                 ISSUE_USER_MENTIONED.record(
                     subject=group,
-                    data=IssueMentionedData(
-                        summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
-                    ),
+                    data=IssueMentionedData(comment_id=123),
                     recipient_user_ids=user_ids,
                     actor=SYSTEM_ACTOR,
                 )
@@ -398,9 +397,7 @@ class RecordTest(TestCase):
             ):
                 ISSUE_USER_MENTIONED.record(
                     subject=group,
-                    data=IssueMentionedData(
-                        summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
-                    ),
+                    data=IssueMentionedData(comment_id=123),
                     recipient_user_ids=[self.user.id],
                     actor=SYSTEM_ACTOR,
                 )
@@ -414,26 +411,22 @@ class RecordTest(TestCase):
         with self.feature("organizations:universal-inbox"):
             ISSUE_USER_MENTIONED.record(
                 subject=self.group,
-                data=IssueMentionedData(
-                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
-                ),
+                data=IssueMentionedData(comment_id=123),
                 recipient_user_ids=[self.user.id],
                 actor=SYSTEM_ACTOR,
             )
         with self.feature({"organizations:universal-inbox": False}):
             ISSUE_USER_MENTIONED.record(
                 subject=self.group,
-                data=IssueMentionedData(
-                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=456
-                ),
+                data=IssueMentionedData(comment_id=456),
                 recipient_user_ids=[self.user.id],
                 actor=SYSTEM_ACTOR,
             )
 
         assert InboxItem.objects.count() == 1
         assert list(InboxItemEvent.objects.order_by("id").values_list("data", flat=True)) == [
-            {"summary": "Mentioned you in a comment", "comment_id": 123},
-            {"summary": "Mentioned you in a comment", "comment_id": 456},
+            {"comment_id": 123},
+            {"comment_id": 456},
         ]
 
     def test_recording_disabled_preserves_existing_item(self) -> None:
@@ -447,9 +440,7 @@ class RecordTest(TestCase):
         with self.feature({"organizations:universal-inbox-recording": False}):
             ISSUE_USER_MENTIONED.record(
                 subject=self.group,
-                data=IssueMentionedData(
-                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
-                ),
+                data=IssueMentionedData(comment_id=123),
                 recipient_user_ids=[self.user.id],
                 actor=SYSTEM_ACTOR,
             )
@@ -464,6 +455,7 @@ class RecordTest(TestCase):
         item_type = ReferenceItemType("test.reference")
         event_type = InboxEventType(
             event_type="test.reference.updated",
+            summary=InboxEventSummary.ISSUE_USER_MENTIONED,
             item_type=item_type,
             data_class=InboxEventData,
             notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
@@ -471,7 +463,7 @@ class RecordTest(TestCase):
 
         event_type.record(
             subject=SubjectReference(organization_id=self.organization.id, subject_id="period-1"),
-            data=InboxEventData(summary=InboxEventSummary.ISSUE_USER_MENTIONED),
+            data=InboxEventData(),
             recipient_user_ids=[self.user.id],
             actor=SYSTEM_ACTOR,
         )
@@ -480,7 +472,7 @@ class RecordTest(TestCase):
         assert item.organization_id == self.organization.id
         assert item.subject_type == "test.reference"
         assert item.subject_id == "period-1"
-        assert item.events.get().data == {"summary": "Mentioned you in a comment"}
+        assert item.events.get().data == {}
 
     def test_existing_item_and_system_actor(self) -> None:
         read_at = before_now(days=1)
@@ -490,7 +482,7 @@ class RecordTest(TestCase):
             last_activity_at=before_now(days=2),
             status=ObjectStatus.PENDING_DELETION,
         )
-        previous = self.create_inbox_item_event(item, data={"summary": "Previous event"})
+        previous = self.create_inbox_item_event(item, data={})
         foreign = self.create_inbox_item(
             organization=self.create_organization(), subject_id=str(self.group.id)
         )
@@ -499,9 +491,7 @@ class RecordTest(TestCase):
         with patch("sentry.inbox.types.metrics.incr") as incr:
             ISSUE_USER_MENTIONED.record(
                 subject=self.group,
-                data=IssueMentionedData(
-                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
-                ),
+                data=IssueMentionedData(comment_id=123),
                 recipient_user_ids=[self.user.id],
                 actor=SYSTEM_ACTOR,
             )
@@ -533,9 +523,7 @@ class RecordTest(TestCase):
         ):
             ISSUE_USER_MENTIONED.record(
                 subject=self.group,
-                data=IssueMentionedData(
-                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
-                ),
+                data=IssueMentionedData(comment_id=123),
                 recipient_user_ids=[self.user.id],
                 actor=SYSTEM_ACTOR,
             )
@@ -563,9 +551,7 @@ class RecordTest(TestCase):
         ):
             ISSUE_USER_MENTIONED.record(
                 subject=self.group,
-                data=IssueMentionedData(
-                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
-                ),
+                data=IssueMentionedData(comment_id=123),
                 recipient_user_ids=[self.user.id, other.id],
                 actor=SYSTEM_ACTOR,
             )
@@ -584,7 +570,7 @@ class RecordTest(TestCase):
 
         ISSUE_USER_MENTIONED.record(
             subject=self.group,
-            data=IssueMentionedData(summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123),
+            data=IssueMentionedData(comment_id=123),
             recipient_user_ids=[self.user.id],
             actor=SYSTEM_ACTOR,
         )
@@ -609,9 +595,7 @@ class RecordConcurrencyTest(TransactionTestCase):
             try:
                 ISSUE_USER_MENTIONED.record(
                     subject=group,
-                    data=IssueMentionedData(
-                        summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=comment_id
-                    ),
+                    data=IssueMentionedData(comment_id=comment_id),
                     recipient_user_ids=user_ids,
                     actor=SYSTEM_ACTOR,
                 )
