@@ -22,8 +22,6 @@ class Lock:
         self.backend = backend
         self.key = key
         self.duration = duration
-        # Keys embed ids, so the name is the only bounded metric tag. Unnamed
-        # locks emit no metrics, which keeps hot unnamed callers unchanged.
         self.name = name
         # Set by a successful acquire. Release sends this token so a stale
         # holder cannot delete a newer acquisition that reused the process uuid.
