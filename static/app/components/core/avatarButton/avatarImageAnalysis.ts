@@ -150,11 +150,11 @@ export function bottomEdgeColor(data: Uint8ClampedArray): string | null {
 // A logo only gets tinted when colored pixels make up at least this share of
 // it (near-white background excluded). Below that the color is an accent, such
 // as a small icon next to a gray wordmark.
-export const MIN_COLOR_COVERAGE = 0.25;
+const MIN_COLOR_COVERAGE = 0.25;
 
 // ...and when at least this share of its colored pixels sit within
 // HUE_TOLERANCE degrees of the dominant hue. Below that it's multicolor.
-export const MIN_HUE_AGREEMENT = 0.5;
+const MIN_HUE_AGREEMENT = 0.5;
 const HUE_TOLERANCE = 30;
 
 type Rgb = [number, number, number];

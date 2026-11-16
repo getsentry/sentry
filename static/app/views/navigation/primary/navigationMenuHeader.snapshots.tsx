@@ -30,13 +30,11 @@ function sampledQueryClient(hex?: string): QueryClient {
   // No garbage collection timers, so Jest can exit once the snapshots are taken.
   const queryClient = new QueryClient({defaultOptions: {queries: {gcTime: Infinity}}});
   if (hex) {
-    for (const themeType of ['light', 'dark']) {
-      queryClient.setQueryData(['avatar-button-chonk', solidImage(hex), themeType], {
-        chonk: hex,
-        dominant: hex,
-        style: 'fill',
-      });
-    }
+    queryClient.setQueryData(['avatar-image-analysis', solidImage(hex)], {
+      dominant: hex,
+      edge: hex,
+      style: 'fill',
+    });
   }
   return queryClient;
 }
