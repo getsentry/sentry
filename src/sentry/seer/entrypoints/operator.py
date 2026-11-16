@@ -1017,7 +1017,7 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 continue
 
             # TODO: Use a provider-agnostic payload type once there are more investigation entrypoints.
-            from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload
+            from sentry.seer.entrypoints.slack.investigation import SlackInvestigationCachePayload
 
             cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
                 entrypoint_key=str(entrypoint_key),
