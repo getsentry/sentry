@@ -1,4 +1,6 @@
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -80,7 +82,79 @@ describe('InvestigationActivity', () => {
     ).toBeInTheDocument();
     expect(items[1]).toHaveTextContent('First');
     expect(within(items[1]!).getByText('Ada Lovelace commented')).toBeInTheDocument();
-    expect(items[2]).toHaveTextContent('Investigation first created');
+    expect(items[2]).toHaveTextContent('Investigation started by Foo Bar');
+  });
+
+  it('names the member who started the investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({createdBy: '2'}),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [
+        MemberFixture({
+          user: UserFixture({id: '2', name: 'Grace Hopper', email: 'grace@example.com'}),
+        }),
+      ],
+    });
+    renderPage();
+
+    const activity = await findActivity();
+    expect(
+      await within(activity).findByText('Grace Hopper', {exact: false})
+    ).toBeInTheDocument();
+    expect(within(activity).getByRole('listitem')).toHaveTextContent(
+      'Investigation started by Grace Hopper'
+    );
+  });
+
+  it('names the automation that started the investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        createdBy: null,
+        trigger: {
+          type: 'automation',
+          automation: {id: '5', name: null, strategy: 'breached_metric_investigation'},
+          runId: '42',
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const activity = await findActivity();
+    expect(within(activity).getByRole('listitem')).toHaveTextContent(
+      'Investigation started by Breached metrics automation'
+    );
+  });
+
+  it('links the issue an investigation was started from', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        createdBy: null,
+        sourceType: 'metric_open_period',
+        source: {
+          type: 'metric_open_period',
+          ref: {groupId: '123', openPeriodId: '456'},
+          revision: 1,
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const activity = await findActivity();
+    expect(within(activity).getByRole('listitem')).toHaveTextContent(
+      'Investigation started from an issue'
+    );
+    expect(within(activity).getByRole('link', {name: 'an issue'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/123/'
+    );
   });
 
   it('merges applied action requests into the comments by date', async () => {
@@ -153,7 +227,7 @@ describe('InvestigationActivity', () => {
       within(items[1]!).getByRole('link', {name: 'Checkout errors'})
     ).toHaveAttribute('href', '/organizations/org-slug/monitors/789/');
     expect(items[2]).toHaveTextContent('Before the change');
-    expect(items[3]).toHaveTextContent('Investigation first created');
+    expect(items[3]).toHaveTextContent('Investigation started by Foo Bar');
     expect(within(activity).queryByText(/Raise the threshold/)).not.toBeInTheDocument();
   });
 

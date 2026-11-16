@@ -242,7 +242,7 @@ describe('InvestigationFixtureApi', () => {
         {organization}
       );
 
-      expect(await screen.findByText('Investigation first created')).toBeInTheDocument();
+      expect(await screen.findByText('Investigation started')).toBeInTheDocument();
       expect(screen.queryByText(/error/i)).not.toBeInTheDocument();
     });
 

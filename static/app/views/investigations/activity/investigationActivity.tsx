@@ -12,7 +12,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {ProgressState} from 'sentry/types/group';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -29,6 +31,7 @@ import {
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {isCommentEdited} from 'sentry/views/investigations/comments/utils';
 import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/block';
+import {getInvestigationSource} from 'sentry/views/investigations/source';
 import type {
   InvestigationActionRequest,
   InvestigationComment,
@@ -42,6 +45,7 @@ import {
   ActivityLineRow,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker/progressMarker';
+import {getStrategyLabel} from 'sentry/views/seerWorkflows/strategies';
 
 export function InvestigationActivity({
   investigation,
@@ -118,18 +122,7 @@ export function InvestigationActivity({
               </Text>
             </ActivityLineRow>
           ) : null}
-          <ActivityLineRow as="li">
-            <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
-              <ActivityProgressMarker
-                state={ProgressState.IDENTIFIED}
-                label={t('Created')}
-              />
-            </Grid>
-            <ActivityLineHeadline
-              title={t('Investigation first created')}
-              timestamp={<TimeSince date={investigation.dateCreated} />}
-            />
-          </ActivityLineRow>
+          <StartedRow investigation={investigation} />
         </ActivityList>
       )}
     </Stack>
@@ -163,6 +156,70 @@ function getActivityEntries(
     }
   }
   return entries.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+}
+
+/**
+ * The first entry, naming what started the investigation: the person who
+ * created it, the automation that did, or the issue it was started from.
+ */
+function StartedRow({investigation}: {investigation: InvestigationDetail}) {
+  const organization = useOrganization();
+  const currentUser = useUser();
+  const {trigger, createdBy} = investigation;
+  const source = getInvestigationSource(investigation);
+  const isOwnInvestigation = createdBy === currentUser.id;
+  const {data: members} = useMembers({
+    ids: createdBy ? [createdBy] : [],
+    enabled: !trigger && !isOwnInvestigation,
+  });
+  const user =
+    trigger?.type === 'user'
+      ? trigger.user
+      : isOwnInvestigation
+        ? currentUser
+        : members?.find(member => member.id === createdBy);
+
+  let details: React.ReactNode = null;
+  if (user) {
+    details = tct('by [actor]', {actor: <Text bold>{getActorName(user)}</Text>});
+  } else if (trigger?.type === 'automation') {
+    details = tct('by [automation] automation', {
+      automation: (
+        <Text bold>
+          {trigger.automation.name ?? getStrategyLabel(trigger.automation.strategy)}
+        </Text>
+      ),
+    });
+  } else if (source.groupId) {
+    details = tct('from [source]', {
+      source: (
+        <Link
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/issues/${source.groupId}/`
+          )}
+        >
+          {source.monitorName ?? t('an issue')}
+        </Link>
+      ),
+    });
+  }
+
+  return (
+    <ActivityLineRow as="li">
+      <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
+        {user ? (
+          <UserAvatar user={user} size={22} hasTooltip />
+        ) : (
+          <ActivityProgressMarker state={ProgressState.IDENTIFIED} label={t('Started')} />
+        )}
+      </Grid>
+      <ActivityLineHeadline
+        title={t('Investigation started')}
+        details={details}
+        timestamp={<TimeSince date={investigation.dateCreated} />}
+      />
+    </ActivityLineRow>
+  );
 }
 
 function AppliedActionRow({
