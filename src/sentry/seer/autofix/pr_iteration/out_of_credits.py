@@ -93,22 +93,29 @@ def _unfinished_action(
 ) -> PrIterationUnfinishedAction | None:
     """What the latest iteration left unfinished for credits. Checked against the run state,
     so a marker that outlived the work it records is ignored."""
+    # Only report when the latest turn is a PR iteration.
+    if not is_pr_feedback_turn(state):
+        return None
+
+    # Check if Sentry refused a push or branch-moved retry, or Seer's push failed, because
+    # we ran out of credits.
     marker = out_of_credits_marker(run) if run is not None else None
     stranded_action = marker.stranded_action if marker is not None else None
+    # Pushed changes mean the stranded work happened since, before any drain took the marker.
+    # Eg, the UI's Retry PR skips draining.
     _, synced = state.has_code_changes()
     if stranded_action is not None and not synced:
         return (
             "branch_moved_retry" if stranded_action == StrandedAction.BRANCH_MOVED_RETRY else "push"
         )
 
-    # A single run's other turns aren't tagged pr_iteration, so their out-of-credits failures aren't counted here.
-    if not is_pr_feedback_turn(state):
-        return None
+    # Check if Seer tried to push and ran out of credits.
     if any(
         pr.pr_creation_status == "error" and pr.pr_creation_error_code == OUT_OF_CREDITS
         for pr in state.repo_pr_states.values()
     ):
         return "push"
+    # Check if the agent's turn ran out of credits mid-run in Seer.
     if state.status == "error" and state.failure_reason == OUT_OF_CREDITS:
         return "agent_turn"
     return None
