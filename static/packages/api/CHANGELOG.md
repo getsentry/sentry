@@ -1,3 +1,9 @@
+## 2.5.3
+
+### Documentation 📚
+
+- (api) Link to Sentry with the URLs the API returns by @BYK with @sentry-junior in [#131219](https://github.com/getsentry/sentry/pull/131219)
+
 ## 2.5.2
 
 ### Bug Fixes 🐛
