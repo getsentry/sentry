@@ -9,6 +9,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {NuqsAdapter} from 'sentry/router/nuqsAdapter';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 import {IntegrationExternalMappings} from './integrationExternalMappings';
@@ -112,7 +113,8 @@ describe('IntegrationExternalMappings', () => {
             path: {organizationIdOrSlug: organization.slug},
           })
         }
-      />
+      />,
+      {additionalWrapper: NuqsAdapter}
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -134,7 +136,8 @@ describe('IntegrationExternalMappings', () => {
             path: {organizationIdOrSlug: organization.slug},
           })
         }
-      />
+      />,
+      {additionalWrapper: NuqsAdapter}
     );
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
@@ -159,7 +162,8 @@ describe('IntegrationExternalMappings', () => {
             path: {organizationIdOrSlug: organization.slug},
           })
         }
-      />
+      />,
+      {additionalWrapper: NuqsAdapter}
     );
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
@@ -193,7 +197,8 @@ describe('IntegrationExternalMappings', () => {
             path: {organizationIdOrSlug: organization.slug},
           })
         }
-      />
+      />,
+      {additionalWrapper: NuqsAdapter}
     );
     renderGlobalModal();
 
@@ -207,4 +212,30 @@ describe('IntegrationExternalMappings', () => {
     await userEvent.click(screen.getByTestId('confirm-button'));
     expect(onDeleteMock).toHaveBeenCalled();
   });
+});
+
+it('filters the search input', async () => {
+  createMockSuggestions();
+  render(
+    <IntegrationExternalMappings
+      integration={GitHubIntegrationFixture()}
+      mappings={MOCK_TEAM_MAPPINGS}
+      type="team"
+      onCreate={onCreateMock}
+      onDelete={onDeleteMock}
+      defaultOptions={[]}
+      getBaseFormEndpoint={() =>
+        getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
+      }
+    />,
+    {additionalWrapper: NuqsAdapter}
+  );
+
+  expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
+
+  const searchInput = screen.getByTestId('mapping-search-input');
+  await userEvent.type(searchInput, 'ghost');
+  expect(searchInput).toHaveValue('ghost');
 });

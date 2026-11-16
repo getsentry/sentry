@@ -1,13 +1,15 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconDelete} from '@sentry/icons/delete';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
 import {InfoTip} from '@sentry/scraps/info';
+import {Input} from '@sentry/scraps/input';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
@@ -26,7 +28,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
@@ -57,10 +58,6 @@ type Props = Pick<
   type: 'team' | 'user';
   onSubmitSuccess?: () => Promise<void>;
   pageLinks?: string;
-};
-
-type LocationQuery = {
-  cursor?: string;
 };
 
 function MappingName({
@@ -146,9 +143,23 @@ export function IntegrationExternalMappings(props: Props) {
   >([]);
 
   const organization = useOrganization();
-  const location = useLocation<LocationQuery>();
-  const {cursor} = location.query;
+  const [{cursor, query: searchQuery}, setQueryParams] = useQueryStates({
+    cursor: parseAsString,
+    query: parseAsString,
+  });
   const isFirstPage = cursor ? cursor.split(':')[1] === '0' : true;
+  const [searchTerm, setSearchTerm] = useState(searchQuery ?? '');
+
+  // Debounce syncing the search term into the URL so the paginated mapping
+  // queries don't refetch on every keystroke.
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      if (searchTerm !== (searchQuery ?? '')) {
+        setQueryParams({query: searchTerm || null, cursor: null});
+      }
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [searchTerm, searchQuery, setQueryParams]);
 
   const {
     data: associationMappings,
@@ -215,6 +226,15 @@ export function IntegrationExternalMappings(props: Props) {
 
   return (
     <Fragment>
+      <SearchInputWrapper>
+        <Input
+          type="search"
+          data-test-id="mapping-search-input"
+          placeholder={tct('Search external [type] mappings', {type})}
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
+      </SearchInputWrapper>
       <MappingTable
         columns={MAPPING_COLUMNS}
         data-test-id="mapping-table"
@@ -285,6 +305,10 @@ export function IntegrationExternalMappings(props: Props) {
 
 const MappingTable = styled(SimpleTable)`
   overflow: visible;
+`;
+
+const SearchInputWrapper = styled('div')`
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`

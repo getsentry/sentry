@@ -31,6 +31,16 @@ export function IntegrationExternalTeamMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const location = useLocation();
+  // The endpoint only honors `hasExternalTeams` and free-text search when they
+  // are tokens inside the `query` parameter.
+  const {cursor, query: searchQuery} = location.query as {
+    cursor?: string;
+    query?: string;
+  };
+  const teamsQuery = [
+    'hasExternalTeams:true',
+    ...(searchQuery ? [`query:${searchQuery}`] : []),
+  ].join(' ');
   // We paginate on this query, since we're filtering by hasExternalTeams:true
   const {
     data: teamsResponse,
@@ -40,7 +50,7 @@ export function IntegrationExternalTeamMappings(props: Props) {
   } = useQuery({
     ...apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {...location.query, hasExternalTeams: 'true'},
+      query: {cursor, query: teamsQuery},
       staleTime: 0,
     }),
     select: selectJsonWithHeaders,

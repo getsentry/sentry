@@ -33,6 +33,11 @@ export function IntegrationExternalUserMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const [cursor] = useQueryState('cursor', parseAsString);
+  const [searchQuery] = useQueryState('query', parseAsString);
+  const membersQuery = [
+    'hasExternalUsers:true',
+    ...(searchQuery ? [`query:${searchQuery}`] : []),
+  ].join(' ');
 
   // An existing mapping is updated in place, so the id belongs in the path.
   const getBaseFormEndpoint = (mapping?: ExternalActorMappingOrSuggestion) => {
@@ -61,7 +66,7 @@ export function IntegrationExternalUserMappings(props: Props) {
         path: {organizationIdOrSlug: organization.slug},
         query: {
           cursor: cursor || undefined,
-          query: 'hasExternalUsers:true',
+          query: membersQuery,
           expand: 'externalUsers',
         },
         staleTime: 0,
