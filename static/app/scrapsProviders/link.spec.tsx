@@ -5,10 +5,30 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Link, useResolveLinkHref, type LinkProps} from '@sentry/scraps/link';
+import {
+  Link,
+  useLinkQueryString,
+  useResolveLinkHref,
+  type LinkProps,
+} from '@sentry/scraps/link';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
+import * as qs from 'sentry/utils/url/qs';
+
 describe('SentryLinkBehaviorProvider', () => {
+  it('exposes the shared query helpers through the context', () => {
+    const {result} = renderHookWithProviders(() => useLinkQueryString());
+    expect(result.current.parse).toBe(qs.parse);
+    expect(result.current.stringify).toBe(qs.stringify);
+    expect(result.current.parse('?flag&tag=one&tag=two')).toEqual({
+      flag: null,
+      tag: ['one', 'two'],
+    });
+    expect(result.current.stringify({q: 'a b+c~*', flag: null})).toBe(
+      'flag&q=a%20b%2Bc~%2A'
+    );
+  });
+
   it.each<[LinkProps['to'], string]>([
     [{query: {q: 'a b'}}, '?q=a%20b'],
     [{hash: 'details'}, '#details'],
