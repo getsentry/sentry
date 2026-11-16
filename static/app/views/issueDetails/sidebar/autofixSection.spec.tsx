@@ -448,12 +448,12 @@ describe('AutofixSection', () => {
     });
 
     it.each([
-      ['development', '?seerRcaLoadTest=1', ['']],
+      ['development', '?seerRcaLoadTest=1', true],
       ['development', '', undefined],
       ['production', '?seerRcaLoadTest=1', undefined],
     ] as const)(
-      'sends the RCA load-test timestamp in %s with %s',
-      async (env, search, sentAt) => {
+      'sends the RCA load-test flag in %s with %s',
+      async (env, search, loadTest) => {
         const envOverride = jest.replaceProperty(process, 'env', {
           ...process.env,
           SENTRY_TEST_NODE_ENV: env,
@@ -491,7 +491,7 @@ describe('AutofixSection', () => {
                 data: {
                   step: 'root_cause',
                   referrer: 'api.web',
-                  ...(sentAt ? {sent_at: sentAt} : {}),
+                  ...(loadTest ? {rca_load_test: true} : {}),
                 },
               })
             )

@@ -988,7 +988,7 @@ export function useExplorerAutofix(
       try {
         const data: Record<string, any> = {step, referrer: 'api.web'};
         if (rcaLoadTest && step === 'root_cause') {
-          data.sent_at = [''];
+          data.rca_load_test = true;
         }
 
         if (defined(startStepOptions?.insertIndex)) {
