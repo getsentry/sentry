@@ -285,7 +285,9 @@ STATIC_IMPORT_RE = re.compile(
 )
 REQUIRE_RE = re.compile(r"""\brequire\(\s*['"]([^'"\n]+)['"]\s*\)""")
 # Webpack magic comments can come before the specifier.
-DYNAMIC_IMPORT_RE = re.compile(r"""\bimport\(\s*(?:/\*.*?\*/\s*)*(['"`])([^'"`\n]+)\1\s*\)""", re.S)
+DYNAMIC_IMPORT_RE = re.compile(
+    r"""\bimport\(\s*(?:/\*(?:[^*]|\*(?!/))*\*/\s*)*(['"`])([^'"`\n]+)\1\s*\)"""
+)
 # Workspace packages resolve through node_modules links, and @sentry/scraps
 # through an rsbuild alias that falls back to the app's core components.
 MODULE_ALIASES: list[tuple[str, tuple[str, ...]]] = [
