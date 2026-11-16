@@ -274,6 +274,20 @@ Valid fields include:
         description="Filter projects by name or slug.",
     )
 
+    PROJECT_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        enum=["latestDeploys", "unusedFeatures"],
+        description=(
+            "Parts of the response to skip computing. Specify `latestDeploys` to omit "
+            "`latestDeploys`, and `unusedFeatures` to leave out feature flags that the Sentry "
+            "web UI does not use from `features`. Unknown values are ignored."
+        ),
+    )
+
     EXTERNAL_USER_ID = OpenApiParameter(
         name="external_user_id",
         location="path",
