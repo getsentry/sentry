@@ -16,6 +16,7 @@ import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOf
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
+import {PeekingBug} from './peekingBug';
 import {useOpenSingleRunChat} from './useToggleSingleRunChat';
 
 interface AutofixStartCardProps {
@@ -78,24 +79,28 @@ export function AutofixStartCard({
       ) : (
         <AutofixStartCardContent />
       )}
-      <Button
-        size="md"
-        icon={<IconBug />}
-        aria-label={t('Start Analysis')}
-        variant="primary"
-        onClick={handleStartRootCause}
-        analyticsEventKey="autofix.start_fix_clicked"
-        analyticsEventName="Autofix: Start Fix Clicked"
-        analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
-        busy={isStarting}
-        // Held disabled until this mount's credit check answers, so it is never
-        // clickable before the answer arrives, even with an earlier one cached.
-        disabled={
-          isStarting || !creditCheck.hasCheckedSinceMount || !creditCheck.hasEnoughCredits
-        }
-      >
-        {t('Start Analysis')}
-      </Button>
+      <PeekingBug>
+        <Button
+          size="md"
+          icon={<IconBug />}
+          aria-label={t('Start Analysis')}
+          variant="primary"
+          onClick={handleStartRootCause}
+          analyticsEventKey="autofix.start_fix_clicked"
+          analyticsEventName="Autofix: Start Fix Clicked"
+          analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
+          busy={isStarting}
+          // Held disabled until this mount's credit check answers, so it is never
+          // clickable before the answer arrives, even with an earlier one cached.
+          disabled={
+            isStarting ||
+            !creditCheck.hasCheckedSinceMount ||
+            !creditCheck.hasEnoughCredits
+          }
+        >
+          {t('Start Analysis')}
+        </Button>
+      </PeekingBug>
     </Stack>
   );
 }
