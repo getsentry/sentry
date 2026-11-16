@@ -66,6 +66,11 @@ export function AvatarButton({
     frameColors.type === 'none'
       ? undefined
       : getAvatarChonk(frameColors.dominant, theme.type, edge);
+  // The avatar covers the button's own border, so redraw it in the frame color.
+  // Without a tinted chonk that is the default button edge, not transparent.
+  const borderColor = isSuggested
+    ? theme.tokens.border.neutral.vibrant
+    : (chonk ?? theme.tokens.interactive.chonky.embossed.neutral.chonk);
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
@@ -93,9 +98,7 @@ export function AvatarButton({
           size={size}
           round={round}
           padded={false}
-          borderColor={
-            chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
-          }
+          borderColor={borderColor}
           borderStyle={isSuggested ? 'dashed' : 'solid'}
         >
           <StyledLetterAvatar
@@ -113,9 +116,7 @@ export function AvatarButton({
         size={size}
         round={round}
         padded={colors.type === 'image' && colors.style === 'padded'}
-        borderColor={
-          chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
-        }
+        borderColor={borderColor}
         borderStyle={isSuggested ? 'dashed' : 'solid'}
       >
         <StyledImageAvatar
