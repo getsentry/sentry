@@ -203,6 +203,11 @@
       "count": 9
     }
   },
+  "utils/useReplayInit.tsx": {
+    "@sentry/no-relative-api-url": {
+      "count": 3
+    }
+  },
   "views/amCheckout/components/cartDiff.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
