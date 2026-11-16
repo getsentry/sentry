@@ -1351,6 +1351,7 @@ describe('ScmCreateProject', () => {
         method: 'POST',
         body: {
           code: 'sntryh_example',
+          handoffId: 'b'.repeat(32),
           expiresAt: new Date(Date.now() + 300_000).toISOString(),
         },
       });
@@ -1384,6 +1385,7 @@ describe('ScmCreateProject', () => {
           expect.objectContaining({
             source: 'prompt',
             variant: 'scm',
+            handoff_id: 'b'.repeat(32),
             run_id: run.runId,
           })
         )
