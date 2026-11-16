@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
+from urllib.parse import quote, urlencode
 
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.class_manager import register
@@ -23,9 +24,26 @@ provider_types = {
     "sentry_app": "sentry-apps",
 }
 
+# A request can name a category of the integrations directory instead of one provider, with
+# provider type "category" and the category as the slug, when any integration in it would do.
+CATEGORY_PROVIDER_TYPE = "category"
+REQUESTABLE_CATEGORIES = frozenset({"source code management"})
 
-def get_url(organization: Organization, provider_type: str, provider_slug: str) -> str:
-    type_name = provider_types.get(provider_type, "")
+
+def get_url(
+    organization: Organization, provider_type: str | None, provider_slug: str | None
+) -> str:
+    if provider_slug is None or provider_type == CATEGORY_PROVIDER_TYPE:
+        query = {"referrer": "request_email"}
+        if provider_slug is not None:
+            query = {"category": provider_slug, **query}
+        return str(
+            organization.absolute_url(
+                f"/settings/{organization.slug}/integrations/",
+                query=urlencode(query, quote_via=quote),
+            )
+        )
+    type_name = provider_types.get(provider_type or "", "")
     return str(
         organization.absolute_url(
             f"/settings/{organization.slug}/{type_name}/{provider_slug}/",
@@ -45,11 +63,13 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
         self,
         organization: Organization,
         requester: User,
-        provider_type: str,
-        provider_slug: str,
-        provider_name: str,
+        provider_type: str | None,
+        provider_slug: str | None,
+        provider_name: str | None,
         message: str | None = None,
     ) -> None:
+        """With no provider, the request is for any integration. With a category as the provider
+        (`CATEGORY_PROVIDER_TYPE`), it's for any integration in that category."""
         super().__init__(organization, requester)
         self.provider_type = provider_type
         self.provider_slug = provider_slug
@@ -61,6 +81,18 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
             self.provider_slug,
         )
 
+    def _is_one_provider(self) -> bool:
+        return self.provider_name is not None and self.provider_type != CATEGORY_PROVIDER_TYPE
+
+    def _requested(self) -> str:
+        """What was requested, for the middle of a sentence."""
+        if self.provider_name is None:
+            return "an integration"
+        name = sanitize_outbound_name(self.provider_name)
+        if self._is_one_provider():
+            return f"the {name} integration"
+        return f"a {name} integration"
+
     def get_context(self) -> MutableMapping[str, Any]:
         return {
             **self.get_base_context(),
@@ -68,11 +100,21 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
             "organization_name": self.organization.name,
             "integration_link": self.integration_link,
             "integration_name": self.provider_name,
+            "requested": (
+                f"the installation of {self.provider_name}"
+                if self._is_one_provider()
+                else self._requested()
+            ),
+            "install_label": (
+                f"Install {self.provider_name}"
+                if self._is_one_provider()
+                else "Install integration"
+            ),
             "message": self.message,
         }
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return f"Your team member requested the {sanitize_outbound_name(self.provider_name)} integration on Sentry"
+        return f"Your team member requested {self._requested()} on Sentry"
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
@@ -89,7 +131,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
             if self.message
             else ""
         )
-        return f"{requester_name} is requesting to install the {sanitize_outbound_name(self.provider_name)} integration into {sanitize_outbound_name(self.organization.name)}.{optional_message}"
+        return f"{requester_name} is requesting to install {self._requested()} into {sanitize_outbound_name(self.organization.name)}.{optional_message}"
 
     def get_message_actions(
         self, recipient: Actor, provider: ExternalProviders
