@@ -1,10 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
-import type {
-  CustomSeriesOption,
-  CustomSeriesRenderItem,
-  CustomSeriesRenderItemAPI,
-} from 'echarts';
+import type {CustomSeriesRenderItem, CustomSeriesRenderItemAPI} from 'echarts';
 import type {LinearGradientObject} from 'echarts/types/dist/shared';
 
 import {useTimezone} from '@sentry/scraps/datetime';
@@ -12,7 +8,6 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 
 import {
   BAND_HEIGHT,
-  BAND_Y_AXIS,
   bandLayout,
   bandRect,
   bandTrack,
@@ -22,6 +17,7 @@ import {
   type PixelRange,
 } from 'sentry/components/charts/bands/bandShapes';
 import {bandTooltipOption} from 'sentry/components/charts/bands/bandTooltip';
+import type {ChartBand} from 'sentry/components/charts/bands/mergeChartBands';
 import {groupIntoBuckets, isHighlighted} from 'sentry/components/droppedData/buckets';
 import type {
   DroppedDataBucket,
@@ -43,12 +39,12 @@ interface DroppedDataItem extends DroppedDataBucket {
   value: [start: number, y: number];
 }
 
-interface DroppedDataSeriesParams {
-  bandOffset: number;
+interface DroppedDataBandParams {
   buckets: DroppedDataBucket[];
   chartRef: React.RefObject<ReactEchartsRef | null>;
   renderTooltip: (bucket: DroppedDataBucket) => string;
   theme: Theme;
+  onClick?: () => void;
 }
 
 interface BandGradient {
@@ -150,35 +146,39 @@ function droppedDataRenderItem(
   };
 }
 
-function createDroppedDataSeries({
-  bandOffset,
+function createDroppedDataBand({
   buckets,
   chartRef,
+  onClick,
   renderTooltip,
   theme,
-}: DroppedDataSeriesParams): CustomSeriesOption {
+}: DroppedDataBandParams): ChartBand {
   const data: DroppedDataItem[] = buckets.map(bucket => ({
     value: [bucket.start, 0],
     fill: severityColor(bucket.ratio, theme),
     ...bucket,
   }));
+  const tooltip = bandTooltipOption(chartRef, data, renderTooltip);
 
   return {
     id: DROPPED_DATA_SERIES_ID,
-    type: 'custom',
-    renderItem: droppedDataRenderItem(data, bandOffset, theme),
-    name: DROPPED_DATA_SERIES_ID,
-    data,
-    color: theme.tokens.dataviz.semantic.bad,
-    animation: false,
-    legendHoverLink: false,
-    tooltip: bandTooltipOption(chartRef, data, renderTooltip),
+    height: BAND_HEIGHT,
+    onClick,
+    series: bandOffset => ({
+      type: 'custom',
+      renderItem: droppedDataRenderItem(data, bandOffset, theme),
+      name: DROPPED_DATA_SERIES_ID,
+      data,
+      color: theme.tokens.dataviz.semantic.bad,
+      animation: false,
+      legendHoverLink: false,
+      tooltip,
+    }),
   };
 }
 
 interface UseDroppedDataBandParams {
   chartRef: React.RefObject<ReactEchartsRef | null>;
-  bandOffset?: number;
   droppedData?: DroppedDataProps;
   utc?: boolean | null;
 }
@@ -186,14 +186,13 @@ interface UseDroppedDataBandParams {
 export function useDroppedDataBand({
   chartRef,
   droppedData,
-  bandOffset = 0,
   utc,
-}: UseDroppedDataBandParams) {
+}: UseDroppedDataBandParams): ChartBand | null {
   const theme = useTheme();
   const renderToString = useRenderToString();
   const userTimezone = useTimezone();
   const timezone = utc ? 'UTC' : userTimezone;
-  const {acceptedEvents, dataset, droppedEvents} = droppedData ?? {};
+  const {acceptedEvents, dataset, droppedEvents, onClick} = droppedData ?? {};
 
   const buckets = useMemo(
     () =>
@@ -204,13 +203,13 @@ export function useDroppedDataBand({
   );
   const isVisible = buckets.some(isHighlighted);
 
-  const droppedDataSeries = useMemo(
+  return useMemo(
     () =>
       isVisible && defined(dataset)
-        ? createDroppedDataSeries({
-            bandOffset,
+        ? createDroppedDataBand({
             buckets,
             chartRef,
+            onClick,
             renderTooltip: bucket =>
               renderToString(
                 <DroppedDataTooltip
@@ -222,12 +221,6 @@ export function useDroppedDataBand({
             theme,
           })
         : null,
-    [bandOffset, buckets, chartRef, dataset, isVisible, renderToString, theme, timezone]
+    [buckets, chartRef, dataset, isVisible, onClick, renderToString, theme, timezone]
   );
-
-  return {
-    droppedDataSeries,
-    droppedDataYAxis: isVisible ? BAND_Y_AXIS : null,
-    droppedDataBandHeight: isVisible ? BAND_HEIGHT : 0,
-  };
 }
