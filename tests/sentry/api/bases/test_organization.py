@@ -647,15 +647,15 @@ def _permission_classes(cls: type[SentryPermission]) -> list[type[SentryPermissi
     return [cls, *(sub for direct in cls.__subclasses__() for sub in _permission_classes(direct))]
 
 
-def test_membership_read_only_replaces_member_read() -> None:
-    """member:read translates to membership:read, so membership:read must not open anything
-    that member:read doesn't already open."""
+def test_membership_general_read_only_replaces_member_read() -> None:
+    """member:read translates to membership.general:read, so membership.general:read must not
+    open anything that member:read doesn't already open."""
     get_resolver().url_patterns  # Import every endpoint module so its permissions are defined.
     broadened = {
         (permission_cls.__qualname__, method)
         for permission_cls in _permission_classes(SentryPermission)
         for method, scopes in permission_cls.scope_map.items()
-        if "membership:read" in scopes and "member:read" not in scopes
+        if "membership.general:read" in scopes and "member:read" not in scopes
     }
     assert broadened == set()
 

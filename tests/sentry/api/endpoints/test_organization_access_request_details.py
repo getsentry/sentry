@@ -210,20 +210,20 @@ class OrganizationAccessRequestMembershipScopeTest(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership:read")
-    def test_membership_read_lists_access_requests_like_member_read(self) -> None:
+    @granular_roles_granting("membership.general:read")
+    def test_membership_general_read_lists_access_requests_like_member_read(self) -> None:
         # Listing also needs org:write or team:write on the team, checked in the handler, so
         # neither read scope sees requests on its own.
         self._use_token(["member:read"])
         member_read = self.get_success_response(self.organization.slug)
-        self._use_token(["membership:read"])
+        self._use_token(["membership.general:read"])
         membership_read = self.get_success_response(self.organization.slug)
         assert membership_read.data == member_read.data == []
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership:read")
-    def test_membership_read_cannot_approve_access_request(self) -> None:
-        self._use_token(["membership:read"])
+    @granular_roles_granting("membership.general:read")
+    def test_membership_general_read_cannot_approve_access_request(self) -> None:
+        self._use_token(["membership.general:read"])
         response = self.client.put(
             reverse(
                 "sentry-api-0-organization-access-request-details",

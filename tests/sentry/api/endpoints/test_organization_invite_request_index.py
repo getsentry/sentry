@@ -352,9 +352,9 @@ class OrganizationInviteRequestListMembershipScopeTest(OrganizationInviteRequest
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership:read")
-    def test_membership_read_can_list_invite_requests(self) -> None:
-        self._use_token(["membership:read"])
+    @granular_roles_granting("membership.general:read")
+    def test_membership_general_read_can_list_invite_requests(self) -> None:
+        self._use_token(["membership.general:read"])
         response = self.get_success_response(self.org.slug)
         assert {r["id"] for r in response.data} == {
             str(self.invite_request.id),
@@ -362,9 +362,9 @@ class OrganizationInviteRequestListMembershipScopeTest(OrganizationInviteRequest
         }
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership:read")
-    def test_membership_read_cannot_request_invites(self) -> None:
-        self._use_token(["membership:read"])
+    @granular_roles_granting("membership.general:read")
+    def test_membership_general_read_cannot_request_invites(self) -> None:
+        self._use_token(["membership.general:read"])
         self.get_error_response(
             self.org.slug, method="post", email="new@example.com", status_code=403
         )

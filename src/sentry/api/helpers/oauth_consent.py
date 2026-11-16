@@ -135,7 +135,7 @@ _PERMISSION_RESOURCES = (
     OAuthPermissionResource(
         "membership",
         "Organization and team membership",
-        ("membership:read",),
+        ("membership.general:read",),
         access_descriptions={
             "read": "View organization members, invites, invite requests, and team access requests.",
         },
