@@ -488,6 +488,16 @@ class ShouldAllowRequestTest(TestCase):
             )
 
     @patch("sentry.utils.circuit_breaker2.logger")
+    def test_allows_request_if_quota_check_fails(self, mock_logger: MagicMock) -> None:
+        breaker = self.breaker
+
+        with patch.object(breaker.limiter, "check_within_quotas", side_effect=Exception):
+            assert breaker.should_allow_request() is True
+            mock_logger.exception.assert_called_with(
+                "Couldn't check quota in redis for circuit breaker '%s'", breaker.key
+            )
+
+    @patch("sentry.utils.circuit_breaker2.logger")
     def test_failed_redis_execute_does_not_leak_commands_into_next_call(
         self, mock_logger: MagicMock
     ) -> None:
