@@ -10,7 +10,7 @@ import {docs} from '.';
 describe('dotnet logs onboarding docs', () => {
   it('renders the SentrySdk.Init logs setup', async () => {
     renderWithOnboardingLayout(
-      {onboarding: logs()},
+      {onboarding: docs.logsOnboarding!},
       {selectedProducts: [ProductSolution.LOGS]}
     );
 
@@ -48,7 +48,10 @@ describe('dotnet logs onboarding docs', () => {
       screen.getByText(textWithMarkupMatcher(/logger\.LogWarning/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/the options you pass to UseSentry/))
+      screen.getByText(textWithMarkupMatcher(/takes from dependency injection/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/in the UseSentry callback/))
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: '.NET Core CLI'}));

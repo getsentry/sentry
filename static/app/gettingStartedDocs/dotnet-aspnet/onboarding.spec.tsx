@@ -69,6 +69,9 @@ describe('aspnet onboarding docs', () => {
         textWithMarkupMatcher(/Install-Package Sentry\.AspNet -Version/)
       )
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
+    ).toBeInTheDocument();
   });
 
   it('renders the metrics drawer for this platform', async () => {
@@ -81,6 +84,9 @@ describe('aspnet onboarding docs', () => {
       await screen.findByText(
         textWithMarkupMatcher(/Install-Package Sentry\.AspNet -Version/)
       )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Init\(/))
     ).toBeInTheDocument();
   });
 });

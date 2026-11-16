@@ -44,14 +44,28 @@ SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisec
   ],
 });
 
+const METRICS_EMIT_SNIPPET = `SentrySdk.Metrics.EmitCounter("button_click", 5,
+    [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
+SentrySdk.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
+    [new KeyValuePair<string, object>("page", "/home")]);
+SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
+    [new KeyValuePair<string, object>("page", "/home")]);`;
+
 /**
+ * @param hostInitializesSdk For platforms where the host starts Sentry, through
+ * `UseSentry` or a startup class. The verify step then leaves out `SentrySdk.Init`, which
+ * would initialize the SDK a second time.
  * @param sdkPackage The NuGet package the platform's onboarding installs, when that isn't
  * `Sentry`. Installing `Sentry` at a newer major version than the platform's package
  * breaks the app, at build or at startup.
  */
 export const metrics = ({
+  hostInitializesSdk,
   sdkPackage,
-}: {sdkPackage?: DotNetSdkPackage} = {}): OnboardingConfig => ({
+}: {
+  hostInitializesSdk?: boolean;
+  sdkPackage?: DotNetSdkPackage;
+} = {}): OnboardingConfig => ({
   install: params => [
     {
       type: StepType.INSTALL,
@@ -88,32 +102,46 @@ export const metrics = ({
     {
       type: StepType.VERIFY,
       content: [
-        {
-          type: 'text',
-          text: tct(
-            'Metrics are automatically enabled in your [code:SentrySdk.Init] configuration. You can emit metrics using the [code:SentrySdk.Metrics] API.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: `using Sentry;
+        ...(hostInitializesSdk
+          ? ([
+              {
+                type: 'text',
+                text: tct(
+                  'Metrics are enabled by default. Emit them with the [code:SentrySdk.Metrics] API:',
+                  {
+                    code: <code />,
+                  }
+                ),
+              },
+              {
+                type: 'code',
+                language: 'csharp',
+                code: METRICS_EMIT_SNIPPET,
+              },
+            ] satisfies ContentBlock[])
+          : ([
+              {
+                type: 'text',
+                text: tct(
+                  'Metrics are automatically enabled in your [code:SentrySdk.Init] configuration. You can emit metrics using the [code:SentrySdk.Metrics] API.',
+                  {
+                    code: <code />,
+                  }
+                ),
+              },
+              {
+                type: 'code',
+                language: 'csharp',
+                code: `using Sentry;
 
 SentrySdk.Init(options =>
 {
     options.Dsn = "${params.dsn.public}";
 });
 
-SentrySdk.Metrics.EmitCounter("button_click", 5,
-    [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
-SentrySdk.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
-    [new KeyValuePair<string, object>("page", "/home")]);
-SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
-    [new KeyValuePair<string, object>("page", "/home")]);`,
-        },
+${METRICS_EMIT_SNIPPET}`,
+              },
+            ] satisfies ContentBlock[])),
         {
           type: 'text',
           text: tct(

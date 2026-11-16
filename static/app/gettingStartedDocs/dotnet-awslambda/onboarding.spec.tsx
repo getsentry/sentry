@@ -80,5 +80,8 @@ describe('awslambda onboarding docs', () => {
         textWithMarkupMatcher(/Install-Package Sentry\.AspNetCore -Version/)
       )
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Init\(/))
+    ).not.toBeInTheDocument();
   });
 });
