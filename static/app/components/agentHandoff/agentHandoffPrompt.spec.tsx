@@ -19,7 +19,7 @@ describe('AgentHandoffPrompt', () => {
   const feedbackSource = 'agent-handoff-prompt-test';
   const code = 'sntryh_example';
   const prompt =
-    'Follow the instructions verbatim at https://sentry-jest-tests.example.com/agent-handoff/. Your handoff code is `sntryh_example`.';
+    'Read the markdown at https://sentry-jest-tests.example.com/agent-handoff/ verbatim and follow its instructions. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
 
   beforeEach(() => {
@@ -61,8 +61,8 @@ describe('AgentHandoffPrompt', () => {
       'href',
       'https://sentry.io/agent-handoff/?preview=1&flow=onboarding'
     );
-    expect(screen.getByText(/Follow the instructions verbatim/)).toHaveTextContent(
-      'Follow the instructions verbatim at https://sentry-jest-tests.example.com/agent-handoff/. Your handoff code is sntryh_****.'
+    expect(screen.getByText(/Read the markdown at/)).toHaveTextContent(
+      'Read the markdown at https://sentry-jest-tests.example.com/agent-handoff/ verbatim and follow its instructions. Your handoff code is sntryh_****.'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
 
