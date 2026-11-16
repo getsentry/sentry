@@ -1746,6 +1746,33 @@ class TestTriggerPushChanges(TestCase):
 
         mock_post.assert_not_called()
 
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    def test_hook_push_is_checked_as_the_run_that_started_it(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run,
+            group=self.group,
+            project=self.project,
+            source="autofix",
+            extras={"referrer": AutofixReferrer.AGENTIC_TRIAGE.value},
+        )
+
+        with pytest.raises(SeerOutOfCreditsException):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+            )
+
+        request = mock_check_seer_credits.call_args.args[0]
+        assert request.feature_id == "autofix_agentic_triage"
+
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_passes_pr_description_suffix_ready_state_and_author(
         self, mock_post: MagicMock

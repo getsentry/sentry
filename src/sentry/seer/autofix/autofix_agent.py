@@ -838,8 +838,16 @@ def trigger_push_changes(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
+    # The hook pushes for a run someone else started, so bill it as that run.
+    billing_referrer = referrer
+    if referrer == AutofixReferrer.ON_COMPLETION_HOOK:
+        _, run_referrer = _group_and_referrer_from_run(group.organization, run_id)
+        billing_referrer = run_referrer or referrer
     check_autofix_billing(
-        group.organization, SeerOperation.AUTOFIX_OPEN_PR, referrer=referrer, is_new_run=False
+        group.organization,
+        SeerOperation.AUTOFIX_OPEN_PR,
+        referrer=billing_referrer,
+        is_new_run=False,
     )
 
     client = get_autofix_agent_client(group, user=user)
