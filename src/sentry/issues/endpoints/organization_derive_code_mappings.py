@@ -111,7 +111,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             project = Project.objects.get(
                 id=request.data["projectId"], organization_id=organization.id
             )
-        except (Project.DoesNotExist, KeyError):
+        except (Project.DoesNotExist, KeyError, ValueError, TypeError):
             return self.respond(
                 {"text": "Could not find project"}, status=status.HTTP_404_NOT_FOUND
             )

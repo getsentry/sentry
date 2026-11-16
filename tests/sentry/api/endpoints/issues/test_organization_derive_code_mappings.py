@@ -275,6 +275,18 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.data == {"text": "Could not find project"}
 
+    def test_post_non_integer_project_id(self) -> None:
+        config_data = {
+            "projectId": "project-slug",
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+            "repoName": "getsentry/codemap",
+        }
+        response = self.client.post(self.url, data=config_data, format="json")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data == {"text": "Could not find project"}
+
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
         return_value=[
