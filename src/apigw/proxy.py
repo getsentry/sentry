@@ -288,3 +288,15 @@ def proxy_control_request(request: Any) -> Any:
     target_url = build_proxied_url(app.config.endpoints.control, request.path)
     headers = build_proxied_headers(request, app.config.endpoints.control, pass_host=True)
     return proxy_request(request, "control", target_url, headers, app.config.proxy.timeout)
+
+
+def proxy_control_integrations_request(request: Any) -> Any:
+    base_url = app.config.endpoints.control
+    if app.config.use_control_integrations and app.config.endpoints.control_integrations:
+        base_url = app.config.endpoints.control_integrations
+
+    target_url = build_proxied_url(base_url, request.path)
+    headers = build_proxied_headers(request, base_url, pass_host=True)
+    return proxy_request(
+        request, "control-integrations", target_url, headers, app.config.proxy.timeout
+    )

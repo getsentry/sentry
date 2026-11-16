@@ -78,6 +78,13 @@ def load_config(app: App) -> None:
     if resolver_timeout := os.environ.get("APIGW_RESOLVER_TIMEOUT"):
         app.config.Resolver.timeout = int(resolver_timeout)
 
+    app.config.endpoints.control_integrations = os.environ.get(
+        "APIGW_ENDPOINT_CONTROL_INTEGRATIONS"
+    )
+    app.config.use_control_integrations = (
+        os.environ.get("APIGW_USE_CONTROL_INTEGRATIONS", "0") == "1"
+    )
+
     app.config.proxy.timeout = None
     app.config.proxy.max_concurrency = int(os.environ.get("APIGW_PROXY_MAX_CONCURRENCY", 512))
     app.config.proxy.max_failures = int(os.environ.get("APIGW_PROXY_MAX_FAILURES", 16))
