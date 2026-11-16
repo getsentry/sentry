@@ -1,4 +1,4 @@
-import type { SENTRY_ERROR_EXTRA_KEYS } from "./error-codes.gen.ts";
+import type { SENTRY_ERROR_EXTRA_KEYS, SentryOperationErrorCode } from "./error-codes.gen.ts";
 
 /**
  * The generated SDK's non-throwing result shape.
@@ -55,11 +55,15 @@ export type NarrowedResult<TData, TErrorMap> =
   | { ok: true; data: TData; response: Response }
   | { ok: false; error: SentryApiResultError<TErrorMap> };
 
-/** Codes the backend's `SentryAPIException` subclasses send, from the spec. */
-export type KnownSentryErrorCode = keyof typeof SENTRY_ERROR_EXTRA_KEYS;
+/**
+ * Codes the backend sends, from the spec: those of its `SentryAPIException`
+ * subclasses, and the other `code` values operations document in their error
+ * responses, such as Seer's `seer_out_of_credits`.
+ */
+export type KnownSentryErrorCode = keyof typeof SENTRY_ERROR_EXTRA_KEYS | SentryOperationErrorCode;
 
-/** The string fields each known code's `extra` can carry. */
-export type SentryErrorExtra<TCode extends KnownSentryErrorCode> = {
+/** The string fields each `SentryAPIException` code's `extra` can carry. */
+export type SentryErrorExtra<TCode extends keyof typeof SENTRY_ERROR_EXTRA_KEYS> = {
   [TKey in (typeof SENTRY_ERROR_EXTRA_KEYS)[TCode][number]]?: string;
 };
 
@@ -89,6 +93,14 @@ export function readSentryErrorDetail(body: unknown): SentryErrorDetail | undefi
   };
 }
 
+/** Read a body with a top-level string `code`; its other fields stay on `body`. */
+function readTopLevelCode(body: unknown): SentryErrorDetail | undefined {
+  if (!isRecord(body) || typeof body.code !== "string" || body.code === "") {
+    return undefined;
+  }
+  return { code: body.code, message: typeof body.detail === "string" ? body.detail : "", extra: {} };
+}
+
 /** An API failure with its parsed body and raw response. */
 export class SentryApiError<
   TStatus extends number | undefined = number | undefined,
@@ -103,11 +115,15 @@ export class SentryApiError<
   /** Original response text, captured during the same read as the parsed body. */
   readonly rawBody?: string;
   // `declare`: errors from other bodies keep their shape, without these keys.
-  /** The `code` of a `{"detail": {"code", "message", "extra"}}` body, which the backend's `SentryAPIException` sends. */
+  /**
+   * The `code` of a `{"detail": {"code", "message", "extra"}}` body, which the
+   * backend's `SentryAPIException` sends, or else a top-level string `code`,
+   * such as Seer's `{"detail", "code", "denialReason"}` 402.
+   */
   declare readonly code?: SentryErrorCode;
-  /** That body's `message`. `message` stays this error's own. */
+  /** That body's `message`, or a top-level body's string `detail`. `message` stays this error's own. */
   declare readonly detailMessage?: string;
-  /** That body's `extra`, such as `loginUrl` for `sso-required`. */
+  /** That body's `extra`, such as `loginUrl` for `sso-required`; empty for a top-level `code`. */
   declare readonly extra?: Record<string, unknown>;
 
   constructor(
@@ -128,7 +144,7 @@ export class SentryApiError<
     this.documented = documented;
     this.request = options?.request;
     this.rawBody = options?.rawBody;
-    const detail = readSentryErrorDetail(body);
+    const detail = readSentryErrorDetail(body) ?? readTopLevelCode(body);
     if (detail) {
       this.code = detail.code;
       this.detailMessage = detail.message;

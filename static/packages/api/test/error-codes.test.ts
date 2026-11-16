@@ -5,6 +5,7 @@ import {
   createSentryClient,
   getSentryAuthChallenge,
   isSentryErrorCode,
+  type KnownSentryErrorCode,
   narrowError_getOrganization,
   SentryApiError,
   type SentryAuthChallenge,
@@ -65,6 +66,52 @@ describe("Sentry error codes", () => {
     });
     expect(await core.request("https://sentry.example.com", "/organizations/").catch((e: unknown) => e))
       .toMatchObject({ status: 401, code: "member-disabled-over-limit" });
+  });
+
+  describe("a top-level code", () => {
+    // The Seer 402 body: `code` sits next to `detail` instead of inside it.
+    const seerOutOfCredits = {
+      detail: "Your organization does not have enough Seer credits.",
+      code: "seer_out_of_credits",
+      denialReason: "daily_cap_exceeded",
+    };
+
+    test("is read when the body has no SentryAPIException detail", () => {
+      expect(errorWith(402, seerOutOfCredits)).toMatchObject({
+        status: 402,
+        code: "seer_out_of_credits",
+        detailMessage: "Your organization does not have enough Seer credits.",
+        extra: {},
+        body: seerOutOfCredits,
+      });
+      expect(errorWith(409, { code: "repos_not_linked" })).toMatchObject({ code: "repos_not_linked", detailMessage: "", extra: {} });
+    });
+
+    test("reaches /client errors", async () => {
+      const core = createApiClientCore({
+        transport: { request: async () => Response.json(seerOutOfCredits, { status: 402 }) },
+        headers: () => ({}),
+        logger: { warn: () => {} },
+      });
+      expect(await core.request("https://sentry.example.com", "/organizations/").catch((e: unknown) => e))
+        .toMatchObject({ status: 402, code: "seer_out_of_credits" });
+    });
+
+    test("loses to a SentryAPIException detail and ignores non-string codes", () => {
+      expect(errorWith(401, { ...sentryBody("sudo-required", { username: "jane" }), code: "other" }))
+        .toMatchObject({ code: "sudo-required", extra: { username: "jane" } });
+      for (const body of [{ code: ["This field is required."] }, { code: "" }, { detail: "Not found", code: 404 }]) {
+        expect(errorWith(400, body)).not.toHaveProperty("code");
+      }
+    });
+
+    test("includes the codes operations document in KnownSentryErrorCode", () => {
+      expectTypeOf<
+        "seer_out_of_credits" | "seer_out_of_quota" | "scm_integration_required" | "repos_not_linked" | "run_in_flight"
+      >().toExtend<KnownSentryErrorCode>();
+      const error: unknown = errorWith(402, seerOutOfCredits);
+      expect(isSentryErrorCode(error, "seer_out_of_credits")).toBe(true);
+    });
   });
 
   test("isSentryErrorCode narrows by code", () => {
