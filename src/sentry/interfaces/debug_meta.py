@@ -1,5 +1,7 @@
 __all__ = ("DebugMeta",)
 
+from typing import Any, Self
+
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
 
@@ -23,7 +25,7 @@ class DebugMeta(Interface):
     external_type = "debugmeta"
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data: dict[str, Any]) -> Self | None:
         return super().to_python(
             {
                 "images": data.get("images", None) or [],
@@ -32,7 +34,7 @@ class DebugMeta(Interface):
             }
         )
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         return prune_empty_keys(
             {
                 "images": self.images or None,

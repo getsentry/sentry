@@ -8,6 +8,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.notifications.additional_attachment_manager import msteams_attachment_manager
 from sentry.notifications.platform.msteams.provider import MSTeamsRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -82,10 +83,17 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             cls.build_actions(group=group, data=data, rules=rules),
         ]
 
-        return MSTeamsMessageBuilder().build(
+        card = MSTeamsMessageBuilder().build(
             title=cls.build_title(group=group, issue_url=issue_url),
             fields=fields,
         )
+
+        card["body"].extend(
+            msteams_attachment_manager.get_additional_attachment_for_integration_id(
+                data.integration_id, group.organization
+            )
+        )
+        return card
 
     @classmethod
     def build_issue_url(cls, *, group: Group, notification_uuid: str) -> str:

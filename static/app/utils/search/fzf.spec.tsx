@@ -1,4 +1,4 @@
-import {fzf} from 'sentry/utils/search/fzf';
+import {fzf} from './fzf';
 
 describe('fzf', () => {
   it('merges matched ranges', () => {

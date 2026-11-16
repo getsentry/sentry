@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from sentry.utils.types import Type as OptionValueType
+
+ExpectedOptionType = type[object] | OptionValueType[object]
+
 
 class OptionsPresenter(ABC):
     """
@@ -48,5 +52,5 @@ class OptionsPresenter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def invalid_type(self, key: str, got_type: type, expected_type: type) -> None:
+    def invalid_type(self, key: str, got_type: type, expected_type: ExpectedOptionType) -> None:
         raise NotImplementedError

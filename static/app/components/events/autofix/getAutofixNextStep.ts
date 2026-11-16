@@ -1,14 +1,17 @@
-import {isCreatedPullRequestState} from 'sentry/components/events/autofix/pullRequests';
+import {defined} from 'sentry/utils/defined';
+
+import {isCreatedPullRequestState} from './pullRequests';
 import {
   getAutofixArtifactFromSection,
   isCodeChangesSection,
   isPullRequestsArtifact,
   isPullRequestsSection,
   isRootCauseSection,
+  isSingleRunAutofix,
   isSolutionSection,
   type AutofixSection,
-} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {defined} from 'sentry/utils/defined';
+  type ExplorerAutofixState,
+} from './useExplorerAutofix';
 
 export type AutofixNextStep =
   | {action: 'root_cause'; section: AutofixSection}
@@ -19,6 +22,7 @@ export type AutofixNextStep =
 
 interface GetAutofixNextStepOptions {
   sections: AutofixSection[];
+  runState?: ExplorerAutofixState | null;
 }
 
 /**
@@ -30,10 +34,11 @@ interface GetAutofixNextStepOptions {
  */
 export function getAutofixNextStep({
   sections,
+  runState,
 }: GetAutofixNextStepOptions): AutofixNextStep | null {
   const section = sections.at(-1);
 
-  if (!defined(section)) {
+  if (!defined(section) || isSingleRunAutofix(runState ?? null)) {
     return null;
   }
 

@@ -179,6 +179,15 @@ describe('decodeList()', () => {
     expect(decodeList(['one', 'two'])).toEqual(['one', 'two']);
   });
 
+  it('drops null items from repeated keys without a value', () => {
+    expect(decodeList(['one', null, 'two'])).toEqual(['one', 'two']);
+    expect(decodeList([null])).toEqual([]);
+  });
+
+  it('keeps empty string items', () => {
+    expect(decodeList(['', 'one'])).toEqual(['', 'one']);
+  });
+
   it('handles falsey values', () => {
     expect(decodeList(undefined)).toEqual([]);
     // @ts-expect-error type false is not assignable to QueryValue

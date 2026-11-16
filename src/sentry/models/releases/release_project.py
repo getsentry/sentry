@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 
@@ -16,12 +16,15 @@ from sentry.db.models import (
 from sentry.db.models.manager.base import BaseManager
 from sentry.tasks.relay import schedule_invalidate_project_config
 
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+
 logger = logging.getLogger(__name__)
 
 
 class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     @staticmethod
-    def _on_post(project, trigger):
+    def _on_post(project: Project, trigger: str) -> None:
         from sentry.dynamic_sampling import ProjectBoostedReleases
 
         project_boosted_releases = ProjectBoostedReleases(project)
@@ -36,7 +39,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     def post_save(self, *, instance: ReleaseProject, created: bool, **kwargs: object) -> None:
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: ReleaseProject, **kwargs: object) -> None:
         self._on_post(project=instance.project, trigger="releaseproject.post_delete")
 
 

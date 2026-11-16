@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
@@ -13,10 +14,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -565,19 +565,15 @@ function SampleRateRow({
 function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
-  const {data, isPending, isError} = useApiQuery<{
-    eapEffectiveSampleRate: number | null;
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
+  const {data, isPending, isError} = useQuery({
+    ...apiOptions.as<{
+      eapEffectiveSampleRate: number | null;
+    }>()('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: Infinity,
-      enabled: dynamicSamplingEnabled,
-    }
-  );
+    }),
+    enabled: dynamicSamplingEnabled,
+  });
 
   if (!dynamicSamplingEnabled) {
     return (

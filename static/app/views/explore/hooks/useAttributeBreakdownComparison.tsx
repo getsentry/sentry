@@ -2,6 +2,7 @@ import {useQuery, skipToken} from '@tanstack/react-query';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -9,7 +10,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKey} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+import {SAMPLING_MODE} from './useProgressiveQuery';
 
 export type AttributeBreakdownsComparison = {
   cohort1Total: number;
@@ -38,6 +40,8 @@ export function useAttributeBreakdownComparison({
   dataset = DiscoverDatasets.SPANS,
   extrapolate = '1',
   pageFilters: pageFiltersProp,
+  yAttribute,
+  yRange,
 }: {
   aggregateFunction: string;
   query: string;
@@ -45,10 +49,16 @@ export function useAttributeBreakdownComparison({
   dataset?: DiscoverDatasets;
   extrapolate?: string;
   pageFilters?: PageFilters;
+  /**
+   * Attribute that `yRange` bounds, e.g. `span.duration` for a heatmap selection.
+   */
+  yAttribute?: string;
+  yRange?: [number, number];
 }) {
   const organization = useOrganization();
   const {selection: contextPageFilters} = usePageFilters();
   const pageFilters = pageFiltersProp ?? contextPageFilters;
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const [x1, x2] = range;
 
@@ -69,6 +79,11 @@ export function useAttributeBreakdownComparison({
   selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `>=${formattedStartTimestamp}`);
   selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `<=${formattedEndTimestamp}`);
 
+  if (yAttribute && yRange) {
+    selectedRegionQuery.addFilterValue(yAttribute, `>=${yRange[0]}`, false);
+    selectedRegionQuery.addFilterValue(yAttribute, `<${yRange[1]}`, false);
+  }
+
   return useQuery({
     ...apiOptions.as<AttributeBreakdownsComparison>()(
       '/organizations/$organizationIdOrSlug/trace-items/attributes/ranked/',
@@ -86,6 +101,7 @@ export function useAttributeBreakdownComparison({
           query_2: baselineRegionQuery.formatString(),
           sampling: SAMPLING_MODE.NORMAL,
           aggregateExtrapolation: extrapolate,
+          caseInsensitive: caseInsensitive ? '1' : undefined,
         },
         staleTime: 0,
       }

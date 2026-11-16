@@ -2,9 +2,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {callSetOrganizationCallback} from 'sentry/utils/routeAnalytics/setOrganizationCallback';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
+import {callSetOrganizationCallback} from './setOrganizationCallback';
 import {useRouteAnalyticsHookSetup} from './useRouteAnalyticsHookSetup';
 
 function TestComponent() {

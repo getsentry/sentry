@@ -2,7 +2,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 
 
-def remove_minutes(timestamp, floor=True):
+def remove_minutes(timestamp: datetime, floor: bool = True) -> datetime:
     if floor:
         return datetime(timestamp.year, timestamp.month, timestamp.day, timestamp.hour)
     else:
@@ -11,14 +11,14 @@ def remove_minutes(timestamp, floor=True):
         )
 
 
-def remove_hours(timestamp, floor=True):
+def remove_hours(timestamp: datetime, floor: bool = True) -> datetime:
     if floor:
         return datetime(timestamp.year, timestamp.month, timestamp.day)
     else:
         return datetime(timestamp.year, timestamp.month, timestamp.day) + timedelta(days=1)
 
 
-def adjust_datetime_to_granularity(timestamp: datetime, granularity_seconds: int):
+def adjust_datetime_to_granularity(timestamp: datetime, granularity_seconds: int) -> datetime:
     """
     Adjusts a datetime (down) to the boundary of a specified granularity.
 

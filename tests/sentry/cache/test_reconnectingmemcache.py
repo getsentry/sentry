@@ -7,7 +7,7 @@ from sentry.cache.backends.reconnectingmemcache import ReconnectingMemcache
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 
-def _make_cache(reconnect_age=300):
+def _make_cache(reconnect_age: int = 300) -> ReconnectingMemcache:
     """Create a ReconnectingMemcache with a mocked pymemcache client class."""
     with patch.object(
         ReconnectingMemcache,
@@ -31,7 +31,7 @@ def test_each_thread_gets_own_client() -> None:
 
     results = []
 
-    def check():
+    def check() -> None:
         worker_client = cache._cache
         results.append(worker_client is parent_client)
 
@@ -52,7 +52,7 @@ def test_context_propagating_executor_isolates_clients() -> None:
 
     results = []
 
-    def check():
+    def check() -> None:
         worker_client = cache._cache
         results.append(worker_client is parent_client)
 
@@ -86,6 +86,7 @@ def test_reconnects_after_age() -> None:
 
     # Simulate time passing beyond reconnect_age
     state = cache._backend_var.get()
+    assert state is not None
     cache._backend_var.set(state._replace(created_at=time.time() - 11))
 
     client2 = cache._cache
@@ -102,7 +103,7 @@ def test_workers_in_same_context_run_get_own_clients() -> None:
 
     worker_clients = []
 
-    def collect():
+    def collect() -> None:
         worker_clients.append(id(cache._cache))
 
     with ContextPropagatingThreadPoolExecutor(max_workers=3) as pool:

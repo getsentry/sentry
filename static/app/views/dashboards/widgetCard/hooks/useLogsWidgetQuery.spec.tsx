@@ -24,7 +24,7 @@ describe('useLogsSeriesQuery', () => {
     PageFiltersStore.onInitializeUrlState(pageFilters);
   });
 
-  it('makes a request to the events-stats endpoint', async () => {
+  it('makes a request to the events-timeseries endpoint', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       queries: [
@@ -40,10 +40,8 @@ describe('useLogsSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
 
     renderHookWithProviders(() =>
@@ -57,7 +55,7 @@ describe('useLogsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: ['count()'],
@@ -84,8 +82,8 @@ describe('useLogsSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {},
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
 
     renderHookWithProviders(() =>
@@ -94,7 +92,7 @@ describe('useLogsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({excludeOther: '1'}),
         })
@@ -102,7 +100,7 @@ describe('useLogsSeriesQuery', () => {
     });
   });
 
-  it('makes a request to the events-timeseries endpoint when enabled', async () => {
+  it('returns the transformed series', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       queries: [
@@ -125,9 +123,7 @@ describe('useLogsSeriesQuery', () => {
     const {result} = renderHookWithProviders(() =>
       useLogsSeriesQuery({
         widget,
-        organization: OrganizationFixture({
-          features: ['dashboards-widgets-use-events-timeseries'],
-        }),
+        organization,
         pageFilters,
         enabled: true,
       })
@@ -141,7 +137,7 @@ describe('useLogsSeriesQuery', () => {
       })
     );
     expect(result.current.timeseriesResults?.map(({seriesName}) => seriesName)).toEqual([
-      'test : count()',
+      'count()',
     ]);
   });
 
@@ -161,10 +157,8 @@ describe('useLogsSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
 
     renderHookWithProviders(() =>
@@ -181,7 +175,7 @@ describe('useLogsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             query: expect.stringContaining('release:"1.0.0"'),

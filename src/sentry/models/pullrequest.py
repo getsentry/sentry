@@ -435,7 +435,8 @@ class PullRequest(Model):
             return None
         provider_cls = bindings.get("integration-repository.provider").get(provider_id)
         provider = provider_cls(provider_id)
-        return provider.pull_request_url(repository, self)
+        url = provider.pull_request_url(repository, self)
+        return url
 
     def is_unused(self, cutoff_date: datetime) -> bool:
         """

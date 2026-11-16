@@ -28,10 +28,10 @@ class OpsgenieActionHandler(IntegrationActionHandler):
             "priority": {
                 "type": "string",
                 "description": "The priority of the opsgenie action",
-                "enum": [*OPSGENIE_CUSTOM_PRIORITIES],
+                "enum": sorted(OPSGENIE_CUSTOM_PRIORITIES),
             },
-            "additionalProperties": False,
         },
+        "additionalProperties": False,
     }
 
     @staticmethod

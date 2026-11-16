@@ -1,26 +1,33 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, type QueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
+import {parseAsString, useQueryStates} from 'nuqs';
+import {useStore} from 'zustand';
 
 import {
   bulkUpdate,
   fetchIssueTagApiOptions,
   issueTagValuesApiOptions,
 } from 'sentry/actionCreators/group';
+import {
+  organizationTagValuesApiOptions,
+  type OrganizationTagValuesParameters,
+} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+
+import {useGroupTags} from './groupTags/useGroupTags';
+import {useGroupData} from './groupDataContext';
+import {useGroupId} from './groupIdContext';
 
 export async function markEventSeen(
   api: Client,
@@ -44,42 +51,63 @@ export async function markEventSeen(
 }
 
 export function useDefaultIssueEvent() {
-  const user = useLegacyStore(ConfigStore).user;
+  const user = useStore(ConfigStore, state => state.user);
   const options = user ? user.options : null;
   return options?.defaultIssueEvent ?? 'recommended';
 }
 /**
  * Combines two TagValue arrays and combines TagValue.count upon conflict
  */
-export function mergeAndSortTagValues(
+function mergeAndSortTagValues(
   tagValues1: TagValue[],
   tagValues2: TagValue[],
   sort: 'count' | 'lastSeen' = 'lastSeen'
 ): TagValue[] {
-  const tagValueCollection = tagValues1.reduce<Record<string, TagValue>>(
-    (acc, tagValue) => {
-      acc[tagValue.value] = tagValue;
-      return acc;
-    },
-    {}
-  );
-  tagValues2.forEach(tagValue => {
-    if (tagValueCollection[tagValue.value]) {
-      tagValueCollection[tagValue.value]!.count += tagValue.count;
-      if (tagValue.lastSeen > tagValueCollection[tagValue.value]!.lastSeen) {
-        tagValueCollection[tagValue.value]!.lastSeen = tagValue.lastSeen;
+  // A Map, because tag values like "constructor" or "__proto__" collide with
+  // properties every plain object already has.
+  const tagValueCollection = new Map<string, TagValue>();
+  for (const tagValue of [...tagValues1, ...tagValues2]) {
+    // A null value and '' both mean the tag is missing, so they share a key.
+    const key = tagValue.value ?? '';
+    const existing = tagValueCollection.get(key);
+    if (existing) {
+      existing.count += tagValue.count;
+      if (tagValue.lastSeen > existing.lastSeen) {
+        existing.lastSeen = tagValue.lastSeen;
       }
     } else {
-      tagValueCollection[tagValue.value] = tagValue;
+      // Copied because the counts get summed in place, and these come from the
+      // query cache.
+      tagValueCollection.set(key, {...tagValue});
     }
-  });
-  const allTagValues = Object.values(tagValueCollection);
+  }
+  const allTagValues = [...tagValueCollection.values()];
   if (sort === 'count') {
     allTagValues.sort((a, b) => b.count - a.count);
   } else {
     allTagValues.sort((a, b) => (b.lastSeen < a.lastSeen ? -1 : 1));
   }
   return allTagValues;
+}
+
+/**
+ * Fetches a tag's values from the errors and issue platform datasets and
+ * merges them into one list.
+ */
+export async function fetchIssueTagValues(
+  queryClient: QueryClient,
+  params: Omit<OrganizationTagValuesParameters, 'dataset'>,
+  sort?: 'count' | 'lastSeen'
+): Promise<TagValue[]> {
+  const [errorsValues, issuePlatformValues] = await Promise.all([
+    queryClient.fetchQuery(
+      organizationTagValuesApiOptions({...params, dataset: Dataset.ERRORS})
+    ),
+    queryClient.fetchQuery(
+      organizationTagValuesApiOptions({...params, dataset: Dataset.ISSUE_PLATFORM})
+    ),
+  ]);
+  return mergeAndSortTagValues(errorsValues.json, issuePlatformValues.json, sort);
 }
 
 /**
@@ -292,10 +320,15 @@ export function useIsSampleEvent(): boolean {
 type TagSort = 'date' | 'count';
 const DEFAULT_SORT: TagSort = 'count';
 
+export const TAG_DRAWER_PARSERS = {
+  tagDrawerCursor: parseAsString,
+  tagDrawerSort: parseAsString,
+};
+
 export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
   const organization = useOrganization();
-  const location = useLocation();
-  const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  const [{tagDrawerCursor, tagDrawerSort}] = useQueryStates(TAG_DRAWER_PARSERS);
+  const sort = (tagDrawerSort as TagSort | null) ?? DEFAULT_SORT;
 
   useQuery({
     ...issueTagValuesApiOptions({
@@ -303,7 +336,7 @@ export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: b
       groupId,
       tagKey,
       sort,
-      cursor: location.query.tagDrawerCursor,
+      cursor: tagDrawerCursor ?? undefined,
     }),
     enabled,
   });
@@ -346,5 +379,5 @@ export function getUserTagValue(tagValue: TagValue): {
   }
 
   // Fall back to the raw tag value if no user-specific fields are available
-  return {title: title || tagValue.value, subtitle};
+  return {title: title || tagValue.value || '', subtitle};
 }

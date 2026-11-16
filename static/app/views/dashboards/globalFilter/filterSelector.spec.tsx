@@ -3,9 +3,10 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import {FilterSelector} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {FilterSelector} from './filterSelector';
 
 describe('FilterSelector', () => {
   const mockOnUpdateFilter = jest.fn();
@@ -185,6 +186,43 @@ describe('FilterSelector', () => {
   it('translates subregion codes to human-readable names for spans dataset', async () => {
     const subregionFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
+      tag: {
+        key: SpanFields.USER_GEO_SUBREGION,
+        name: 'User Geo Subregion',
+        kind: FieldKind.FIELD,
+      },
+      value: '',
+    };
+
+    const subregionSearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () => Promise.resolve(['21', '154']),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={subregionFilter}
+        searchBarData={subregionSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {
+      name: `${SpanFields.USER_GEO_SUBREGION} contains All`,
+    });
+    await userEvent.click(button);
+
+    expect(
+      await screen.findByRole('gridcell', {name: /North America/})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('gridcell', {name: /Northern Europe/})).toBeInTheDocument();
+  });
+
+  it('translates subregion codes to human-readable names for trace metrics dataset', async () => {
+    const subregionFilter: GlobalFilter = {
+      dataset: WidgetType.TRACEMETRICS,
       tag: {
         key: SpanFields.USER_GEO_SUBREGION,
         name: 'User Geo Subregion',

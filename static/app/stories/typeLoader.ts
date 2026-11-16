@@ -2,30 +2,15 @@ import * as docgen from 'react-docgen-typescript';
 import type {LoaderContext} from '@rspack/core';
 import * as typescript from 'typescript';
 
+import {serializeTypeLoaderResult} from './typeLoaderResult.ts';
+
 // Numeric suffixes depend on parse order, so emitting these props changes chunk hashes.
 const TYPESCRIPT_SYNTHETIC_PROPERTY = /^__@[^@]+@\d+$/;
-// react-docgen-typescript returns checkout-specific absolute paths in these fields.
-const FILE_PATH_PROPERTIES = new Set(['fileName', 'filePath']);
 
 type Contextify = LoaderContext['utils']['contextify'];
 
 function isDocumentedProp(prop: {name: string}): boolean {
   return !TYPESCRIPT_SYNTHETIC_PROPERTY.test(prop.name);
-}
-
-function serializeTypeLoaderResult(
-  result: TypeLoader.TypeLoaderResult,
-  rootContext: string,
-  contextify: Contextify
-): string {
-  // Docgen nests absolute paths throughout its output, so normalize them during serialization.
-  return JSON.stringify(result, (key, value) => {
-    if (FILE_PATH_PROPERTIES.has(key) && typeof value === 'string') {
-      return contextify(rootContext, value);
-    }
-
-    return value;
-  });
 }
 
 function extractModuleExports(
@@ -114,11 +99,11 @@ function prodTypeLoader(this: LoaderContext): string {
       exports: moduleExports,
     },
   };
-  return `export default ${serializeTypeLoaderResult(
+  return serializeTypeLoaderResult(
     typeLoaderResult,
     this.rootContext,
     this.utils.contextify
-  )}`;
+  );
 }
 
 export default function typeLoader(this: LoaderContext): string {

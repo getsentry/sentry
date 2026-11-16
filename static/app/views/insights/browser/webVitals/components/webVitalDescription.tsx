@@ -2,16 +2,17 @@ import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClose} from '@sentry/icons/close';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
-import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {scoreToStatus} from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
+
+import {PerformanceBadge} from './performanceBadge';
 
 type Props = {
   webVital: WebVitals;
@@ -144,15 +145,11 @@ export function WebVitalDescription({score, value, webVital}: Props) {
             </Flex>
           ))}
         </Flex>
-        <ReferenceLink>{link}</ReferenceLink>
+        <Container marginBottom="xl">{link}</Container>
       </Stack>
     </div>
   );
 }
-
-const ReferenceLink = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const Value = styled('h2')`
   margin-bottom: 0;

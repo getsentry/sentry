@@ -24,7 +24,7 @@ class GroupHistoryTest(TestCase):
         assert owner
         assert owner.identifier == actor.identifier
         assert history.user_id == self.user.id
-        assert history.team_id is None
+        assert history.team is None
 
         actor = Actor.from_id(team_id=team.id)
         assert actor

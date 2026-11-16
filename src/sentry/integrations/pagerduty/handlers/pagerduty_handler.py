@@ -30,8 +30,8 @@ class PagerdutyActionHandler(IntegrationActionHandler):
                 "description": "The priority of the pagerduty action",
                 "enum": [severity for severity in PagerdutySeverity],
             },
-            "additionalProperties": False,
         },
+        "additionalProperties": False,
     }
 
     @staticmethod

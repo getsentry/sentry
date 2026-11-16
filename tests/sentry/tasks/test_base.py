@@ -15,7 +15,7 @@ from sentry.taskworker.namespaces import exampletasks, test_tasks
     namespace=test_tasks,
     silo_mode=SiloMode.CELL,
 )
-def region_task(param) -> str:
+def region_task(param: str) -> str:
     return f"Region task {param}"
 
 
@@ -24,7 +24,7 @@ def region_task(param) -> str:
     namespace=test_tasks,
     silo_mode=SiloMode.CONTROL,
 )
-def control_task(param) -> str:
+def control_task(param: str) -> str:
     return f"Control task {param}"
 
 
@@ -33,7 +33,7 @@ def control_task(param) -> str:
     namespace=test_tasks,
     alias="tests.tasks.test_base.alias_task",
 )
-def task_with_alias(param) -> str:
+def task_with_alias(param: str) -> str:
     return f"Task with alias {param}"
 
 
@@ -44,7 +44,7 @@ def task_with_alias(param) -> str:
     retry=Retry(times=3, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-def region_task_with_alias(param) -> str:
+def region_task_with_alias(param: str) -> str:
     return f"Region task with alias {param}"
 
 
@@ -54,7 +54,7 @@ def region_task_with_alias(param) -> str:
     alias="tests.tasks.test_base.control_alias_task",
     silo_mode=SiloMode.CONTROL,
 )
-def control_task_with_alias(param) -> str:
+def control_task_with_alias(param: str) -> str:
     return f"Control task with alias {param}"
 
 
@@ -64,7 +64,7 @@ def control_task_with_alias(param) -> str:
     alias="tests.tasks.test_base.alias_task_alias_namespace",
     alias_namespace=exampletasks,
 )
-def task_with_alias_and_alias_namespace(param) -> str:
+def task_with_alias_and_alias_namespace(param: str) -> str:
     return f"Task with alias and alias namespace {param}"
 
 
@@ -118,7 +118,7 @@ def test_instrumented_task_parameters() -> None:
         processing_deadline_duration=60,
         compression_type=CompressionType.ZSTD,
     )
-    def hello_task():
+    def hello_task() -> None:
         pass
 
     decorated = namespace.get("hello_task")

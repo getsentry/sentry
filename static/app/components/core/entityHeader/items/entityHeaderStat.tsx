@@ -1,3 +1,6 @@
+import {Fragment} from 'react';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
+
 import {ROW_HEIGHT, STAT_VALUE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -5,14 +8,36 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
+
+/**
+ * Required rather than optional, so a stat with nothing to show is written on
+ * purpose as `null`, never arrived at by leaving the value out.
+ */
+type EntityHeaderStatValue = number | string | null;
 
 interface EntityHeaderStatBase {
   /**
    * Short, static label such as "Dead Clicks".
    */
   label: string;
+  /**
+   * The measurement itself. Text, not a node: the row is built for single
+   * numbers, and any breakdown belongs in `valueTooltip`.
+   *
+   * `null` means the stat applies to this entity but there is nothing to
+   * show — no cost recorded, no size reported. It renders a muted "—" and is
+   * read "No data". Never pass a placeholder such as `'-'` or `'—'` yourself:
+   * a screen reader reads it aloud as the data ("dash").
+   *
+   * Not for a real zero (pass `0`), a value still loading (pass `isLoading`),
+   * or a stat that does not apply to this entity (pass `null` for the whole
+   * item instead). An empty link stat is still a link, named by its label,
+   * since its type must not change once the data loads.
+   */
+  value: EntityHeaderStatValue;
   /**
    * Hold this one stat as a skeleton while the rest of the header is live. Use
    * it when the value comes from a request that settles after the entity does;
@@ -27,6 +52,15 @@ interface EntityHeaderStatBase {
    * `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
    */
   labelTooltip?: React.ReactNode;
+  /**
+   * What the value is made of — the projects behind an error count, say —
+   * or, when `value` is `null`, why there is none. Takes structured content,
+   * which is how a breakdown stays out of the row.
+   *
+   * Keep a reason readable without links: nothing inside a tooltip can be
+   * reached by keyboard.
+   */
+  valueTooltip?: React.ReactNode;
 }
 
 /**
@@ -35,37 +69,14 @@ interface EntityHeaderStatBase {
  * as it likes; the type may not.
  */
 export type EntityHeaderStatProps =
-  | ({
-      type: 'text';
-      /**
-       * The measurement itself. Text, not a node: the row is built for single
-       * numbers, and any breakdown belongs in `valueTooltip`.
-       */
-      value: number | string;
-      /**
-       * What the value is made of — the projects behind an error count, say.
-       * Takes structured content, which is how a breakdown stays out of the row.
-       *
-       * Only on a text stat. On a link stat the value is hidden, since the link
-       * speaks it as part of its own name, and a tooltip needs a visible,
-       * focusable trigger — put the breakdown in `labelTooltip` instead, where
-       * it attaches to the link.
-       */
-      valueTooltip?: React.ReactNode;
-    } & EntityHeaderStatBase)
+  | ({type: 'text'} & EntityHeaderStatBase)
   | ({
       /**
-       * Where the value leads. Required, so the stat cannot quietly stop being
+       * Where the label leads. Required, so the stat cannot quietly stop being
        * a link when its count is zero.
        */
       to: LinkProps['to'];
       type: 'link';
-      /**
-       * Text, not a node, because the link is named from it. A graphic here
-       * would leave the link named by its label alone, silently dropping the
-       * half that says how many.
-       */
-      value: number | string;
       onClick?: () => void;
     } & EntityHeaderStatBase);
 
@@ -78,19 +89,63 @@ const LABEL_STYLES = {
   wrap: 'nowrap',
 } as const;
 
-function StatValue(props: EntityHeaderStatProps) {
-  if (props.type === 'text' && props.valueTooltip) {
+const EMPTY_VALUE = '\u2014';
+
+const PLACEHOLDER_VALUES = new Set(['', '-', '\u2013', '\u2014', 'n/a', 'N/A']);
+
+const warnedPlaceholderLabels = new Set<string>();
+
+function warnOnPlaceholderValue(label: string, value: EntityHeaderStatValue): void {
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+  if (typeof value !== 'string' || !PLACEHOLDER_VALUES.has(value.trim())) {
+    return;
+  }
+  if (warnedPlaceholderLabels.has(label)) {
+    return;
+  }
+  warnedPlaceholderLabels.add(label);
+
+  // eslint-disable-next-line no-console
+  console.warn(
+    `EntityHeader stat "${label}" was given the placeholder value "${value}", which a screen reader reads aloud as data. Pass \`value: null\` for a stat with nothing to show.`
+  );
+}
+
+function EmptyValue() {
+  const {t} = useTranslation();
+  // Translators: read by a screen reader in place of the dash shown for a stat that has nothing to show, e.g. no cost recorded
+  const noData = t('No data');
+
+  // The dash is for the eye only; read aloud it would be "dash", which sounds
+  // like a value.
+  return (
+    <Fragment>
+      <span aria-hidden>{EMPTY_VALUE}</span>
+      <VisuallyHidden elementType="span">{noData}</VisuallyHidden>
+    </Fragment>
+  );
+}
+
+function StatValue({value, valueTooltip}: EntityHeaderStatProps) {
+  // An empty value keeps the value's typography, so the row's height and
+  // baseline do not move, and is muted so it does not read as a measurement.
+  const isEmpty = value === null;
+  const content = isEmpty ? <EmptyValue /> : value;
+  const variant = isEmpty ? 'muted' : undefined;
+
+  if (valueTooltip) {
     return (
-      <InfoText title={props.valueTooltip} {...VALUE_STYLES}>
-        {props.value}
+      <InfoText title={valueTooltip} variant={variant} {...VALUE_STYLES}>
+        {content}
       </InfoText>
     );
   }
 
-  // Hidden on a link stat, where the anchor's own name already speaks it.
   return (
-    <Text aria-hidden={props.type === 'link'} {...VALUE_STYLES}>
-      {props.value}
+    <Text variant={variant} {...VALUE_STYLES}>
+      {content}
     </Text>
   );
 }
@@ -99,22 +154,14 @@ function StatLabel(props: EntityHeaderStatProps) {
   const {label, labelTooltip} = props;
 
   if (props.type === 'link') {
-    const {to, onClick, value} = props;
-    // The label is what navigates, so the link is named by what it leads to
-    // rather than by a number.
+    const {to, onClick} = props;
+    // Named by its label alone — where it leads. The count beside it is read
+    // in the same list item, which is context enough for the link's purpose.
     return (
       <Text {...LABEL_STYLES} variant="accent">
         {styleProps => {
           const link = (
-            <Link
-              to={to}
-              onClick={onClick}
-              // Composed rather than assembled from the DOM with
-              // `aria-labelledby`, which would have to reach into the hidden
-              // value node — something not every engine is known to honour.
-              aria-label={`${value} ${label}`}
-              {...styleProps}
-            >
+            <Link to={to} onClick={onClick} {...styleProps}>
               {label}
             </Link>
           );
@@ -156,17 +203,18 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
     );
   }
 
+  warnOnPlaceholderValue(props.label, props.value);
+
   return (
     <Flex as="li" align="center" height={ROW_HEIGHT} flexShrink={0} minWidth={0}>
       {/*
-        A stat is one fact split across two elements, which a screen reader
-        moving element by element reads as two: "0", then "link, Dead Clicks".
-        On a link stat the anchor is named from both, so it reads "0 Dead
-        Clicks" in one go.
+        The label comes first, on screen and in the DOM, so a number is never
+        read before what it counts. Each half is read as itself: "Errors",
+        then "3".
       */}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        <StatValue {...props} />
         <StatLabel {...props} />
+        <StatValue {...props} />
       </Flex>
     </Flex>
   );

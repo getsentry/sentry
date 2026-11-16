@@ -9,7 +9,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@sentry/icons": "workspace:*",
-    "@sentry/react": "11.7.0",
+    "@sentry/react": "11.12.0",
     "@sentry/scraps": "workspace:*",
     "@tanstack/react-pacer": "^0.22.1",
     "@tanstack/react-query": "5.101.4",
@@ -24,9 +24,9 @@
     "platformicons": "^9.10.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router": "6.30.6",
+    "react-router": "8.4.0",
     "sentry": "workspace:@sentry-internal/app@*",
-    "zod": "4.3.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "7.0.1",

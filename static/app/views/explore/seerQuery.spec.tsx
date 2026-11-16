@@ -1,11 +1,12 @@
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {VisualizeFunction} from './queryParams/visualize';
 import {
   getSeerExploreQuery,
   getSeerSort,
   getSeerWritableAggregateFields,
-} from 'sentry/views/explore/seerQuery';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+} from './seerQuery';
 
 const pageDatetime = {
   start: null,

@@ -8,12 +8,8 @@ import {
   TokenOperator,
   TokenReference,
   type Token,
-} from 'sentry/components/arithmeticBuilder/token';
-import {
-  makeTokenKey,
-  tokenizeExpression,
-  toOperator,
-} from 'sentry/components/arithmeticBuilder/tokenizer';
+} from './token';
+import {makeTokenKey, tokenizeExpression, toOperator} from './tokenizer';
 
 function k<T extends Token>(i: number, token: T): T {
   token.key = makeTokenKey(token.kind, i);

@@ -4,7 +4,7 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {UsageLogFixture} from 'getsentry-test/fixtures/usageLog';
 import {PlanTier} from 'getsentry-test/planTier';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import UsageLog from 'getsentry/views/subscriptionPage/usageLog';
 
@@ -107,5 +107,35 @@ describe('Subscription Usage Log', () => {
     await screen.findByText(/Select Action/i);
     expect(await screen.findByText('On-demand Edit')).toBeInTheDocument();
     expect(screen.getByText('Pay-as-you-go Edit')).toBeInTheDocument();
+  });
+
+  it('pushes the selected action and resets the cursor when filtering', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/usage-logs/`,
+      method: 'GET',
+      body: {rows: [UsageLogFixture()], eventNames},
+    });
+    const onNuqsUrlUpdate = jest.fn();
+
+    const {router} = render(<UsageLog />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/billing/activity-logs/`,
+          query: {cursor: '0:100:0', other: 'keep'},
+        },
+      },
+      onNuqsUrlUpdate,
+    });
+
+    await userEvent.click(await screen.findByText(/Select Action/i));
+    await userEvent.click(screen.getByRole('option', {name: 'Trial Extended'}));
+
+    await waitFor(() => expect(router.location.query.event).toBe('trial.extended'));
+    expect(router.location.query.cursor).toBeUndefined();
+    expect(router.location.query.other).toBe('keep');
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
   });
 });

@@ -1,6 +1,6 @@
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {useAgentFilter} from 'sentry/views/insights/pages/agents/hooks/useAgentFilter';
+import {useAgentFilter} from './useAgentFilter';
 
 /**
  * Combines a base query with the agent filter from the URL and the search query from the URL.

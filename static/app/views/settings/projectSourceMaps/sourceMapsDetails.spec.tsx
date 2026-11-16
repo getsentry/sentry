@@ -16,7 +16,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {SourceMapsDetails} from 'sentry/views/settings/projectSourceMaps/sourceMapsDetails';
+
+import {SourceMapsDetails} from './sourceMapsDetails';
 
 function renderReleaseBundlesMockRequests({
   orgSlug,

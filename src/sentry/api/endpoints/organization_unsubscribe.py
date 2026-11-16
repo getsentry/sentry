@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SignedRequestAuthentication
 from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.auth.principal import is_owned_by_acting_user, require_user
 from sentry.db.models.base import BaseModel
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
@@ -41,14 +42,14 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
     def fetch_instance(self, request: Request, organization_id_or_slug: int | str, id: int) -> T:
         raise NotImplementedError()
 
-    def unsubscribe(self, request: Request, instance: T):
+    def unsubscribe(self, request: Request, instance: T) -> None:
         raise NotImplementedError()
 
     def add_instance_data(self, data: dict[str, Any], instance: T) -> dict[str, Any]:
         return data
 
     def get(
-        self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs
+        self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs: object
     ) -> Response:
         if not auth.is_user_signed_request(request):
             raise NotFound()
@@ -69,7 +70,7 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
         return Response(self.add_instance_data(data, instance), 200)
 
     def post(
-        self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs
+        self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs: object
     ) -> Response:
         if not request.user_from_signed_request:
             raise NotFound()
@@ -98,7 +99,7 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
             if project.organization.slug != organization_id_or_slug:
                 raise NotFound()
         if not OrganizationMember.objects.filter(
-            user_id=request.user.pk, organization_id=project.organization_id
+            is_owned_by_acting_user(request.user), organization_id=project.organization_id
         ).exists():
             raise NotFound()
         return project
@@ -108,9 +109,9 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
 
         return data
 
-    def unsubscribe(self, request: Request, instance: Project):
+    def unsubscribe(self, request: Request, instance: Project) -> None:
         notifications_service.update_notification_options(
-            actor=Actor(id=request.user.pk, actor_type=ActorType.USER),
+            actor=Actor(id=require_user(request).id, actor_type=ActorType.USER),
             type=NotificationSettingEnum.ISSUE_ALERTS,
             scope_type=NotificationScopeEnum.PROJECT,
             scope_identifier=instance.id,
@@ -137,15 +138,15 @@ class OrganizationUnsubscribeIssue(OrganizationUnsubscribeBase[Group]):
                 raise NotFound()
 
         if not OrganizationMember.objects.filter(
-            user_id=request.user.pk, organization=issue.organization
+            is_owned_by_acting_user(request.user), organization=issue.organization
         ).exists():
             raise NotFound()
         return issue
 
-    def unsubscribe(self, request: Request, instance: Group):
+    def unsubscribe(self, request: Request, instance: Group) -> None:
         GroupSubscription.objects.update_or_create(
             group=instance,
             project_id=instance.project_id,
-            user_id=request.user.pk,
+            user_id=require_user(request).id,
             defaults={"is_active": False},
         )

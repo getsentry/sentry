@@ -19,7 +19,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-import {SetupDocs} from 'sentry/views/onboarding/setupDocs';
+
+import {SetupDocs} from './setupDocs';
 
 const PROJECT_KEY = ProjectKeysFixture()[0];
 

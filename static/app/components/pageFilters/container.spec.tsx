@@ -5,14 +5,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as globalActions from 'sentry/components/pageFilters/actions';
-import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+
+import * as globalActions from './actions';
+import {PageFiltersContainer} from './container';
+import {PageFiltersStore} from './store';
 
 describe('PageFiltersContainer', () => {
   const organization = OrganizationFixture();
@@ -692,6 +693,71 @@ describe('PageFiltersContainer', () => {
           end: null,
         })
       );
+    });
+
+    describe('when a range starts less than a day before the window', () => {
+      const start = moment()
+        .utc()
+        .subtract(30, 'days')
+        .subtract(3, 'hours')
+        .format('YYYY-MM-DDTHH:mm:ss');
+      const end = moment().utc().subtract(20, 'days').format('YYYY-MM-DDTHH:mm:ss');
+
+      it('keeps the range when it is loaded from the URL', async () => {
+        const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {start, end},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: null,
+            utc: null,
+            start: getUtcToLocalDateObject(start),
+            end: getUtcToLocalDateObject(end),
+          })
+        );
+        expect(router.location.query).toEqual({start, end});
+      });
+
+      it('keeps the range when the mounted route changes to it', async () => {
+        const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {statsPeriod: '30d'},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() => expect(PageFiltersStore.getState().isReady).toBe(true));
+
+        act(() => {
+          router.navigate({
+            pathname: '/organizations/org-slug/test/',
+            search: `start=${start}&end=${end}`,
+          });
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: null,
+            utc: null,
+            start: getUtcToLocalDateObject(start),
+            end: getUtcToLocalDateObject(end),
+          })
+        );
+        expect(router.location.query).toEqual({start, end});
+        expect(PageFiltersStore.getState().adjustments).toEqual({});
+      });
     });
   });
 

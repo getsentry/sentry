@@ -6,9 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {useUserViewedReplays} from 'sentry/components/replays/useUserViewedReplays';
 import {t, tct} from 'sentry/locale';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+
+import {useUserViewedReplays} from './useUserViewedReplays';
 
 const LOCAL_STORAGE_KEY = 'replay-unmask-alert-dismissed';
 

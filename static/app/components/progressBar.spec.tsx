@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ProgressBar} from 'sentry/components/progressBar';
+import {ProgressBar} from './progressBar';
 
 describe('ProgressBar', () => {
   it('basic', () => {

@@ -11,7 +11,7 @@ def attempt_compressed_condition(
     result: list[Expression],
     condition: Condition,
     condition_type: And | Or,
-):
+) -> None:
     """Unnecessary query optimization.
 
     Improves legibility for query debugging. Clickhouse would flatten these nested OR statements
@@ -58,7 +58,7 @@ def _bitmask_on_tag_key(key: str, tag_key_column: Column) -> Function:
     )
 
 
-def _wildcard_search_function(value, identifier):
+def _wildcard_search_function(value: str, identifier: Expression) -> Function:
     # XXX: We don't want the '^$' values at the beginning and end of
     # the regex since we want to find the pattern anywhere in the
     # message. Strip off here

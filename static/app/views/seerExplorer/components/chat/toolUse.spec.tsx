@@ -4,16 +4,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {
-  blockRendersToolContent,
-  findLatestTodos,
-} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {
   AgentWriteApproval,
   Block,
   CallRecord,
   TodoItem,
 } from 'sentry/views/seerExplorer/types';
+
+import {blockRendersToolContent, findLatestTodos} from './toolUse';
 
 function createBlock(overrides?: Partial<Block>): Block {
   return {
@@ -276,6 +274,30 @@ describe('ToolUseBlock', () => {
       'href',
       expect.stringContaining('/issues/123/')
     );
+  });
+
+  it('keeps the open trace view state when linking to another span in it', () => {
+    const block = createBlock({
+      tool_links: [
+        {kind: 'get_span_details', params: {trace_id: 'abc', span_id: 'new-span'}},
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/trace/abc/',
+          query: {fov: '1,2', tab: 'waterfall', node: 'span-old-span'},
+        },
+      },
+    });
+
+    const href = new URL(screen.getByRole('link').getAttribute('href')!, 'http://x');
+    expect(Object.fromEntries(href.searchParams)).toEqual({
+      fov: '1,2',
+      tab: 'waterfall',
+      revealNode: 'span-new-span',
+    });
   });
 
   it('links a telemetry call row with its multi-project Explore bus destination', () => {

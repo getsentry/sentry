@@ -2,13 +2,14 @@ import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
 import type {TraceNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/traceNode';
+
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+} from './traceRow';
 
 export function TraceRootRow(props: TraceRowProps<TraceNode>) {
   return (

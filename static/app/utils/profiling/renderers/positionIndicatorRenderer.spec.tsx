@@ -2,8 +2,9 @@ import {mat3, vec2} from 'gl-matrix';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+
+import {PositionIndicatorRenderer} from './positionIndicatorRenderer';
 
 const theme = makeLightFlamegraphTheme(ThemeFixture());
 

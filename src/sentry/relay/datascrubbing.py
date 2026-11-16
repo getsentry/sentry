@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import MutableMapping
-from typing import TYPE_CHECKING, Any
+from collections.abc import Iterator, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import orjson
 from rest_framework import serializers
@@ -18,13 +18,20 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
+    from sentry.models.organization import Organization
     from sentry.models.project import Project
 
 
-def get_pii_config(project):
-    def _decode(value):
+class _PIIConfig(TypedDict, total=False):
+    rules: dict[str, object]
+    applications: dict[str, list[str]]
+
+
+def get_pii_config(project: Project) -> _PIIConfig:
+    def _decode(value: str | None) -> _PIIConfig | None:
         if value:
             return safe_execute(orjson.loads, value)
+        return None
 
     # Order of merging is important here. We want to apply organization rules
     # before project rules. For example:
@@ -46,9 +53,9 @@ def get_pii_config(project):
     )
 
 
-def get_datascrubbing_settings(project):
+def get_datascrubbing_settings(project: Project) -> dict[str, object]:
     org = project.organization
-    rv = {}
+    rv: dict[str, object] = {}
 
     exclude_fields_key = "sentry:safe_fields"
     rv["excludeFields"] = org.get_option(exclude_fields_key, []) + project.get_option(
@@ -77,7 +84,7 @@ def get_datascrubbing_settings(project):
     return rv
 
 
-def get_all_pii_configs(project):
+def get_all_pii_configs(project: Project) -> Iterator[_PIIConfig]:
     # Note: This logic is duplicated in Relay store.
     pii_config = get_pii_config(project)
     if pii_config:
@@ -85,7 +92,10 @@ def get_all_pii_configs(project):
 
     settings = get_datascrubbing_settings(project)
 
-    yield convert_datascrubbing_config(settings, json_dumps=orjson.dumps, json_loads=orjson.loads)
+    yield cast(
+        "_PIIConfig",
+        convert_datascrubbing_config(settings, json_dumps=orjson.dumps, json_loads=orjson.loads),
+    )
 
 
 @traces.trace
@@ -109,14 +119,16 @@ def scrub_data(project: Project, event: MutableMapping[str, Any]) -> MutableMapp
     return event
 
 
-def _merge_pii_configs(prefixes_and_configs: list[tuple[str, dict[str, Any]]]) -> dict[str, Any]:
+def _merge_pii_configs(
+    prefixes_and_configs: list[tuple[str, _PIIConfig | None]],
+) -> _PIIConfig:
     """
     Merge two PII configs into one, prefixing all custom rules with a prefix in the name.
 
     This is used to apply organization and project configs at once,
     and still get unique references to rule names.
     """
-    merged_config: dict[str, Any] = {}
+    merged_config: _PIIConfig = {}
 
     for prefix, partial_config in prefixes_and_configs:
         if not partial_config:
@@ -144,7 +156,7 @@ def _merge_pii_configs(prefixes_and_configs: list[tuple[str, dict[str, Any]]]) -
     return merged_config
 
 
-def validate_pii_config_update(organization, value):
+def validate_pii_config_update(organization: Organization, value: str | None) -> str | None:
     if not value:
         return value
 
@@ -156,11 +168,11 @@ def validate_pii_config_update(organization, value):
     return value
 
 
-def validate_pii_selectors(selectors):
+def validate_pii_selectors(selectors: list[str]) -> list[str]:
     if not selectors:
         return selectors
 
-    errors = list()
+    errors: list[str] = []
     for line, selector in enumerate(selectors, start=1):
         try:
             validate_pii_selector(selector)
@@ -173,7 +185,9 @@ def validate_pii_selectors(selectors):
     return selectors
 
 
-def _prefix_rule_references_in_rule(custom_rules, rule_def, prefix):
+def _prefix_rule_references_in_rule(
+    custom_rules: Mapping[str, object], rule_def: object, prefix: str
+) -> object:
     if not isinstance(rule_def, dict):
         return rule_def
 

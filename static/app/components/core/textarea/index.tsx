@@ -1,1 +1,1 @@
-export {TextArea, type TextAreaProps} from './textarea';
+export {TextArea, type TextAreaProps} from '@sentry/scraps/textarea';

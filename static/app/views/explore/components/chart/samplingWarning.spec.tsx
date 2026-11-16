@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
+import {SamplingWarning} from './samplingWarning';
 
 describe('SamplingWarning', () => {
   it('shows the partial-data warning with the aggregate name', async () => {

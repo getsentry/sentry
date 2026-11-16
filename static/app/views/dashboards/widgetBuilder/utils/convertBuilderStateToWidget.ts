@@ -12,11 +12,16 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import {
+  remapTransformations,
+  supportsWidgetTransformations,
+} from 'sentry/views/dashboards/utils/transformations';
 import {type WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregateIndex';
-import {serializeSorts} from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+import {getSelectedAggregateIndex} from './getSelectedAggregateIndex';
+import {serializeSorts} from './serialization';
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   if (state.displayType === DisplayType.TEXT) {
@@ -110,6 +115,18 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       ...defaultQuery,
       fields,
       aggregates: aggregates ?? [],
+      ...(state.transformations &&
+        supportsWidgetTransformations(state.dataset, state.displayType) && {
+          transformations: remapTransformations(
+            state.transformations[index] ?? {},
+            (state.yAxis ?? []).flatMap((field, fieldIndex) => {
+              const value = generateFieldAsString(field);
+              return !isEquation(value) || getEquation(value).trim() !== ''
+                ? [field.kind === FieldValueKind.FIELD ? undefined : fieldIndex]
+                : [];
+            })
+          ),
+        }),
       columns: columns ?? [],
       conditions: query,
       fieldAliases: fieldAliases ?? [],

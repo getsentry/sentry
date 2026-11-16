@@ -4,8 +4,9 @@ import type {ButtonProps} from '@sentry/scraps/button';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {defined} from 'sentry/utils/defined';
-import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from 'sentry/views/detectors/components/forms/uptime/fields';
 import {TestUptimeMonitorButton} from 'sentry/views/detectors/components/uptime/testUptimeMonitorButton';
+
+import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from './fields';
 
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
 

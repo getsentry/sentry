@@ -10,25 +10,27 @@ import {useTheme} from '@emotion/react';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconClose} from '@sentry/icons/close';
 import isEqual from 'lodash/isEqual';
+import {createSerializer, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Heading} from '@sentry/scraps/text';
+import {useMedia} from '@sentry/scraps/useMedia';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DisplayType,
@@ -41,23 +43,6 @@ import {
   doesDisplayTypeSupportThresholds,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {AxisRangeSection} from 'sentry/views/dashboards/widgetBuilder/components/axisRangeSection';
-import {WidgetBuilderDatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
-import {WidgetBuilderDescriptionField} from 'sentry/views/dashboards/widgetBuilder/components/descriptionField';
-import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
-import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
-import {LegendTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/legendTypeSelector';
-import {WidgetBuilderNameAndDescription} from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
-import {type ThresholdMetaState} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
-import {WidgetBuilderQueryFilterBuilder} from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
-import {SaveButtonGroup} from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
-import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
-import {ThresholdsSection} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
-import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
-import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {WidgetPreviewContainer} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreviewContainer';
-import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
-import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
@@ -71,6 +56,24 @@ import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMCo
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {AxisRangeSection} from './axisRangeSection';
+import {WidgetBuilderDatasetSelector} from './datasetSelector';
+import {WidgetBuilderDescriptionField} from './descriptionField';
+import {WidgetBuilderFilterBar} from './filtersBar';
+import {WidgetBuilderGroupBySelector} from './groupBySelector';
+import {LegendTypeSelector} from './legendTypeSelector';
+import {WidgetBuilderNameAndDescription} from './nameAndDescFields';
+import {type ThresholdMetaState} from './newWidgetBuilder';
+import {WidgetBuilderQueryFilterBuilder} from './queryFilterBuilder';
+import {SaveButtonGroup} from './saveButtonGroup';
+import {WidgetBuilderSortBySelector} from './sortBySelector';
+import {ThresholdsSection} from './thresholds';
+import {WidgetBuilderTypeSelector} from './typeSelector';
+import {Visualize} from './visualize';
+import {WidgetPreviewContainer} from './widgetPreviewContainer';
+import {WidgetTemplatesList} from './widgetTemplatesList';
+import {WidgetBuilderXAxisSelector} from './xAxisSelector';
 
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
@@ -86,6 +89,8 @@ type WidgetBuilderSlideoutProps = {
   thresholdMetaState?: ThresholdMetaState;
   widgetInterval?: string;
 };
+
+const serializePageFilters = createSerializer(pageFilterParsers);
 
 function WidgetBuilderSlideoutInner({
   onClose,
@@ -103,6 +108,7 @@ function WidgetBuilderSlideoutInner({
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const [pageFilterQuery] = useQueryStates(pageFilterParsers);
   const {visible: isModalVisible} = useModal();
   const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
@@ -195,6 +201,8 @@ function WidgetBuilderSlideoutInner({
   // always use time as the X-axis
   const showXAxisSelector = isCategoricalBarWidget;
 
+  // The slideout's mobile controls follow the viewport.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   // Sort By controls the ordering of results.
@@ -254,8 +262,8 @@ function WidgetBuilderSlideoutInner({
 
   useHotkeys([
     {
-      match: 'Escape',
-      skipPreventDefault: true,
+      hotkey: 'Escape',
+      options: {preventDefault: false},
       callback: (evt: KeyboardEvent) => {
         if (!isModalVisible) {
           evt.preventDefault();
@@ -360,17 +368,10 @@ function WidgetBuilderSlideoutInner({
                             spans: (
                               <Link
                                 // We need to do this otherwise the dashboard filters will change
-                                to={{
-                                  pathname: location.pathname,
-                                  query: {
-                                    project: location.query.project,
-                                    start: location.query.start,
-                                    end: location.query.end,
-                                    statsPeriod: location.query.statsPeriod,
-                                    environment: location.query.environment,
-                                    utc: location.query.utc,
-                                  },
-                                }}
+                                to={serializePageFilters(
+                                  location.pathname,
+                                  pageFilterQuery
+                                )}
                                 onClick={() => {
                                   cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
                                   setSegmentSpanBuilderState();

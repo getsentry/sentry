@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {countColumns} from 'sentry/components/replays/utils';
+
+import * as Timeline from './timeline';
 
 type LineStyle = 'dotted' | 'solid' | 'none';
 

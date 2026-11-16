@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from unittest import mock
+from unittest.mock import MagicMock
 
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.models.activity import Activity
@@ -159,7 +160,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @mock.patch("sentry.utils.metrics.incr")
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
     @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
-    def test_not_all_groups_get_updated(self, mock_metrics_incr) -> None:
+    def test_not_all_groups_get_updated(self, mock_metrics_incr: MagicMock) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         groups_count = 110
@@ -314,7 +315,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @mock.patch("sentry.utils.metrics.incr")
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
     @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
-    def test_not_all_groups_get_updated(self, mock_metrics_incr) -> None:
+    def test_not_all_groups_get_updated(self, mock_metrics_incr: MagicMock) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         groups_count = 110
@@ -478,7 +479,7 @@ class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
     @mock.patch("sentry.utils.metrics.incr")
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
     @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
-    def test_not_all_groups_get_updated(self, mock_metrics_incr) -> None:
+    def test_not_all_groups_get_updated(self, mock_metrics_incr: MagicMock) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         groups_count = 110

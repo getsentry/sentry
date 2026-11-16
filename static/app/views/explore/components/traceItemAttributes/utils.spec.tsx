@@ -1,4 +1,4 @@
-import {isNumericAttribute} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {isNumericAttribute} from './utils';
 
 describe('isNumericAttribute', () => {
   it('returns true for explicit int/float types', () => {

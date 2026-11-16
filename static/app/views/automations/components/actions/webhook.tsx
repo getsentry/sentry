@@ -36,7 +36,7 @@ function ServicesField() {
       name={`${actionId}.config.targetIdentifier`}
       aria-label={t('Webhook')}
       value={action.config.targetIdentifier}
-      options={services?.map(service => ({
+      options={(services ?? []).map(service => ({
         label: service.name,
         value: service.slug,
       }))}

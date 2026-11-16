@@ -25,6 +25,7 @@ from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.analytics import IntegrationAddedEvent
+from sentry.integrations.models.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -69,7 +70,7 @@ pytestmark = [requires_snuba]
 
 class OrganizationOnboardingTaskTest(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def _create_integration(self, provider: str, external_id: int = 9999):
+    def _create_integration(self, provider: str, external_id: int = 9999) -> Integration:
         return self.create_provider_integration(
             provider=provider,
             name="test",
@@ -467,8 +468,8 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     @patch("sentry.analytics.record", wraps=record)
     def test_analytic_triggered_only_once_if_multiple_events_with_minified_stack_trace_received(
-        self, record_analytics
-    ):
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytic event is triggered only once when
         multiple events with minified stack trace are received
@@ -663,8 +664,8 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     @patch("sentry.analytics.record", wraps=record)
     def test_analytic_triggered_only_once_if_multiple_events_with_sourcemaps_received(
-        self, record_analytics
-    ):
+        self, record_analytics: MagicMock
+    ) -> None:
         """
         Test that an analytic event is triggered only once when
         multiple events with sourcemaps are received
@@ -770,6 +771,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -797,6 +799,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -824,6 +827,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -1021,6 +1025,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -1104,6 +1109,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(

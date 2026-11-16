@@ -19,6 +19,7 @@ class TestChartRenderer(AcceptanceTestCase):
 
         for image in images:
             src = image.get_attribute("src")
+            assert src is not None
             resp = self.client.get(src)
 
             # Ensure our chart images actually look like pngs

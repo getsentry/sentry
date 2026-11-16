@@ -10,8 +10,9 @@ import {
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey} from './context';
+import {FoldSection} from './foldSection';
 
 export interface HangProfileData {
   exceptionValue: string;
@@ -59,10 +60,18 @@ export function getHangProfileData(event: Event): HangProfileData | null {
   return null;
 }
 
-export function MetricKitHangProfileSection({data}: {data: HangProfileData}) {
+export function MetricKitHangProfileSection({
+  data,
+  initialCollapse,
+}: {
+  data: HangProfileData;
+  initialCollapse?: boolean;
+}) {
   return (
     <ErrorBoundary mini>
       <FoldSection
+        initialCollapse={initialCollapse}
+        disableCollapsePersistence={initialCollapse !== undefined}
         sectionKey={SectionKey.STACKTRACE_FLAMEGRAPH}
         title={
           <span>

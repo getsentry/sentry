@@ -1,15 +1,16 @@
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
+import {useMutation} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Confirm} from '@sentry/scraps/confirm';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
@@ -18,15 +19,17 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useApi} from 'sentry/utils/useApi';
-import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
-import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
-import {TwoFactorRequired} from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
 import {PasswordForm} from 'sentry/views/settings/account/passwordForm';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
+import {RemoveConfirm} from './components/removeConfirm';
+import {TwoFactorRequired} from './components/twoFactorRequired';
+import {useAccountSecurityContext} from './accountSecurityWrapper';
 
 /**
  * Lists 2fa devices + password change form
@@ -37,22 +40,26 @@ export default function AccountSecurity() {
     countEnrolled,
     deleteDisabled,
     onDisable,
-    hasVerifiedEmail,
+    hasVerifiedPrimaryEmail,
     orgsRequire2fa,
     handleRefresh,
   } = useAccountSecurityContext();
 
-  const api = useApi();
+  const {mutateAsync: closeAllSessions} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/auth/'),
+        method: 'DELETE',
+        data: {all: true},
+      }),
+  });
 
   async function handleSessionClose() {
     try {
-      await api.requestPromise('/auth/', {
-        method: 'DELETE',
-        data: {all: true},
-      });
+      await closeAllSessions();
       testableWindowLocation.assign('/auth/login/');
     } catch (err) {
-      addErrorMessage(t('There was a problem closing all sessions'));
+      toast.error(t('There was a problem closing all sessions'));
       throw err;
     }
   }
@@ -86,7 +93,7 @@ export default function AccountSecurity() {
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader title={t('Security')} />
-      <TabsContainer>
+      <Container marginBottom="xl">
         <Tabs value={activeTab}>
           <TabList>
             <TabList.Item key="settings" to={routePrefix}>
@@ -97,7 +104,7 @@ export default function AccountSecurity() {
             </TabList.Item>
           </TabList>
         </Tabs>
-      </TabsContainer>
+      </Container>
 
       {!isEmpty && countEnrolled === 0 && <TwoFactorRequired />}
 
@@ -148,7 +155,7 @@ export default function AccountSecurity() {
               }
               return (
                 <AuthenticatorPanelItem key={id}>
-                  <AuthenticatorDetails>
+                  <Grid align="center" gap="sm" columns="max-content minmax(auto, 600px)">
                     <CircleIndicator
                       role="status"
                       aria-label={
@@ -165,9 +172,9 @@ export default function AccountSecurity() {
                       )}
                     </AuthenticatorTitle>
                     <AuthenticatorDescription>{description}</AuthenticatorDescription>
-                  </AuthenticatorDetails>
+                  </Grid>
                   <Grid flow="column" align="center" gap="md">
-                    {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
+                    {!isBackupInterface && !isEnrolled && hasVerifiedPrimaryEmail && (
                       <LinkButton
                         to={`/settings/account/security/mfa/${id}/enroll/`}
                         size="sm"
@@ -176,7 +183,7 @@ export default function AccountSecurity() {
                         {t('Add')}
                       </LinkButton>
                     )}
-                    {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
+                    {!isBackupInterface && !isEnrolled && !hasVerifiedPrimaryEmail && (
                       <Button onClick={handleAdd2FAClicked} size="sm" variant="primary">
                         {t('Add')}
                       </Button>
@@ -221,10 +228,6 @@ export default function AccountSecurity() {
   );
 }
 
-const TabsContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
-
 const AuthenticatorList = styled(PanelBody)`
   display: grid;
   grid-template-columns: 1fr max-content;
@@ -239,13 +242,6 @@ const AuthenticatorPanelItem = styled(PanelItem)`
   & > :last-child {
     justify-content: end;
   }
-`;
-
-const AuthenticatorDetails = styled('div')`
-  display: grid;
-  grid-template-columns: max-content minmax(auto, 600px);
-  gap: ${p => p.theme.space.sm};
-  align-items: center;
 `;
 
 const AuthenticatorTitle = styled('div')`

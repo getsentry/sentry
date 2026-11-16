@@ -6,7 +6,8 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import type {DataForwarder} from 'sentry/views/settings/organizationDataForwarding/util/types';
+
+import type {DataForwarder} from './types';
 
 export function getCreateTooltip(params: {
   hasAccess: boolean;

@@ -82,8 +82,10 @@ class IssuesByTagProcessor:
         return f"sentry:{key}" if tagstore.backend.is_reserved_key(key) else key
 
     @staticmethod
-    def serialize_row(item: GroupTagValueAndEventUser, key: str) -> dict[str, str]:
-        result = {
+    def serialize_row(item: GroupTagValueAndEventUser, key: str) -> dict[str, str | int | None]:
+        assert item.value.last_seen is not None
+        assert item.value.first_seen is not None
+        result: dict[str, str | int | None] = {
             "value": item.value.value,
             "times_seen": item.value.times_seen,
             "last_seen": item.value.last_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -120,7 +122,9 @@ class IssuesByTagProcessor:
             for item in items
         ]
 
-    def get_serialized_data(self, limit: int = 1000, offset: int = 0) -> list[dict[str, str]]:
+    def get_serialized_data(
+        self, limit: int = 1000, offset: int = 0
+    ) -> list[dict[str, str | int | None]]:
         """
         Returns list of serialized GroupTagValue dictionaries
         """

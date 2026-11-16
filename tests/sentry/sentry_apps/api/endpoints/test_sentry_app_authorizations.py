@@ -5,7 +5,9 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.response import Response
 
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
+from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloMode
@@ -44,15 +46,24 @@ class TestSentryAppAuthorizations(APITestCase):
             prevent_token_exchange=True,
         )
 
+        application = self.sentry_app.application
+        assert application is not None
+        assert application.client_secret is not None
+        grant = self.install.api_grant
+        assert grant is not None
+        self.application = application
+        self.client_secret = application.client_secret
+        self.api_grant = grant
+
     def get_response(self, *args: int | str, **params: int | str) -> Response:
         """Overriding `get_response` with some default data."""
         return super().get_response(
             self.install.uuid,
             **{
-                "client_id": self.sentry_app.application.client_id,
-                "client_secret": self.sentry_app.application.client_secret,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
                 "grant_type": GrantTypes.AUTHORIZATION,
-                "code": self.install.api_grant.code,
+                "code": self.api_grant.code,
                 **params,
             },
         )
@@ -82,6 +93,86 @@ class TestSentryAppAuthorizations(APITestCase):
         response = self.get_error_response(client_id=None)
         assert response.status_code == 401
 
+    def test_rejects_authorization_for_deleting_app(self) -> None:
+        self.sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
+        assert self.application.is_active
+
+        response = self.get_error_response(status_code=401)
+
+        assert response.data["detail"] == "Integration is being deleted"
+        assert ApiGrant.objects.filter(id=self.install.api_grant_id).exists()
+        assert not ApiToken.objects.filter(application=self.sentry_app.application).exists()
+
+    def test_rejects_authorization_for_deleting_installation(self) -> None:
+        self.install.update(status=SentryAppInstallationStatus.PENDING_DELETION)
+        assert self.application.is_active
+
+        response = self.get_error_response(status_code=401)
+
+        assert response.data["detail"] == "Installation is being deleted"
+        assert ApiGrant.objects.filter(id=self.install.api_grant_id).exists()
+        assert not ApiToken.objects.filter(application=self.sentry_app.application).exists()
+
+    def test_rejects_refresh_for_deleting_app(self) -> None:
+        initial_response = self.get_success_response()
+        self.sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
+
+        response = self.get_error_response(
+            grant_type=GrantTypes.REFRESH,
+            refresh_token=initial_response.data["refreshToken"],
+            status_code=401,
+        )
+
+        assert response.data["detail"] == "Integration is being deleted"
+        self._assert_token_unchanged(initial_response.data["id"])
+
+    def test_rejects_refresh_for_deleting_installation(self) -> None:
+        initial_response = self.get_success_response()
+        self.install.update(status=SentryAppInstallationStatus.PENDING_DELETION)
+
+        response = self.get_error_response(
+            grant_type=GrantTypes.REFRESH,
+            refresh_token=initial_response.data["refreshToken"],
+            status_code=401,
+        )
+
+        assert response.data["detail"] == "Installation is being deleted"
+        self._assert_token_unchanged(initial_response.data["id"])
+
+    def test_rejects_client_secret_jwt_refresh_for_deleting_app(self) -> None:
+        initial_response = self.get_success_response()
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
+        self.sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
+
+        response = self.get_error_response(
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=401,
+        )
+
+        assert response.data["detail"] == "Integration is being deleted"
+        self._assert_token_unchanged(initial_response.data["id"])
+
+    def test_rejects_client_secret_jwt_refresh_for_deleting_installation(self) -> None:
+        initial_response = self.get_success_response()
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
+        self.install.update(status=SentryAppInstallationStatus.PENDING_DELETION)
+
+        response = self.get_error_response(
+            grant_type=GrantTypes.CLIENT_SECRET_JWT,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {jwt_token}"},
+            status_code=401,
+        )
+
+        assert response.data["detail"] == "Installation is being deleted"
+        self._assert_token_unchanged(initial_response.data["id"])
+
+    def _assert_token_unchanged(self, token_id: str) -> None:
+        token = ApiToken.objects.get(application=self.sentry_app.application)
+        assert str(token.id) == token_id
+        self.install.refresh_from_db()
+        assert self.install.api_token_id == token.id
+
     def test_incorrect_grant_type(self) -> None:
         self.get_error_response(grant_type="notit", status_code=403)
 
@@ -106,7 +197,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.get_error_response(code="123", status_code=401)
 
     def test_expired_grant(self) -> None:
-        self.install.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
+        self.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
         response = self.get_error_response(status_code=401)
         assert response.data["detail"] == "Grant has already expired"
 
@@ -173,7 +264,7 @@ class TestSentryAppAuthorizations(APITestCase):
     def _create_jwt(self, client_id: str, client_secret: str, exp: datetime | None = None) -> str:
         """Helper to create a JWT token for client_secret_jwt grant type"""
         if exp is None:
-            exp = datetime.now(UTC) + timedelta(hours=1)
+            exp = datetime.now(UTC) + timedelta(minutes=1)
 
         payload = {
             "iss": client_id,  # Issuer
@@ -189,9 +280,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.get_success_response()
 
         # Now use client_secret_jwt to refresh
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
 
         response = self.get_success_response(
             self.install.uuid,
@@ -211,9 +300,7 @@ class TestSentryAppAuthorizations(APITestCase):
         old_token_id = initial_response.data["id"]
 
         # Now use client_secret_jwt to refresh
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
 
         response = self.get_success_response(
             self.install.uuid,
@@ -246,8 +333,8 @@ class TestSentryAppAuthorizations(APITestCase):
         # Create an expired JWT
         expired_time = datetime.now(UTC) - timedelta(hours=1)
         jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id,
-            self.sentry_app.application.client_secret,
+            self.application.client_id,
+            self.client_secret,
             exp=expired_time,
         )
 
@@ -265,7 +352,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.get_success_response()
 
         # Create a JWT with wrong secret
-        jwt_token = self._create_jwt(self.sentry_app.application.client_id, "wrong-secret")
+        jwt_token = self._create_jwt(self.application.client_id, "wrong-secret")
 
         response = self.get_error_response(
             self.install.uuid,
@@ -280,7 +367,7 @@ class TestSentryAppAuthorizations(APITestCase):
         # First exchange the grant for a token
         self.get_success_response()
 
-        jwt_token = self._create_jwt("wrong-client-id", self.sentry_app.application.client_secret)
+        jwt_token = self._create_jwt("wrong-client-id", self.client_secret)
 
         response = self.get_error_response(
             self.install.uuid,
@@ -294,9 +381,7 @@ class TestSentryAppAuthorizations(APITestCase):
     def test_client_secret_jwt_requires_existing_token(self) -> None:
         # CLIENT_SECRET_JWT should only be used to refresh existing tokens
         # Attempting to use it without first exchanging the grant should fail
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
 
         response = self.get_error_response(
             self.install.uuid,
@@ -313,9 +398,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.get_success_response()
 
         # Use client_secret_jwt to get a new token
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
 
         response = self.get_success_response(
             self.install.uuid,

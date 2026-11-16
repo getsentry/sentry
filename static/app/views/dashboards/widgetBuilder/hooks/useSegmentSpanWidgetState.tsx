@@ -2,8 +2,9 @@ import {useCallback} from 'react';
 
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToStateQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToStateQueryParams';
+
+import {BuilderStateAction} from './useWidgetBuilderState';
 
 export function useSegmentSpanWidgetState() {
   const {dispatch, state} = useWidgetBuilderContext();

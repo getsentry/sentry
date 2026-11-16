@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from unittest.mock import Mock, patch
+from typing import Any
+from unittest.mock import MagicMock, Mock, _patch, patch
 
 from django.urls import reverse
 
@@ -8,7 +9,10 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.preprod.vcs.status_checks.skip import CONFIGURATION_ERROR_DETAIL
-from sentry.preprod.vcs.status_checks.utils import get_status_check_client_for_repo
+from sentry.preprod.vcs.status_checks.utils import (
+    get_status_check_client,
+    get_status_check_client_for_repo,
+)
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, IntegrationError
 from sentry.testutils.cases import APITestCase, TestCase
 
@@ -34,13 +38,19 @@ class ProjectPreprodSkipStatusCheckEndpointTest(APITestCase):
         )
         self.sha = "a" * 40
 
-    def _url(self, organization_slug=None, project_slug=None):
+    def _url(self, organization_slug: str | None = None, project_slug: str | None = None) -> str:
         return reverse(
             self.endpoint,
             args=[organization_slug or self.organization.slug, project_slug or self.project.slug],
         )
 
-    def _post(self, data, scope_list=None, url=None, include_provider=True):
+    def _post(
+        self,
+        data: dict[str, Any],
+        scope_list: list[str] | None = None,
+        url: str | None = None,
+        include_provider: bool = True,
+    ) -> Any:
         # project:releases is what CI upload tokens (sentry-cli) carry, so it's the
         # realistic scope for this endpoint (see ProjectReleasePermission).
         token = self.create_user_auth_token(
@@ -53,7 +63,9 @@ class ProjectPreprodSkipStatusCheckEndpointTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
 
-    def _patch_provider(self, mock_provider):
+    def _patch_provider(
+        self, mock_provider: MagicMock
+    ) -> tuple[_patch[MagicMock], _patch[MagicMock]]:
         return (
             patch(
                 f"{SKIP_MODULE}.get_status_check_client_for_repo",
@@ -313,6 +325,29 @@ class StatusCheckClientForRepoTest(TestCase):
 
         assert resolved_client == client
         assert repository == self.repository
+
+    def test_commit_comparison_skips_older_stale_repository(self) -> None:
+        self.repository.update(integration_id=None, status=ObjectStatus.DISABLED)
+        current = self.create_repo(
+            project=self.project,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=456,
+            external_id="current",
+        )
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, head_repo_name="owner/repo", provider="github"
+        )
+        client = Mock()
+
+        with patch(
+            "sentry.preprod.vcs.status_checks.utils._status_check_client_from_repository",
+            return_value=client,
+        ):
+            resolved_client, repository = get_status_check_client(self.project, commit_comparison)
+
+        assert resolved_client == client
+        assert repository == current
 
     def test_inactive_repository_is_not_resolved(self) -> None:
         self.repository.update(status=ObjectStatus.PENDING_DELETION)

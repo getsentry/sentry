@@ -240,7 +240,7 @@ def recoverable_retry_countdown(remaining_export_retries: int) -> int:
     attempt_count = max(0, DEFAULT_EXPORT_RETRIES - remaining_export_retries)
     return min(
         RECOVERABLE_RETRY_MAX_SECONDS,
-        RECOVERABLE_RETRY_BASE_SECONDS * (2**attempt_count),
+        RECOVERABLE_RETRY_BASE_SECONDS * (1 << attempt_count),
     )
 
 
@@ -714,6 +714,7 @@ def store_export_chunk_as_blob(
                     data_export=data_export, blob_id=blob.id, offset=bytes_written + bytes_offset
                 )
 
+                assert blob.size is not None
                 bytes_offset += blob.size
 
                 # there is a maximum file size allowed, so we need to make sure we don't exceed it
@@ -780,6 +781,7 @@ def merge_export_blobs(
                     blob_offsets.append(int(export_blob.offset))
                     blob = FileBlob.objects.get(pk=export_blob.blob_id)
                     FileBlobIndex.objects.create(file=file, blob=blob, offset=size)
+                    assert blob.size is not None
                     size += blob.size
                     blob_checksum = sha1(b"")
 

@@ -20,10 +20,11 @@ import {
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/explore/profiling/landing/styles';
-import {ExampleReplaysList} from 'sentry/views/explore/replays/selectors/exampleReplaysList';
-import {ProjectInfo} from 'sentry/views/explore/replays/selectors/projectInfo';
-import {SelectorLink} from 'sentry/views/explore/replays/selectors/selectorLink';
-import {transformSelectorQuery} from 'sentry/views/explore/replays/selectors/utils';
+
+import {ExampleReplaysList} from './exampleReplaysList';
+import {ProjectInfo} from './projectInfo';
+import {SelectorLink} from './selectorLink';
+import {transformSelectorQuery} from './utils';
 
 type ClickType = 'count_dead_clicks' | 'count_rage_clicks';
 type DeadOrRage = 'dead' | 'rage';

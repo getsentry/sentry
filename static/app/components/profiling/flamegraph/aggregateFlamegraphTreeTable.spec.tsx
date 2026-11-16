@@ -1,12 +1,13 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {FlamegraphProvider} from 'sentry/views/explore/profiling/flamegraphProvider';
 import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
+
+import {AggregateFlamegraphTreeTable} from './aggregateFlamegraphTreeTable';
 
 jest.mock('sentry/utils/analytics');
 

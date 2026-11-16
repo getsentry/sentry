@@ -3,12 +3,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import type {
-  Docs,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {OnboardingLayout} from './onboardingLayout';
+import type {Docs, OnboardingConfig} from './types';
+import {StepType} from './types';
 
 function makeDocsConfig(overrides: Partial<OnboardingConfig> = {}): Docs {
   const base: OnboardingConfig = {

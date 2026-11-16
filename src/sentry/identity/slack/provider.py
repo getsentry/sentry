@@ -1,3 +1,6 @@
+from collections.abc import Mapping, Sequence
+from typing import TypedDict, cast
+
 from sentry import options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
@@ -5,6 +8,20 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 
 PREFERRED_ORGANIZATION_ID_KEY = "preferred_organization_id"
+
+
+class SlackOAuthUser(TypedDict):
+    id: str
+    email: str
+
+
+class SlackOAuthData(TypedDict):
+    user: SlackOAuthUser
+    scope: str
+
+
+class SlackOAuthPayload(TypedDict):
+    data: SlackOAuthData
 
 
 class SlackIdentityProvider(OAuth2Provider):
@@ -30,14 +47,16 @@ class SlackIdentityProvider(OAuth2Provider):
     def get_oauth_access_token_url(self) -> str:
         return "https://slack.com/api/oauth.v2.access"
 
-    def get_oauth_client_id(self):
-        return options.get("slack.client-id")
+    def get_oauth_client_id(self) -> str:
+        client_id = options.get("slack.client-id")
+        return client_id
 
-    def get_oauth_client_secret(self):
-        return options.get("slack.client-secret")
+    def get_oauth_client_secret(self) -> str:
+        client_secret = options.get("slack.client-secret")
+        return client_secret
 
-    def get_user_scopes(self):
-        return self.config.get("user_scopes", self.user_scopes)
+    def get_user_scopes(self) -> Sequence[str]:
+        return cast("Sequence[str]", self.config.get("user_scopes", self.user_scopes))
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [
@@ -54,14 +73,15 @@ class SlackIdentityProvider(OAuth2Provider):
             ),
         ]
 
-    def get_oauth_data(self, payload):
+    def get_oauth_data(self, payload: Mapping[str, object]) -> dict[str, object]:
         # TODO(epurkhiser): This flow isn't actually used right now in sentry.
         # In slack-bot world we would need to make an API call to the 'me'
         # endpoint to get their user ID here.
         return super().get_oauth_data(payload)
 
-    def build_identity(self, data):
-        data = data["data"]
+    def build_identity(self, data: Mapping[str, object]) -> dict[str, object]:
+        payload = cast(SlackOAuthPayload, data)
+        data = payload["data"]
 
         return {
             "type": IntegrationProviderSlug.SLACK.value,
@@ -77,13 +97,15 @@ class SlackStagingIdentityProvider(SlackIdentityProvider):
     key = IntegrationProviderSlug.SLACK_STAGING.value
     name = "Slack (Staging)"
 
-    def get_oauth_client_id(self):
-        return options.get("slack-staging.client-id")
+    def get_oauth_client_id(self) -> str:
+        client_id = options.get("slack-staging.client-id")
+        return client_id
 
-    def get_oauth_client_secret(self):
-        return options.get("slack-staging.client-secret")
+    def get_oauth_client_secret(self) -> str:
+        client_secret = options.get("slack-staging.client-secret")
+        return client_secret
 
-    def build_identity(self, data):
+    def build_identity(self, data: Mapping[str, object]) -> dict[str, object]:
         production_identity = super().build_identity(data)
         production_identity["type"] = IntegrationProviderSlug.SLACK_STAGING.value
         return production_identity
@@ -99,12 +121,18 @@ class SlackOAuth2LoginView(OAuth2LoginView):
 
     user_scope = ""
 
-    def __init__(self, authorize_url=None, client_id=None, scope=None, user_scope=None):
+    def __init__(
+        self,
+        authorize_url: str | None = None,
+        client_id: str | int | None = None,
+        scope: str | None = None,
+        user_scope: str | None = None,
+    ) -> None:
         super().__init__(authorize_url=authorize_url, client_id=client_id, scope=scope)
         if user_scope is not None:
             self.user_scope = user_scope
 
-    def get_authorize_params(self, state, redirect_uri):
+    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | int | None]:
         data = super().get_authorize_params(state, redirect_uri)
 
         # XXX(meredith): Bot apps must be added manually to channels, and link unfurling

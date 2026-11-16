@@ -52,6 +52,14 @@ class RpcIntegration(RpcModel):
         return has_feature(instance=self, feature=feature)
 
 
+class RpcAccessToken(RpcModel):
+    """A short-lived provider access token. Refresh tokens and app keys stay in control."""
+
+    token: str = Field(repr=False)
+    expires_at: datetime | None
+    """None when the token doesn't expire."""
+
+
 class RpcOrganizationIntegration(RpcModel):
     id: int
     default_auth_id: int | None
@@ -91,6 +99,18 @@ class RpcIntegrationIdentityContext(RpcModel):
 class RpcOrganizationContext(RpcModel):
     integration: RpcIntegration | None
     organization_integration: RpcOrganizationIntegration | None
+
+    def active(self) -> tuple[RpcIntegration, RpcOrganizationIntegration] | None:
+        # Both rows are checked because a downgrade grace period ends by disabling only the
+        # org integration, leaving the shared integration row active.
+        if (
+            self.integration is None
+            or self.organization_integration is None
+            or self.integration.status != ObjectStatus.ACTIVE
+            or self.organization_integration.status != ObjectStatus.ACTIVE
+        ):
+            return None
+        return self.integration, self.organization_integration
 
 
 class RpcOrganizationContextList(RpcModel):

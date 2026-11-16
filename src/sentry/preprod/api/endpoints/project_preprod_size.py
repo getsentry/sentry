@@ -5,6 +5,7 @@ from typing import Any, TypeVar, cast
 
 import orjson
 import pydantic
+from django.utils import timezone
 from pydantic.tools import parse_obj_as
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -98,12 +99,27 @@ def do_put(
             metrics.state = put.state
             metrics.error_code = put.error_code
             metrics.error_message = put.error_message
+            metrics.save()
         case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
-            metrics.state = put.state
+            # Reset the timeout and clear errors when an attempt starts.
+            # Check the state in the update so a concurrent completion is preserved.
+            PreprodArtifactSizeMetrics.objects.filter(
+                id=metrics.id,
+                state__in=[
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+                    PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                ],
+            ).update(
+                state=put.state,
+                error_code=None,
+                error_message=None,
+                date_updated=timezone.now(),
+            )
         case PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
             metrics.state = put.state
+            metrics.save()
         case _:
             assert False, "unreachable"
-    metrics.save()
 
     return Response({"artifactId": str(head_artifact.id)})

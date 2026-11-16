@@ -4,24 +4,23 @@ import type {LegendComponentOption} from 'echarts';
 
 import {Container} from '@sentry/scraps/layout';
 
-import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
   EChartEventHandler,
   EChartLegendSelectChangeHandler,
-  Series,
 } from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData, widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {
@@ -39,7 +38,6 @@ type Props = {
   selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
-  api?: Client;
   chartGroup?: string;
   dashboardFilters?: DashboardFilters;
   disableTableActions?: boolean;
@@ -56,9 +54,7 @@ type Props = {
     pageLinks?: string;
     sampleCount?: number;
     tableResults?: TableDataWithTitle[];
-    timeseriesResults?: Series[];
-    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    totalIssuesCount?: string;
+    timeseriesResults?: WidgetTimeSeries[];
   }) => void;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -78,7 +74,7 @@ type Props = {
 
 function getErrorOrEmptyMessage(
   errorMessage: string | undefined,
-  timeseriesResults: Series[] | undefined,
+  timeseriesResults: WidgetTimeSeries[] | undefined,
   tableResults: TableDataWithTitle[] | undefined,
   heatmapResults: HeatMapSeries | undefined,
   widgetType: DisplayType
@@ -158,8 +154,6 @@ function WidgetCardDataLoaderView({
         heatmapResults,
         errorMessage,
         loading,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits,
         confidence,
         dataScanned,
         sampleCount,
@@ -205,8 +199,6 @@ function WidgetCardDataLoaderView({
               isMobile={isMobile}
               windowWidth={windowWidth}
               onZoom={onZoom}
-              timeseriesResultsTypes={timeseriesResultsTypes}
-              timeseriesResultsUnits={timeseriesResultsUnits}
               noPadding={noPadding}
               chartGroup={chartGroup}
               shouldResize={shouldResize}

@@ -243,6 +243,41 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
             model_name="OrganizationIntegration", object_id=org_integration.id
         )
 
+    @patch.object(GitlabIntegration, "uninstall")
+    def test_repeat_delete_skips_uninstall(self, mock_uninstall: MagicMock) -> None:
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert mock_uninstall.call_count == 1
+
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert mock_uninstall.call_count == 1
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=self.integration, organization_id=self.organization.id
+        )
+        assert org_integration.status == ObjectStatus.PENDING_DELETION
+        assert (
+            ScheduledDeletion.objects.filter(
+                model_name="OrganizationIntegration", object_id=org_integration.id
+            ).count()
+            == 1
+        )
+        assert (
+            AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("INTEGRATION_REMOVE"),
+                organization_id=self.organization.id,
+            ).count()
+            == 1
+        )
+
+    @patch.object(GitlabIntegration, "uninstall")
+    def test_delete_in_progress_skips_uninstall(self, mock_uninstall: MagicMock) -> None:
+        OrganizationIntegration.objects.filter(
+            integration=self.integration, organization_id=self.organization.id
+        ).update(status=ObjectStatus.DELETION_IN_PROGRESS)
+
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert mock_uninstall.call_count == 0
+
 
 @control_silo_test
 class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
@@ -370,11 +405,12 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         assert data["configData"] is None
         assert data["externalId"] == self.integration.external_id
         assert data["organizationId"] == self.organization.id
+        organization_integration = self.organization_integration
+        assert organization_integration is not None
         assert (
-            data["organizationIntegrationStatus"]
-            == self.organization_integration.get_status_display()
+            data["organizationIntegrationStatus"] == organization_integration.get_status_display()
         )
-        assert data["gracePeriodEnd"] == self.organization_integration.grace_period_end
+        assert data["gracePeriodEnd"] == organization_integration.grace_period_end
 
         jira_request_urls = [call.request.url for call in responses.calls]
         assert len(jira_request_urls) == 2

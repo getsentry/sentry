@@ -1,4 +1,4 @@
-import {loadRegexPatternValidator} from 'sentry/components/searchSyntax/regexPatternValidator';
+import {loadRegexPatternValidator} from './regexPatternValidator';
 
 describe('loadRegexPatternValidator', () => {
   it('returns null when RE2 can compile the pattern', async () => {

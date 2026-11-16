@@ -24,11 +24,11 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {GetFieldDefinitionType} from 'sentry/utils/fields';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {ATTRIBUTE_VALUE_TYPES, hasScrubbedValue} from 'sentry/views/explore/utils';
 
 import {AttributesTreeValue} from './attributesTreeValue';
+import {prettifyAttributeName} from './utils';
 
 interface Attribute {
   attribute_key: string;
@@ -111,24 +111,29 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>({
   getAdjustedAttributeKey,
   pinnedAttribute,
 }: AttributesTreeProps<RendererExtra>) {
-  const attributesTree = useMemo(
-    () =>
-      buildKeyValueTree(
-        attributes.flatMap(attribute => {
-          const shaped = getAttribute(attribute, getAdjustedAttributeKey);
-          return shaped
-            ? [
-                {
-                  key: shaped.attribute_key,
-                  value: shaped.attribute_value,
-                  original: shaped,
-                },
-              ]
-            : [];
-        })
-      ),
-    [attributes, getAdjustedAttributeKey]
+  const useRawAttributeNames = renderExtra.organization.features.includes(
+    'trace-item-details-raw-attribute-names'
   );
+  const attributesTree = useMemo(() => {
+    return buildKeyValueTree(
+      attributes.flatMap(attribute => {
+        const shaped = getAttribute(
+          attribute,
+          useRawAttributeNames,
+          getAdjustedAttributeKey
+        );
+        return shaped
+          ? [
+              {
+                key: shaped.attribute_key,
+                value: shaped.attribute_value,
+                original: shaped,
+              },
+            ]
+          : [];
+      })
+    );
+  }, [attributes, getAdjustedAttributeKey, useRawAttributeNames]);
 
   return (
     <KeyValueColumns
@@ -220,7 +225,7 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
               {attributeKey}
             </AttributeDetailsTooltip>
           ) : (
-            <Text>{attributeKey}</Text>
+            <Text monospace>{attributeKey}</Text>
           )}
           {pinnedAttribute === originalAttribute.original_attribute_key && (
             <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
@@ -271,21 +276,29 @@ function AttributesTreeRowDropdown({
 }
 
 /**
- * Replaces sentry. prefixed keys, and simplifies the value
+ * Uses raw names when available, otherwise prettifies keys, and simplifies the value
  */
 function getAttribute(
   attribute: TraceItemResponseAttribute,
+  useRawAttributeNames: boolean,
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
   const attributeValue =
-    attribute.type === 'bool' ? String(attribute.value) : attribute.value;
+    attribute.type === 'bool'
+      ? String(attribute.value)
+      : attribute.type === 'array'
+        ? JSON.stringify(attribute.value)
+        : attribute.value;
 
   if (!defined(attributeValue)) {
     return undefined;
   }
 
   return {
-    attribute_key: prettifyAttributeName(attribute.name),
+    attribute_key:
+      useRawAttributeNames && attribute.rawName !== undefined
+        ? attribute.rawName
+        : prettifyAttributeName(attribute.name),
     attribute_value: attributeValue,
     original_attribute_key: getAdjustedAttributeKey
       ? getAdjustedAttributeKey(attribute)

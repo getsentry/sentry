@@ -153,7 +153,7 @@ def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None
     _bump_rule_lifetime_inner(project, applied_rules)
 
 
-def _bump_rule_lifetime_inner(project: Project, applied_rules: Sequence):
+def _bump_rule_lifetime_inner(project: Project, applied_rules: Sequence[Sequence[str]]) -> None:
     from sentry.ingest.transaction_clusterer import rules as clusterer_rules
 
     if not applied_rules:

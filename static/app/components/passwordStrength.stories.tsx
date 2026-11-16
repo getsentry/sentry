@@ -4,8 +4,9 @@ import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {PasswordStrengthRing} from 'sentry/components/passwordStrength';
 import * as Storybook from 'sentry/stories';
+
+import {PasswordStrengthRing} from './passwordStrength';
 
 export default Storybook.story('PasswordStrengthRing', story => {
   story('Interactive', () => <InteractivePasswordStrength />);

@@ -5,7 +5,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import {TURN_META_WIDTH} from 'sentry/components/ai/chat/turnMeta';
+import {TURN_META_WIDTH} from './turnMeta';
 
 interface CollapsibleContentProps {
   /** The rendered content revealed when expanded (markdown, nested blocks, etc.). */

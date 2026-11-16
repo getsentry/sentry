@@ -1,6 +1,7 @@
 import {IconDocs} from '@sentry/icons/docs';
 
-import {CodeBlock, InlineCode} from '@sentry/scraps/code';
+import {InlineCode} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';

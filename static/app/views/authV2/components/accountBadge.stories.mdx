@@ -1,0 +1,41 @@
+---
+title: Account Badge
+description: The signed-in account completing an authentication flow.
+category: patterns
+source: sentry/views/authV2/components/accountBadge
+---
+
+import {AccountBadge} from 'sentry/views/authV2/components/accountBadge';
+import * as Storybook from 'sentry/stories';
+
+Show the signed-in account so users can confirm which account will complete the action. The parent owns logout and preparation for the new account.
+
+## Signed-In Account
+
+<Storybook.Demo>
+  <AccountBadge
+    user={{
+      id: '1',
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      username: 'jane@example.com',
+      ip_address: '127.0.0.1',
+    }}
+    onSwitchAccount={() => {}}
+  />
+</Storybook.Demo>
+
+```tsx
+<AccountBadge user={user} onSwitchAccount={switchAccount} />
+```
+
+## Props
+
+| Prop              | Type         | Description                             |
+| ----------------- | ------------ | --------------------------------------- |
+| `user`            | `AvatarUser` | The account completing the action.      |
+| `onSwitchAccount` | `() => void` | Starts the parent-owned account switch. |
+
+## Accessibility
+
+The account name and email identify the user in text. The labeled switch button supports keyboard navigation.

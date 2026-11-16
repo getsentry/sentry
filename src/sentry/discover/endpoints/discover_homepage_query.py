@@ -11,15 +11,16 @@ from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
+from sentry.auth.principal import RequestPrincipal, is_owned_by_acting_user, require_user
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.organization import Organization
 
 
-def get_homepage_query(organization, user):
+def get_homepage_query(organization: Organization, user: RequestPrincipal) -> DiscoverSavedQuery:
     return DiscoverSavedQuery.objects.get(
-        organization=organization, is_homepage=True, created_by_id=user.id
+        is_owned_by_acting_user(user, "created_by_id"), organization=organization, is_homepage=True
     )
 
 
@@ -37,7 +38,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         DiscoverSavedQueryPermission,
     )
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:discover-query", organization, actor=request.user)
 
     def get(self, request: Request, organization: Organization) -> Response:
@@ -104,7 +105,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
                 if user_selected_dataset
                 else DatasetSourcesTypes.UNKNOWN.value
             ),
-            created_by_id=request.user.id,
+            created_by_id=require_user(request).id,
             is_homepage=True,
         )
 
@@ -112,7 +113,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
 
         return Response(serialize(model), status=status.HTTP_201_CREATED)
 
-    def delete(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 

@@ -2,7 +2,7 @@ import {DeprecatedApiKeyFixture} from 'sentry-fixture/deprecatedApiKey';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationApiKeyDetails from 'sentry/views/settings/organizationApiKeys/organizationApiKeyDetails';
+import OrganizationApiKeyDetails from './organizationApiKeyDetails';
 
 describe('OrganizationApiKeyDetails', () => {
   const apiKey = DeprecatedApiKeyFixture();

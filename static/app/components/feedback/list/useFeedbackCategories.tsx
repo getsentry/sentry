@@ -1,7 +1,8 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type FeedbackCategory = {
@@ -28,25 +29,22 @@ export function useFeedbackCategories(): {
 
   const normalizedDateRange = normalizeDateTimeParams(selection.datetime);
 
-  const {data, isPending, isError} = useApiQuery<FeedbackCategoriesResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/feedback-categories/', {
+  const {data, isPending, isError} = useQuery({
+    ...apiOptions.as<FeedbackCategoriesResponse>()(
+      '/organizations/$organizationIdOrSlug/feedback-categories/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
         },
-      }),
-      {
         query: {
           ...normalizedDateRange,
           project: selection.projects,
         },
-      },
-    ],
-    {
-      staleTime: 5000,
-      retry: 1,
-    }
-  );
+        staleTime: 5000,
+      }
+    ),
+    retry: 1,
+  });
 
   if (isPending) {
     return {
