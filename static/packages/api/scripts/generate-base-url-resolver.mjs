@@ -42,7 +42,8 @@ export type BaseUrlResolver = (request: BaseUrlRequest) => string | Promise<stri
   update("client/client.gen.ts", source => {
     source = replaceOnce(source,
       "import type { Client, Config, RequestOptions, ResolvedRequestOptions } from './types.gen';",
-      `import { parseApiPathScope } from '../api-client/api-path-scope';
+      `import { withoutTrailingSlashes } from '../api-client/api-base-url';
+import { parseApiPathScope } from '../api-client/api-path-scope';
 import type { BaseUrlResolver, Client, Config, RequestOptions, ResolvedRequestOptions } from './types.gen';`);
     source = replaceOnce(source,
       "export const createClient = (config: Config = {}): PreparedClient => {",
@@ -53,12 +54,7 @@ const resolveBaseUrl = async (
   url: string,
 ): Promise<string> => {
   const scope = parseApiPathScope(url);
-  const resolved = await resolve(scope ? { baseUrl, url, scope } : { baseUrl, url });
-  let end = resolved.length;
-  while (end > 0 && resolved.charAt(end - 1) === '/') {
-    end -= 1;
-  }
-  return resolved.slice(0, end);
+  return withoutTrailingSlashes(await resolve(scope ? { baseUrl, url, scope } : { baseUrl, url }));
 };
 
 export const createClient = (config: Config = {}): PreparedClient => {`);
