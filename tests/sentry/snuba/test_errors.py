@@ -93,6 +93,32 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 1
         assert data[0]["project"] == other_project.slug
 
+    def test_project_mapping_with_issue_status_filter(self) -> None:
+        """Sorting by ``project`` in a joined query (any ``is:`` filter) must
+        not fail on ClickHouse: the project slug sort references
+        ``transform(project_id, ...)`` which is computed in the ``events``
+        subquery, so it has to be part of the outer GROUP BY.
+        """
+        other_project = self.create_project(organization=self.organization)
+        self.snuba_params.projects = [other_project]
+        self.store_event(
+            data={"message": "hello", "timestamp": self.one_min_ago.isoformat()},
+            project_id=other_project.id,
+        )
+
+        result = errors.query(
+            selected_columns=["project", "count()"],
+            query="is:unresolved",
+            snuba_params=self.snuba_params,
+            orderby=["project"],
+            referrer="errors",
+        )
+
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["project"] == other_project.slug
+        assert data[0]["count"] == 1
+
     def test_issue_short_id_mapping(self) -> None:
         group = self.event.group
         assert group is not None

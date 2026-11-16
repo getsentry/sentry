@@ -10,6 +10,7 @@ from snuba_sdk import (
     Direction,
     Entity,
     Flags,
+    Function,
     Join,
     Op,
     OrderBy,
@@ -86,6 +87,24 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
     ) -> None:
         super().resolve_query(query, selected_columns, groupby_columns, equations, orderby)
         self.resolve_match()
+        self._resolve_orderby_functions_into_groupby()
+
+    def _resolve_orderby_functions_into_groupby(self) -> None:
+        """
+        In a joined query, ClickHouse requires every column referenced by the
+        outer ORDER BY to be part of the outer GROUP BY. The project slug sort
+        orders by ``transform(project_id, ...)``, which snuba computes inside
+        the ``events`` subquery, so referencing it from the outer query fails
+        with ``Column 'events._snuba_gen_1' is not under aggregate function and
+        not in GROUP BY keys``. Add such functions to the groupby; they are
+        functionally dependent on the grouped columns and do not change the
+        grouping.
+        """
+        if not isinstance(self.match, Join):
+            return
+        for order in self.orderby:
+            if isinstance(order.exp, Function) and order.exp not in self.groupby:
+                self.groupby.append(order.exp)
 
     def aliased_column(self, name: str) -> SelectType:
         aliased_col: SelectType = super().aliased_column(name)
