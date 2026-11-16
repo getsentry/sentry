@@ -122,7 +122,7 @@ const logOperations = operations.filter(operation =>
 console.log(logOperations.map(({ functionName, method, path }) => ({ functionName, method, path })));
 ```
 
-Each `ApiOperation` records the actual exported `functionName`, original OpenAPI `operationId`, method, path (relative to `API_BASE_PATH`), summary, description, tags, path parameter names, query metadata, explicit deprecation flag, `experimental` flag, and `idempotent` flag. `ApiQueryParameter` includes the name, required flag, description, type, and declared enum values (item values for arrays). Operation parameters override inherited path parameters.
+Each `ApiOperation` records the actual exported `functionName`, original OpenAPI `operationId`, method, path (relative to `API_BASE_PATH`), summary, description, tags, path parameter names, query metadata, explicit deprecation flag, `experimental` flag, `idempotent` flag, and `routing` declaration. `ApiQueryParameter` includes the name, required flag, description, type, and declared enum values (item values for arrays). Operation parameters override inherited path parameters.
 
 `experimental` is `true` when Sentry marks the operation with the `x-sentry-experimental` OpenAPI extension, which it sets for endpoints under active development that may change. Their SDK docs also start with an **Experimental:** note. To find or reject experimental operations, for example in a lint rule or build check:
 
@@ -133,6 +133,15 @@ const experimental = new Set(
   operations.filter(operation => operation.experimental).map(operation => operation.functionName),
 );
 experimental.has("listOrganizationTraceMetrics"); // true
+```
+
+`routing` copies Sentry's `x-sentry-routing` declaration: `silo` is where the operation is declared available (`control`, `cell`, `both`, or `unknown`), and `organizationParameter`, when present, names the path parameter that identifies the organization. `silo` is availability, not a preferred destination or a guarantee that a gateway forwards the request, and `both` operations can return different results in each context. Consumers keep their own routing policy:
+
+```ts
+import { operations } from "@sentry/api/operations";
+
+const listProjects = operations.find(operation => operation.functionName === "listOrganizationProjects");
+listProjects?.routing; // { silo: "cell", organizationParameter: "organization_id_or_slug" }
 ```
 
 `idempotent` tells retrying clients whether resending an identical request after a timeout or 5xx response is safe. It is always `true` for `GET`, `HEAD`, `OPTIONS`, and `TRACE`. Other methods are `true` only when Sentry marks the operation with the `x-sentry-idempotent` OpenAPI extension; `false` means not known to be idempotent, not known to be unsafe.

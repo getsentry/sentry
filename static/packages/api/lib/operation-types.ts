@@ -12,6 +12,18 @@ export type ApiQueryParameter = {
   readonly enum?: readonly (string | number | boolean | null)[];
 };
 
+/** Where Sentry declares an operation available, from its `x-sentry-routing` OpenAPI extension. */
+export type ApiOperationRouting = {
+  /**
+   * Declared availability: `control`, `cell`, `both`, or `unknown` when Sentry has no declaration.
+   * This is not a preferred destination or a guarantee that a gateway forwards the request.
+   * For `both`, results can differ by context, so callers keep their intended one.
+   */
+  readonly silo: "control" | "cell" | "both" | "unknown";
+  /** The path parameter that identifies the organization, when there is one. */
+  readonly organizationParameter?: string;
+};
+
 /** An operation shipped by this SDK version, without consumer-specific policy. */
 export type ApiOperation = {
   /** Actual exported SDK function name, after name normalization. */
@@ -45,4 +57,6 @@ export type ApiOperation = {
    * with `x-sentry-idempotent`. False means "not known to be idempotent".
    */
   readonly idempotent: boolean;
+  /** Where Sentry declares the operation available. */
+  readonly routing: ApiOperationRouting;
 };
