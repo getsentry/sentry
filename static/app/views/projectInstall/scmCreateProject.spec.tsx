@@ -1365,6 +1365,7 @@ describe('ScmCreateProject', () => {
       await waitFor(() => expect(progressRequest).toHaveBeenCalled());
       expect(request.mock.calls[0]?.[1]?.data).toEqual({
         clientRunId: expect.any(String),
+        origin: 'project_creation',
       });
 
       await user.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
