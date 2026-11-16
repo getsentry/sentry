@@ -171,7 +171,11 @@ def _resolve_issue_id_values(
     short ids (e.g. ``PROJECT-123``), which are resolved against the
     organization when one is available in ``params``.
     """
-    values: list[str | int] = value if isinstance(value, list) else [value]
+    values: list[str | int] = []
+    if isinstance(value, list):
+        values.extend(value)
+    else:
+        values.append(value)
     short_ids = [v for v in values if isinstance(v, str) and v and not v.isdigit()]
     resolved: dict[str, int] = {}
     if short_ids and params and "organization_id" in params:
