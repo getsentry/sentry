@@ -544,3 +544,17 @@ def test_root_without_a_src_folder_stops(
 
     assert _run_main(fake_repo, "--root", str(empty)) == 1
     assert not (fake_repo / "out.json").exists()
+
+
+def test_files_listing_the_same_file_twice_counts_it_once(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert _run_main(fake_repo) == 0
+    before = (fake_repo / "out.json").read_text()
+
+    assert _run_main(fake_repo, "--files", PATH, f"./{PATH}") == 0
+
+    assert (fake_repo / "out.json").read_text() == before
+    out = capsys.readouterr().out
+    assert "Rescanned 1 files (4 findings)" in out
+    assert "0 new, 0 fixed, 0 with a changed count" in out
