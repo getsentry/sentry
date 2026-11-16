@@ -13,5 +13,5 @@ export const docs: Docs = {
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
   logsOnboarding: logs(),
-  metricsOnboarding: metrics,
+  metricsOnboarding: metrics(),
 };
