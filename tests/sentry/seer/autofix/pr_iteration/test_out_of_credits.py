@@ -188,6 +188,21 @@ class OutOfCreditsSummaryTest(TestCase):
             unfinished_action="push", unfinished_iteration_index=1, held_feedback_count=0
         )
 
+    def test_ignores_a_push_seer_refused_while_the_next_iteration_runs(self) -> None:
+        # Seer keeps the push error until its next push starts.
+        state = self._state(
+            [self._iteration_block()],
+            status="processing",
+            pr_state=RepoPRState(
+                repo_name=REPO,
+                commit_sha="abc",
+                pr_creation_status="error",
+                pr_creation_error_code="out_of_credits",
+            ),
+        )
+
+        assert self._summary(state) is None
+
     def test_ignores_a_single_run_reply_that_ran_out_of_credits(self) -> None:
         # The reply after the iteration is tagged single_run, which isn't an AutofixStep.
         state = self._state(

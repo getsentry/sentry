@@ -93,8 +93,8 @@ def _unfinished_action(
 ) -> PrIterationUnfinishedAction | None:
     """What the latest iteration left unfinished for credits. Checked against the run state,
     so a marker that outlived the work it records is ignored."""
-    # Only report when the latest turn is a PR iteration.
-    if not is_pr_feedback_turn(state):
+    # Only report when the latest turn is a PR iteration that isn't still running.
+    if state.status == "processing" or not is_pr_feedback_turn(state):
         return None
 
     # Check if Sentry refused a push or branch-moved retry, or Seer's push failed, because
