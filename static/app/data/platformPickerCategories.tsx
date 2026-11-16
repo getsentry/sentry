@@ -128,6 +128,7 @@ const mobile = new Set<PlatformKey>([
   'dotnet-maui',
   'dotnet-xamarin',
   'dart',
+  'expo',
   'flutter',
   'ionic',
   'react-native',
