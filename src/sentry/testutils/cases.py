@@ -380,7 +380,7 @@ class BaseTestCase(Fixtures):
                 org_ids.add(SUPERUSER_ORG_ID)
         if staff and staff_sso is not False:
             if STAFF_ORG_ID:
-                org_ids.add(cast(int, SUPERUSER_ORG_ID))
+                org_ids.add(STAFF_ORG_ID)
         if organization_id:
             org_ids.add(organization_id)
 
