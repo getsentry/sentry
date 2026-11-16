@@ -1,7 +1,7 @@
 import {SEARCH_PAGE__SERVER_RENDERING__TYPE} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import type {Level, Measurement} from 'sentry/types/event';

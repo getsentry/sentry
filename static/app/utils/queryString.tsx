@@ -1,5 +1,5 @@
 import type {Query} from 'history';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import type {EventTag} from 'sentry/types/event';
 import {escapeDoubleQuotes} from 'sentry/utils';

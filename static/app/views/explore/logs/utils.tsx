@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import type {InfiniteData, InfiniteQueryObserverResult} from '@tanstack/react-query';
 import type {Location} from 'history';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';

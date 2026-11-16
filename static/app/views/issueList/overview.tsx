@@ -8,7 +8,7 @@ import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import qs from 'query-string';
+import * as qs from 'query-string';
 import {useStore} from 'zustand';
 
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';

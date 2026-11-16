@@ -1,5 +1,5 @@
 import type {Query} from 'history';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';

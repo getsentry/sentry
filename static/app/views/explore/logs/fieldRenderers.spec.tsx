@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import type {Location} from 'history';
-import qs from 'query-string';
+import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
