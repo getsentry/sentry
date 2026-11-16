@@ -115,7 +115,7 @@ export function SeerDrawerContent({
         )}
       {singleRun && (
         <NextStepWrap isSticky={stickyNextStep}>
-          <ButtonBar>
+          <ButtonBar columns="1fr auto">
             <Button
               variant="primary"
               icon={<IconSeer />}
