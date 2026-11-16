@@ -620,6 +620,7 @@ from sentry.seer.endpoints.organization_seer_monitoring_providers import (
     OrganizationSeerMonitoringIdentityTokenEndpoint,
     OrganizationSeerMonitoringIntegrationTokenEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_nav_links import OrganizationSeerNavLinksEndpoint
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
@@ -2598,6 +2599,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/chat-suggestions/$",
         OrganizationSeerChatSuggestionsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-chat-suggestions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/nav-links/$",
+        OrganizationSeerNavLinksEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-nav-links",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-overview/$",
