@@ -53,7 +53,6 @@ If the CLI is missing, install and authenticate it:
 {{ unix_installer }}
 
 {{ windows_installer }}
-
 If it is installed but unauthenticated, authenticate it without reinstalling:
 
 {{ unix_bootstrap }}

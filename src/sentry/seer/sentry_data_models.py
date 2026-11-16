@@ -1,6 +1,9 @@
 """
 A collection of human- and LLM-friendly models to represent Sentry data like issues, traces, and profiles.
 These should be kept in sync with the models in Seer.
+
+DEPRECATED: These back the Sentry<>Seer RPC surface, which is being removed in
+favour of the public Sentry API via codemode. Do not add new models here.
 """
 
 from __future__ import annotations
@@ -273,6 +276,13 @@ class RepositoryDefinitionResponse(BaseModel):
     owner: str
     name: str
     external_id: str | None
+
+
+class RepositoryDefinitionFailure(BaseModel):
+    failure_reason: Literal[
+        "no_scm_integration", "scm_account_not_connected", "repo_not_in_sentry", "repo_ambiguous"
+    ]
+    connected_accounts: list[str] = []
 
 
 class EventFilterKeyEntry(BaseModel):

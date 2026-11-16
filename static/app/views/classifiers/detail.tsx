@@ -6,45 +6,40 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import {ClassifiedConversationsTable} from './components/classifiedConversationsTable';
 import {ClassifierInstancesChart} from './components/classifierInstancesChart';
 import {
   ClassifierDisabledAlert,
   ClassifierStatusToggle,
 } from './components/classifierStatus';
+import {useClassifiedConversationCount} from './hooks/useClassifiedConversationCount';
 import {useClassifier} from './hooks/useClassifier';
 import type {TelemetryClassifier} from './types';
 import {getClassifiersPath, getDatasetLabel} from './utils';
 
-function HeaderStat({label}: {label: string}) {
+function ConversationCountStat({classifier}: {classifier: TelemetryClassifier}) {
+  const {data: count} = useClassifiedConversationCount(classifier);
   return (
     <Stack gap="xs">
       <Text size="sm" variant="muted">
-        {label}
+        {t('Conversations')}
       </Text>
-      <Text size="2xl" variant="muted">
-        {'\u2014'}
-      </Text>
+      {count === undefined ? (
+        <Text size="2xl" variant="muted">
+          {'\u2014'}
+        </Text>
+      ) : (
+        <Text size="2xl" tabular>
+          {formatAbbreviatedNumber(count)}
+        </Text>
+      )}
     </Stack>
-  );
-}
-
-function ComingSoon({height}: {height: `${number}px`}) {
-  return (
-    <Flex
-      align="center"
-      justify="center"
-      height={height}
-      border="primary"
-      radius="md"
-      background="secondary"
-    >
-      <Text variant="muted">{t('Coming soon')}</Text>
-    </Flex>
   );
 }
 
@@ -56,7 +51,7 @@ function ClassifierDetailContent({classifier}: {classifier: TelemetryClassifier}
           {classifier.name}
         </Heading>
         <Flex align="center" gap="2xl">
-          <HeaderStat label={t('Conversations')} />
+          <ConversationCountStat classifier={classifier} />
           <ClassifierStatusToggle classifier={classifier} />
         </Flex>
       </Flex>
@@ -68,7 +63,7 @@ function ClassifierDetailContent({classifier}: {classifier: TelemetryClassifier}
             <Heading as="h3" size="md">
               {t('Matched conversations')}
             </Heading>
-            <ComingSoon height="480px" />
+            <ClassifiedConversationsTable classifier={classifier} />
           </Stack>
         </Stack>
         <Container border="primary" radius="md" padding="lg">

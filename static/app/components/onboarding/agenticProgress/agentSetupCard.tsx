@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -7,7 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {AgentHandoffPrompt} from 'sentry/components/agentHandoff/agentHandoffPrompt';
 import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 import type {AgenticProgressRun} from './types';
 
@@ -29,43 +29,33 @@ export function AgentSetupCard({
   run,
 }: AgentSetupCardProps) {
   return (
-    <Stack gap="0" background="primary" border="primary" radius="xl" padding="xl">
-      <Stack gap="xs">
-        <Flex align="center" gap="sm" wrap="wrap">
+    <Fragment>
+      <Stack gap="2xs">
+        <Flex align="center" justify="between" gap="md" wrap="wrap">
           <Heading as="h3" size="lg">
             {t('Let your agent set up Sentry')}
           </Heading>
           <Tag variant="info">{t('Recommended')}</Tag>
         </Flex>
-        <Text as="p" size="md" variant="secondary">
-          {t('Paste one prompt and your agent does the rest.')}
+        <Text as="p" size="lg" variant="secondary">
+          {t('Paste one prompt and your agent does the rest')}
         </Text>
       </Stack>
 
-      <Stack as="ul" role="list" gap="md" padding="xl 0">
-        <Benefit>{tct('[emphasis:Detects your stack]', {emphasis: <strong />})}</Benefit>
-        <Benefit>
-          {tct('[emphasis:Installs and configures the SDKs] in your code', {
-            emphasis: <strong />,
-          })}
-        </Benefit>
-        <Benefit>
-          {tct('[emphasis:Sends a test error] and confirms it, so you know it works', {
-            emphasis: <strong />,
-          })}
-        </Benefit>
+      <Stack as="ul" role="list" gap="sm" padding="xl 0" margin="0">
+        <Benefit>{t('Detects your stack and installs the Sentry CLI')}</Benefit>
+        <Benefit>{t('Installs and configures the right SDKs')}</Benefit>
+        <Benefit>{t('Sends a test error to confirm it works')}</Benefit>
       </Stack>
 
-      <Stack>
-        <AgentHandoffPrompt
-          context={run ? {runId: run.runId} : null}
-          feedbackSource={feedbackSource}
-          flow={flow}
-          onCopySuccess={() => onCopyCommand('prompt')}
-          onSelect={() => onSelectSnippet('prompt')}
-        />
-      </Stack>
-    </Stack>
+      <AgentHandoffPrompt
+        context={run ? {runId: run.runId} : null}
+        feedbackSource={feedbackSource}
+        flow={flow}
+        onCopySuccess={() => onCopyCommand('prompt')}
+        onSelect={() => onSelectSnippet('prompt')}
+      />
+    </Fragment>
   );
 }
 

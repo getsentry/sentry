@@ -280,7 +280,7 @@ def get_uptime_subscription(detector: Detector) -> UptimeSubscription:
     """
     Given a detector get the matching uptime subscription
     """
-    data_source = detector.data_sources.first()
+    data_source = detector.data_sources.filter(type=DATA_SOURCE_UPTIME_SUBSCRIPTION).first()
     assert data_source
     return UptimeSubscription.objects.get_from_cache(id=int(data_source.source_id))
 

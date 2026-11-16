@@ -58,6 +58,7 @@ const UPDATED_EMPTY_STATE_PLATFORMS = new Set([
   'python-fastapi',
   'python-flask',
   'react-native',
+  'expo',
   'ruby',
   'ruby-rails',
   'unity',

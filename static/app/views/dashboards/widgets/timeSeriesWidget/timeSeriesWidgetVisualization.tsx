@@ -306,11 +306,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     [paletteSize, theme.chart]
   );
 
-  // Create a lookup of series names (given to ECharts) to labels (from
-  // Plottable). This makes it easier to look up alises when rendering tooltips
-  // and legends
-  const aliases = Object.fromEntries(
-    props.plottables.map(plottable => [plottable.name, plottable.label])
+  const plottablesByName = Object.fromEntries(
+    props.plottables.map(plottable => [plottable.name, plottable])
   );
 
   // Create tooltip formatter
@@ -383,12 +380,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         // seriesName may be HTML-escaped, so we need to unescape it before looking up the alias
         // to ensure the lookup works correctly for series with characters that are escaped.
-        const alias = aliases[unescape(seriesName)];
+        const plottable = plottablesByName[unescape(seriesName)];
+        const alias = plottable?.label;
         if (alias) {
           // The alias value comes from `plottable.label` and is not
           // HTML-escaped. Escape it for safe insertion into raw HTML
           // tooltip strings.
-          return escape(truncationFormatter(alias, true, false));
+          const label = escape(truncationFormatter(alias, true, false));
+          return plottable.labelSuffix
+            ? `${label}<span style="color: ${theme.tokens.content.secondary}"> · ${escape(plottable.labelSuffix)}</span>`
+            : label;
         }
         // `seriesName` is already HTML-escaped by `getFormatter`, so
         // skip escaping to avoid double-encoding (e.g., `>` → `&gt;`
@@ -680,6 +681,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return {
       name: plottable.name,
       label: plottable.label,
+      suffix: plottable.labelSuffix,
       color,
     };
   });

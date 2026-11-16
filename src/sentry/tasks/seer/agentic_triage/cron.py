@@ -37,7 +37,7 @@ from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
     is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
     is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.models import SeerPermissionError
@@ -86,6 +86,11 @@ PER_ORG_FEATURE_NAMES = [
     # so this gets checked per-org on the survivors of the batch loop.
     "organizations:seat-based-seer-enabled",
 ]
+
+# Token billing makes the Seer quota check pass for every pay-as-you-go org, so
+# scheduled runs stay with the orgs that already had them before the switch.
+TOKEN_BILLING_CUTOFF = datetime(2026, 12, 8, tzinfo=UTC)
+TOKEN_BILLING_PRIOR_RUN_WINDOW = timedelta(days=30)
 
 
 class SeerAgenticTriageRunOptions(TypedDict):
@@ -365,6 +370,17 @@ def run_agentic_triage_for_org(
             logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
             return None
 
+    if (
+        schedule_id is not None
+        and features.has("organizations:token-billed-seer-enabled", organization)
+        and not _had_scheduled_run_before_token_billing(organization)
+    ):
+        logger.info(
+            "night_shift.token_billed_without_prior_runs",
+            extra={"organization_id": organization.id},
+        )
+        return None
+
     # Manual project runs scope to a single project, whose tweaks feed the run
     # options; cron and org-wide manual runs have no single project.
     single_project_id = project_ids[0] if project_ids and len(project_ids) == 1 else None
@@ -416,6 +432,16 @@ def run_agentic_triage_for_org(
         execute_in_task=execute_in_task,
     )
     return run.id
+
+
+def _had_scheduled_run_before_token_billing(organization: Organization) -> bool:
+    return SeerWorkflowRun.objects.filter(
+        organization=organization,
+        workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+        trigger_key__isnull=False,
+        date_added__gte=TOKEN_BILLING_CUTOFF - TOKEN_BILLING_PRIOR_RUN_WINDOW,
+        date_added__lt=TOKEN_BILLING_CUTOFF,
+    ).exists()
 
 
 def _is_agentic_triage_enabled(organization: Organization) -> bool:
@@ -704,7 +730,7 @@ class EligibleProject:
     tweaks: AgenticTriageTweaks
     stopping_point: AutofixStoppingPoint
     connected_repos: list[str]
-    # None for seat-based orgs, regardless of the project's own setting.
+    # None for seat-based and token-billed orgs, regardless of the project's own setting.
     automation_tuning: AutofixAutomationTuningSettings | None
 
 
@@ -731,9 +757,11 @@ def _get_eligible_projects(
     if not project_map:
         return []
 
-    preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
+    preferences = bulk_read_preferences_from_sentry_db(
+        organization.id, list(project_map), limit_repos=True
+    )
 
-    is_legacy_org = not is_seer_seat_based_tier_enabled(organization)
+    is_legacy_org = not is_seer_seat_or_token_billed_enabled(organization)
 
     eligible: list[EligibleProject] = []
     for pid, project in project_map.items():

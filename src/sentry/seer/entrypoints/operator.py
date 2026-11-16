@@ -5,7 +5,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
-from sentry.inbox.issue import record_issue_pr_ready_for_review
+from sentry.inbox.issue import ISSUE_PR_READY_FOR_REVIEW, IssuePRReadyForReviewData
 from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
 from sentry.inbox.types import InboxActor
 from sentry.investigations.models import InvestigationOrchestrationRun
@@ -19,7 +19,10 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notebooks.access import has_notebooks_access
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.models.notebook import NotebookSourceType
 from sentry.notebooks.telemetry import record_notebook_started
+from sentry.notifications.platform.inbox import create_inbox_items
+from sentry.notifications.platform.strategies.issue_owners import IssueOwnersActivityAlertStrategy
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
@@ -80,6 +83,7 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_PR_READY_FOR_REVIEW: ActivityType.SEER_PR_READY_FOR_REVIEW,
     SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
+    SentryAppEventType.SEER_STOPPED: ActivityType.SEER_STOPPED,
 }
 
 
@@ -786,6 +790,8 @@ def _create_seer_activity(
         iteration_index = event_payload.get("iteration_index")
         if iteration_index is not None:
             activity_data["iteration_index"] = iteration_index
+    elif event_type == SentryAppEventType.SEER_STOPPED:
+        activity_data.update(event_payload.get("stop") or {})
 
     Activity.objects.create_group_activity(
         group,
@@ -801,15 +807,24 @@ def _create_seer_activity(
             if (pr_url := get_path(pr, "pull_request", "pr_url"))
         ]
         if pr_urls:
-            safe_execute(
-                record_issue_pr_ready_for_review,
-                group=group,
-                pr_urls=pr_urls,
-                seer_run_id=event_payload["run_id"],
-                actor=InboxActor.user(actor_user_id)
-                if actor_user_id is not None
-                else INBOX_SYSTEM_ACTOR,
-            )
+            owner_user_ids, owner_team_ids = IssueOwnersActivityAlertStrategy(
+                group=group
+            ).get_issue_owner_ids()
+            for pr_url in pr_urls:
+                safe_execute(
+                    create_inbox_items,
+                    event_type=ISSUE_PR_READY_FOR_REVIEW,
+                    subject=group,
+                    data=IssuePRReadyForReviewData(
+                        pr_url=pr_url,
+                        seer_run_id=event_payload["run_id"],
+                    ),
+                    user_ids=owner_user_ids,
+                    team_ids=owner_team_ids,
+                    actor=InboxActor.user(actor_user_id)
+                    if actor_user_id is not None
+                    else INBOX_SYSTEM_ACTOR,
+                )
 
 
 def record_seer_activity(
@@ -965,6 +980,7 @@ def process_autofix_updates(
 def process_investigation_updates(*, investigation_id: int) -> None:
     """
     Sends the latest orchestration run to each entrypoint with a cache for it.
+    Metric open period runs go to each entrypoint, also without a cache.
     """
     with SeerOperatorEventLifecycleMetric(
         interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_INVESTIGATION_UPDATE
@@ -1007,10 +1023,12 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 entrypoint_key=str(entrypoint_key),
                 investigation_id=investigation_id,
             )
-            if not cache_payload:
-                continue
-
-            if cache_payload["organization_id"] != organization.id:
+            if cache_payload is None:
+                # Metric investigations started outside Slack have no entrypoint cache, but their
+                # conclusions still need to reach the Slack alert threads found via NotificationThread.
+                if run.investigation.source_type != NotebookSourceType.METRIC_OPEN_PERIOD:
+                    continue
+            elif cache_payload["organization_id"] != organization.id:
                 lifecycle.record_failure(failure_reason="org_mismatch")
                 return
 

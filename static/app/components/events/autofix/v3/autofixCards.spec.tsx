@@ -366,6 +366,47 @@ describe('ArtifactCard', () => {
       expect(startStepMock).toHaveBeenCalledWith('root_cause');
     });
 
+    it('holds Re-run disabled when the org cannot afford a new single run', async () => {
+      const creditsOrganization = OrganizationFixture({
+        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'autofix_root_cause'})],
+        body: {hasEnoughCredits: false},
+      });
+      const queryClient = makeTestQueryClient();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RootCauseCard
+            autofix={{
+              ...mockAutofix,
+              runState: {
+                run_id: 776,
+                feature_id: 'autofix_single_run',
+                status: 'completed',
+                updated_at: '2026-01-01T00:00:00Z',
+                blocks: [],
+              },
+            }}
+            groupId="1"
+            section={makeSection('root_cause', 'completed', [])}
+          />
+        </QueryClientProvider>,
+        {organization: creditsOrganization}
+      );
+
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryState(
+            seerCreditCheckApiOptions(creditsOrganization, 'autofix_root_cause').queryKey
+          )?.status
+        ).toBe('success')
+      );
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeDisabled();
+    });
+
     it('renders the cause under the headline', () => {
       const artifact = makeRootCauseArtifact({
         one_line_description: 'Divides by an empty weight',
@@ -444,6 +485,28 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Reproduction Steps')).toBeInTheDocument();
       expect(screen.getByText('Open the page')).toBeInTheDocument();
       expect(screen.getByText('Click button')).toBeInTheDocument();
+    });
+
+    it('shows why a single run stopped instead of the failure text', () => {
+      const stop = {
+        key: 'stop',
+        reason: 'stop',
+        data: {reason: 'R', suggestion: 'N'},
+      };
+
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [stop])}
+        />
+      );
+
+      expect(screen.getByText('R')).toBeInTheDocument();
+      expect(screen.getByText('N')).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Seer failed to generate a root cause/)
+      ).not.toBeInTheDocument();
     });
 
     it('renders card shell when artifact data is null', () => {
@@ -624,6 +687,72 @@ describe('ArtifactCard', () => {
   });
 
   describe('CodeChangesCard', () => {
+    it('starts a new single run from Re-run after a single run errored', async () => {
+      const startStepMock = jest.fn().mockResolvedValue({runId: 777, isSingleRun: true});
+      render(
+        <CodeChangesCard
+          autofix={{
+            ...mockAutofix,
+            startStep: startStepMock,
+            runState: {
+              run_id: 776,
+              feature_id: 'autofix_single_run',
+              status: 'error',
+              updated_at: '2026-01-01T00:00:00Z',
+              blocks: [],
+            },
+          }}
+          groupId="1"
+          section={makeSection('code_changes', 'error', [])}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+
+      expect(startStepMock).toHaveBeenCalledWith('root_cause');
+    });
+
+    it('holds Re-run disabled when the org cannot afford a new single run', async () => {
+      const creditsOrganization = OrganizationFixture({
+        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'autofix_root_cause'})],
+        body: {hasEnoughCredits: false},
+      });
+      const queryClient = makeTestQueryClient();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <CodeChangesCard
+            autofix={{
+              ...mockAutofix,
+              runState: {
+                run_id: 776,
+                feature_id: 'autofix_single_run',
+                status: 'error',
+                updated_at: '2026-01-01T00:00:00Z',
+                blocks: [],
+              },
+            }}
+            groupId="1"
+            section={makeSection('code_changes', 'error', [])}
+          />
+        </QueryClientProvider>,
+        {organization: creditsOrganization}
+      );
+
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryState(
+            seerCreditCheckApiOptions(creditsOrganization, 'autofix_root_cause').queryKey
+          )?.status
+        ).toBe('success')
+      );
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeDisabled();
+    });
+
     it('renders single file in single repo', () => {
       render(
         <CodeChangesCard

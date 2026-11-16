@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {openConfirmModal} from '@sentry/scraps/confirm';
 

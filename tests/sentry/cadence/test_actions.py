@@ -16,6 +16,7 @@ def test_log_action_logs_each_firing() -> None:
             trigger_type=ScheduledTriggerType.LOG,
             target_id=target_id,
             scheduled_for=NOW - timedelta(seconds=target_id),
+            next_scheduled_for=NOW + timedelta(hours=1) - timedelta(seconds=target_id),
         )
         for target_id in (3, 4)
     ]
