@@ -29,7 +29,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import type {InvoiceBase} from 'getsentry/types';
+import type {InvoiceBase, ReceiptType} from 'getsentry/types';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
@@ -77,6 +77,19 @@ function ReceiptStatusTag({payment}: {payment: InvoiceBase}) {
       {capitalize(status.replace('_', ' '))}
     </Tag>
   );
+}
+
+function getReceiptTypeLabel(receiptType: ReceiptType) {
+  switch (receiptType) {
+    case 'seer_auto_reload':
+      return t('Seer auto-reload');
+    case 'credit_grant':
+      return t('Credit from Sentry');
+    case 'subscription':
+      return t('Subscription');
+    default:
+      return null;
+  }
 }
 
 function UsageCsvDownloads({
@@ -188,6 +201,7 @@ function PaymentHistory() {
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'date', width: 'minmax(min-content, 1fr)'},
+  {key: 'type', width: 'minmax(max-content, 1fr)'},
   {key: 'amount', width: 'minmax(max-content, 1fr)'},
   {
     key: 'status',
@@ -221,6 +235,7 @@ function ReceiptTable({
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell align="right">{t('Amount')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Receipt ID')}</SimpleTable.HeaderCell>
@@ -239,6 +254,11 @@ function ReceiptTable({
               <Link to={`/settings/${organization.slug}/billing/receipts/${payment.id}/`}>
                 {moment(payment.dateCreated).format('MMM D, YYYY')}
               </Link>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              {payment.receiptType && (
+                <Text>{getReceiptTypeLabel(payment.receiptType)}</Text>
+              )}
             </SimpleTable.RowCell>
             <SimpleTable.RowCell justify="end">
               <Container>

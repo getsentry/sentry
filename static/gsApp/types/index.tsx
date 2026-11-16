@@ -487,6 +487,11 @@ export type Charge = {
   stripeID: string | null;
 };
 
+/**
+ * What a receipt paid for.
+ */
+export type ReceiptType = 'subscription' | 'seer_auto_reload' | 'credit_grant';
+
 export type InvoiceBase = StructuredAddress & {
   amount: number;
   amountBilled: number | null;
@@ -508,6 +513,11 @@ export type InvoiceBase = StructuredAddress & {
   sentryTaxIds: SentryTaxIds | null;
   taxNumber: string | null;
   type: string | null;
+  /**
+   * Only the receipts list returns this. Null when the API can't name what an
+   * off-cycle invoice paid for.
+   */
+  receiptType?: ReceiptType | null;
   /**
    * Usage exports for the period (billing history or platform contract) the receipt bills usage for.
    */

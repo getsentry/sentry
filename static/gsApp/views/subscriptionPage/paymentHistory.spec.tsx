@@ -150,6 +150,7 @@ describe('Subscription > PaymentHistory', () => {
           amountBilled: 12000,
           amountRefunded: 2000,
           receipt: {url: 'https://example.com/receipt.pdf'},
+          receiptType: 'seer_auto_reload',
         }),
       ],
     });
@@ -163,12 +164,19 @@ describe('Subscription > PaymentHistory', () => {
       within(table)
         .getAllByRole('columnheader')
         .map(header => header.textContent)
-    ).toEqual(['Date', 'Amount', 'Status', 'Receipt ID', '']);
+    ).toEqual(['Date', 'Type', 'Amount', 'Status', 'Receipt ID', '']);
     expect(
       within(row)
         .getAllByRole('cell')
         .map(cell => cell.textContent)
-    ).toEqual(['Jun 25, 2018', '$120$20 refunded', 'Refunded', '1a2c3b4d5e6f', '']);
+    ).toEqual([
+      'Jun 25, 2018',
+      'Seer auto-reload',
+      '$120$20 refunded',
+      'Refunded',
+      '1a2c3b4d5e6f',
+      '',
+    ]);
     expect(within(row).getByRole('link', {name: 'Jun 25, 2018'})).toHaveAttribute(
       'href',
       '/settings/dogz-rule/billing/receipts/1a2c3b4d5e6f/'
