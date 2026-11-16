@@ -83,7 +83,7 @@ class InboxItemType[SubjectT](ABC):
 
     @abstractmethod
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
-        """Subject URL, independent of inbox items or events."""
+        """Subject's inbox URL, independent of recorded inbox items or events."""
 
     @abstractmethod
     def filter_recipients(self, *, subject: SubjectT, user_ids: Sequence[int]) -> list[int]:

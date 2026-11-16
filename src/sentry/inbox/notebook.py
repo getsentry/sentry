@@ -28,7 +28,7 @@ class NotebookItemType(InboxItemType[Notebook]):
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         return organization.absolute_url(
-            f"/organizations/{organization.slug}/seer/investigations/{subject_id}/"
+            f"/organizations/{organization.slug}/inbox/notebook/{subject_id}/"
         )
 
     def filter_recipients(self, *, subject: Notebook, user_ids: Sequence[int]) -> list[int]:

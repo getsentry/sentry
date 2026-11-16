@@ -57,7 +57,7 @@ class IssueItemTypeTest(TestCase):
 
     def test_url(self) -> None:
         organization = self.organization
-        expected = organization.absolute_url(f"/organizations/{organization.slug}/issues/123/")
+        expected = organization.absolute_url(f"/organizations/{organization.slug}/inbox/issue/123/")
 
         with self.assertNumQueries(0):
             assert ISSUE.get_url(organization=organization, subject_id="123") == expected
