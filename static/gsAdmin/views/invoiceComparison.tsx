@@ -511,7 +511,11 @@ export function InvoiceComparison() {
                   {rows.length === 0 && (
                     <tr>
                       <td colSpan={6}>
-                        <em>No invoices in this range on either side.</em>
+                        <em>
+                          {data.summary.hidden_small_mismatch_count
+                            ? 'Every compared org is a hidden small mismatch.'
+                            : 'No invoices in this range on either side.'}
+                        </em>
                       </td>
                     </tr>
                   )}

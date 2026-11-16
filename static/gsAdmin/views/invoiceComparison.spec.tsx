@@ -104,6 +104,25 @@ describe('InvoiceComparison', () => {
     expect(screen.getByText('1 row')).toBeInTheDocument();
   });
 
+  it('does not say a range is empty when every row is a hidden small mismatch', async () => {
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: {
+        ...comparisonBody({hiddenSmallMismatchCount: 2}),
+        rows: [],
+      },
+    });
+
+    renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+    expect(
+      await screen.findByText('Every compared org is a hidden small mismatch.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('No invoices in this range on either side.')
+    ).not.toBeInTheDocument();
+  });
+
   it('ignores a URL window that is not days', async () => {
     jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-10T05:25:00.000Z'));
     const mock = MockApiClient.addMockResponse({
