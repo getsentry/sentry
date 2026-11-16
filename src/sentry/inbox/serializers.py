@@ -1,6 +1,5 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from dataclasses import fields
 from typing import Any
 
 from django.contrib.postgres.aggregates import ArrayAgg
@@ -127,24 +126,9 @@ class InboxItemSerializer(Serializer[InboxItemResponse]):
                 titles.update({item.id: subject_titles.get(item.subject_id) for item in items})
             for item in items:
                 event = latest_by_item[item.id]
-                event_type = inbox_item_event_type_registry.get(event.type)
-                try:
-                    data = event_type.data_class(
-                        **{
-                            field.name: event.data[field.name]
-                            for field in fields(event_type.data_class)
-                            if field.init and field.name in event.data
-                        }
-                    )
-                except TypeError:
-                    # Retained events may predate required payload fields.
-                    urls[item.id] = (item_type or event_type.item_type).get_url(
-                        organization=organization, subject_id=item.subject_id
-                    )
-                else:
-                    urls[item.id] = event_type.get_url(
-                        organization=organization, subject_id=item.subject_id, data=data
-                    )
+                urls[item.id] = inbox_item_event_type_registry.get(event.type).get_event_url(
+                    organization=organization, event=event
+                )
         return {
             item: {
                 "title": titles.get(item.id),

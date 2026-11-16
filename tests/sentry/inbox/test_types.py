@@ -89,6 +89,17 @@ class StructuredData(InboxEventData):
     details: dict[str, Any]
 
 
+def test_data_from_payload_ignores_unknown_keys() -> None:
+    assert MentionedData.from_payload({"comment_id": 123, "summary": "Old wording"}) == (
+        MentionedData(comment_id=123)
+    )
+
+
+def test_data_from_payload_requires_fields() -> None:
+    with pytest.raises(TypeError):
+        MentionedData.from_payload({})
+
+
 def test_idempotency_key_uses_only_event_data() -> None:
     data = IssueMentionedData(comment_id=123)
     key = ISSUE_USER_MENTIONED.get_idempotency_key(data=data)
