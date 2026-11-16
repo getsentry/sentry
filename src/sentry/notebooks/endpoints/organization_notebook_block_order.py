@@ -41,7 +41,8 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
     idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="Reorder Notebook Blocks",
+        operation_id="updateOrganizationNotebookBlocksOrder",
+        summary="Reorder Notebook Blocks",
         tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=BlockOrderValidator,

@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {redirectToProject} from './actionCreators/redirectToProject';
 import {openSudo} from './actionCreators/sudoModal';

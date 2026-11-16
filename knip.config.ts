@@ -61,6 +61,9 @@ const config: KnipConfig = {
   compilers: {mdx: true},
   // Test package exports are development entry points, not production code.
   ignoreWorkspaces: ['tests/js!', 'tests/js/getsentry-test!'],
+  // @sentry/api is generated from the API spec at build time, so its sources
+  // and entry points only exist after `pnpm --filter @sentry/api run build`.
+  ignore: ['static/packages/api/**'],
   workspaces: {
     '.': {
       // The root runs app tests, but Jest is declared in the test package.

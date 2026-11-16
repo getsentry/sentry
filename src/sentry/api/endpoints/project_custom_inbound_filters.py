@@ -467,7 +467,8 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
     idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="List a Project's Custom Inbound Filters",
+        operation_id="listProjectCustomInboundFilters",
+        summary="List a Project's Custom Inbound Filters",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -498,7 +499,8 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Custom Inbound Filter",
+        operation_id="createProjectCustomInboundFilter",
+        summary="Create a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -568,7 +570,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
     idempotent_methods = frozenset({"PUT"})
 
     @extend_schema(
-        operation_id="Retrieve a Custom Inbound Filter",
+        operation_id="getProjectCustomInboundFilter",
+        summary="Retrieve a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -594,7 +597,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         return Response(serialize_custom_inbound_filter(custom_filter))
 
     @extend_schema(
-        operation_id="Update a Custom Inbound Filter",
+        operation_id="updateProjectCustomInboundFilter",
+        summary="Update a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -683,7 +687,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         return Response(serialize_custom_inbound_filter(custom_filter))
 
     @extend_schema(
-        operation_id="Delete a Custom Inbound Filter",
+        operation_id="deleteProjectCustomInboundFilter",
+        summary="Delete a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

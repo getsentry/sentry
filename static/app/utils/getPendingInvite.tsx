@@ -1,5 +1,5 @@
 import Cookies from 'js-cookie';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 type PendingInvite = {
   memberId: number;

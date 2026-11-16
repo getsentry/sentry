@@ -174,6 +174,10 @@ def my_function():
     ...
 ```
 
+## Sentry<>Seer RPC (Deprecated)
+
+The Seer RPC surface (`src/sentry/seer/endpoints/seer_rpc.py`, `organization_seer_rpc.py`, `sentry/seer/sentry_data_models.py`) is being removed. Seer now reads Sentry data through the public Sentry API via codemode. Do not add new RPC methods or models; add or extend a public API endpoint instead.
+
 ## File Location Map
 
 - **Models**: `src/sentry/models/{model}.py` or the owning domain's `models/` package
