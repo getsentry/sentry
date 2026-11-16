@@ -57,6 +57,8 @@ jobs:
           owner: getsentry
           repositories: ${{ matrix.repo }}
           permission-actions: write
+          # gh workflow run looks up the default branch when there's no --ref.
+          permission-metadata: read
 
       # Dispatch by file name, on the repository's default branch.
       - name: Dispatch the bump
