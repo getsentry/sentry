@@ -9,6 +9,8 @@ from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonEleme
 from slack_sdk.web import SlackResponse
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
+from sentry.constants import ObjectStatus
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.integration import SlackIntegration
 from sentry.integrations.slack.message_builder.routing import (
     SlackActionTracking,
@@ -23,7 +25,10 @@ from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
+from sentry.models.group import Group
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notebooks.models import Notebook, NotebookActionRequestState
+from sentry.notebooks.models.notebook import NotebookSourceType
 from sentry.notifications.models.notificationthread import (
     NotificationThread,
     NotificationThreadObjectType,
@@ -97,10 +102,12 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationResourceNotFoundError,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.locking import UnableToAcquireLock
 
 SEER_OUT_OF_CREDITS_TEXT = (
@@ -2102,6 +2109,20 @@ class SlackInvestigationEntrypointTest(TestCase):
         assert started_call.kwargs["text"] != "Investigating FCP on organization login pages"
         assert not self._investigation_threads().exists()
 
+    def test_updates_skip_disabled_organization_integration(self) -> None:
+        self._set_cache()
+        self._complete_with_conclusion()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).update(status=ObjectStatus.DISABLED)
+
+        self._update([_hypothesis()])
+
+        self.mock_update.assert_not_called()
+        self.mock_post_message.assert_not_called()
+        assert not self._get_state().get("final_sent")
+
     def test_update_with_hypotheses_updates_status_message(self) -> None:
         self._set_cache()
 
@@ -2310,13 +2331,13 @@ class SlackInvestigationEntrypointTest(TestCase):
         self.mock_post_message.assert_not_called()
         assert_halt_metric(mock_record, UnableToAcquireLock())
 
-    def test_stale_cache_payload_argument_is_ignored(self) -> None:
-        stale_payload = self._set_cache()
+    def test_reused_cache_payload_uses_latest_thread_state(self) -> None:
+        cache_payload = self._set_cache()
         self._update([_hypothesis()])
         self.mock_update.reset_mock()
 
         SlackInvestigationEntrypoint.on_investigation_update(
-            cache_payload=stale_payload, run=self.orchestration_run
+            cache_payload=cache_payload, run=self.orchestration_run
         )
 
         self.mock_update.assert_not_called()
@@ -2470,3 +2491,225 @@ class SlackInvestigationEntrypointTest(TestCase):
                 if call.args[0] == EventLifecycleOutcome.HALTED
             ]
             assert len(halts) == halt_count, error
+
+    def _use_open_period(self) -> None:
+        self.group = self.create_group(project=self.project, create_open_period=False)
+        self.open_period = GroupOpenPeriod.objects.create(
+            group=self.group,
+            project=self.project,
+            date_started=datetime(2024, 8, 27, 9, 0, tzinfo=UTC),
+            date_ended=datetime(2024, 8, 27, 12, 0, tzinfo=UTC),
+        )
+        self.investigation.update(
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source={
+                **self.investigation.source,
+                "ref": {"groupId": str(self.group.id), "openPeriodId": str(self.open_period.id)},
+            },
+            source_key="open-period",
+            source_revision=1,
+        )
+
+    def _alert_thread(
+        self,
+        channel_id: str,
+        *,
+        integration_id: int | None = None,
+        group: Group | None = None,
+        provider_key: NotificationProviderKey = NotificationProviderKey.SLACK,
+        key_type: NotificationSource = NotificationSource.METRIC_ALERT,
+        open_period_start: datetime | None = None,
+        date_added: datetime = datetime(2024, 8, 27, 10, 0, tzinfo=UTC),
+        has_integration: bool = True,
+    ) -> NotificationThread:
+        thread = NotificationThread.objects.create(
+            thread_key=f"{provider_key}:{channel_id}",
+            provider_key=provider_key,
+            target_id=channel_id,
+            thread_identifier=self.message_ts,
+            key_type=key_type,
+            key_data={
+                "open_period_start": (
+                    open_period_start or self.open_period.date_started
+                ).isoformat()
+            },
+            object_type=NotificationThreadObjectType.GROUP,
+            object_id=(group or self.group).id,
+            integration_id=(integration_id or self.integration.id) if has_integration else None,
+        )
+        thread.update(date_added=date_added)
+        return thread
+
+    def _create_other_integration(self, external_id: str, **kwargs: Any) -> Any:
+        return self.create_integration(
+            organization=self.organization,
+            external_id=external_id,
+            provider="slack",
+            metadata={"access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            **kwargs,
+        )
+
+    def _complete_with_conclusion(self) -> None:
+        self._set_summary("The release added a slow font.")
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+    def _update_alert_threads(
+        self, cache_payload: SlackInvestigationCachePayload | None = None
+    ) -> None:
+        SlackInvestigationEntrypoint.on_investigation_update(
+            cache_payload=cache_payload, run=self.orchestration_run
+        )
+
+    def _posts(self) -> list[tuple[str, str, str]]:
+        return [
+            (
+                call.kwargs["channel"],
+                call.kwargs["thread_ts"],
+                "conclusion"
+                if call.kwargs["text"] == "Seer finished the investigation"
+                else "status",
+            )
+            for call in self.mock_post_message.call_args_list
+        ]
+
+    def test_alert_threads_get_conclusion(self) -> None:
+        self._use_open_period()
+        other = self._create_other_integration("TXXXXXXXXX4")
+        self._alert_thread("CALERT0001")
+        self._alert_thread("CALERT0002", integration_id=other.id)
+        self._complete_with_conclusion()
+
+        self._update_alert_threads()
+
+        assert sorted(self._posts()) == [
+            ("CALERT0001", self.message_ts, "conclusion"),
+            ("CALERT0002", self.message_ts, "conclusion"),
+        ]
+
+    def test_alert_threads_skip_disabled_organization_integration(self) -> None:
+        self._use_open_period()
+        other = self._create_other_integration("TXXXXXXXXX4")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=self.organization.id, integration_id=other.id
+            ).update(status=ObjectStatus.DISABLED)
+        self._alert_thread("CDISABLED1", integration_id=other.id)
+        self._alert_thread("CALERT0001")
+        self._complete_with_conclusion()
+
+        self._update_alert_threads()
+
+        assert self._posts() == [("CALERT0001", self.message_ts, "conclusion")]
+        assert not self._get_state("CDISABLED1").get("final_sent")
+
+    def test_delayed_alert_thread_gets_conclusion(self) -> None:
+        self._use_open_period()
+        self._alert_thread("CALERT0001", date_added=datetime(2024, 8, 27, 13, 0, tzinfo=UTC))
+        self._complete_with_conclusion()
+
+        self._update_alert_threads()
+
+        assert self._posts() == [("CALERT0001", self.message_ts, "conclusion")]
+
+    def test_alert_threads_wait_for_completed_run(self) -> None:
+        self._use_open_period()
+        self._alert_thread("CALERT0001")
+        self._set_summary("The release added a slow font.")
+
+        self._update_alert_threads()
+
+        self.mock_post_message.assert_not_called()
+
+    def test_clicked_thread_gets_conclusion_once(self) -> None:
+        self._use_open_period()
+        cache_payload = self._set_cache(status_message_ts=None)
+        self._alert_thread(self.channel_id)
+        self._alert_thread("CALERT0002")
+        self._complete_with_conclusion()
+
+        self._update_alert_threads(cache_payload)
+        self._update_alert_threads(cache_payload)
+
+        assert self._posts() == [
+            (self.channel_id, self.message_ts, "status"),
+            (self.channel_id, self.message_ts, "conclusion"),
+            ("CALERT0002", self.message_ts, "conclusion"),
+        ]
+        assert self._get_state()["final_sent"] is True
+        assert self._get_state("CALERT0002") == {"final_sent": True}
+
+    def test_alert_threads_get_conclusion_once(self) -> None:
+        self._use_open_period()
+        self._alert_thread("CALERT0001")
+        self._complete_with_conclusion()
+
+        self._update_alert_threads()
+        self._update_alert_threads()
+
+        assert self._posts() == [("CALERT0001", self.message_ts, "conclusion")]
+
+    def test_failed_alert_thread_conclusion_is_retried_on_next_update(self) -> None:
+        self._use_open_period()
+        self._alert_thread("CALERT0001")
+        self._complete_with_conclusion()
+        self.mock_post_message.side_effect = TypedSlackApiError(
+            "error", _slack_response({"ok": False, "error": "ratelimited"})
+        )
+
+        self._update_alert_threads()
+        self.mock_post_message.side_effect = None
+        self._update_alert_threads()
+        self._update_alert_threads()
+
+        assert self._posts() == [
+            ("CALERT0001", self.message_ts, "conclusion"),
+            ("CALERT0001", self.message_ts, "conclusion"),
+        ]
+        assert self._get_state("CALERT0001") == {"final_sent": True}
+
+    def test_alert_threads_outside_open_period_or_slack_are_skipped(self) -> None:
+        self._use_open_period()
+        other_group = self.create_group(project=self.project, create_open_period=False)
+        self._alert_thread("CALERT0001")
+        self._alert_thread("CBEFORE001", open_period_start=datetime(2024, 8, 27, 8, 0, tzinfo=UTC))
+        self._alert_thread("CAFTER0001", open_period_start=datetime(2024, 8, 27, 13, 0, tzinfo=UTC))
+        self._alert_thread("CNOPERIOD1").update(key_data={})
+        self._alert_thread("COTHERGRP1", group=other_group)
+        self._alert_thread("CMSTEAMS01", provider_key=NotificationProviderKey.MSTEAMS)
+        self._alert_thread("CISSUE0001", key_type=NotificationSource.ISSUE)
+        self._alert_thread("CNOINTEGR1", has_integration=False)
+        self._complete_with_conclusion()
+
+        self._update_alert_threads()
+
+        assert self._posts() == [("CALERT0001", self.message_ts, "conclusion")]
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_alert_thread_failure_does_not_block_others(self, mock_record: Mock) -> None:
+        self._use_open_period()
+        disabled = self._create_other_integration("TXXXXXXXXX4", status=ObjectStatus.DISABLED)
+        self._alert_thread("CDISABLED1", integration_id=disabled.id)
+        self._alert_thread("CERROR0001")
+        self._alert_thread("CALERT0001")
+        self._complete_with_conclusion()
+
+        def post_message(**kwargs: Any) -> SlackResponse:
+            if kwargs["channel"] == "CERROR0001":
+                raise TypedSlackApiError(
+                    "error", _slack_response({"ok": False, "error": "ratelimited"})
+                )
+            return _slack_response({"ok": True, "ts": self.status_ts})
+
+        self.mock_post_message.side_effect = post_message
+
+        self._update_alert_threads()
+
+        assert sorted(self._posts()) == [
+            ("CALERT0001", self.message_ts, "conclusion"),
+            ("CERROR0001", self.message_ts, "conclusion"),
+        ]
+        assert "integration_not_found" in [
+            call.args[1]
+            for call in mock_record.mock_calls
+            if call.args[0] == EventLifecycleOutcome.HALTED
+        ]
