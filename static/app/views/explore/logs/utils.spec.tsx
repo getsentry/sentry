@@ -1,4 +1,3 @@
-import * as qs from 'sentry/utils/url/qs';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -6,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
