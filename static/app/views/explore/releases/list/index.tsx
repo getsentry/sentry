@@ -495,6 +495,7 @@ function ReleasesListInnerPage() {
                         pathname: location.pathname,
                         query: {
                           ...location.query,
+                          cursor: undefined,
                           query: undefined,
                           tab: undefined,
                         },
@@ -510,6 +511,7 @@ function ReleasesListInnerPage() {
                         pathname: location.pathname,
                         query: {
                           ...location.query,
+                          cursor: undefined,
                           query: undefined,
                           tab: 'mobile-builds',
                         },
@@ -527,6 +529,7 @@ function ReleasesListInnerPage() {
                         pathname: location.pathname,
                         query: {
                           ...location.query,
+                          cursor: undefined,
                           query: undefined,
                           tab: 'snapshots',
                         },

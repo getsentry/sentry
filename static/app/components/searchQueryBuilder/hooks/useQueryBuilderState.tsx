@@ -48,6 +48,7 @@ type QueryBuilderState = {
    * 2. A free text value has been typed, but the user has not blurred the input or pressed enter.
    */
   committedQuery: string;
+  committedQueryFromInitialQuery: boolean;
   /**
    * There are certain cases where we want to move the cursor to a different location after
    * a state change. useApplyFocusOverride reads this value and focuses the selected item.
@@ -71,6 +72,7 @@ type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
+  fromInitialQuery?: boolean;
   ignoreDisabled?: boolean;
   shouldCommitQuery?: boolean;
 };
@@ -1141,6 +1143,7 @@ export function useQueryBuilderState({
   const initialState: QueryBuilderState = {
     query: initialQuery,
     committedQuery: initialQuery,
+    committedQueryFromInitialQuery: false,
     focusOverride: null,
     clearAskSeerFeedback: false,
   };
@@ -1320,7 +1323,28 @@ export function useQueryBuilderState({
     ]
   );
 
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const reducerTrackingCommitSource: Reducer<QueryBuilderState, QueryBuilderActions> =
+    useCallback(
+      (state, action) => {
+        const nextState = reducer(state, action);
+        if (nextState.committedQuery === state.committedQuery) {
+          return nextState;
+        }
+
+        return {
+          ...nextState,
+          // Committing what the user typed, or a replaceRawSearchKeys rewrite, still emits.
+          committedQueryFromInitialQuery:
+            action.type === 'UPDATE_QUERY' &&
+            Boolean(action.fromInitialQuery) &&
+            action.query !== state.query &&
+            action.query === nextState.committedQuery,
+        };
+      },
+      [reducer]
+    );
+
+  const [state, dispatch] = useReducer(reducerTrackingCommitSource, initialState);
 
   useEffect(() => {
     if (state.clearAskSeerFeedback) {
