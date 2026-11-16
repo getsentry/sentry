@@ -39,6 +39,7 @@ import type {
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
 import {getActorName} from 'sentry/views/investigations/utils';
+import {AssigneePill} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/assigneeChip';
 import {InlineChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/inlineChip';
 import {
   ActivityLineContent,
@@ -181,12 +182,11 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
         ? currentUser
         : members?.find(member => member.id === createdBy);
 
-  // The person is already the row's avatar, so only their name follows, like
-  // the actor of an issue activity note. Other references use the issue
-  // activity feed's inline chips.
+  // Whoever or whatever started it is a reference, so it uses the issue
+  // activity feed's inline chips, and the row keeps the timeline dot.
   let details: React.ReactNode = null;
   if (user) {
-    details = tct('by [actor]', {actor: <Text bold>{getActorName(user)}</Text>});
+    details = tct('by [actor]', {actor: <AssigneePill assignee={user} />});
   } else if (trigger?.type === 'automation') {
     details = tct('by [automation] automation', {
       automation: (
@@ -215,11 +215,7 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
   return (
     <ActivityLineRow as="li">
       <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
-        {user ? (
-          <UserAvatar user={user} size={22} hasTooltip />
-        ) : (
-          <ActivityProgressMarker state={ProgressState.IDENTIFIED} label={t('Started')} />
-        )}
+        <ActivityProgressMarker state={ProgressState.IDENTIFIED} label={t('Started')} />
       </Grid>
       <ActivityLineHeadline
         title={t('Investigation started')}
