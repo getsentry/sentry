@@ -3,6 +3,7 @@ import type {InfiniteData, InfiniteQueryObserverResult} from '@tanstack/react-qu
 import type {Location} from 'history';
 import qs from 'query-string';
 
+import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
@@ -457,8 +458,8 @@ export function getLogsUrl({
     project: projects?.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     [LOGS_QUERY_KEY]: query,
     utc,
     [LOGS_FIELDS_KEY]: field,

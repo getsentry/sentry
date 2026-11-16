@@ -1,5 +1,6 @@
 import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -10,6 +11,7 @@ import {
   createTraceMetricEventsFilter,
   getAggregatesMetricsTotalFilter,
   getEquationMetricsTotalFilter,
+  getMetricsUrl,
   getMetricsUrlFromSavedQueryUrl,
   mapMetricUnitToFieldType,
   parseTraceMetricFromQuery,
@@ -75,6 +77,42 @@ describe('stripTraceMetricTokens', () => {
     ['value:>100', 'value:>100'],
   ])('strips metric tokens from %s', (query, expected) => {
     expect(stripTraceMetricTokens(query)).toBe(expected);
+  });
+});
+
+describe('getMetricsUrl', () => {
+  const organization = OrganizationFixture();
+
+  it('serializes an absolute date range passed as Date objects', () => {
+    const url = getMetricsUrl({
+      organization,
+      selection: PageFiltersFixture({
+        datetime: {
+          start: new Date('2025-05-06T10:00:00.000Z'),
+          end: new Date('2025-05-07T12:30:00.000Z'),
+          period: null,
+          utc: true,
+        },
+      }),
+    });
+
+    expect(qs.parseUrl(url).query).toEqual({
+      start: '2025-05-06T10:00:00.000',
+      end: '2025-05-07T12:30:00.000',
+      project: '',
+      utc: 'true',
+    });
+  });
+
+  it('serializes a relative date range', () => {
+    const url = getMetricsUrl({
+      organization,
+      selection: PageFiltersFixture({
+        datetime: {start: null, end: null, period: '24h', utc: null},
+      }),
+    });
+
+    expect(qs.parseUrl(url).query).toEqual({project: '', statsPeriod: '24h'});
   });
 });
 

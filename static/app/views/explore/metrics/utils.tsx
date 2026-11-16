@@ -2,6 +2,7 @@ import qs from 'query-string';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
+import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -194,8 +195,8 @@ export function getMetricsUrl({
     project: projects?.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     utc,
     metric: metricQueries?.map(metricQuery => encodeMetricQueryParams(metricQuery)),
     id,

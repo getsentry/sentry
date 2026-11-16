@@ -1,6 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -16,6 +17,7 @@ import {OurLogKnownFieldKey, type OurLogsResponseItem} from './types';
 import {
   compareLogRowsBySortBys,
   createErrorLogRow,
+  getLogsUrl,
   getLogsUrlFromSavedQueryUrl,
   type LogTableRowItem,
   ourlogToJson,
@@ -104,6 +106,57 @@ describe('viewLogsSamplesTarget', () => {
     expect(target.query.logsQuery).toBe(
       'message:resolver.deprecated_function_used tags[api_token_is_sentry_app,boolean]:true'
     );
+  });
+});
+
+describe('getLogsUrl', () => {
+  const organization = OrganizationFixture();
+
+  it('serializes an absolute date range passed as Date objects', () => {
+    const target = getLogsUrl({
+      organization,
+      selection: PageFiltersFixture({
+        datetime: {
+          start: new Date('2025-05-06T10:00:00.000Z'),
+          end: new Date('2025-05-07T12:30:00.000Z'),
+          period: null,
+          utc: true,
+        },
+      }),
+    });
+
+    expect(target).toBe(
+      '/organizations/org-slug/explore/logs/?end=2025-05-07T12%3A30%3A00.000&project=&start=2025-05-06T10%3A00%3A00.000&utc=true'
+    );
+  });
+
+  it('serializes an absolute date range passed as strings', () => {
+    const target = getLogsUrl({
+      organization,
+      selection: PageFiltersFixture({
+        datetime: {
+          start: '2025-05-06T10:00:00.000Z',
+          end: '2025-05-07T12:30:00.000Z',
+          period: null,
+          utc: null,
+        },
+      }),
+    });
+
+    expect(target).toBe(
+      '/organizations/org-slug/explore/logs/?end=2025-05-07T12%3A30%3A00.000&project=&start=2025-05-06T10%3A00%3A00.000'
+    );
+  });
+
+  it('serializes a relative date range', () => {
+    const target = getLogsUrl({
+      organization,
+      selection: PageFiltersFixture({
+        datetime: {start: null, end: null, period: '24h', utc: null},
+      }),
+    });
+
+    expect(target).toBe('/organizations/org-slug/explore/logs/?project=&statsPeriod=24h');
   });
 });
 
