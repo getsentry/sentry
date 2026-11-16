@@ -669,7 +669,7 @@ The package follows [semver](https://semver.org) and releases from getsentry/sen
 
 Within a major version, upgrading keeps your calls working. Rerun your typecheck anyway: since the types follow the API, a type that now matches the server can surface a mismatch in your code. For a new major, read the CHANGELOG's Breaking Changes for every major in between.
 
-To try a release candidate, install the `next` tag: `npm install @sentry/api@next`.
+Release candidates, when there are any, publish under the `next` tag: `npm install @sentry/api@next`. See [Release candidates](#release-candidates).
 
 ### Deprecations
 
