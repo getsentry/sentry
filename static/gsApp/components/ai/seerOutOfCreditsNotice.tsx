@@ -3,10 +3,10 @@ import {IconMail} from '@sentry/icons/mail';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import type {
   SeerOutOfCreditsCtaProps,
   SeerOutOfCreditsReason,
