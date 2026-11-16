@@ -1,5 +1,6 @@
+import type {Query} from 'history';
 import shuffle from 'lodash/shuffle';
-import * as qs from 'query-string';
+import qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
@@ -28,7 +29,8 @@ import {
   SavedQueryDatasets,
 } from './types';
 
-const locationFromSearch = (search: string) => LocationFixture({query: qs.parse(search)});
+const locationFromSearch = (search: string) =>
+  LocationFixture({query: qs.parse(search) as Query});
 
 const generateFields = (fields: string[]) =>
   fields.map(field => ({

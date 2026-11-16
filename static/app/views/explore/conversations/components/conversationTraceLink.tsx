@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconSpan} from '@sentry/icons/span';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';

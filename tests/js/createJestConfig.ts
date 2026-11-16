@@ -258,6 +258,9 @@ const ESM_NODE_MODULES = [
   'marked',
   '@sentry\\+sqlish',
   '@tanstack\\+(?:react-)?hotkeys@',
+  'query-string@',
+  'filter-obj@',
+  'split-on-first@',
 ];
 
 const config: Config.InitialOptions = {

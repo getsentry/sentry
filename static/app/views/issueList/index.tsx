@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NotFound} from 'sentry/components/errors/notFound';

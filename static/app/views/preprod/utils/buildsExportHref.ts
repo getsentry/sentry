@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 /**
  * Build the CSV export URL from the builds-list query params.

@@ -13,8 +13,9 @@ import {flushSync} from 'react-dom';
 import styled from '@emotion/styled';
 import type {Placement} from '@floating-ui/react-dom';
 import * as Sentry from '@sentry/react';
+import type {Query} from 'history';
 import {parseAsFloat, parseAsString, useQueryStates} from 'nuqs';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
@@ -186,7 +187,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       filters,
       replayTraces: props.replayTraces,
       organization: props.organization,
-      urlParams: qs.parse(location.search),
+      urlParams: qs.parse(location.search) as Query,
       rerender: forceRerender,
       preferences: traceState.preferences,
     });
