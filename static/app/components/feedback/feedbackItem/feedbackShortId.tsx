@@ -2,7 +2,6 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
-import queryString from 'query-string';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -12,6 +11,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import * as qs from 'sentry/utils/url/qs';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
@@ -49,7 +49,7 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
       path: '/',
       organization,
     }) +
-    queryString.stringifyUrl({
+    qs.stringifyUrl({
       url: '?',
       query: {
         feedbackSlug: projectSlug ? `${projectSlug}:${feedbackItem.id}` : feedbackItem.id,
