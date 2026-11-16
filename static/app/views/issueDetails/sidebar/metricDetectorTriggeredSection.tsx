@@ -223,7 +223,7 @@ function useZoomTimeRangeToOpenPeriod({
       const query = buildDetectorZoomQuery(location.query, zoomRange);
 
       // Pin the event so the new time range can't select a different one
-      navigate({pathname: getIssueDetailsPath(eventId), query}, {replace: true});
+      navigate({pathname: getIssueDetailsPath({eventId}), query}, {replace: true});
     }
   });
 

@@ -41,7 +41,7 @@ export function EventMissingBanner() {
         link: (
           <Link
             to={{
-              pathname: getIssueDetailsPath('recommended'),
+              pathname: getIssueDetailsPath({eventId: 'recommended'}),
               query: {
                 statsPeriod: `${MAX_PICKABLE_DAYS}d`,
                 ...(location.query.project ? {project: location.query.project} : {}),
@@ -61,7 +61,7 @@ export function EventMissingBanner() {
       link: (
         <Link
           to={{
-            pathname: getIssueDetailsPath(eventId),
+            pathname: getIssueDetailsPath({eventId}),
             query: {
               statsPeriod,
               ...(location.query.project ? {project: location.query.project} : {}),

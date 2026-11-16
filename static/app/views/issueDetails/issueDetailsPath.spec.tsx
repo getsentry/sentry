@@ -19,7 +19,7 @@ describe('useIssueDetailsPath', () => {
     });
 
     expect(result.current()).toBe(`/organizations/${organization.slug}/issues/1/`);
-    expect(result.current('abc')).toBe(
+    expect(result.current({eventId: 'abc'})).toBe(
       `/organizations/${organization.slug}/issues/1/events/abc/`
     );
   });
@@ -35,7 +35,7 @@ describe('useIssueDetailsPath', () => {
     });
 
     expect(result.current()).toBe(inboxPath);
-    expect(result.current('abc')).toBe(`${inboxPath}events/abc/`);
+    expect(result.current({eventId: 'abc'})).toBe(`${inboxPath}events/abc/`);
   });
 
   it('ignores the provided base path for other issues', () => {
@@ -48,7 +48,7 @@ describe('useIssueDetailsPath', () => {
       ),
     });
 
-    expect(result.current('abc')).toBe(
+    expect(result.current({eventId: 'abc'})).toBe(
       `/organizations/${organization.slug}/issues/2/events/abc/`
     );
   });

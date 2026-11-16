@@ -145,7 +145,9 @@ function MetricIssueChartContent({
         // Open periods of this issue stay wherever issue details is rendered
         pathname:
           clickedOpenPeriod.groupId === group.id
-            ? getIssueDetailsPath(getOpenPeriodOpeningEventId(clickedOpenPeriod))
+            ? getIssueDetailsPath({
+                eventId: getOpenPeriodOpeningEventId(clickedOpenPeriod),
+              })
             : getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug),
         query: location.query,
       }),

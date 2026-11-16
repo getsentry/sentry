@@ -38,6 +38,13 @@ export function IssueDetailsBasePathProvider({
   );
 }
 
+interface IssueDetailsPathOptions {
+  /**
+   * Builds the path to this event of the issue
+   */
+  eventId?: string;
+}
+
 /**
  * Returns a function that builds a path to the current issue, or to one of its events,
  * wherever issue details is rendered. Use it to move between events without leaving
@@ -46,7 +53,7 @@ export function IssueDetailsBasePathProvider({
  * Links to issue tabs (activity, distributions, etc.) should use
  * `useGroupDetailsRoute().baseUrl` instead, which always points to the issue details page.
  */
-export function useIssueDetailsPath(): (eventId?: string) => string {
+export function useIssueDetailsPath(): (options?: IssueDetailsPathOptions) => string {
   const organization = useOrganization();
   const groupId = useGroupId();
   const context = useContext(IssueDetailsBasePathContext);
@@ -57,7 +64,8 @@ export function useIssueDetailsPath(): (eventId?: string) => string {
       : normalizeUrl(`/organizations/${organization.slug}/issues/${groupId}/`);
 
   return useCallback(
-    (eventId?: string) => (eventId ? `${basePath}events/${eventId}/` : basePath),
+    ({eventId}: IssueDetailsPathOptions = {}) =>
+      eventId ? `${basePath}events/${eventId}/` : basePath,
     [basePath]
   );
 }
