@@ -40,6 +40,7 @@ import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import type {SeerExplorerChatReferrer} from 'sentry/views/seerExplorer/types';
 
 import type {CMDKActionData} from './cmdk';
 import {CMDKCollection} from './cmdk';
@@ -91,7 +92,10 @@ interface CommandPaletteScore {
 }
 
 interface CommandPaletteProps extends ModalRenderProps {
-  openSeerExplorer?: (options?: {initialQuery?: string}) => void;
+  openSeerExplorer?: (options?: {
+    initialQuery?: string;
+    initialQueryReferrer?: SeerExplorerChatReferrer;
+  }) => void;
 }
 
 export function CommandPalette({
@@ -201,7 +205,10 @@ export function CommandPalette({
         listItemType: 'action',
         display: {label: t('Ask Seer: %s', state.query), icon: <IconSeer />},
         onAction: () =>
-          openSeerExplorer?.({initialQuery: state.query.trim() || undefined}),
+          openSeerExplorer?.({
+            initialQuery: state.query.trim() || undefined,
+            initialQueryReferrer: 'command_palette.no_results',
+          }),
       },
       ...(openForm
         ? [
@@ -422,6 +429,7 @@ export function CommandPalette({
         closeModal?.();
         openSeerExplorer({
           initialQuery: state.query.trim() || undefined,
+          initialQueryReferrer: 'command_palette.tab',
         });
         return;
       }

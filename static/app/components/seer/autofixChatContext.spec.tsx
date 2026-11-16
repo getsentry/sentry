@@ -117,7 +117,10 @@ describe('AutofixChatProvider', () => {
         chatUrl,
         expect.objectContaining({
           method: 'POST',
-          data: expect.objectContaining({query: 'Why is this issue spiking?'}),
+          data: expect.objectContaining({
+            query: 'Why is this issue spiking?',
+            referrer: 'autofix',
+          }),
         })
       );
     });
@@ -173,7 +176,9 @@ describe('AutofixChatProvider', () => {
     await waitFor(() => {
       expect(postChat).toHaveBeenCalledWith(
         chatUrl,
-        expect.objectContaining({data: expect.objectContaining({query: 'Start over'})})
+        expect.objectContaining({
+          data: expect.objectContaining({query: 'Start over', referrer: 'autofix'}),
+        })
       );
     });
     expect(postExisting).not.toHaveBeenCalled();

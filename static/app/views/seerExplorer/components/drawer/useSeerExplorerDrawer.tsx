@@ -8,7 +8,10 @@ import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import type {
+  SeerExplorerChatReferrer,
+  SeerExplorerRunId,
+} from 'sentry/views/seerExplorer/types';
 import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 import {ExplorerDrawerContent} from './explorerDrawerContent';
@@ -32,6 +35,8 @@ export type OpenSeerExplorerDrawerOptions = {
    * an empty session, or the open one with `appendToOpenRun`.
    */
   initialQuery?: string;
+  /** Where `initialQuery` came from, recorded on the run it starts. */
+  initialQueryReferrer?: SeerExplorerChatReferrer;
   /**
    * Optional run ID to open. If provided, opens an existing session.
    */
@@ -75,7 +80,12 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
 
   const openSeerExplorerDrawer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
-      const {runId: openRunId, initialQuery, appendToOpenRun} = drawerOptions ?? {};
+      const {
+        runId: openRunId,
+        initialQuery,
+        initialQueryReferrer,
+        appendToOpenRun,
+      } = drawerOptions ?? {};
 
       if (initialQuery) {
         // A forwarded query starts a fresh session unless the caller asked to
@@ -94,6 +104,7 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
           <ExplorerDrawerContent
             getPageReferrer={getPageReferrer}
             initialQuery={initialQuery}
+            initialQueryReferrer={initialQueryReferrer}
             appendInitialQuery={appendToOpenRun}
           />
         ),

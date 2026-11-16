@@ -141,6 +141,7 @@ describe('SeerDrawerNextStep', () => {
       setSidebarPosition: jest.fn(),
       sidebarAppendInitialQuery: false,
       sidebarInitialQuery: undefined,
+      sidebarInitialQueryReferrer: undefined,
       sidebarKey: 0,
       sidebarPosition: 'auto',
       toggleSeerExplorer: jest.fn(),
@@ -192,6 +193,7 @@ describe('SeerDrawerNextStep', () => {
         expect(openChatPrompt).toHaveBeenCalledWith({
           prompt: question,
           context: {autofixStep: step},
+          referrer: 'ask_seer.autofix_step',
         });
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
         expect(autofix.startStep).not.toHaveBeenCalled();
@@ -223,6 +225,7 @@ describe('SeerDrawerNextStep', () => {
       expect(openChatPrompt).toHaveBeenCalledWith({
         prompt: 'How can this root cause be improved?',
         context: {autofixStep: 'root_cause'},
+        referrer: 'ask_seer.autofix_step',
       });
       expect(sendMessage).not.toHaveBeenCalled();
       expect(autofix.startStep).not.toHaveBeenCalled();

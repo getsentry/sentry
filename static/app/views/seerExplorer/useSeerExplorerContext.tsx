@@ -1,7 +1,7 @@
 import {createContext, useContext, type RefObject} from 'react';
 
 import type {OpenSeerExplorerDrawerOptions} from './components/drawer/useSeerExplorerDrawer';
-import type {SeerExplorerSidebarPosition} from './types';
+import type {SeerExplorerChatReferrer, SeerExplorerSidebarPosition} from './types';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
@@ -12,7 +12,11 @@ export type SeerExplorerContextValue = {
    * Opens Explorer on an "Ask Seer" question from Seer and sends nothing until the user
    * replies. `context` is any JSON-serializable value describing what the question is about.
    */
-  openChatPrompt: (options: {prompt: string; context?: unknown}) => void;
+  openChatPrompt: (options: {
+    prompt: string;
+    referrer: SeerExplorerChatReferrer;
+    context?: unknown;
+  }) => void;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   sessionState: SeerExplorerSessionState;
   /**
@@ -32,6 +36,8 @@ export type SeerExplorerContextValue = {
    */
   sidebarContainerRef: RefObject<HTMLDivElement | null>;
   sidebarInitialQuery: string | undefined;
+  /** Where `sidebarInitialQuery` came from. Sidebar mode only. */
+  sidebarInitialQueryReferrer: SeerExplorerChatReferrer | undefined;
   /**
    * Increments on each forwarded query so the (always-mounted) sidebar content
    * resubmits a re-forwarded query. Only meaningful in sidebar mode.
@@ -52,6 +58,7 @@ export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   setSidebarPosition: () => {},
   sidebarAppendInitialQuery: false,
   sidebarInitialQuery: undefined,
+  sidebarInitialQueryReferrer: undefined,
   sidebarKey: 0,
   sidebarPosition: 'auto',
   toggleSeerExplorer: () => {},

@@ -401,7 +401,10 @@ describe('SeerExplorerSidebarLayout', () => {
 
   it('auto-submits an initialQuery when opened (command palette)', async () => {
     mockWideScreen(true);
-    renderSidebar(orgWithSidebar, {initialQuery: 'find the bug'});
+    renderSidebar(orgWithSidebar, {
+      initialQuery: 'find the bug',
+      initialQueryReferrer: 'command_palette.tab',
+    });
 
     await userEvent.click(screen.getByText('open-seer'));
 
@@ -409,7 +412,10 @@ describe('SeerExplorerSidebarLayout', () => {
     await waitFor(() =>
       expect(defaultHookReturn.sendMessage).toHaveBeenCalledWith(
         'find the bug',
-        expect.any(Number)
+        expect.any(Number),
+        undefined,
+        undefined,
+        'command_palette.tab'
       )
     );
   });

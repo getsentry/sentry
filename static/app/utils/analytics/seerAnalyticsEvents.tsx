@@ -3,7 +3,10 @@ import type {
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import type {
+  SeerExplorerChatReferrer,
+  SeerExplorerRunId,
+} from 'sentry/views/seerExplorer/types';
 
 type InvestigationActionRequestEvent = {
   action_kind: string;
@@ -227,6 +230,8 @@ export type SeerAnalyticsEventsParameters = {
   'seer.explorer.session_created': {
     referrer: string;
     surface: 'global_panel';
+    /** The UI entry point that started the chat, when it was recorded. */
+    entry_point?: SeerExplorerChatReferrer;
   };
   'seer.explorer.session_link_copied': Record<string, unknown>;
   'seer.explorer.sidebar.position_changed': {

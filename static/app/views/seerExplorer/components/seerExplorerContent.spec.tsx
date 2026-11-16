@@ -498,7 +498,13 @@ describe('SeerExplorerContent', () => {
       // The explicit null run id is what forces a fresh run rather than a post
       // into the run that just failed.
       await waitFor(() => {
-        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0, null);
+        expect(sendMessage).toHaveBeenCalledWith(
+          'why is this slow?',
+          0,
+          null,
+          undefined,
+          undefined
+        );
       });
     });
   });
@@ -2327,7 +2333,13 @@ describe('SeerExplorerContent', () => {
       renderContent({initialQuery: 'why is this slow?'});
 
       await waitFor(() => {
-        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0);
+        expect(sendMessage).toHaveBeenCalledWith(
+          'why is this slow?',
+          0,
+          undefined,
+          undefined,
+          undefined
+        );
       });
       expect(creditCheck).toHaveBeenCalledTimes(1);
       expect(
@@ -2362,7 +2374,13 @@ describe('SeerExplorerContent', () => {
       answerCreditCheck();
 
       await waitFor(() => {
-        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0);
+        expect(sendMessage).toHaveBeenCalledWith(
+          'why is this slow?',
+          0,
+          undefined,
+          undefined,
+          undefined
+        );
       });
       expect(sendMessage).toHaveBeenCalledTimes(1);
       expect(textarea).toHaveTextContent('my own question');
@@ -2418,7 +2436,13 @@ describe('SeerExplorerContent', () => {
       answerCreditCheck();
 
       await waitFor(() => {
-        expect(sendMessage).toHaveBeenCalledWith('why is this slow?', 0);
+        expect(sendMessage).toHaveBeenCalledWith(
+          'why is this slow?',
+          0,
+          undefined,
+          undefined,
+          undefined
+        );
       });
     });
 

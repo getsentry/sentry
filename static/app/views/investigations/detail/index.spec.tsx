@@ -2419,6 +2419,7 @@ describe('Investigation detail', () => {
     expect(openChatPrompt).toHaveBeenCalledTimes(1);
     expect(openChatPrompt).toHaveBeenCalledWith({
       prompt: 'How do you want to steer the investigation: "Latency query"?',
+      referrer: 'ask_seer.investigation',
       context: {
         investigation: {
           id: 'investigation-1',
@@ -2468,6 +2469,7 @@ describe('Investigation detail', () => {
 
     expect(openChatPrompt).toHaveBeenCalledWith({
       prompt: 'How do you want to steer the investigation: "Summary"?',
+      referrer: 'ask_seer.investigation',
       context: {
         investigation: {
           id: 'investigation-1',

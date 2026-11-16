@@ -65,6 +65,7 @@ import type {
   Block,
   ChatSuggestion,
   PendingUserInput,
+  SeerExplorerChatReferrer,
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
 } from 'sentry/views/seerExplorer/types';
@@ -140,6 +141,7 @@ function SidebarHeaderShell({
 export function SeerExplorerContent({
   getPageReferrer,
   initialQuery,
+  initialQueryReferrer,
   appendInitialQuery,
   onClose,
   renderHeader,
@@ -152,6 +154,8 @@ export function SeerExplorerContent({
   /** Submit `initialQuery` into the open run rather than only an empty one. */
   appendInitialQuery?: boolean;
   initialQuery?: string;
+  /** Where `initialQuery` came from, recorded on the run it starts. */
+  initialQueryReferrer?: SeerExplorerChatReferrer;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
   /** Surface chrome for the header. Defaults to the sidebar shell. */
   renderHeader?: RenderHeader;
@@ -497,12 +501,13 @@ export function SeerExplorerContent({
     if (showLoadError) {
       // The open run failed to load, so appending to it would post into a dead run.
       // A forwarded query still deserves an answer: start it in a fresh one.
-      sendMessage(query, 0, null);
+      sendMessage(query, 0, null, undefined, initialQueryReferrer);
       return;
     }
-    sendMessage(query, blocks.length);
+    sendMessage(query, blocks.length, undefined, undefined, initialQueryReferrer);
   }, [
     initialQuery,
+    initialQueryReferrer,
     appendInitialQuery,
     isEmptyState,
     isCheckingCredits,

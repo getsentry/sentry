@@ -1,6 +1,7 @@
 import {DrawerHeader, useDrawerContentContext} from '@sentry/scraps/drawer';
 
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
+import type {SeerExplorerChatReferrer} from 'sentry/views/seerExplorer/types';
 
 /**
  * Drawer surface for Seer Explorer: renders the shared content with the drawer's
@@ -15,11 +16,13 @@ import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExpl
 export function ExplorerDrawerContent({
   getPageReferrer,
   initialQuery,
+  initialQueryReferrer,
   appendInitialQuery,
 }: {
   getPageReferrer: () => string;
   appendInitialQuery?: boolean;
   initialQuery?: string;
+  initialQueryReferrer?: SeerExplorerChatReferrer;
 }) {
   const {onClose = () => {}} = useDrawerContentContext();
 
@@ -27,6 +30,7 @@ export function ExplorerDrawerContent({
     <SeerExplorerContent
       getPageReferrer={getPageReferrer}
       initialQuery={initialQuery}
+      initialQueryReferrer={initialQueryReferrer}
       appendInitialQuery={appendInitialQuery}
       onClose={onClose}
       renderHeader={({children, isPoppedOut}) => (

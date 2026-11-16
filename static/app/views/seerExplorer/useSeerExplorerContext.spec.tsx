@@ -27,7 +27,13 @@ function AskSeerEntryPoint({label, prompt}: {label: string; prompt: string}) {
   return (
     <button
       type="button"
-      onClick={() => openChatPrompt({prompt, context: {widget: 'p95 latency'}})}
+      onClick={() =>
+        openChatPrompt({
+          prompt,
+          context: {widget: 'p95 latency'},
+          referrer: 'ask_seer.dashboard_widget',
+        })
+      }
     >
       {label}
     </button>
@@ -185,6 +191,7 @@ describe('openChatPrompt', () => {
             query: 'why did it jump?',
             chat_prompt: 'What about this widget?',
             chat_prompt_context: JSON.stringify({widget: 'p95 latency'}),
+            referrer: 'ask_seer.dashboard_widget',
           }),
         })
       );
@@ -269,6 +276,13 @@ describe('openChatPrompt', () => {
           })
         );
       });
+      // The referrer describes how a run started, so a reply that joins one omits it.
+      expect(postExisting).toHaveBeenCalledWith(
+        `${chatUrl}7/`,
+        expect.objectContaining({
+          data: expect.not.objectContaining({referrer: expect.anything()}),
+        })
+      );
     });
   });
 

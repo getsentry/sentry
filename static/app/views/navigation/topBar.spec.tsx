@@ -221,6 +221,7 @@ describe('TopBar', () => {
       setSidebarPosition: jest.fn(),
       sidebarAppendInitialQuery: false,
       sidebarInitialQuery: undefined,
+      sidebarInitialQueryReferrer: undefined,
       sidebarKey: 0,
       sidebarPosition: 'auto',
       toggleSeerExplorer: jest.fn(),

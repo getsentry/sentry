@@ -1,4 +1,4 @@
-import type {Block} from './types';
+import type {Block, SeerExplorerChatReferrer} from './types';
 
 /**
  * An "Ask Seer" question: shown in Explorer as Seer's, and sent with the user's reply.
@@ -7,6 +7,8 @@ import type {Block} from './types';
 export type ChatPrompt = {
   text: string;
   context?: string;
+  /** Which "Ask Seer" entry point showed the question, recorded on a chat its reply starts. */
+  referrer?: SeerExplorerChatReferrer;
 };
 
 /** The question a user message answered, which the chat endpoint stores in its metadata. */

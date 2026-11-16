@@ -130,6 +130,57 @@ describe('useSeerExplorer', () => {
       });
     });
 
+    it('records the referrer only on the message that starts a run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'GET',
+        body: {session: null},
+      });
+      const newRunMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'GET',
+        body: {session: {blocks: [], run_id: 123, status: 'completed'}},
+      });
+      const continueMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/123/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.sendMessage('dsn', 0, null, undefined, 'command_palette.tab');
+      });
+      await waitFor(() => expect(result.current.runId).toBe(123));
+      expect(newRunMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/seer/explorer-chat/`,
+        expect.objectContaining({
+          data: expect.objectContaining({referrer: 'command_palette.tab'}),
+        })
+      );
+
+      act(() => {
+        result.current.sendMessage(
+          'more',
+          undefined,
+          undefined,
+          undefined,
+          'command_palette.tab'
+        );
+      });
+      await waitFor(() => expect(continueMock).toHaveBeenCalled());
+      expect(continueMock.mock.calls[0][1].data.referrer).toBeUndefined();
+    });
+
     it('sends structured JSON on dashboard page with feature flag', async () => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => '/dashboard/:dashboardId/',

@@ -382,6 +382,54 @@ describe('CommandPalette', () => {
       ).toBeInTheDocument();
     });
 
+    it('tells Seer a Tab handoff came from the command palette', async () => {
+      const openSeerExplorer = jest.fn();
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction to="/known/" display={{label: 'Known Action'}} />
+          <CommandPalette
+            {...makeRenderProps(jest.fn())}
+            openSeerExplorer={openSeerExplorer}
+          />
+        </CommandPaletteProvider>
+      );
+
+      await userEvent.type(
+        screen.getByRole('searchbox', {name: 'Search commands'}),
+        'dsn'
+      );
+      await userEvent.keyboard('{Tab}');
+
+      expect(openSeerExplorer).toHaveBeenCalledWith({
+        initialQuery: 'dsn',
+        initialQueryReferrer: 'command_palette.tab',
+      });
+    });
+
+    it('tells Seer a no-results handoff came from the command palette', async () => {
+      const openSeerExplorer = jest.fn();
+      render(
+        <CommandPaletteProvider>
+          <CMDKAction to="/known/" display={{label: 'Known Action'}} />
+          <CommandPalette
+            {...makeRenderProps(jest.fn())}
+            openSeerExplorer={openSeerExplorer}
+          />
+        </CommandPaletteProvider>
+      );
+
+      await userEvent.type(
+        screen.getByRole('searchbox', {name: 'Search commands'}),
+        'xyzzy'
+      );
+      await userEvent.click(await screen.findByRole('option', {name: 'Ask Seer: xyzzy'}));
+
+      expect(openSeerExplorer).toHaveBeenCalledWith({
+        initialQuery: 'xyzzy',
+        initialQueryReferrer: 'command_palette.no_results',
+      });
+    });
+
     it('clearing the query restores all top-level items', async () => {
       render(
         <GlobalActionsComponent>
