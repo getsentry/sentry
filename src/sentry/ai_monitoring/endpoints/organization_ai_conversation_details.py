@@ -739,8 +739,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 name="spans",
                 query_string=query_string,
                 selected_columns=[*AI_CONVERSATION_ATTRIBUTES, *META_COLUMNS],
-                # Spans can start at the same time, so the span ID breaks ties. Without
-                # it, their order can change between page requests.
                 orderby=["precise.start_ts", "span_id"],
                 offset=offset,
                 limit=limit,
