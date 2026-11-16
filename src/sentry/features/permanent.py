@@ -110,8 +110,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:dynamic-sampling": FlagpoleFeature(default=False, api_expose=True),
         # Enable attaching arbitrary files to events.
         "organizations:event-attachments": FlagpoleFeature(default=True, api_expose=True),
-        # Enable Performance view
-        "organizations:performance-view": FlagpoleFeature(default=True, api_expose=True),
         # Enable core Session Replay backend APIs
         "organizations:session-replay": FlagpoleFeature(default=False, api_expose=True),
         # Enable profiling view
