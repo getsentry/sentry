@@ -118,6 +118,7 @@ class RepoPRState(BaseModel):
     title: str | None = None
     description: str | None = None
     integration_id: str | None = None
+    idempotency_key: str | None = Field(default=None, exclude=True)
 
     class Config:
         extra = "ignore"

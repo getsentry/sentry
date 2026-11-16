@@ -1,5 +1,6 @@
 import functools
 import os
+from urllib.parse import urlsplit
 
 import orjson
 from django.conf import settings
@@ -22,7 +23,9 @@ def _load_schema() -> Spec:
     path = os.path.join(os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json")
     with open(path, "rb") as json_file:
         data = orjson.loads(json_file.read())
-    data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
+    server = data["servers"][0]
+    # Paths are relative to the server URL's path, so keep it.
+    server["url"] = settings.SENTRY_OPTIONS["system.url-prefix"] + urlsplit(server["url"]).path
     del data["components"]
     return Spec.from_dict(data)
 

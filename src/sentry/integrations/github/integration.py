@@ -1009,6 +1009,42 @@ def validate_org_installation_choice(
     pipeline.bind_state("chosen_installation", chosen_installation_id)
 
 
+def _user_controls_installation(pipeline: IntegrationPipeline, installation_id: str) -> bool:
+    """
+    Asks GitHub whether the user who completed OAuth in this pipeline controls the
+    installation: it's on their own personal account, or on an organization where
+    they're an active admin.
+
+    Only the app's own credentials are used, so no user token is kept between
+    pipeline steps. Used when the installation.created webhook hasn't created the
+    Integration yet, so there's no recorded installer to compare the user against.
+    """
+    authenticated_user = pipeline.fetch_state("github_authenticated_user")
+    # The installation_id comes from the browser; only real ids reach GitHub.
+    if not authenticated_user or not installation_id.isdigit():
+        return False
+
+    app_client = GithubSetupApiClient()
+    try:
+        account = app_client.get_installation_info(installation_id)["account"]
+        if account["type"] == "User":
+            return account["login"] == authenticated_user
+
+        # The app is installed on the organization now, so a token for this
+        # installation can read its members. Limit the token to that, and don't
+        # keep it: it expires on its own within the hour.
+        members_token = app_client.create_installation_token(
+            installation_id, permissions={"members": "read"}
+        )
+        membership = GithubSetupApiClient(access_token=members_token).get_organization_membership(
+            account["login"], authenticated_user
+        )
+    except ApiError:
+        return False
+
+    return membership.get("role") == "admin" and membership.get("state") == "active"
+
+
 def validate_github_installation(
     pipeline: IntegrationPipeline,
 ) -> str | None:
@@ -1049,15 +1085,32 @@ def validate_github_installation(
             # installations before reaching this point.
             return installation_id
 
+        # The installation.created webhook usually hasn't arrived yet, so we
+        # don't know who installed the app. Ask GitHub instead.
+        if _user_controls_installation(pipeline, installation_id):
+            metrics.incr("integrations.github.installation.verified_without_webhook")
+            return installation_id
+
         metrics.incr("integrations.github.installation.missing_integration")
         raise GitHubPipelineError(GitHubInstallationError.MISSING_INTEGRATION)
 
-    if (
-        chosen_installation_id is None
-        and pipeline.fetch_state("github_authenticated_user")
-        != integration.metadata["sender"]["login"]
-    ):
-        raise GitHubPipelineError(GitHubInstallationError.USER_MISMATCH)
+    if chosen_installation_id is None:
+        installer_login = integration.metadata.get("sender", {}).get("login")
+        if installer_login is None:
+            # Connecting an installation replaces its metadata, which drops the
+            # installer the webhook recorded. A raw id for an installation that's
+            # already connected isn't expected from the UI, so record when it happens.
+            logger.warning(
+                "github.installation.missing_installer",
+                extra={
+                    "integration_id": integration.id,
+                    "organization_id": pipeline.organization.id,
+                },
+            )
+            metrics.incr("integrations.github.installation.missing_installer")
+            raise GitHubPipelineError(GitHubInstallationError.USER_MISMATCH)
+        if pipeline.fetch_state("github_authenticated_user") != installer_login:
+            raise GitHubPipelineError(GitHubInstallationError.USER_MISMATCH)
 
     return installation_id
 

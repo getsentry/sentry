@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "jsPlugins": ["./lint/plugin.mjs"],
+  "categories": { "correctness": "off" },
+  "ignorePatterns": ["dist/**", "src/**"],
+  "overrides": [
+    {
+      "files": ["build.mjs", "scripts/**", "lib/**"],
+      "rules": { "sentry-api/no-typescript-source-strings": "error" }
+    },
+    {
+      "files": [
+        "build.mjs",
+        "scripts/generate-api-base-path.mjs",
+        "scripts/generate-base-url-resolver.mjs",
+        "scripts/generate-client.mjs",
+        "scripts/generate-error-results.mjs",
+        "scripts/generate-operations.mjs",
+        "scripts/generate-pagination.mjs",
+        "scripts/generate-query-enum-types.mjs",
+        "scripts/generate-request-preparation.mjs",
+        "scripts/generate-response-contract.mjs",
+        "scripts/make-tree-shakeable.mjs"
+      ],
+      "rules": { "sentry-api/no-typescript-source-strings": "off" }
+    }
+  ]
+}

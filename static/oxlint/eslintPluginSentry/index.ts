@@ -16,6 +16,7 @@ import {noQueryDataTypeParameters} from './noQueryDataTypeParameters.ts';
 import {noRawCssInStyled} from './noRawCssInStyled.ts';
 import {noRedundantDefaultArgument} from './noRedundantDefaultArgument.ts';
 import {noRelativeImportPaths} from './noRelativeImportPaths.ts';
+import {noShadowDangerousGlobals} from './noShadowDangerousGlobals.ts';
 import {noStaticTranslations} from './noStaticTranslations.ts';
 import {noStyledShortcut} from './noStyledShortcut.ts';
 import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback.ts';
@@ -41,6 +42,7 @@ export const rules = {
   'no-raw-css-in-styled': noRawCssInStyled,
   'no-redundant-default-argument': noRedundantDefaultArgument,
   'no-relative-import-paths': noRelativeImportPaths,
+  'no-shadow-dangerous-globals': noShadowDangerousGlobals,
   'no-static-translations': noStaticTranslations,
   'no-styled-shortcut': noStyledShortcut,
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,

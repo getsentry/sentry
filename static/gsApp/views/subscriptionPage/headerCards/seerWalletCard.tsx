@@ -90,7 +90,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
         >
           <Stack gap="2xs">
             <Text size="xs" bold>
-              {autoTopUp.enabled ? t('Auto-load • On') : t('Auto-load • Off')}
+              {autoTopUp.enabled ? t('Auto-reload • On') : t('Auto-reload • Off')}
             </Text>
             <Text size="xs" variant="muted">
               {autoTopUp.enabled
@@ -151,8 +151,8 @@ function PausedTag({
   autoTopUp: SeerWalletAutoTopUp;
   wallet: SeerWalletBalance;
 }) {
-  // With auto-load on, an empty wallet means the daily usage limit stopped the
-  // reloads, so Seer resumes the next day rather than when included credits reset.
+  // With auto-reload on, an empty wallet means the daily usage limit stopped the
+  // auto-reloads, so Seer resumes the next day rather than when included credits reset.
   const resumesAt = autoTopUp.enabled ? null : wallet.included.resetsAt;
 
   return (

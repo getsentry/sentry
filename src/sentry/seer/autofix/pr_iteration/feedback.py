@@ -90,6 +90,10 @@ def serialize_feedback(items: Sequence[Feedback]) -> str:
     return json.dumps([item.dict() for item in items])
 
 
+def feedback_text(items: Sequence[Feedback]) -> str:
+    return "\n\n".join(item.text for item in items)
+
+
 def blocks_feedback(blocks: Sequence[MemoryBlock]) -> list[Feedback]:
     return [
         feedback

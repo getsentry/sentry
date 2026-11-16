@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from sentry.seer.agent.on_completion_hook import OnCompletionHookDefinition
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.steps import AutofixStep
 
 # Keep models in sync with src/seer/automation/features/autofix/models.py in Seer
@@ -93,6 +94,8 @@ class AutofixSingleRunPrInternalSettings(BaseModel):
     description_suffix: str | None
     # False opens the PR as a draft.
     ready_for_review: bool
+    # Credits pushed commits to this person instead of the Seer bot.
+    commit_author: SeerCommitAuthor | None = None
 
 
 class AutofixSingleRunFeaturePayload(BaseModel):
@@ -113,3 +116,5 @@ class AutofixSingleRunFeaturePayload(BaseModel):
     pr_internal_settings: AutofixSingleRunPrInternalSettings | None = None
     existing_run_id: int | None = None
     reply: str | None = None
+    # Marks the reply as a PR feedback turn, so Sentry can close out the iteration when it ends.
+    pr_feedback: PrIterationStepArgs | None = None
