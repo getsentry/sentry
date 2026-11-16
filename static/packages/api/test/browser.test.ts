@@ -75,7 +75,7 @@ describe('createBrowserFetch', () => {
 
   it('injects X-CSRFToken when input is a Request object with POST method', async () => {
     const {mock, captured} = captureFetch();
-    const browserFetch = createBrowserFetch({getCsrfToken: () => 'token'});
+    const browserFetch = createBrowserFetch({getCsrfToken: () => 'token', origin: 'https://sentry.io'});
     // Must use a full URL — relative paths are invalid in the Request constructor in Node.
     const request = new Request('https://sentry.io/api/0/projects/', {method: 'POST'});
     await withMockFetch(mock, () => browserFetch(request));
@@ -84,7 +84,7 @@ describe('createBrowserFetch', () => {
 
   it('preserves Request object headers when no init.headers is provided', async () => {
     const {mock, captured} = captureFetch();
-    const browserFetch = createBrowserFetch({getCsrfToken: () => 'token'});
+    const browserFetch = createBrowserFetch({getCsrfToken: () => 'token', origin: 'https://sentry.io'});
     const request = new Request('https://sentry.io/api/0/projects/', {
       method: 'POST',
       headers: {'Content-Type': 'application/json', 'X-Custom': 'value'},
@@ -119,7 +119,7 @@ describe('createBrowserFetch', () => {
 
   it('injects X-CSRFToken when input is a URL object with POST in init', async () => {
     const {mock, captured} = captureFetch();
-    const browserFetch = createBrowserFetch({getCsrfToken: () => 'token'});
+    const browserFetch = createBrowserFetch({getCsrfToken: () => 'token', origin: 'https://sentry.io'});
     await withMockFetch(mock, () =>
       browserFetch(new URL('https://sentry.io/api/0/projects/'), {method: 'POST'}),
     );
@@ -128,7 +128,7 @@ describe('createBrowserFetch', () => {
 
   it('preserves Request headers when init provides method but no headers', async () => {
     const {mock, captured} = captureFetch();
-    const browserFetch = createBrowserFetch({getCsrfToken: () => 'token'});
+    const browserFetch = createBrowserFetch({getCsrfToken: () => 'token', origin: 'https://sentry.io'});
     const request = new Request('https://sentry.io/api/0/projects/my-proj/', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -175,7 +175,7 @@ describe('createBrowserFetch', () => {
       headers: {'Content-Type': 'application/json', 'X-Context': 'request'},
       signal: controller.signal,
     });
-    const browserFetch = createBrowserFetch({getCsrfToken: () => 'csrf-token'});
+    const browserFetch = createBrowserFetch({getCsrfToken: () => 'csrf-token', origin: 'https://example.test'});
 
     await withMockFetch(async (input, init) => {
       // Resolve Request + RequestInit as the underlying Fetch implementation does.
@@ -198,7 +198,7 @@ describe('createBrowserFetch', () => {
 
   it('preserves URL + init and an already-aborted custom reason', async () => {
     const reason = 'Caller cancelled';
-    const browserFetch = createBrowserFetch({getCsrfToken: () => 'csrf-token'});
+    const browserFetch = createBrowserFetch({getCsrfToken: () => 'csrf-token', origin: 'https://example.test'});
 
     await withMockFetch(async (input, init) => {
       const effective = new Request(input, init);
@@ -228,7 +228,7 @@ describe('createBrowserFetch', () => {
     const request = new Request('https://example.test/api/0/projects/', {
       method: 'POST', body: 'original', headers: {'X-Original': 'true'}, signal: original.signal,
     });
-    const browserFetch = createBrowserFetch({getCsrfToken: () => 'csrf-token'});
+    const browserFetch = createBrowserFetch({getCsrfToken: () => 'csrf-token', origin: 'https://example.test'});
 
     await withMockFetch(async (input, init) => {
       const effective = new Request(input, init);
@@ -264,6 +264,83 @@ describe('createBrowserFetch', () => {
       const response = await browserFetch(request, {signal: null});
       expect(await response.json()).toEqual([]);
     });
+  });
+});
+
+describe('createBrowserFetch CSRF origin check', () => {
+  async function csrfHeaderFor(url: string, origin: string | undefined): Promise<string | null> {
+    const {mock, captured} = captureFetch();
+    const browserFetch = createBrowserFetch({getCsrfToken: () => 'token', origin});
+    await withMockFetch(mock, () => browserFetch(url, {method: 'POST'}));
+    return captured.headers?.get('X-CSRFToken') ?? null;
+  }
+
+  it.each([
+    // Same origin
+    ['https://sentry.io/api/0/projects/', 'https://sentry.io'],
+    ['/api/0/projects/', 'https://sentry.io'],
+    // Sibling subdomains
+    ['https://us.sentry.io/api/0/projects/', 'https://sentry.sentry.io'],
+    ['https://us.sentry.io/api/0/projects/', 'https://acme.sentry.io'],
+    ['https://woof.sentry.io/api/0/projects/', 'https://woof-org.sentry.io'],
+    // Parent and subdomain, either way
+    ['https://sentry.io/api/0/broadcasts/', 'https://woof.sentry.io'],
+    ['https://sentry.io/api/0/users/', 'https://io.sentry.io'],
+    ['https://us.sentry.io/api/0/users/', 'https://sentry.io'],
+  ])('sends the token to %s from %s', async (url, origin) => {
+    expect(await csrfHeaderFor(url, origin)).toBe('token');
+  });
+
+  it.each([
+    ['https://example.io/api/0/projects/', 'https://sentry.io'],
+    ['https://io.sentry/api/0/projects/', 'https://sentry.io'],
+    ['https://sentry.io/api/0/broadcasts/', 'https://sentry.example.io'],
+    ['https://acme.sentry.io/api/0/projects/', 'https://acme.sent.ryio'],
+    ['https://woof.example.io/api/0/projects/', 'https://woof.sentry.io'],
+    ['https://woof.sentry.io/api/0/projects/', 'https://sentry.woof.io'],
+    // Hosts are compared by whole labels, not as strings.
+    ['https://notsentry.io/api/0/projects/', 'https://sentry.io'],
+    ['https://sentry.io/api/0/projects/', 'https://notsentry.io'],
+    ['https://us.notsentry.io/api/0/projects/', 'https://us.sentry.io'],
+    // Protocol-relative URLs leave the page origin.
+    ['//example.io/api/0/projects/', 'https://sentry.io'],
+  ])('does not send the token to %s from %s', async (url, origin) => {
+    expect(await csrfHeaderFor(url, origin)).toBeNull();
+  });
+
+  it('checks the URL of a Request input', async () => {
+    const {mock, captured} = captureFetch();
+    const browserFetch = createBrowserFetch({getCsrfToken: () => 'token', origin: 'https://sentry.io'});
+    await withMockFetch(mock, () =>
+      browserFetch(new Request('https://example.io/api/0/projects/', {method: 'POST'})),
+    );
+    expect(captured.headers?.get('X-CSRFToken')).toBeNull();
+  });
+
+  it('sends the token only to relative URLs without a page origin', async () => {
+    expect(globalThis.location).toBeUndefined();
+    expect(await csrfHeaderFor('/api/0/projects/', undefined)).toBe('token');
+    expect(await csrfHeaderFor('https://sentry.io/api/0/projects/', undefined)).toBeNull();
+    expect(await csrfHeaderFor('//sentry.io/api/0/projects/', undefined)).toBeNull();
+  });
+
+  it('defaults the page origin to location.origin', async () => {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, 'location');
+    Object.defineProperty(globalThis, 'location', {
+      configurable: true,
+      value: {origin: 'https://acme.sentry.io'},
+    });
+    try {
+      expect(await csrfHeaderFor('https://us.sentry.io/api/0/projects/', undefined)).toBe('token');
+      expect(await csrfHeaderFor('https://example.io/api/0/projects/', undefined)).toBeNull();
+    } finally {
+      if (previous) Object.defineProperty(globalThis, 'location', previous);
+      else Reflect.deleteProperty(globalThis, 'location');
+    }
+  });
+
+  it('does not send the token with an invalid page origin', async () => {
+    expect(await csrfHeaderFor('/api/0/projects/', 'not an origin')).toBeNull();
   });
 });
 
