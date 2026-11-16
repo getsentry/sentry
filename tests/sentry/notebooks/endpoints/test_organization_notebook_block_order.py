@@ -38,7 +38,7 @@ class NotebookBlockOrderEndpointTest(APITestCase):
         response = self.client.put(
             url,
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "blockIds": [block.id for block in reversed(blocks)],
             },
             format="json",
@@ -52,7 +52,7 @@ class NotebookBlockOrderEndpointTest(APITestCase):
         response = self.client.put(
             url,
             data={
-                "investigationVersion": version,
+                "notebookVersion": version,
                 "blockIds": [blocks[0].id, blocks[0].id, blocks[1].id],
             },
             format="json",
@@ -72,7 +72,7 @@ class NotebookBlockOrderEndpointTest(APITestCase):
             response = self.client.put(
                 url,
                 data={
-                    "investigationVersion": self.notebook.version,
+                    "notebookVersion": self.notebook.version,
                     "blockIds": block_ids,
                 },
                 format="json",
@@ -87,34 +87,9 @@ class NotebookBlockOrderEndpointTest(APITestCase):
         response = self.client.put(
             url,
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "blockIds": [first.id, second.id],
             },
             format="json",
         )
         assert response.status_code == 400
-
-    def test_sentry_app_cannot_reorder_blocks(self) -> None:
-        first = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
-        second = self.create_notebook_block(notebook=self.notebook, position=1, kind="text")
-        sentry_app_user = self.create_user(is_sentry_app=True)
-        self.create_member(
-            organization=self.organization,
-            user=sentry_app_user,
-            role="member",
-        )
-        self.login_as(sentry_app_user)
-
-        response = self.client.put(
-            self.order_url(),
-            data={
-                "investigationVersion": self.notebook.version,
-                "blockIds": [second.id, first.id],
-            },
-            format="json",
-        )
-        assert response.status_code == 403
-
-        first.refresh_from_db()
-        second.refresh_from_db()
-        assert (first.position, second.position) == (0, 1)

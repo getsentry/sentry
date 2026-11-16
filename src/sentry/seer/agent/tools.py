@@ -25,7 +25,8 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
@@ -48,7 +49,7 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.release import Release
-from sentry.models.repository import Repository
+from sentry.models.repository import RepoResolution, Repository
 from sentry.models.team import Team, TeamStatus
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.post_process import process_raw_response
@@ -932,27 +933,116 @@ def rpc_get_profile_flamegraph(
     )
 
 
+def _account_path(integration: RpcIntegration) -> str:
+    """The path an account's repository paths start with, so what a lookup should be given:
+    "acme-labs" for "acme-labs/app". It's the account's name, except on GitLab, where the name is
+    the group's display name ("My Group / Sub") and the path is "my-group/sub"."""
+    if integration.provider == IntegrationProviderSlug.GITLAB.value:
+        return integration.metadata.get("domain_name", "").partition("/")[2]
+    return integration.name
+
+
+def _starts_with(segments: list[str], prefix: list[str]) -> bool:
+    """Whether ``segments`` start with all of ``prefix``, with more after it."""
+    return 0 < len(prefix) < len(segments) and segments[: len(prefix)] == prefix
+
+
+def _loose_segments(name: str) -> list[str]:
+    """A name's segments, ignoring a leading "https://", spaces around each "/", and case."""
+    without_scheme = name.split("://", 1)[-1]
+    return [segment.strip().casefold() for segment in without_scheme.split("/") if segment.strip()]
+
+
+def _is_under_account(repo_full_name: str, integration: RpcIntegration) -> bool:
+    """Whether a repository name is under the integration's account, written the way a lookup
+    reads names: the account's path in any case ("ACME-Labs/app"), or on GitLab, the group's
+    display name as it is ("My Group / Sub / App"). A lookup that misses such a name means Sentry
+    has no such repository."""
+    account_path = _account_path(integration).casefold().split("/")
+    if _starts_with(repo_full_name.casefold().split("/"), account_path):
+        return True
+    return integration.provider == IntegrationProviderSlug.GITLAB.value and _starts_with(
+        repo_full_name.split(" / "), integration.name.split(" / ")
+    )
+
+
+def _may_be_under_account(repo_full_name: str, integration: RpcIntegration) -> bool:
+    """Whether a repository name is under the integration's account once spaces and case are
+    ignored ("My Group/Sub/App"), or past the account's host ("github.com/acme-labs/app"). A lookup
+    misses names written like this even when Sentry has the repository."""
+    repo_segments = _loose_segments(repo_full_name)
+    url = _loose_segments(integration.metadata.get("domain_name", ""))
+    # The URL with its host ("github.com/acme-labs") and without it ("acme-labs").
+    for account in (_loose_segments(integration.name), url, url[1:]):
+        if _starts_with(repo_segments, account):
+            return True
+    return False
+
+
+def _unique(matches: list[Repository]) -> tuple[Repository | None, RepoResolution]:
+    """The one repository in ``matches``, or why there isn't one. Two or more is ambiguous: picking
+    one could point Seer at the wrong repository. Same rule as
+    ``RepositoryManager._resolve_active_unique``."""
+    if len(matches) == 1:
+        return matches[0], "resolved"
+    return None, "ambiguous" if matches else "not_found"
+
+
+def _is_named(repo: Repository, repo_full_name: str) -> bool:
+    """Whether ``repo_full_name`` is the repository's name or URL path, ignoring case."""
+    requested = repo_full_name.casefold()
+    return requested in (repo.name.casefold(), get_repo_url_path(repo).casefold())
+
+
+def _find_repository_by_external_id(
+    organization_id: int, external_id: str, repo_full_name: str, providers: list[str]
+) -> tuple[Repository | None, RepoResolution]:
+    """Find the one repository with this external id. Each provider numbers its repositories
+    separately, so one id can name a repository on two providers (``github`` and
+    ``github_enterprise``). The unique constraint allows at most one per provider."""
+    matches = list(
+        Repository.objects.filter(
+            organization_id=organization_id,
+            external_id=external_id,
+            status=ObjectStatus.ACTIVE,
+            provider__in=providers,
+        ).order_by("id")
+    )
+    if len(matches) > 1:
+        # The name picks among the repositories this id names, never outside them.
+        named = [repo for repo in matches if _is_named(repo, repo_full_name)]
+        if len(named) == 1:
+            return named[0], "resolved"
+    return _unique(matches)
+
+
 def _find_repository(
     organization_id: int, repo_full_name: str, providers: list[str]
-) -> Repository | None:
-    """Find a repository by its name or its URL path. They're the same except on GitLab, where the
-    name is a display name ("My Group / App") and the path is "my-group/app"."""
+) -> tuple[Repository | None, RepoResolution]:
+    """Find the one repository with this name or URL path. They're the same except on GitLab, where
+    the name is a display name ("My Group / App") and the path is "my-group/app".
+
+    Several matches are ambiguous: a re-installed integration leaves a second row with the same
+    name, and a GitHub repository and its GitLab mirror share a URL path."""
     candidates = Repository.objects.filter(
         Q(name=repo_full_name) | Q(url__iendswith=f"/{repo_full_name}"),
         organization_id=organization_id,
         status=ObjectStatus.ACTIVE,
         provider__in=providers,
     ).order_by("id")
-    # A URL can also end this way for a repository further down: ".../parent/my-group/app".
-    requested = repo_full_name.casefold()
+    matches: list[Repository] = []
     for repo in candidates:
-        if requested in (repo.name.casefold(), get_repo_url_path(repo).casefold()):
-            return repo
-    return None
+        # A URL can also end this way for a repository further down: ".../parent/my-group/app".
+        if _is_named(repo, repo_full_name):
+            matches.append(repo)
+            # Two is enough: we only need to know whether there is exactly one.
+            if len(matches) == 2:
+                break
+    return _unique(matches)
 
 
 def _repository_lookup_failure(
-    organization_id: int, supported_providers: list[str]
+    organization_id: int, repo_full_name: str, supported_providers: list[str]
 ) -> RepositoryDefinitionFailure | None:
     """Why a lookup found nothing, when it's known."""
     integrations = integration_service.get_integrations(
@@ -960,11 +1050,28 @@ def _repository_lookup_failure(
         providers=supported_providers,
         status=ObjectStatus.ACTIVE,
         org_integration_status=ObjectStatus.ACTIVE,
-        limit=1,
     )
     if not integrations:
         return RepositoryDefinitionFailure(failure_reason="no_scm_integration")
-    return None
+
+    # A name with no owner can't be under any account, so there's nothing to say about it.
+    if len(_loose_segments(repo_full_name)) < 2:
+        return None
+    under_connected_account = any(
+        _is_under_account(repo_full_name, integration) for integration in integrations
+    )
+    # The lookup may have missed only because of how the name is written, so the reason isn't known.
+    if not under_connected_account and any(
+        _may_be_under_account(repo_full_name, integration) for integration in integrations
+    ):
+        return None
+    return RepositoryDefinitionFailure(
+        failure_reason=(
+            "repo_not_in_sentry" if under_connected_account else "scm_account_not_connected"
+        ),
+        # What the agent can retry with, once each. Sorted: integrations come in no set order.
+        connected_accounts=sorted({_account_path(integration) for integration in integrations}),
+    )
 
 
 def get_repository_definition(
@@ -987,12 +1094,15 @@ def get_repository_definition(
         repo_full_name: Full repository name in format "owner/repo-name" (e.g., "getsentry/seer")
         external_id: Optional external repository ID (e.g., GitHub repo ID). Stable across renames.
                      If provided, this is used for lookup instead of name.
-        report_failure_reason: When nothing is found, say why in the response when it's known,
-                     instead of returning None. Opt-in because callers that don't ask would read
-                     that response as a repository.
+        report_failure_reason: When no single repository is found, say why in the response when
+                     it's known, instead of returning None: no source control connected, the
+                     repository's account isn't connected, its account is connected but the
+                     repository isn't in Sentry, or several repositories match. Opt-in because
+                     callers that don't ask would read that response as a repository.
 
     Returns:
-        dict with RepoDefinition fields if found, None otherwise. Includes external_id
+        dict with RepoDefinition fields if exactly one repository matches, None otherwise
+        (several matches are refused, not guessed between). Includes external_id
         which should be stored for future lookups.
     """
     try:
@@ -1002,16 +1112,16 @@ def get_repository_definition(
     supported_providers = get_supported_scm_providers(organization)
 
     repo: Repository | None = None
+    resolution: RepoResolution = "not_found"
 
     if external_id:
-        repo = Repository.objects.filter(
-            organization_id=organization_id,
-            external_id=external_id,
-            status=ObjectStatus.ACTIVE,
-            provider__in=supported_providers,
-        ).first()
+        repo, resolution = _find_repository_by_external_id(
+            organization_id, external_id, repo_full_name, supported_providers
+        )
 
-    if not repo:
+    # Only a miss falls back to a name lookup. An external_id that stays ambiguous stops here: a
+    # name lookup could pick a repository the external_id doesn't name.
+    if resolution == "not_found":
         parts = repo_full_name.split("/")
         if len(parts) < 2:
             logger.warning(
@@ -1019,9 +1129,25 @@ def get_repository_definition(
                 extra={"repo_full_name": repo_full_name},
             )
         else:
-            repo = _find_repository(organization_id, repo_full_name, supported_providers)
+            repo, resolution = _find_repository(
+                organization_id, repo_full_name, supported_providers
+            )
 
-    if not repo:
+    metrics.incr("seer.rpc.get_repository_definition.resolution", tags={"resolution": resolution})
+
+    if resolution == "ambiguous":
+        logger.warning(
+            "seer.rpc.repository_ambiguous",
+            extra={
+                "organization_id": organization_id,
+                "repo_full_name": repo_full_name,
+                "external_id": external_id,
+            },
+        )
+        if report_failure_reason:
+            return RepositoryDefinitionFailure(failure_reason="repo_ambiguous")
+        return None
+    elif not repo:
         logger.info(
             "seer.rpc.repository_not_found",
             extra={
@@ -1031,7 +1157,7 @@ def get_repository_definition(
             },
         )
         if report_failure_reason:
-            return _repository_lookup_failure(organization_id, supported_providers)
+            return _repository_lookup_failure(organization_id, repo_full_name, supported_providers)
         return None
 
     # Use the actual repo name from the database, not the requested name.

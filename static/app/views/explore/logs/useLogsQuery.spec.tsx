@@ -67,7 +67,6 @@ describe('useInfiniteLogsQuery', () => {
 
   afterEach(() => {
     mockNow.mockRestore();
-    PageFiltersStore.reset();
   });
 
   it('should not fetch logs when disabled', () => {
@@ -1444,7 +1443,6 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
 
   afterEach(() => {
     mockNowInner.mockRestore();
-    PageFiltersStore.reset();
   });
 
   it('should integrate with virtual streaming when auto refresh is enabled', async () => {

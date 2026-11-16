@@ -14,7 +14,7 @@ from rest_framework.exceptions import APIException
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.inbox.notebook import NOTEBOOK_COMPLETED, NotebookCompletedData
-from sentry.inbox.types import SYSTEM_ACTOR, InboxEventSummary
+from sentry.inbox.types import SYSTEM_ACTOR
 from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     OrchestrationProjectionSerializer,
@@ -315,9 +315,7 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
     create_inbox_items(
         event_type=NOTEBOOK_COMPLETED,
         subject=notebook,
-        data=NotebookCompletedData(
-            summary=InboxEventSummary.NOTEBOOK_COMPLETED, seer_run_id=seer_run.seer_run_state_id
-        ),
+        data=NotebookCompletedData(seer_run_id=seer_run.seer_run_state_id),
         user_ids=[notebook.created_by_id],
         actor=SYSTEM_ACTOR,
     )

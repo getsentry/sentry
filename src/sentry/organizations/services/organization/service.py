@@ -181,8 +181,8 @@ class OrganizationService(RpcService):
         Fetches an organization by slug.
 
         If user_id is passed, it will enforce visibility rules. This method is differentiated from
-        get_organization_by_slug by not being cached and returning RpcOrganizationSummary instead of
-        org contexts
+        get_organization_by_slug by returning RpcOrganizationSummary without teams/projects
+        instead of org contexts
 
         :param slug: The slug to search by
         :param user_id: The user to check membership with
@@ -200,8 +200,7 @@ class OrganizationService(RpcService):
         Fetch an organization by id.
 
         If user_id is passed, it will enforce visibility rules. This method is differentiated from
-        get_organization_by_id by not being cached and returning RpcOrganizationSummary instead of
-        org contexts
+        get_organization_by_id by returning RpcOrganizationSummary instead of org contexts.
 
         :param id: The id to search by
         :param user_id: The user to check membership with
