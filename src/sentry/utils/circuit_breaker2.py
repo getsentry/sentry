@@ -608,7 +608,14 @@ class CircuitBreaker:
         # If there's no remaining quota, in theory we should already be in a broken state. That
         # said, it's possible we could be in a race condition and hit this just as the state is
         # being changed, so just to be safe we also check here.
-        if self._should_trip(controlling_quota):
+        try:
+            should_trip = self._should_trip(controlling_quota)
+        except Exception:
+            logger.exception("Couldn't check quota in redis for circuit breaker '%s'", self.key)
+            # Same default as a failed state read: let traffic through
+            return True
+
+        if should_trip:
             metrics.incr(f"circuit_breaker.{self.metrics_key}.request_blocked")
             return False
 

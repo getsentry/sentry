@@ -228,6 +228,7 @@ HaltReason = Literal[
     "host_unreachable",
     "identity_not_found",
     "identity_not_valid",
+    "installation_not_found",
     "installation_suspended",
     "rate_limited",
     "too_many_redirects",

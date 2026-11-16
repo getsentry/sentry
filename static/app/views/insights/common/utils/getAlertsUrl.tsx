@@ -1,8 +1,7 @@
-import * as qs from 'query-string';
-
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import * as qs from 'sentry/utils/url/qs';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 import {getMetricMonitorUrl} from './getMetricMonitorUrl';

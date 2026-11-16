@@ -220,7 +220,17 @@ class RepositoryIntegration(
                 return "unsupported_response"
             if isinstance(exc, ApiRateLimitedError):
                 return "rate_limited"
+            # Self-hosted instances that are down, or behind a proxy or
+            # Cloudflare (520-530) that can't reach them. A plain 500 is left
+            # to retry. The next scheduled sync tries again.
+            if exc.code is not None and 502 <= exc.code < 600:
+                return "host_unreachable"
             return None
+
+        # Self-hosted instances behind SSO or a captcha return an HTML login
+        # page instead of JSON, and the response parser raises ValueError.
+        if isinstance(exc, ValueError) and "not a valid response type" in str(exc).lower():
+            return "unsupported_response"
 
         if isinstance(exc, IntegrationConfigurationError):
             return "configuration_error"
