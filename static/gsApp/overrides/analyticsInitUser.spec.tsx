@@ -1,6 +1,6 @@
 import * as Amplitude from '@amplitude/analytics-browser';
 import * as Sentry from '@sentry/react';
-import qs from 'query-string';
+import * as qs from 'query-string';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {setWindowLocation} from 'sentry-test/utils';

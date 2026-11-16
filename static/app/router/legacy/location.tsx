@@ -1,7 +1,7 @@
 import type {Location as RouterLocation, To} from 'react-router';
 import * as Sentry from '@sentry/react';
 import type {Location as LegacyLocation, LocationDescriptor, Query} from 'history';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 /**
  * Sentry still accepts React Router 3-style destinations with `.query` and

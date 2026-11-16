@@ -527,15 +527,6 @@ class SeerRunState(BaseModel):
         return (has_changes, all_changes_pushed)
 
 
-class CustomToolDefinition(BaseModel):
-    """Definition of a custom tool to be sent to Seer."""
-
-    name: str
-    module_path: str
-    description: str
-    param_schema: dict[str, Any]  # JSON schema from Pydantic model
-
-
 class AgentRun(BaseModel):
     """A single agent run record with metadata."""
 

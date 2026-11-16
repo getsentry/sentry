@@ -1,4 +1,4 @@
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 const trackableParams = [/^GCLID$/, /^promo_name$/, /^utm_.+$/];
 const trackableParamsRegExp = new RegExp(

@@ -1,6 +1,6 @@
 import type * as React from 'react';
 import {createContext, useCallback, useContext, type FunctionComponent} from 'react';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 
 import type {LinkProps} from './link';
 

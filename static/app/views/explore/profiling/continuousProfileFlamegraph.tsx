@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useRef} from 'react';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {Stack} from '@sentry/scraps/layout';
 

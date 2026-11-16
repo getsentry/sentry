@@ -30,10 +30,6 @@ describe('useWidgetChartLayers', () => {
     });
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('returns the dropped data band for supported widgets', async () => {
     const {result} = renderHookWithProviders(
       () => useWidgetChartLayers({widget: spansWidget, interval: '5m'}),

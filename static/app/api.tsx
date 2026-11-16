@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {redirectToProject} from './actionCreators/redirectToProject';
 import {openSudo} from './actionCreators/sudoModal';
@@ -314,6 +314,7 @@ export class Client {
   };
 
   constructor(options: ClientOptions = {}) {
+    // eslint-disable-next-line @sentry/no-relative-api-url -- buildRequestUrl() resolves the host
     this.baseUrl = options.baseUrl ?? '/api/0';
     this.headers = options.headers ?? Client.JSON_HEADERS;
     this.activeRequests = {};

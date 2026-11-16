@@ -511,6 +511,29 @@ class IssueParams:
         many=True,
     )
 
+    STATS_GROUPS = OpenApiParameter(
+        name="groups",
+        description="The IDs of the issues to return stats for, up to 100.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
+        required=True,
+        many=True,
+    )
+
+    STATS_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        description=(
+            "Fields to remove from the response. Defaults to `base`, which leaves the ID, counts, "
+            "first and last seen, the unhandled flag and stats. Passing any value replaces the "
+            "default."
+        ),
+        enum=["stats", "lifetime", "base", "unhandled", "filtered"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+
     GROUP_DETAILS_EXPAND = OpenApiParameter(
         name="expand",
         description="Additional data to include in the response.",

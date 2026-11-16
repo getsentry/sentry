@@ -3,7 +3,7 @@ import type React from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
-import qs from 'query-string';
+import * as qs from 'query-string';
 import type {Tagged} from 'type-fest';
 
 import {ConfigStore} from 'sentry/stores/configStore';

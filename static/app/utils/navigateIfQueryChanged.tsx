@@ -1,6 +1,6 @@
 import type {NavigateOptions} from 'react-router';
 import type {Location} from 'history';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import type {ReactRouter3Navigate} from './useNavigate';
 

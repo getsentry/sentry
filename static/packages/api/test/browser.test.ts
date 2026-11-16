@@ -287,6 +287,9 @@ describe('createBrowserFetch CSRF origin check', () => {
     ['https://sentry.io/api/0/broadcasts/', 'https://woof.sentry.io'],
     ['https://sentry.io/api/0/users/', 'https://io.sentry.io'],
     ['https://us.sentry.io/api/0/users/', 'https://sentry.io'],
+    // An http page keeps sending the token over either scheme.
+    ['http://dev.getsentry.net:8000/api/0/projects/', 'http://dev.getsentry.net:8000'],
+    ['https://sentry.io/api/0/projects/', 'http://sentry.io'],
   ])('sends the token to %s from %s', async (url, origin) => {
     expect(await csrfHeaderFor(url, origin)).toBe('token');
   });
@@ -304,6 +307,10 @@ describe('createBrowserFetch CSRF origin check', () => {
     ['https://us.notsentry.io/api/0/projects/', 'https://us.sentry.io'],
     // Protocol-relative URLs leave the page origin.
     ['//example.io/api/0/projects/', 'https://sentry.io'],
+    // An https page never sends the token over http.
+    ['http://sentry.io/api/0/projects/', 'https://sentry.io'],
+    ['http://us.sentry.io/api/0/projects/', 'https://acme.sentry.io'],
+    ['ws://sentry.io/api/0/projects/', 'https://sentry.io'],
   ])('does not send the token to %s from %s', async (url, origin) => {
     expect(await csrfHeaderFor(url, origin)).toBeNull();
   });

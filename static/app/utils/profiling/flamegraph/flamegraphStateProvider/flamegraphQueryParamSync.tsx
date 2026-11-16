@@ -14,7 +14,6 @@ import {DEFAULT_FLAMEGRAPH_STATE} from './flamegraphContext';
 // Intersect the types so we can properly guard
 type PossibleQuery =
   | Query
-  | qs.ParsedQuery
   | (Pick<FlamegraphState['preferences'], 'colorCoding' | 'sorting' | 'view'> &
       Pick<FlamegraphState['search'], 'query'>);
 
