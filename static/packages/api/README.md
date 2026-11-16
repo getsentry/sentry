@@ -657,6 +657,41 @@ const core = createApiClientCore({ transport, headers: () => ({}), logger: conso
 const projects = await core.requestJson("https://sentry.example.com", "/organizations/acme/projects/");
 ```
 
+## Versions and upgrades
+
+The package follows [semver](https://semver.org) and releases from getsentry/sentry as `api@<version>` tags. Each release's notes are in [CHANGELOG.md](./CHANGELOG.md) and on its [GitHub release](https://github.com/getsentry/sentry/releases).
+
+- A merged change to Sentry's API spec releases a minor version automatically. Minor releases add operations, parameters and fields. They can also change a type to match what the API already returns.
+- A change to the package itself releases the bump its commits call for: a feature is a minor and a fix is a patch. Release a breaking change by hand, as a major, with the Release workflow.
+- Removing or renaming an export, including a generated operation, is a breaking change and waits for a major release.
+
+### Upgrading
+
+Within a major version, upgrading keeps your calls working. Rerun your typecheck anyway: since the types follow the API, a type that now matches the server can surface a mismatch in your code. For a new major, read the CHANGELOG's Breaking Changes for every major in between.
+
+To try a release candidate, install the `next` tag: `npm install @sentry/api@next`.
+
+### Deprecations
+
+When Sentry deprecates an API endpoint (`deprecated=True` in its `extend_schema`), the endpoint keeps working. Its operation function and client method get a `@deprecated` tag, so editors strike through the calls, and it has `deprecated: true` in `@sentry/api/operations` and `@sentry/api/docs`. To list the deprecated operations:
+
+```ts
+import { operations } from "@sentry/api/operations";
+
+const deprecated = operations.filter(operation => operation.deprecated).map(operation => operation.functionName);
+```
+
+Deprecate a package export with a `@deprecated` tag that says what to use instead. Deprecated operations and exports stay until the next major release.
+
+### Release candidates
+
+To ship a risky change, such as a new major version, as a release candidate first:
+
+1. Run getsentry/sentry's [Release workflow](https://github.com/getsentry/sentry/actions/workflows/release.yml) with workspace `static/packages/api` and an exact prerelease version, such as `3.0.0-rc.0`.
+2. It publishes to npm under the `next` tag, so `latest` stays on the last stable release, and the GitHub release is marked as a prerelease.
+3. While a prerelease is the latest `api@` release, merged spec changes don't release automatically. Cut the next candidate, such as `3.0.0-rc.1`, the same way.
+4. To release the stable version, run the workflow with it, such as `3.0.0`. Automatic releases resume after that.
+
 ## Spec files
 
 Each `api@<version>` release on [GitHub](https://github.com/getsentry/sentry/releases) has the files that version was built from as assets:
