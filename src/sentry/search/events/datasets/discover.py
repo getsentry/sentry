@@ -1819,7 +1819,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             )
 
     def _resolve_issue_id_values(
-        self, value: Sequence[str] | str
+        self, value: Sequence[str] | str | int
     ) -> Sequence[str | int] | str | int:
         """Coerce ``issue.id`` filter values into group ids.
 
@@ -1827,7 +1827,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         short ids (e.g. ``PROJECT-123``), which are resolved against the
         organization. Unresolvable short ids raise ``InvalidIssueSearchQuery``.
         """
-        values: Sequence[str] = value if isinstance(value, (list, tuple)) else [value]
+        values: Sequence[str | int] = value if isinstance(value, (list, tuple)) else [value]
         short_ids = [v for v in values if isinstance(v, str) and v and not v.isdigit()]
         resolved: dict[str, int] = {}
         if short_ids and self.builder.params.organization is not None:

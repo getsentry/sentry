@@ -162,7 +162,7 @@ def _transaction_status_filter_converter(
 
 
 def _resolve_issue_id_values(
-    value: Sequence[str] | str,
+    value: Sequence[str] | str | int,
     params: FilterConvertParams | None,
 ) -> Sequence[str | int] | str | int:
     """Coerce ``issue.id`` filter values into group ids.
@@ -171,7 +171,7 @@ def _resolve_issue_id_values(
     short ids (e.g. ``PROJECT-123``), which are resolved against the
     organization when one is available in ``params``.
     """
-    values: Sequence[str] = value if isinstance(value, (list, tuple)) else [value]
+    values: Sequence[str | int] = value if isinstance(value, (list, tuple)) else [value]
     short_ids = [v for v in values if isinstance(v, str) and v and not v.isdigit()]
     resolved: dict[str, int] = {}
     if short_ids and params and "organization_id" in params:

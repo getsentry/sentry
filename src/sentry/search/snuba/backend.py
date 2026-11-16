@@ -719,8 +719,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 # casting to int so those queries don't raise a ValueError.
                 # `issue.id` also accepts qualified short ids (e.g. ``PROJECT-123``),
                 # which are resolved to group ids scoped to the selected projects.
-                functools.partial(
-                    _make_issue_id_filter,
+                lambda ids: _make_issue_id_filter(
+                    ids,
                     project_ids=[p.id for p in projects],
                     organization=organization,
                 ),
