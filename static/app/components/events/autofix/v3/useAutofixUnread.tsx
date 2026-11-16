@@ -1,7 +1,10 @@
 import {useEffect} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import {explorerAutofixApiOptions} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  explorerAutofixApiOptions,
+  getPollInterval,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {Group} from 'sentry/types/group';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,6 +19,11 @@ export function useAutofixUnread(
   const {data} = useQuery({
     ...explorerAutofixApiOptions(organization.slug, group.id),
     enabled,
+    refetchInterval: query =>
+      getPollInterval({
+        autofixState: query.state.data?.json?.autofix ?? null,
+        runStarted: false,
+      }),
   });
   const [seenAt, setSeenAt] = useLocalStorageState<string | null>(
     `autofix-seen:${group.id}`,

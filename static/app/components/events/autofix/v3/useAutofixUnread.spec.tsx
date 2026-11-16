@@ -42,11 +42,15 @@ describe('useAutofixUnread', () => {
     expect(result.current).toBe(false);
   });
 
-  it('stays read while a run is still working', async () => {
+  it('stays read while a run works and turns unread when it finishes', async () => {
     const request = mockRun('processing');
 
     const {result} = renderUnread();
     await waitFor(() => expect(request).toHaveBeenCalled());
     expect(result.current).toBe(false);
+
+    MockApiClient.clearMockResponses();
+    mockRun('completed');
+    await waitFor(() => expect(result.current).toBe(true), {timeout: 3000});
   });
 });
