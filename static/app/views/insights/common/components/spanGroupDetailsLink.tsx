@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
 

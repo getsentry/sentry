@@ -1,5 +1,6 @@
 import {platformsWithNestedInstrumentationGuides} from 'sentry/data/platformCategories';
 import type {Project} from 'sentry/types/project';
+import {isReactNativePlatform} from 'sentry/utils/platform';
 
 type ParsedPlatform = {
   platformName: string;
@@ -20,8 +21,9 @@ function parsePlatform(platform: string): ParsedPlatform {
   // 2. "{language}", e.g. "python"
   const [platformName, framework] = platformParts;
 
-  if (platform === 'react-native') {
-    return {platformName: platformName!};
+  // React Native and Expo projects share the React Native SDK docs
+  if (isReactNativePlatform(platform)) {
+    return {platformName: 'react-native'};
   }
 
   if (platform.includes('awslambda')) {

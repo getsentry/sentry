@@ -1,6 +1,9 @@
 """
 A collection of human- and LLM-friendly models to represent Sentry data like issues, traces, and profiles.
 These should be kept in sync with the models in Seer.
+
+DEPRECATED: These back the Sentry<>Seer RPC surface, which is being removed in
+favour of the public Sentry API via codemode. Do not add new models here.
 """
 
 from __future__ import annotations

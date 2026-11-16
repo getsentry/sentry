@@ -86,24 +86,36 @@ class QueryResponseType(QueryResponseTypeOptional):
 
 
 class CrossEventResponseTypeOptional(TypedDict, total=False):
-    metric: MetricResponseType | None
+    metric: Annotated[
+        MetricResponseType | None,
+        ApiDescription("Metric the cross-event query reads, for metric queries"),
+    ]
 
 
 class CrossEventResponseType(CrossEventResponseTypeOptional):
-    query: str
-    type: Literal["spans", "logs", "metrics"]
+    query: Annotated[str, ApiDescription("Search query of the cross-event query")]
+    type: Annotated[
+        Literal["spans", "logs", "metrics"],
+        ApiDescription("Event type the cross-event query targets"),
+    ]
 
 
 class ExploreSavedQueryResponseOptional(TypedDict, total=False):
-    environment: list[str]
-    query: list[QueryResponseType]
-    statsPeriod: str
-    start: str
-    end: str
-    interval: str
-    crossEvents: list[CrossEventResponseType]
-    agent: list[str]
-    errorsOnly: bool
+    environment: Annotated[list[str], ApiDescription("Saved environment filter")]
+    query: Annotated[
+        list[QueryResponseType], ApiDescription("Searches, fields and charts saved in the query")
+    ]
+    statsPeriod: Annotated[str, ApiDescription("Saved relative time range, such as `24h`")]
+    start: Annotated[str, ApiDescription("Saved absolute start time (ISO 8601)")]
+    end: Annotated[str, ApiDescription("Saved absolute end time (ISO 8601)")]
+    interval: Annotated[str, ApiDescription("Saved resolution of the time series")]
+    crossEvents: Annotated[
+        list[CrossEventResponseType], ApiDescription("Saved queries across other event types")
+    ]
+    agent: Annotated[list[str], ApiDescription("Agent names that filter AI conversations")]
+    errorsOnly: Annotated[
+        bool, ApiDescription("Whether only AI conversations with errors are shown")
+    ]
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
@@ -119,19 +131,41 @@ class ExploreSavedQueryChangedReasonType(TypedDict):
 
 
 class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
-    id: str
-    name: str
-    projects: list[int]
-    dataset: ExploreSavedQueryDatasetType
-    expired: bool
-    dateAdded: datetime
-    dateUpdated: datetime
-    lastVisited: datetime | None
-    createdBy: UserSerializerResponse | None
-    starred: bool
-    position: int | None
-    isPrebuilt: bool
-    changedReason: ExploreSavedQueryChangedReasonType | None
+    id: Annotated[str, ApiDescription("ID of the saved query")]
+    name: Annotated[str, ApiDescription("Name of the saved query")]
+    projects: Annotated[
+        list[int],
+        ApiDescription("IDs of the projects the query filters by. `[-1]` means all projects"),
+    ]
+    dataset: Annotated[ExploreSavedQueryDatasetType, ApiDescription("Dataset the query reads")]
+    expired: Annotated[
+        bool,
+        ApiDescription("Whether the saved start time is outside the data retention period"),
+    ]
+    dateAdded: Annotated[datetime, ApiDescription("When the query was created (ISO 8601)")]
+    dateUpdated: Annotated[datetime, ApiDescription("When the query was last edited (ISO 8601)")]
+    lastVisited: Annotated[
+        datetime | None,
+        ApiDescription("When the requesting user last opened the query. Null when they haven't"),
+    ]
+    createdBy: Annotated[
+        UserSerializerResponse | None,
+        ApiDescription(
+            "User who created the query. Null when a token created it or the user is gone"
+        ),
+    ]
+    starred: Annotated[bool, ApiDescription("Whether the requesting user starred the query")]
+    position: Annotated[
+        int | None,
+        ApiDescription("Position in the requesting user's starred list. Null when not starred"),
+    ]
+    isPrebuilt: Annotated[bool, ApiDescription("Whether Sentry provides the query")]
+    changedReason: Annotated[
+        ExploreSavedQueryChangedReasonType | None,
+        ApiDescription(
+            "What was dropped when the query was migrated from Discover. Null when it wasn't migrated"
+        ),
+    ]
 
 
 class ExploreSavedQueryAttrs(TypedDict, total=False):

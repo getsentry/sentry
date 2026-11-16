@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';

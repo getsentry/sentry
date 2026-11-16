@@ -1,11 +1,11 @@
 import shuffle from 'lodash/shuffle';
-import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
+import {toLegacyLocation} from 'sentry/router/legacy/location';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
@@ -28,7 +28,14 @@ import {
   SavedQueryDatasets,
 } from './types';
 
-const locationFromSearch = (search: string) => LocationFixture({query: qs.parse(search)});
+const locationFromSearch = (search: string) =>
+  toLegacyLocation({
+    pathname: '/mock-pathname/',
+    search,
+    hash: '',
+    state: null,
+    key: '',
+  });
 
 const generateFields = (fields: string[]) =>
   fields.map(field => ({

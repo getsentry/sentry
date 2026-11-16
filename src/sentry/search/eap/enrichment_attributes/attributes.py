@@ -1,4 +1,4 @@
-from sentry.search.eap.columns import ResolvedAttribute
+from sentry.search.eap.columns import ResolvedAttribute, simple_sentry_field
 from sentry.search.eap.common_columns import COMMON_COLUMNS
 
 ENRICHMENT_ATTRIBUTE_DEFINITIONS = {
@@ -15,5 +15,6 @@ ENRICHMENT_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.trace_id",
             search_type="string",
         ),
+        simple_sentry_field("environment"),
     ]
 }
