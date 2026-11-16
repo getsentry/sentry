@@ -345,7 +345,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
 
 
 # The guard an IP filter on one data type carries, so that it matches only that type.
-ERROR_GUARD = {
+EXPECTED_ERROR_GUARD = {
     "op": "or",
     "inner": [
         {"op": "glob", "name": "error.platform", "value": ["*"]},
@@ -353,17 +353,17 @@ ERROR_GUARD = {
         {"op": "glob", "name": "csp.platform", "value": ["*"]},
     ],
 }
-SPAN_GUARD = {
+EXPECTED_SPAN_GUARD = {
     "op": "glob",
     "name": "span.attributes.sentry.observed_timestamp_nanos.value",
     "value": ["*"],
 }
-LOG_GUARD = {
+EXPECTED_LOG_GUARD = {
     "op": "glob",
     "name": "log.attributes.sentry.observed_timestamp_nanos.value",
     "value": ["*"],
 }
-METRIC_GUARD = {
+EXPECTED_METRIC_GUARD = {
     "op": "glob",
     "name": "trace_metric.attributes.sentry.observed_timestamp_nanos.value",
     "value": ["*"],
@@ -706,7 +706,7 @@ def client_ip_condition(values: list[str]) -> dict[str, object]:
         pytest.param(
             "error",
             [{"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]}],
-            {"op": "and", "inner": [ERROR_GUARD, client_ip_condition(["10.0.0.0/8"])]},
+            {"op": "and", "inner": [EXPECTED_ERROR_GUARD, client_ip_condition(["10.0.0.0/8"])]},
             id="cidr_on_ip_address",
         ),
         pytest.param(
@@ -715,7 +715,7 @@ def client_ip_condition(values: list[str]) -> dict[str, object]:
             {
                 "op": "and",
                 "inner": [
-                    ERROR_GUARD,
+                    EXPECTED_ERROR_GUARD,
                     {"op": "not", "inner": client_ip_condition(["10.0.0.0/8"])},
                 ],
             },
@@ -727,7 +727,7 @@ def client_ip_condition(values: list[str]) -> dict[str, object]:
             {
                 "op": "and",
                 "inner": [
-                    SPAN_GUARD,
+                    EXPECTED_SPAN_GUARD,
                     {"op": "not", "inner": client_ip_condition(["10.0.0.0/8"])},
                 ],
             },
@@ -736,25 +736,25 @@ def client_ip_condition(values: list[str]) -> dict[str, object]:
         pytest.param(
             "error",
             [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
-            {"op": "and", "inner": [ERROR_GUARD, client_ip_condition(["10.0.0.0/8"])]},
+            {"op": "and", "inner": [EXPECTED_ERROR_GUARD, client_ip_condition(["10.0.0.0/8"])]},
             id="ip_address_on_errors_matches_only_errors",
         ),
         pytest.param(
             "span",
             [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
-            {"op": "and", "inner": [SPAN_GUARD, client_ip_condition(["10.0.0.0/8"])]},
+            {"op": "and", "inner": [EXPECTED_SPAN_GUARD, client_ip_condition(["10.0.0.0/8"])]},
             id="ip_address_on_spans_matches_only_spans",
         ),
         pytest.param(
             "log",
             [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
-            {"op": "and", "inner": [LOG_GUARD, client_ip_condition(["10.0.0.0/8"])]},
+            {"op": "and", "inner": [EXPECTED_LOG_GUARD, client_ip_condition(["10.0.0.0/8"])]},
             id="ip_address_on_logs_matches_only_logs",
         ),
         pytest.param(
             "metric",
             [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
-            {"op": "and", "inner": [METRIC_GUARD, client_ip_condition(["10.0.0.0/8"])]},
+            {"op": "and", "inner": [EXPECTED_METRIC_GUARD, client_ip_condition(["10.0.0.0/8"])]},
             id="ip_address_on_metrics_matches_only_metrics",
         ),
         pytest.param(
@@ -773,7 +773,7 @@ def client_ip_condition(values: list[str]) -> dict[str, object]:
             {
                 "op": "and",
                 "inner": [
-                    ERROR_GUARD,
+                    EXPECTED_ERROR_GUARD,
                     error_message_rule_condition(["*timeout*"]),
                     {"op": "release", "name": "event.release", "comparator": "gte", "value": "2.0"},
                     client_ip_condition(["10.0.0.0/8"]),
@@ -786,7 +786,7 @@ def client_ip_condition(values: list[str]) -> dict[str, object]:
             [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
             {
                 "op": "and",
-                "inner": [ERROR_GUARD, client_ip_condition(["10.0.0.0/8", "203.0.113.7"])],
+                "inner": [EXPECTED_ERROR_GUARD, client_ip_condition(["10.0.0.0/8", "203.0.113.7"])],
             },
             id="ip_address_reads_the_envelope_client_ip",
         ),
@@ -817,7 +817,7 @@ def client_ip_condition(values: list[str]) -> dict[str, object]:
             {
                 "op": "and",
                 "inner": [
-                    LOG_GUARD,
+                    EXPECTED_LOG_GUARD,
                     {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
                     client_ip_condition(["10.0.0.0/8"]),
                 ],

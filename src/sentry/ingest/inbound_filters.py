@@ -737,32 +737,31 @@ _CONDITION_MATCHERS: Mapping[
 }
 
 
-def _present(name: str) -> GlobCondition:
+def _has_field(name: str) -> GlobCondition:
     # Relay globs only strings, and `*` matches an empty one too.
     return {"op": "glob", "name": name, "value": ["*"]}
 
 
-# Restricts a filter to the items of its data type. Relay answers `envelope.client_ip` for
-# every item type, so an IP condition on its own would drop every item sent from the IP.
-# Each field is here only because Relay always sets it on items of that type before the
-# filter runs, and answers it for no other type. The guard does not filter by SDK
-# platform or by timestamp. An item that lacks the field is kept.
+# Restricts a filter to the items of its data type. Prevents generic conditions like
+# `ip_address` from matching data types other than the one the user chose on the custom
+# inbound filter.
 _DATA_TYPE_GUARDS: Mapping[DataType, RuleCondition] = {
-    # Relay normalizes the event type and platform before filtering, and reads the event's
-    # own type as the path prefix. Errors are the `error`, `default` and `csp` event types.
+    # Matches error events but not transactions, which an `event.*` field would also match.
+    # Relay reads the event's own type as the path prefix, and errors are the `error`,
+    # `default` and `csp` event types.
     DataType.ERROR: {
         "op": "or",
         "inner": [
-            _present("error.platform"),
-            _present("default.platform"),
-            _present("csp.platform"),
+            _has_field("error.platform"),
+            _has_field("default.platform"),
+            _has_field("csp.platform"),
         ],
     },
     # Relay sets the received timestamp on every span, log and trace metric before
     # filtering.
-    DataType.SPAN: _present("span.attributes.sentry.observed_timestamp_nanos.value"),
-    DataType.LOG: _present("log.attributes.sentry.observed_timestamp_nanos.value"),
-    DataType.METRIC: _present("trace_metric.attributes.sentry.observed_timestamp_nanos.value"),
+    DataType.SPAN: _has_field("span.attributes.sentry.observed_timestamp_nanos.value"),
+    DataType.LOG: _has_field("log.attributes.sentry.observed_timestamp_nanos.value"),
+    DataType.METRIC: _has_field("trace_metric.attributes.sentry.observed_timestamp_nanos.value"),
 }
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
@@ -827,18 +826,14 @@ def _custom_filter_condition(
     broken condition would filter more data than configured.
 
     A condition without an operator holds raw values, see ``ConditionOperator``.
-
-    A filter on one data type with an IP address condition also matches the data type,
-    see ``_DATA_TYPE_GUARDS``.
     """
     if not conditions or data_type is None:
         return None
 
     try:
-        filter_data_type = DataType(data_type)
+        matchers = _MATCHERS_BY_DATA_TYPE[DataType(data_type)]
     except ValueError:
         return None
-    matchers = _MATCHERS_BY_DATA_TYPE[filter_data_type]
 
     rule_conditions: list[RuleCondition] = []
     has_ip_condition = False
@@ -865,9 +860,9 @@ def _custom_filter_condition(
         else:
             rule_conditions.append(_negation(matcher, negated, values))
 
-    guard = _DATA_TYPE_GUARDS.get(filter_data_type) if has_ip_condition else None
-    if guard is not None:
-        rule_conditions.insert(0, guard)
+    data_type_guard = _DATA_TYPE_GUARDS.get(DataType(data_type)) if has_ip_condition else None
+    if data_type_guard is not None:
+        rule_conditions.insert(0, data_type_guard)
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]
