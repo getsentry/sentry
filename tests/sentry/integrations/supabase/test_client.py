@@ -153,7 +153,15 @@ class TestSupabaseOAuthTokens:
 
     @responses.activate
     @pytest.mark.parametrize(
-        "scope", [None, [], "projects:read", " ".join(SUPABASE_SCOPES) + " projects:write"]
+        "scope",
+        [
+            None,
+            [],
+            "projects:read",
+            " ".join(SUPABASE_SCOPES) + " projects:write",
+            " ".join(SUPABASE_SCOPES) + " analytics_config:read",
+            " ".join(SUPABASE_SCOPES) + " environment:read",
+        ],
     )
     def test_rejects_incorrect_scopes_when_returned(self, scope: Any) -> None:
         responses.add(responses.POST, SUPABASE_TOKEN_URL, json={**TOKEN_RESPONSE, "scope": scope})

@@ -38,8 +38,8 @@ SUPABASE_AUTHORIZATION_ERROR = "Supabase authorization failed. Connect your orga
 SUPABASE_UNREACHABLE_ERROR = "Could not reach Supabase. Try again."
 SUPABASE_RESPONSE_ERROR = "Could not verify the connection to Supabase. Try again."
 SUPABASE_PERMISSIONS_ERROR = (
-    "Configure the Supabase OAuth app with read access to organizations, projects, analytics, "
-    "and databases, then connect again."
+    "In the Supabase OAuth app settings, set Analytics, Database, Organizations, and Projects "
+    "to Read-only and all other permissions to No access. Save the changes, then connect again."
 )
 
 FORCED_REFRESH_REUSE_WINDOW = timedelta(seconds=30)
