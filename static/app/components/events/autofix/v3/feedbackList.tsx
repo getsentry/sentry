@@ -278,12 +278,7 @@ export function usePrIterationFeedback(
         ...parsed,
         iterationIndex: Number(iterationIndex),
         status,
-        errorCode:
-          status === 'error'
-            ? errorCode
-            : status === 'waiting_for_credits'
-              ? heldForCreditsAction
-              : undefined,
+        errorCode: status === 'error' ? errorCode : undefined,
       }));
     });
   }, [section, autofix.runState, currentStepStart]);
@@ -846,24 +841,9 @@ function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
         'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
       );
     case 'out_of_credits':
-      return t(
-        "Seer couldn't finish this feedback because your organization is out of credits."
-      );
+      return t('This feedback stopped partway because credits ran out');
     default:
       return t('Changes from this feedback could not be pushed');
-  }
-}
-
-function getWaitingForCreditsMessage(
-  heldForCreditsAction: string | null | undefined
-): string {
-  switch (heldForCreditsAction) {
-    case 'push':
-      return t('Changes from this feedback are waiting for credits to be pushed');
-    case 'branch_moved_retry':
-      return t('This feedback is waiting for credits to be redone on newer PR commits');
-    default:
-      return t('This feedback is waiting for credits');
   }
 }
 
@@ -913,7 +893,7 @@ function FeedbackStatusIcon({
       );
     case 'waiting_for_credits':
       return (
-        <Tooltip title={getWaitingForCreditsMessage(errorCode)} skipWrapper>
+        <Tooltip title={t('This feedback is waiting for credits')} skipWrapper>
           <Flex
             align="center"
             justify="center"

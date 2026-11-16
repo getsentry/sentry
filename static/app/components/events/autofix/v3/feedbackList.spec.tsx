@@ -183,9 +183,7 @@ describe('FeedbackList', () => {
 
     await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
     expect(
-      await screen.findByText(
-        "Seer couldn't finish this feedback because your organization is out of credits."
-      )
+      await screen.findByText('This feedback stopped partway because credits ran out')
     ).toBeInTheDocument();
   });
 
@@ -212,9 +210,7 @@ describe('FeedbackList', () => {
 
     await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
     expect(
-      await screen.findByText(
-        "Seer couldn't finish this feedback because your organization is out of credits."
-      )
+      await screen.findByText('This feedback stopped partway because credits ran out')
     ).toBeInTheDocument();
   });
 
@@ -257,7 +253,7 @@ describe('FeedbackList', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows an iteration whose push is held for credits as waiting, not pushed', async () => {
+  it('shows an iteration whose push is held for credits as waiting, not pushed', () => {
     // Sentry refused the push, so the repo has no push error for the frontend to see.
     const state = ExplorerAutofixStateFixture({
       status: 'completed',
@@ -270,15 +266,10 @@ describe('FeedbackList', () => {
     render(<IterationFeedback state={state} />);
 
     expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('img', {name: 'Waiting for credits'}));
-    expect(
-      await screen.findByText(
-        'Changes from this feedback are waiting for credits to be pushed'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Waiting for credits'})).toBeInTheDocument();
   });
 
-  it('shows a branch-moved retry held for credits as waiting, not refused', async () => {
+  it('shows a branch-moved retry held for credits as waiting, not refused', () => {
     const state = ExplorerAutofixStateFixture({
       status: 'completed',
       blocks: [...iterationBlocks(), completedBlock()],
@@ -299,12 +290,7 @@ describe('FeedbackList', () => {
     render(<IterationFeedback state={state} />);
 
     expect(screen.queryByRole('img', {name: 'Feedback failed'})).not.toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('img', {name: 'Waiting for credits'}));
-    expect(
-      await screen.findByText(
-        'This feedback is waiting for credits to be redone on newer PR commits'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Waiting for credits'})).toBeInTheDocument();
   });
 
   it('shows queued feedback as paused once iteration is paused', async () => {
