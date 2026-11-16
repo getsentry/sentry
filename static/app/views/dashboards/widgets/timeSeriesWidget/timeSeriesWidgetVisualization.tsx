@@ -699,9 +699,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // ECharts needs every known legend item to be present in the selection state.
   // This ensures that when the legend is clicked, none of the series are permanently hidden.
+  // Without a legend, every series is shown.
   const normalizedLegendSelection = chartLegendItems.reduce<Record<string, boolean>>(
     (acc, item) => {
-      acc[item.name] = legendSelection[item.name] !== false;
+      acc[item.name] = !showLegend || legendSelection[item.name] !== false;
       return acc;
     },
     {}
@@ -797,14 +798,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           renderer="canvas"
           series={band.series}
           grid={{...band.grid, ...xAxisGrid}}
-          legend={
-            showLegend
-              ? {
-                  show: false,
-                  selected: normalizedLegendSelection,
-                }
-              : undefined
-          }
+          // Always pass the legend: updates merge, so omitting it keeps its last selection.
+          legend={{show: false, selected: normalizedLegendSelection}}
           onLegendSelectChanged={handleLegendSelectChanged}
           tooltip={{
             appendToBody: true,
