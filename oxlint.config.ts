@@ -30,7 +30,6 @@ const tableComponentFiles = [
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
-    '@sentry/no-relative-api-url': 'error',
     '@sentry/prefer-nuqs': 'error',
     '@sentry/scraps/no-dom-coupling': 'error',
     '@sentry/scraps/no-manual-table': 'error',
@@ -58,14 +57,8 @@ export const incubator = defineConfig({
       files: testFiles,
       rules: {
         ...fakeTimerRules,
-        '@sentry/no-relative-api-url': 'off',
         '@sentry/scraps/prefer-primitives': 'off',
       },
-    },
-    {
-      // Build and dev server config proxies /api/0 rather than requesting it.
-      files: ['**/*.config.{js,mjs,ts}'],
-      rules: {'@sentry/no-relative-api-url': 'off'},
     },
   ],
 });
@@ -341,6 +334,7 @@ const config = defineConfig({
   ],
   rules: {
     ...base.rules,
+    '@sentry/no-relative-api-url': 'error',
     'no-restricted-imports': [
       'error',
       {
@@ -849,10 +843,16 @@ const config = defineConfig({
       },
     },
     {
+      // Build and dev server config proxies /api/0 rather than requesting it.
+      files: ['**/*.config.{js,mjs,ts}'],
+      rules: {'@sentry/no-relative-api-url': 'off'},
+    },
+    {
       files: testFiles,
       rules: {
         // Tests sometimes contain intentionally unusual hard-coded numbers.
         'no-loss-of-precision': 'off',
+        '@sentry/no-relative-api-url': 'off',
         '@sentry/prefer-react-component': 'off',
         'no-restricted-imports': [
           'error',
