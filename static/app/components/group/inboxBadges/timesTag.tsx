@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -37,7 +38,11 @@ export function TimesTag({lastSeen, firstSeen}: Props) {
           // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
           display={{zero: 'none', 'screen:md': 'flex'}}
         >
-          {lastSeen && <Separator>&nbsp;|&nbsp;</Separator>}
+          {lastSeen && (
+            <Text as="span" variant="muted">
+              &nbsp;|&nbsp;
+            </Text>
+          )}
           <TimeSince
             tooltipPrefix={t('First Seen')}
             date={firstSeen}
@@ -54,10 +59,6 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const Separator = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledIconClock = styled(IconClock)`
