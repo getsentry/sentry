@@ -1,14 +1,14 @@
-name: Bump @sentry/api in sentry-docs
+name: Bump @sentry/api in sentry-docs and toolkit
 
-# Each published api@ release asks sentry-docs to pin the new @sentry/api
-# version. Craft publishes to npm before it publishes the GitHub release, so
-# the version is already on npm when this runs.
+# Each published api@ release asks sentry-docs and getsentry/toolkit to pin the
+# new @sentry/api version. Craft publishes to npm before it publishes the
+# GitHub release, so the version is already on npm when this runs.
 on:
   release:
     types:
       - published
 
-# The dispatch uses the app token below, not GITHUB_TOKEN.
+# The dispatches use the app tokens below, not GITHUB_TOKEN.
 permissions: {}
 
 jobs:
@@ -32,3 +32,25 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
         run: gh workflow run bump-api-schema-sha.yml --repo getsentry/sentry-docs --ref master
+
+  # toolkit's bump-sentry-api.yml keeps one PR on the newest release, so its CI
+  # checks the CLI and MCP packages against each release as it ships.
+  dispatch-toolkit:
+    if: startsWith(github.event.release.tag_name, 'api@')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Get auth token
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+          owner: getsentry
+          repositories: toolkit
+          permission-actions: write
+
+      - name: Dispatch the toolkit bump
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: gh workflow run bump-sentry-api.yml --repo getsentry/toolkit --ref main
