@@ -266,6 +266,12 @@ const ACTIVE_POLL_INTERVAL = 1000;
  */
 const PR_POLL_INTERVAL = 10000;
 
+/**
+ * How long after a run's last update to keep polling fast for a push that hasn't started.
+ * After this, a push that never came falls back to the slower polling above.
+ */
+const AWAITING_PUSH_POLL_WINDOW_MS = 2 * 60_000;
+
 export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
@@ -419,6 +425,69 @@ const hasCreatedPullRequest = (autofixState: ExplorerAutofixState | null): boole
     state => state.pr_creation_status === 'completed'
   );
 
+/** Whether the run edited `repoName` after its last push there. */
+function hasUnpushedEdits(blocks: Block[], repoName: string): boolean {
+  let lastPush = -1;
+  let lastEdit = -1;
+  blocks.forEach((block, index) => {
+    // Classic tools report on the block; Code Mode reports inside tool results.
+    const values = [
+      block,
+      ...(block.tool_results ?? []).map(result => result?.structuredContent),
+    ];
+    for (const value of values) {
+      if (value?.pr_commit_shas?.[repoName]) {
+        lastPush = index;
+      }
+      if (value?.file_patches?.some(patch => patch.repo_name === repoName)) {
+        lastEdit = index;
+      }
+    }
+  });
+  return lastEdit > lastPush;
+}
+
+/**
+ * Whether Seer is pushing to the repo's PR, or has finished editing and is about to push.
+ * The Code Changes card, the Pull Requests button, the iteration feedback and polling all
+ * use this, so they agree on when a push is underway.
+ */
+export function isPushingToPullRequest(
+  state: RepoPRState,
+  runState: ExplorerAutofixState | null | undefined
+): boolean {
+  if (state.pr_creation_status === 'creating') {
+    return true;
+  }
+  // A paused iteration (e.g. its PR was closed) won't push, so the edits stay unpushed.
+  return (
+    runState?.status === 'completed' &&
+    !runState.pr_iteration_paused &&
+    defined(state.pr_number) &&
+    state.pr_creation_status !== 'error' &&
+    hasUnpushedEdits(runState?.blocks ?? [], state.repo_name)
+  );
+}
+
+/**
+ * Whether a finished iteration is waiting for Sentry to push it. The push normally starts
+ * within seconds. When it never comes (the completion hook failed or chose not to push),
+ * the state can't clear on its own, so stop polling fast once the run has been quiet for
+ * a while.
+ */
+function isAwaitingPush(autofixState: ExplorerAutofixState | null): boolean {
+  if (!autofixState) {
+    return false;
+  }
+  const quietFor = Date.now() - new Date(autofixState.updated_at).getTime();
+  if (!(quietFor < AWAITING_PUSH_POLL_WINDOW_MS)) {
+    return false;
+  }
+  return Object.values(autofixState.repo_pr_states ?? {}).some(state =>
+    isPushingToPullRequest(state, autofixState)
+  );
+}
+
 /**
  * Gets the appropriate poll interval based on state.
  */
@@ -426,14 +495,19 @@ export const getPollInterval = ({
   autofixState,
   runStarted,
   pollPR = false,
+  pinToPrHead = false,
 }: {
   autofixState: ExplorerAutofixState | null;
   runStarted: boolean;
+  /** Iterations push to the PR's head, so a finished run is shortly followed by a push. */
+  pinToPrHead?: boolean;
   pollPR?: boolean;
 }): number | false => {
   const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
   const shouldPollProcessing =
-    isActivelyProcessing(autofixState, runStarted) || hasQueuedFeedback(autofixState);
+    isActivelyProcessing(autofixState, runStarted) ||
+    hasQueuedFeedback(autofixState) ||
+    (pinToPrHead && isAwaitingPush(autofixState));
 
   if (shouldPollProcessing) {
     return ACTIVE_POLL_INTERVAL;
@@ -651,7 +725,10 @@ function getStepSections(
   );
 }
 
-export function getOrderedAutofixSections(runState: ExplorerAutofixState | null) {
+export function getOrderedAutofixSections(
+  runState: ExplorerAutofixState | null,
+  {pinToPrHead = false}: {pinToPrHead?: boolean} = {}
+) {
   const blocks = runState?.blocks ?? [];
   if (!blocks.length) {
     return [];
@@ -669,8 +746,10 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
       step: 'pull_request',
       artifacts: [pullRequests],
       blocks: [],
-      status: pullRequests.some(
-        pullRequest => pullRequest.pr_creation_status === 'creating'
+      status: pullRequests.some(pullRequest =>
+        pinToPrHead
+          ? isPushingToPullRequest(pullRequest, runState)
+          : pullRequest.pr_creation_status === 'creating'
       )
         ? 'processing'
         : 'completed',
@@ -917,6 +996,9 @@ export function useExplorerAutofix(
   const organization = useOrganization();
   const user = useUser();
   const orgSlug = organization.slug;
+  const hasPinToPrHeadFeature = organization.features.includes(
+    'autofix-pr-iteration-pin-to-pr-head'
+  );
   const serviceWorker = useServiceWorker();
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
@@ -952,7 +1034,12 @@ export function useExplorerAutofix(
       }
 
       const autofixState = query.state.data?.json?.autofix || null;
-      return getPollInterval({autofixState, runStarted: waitingForResponse, pollPR});
+      return getPollInterval({
+        autofixState,
+        runStarted: waitingForResponse,
+        pollPR,
+        pinToPrHead: hasPinToPrHeadFeature,
+      });
     },
   });
 

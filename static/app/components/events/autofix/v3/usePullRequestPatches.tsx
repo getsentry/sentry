@@ -2,15 +2,14 @@ import {useMemo} from 'react';
 import {useQueries} from '@tanstack/react-query';
 
 import {DiffLineType} from 'sentry/components/events/autofix/types';
-import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  isPushingToPullRequest,
+  type ExplorerAutofixState,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {PullRequestFileChangeType} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import type {
-  Block,
-  ExplorerFilePatch,
-  RepoPRState,
-} from 'sentry/views/seerExplorer/types';
+import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 import {parseFilePatch} from 'sentry/views/seerWorkflows/overview/filePatch';
 import type {
   PullRequestFileDiff,
@@ -61,48 +60,6 @@ function toFilePatch(file: PullRequestFileDiff, repoName: string): ExplorerFileP
       removed: lines.filter(line => line.line_type === DiffLineType.REMOVED).length,
     },
   };
-}
-
-/** Whether the run edited `repoName` after its last push there. */
-function hasUnpushedEdits(blocks: Block[], repoName: string): boolean {
-  let lastPush = -1;
-  let lastEdit = -1;
-  blocks.forEach((block, index) => {
-    // Classic tools report on the block; Code Mode reports inside tool results.
-    const values = [
-      block,
-      ...(block.tool_results ?? []).map(result => result?.structuredContent),
-    ];
-    for (const value of values) {
-      if (value?.pr_commit_shas?.[repoName]) {
-        lastPush = index;
-      }
-      if (value?.file_patches?.some(patch => patch.repo_name === repoName)) {
-        lastEdit = index;
-      }
-    }
-  });
-  return lastEdit > lastPush;
-}
-
-/**
- * Whether Seer is pushing to the repo's PR, or has finished editing and is about to push.
- * The Code Changes card, the Pull Requests button and the iteration feedback all use this,
- * so they agree on when a push is underway.
- */
-export function isPushingToPullRequest(
-  state: RepoPRState,
-  runState: ExplorerAutofixState | null | undefined
-): boolean {
-  if (state.pr_creation_status === 'creating') {
-    return true;
-  }
-  return (
-    runState?.status === 'completed' &&
-    defined(state.pr_number) &&
-    state.pr_creation_status !== 'error' &&
-    hasUnpushedEdits(runState?.blocks ?? [], state.repo_name)
-  );
 }
 
 function isRecent(timestamp: string | undefined): boolean {

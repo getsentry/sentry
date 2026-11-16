@@ -13,6 +13,7 @@ import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullReque
 import {
   getAutofixArtifactFromSection,
   isPullRequestsArtifact,
+  isPushingToPullRequest,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -28,7 +29,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {isOutOfCreditsPRState} from 'sentry/views/seerExplorer/types';
 
 import {ArtifactCard} from './artifactCard';
-import {isPushingToPullRequest} from './usePullRequestPatches';
 import {artifactToMarkdown} from './utils';
 
 interface PullRequestsCardProps {

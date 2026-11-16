@@ -20,6 +20,7 @@ import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   isOutOfCreditsSection,
   isPrIterationBlock,
+  isPushingToPullRequest,
   type AutofixSection,
   type RawFeedback,
   type useExplorerAutofix,
@@ -34,7 +35,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {isOutOfCreditsPRState} from 'sentry/views/seerExplorer/types';
 
 import {ArtifactDetails} from './artifactDetails';
-import {isPushingToPullRequest} from './usePullRequestPatches';
 
 const AVATAR_SIZE = 24;
 const SOURCE_BADGE_SIZE = 14;

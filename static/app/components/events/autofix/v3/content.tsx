@@ -30,6 +30,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {AutofixStartCard} from './autofixStartCard';
@@ -60,9 +61,15 @@ export function SeerDrawerContent({
   group,
   stickyNextStep,
 }: SeerDrawerContentProps) {
+  const organization = useOrganization();
+  // Matches the Pull Requests button, which shows "Updating" until the push lands.
+  const hasPinToPrHeadFeature = organization.features.includes(
+    'autofix-pr-iteration-pin-to-pr-head'
+  );
   const sections = useMemo(
-    () => getOrderedAutofixSections(autofix.runState),
-    [autofix.runState]
+    () =>
+      getOrderedAutofixSections(autofix.runState, {pinToPrHead: hasPinToPrHeadFeature}),
+    [autofix.runState, hasPinToPrHeadFeature]
   );
   const singleRun = isSingleRunAutofix(autofix.runState) ? autofix.runState : null;
   const singleRunId = getAutofixRunId(singleRun);

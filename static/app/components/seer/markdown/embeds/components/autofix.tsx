@@ -274,7 +274,13 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
       queryKey: explorerAutofixApiOptions(organization.slug, id).queryKey,
     }) > 0;
 
-  const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
+  const hasPinToPrHeadFeature = organization.features.includes(
+    'autofix-pr-iteration-pin-to-pr-head'
+  );
+  const sections = useMemo(
+    () => getOrderedAutofixSections(runState, {pinToPrHead: hasPinToPrHeadFeature}),
+    [runState, hasPinToPrHeadFeature]
+  );
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);
 
   useRefreshOnStepResult(id, section);
