@@ -7,6 +7,8 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
+import {Tooltip} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
 import {repositoryWithSettingsApiOptions} from 'sentry/components/repositories/repositoryWithSettingsApiOptions';
@@ -77,52 +79,64 @@ export function SeerRepoTableRow({
         </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
-        <Switch
-          disabled={!canWrite}
-          checked={repository.settings?.enabledCodeReview ?? false}
-          onChange={e => {
-            const queryKey = repositoryWithSettingsApiOptions(
-              organization,
-              repository.id
-            ).queryKey;
-            const optimisticData = {
-              ...repository,
-              settings: {
-                codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
-                ...repository.settings,
-                enabledCodeReview: e.target.checked,
-              },
-            };
-            queryClient.setQueryData(queryKey, previous => ({
-              json: optimisticData,
-              headers: previous?.headers ?? {},
-            }));
-            toast.loading(t('Updating code review for %s', repository.name));
-            mutateRepositorySettings(
-              {
-                codeReviewTriggers:
-                  repository.settings?.codeReviewTriggers || DEFAULT_CODE_REVIEW_TRIGGERS,
-                enabledCodeReview: e.target.checked,
-                repositoryIds: [repository.id],
-              },
-              {
-                onError: () => {
-                  queryClient.setQueryData(queryKey, previous => ({
-                    json: repository,
-                    headers: previous?.headers ?? {},
-                  }));
-                  toast.error(t('Failed to update code review for %s', repository.name));
-                },
-                onSuccess: () => {
-                  toast.success(t('Code review updated for %s', repository.name));
-                },
-                onSettled: () => {
-                  queryClient.invalidateQueries({queryKey});
-                },
-              }
-            );
-          }}
-        />
+        <Tooltip
+          disabled={canWrite}
+          title={t(
+            'You must be an organization owner or manager to change code review settings.'
+          )}
+        >
+          <span>
+            <Switch
+              disabled={!canWrite}
+              checked={repository.settings?.enabledCodeReview ?? false}
+              onChange={e => {
+                const queryKey = repositoryWithSettingsApiOptions(
+                  organization,
+                  repository.id
+                ).queryKey;
+                const optimisticData = {
+                  ...repository,
+                  settings: {
+                    codeReviewTriggers: DEFAULT_CODE_REVIEW_TRIGGERS,
+                    ...repository.settings,
+                    enabledCodeReview: e.target.checked,
+                  },
+                };
+                queryClient.setQueryData(queryKey, previous => ({
+                  json: optimisticData,
+                  headers: previous?.headers ?? {},
+                }));
+                toast.loading(t('Updating code review for %s', repository.name));
+                mutateRepositorySettings(
+                  {
+                    codeReviewTriggers:
+                      repository.settings?.codeReviewTriggers ||
+                      DEFAULT_CODE_REVIEW_TRIGGERS,
+                    enabledCodeReview: e.target.checked,
+                    repositoryIds: [repository.id],
+                  },
+                  {
+                    onError: () => {
+                      queryClient.setQueryData(queryKey, previous => ({
+                        json: repository,
+                        headers: previous?.headers ?? {},
+                      }));
+                      toast.error(
+                        t('Failed to update code review for %s', repository.name)
+                      );
+                    },
+                    onSuccess: () => {
+                      toast.success(t('Code review updated for %s', repository.name));
+                    },
+                    onSettled: () => {
+                      queryClient.invalidateQueries({queryKey});
+                    },
+                  }
+                );
+              }}
+            />
+          </span>
+        </Tooltip>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
         <Text size="sm">
