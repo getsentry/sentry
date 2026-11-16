@@ -6,6 +6,7 @@ import {IconSeer} from '@sentry/icons/seer';
 
 import seerArmLeft from 'sentry-images/spot/seer-arm-left.svg';
 import seerArmRight from 'sentry-images/spot/seer-arm-right.svg';
+import seerBeamBubbles from 'sentry-images/spot/seer-beam-bubbles.svg';
 import seerBeamScan from 'sentry-images/spot/seer-beam-scan.svg';
 import seerBeam from 'sentry-images/spot/seer-beam.svg';
 import seerCharacter from 'sentry-images/spot/seer-character.svg';
@@ -283,6 +284,19 @@ export function EmptyState({
                 <Image src={seerBeam} alt="" loading="eager" />
               </Beam>
               <BeamScan data-beam-scan="" position="absolute" inset="0" />
+              <BeamBubbles
+                $focused={hasDraft}
+                $delay={120 + suggestionCount * DRAFT_STAGGER_MS}
+                position="absolute"
+                inset="0"
+              >
+                <Image
+                  data-beam-bubbles=""
+                  src={seerBeamBubbles}
+                  alt=""
+                  loading="eager"
+                />
+              </BeamBubbles>
             </FloatingCharacter>
             <SuggestionContent
               aria-hidden={hasDraft || undefined}
@@ -483,8 +497,8 @@ const armReturn = keyframes`
 
 const scan = keyframes`
   0% { transform: translateY(-50%) scale(0.2); opacity: 0; }
-  15% { opacity: 0.2; }
-  80% { opacity: 0.45; }
+  15% { opacity: 0.45; }
+  80% { opacity: 0.8; }
   100% { transform: translateY(450%) scale(1); opacity: 0; }
 `;
 
@@ -539,12 +553,14 @@ const Arm = styled(Container)<{
 
 const FloatingCharacter = styled(Container)<{$focused: boolean}>`
   isolation: isolate;
+  scale: 0.85;
+  transform-origin: top center;
 
   @media (prefers-reduced-motion: no-preference) {
     animation: ${float} 6s ease-in-out infinite;
     translate: 0 ${p => (p.$focused ? 'var(--seer-focus-y, 16px)' : '0')};
-    transition: translate 620ms cubic-bezier(0.2, 0.8, 0.2, 1)
-      ${p => (p.$focused ? '120ms' : '0ms')};
+    transition: translate ${p => (p.$focused ? '720ms' : '620ms')}
+      cubic-bezier(0.2, 0.8, 0.2, 1) ${p => (p.$focused ? '120ms' : '0ms')};
   }
 `;
 
@@ -560,6 +576,21 @@ const Face = styled(Container)`
 
 const Beam = styled(Container)`
   z-index: 3;
+  --beam-opacity: ${p => (p.theme.type === 'dark' ? 0.4 : 1)};
+  opacity: var(--beam-opacity);
+`;
+
+const BeamBubbles = styled(Beam)<{$delay: number; $focused: boolean}>`
+  opacity: ${p => (p.$focused ? 'var(--beam-opacity)' : 0)};
+  visibility: ${p => (p.$focused ? 'visible' : 'hidden')};
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: opacity 240ms ease-out ${p => (p.$focused ? p.$delay : 0)}ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
 `;
 
 const BeamCaption = styled(Text)`
