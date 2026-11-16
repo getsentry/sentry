@@ -38,14 +38,16 @@ from sentry.seer.autofix.pr_iteration.completion import (
     drain_single_run_feedback_queue,
     fail_pr_iteration,
     fail_pr_iteration_missing_group,
-    is_pr_feedback_turn,
     iteration_completed_webhook_fields,
     iteration_terminal_errored_repos,
     log_completion_received,
     record_failed_tool_calls,
 )
 from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
-from sentry.seer.autofix.pr_iteration.iterations import get_latest_iteration_index
+from sentry.seer.autofix.pr_iteration.iterations import (
+    get_latest_iteration_index,
+    is_pr_feedback_turn,
+)
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (

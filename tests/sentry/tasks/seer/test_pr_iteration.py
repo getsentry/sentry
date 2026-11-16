@@ -52,7 +52,7 @@ from sentry.seer.autofix.pr_iteration.logs import (
     PrIterationLogContext,
 )
 from sentry.seer.autofix.pr_iteration.out_of_credits import (
-    OutOfCredits,
+    OutOfCreditsMarker,
     StrandedAction,
     get_out_of_credits,
     mark_out_of_credits,
@@ -1309,7 +1309,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         assert get_out_of_credits(
             run_id=67890, organization_id=self.organization.id
-        ) == OutOfCredits(stranded_action=None)
+        ) == OutOfCreditsMarker(stranded_action=None)
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -1742,10 +1742,13 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         self._call()
 
-        assert [item.feedback.text for item in peek_queued_autofix_feedback(67890)] == ["fix it"]
+        assert [
+            (item.feedback.text, item.held_for_credits)
+            for item in peek_queued_autofix_feedback(67890)
+        ] == [("fix it", True)]
         assert get_out_of_credits(
             run_id=67890, organization_id=self.organization.id
-        ) == OutOfCredits(stranded_action=None)
+        ) == OutOfCreditsMarker(stranded_action=None)
         (row,) = open_iterations(seer_run)
         assert row.triggered is False
         assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value

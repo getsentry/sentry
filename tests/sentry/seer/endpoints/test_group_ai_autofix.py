@@ -30,13 +30,12 @@ from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.out_of_credits import mark_out_of_credits
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
     pause_pr_iteration,
 )
-from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
+from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback, requeue_autofix_feedback
 from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -313,7 +312,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["pr_iteration_pause_reason"] == "user_stop"
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
-    def test_get_warns_pr_iteration_out_of_credits_while_the_run_is_marked(
+    def test_get_warns_pr_iteration_out_of_credits_for_held_feedback(
         self, mock_get_explorer_state: MagicMock
     ) -> None:
         group = self.create_group()
@@ -330,13 +329,75 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["warnings"] == []
 
-        mark_out_of_credits(run_id=888, organization_id=self.organization.id)
+        requeue_autofix_feedback(
+            888,
+            [
+                QueuedAutofixFeedback(
+                    organization_id=self.organization.id,
+                    group_id=group.id,
+                    feedback=Feedback(
+                        source=UserUIFeedbackSource(user_id=self.user.id, user_feedback="go")
+                    ),
+                    referrer=AutofixReferrer.WEB,
+                    held_for_credits=True,
+                )
+            ],
+        )
 
         response = self.client.get(self._get_url(group.id), format="json")
         assert response.status_code == 200, response.data
+        queued_feedback = response.data["autofix"]["queued_feedback"]
+        assert [item["held_for_credits"] for item in queued_feedback] == [True]
         assert response.data["autofix"]["warnings"] == [
-            {"warning_type": "pr_iteration_out_of_credits"}
+            {
+                "warning_type": "pr_iteration_out_of_credits",
+                "unfinished_action": None,
+                "unfinished_iteration_index": None,
+                "held_feedback_count": 1,
+            }
         ]
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_drops_the_out_of_credits_warning_once_paused(
+        self, mock_get_explorer_state: MagicMock
+    ) -> None:
+        group = self.create_group()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=888)
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[
+                MemoryBlock(
+                    id="iteration-1",
+                    message=Message(
+                        role="assistant",
+                        metadata={
+                            "step": AutofixStep.PR_ITERATION.value,
+                            "iteration_index": "1",
+                            "feedback": "go",
+                        },
+                    ),
+                    timestamp="2023-07-18T12:00:00Z",
+                )
+            ],
+            status="error",
+            failure_reason="out_of_credits",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(self._get_url(group.id), format="json")
+        assert response.status_code == 200, response.data
+        assert [w["warning_type"] for w in response.data["autofix"]["warnings"]] == [
+            "pr_iteration_out_of_credits"
+        ]
+
+        pause_pr_iteration(
+            run_id=888, organization_id=self.organization.id, reason=PauseReason.USER_STOP
+        )
+
+        response = self.client.get(self._get_url(group.id), format="json")
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["warnings"] == []
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_reports_an_errored_pause_apart_from_a_user_stop(

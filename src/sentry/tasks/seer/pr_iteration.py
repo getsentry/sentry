@@ -978,7 +978,9 @@ def _hold_for_credits(
     items: Sequence[QueuedAutofixFeedback],
 ) -> None:
     """Put a batch refused for credits back, so the next trigger after a top-up runs it."""
-    requeue_autofix_feedback(run_id, items)
+    requeue_autofix_feedback(
+        run_id, [item.copy(update={"held_for_credits": True}) for item in items]
+    )
     try:
         bootstrap_iteration(
             logger=logger, run_state=state, organization_id=organization_id, group_id=group_id

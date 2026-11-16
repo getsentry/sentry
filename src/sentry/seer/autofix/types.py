@@ -18,10 +18,18 @@ class GithubAppPermissionsWarning(BaseModel):
     installation_url: str | None = None
 
 
+PrIterationUnfinishedAction = Literal["agent_turn", "push", "branch_moved_retry"]
+
+
 class PrIterationOutOfCreditsWarning(BaseModel):
     """PR iteration stopped when the organization ran out of credits."""
 
     warning_type: Literal["pr_iteration_out_of_credits"] = "pr_iteration_out_of_credits"
+    # What the latest iteration left unfinished, or None when only queued feedback is held.
+    unfinished_action: PrIterationUnfinishedAction | None = None
+    unfinished_iteration_index: int | None = None
+    # Queued items a drain refused for credits.
+    held_feedback_count: int = 0
 
 
 # Discriminated on `warning_type`; add new warning models to this union.
