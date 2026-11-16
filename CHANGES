@@ -1,3 +1,10 @@
+26.11.0
+-------
+
+### Internal Changes 🔧
+
+- (api) Stop mirroring the spec to sentry-api-schema by @BYK with @sentry-junior in [#131177](https://github.com/getsentry/sentry/pull/131177)
+
 26.10.1
 -------
 
