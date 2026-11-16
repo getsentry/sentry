@@ -73,6 +73,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
     trigger_pr_iteration_details,
 )
 from sentry.seer.autofix.pr_iteration.feedback import (
+    NOT_REQUESTED,
     Feedback,
     automated_iteration_allowed,
     feedback_allowed_by_project,
@@ -105,6 +106,11 @@ from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLo
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     block_iteration_for_missing_permissions,
     post_missing_permissions_comment,
+)
+from sentry.seer.autofix.pr_iteration.nudge import (
+    NudgeKind,
+    post_not_requested_nudge,
+    queue_not_requested_nudge,
 )
 from sentry.seer.autofix.pr_iteration.out_of_credits import (
     get_out_of_credits,
@@ -427,6 +433,38 @@ def comment_on_missing_permissions(
             group_id=group_id,
             create=False,
         ),
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.nudge_not_requested_feedback",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+)
+def nudge_not_requested_feedback(
+    run_id: int,
+    organization_id: int,
+    repository_id: int,
+    pr_number: int,
+    kind: str,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """Post the run's one comment saying how to ask for feedback the project gate skipped.
+
+    Split out of the skip so the GitHub call never runs inside a webhook
+    task's deadline. See ``pr_iteration.nudge``.
+    """
+    organization = _organization_for_gate(run_id, organization_id)
+    if organization is None:
+        return
+
+    post_not_requested_nudge(
+        organization=organization,
+        run_id=run_id,
+        repository_id=repository_id,
+        pr_number=pr_number,
+        kind=NudgeKind(kind),
     )
 
 
@@ -2122,6 +2160,16 @@ def _trigger_pr_iteration_from_review(
     if not feedback_items:
         metrics.incr("autofix.pr_iteration.review_trigger.not_requested")
         logger.info("autofix.pr_iteration.review_trigger.not_requested", extra=log_extra)
+        # Only when the whole review was skipped: a reviewer who mentioned
+        # @sentry on one comment already knows how to ask.
+        if any(reason == NOT_REQUESTED for _, reason in skipped):
+            queue_not_requested_nudge(
+                run_id=agent_state.run_id,
+                organization_id=organization_id,
+                repository_id=repo_id,
+                pr_number=pr_number,
+                kind=NudgeKind.REVIEW,
+            )
         return None
 
     for feedback_obj in feedback_items:
