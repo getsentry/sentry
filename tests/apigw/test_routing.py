@@ -1,11 +1,15 @@
+import asyncio
 import logging
 import re
 from collections.abc import Iterator
+from unittest import mock
 
+import pytest
 from django.urls.base import resolve
 from django.urls.exceptions import Resolver404
 from django.urls.resolvers import URLPattern, URLResolver, get_resolver
 from django.utils.regex_helper import normalize
+from emmett55.testing import Emmett55TestClient
 
 from apigw.web import app as apigw_app
 from sentry.silo.base import SiloMode
@@ -224,3 +228,79 @@ def test_urls() -> None:
 
     assert tested > 0, "No urls were tested; the url collection is broken"
     assert not failures, f"{len(failures)} urls misrouted by apigw:\n" + "\n".join(failures)
+
+
+CONTROL_URL = "http://control.example.com"
+CONTROL_INTEGRATIONS_URL = "http://control-integrations.example.com"
+
+
+@pytest.fixture
+def apigw_client() -> Iterator[Emmett55TestClient]:
+    # The emmett test client requires an active event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        yield apigw_app.test_client()
+    finally:
+        asyncio.set_event_loop(None)
+        loop.close()
+
+
+@pytest.fixture
+def mock_proxy_request() -> Iterator[mock.AsyncMock]:
+    endpoints = apigw_app.config.endpoints
+    with (
+        mock.patch.object(endpoints, "control", CONTROL_URL),
+        mock.patch.object(endpoints, "control_integrations", CONTROL_INTEGRATIONS_URL),
+        mock.patch("apigw.proxy.proxy_request", new_callable=mock.AsyncMock) as proxy_request,
+    ):
+        proxy_request.return_value = "ok"
+        yield proxy_request
+
+
+def assert_proxied_to(proxy_request: mock.AsyncMock, target_label: str, target_url: str) -> None:
+    proxy_request.assert_called_once()
+    _, label, url, _, _ = proxy_request.call_args.args
+    assert label == target_label, "label does not match"
+    assert url == target_url, "target url does not match"
+
+
+@pytest.mark.parametrize(
+    "path", ["/extensions/github/webhook/", "/extensions/slack/action/", "/extensions/jira/"]
+)
+def test_control_integrations_enabled(
+    apigw_client: Emmett55TestClient, mock_proxy_request: mock.AsyncMock, path: str
+) -> None:
+    with mock.patch.object(apigw_app.config, "use_control_integrations", True):
+        res = apigw_client.post(path)
+
+    assert res.status == 200
+    assert_proxied_to(
+        mock_proxy_request, "control-integrations", f"{CONTROL_INTEGRATIONS_URL}{path}"
+    )
+
+
+def test_control_integrations_disabled(
+    apigw_client: Emmett55TestClient, mock_proxy_request: mock.AsyncMock
+) -> None:
+    # Integration routes fall back to the control endpoint when the split is off.
+    with mock.patch.object(apigw_app.config, "use_control_integrations", False):
+        res = apigw_client.post("/extensions/github/webhook/")
+
+    assert res.status == 200
+    assert_proxied_to(
+        mock_proxy_request, "control-integrations", f"{CONTROL_URL}/extensions/github/webhook/"
+    )
+
+
+@pytest.mark.parametrize(
+    "path", ["/api/0/users/me/", "/auth/login/", "/api/0/organizations/test-org/integrations/"]
+)
+def test_control_integrations_non_extension_routes(
+    apigw_client: Emmett55TestClient, mock_proxy_request: mock.AsyncMock, path: str
+) -> None:
+    with mock.patch.object(apigw_app.config, "use_control_integrations", True):
+        res = apigw_client.get(path)
+
+    assert res.status == 200
+    assert_proxied_to(mock_proxy_request, "control", f"{CONTROL_URL}{path}")
