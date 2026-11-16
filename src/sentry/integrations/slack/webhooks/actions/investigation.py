@@ -19,9 +19,7 @@ from sentry.notebooks.access import NOTEBOOK_SCOPES
 from sentry.notebooks.endpoints.base import organization_project_ids
 from sentry.notebooks.services import NotebookSourceNotFound, NotebookValidationError
 from sentry.seer.entrypoints.operator import SeerInvestigationOperator
-from sentry.seer.entrypoints.slack.entrypoint import (
-    SlackInvestigationEntrypoint,
-)
+from sentry.seer.entrypoints.slack.investigation import SlackInvestigationEntrypoint
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
