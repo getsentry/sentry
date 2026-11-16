@@ -140,12 +140,16 @@ def visible_nav_links(
     Pages whose condition depends on frontend code that can't be evaluated are left out.
     """
     features, scopes = frozenset(features), frozenset(scopes)
+    section = section.lower() if section else None
+    entries = _SNAPSHOT["entries"]
+    candidates = [e for e in entries if _matches_section(e["crumbs"], section)]
+    if not candidates:
+        # An unrecognized section: fall back to every page, as if no section was given.
+        section, candidates = None, entries
     # Sub-pages only for a section-scoped call by default: across every section they
     # make the list too long for Seer's tool output.
     sub_pages = include_sub_pages if include_sub_pages is not None else bool(section)
-    candidates = [e for e in _SNAPSHOT["entries"] if sub_pages or not e.get("sub_page")]
-    # An unrecognized section filters to nothing; fall back to every page rather than none.
-    candidates = [e for e in candidates if _matches_section(e["crumbs"], section)] or candidates
+    candidates = [e for e in candidates if sub_pages or not e.get("sub_page")]
 
     visible: list[VisibleNavLink] = []
     seen: set[tuple[str, str]] = set()

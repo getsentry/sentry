@@ -111,11 +111,15 @@ class TestVisibleNavLinks:
             "Settings → Organization → Teams → <team> → Members",
         ]
 
-    def test_unknown_section_falls_back_to_everything(self) -> None:
+    def test_section_is_case_insensitive(self) -> None:
+        assert [link.crumbs for link in visible_nav_links(set(), set(), section="Explore")] == [
+            "Explore → Releases",
+        ]
+
+    def test_unknown_section_falls_back_to_everything_without_sub_pages(self) -> None:
         assert [link.crumbs for link in visible_nav_links(set(), set(), section="nope")] == [
             "Explore → Releases",
             "Settings → Organization → Teams",
-            "Settings → Organization → Teams → <team> → Members",
         ]
 
 
