@@ -80,7 +80,7 @@ import {ChatPromptMessage} from './chat/chatPrompt';
 import {groupTranscript, ResponseGroup} from './chat/responseGroup';
 import {findLatestTodos} from './chat/toolUse';
 import {BlockComponent} from './chat';
-import {EmptyState} from './emptyState';
+import {EmptyState, SlackAgentReminder} from './emptyState';
 import {useExplorerMenu} from './explorerMenu';
 import {InputSection} from './inputSection';
 import {
@@ -933,7 +933,6 @@ export function SeerExplorerContent({
               errorStatusCode={errorStatusCode}
               onStartNewChat={showLoadError ? handleStartNewChat : undefined}
               runId={runId}
-              displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
               onSuggestionClick={
                 readOnly || isSendBlocked ? undefined : handleSuggestionClick
               }
@@ -996,6 +995,16 @@ export function SeerExplorerContent({
             />
           </PendingUserInputDock>
         )}
+        {showEmptyState &&
+          !isPolling &&
+          !showLoadError &&
+          hasSlackIntegration &&
+          !needsSlackUpgrade && (
+            <SlackAgentReminder
+              hasDraft={inputValue.text.length > 0}
+              suggestions={suggestions}
+            />
+          )}
         <InputSection
           enabled={!readOnly && !showLoadError}
           disabledPlaceholder={

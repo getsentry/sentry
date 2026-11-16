@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 
-import {EmptyState, getPupilOffset} from './emptyState';
+import {EmptyState, getPupilOffset, SlackAgentReminder} from './emptyState';
 
 function DraftPreview() {
   const composerRef = useRef<HTMLDivElement>(null);
@@ -14,7 +14,6 @@ function DraftPreview() {
       <EmptyState
         composerRef={composerRef}
         hasDraft={value.text.length > 0}
-        displaySlackAgentReminder
         onSuggestionClick={() => {}}
         suggestions={{
           isLoading: false,
@@ -22,6 +21,7 @@ function DraftPreview() {
           suggestions: [{text: 'What should I investigate?'}],
         }}
       />
+      <SlackAgentReminder hasDraft={value.text.length > 0} />
       <Composer
         ref={composerRef}
         aria-label="Seer question"
