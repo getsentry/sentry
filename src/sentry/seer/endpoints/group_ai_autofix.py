@@ -569,7 +569,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             status=status.HTTP_409_CONFLICT,
                         )
 
-                # The client can supply referrer. Resolve attribution from the request instead.
                 billing_feature: int | None = None
                 if resolved_run_id is not None:
                     try:
@@ -620,6 +619,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             status=status.HTTP_409_CONFLICT,
                         )
 
+                # The client can supply referrer. Resolve attribution from the request instead.
                 if is_autofix_kickoff:
                     billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
                     actor = resolve_action_actor(request)

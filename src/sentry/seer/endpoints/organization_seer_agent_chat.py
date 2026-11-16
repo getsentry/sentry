@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import sentry_sdk
@@ -63,6 +64,12 @@ logger = logging.getLogger(__name__)
 _CODE_MODE_VALUES = frozenset({"off", "only"})
 
 _DASHBOARD_GENERATE_RUN_SOURCE = "dashboard_generate"
+
+# The UI entry point that started a chat (e.g. "command_palette.tab"), recorded as
+# SeerRun.referrer. Entry points are frontend-owned and keep growing (command palette,
+# Autofix, "Ask Seer" prompts, investigations), so any dotted identifier is accepted without
+# a backend change; anything else is dropped rather than rejected so it never fails a chat.
+_CHAT_REFERRER_RE = re.compile(r"[a-z0-9_]+(?:\.[a-z0-9_]+)*")
 
 
 class SeerAgentChatStateResponse(BaseModel):
@@ -191,6 +198,14 @@ class SeerAgentChatSerializer(serializers.Serializer):
         allow_blank=True,
         default=None,
         help_text="JSON-encoded context for the chat prompt: what the entry point was about.",
+    )
+    referrer = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        default=None,
+        max_length=64,
+        help_text="The UI entry point that started a new chat. Ignored when continuing a run.",
     )
 
 
@@ -404,6 +419,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         ui_tools = validated_data.get("ui_tools")
         chat_prompt = validated_data.get("chat_prompt")
         chat_prompt_context = validated_data.get("chat_prompt_context")
+        referrer = validated_data.get("referrer")
 
         # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
         if on_page_context:
@@ -469,19 +485,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
             )
 
-            has_code_mode_feature = features.has(
-                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
-            )
-            if not has_code_mode_feature:
-                enable_code_mode_tools = "off"
-            elif override_code_mode_enable is not None:
-                enable_code_mode_tools = override_code_mode_enable
-            else:
-                # Code Mode only, not alongside the classic tools: with both, the agent has
-                # two ways to do everything and mixes them, so the surface being dogfooded is
-                # never the one that ships. The frontend override can still turn it off for
-                # comparison.
-                enable_code_mode_tools = "only"
+            # The frontend override can still turn Code Mode off to compare with the classic tools.
+            enable_code_mode_tools = override_code_mode_enable or "only"
 
             client = SeerAgentClient(
                 organization,
@@ -528,6 +533,11 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 sent_at=sent_at,
                 ui_tools=ui_tools,
                 override_ce_enable=override_ce_enable,
+                metadata=(
+                    {"referrer": referrer}
+                    if referrer and _CHAT_REFERRER_RE.fullmatch(referrer)
+                    else None
+                ),
                 request=request,
             )
             return Response({"run_id": run.seer_run_state_id, "sentry_run_id": str(run.uuid)})

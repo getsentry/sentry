@@ -594,6 +594,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             dataset=data["dataset"],
+            query_priority=data.get("query_priority"),
             **get_creator_reference(request),
         )
 

@@ -1099,6 +1099,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={},
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
         )
 
         self.login_as(user=self.user)
@@ -1115,6 +1116,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "feature_id": AUTOFIX_FEATURE_ID,
         }
         assert mock_trigger_explorer.call_args.kwargs["run_id"] == 555
+        assert (
+            mock_trigger_explorer.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
+        )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")

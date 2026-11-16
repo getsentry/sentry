@@ -599,6 +599,8 @@ class SeerAgentOperator[CachePayloadT]:
                     category_key=category_key,
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
+                    # A failed run still owes the entrypoint a reply.
+                    hook_call_on_failure=True,
                     is_interactive=True,
                     enable_coding=enable_coding,
                     enable_bash_mode=enable_coding,
@@ -1034,7 +1036,7 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 continue
 
             # TODO: Use a provider-agnostic payload type once there are more investigation entrypoints.
-            from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload
+            from sentry.seer.entrypoints.slack.investigation import SlackInvestigationCachePayload
 
             cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
                 entrypoint_key=str(entrypoint_key),
@@ -1209,7 +1211,7 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
     """Completion hook that queues a refresh of every entrypoint for a Seer Agent run.
 
-    Seer calls it when an invocation yields and when a PR push the agent queued finishes.
+    Seer calls it when an invocation yields or fails, and when a PR push the agent queued finishes.
     It only queues the work, so Seer gets a quick success; the task does the refresh and retries.
     """
 

@@ -1586,6 +1586,14 @@ class TestSeerAgentOperatorCodeMode(TestCase):
         assert kwargs["enable_coding"] is False
         assert kwargs["enable_write_pull_request"] is False
 
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_completion_hook_also_runs_when_the_run_fails(self, mock_client_cls: MagicMock) -> None:
+        self._trigger_slack(mock_client_cls)
+
+        kwargs = mock_client_cls.call_args.kwargs
+        assert kwargs["on_completion_hook"] is SeerOperatorCompletionHook
+        assert kwargs["hook_call_on_failure"] is True
+
 
 class TestSeerInvestigationOperatorAccess(TestCase):
     def _has_access(self) -> bool:
