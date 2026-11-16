@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import sentry_sdk
@@ -61,9 +62,11 @@ _CODE_MODE_VALUES = frozenset({"off", "only"})
 
 _DASHBOARD_GENERATE_RUN_SOURCE = "dashboard_generate"
 
-# UI entry points that can start a chat, recorded as SeerRun.referrer. Unknown values are
-# dropped rather than rejected so a frontend that ships a new one first never fails a chat.
-_CHAT_REFERRERS = frozenset({"command_palette.tab", "command_palette.no_results"})
+# The UI entry point that started a chat (e.g. "command_palette.tab"), recorded as
+# SeerRun.referrer. Entry points are frontend-owned and keep growing (command palette,
+# Autofix, "Ask Seer" prompts, investigations), so any dotted identifier is accepted without
+# a backend change; anything else is dropped rather than rejected so it never fails a chat.
+_CHAT_REFERRER_RE = re.compile(r"[a-z0-9_]+(?:\.[a-z0-9_]+)*")
 
 
 class SeerAgentChatStateResponse(BaseModel):
@@ -536,7 +539,11 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 sent_at=sent_at,
                 ui_tools=ui_tools,
                 override_ce_enable=override_ce_enable,
-                metadata={"referrer": referrer} if referrer in _CHAT_REFERRERS else None,
+                metadata=(
+                    {"referrer": referrer}
+                    if referrer and _CHAT_REFERRER_RE.fullmatch(referrer)
+                    else None
+                ),
                 request=request,
             )
             return Response({"run_id": run.seer_run_state_id, "sentry_run_id": str(run.uuid)})

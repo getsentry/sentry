@@ -348,16 +348,16 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client_class.return_value = mock_client
 
         response = self.client.post(
-            self.url, {"query": "dsn", "referrer": "command_palette.tab"}, format="json"
+            self.url, {"query": "dsn", "referrer": "autofix.ask_seer"}, format="json"
         )
 
         assert response.status_code == 200
         assert mock_client.start_run.call_args.kwargs["metadata"] == {
-            "referrer": "command_palette.tab"
+            "referrer": "autofix.ask_seer"
         }
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_post_new_conversation_drops_unknown_referrer(
+    def test_post_new_conversation_drops_malformed_referrer(
         self, mock_client_class: MagicMock
     ) -> None:
         mock_client = MagicMock()
@@ -365,7 +365,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client_class.return_value = mock_client
 
         response = self.client.post(
-            self.url, {"query": "dsn", "referrer": "somewhere_new"}, format="json"
+            self.url, {"query": "dsn", "referrer": "Command Palette!"}, format="json"
         )
 
         assert response.status_code == 200
