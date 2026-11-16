@@ -6,6 +6,7 @@ import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {TraceLinkedIssues} from 'sentry/components/events/interfaces/performance/traceLinkedIssues';
+import {useTraceLinkedIssues} from 'sentry/components/events/interfaces/performance/useTraceLinkedIssues';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -134,8 +135,8 @@ export function AgentActivityFullTraceButton({
 }
 
 /**
- * The Agent Activity view of the trace preview: the trace's other issues, then the
- * steps around the failing one.
+ * The Agent Activity view of the trace preview: the steps around the failing one,
+ * with the trace's other issues at the bottom of the same box.
  */
 export function EventAgentActivity({
   event,
@@ -149,31 +150,36 @@ export function EventAgentActivity({
   const organization = useOrganization();
   const navigate = useNavigate();
   const getAgentActivityLink = useAgentActivityLink(event);
+  // Shares its query with TraceLinkedIssues, so this only decides whether the footer shows.
+  const linkedIssues = useTraceLinkedIssues({event});
+  const hasLinkedIssues = !linkedIssues.isError && linkedIssues.groups.length > 0;
 
   const {steps, hiddenBefore, hiddenAfter} = getVisibleSteps(nodes, failingNode);
   const fullActivityLink = getAgentActivityLink(failingNode.id);
 
   return (
-    <Stack gap="md">
-      <TraceLinkedIssues event={event} />
-      <Container border="primary" radius="md" overflow="hidden">
-        <HiddenStepsRow count={hiddenBefore} position="top" to={fullActivityLink} />
-        <Container padding="xs">
-          <AiSpanTimeline
-            nodes={steps}
-            selectedNodeKey={failingNode.id}
-            onSelectNode={node => {
-              trackAnalytics('issue_details.agent_run.step_clicked', {
-                organization,
-                source: 'timeline',
-              });
-              navigate(getAgentActivityLink(node.id));
-            }}
-          />
-        </Container>
-        <HiddenStepsRow count={hiddenAfter} position="bottom" to={fullActivityLink} />
+    <Container border="primary" radius="md" overflow="hidden">
+      <HiddenStepsRow count={hiddenBefore} position="top" to={fullActivityLink} />
+      <Container padding="xs">
+        <AiSpanTimeline
+          nodes={steps}
+          selectedNodeKey={failingNode.id}
+          onSelectNode={node => {
+            trackAnalytics('issue_details.agent_run.step_clicked', {
+              organization,
+              source: 'timeline',
+            });
+            navigate(getAgentActivityLink(node.id));
+          }}
+        />
       </Container>
-    </Stack>
+      <HiddenStepsRow count={hiddenAfter} position="bottom" to={fullActivityLink} />
+      {hasLinkedIssues && (
+        <Container padding="md" borderTop="muted" background="secondary">
+          <TraceLinkedIssues event={event} />
+        </Container>
+      )}
+    </Container>
   );
 }
 
@@ -183,20 +189,22 @@ export function EventAgentActivity({
  */
 export function TraceViewSkeleton() {
   return (
-    <Stack gap="md" data-test-id="trace-view-skeleton">
-      <Placeholder height="16px" width="280px" />
-      <Placeholder height="80px" />
-      <Container border="primary" radius="md" overflow="hidden">
-        <Container padding="xs">
-          <AiSpanTimeline
-            nodes={[]}
-            selectedNodeKey={null}
-            onSelectNode={noop}
-            isLoading
-          />
-        </Container>
+    <Container
+      border="primary"
+      radius="md"
+      overflow="hidden"
+      data-test-id="trace-view-skeleton"
+    >
+      <Container padding="xs">
+        <AiSpanTimeline nodes={[]} selectedNodeKey={null} onSelectNode={noop} isLoading />
       </Container>
-    </Stack>
+      <Container padding="md" borderTop="muted" background="secondary">
+        <Stack gap="md">
+          <Placeholder height="16px" width="280px" />
+          <Placeholder height="80px" />
+        </Stack>
+      </Container>
+    </Container>
   );
 }
 

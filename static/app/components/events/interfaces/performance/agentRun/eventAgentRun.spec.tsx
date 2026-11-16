@@ -207,7 +207,7 @@ describe('EventAgentActivity', () => {
     });
   });
 
-  it("shows the trace's other issues above the steps", async () => {
+  it("shows the trace's other issues below the steps", async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
       body: [],
@@ -238,10 +238,11 @@ describe('EventAgentActivity', () => {
       {organization}
     );
 
+    const linkedIssues = await screen.findByText('1 other issue appears in this trace.');
     expect(
-      await screen.findByText('1 other issue appears in this trace.')
-    ).toBeInTheDocument();
-    expect(screen.getByText('search_docs')).toBeInTheDocument();
+      screen.getByText('search_docs').compareDocumentPosition(linkedIssues) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
   });
 
   it('shows the run with the failing step', () => {
