@@ -39,7 +39,7 @@ class NotebookBlockDetailsEndpointTest(APITestCase):
         response = self.client.put(
             self.block_url(block),
             data={
-                "investigationVersion": original_notebook_version,
+                "notebookVersion": original_notebook_version,
                 "version": block.version,
                 "content": "updated query",
             },
@@ -58,7 +58,7 @@ class NotebookBlockDetailsEndpointTest(APITestCase):
 
         response = self.client.delete(
             self.block_url(block),
-            data={"investigationVersion": self.notebook.version, "version": block.version},
+            data={"notebookVersion": self.notebook.version, "version": block.version},
             format="json",
         )
         assert response.status_code == 204
@@ -70,7 +70,7 @@ class NotebookBlockDetailsEndpointTest(APITestCase):
         response = self.client.put(
             self.block_url(block),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "version": 99,
                 "content": "stale",
             },
@@ -88,7 +88,7 @@ class NotebookBlockDetailsEndpointTest(APITestCase):
         response = self.client.put(
             self.block_url(block),
             data={
-                "investigationVersion": original_notebook_version,
+                "notebookVersion": original_notebook_version,
                 "version": original_block_version,
             },
             format="json",
@@ -115,7 +115,7 @@ class NotebookBlockDetailsEndpointTest(APITestCase):
         response = self.client.put(
             self.block_url(block),
             data={
-                "investigationVersion": original_notebook_version,
+                "notebookVersion": original_notebook_version,
                 "version": original_block_version,
                 "content": "unchanged",
             },
@@ -145,7 +145,7 @@ class NotebookBlockDetailsEndpointTest(APITestCase):
             response = self.client.put(
                 self.block_url(block),
                 data={
-                    "investigationVersion": self.notebook.version,
+                    "notebookVersion": self.notebook.version,
                     "version": block.version,
                     field: value,
                 },
@@ -159,7 +159,7 @@ class NotebookBlockDetailsEndpointTest(APITestCase):
         response = self.client.put(
             self.block_url(block),
             data={
-                "investigationVersion": 99,
+                "notebookVersion": 99,
                 "version": block.version,
                 "content": "must not be saved",
             },
@@ -182,7 +182,7 @@ class NotebookBlockDetailsEndpointTest(APITestCase):
         response = self.client.delete(
             self.block_url(block),
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "version": block.version,
             },
             format="json",

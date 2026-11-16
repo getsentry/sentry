@@ -17,7 +17,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  * already open, so the question keeps the context on screen that makes it
  * answerable.
  *
- * `isCodeMode` needs the flag, the Explorer's own prerequisites, and a chat
+ * `isCodeMode` needs the Explorer's own prerequisites and a chat
  * that can take the message; anything that behaves differently in code mode
  * reads it here, so none of them can disagree about it.
  */
@@ -25,10 +25,7 @@ export function useAskSeerHandoff() {
   const organization = useOrganization();
   const {sendMessage} = useAutofixChat();
 
-  const isCodeMode =
-    organization.features.includes('seer-explorer-code-mode-tools') &&
-    isSeerExplorerEnabled(organization) &&
-    Boolean(sendMessage);
+  const isCodeMode = isSeerExplorerEnabled(organization) && Boolean(sendMessage);
 
   const askSeer = useCallback(
     (prompt: string) => {

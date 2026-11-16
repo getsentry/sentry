@@ -45,7 +45,7 @@ export function DisabledDiscardGroup({organization, features}: Props) {
                 organization={organization}
                 size="sm"
                 source="feature.discard_group"
-                href="https://blog.sentry.io/2018/01/03/delete-and-discard"
+                href="https://docs.sentry.io/pricing/quotas/manage-event-stream-guide/#delete--discard"
                 external
               >
                 {t('About Discard and Delete')}

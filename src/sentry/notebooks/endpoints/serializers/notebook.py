@@ -3,12 +3,14 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, override
+from typing import Annotated, Any, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import JsonValue
 from sentry.auth.access import Access
 from sentry.auth.principal import acting_user_id
 from sentry.notebooks.endpoints.serializers.action_request import (
@@ -39,34 +41,62 @@ from sentry.viewer_context import ActorType
 
 
 class NotebookCreatorSerializerResponse(TypedDict):
-    type: ActorType
-    id: str
+    type: Annotated[
+        ActorType, ApiDescription("Whether a user or a service account created the notebook")
+    ]
+    id: Annotated[
+        str, ApiDescription("The ID of the user or service account that created the notebook")
+    ]
 
 
 class NotebookTemplateSerializerResponse(TypedDict):
-    key: str | None
-    version: int | None
+    key: Annotated[
+        str | None, ApiDescription("The key of the template the notebook started from, if any")
+    ]
+    version: Annotated[int | None, ApiDescription("The version of that template, if any")]
 
 
 class NotebookSourceSerializerResponseOptional(TypedDict, total=False):
-    snapshot: dict[str, Any]
+    snapshot: Annotated[
+        dict[str, JsonValue],
+        ApiDescription(
+            "What Sentry knew about the source when the notebook started. Only on source-backed notebooks"
+        ),
+    ]
 
 
 class NotebookSourceSerializerResponse(NotebookSourceSerializerResponseOptional):
-    type: str
-    ref: dict[str, Any]
-    revision: int | None
+    type: Annotated[
+        str, ApiDescription("The source type: manual, or the type of what the notebook is about")
+    ]
+    ref: Annotated[
+        dict[str, JsonValue],
+        ApiDescription(
+            "The identifying fields of the source, such as an issue ID. Empty for a manual notebook"
+        ),
+    ]
+    revision: Annotated[
+        int | None,
+        ApiDescription(
+            "The notebook's revision for its source. A new revision starts once the previous one is archived. Null for a manual notebook"
+        ),
+    ]
 
 
 class NotebookTitleGenerationSerializerResponse(TypedDict):
-    status: str | None
+    status: Annotated[
+        str | None,
+        ApiDescription("The state of automatic title generation, or null if it hasn't run"),
+    ]
 
 
 class NotebookOrchestrationSerializerResponse(TypedDict):
-    phase: str
-    status: str
-    heartbeatAt: datetime | None
-    notebookRevision: int
+    phase: Annotated[str, ApiDescription("The phase the agent's run is in")]
+    status: Annotated[str, ApiDescription("The status of the agent's run")]
+    heartbeatAt: Annotated[datetime | None, ApiDescription("When the run last reported progress")]
+    notebookRevision: Annotated[
+        int, ApiDescription("How many times the run has changed the notebook's report")
+    ]
 
 
 class NotebookSerializerResponse(TypedDict):
@@ -76,21 +106,45 @@ class NotebookSerializerResponse(TypedDict):
     and dates are ISO-8601 timestamps.
     """
 
-    id: str
-    title: str
-    summary: str | None
-    summaryDescription: str | None
-    status: str
-    sourceType: str
-    createdBy: str | None
-    creator: NotebookCreatorSerializerResponse | None
-    dateCreated: datetime
-    dateUpdated: datetime
-    version: int
-    blockCount: int
-    isFavorited: bool
-    titleGeneration: NotebookTitleGenerationSerializerResponse
-    orchestration: NotebookOrchestrationSerializerResponse | None
+    id: Annotated[str, ApiDescription("The notebook ID")]
+    title: Annotated[str, ApiDescription("The notebook title")]
+    summary: Annotated[
+        str | None, ApiDescription("A one-line summary of the notebook, if one was generated")
+    ]
+    summaryDescription: Annotated[
+        str | None, ApiDescription("A longer summary of the notebook, if one was generated")
+    ]
+    status: Annotated[str, ApiDescription("active or archived. Archived notebooks are read-only")]
+    sourceType: Annotated[
+        str, ApiDescription("What the notebook is about: manual, or a source type")
+    ]
+    createdBy: Annotated[
+        str | None, ApiDescription("The ID of the user who created the notebook, if a user did")
+    ]
+    creator: Annotated[
+        NotebookCreatorSerializerResponse | None,
+        ApiDescription("The user or service account that created the notebook"),
+    ]
+    dateCreated: Annotated[datetime, ApiDescription("When the notebook was created")]
+    dateUpdated: Annotated[datetime, ApiDescription("When the notebook last changed")]
+    version: Annotated[
+        int,
+        ApiDescription(
+            "The notebook's concurrency token. Send it as notebookVersion with a change"
+        ),
+    ]
+    blockCount: Annotated[int, ApiDescription("The number of blocks the notebook has")]
+    isFavorited: Annotated[
+        bool, ApiDescription("Whether the requesting user favorited the notebook")
+    ]
+    titleGeneration: Annotated[
+        NotebookTitleGenerationSerializerResponse,
+        ApiDescription("The state of automatic title generation"),
+    ]
+    orchestration: Annotated[
+        NotebookOrchestrationSerializerResponse | None,
+        ApiDescription("The agent's run for the notebook, if it has one"),
+    ]
 
 
 class NotebookDetailsSerializerResponse(NotebookSerializerResponse):
@@ -101,13 +155,28 @@ class NotebookDetailsSerializerResponse(NotebookSerializerResponse):
     re-checks them, newest report first, with that report's primary at the top.
     """
 
-    template: NotebookTemplateSerializerResponse | None
-    source: NotebookSourceSerializerResponse
-    filters: dict[str, Any]
-    projectIds: list[int]
-    parameters: list[NotebookParameterSerializerResponse]
-    blocks: list[NotebookBlockSerializerResponse]
-    actionRequests: list[NotebookActionRequestSerializerResponse]
+    template: Annotated[
+        NotebookTemplateSerializerResponse | None,
+        ApiDescription("The template the notebook started from, if any"),
+    ]
+    source: Annotated[
+        NotebookSourceSerializerResponse, ApiDescription("What the notebook is about")
+    ]
+    filters: Annotated[
+        dict[str, JsonValue], ApiDescription("Saved filters, stored with their original keys")
+    ]
+    projectIds: Annotated[list[int], ApiDescription("The IDs of the projects the notebook covers")]
+    parameters: Annotated[
+        list[NotebookParameterSerializerResponse],
+        ApiDescription("The notebook's parameters, in order"),
+    ]
+    blocks: Annotated[
+        list[NotebookBlockSerializerResponse], ApiDescription("The notebook's blocks, in order")
+    ]
+    actionRequests: Annotated[
+        list[NotebookActionRequestSerializerResponse],
+        ApiDescription("Steps the agent suggests, newest report first"),
+    ]
 
 
 @register(Notebook)

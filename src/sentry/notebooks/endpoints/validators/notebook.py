@@ -7,7 +7,10 @@ from rest_framework import serializers
 
 from sentry.api.helpers.creator import CreatorReference
 from sentry.models.organization import Organization
-from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.notebooks.endpoints.validators.base import (
+    NotebookVersionValidator,
+    StrictCamelSnakeValidator,
+)
 from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notebooks.services.notebooks import (
     NotebookSourceNotFound,
@@ -15,6 +18,7 @@ from sentry.notebooks.services.notebooks import (
     create_manual_notebook,
     create_producer_notebook,
 )
+from sentry.notebooks.services.producer import archive_notebook, update_notebook
 from sentry.notebooks.services.producer_sources import ProducerSource, get_producer_source_type
 
 
@@ -106,11 +110,12 @@ class NotebookCreateValidator(StrictCamelSnakeValidator[tuple[Notebook, bool]]):
         return value
 
 
-class NotebookUpdateValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+class NotebookUpdateValidator(NotebookVersionValidator[Notebook]):
+    """Update a notebook, or archive it when status is archived.
+
+    Needs actor in its context.
+    """
+
     title = serializers.CharField(
         max_length=255,
         required=False,
@@ -140,9 +145,30 @@ class NotebookUpdateValidator(StrictCamelSnakeValidator):
             raise serializers.ValidationError("Must be an object.")
         return value
 
+    def update(self, instance: Notebook, validated_data: dict[str, Any]) -> Notebook:
+        fields = dict(validated_data)
+        expected_version = fields.pop("notebook_version")
+        project_ids = fields.pop("project_ids", None)
+        restoring_only = fields == {"status": NotebookStatus.ACTIVE} and project_ids is None
+        if instance.status == NotebookStatus.ARCHIVED and not restoring_only:
+            raise NotebookValidationError({"detail": "Archived investigations are read-only."})
+        if fields.get("status") == NotebookStatus.ARCHIVED:
+            if set(fields) != {"status"} or project_ids is not None:
+                raise NotebookValidationError(
+                    {"detail": "Archiving cannot be combined with other changes."}
+                )
+            return archive_notebook(
+                notebook=instance,
+                expected_version=expected_version,
+                actor=self.context["actor"],
+            )
+        return update_notebook(
+            notebook=instance,
+            expected_version=expected_version,
+            fields=fields,
+            project_ids=project_ids,
+        )
 
-class NotebookDeleteValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+
+class NotebookDeleteValidator(NotebookVersionValidator):
+    pass
