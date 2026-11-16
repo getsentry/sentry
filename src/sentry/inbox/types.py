@@ -104,7 +104,12 @@ class InboxEventSummary(StrEnum):
 
 @dataclass(frozen=True, kw_only=True)
 class InboxEventData:
-    pass
+    def get_url(self, subject_url: str) -> str:
+        """
+        URL for this event, built from the subject URL. Override to point at something on the
+        subject's page, such as the comment that mentioned you.
+        """
+        return subject_url
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -121,6 +126,11 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
 
     def get_idempotency_key(self, *, data: DataT) -> str:
         return hashlib.sha256(orjson.dumps(asdict(data), option=orjson.OPT_SORT_KEYS)).hexdigest()
+
+    def get_url(self, *, organization: Organization, subject_id: str, data: DataT) -> str:
+        """URL for an event of this type."""
+        subject_url = self.item_type.get_url(organization=organization, subject_id=subject_id)
+        return data.get_url(subject_url)
 
     def record(
         self,
