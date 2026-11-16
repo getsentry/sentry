@@ -53,7 +53,7 @@ import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnaly
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
+import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -373,13 +373,15 @@ function AutofixPreviews({
           onClick={
             defined(singleRunId)
               ? () => {
-                  navigate(
-                    makeSeerLocation({
-                      organization,
-                      groupId: group.id,
-                      query: location.query,
-                    })
-                  );
+                  if (hasAutofixPage(organization)) {
+                    navigate(
+                      makeSeerLocation({
+                        organization,
+                        groupId: group.id,
+                        query: location.query,
+                      })
+                    );
+                  }
                   openSingleRunChat(singleRunId);
                 }
               : openSeerDrawer
