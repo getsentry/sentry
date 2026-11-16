@@ -53,6 +53,8 @@ const steps = [
   // that accepts a `cursor` query parameter.
   "generate-pagination",
   "generate-error-results",
+  // Error codes and their `extra` keys, from the spec's SentryApiErrorBody component.
+  "generate-error-codes",
   "generate-query-enum-types",
   // A type-only map from path and method to each operation's types.
   "generate-api-routes",

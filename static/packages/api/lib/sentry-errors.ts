@@ -1,3 +1,5 @@
+import type { SENTRY_ERROR_EXTRA_KEYS } from "./error-codes.gen.ts";
+
 /**
  * The generated SDK's non-throwing result shape.
  *
@@ -53,27 +55,13 @@ export type NarrowedResult<TData, TErrorMap> =
   | { ok: true; data: TData; response: Response }
   | { ok: false; error: SentryApiResultError<TErrorMap> };
 
-/**
- * Codes the backend's `SentryAPIException` subclasses send. Keep in sync with
- * `src/sentry/api/exceptions.py` and the other subclasses in `src/sentry`.
- */
-export type KnownSentryErrorCode =
-  | "2fa-required"
-  | "data-secrecy"
-  | "invalid-request"
-  | "invalid-superuser-access-json"
-  | "invalid_sort_by_parameter"
-  | "member-disabled-over-limit"
-  | "parameter-validation-error"
-  | "primary-email-verification-required"
-  | "repo_exists"
-  | "request-timeout"
-  | "sso-required"
-  | "staff-required"
-  | "sudo-required"
-  | "superuser-required"
-  | "unable_to_acquire_lock"
-  | "user-required";
+/** Codes the backend's `SentryAPIException` subclasses send, from the spec. */
+export type KnownSentryErrorCode = keyof typeof SENTRY_ERROR_EXTRA_KEYS;
+
+/** The string fields each known code's `extra` can carry. */
+export type SentryErrorExtra<TCode extends KnownSentryErrorCode> = {
+  [TKey in (typeof SENTRY_ERROR_EXTRA_KEYS)[TCode][number]]?: string;
+};
 
 /** A known code, or another code the server sends. */
 export type SentryErrorCode = KnownSentryErrorCode | (string & {});

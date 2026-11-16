@@ -1,19 +1,29 @@
+import { SENTRY_ERROR_EXTRA_KEYS } from "./error-codes.gen.ts";
 import { readSentryErrorDetail, SentryApiError } from "./sentry-errors.ts";
+import type { KnownSentryErrorCode, SentryErrorExtra } from "./sentry-errors.ts";
 
 type ChallengeBase = { status: number; message: string };
 
+const CHALLENGE_CODES = [
+  "sso-required",
+  "sudo-required",
+  "primary-email-verification-required",
+  "member-disabled-over-limit",
+  "superuser-required",
+  "staff-required",
+  "2fa-required",
+] as const satisfies readonly KnownSentryErrorCode[];
+
+type ChallengeCode = (typeof CHALLENGE_CODES)[number];
+
 /**
  * A 401 or 403 the user can clear by acting in Sentry, such as logging in with
- * SSO or confirming their password, read from the error body's `code`.
+ * SSO or confirming their password, read from the error body's `code`. Each
+ * code carries the string fields of its `extra`, such as `loginUrl` for SSO.
  */
-export type SentryAuthChallenge = ChallengeBase &
-  (
-    | { code: "sso-required"; loginUrl?: string; organizationSlug?: string }
-    | { code: "sudo-required" | "primary-email-verification-required"; username?: string }
-    | { code: "member-disabled-over-limit"; next?: string }
-    | { code: "superuser-required"; orgSlug?: string }
-    | { code: "staff-required" | "2fa-required" }
-  );
+export type SentryAuthChallenge = {
+  [TCode in ChallengeCode]: ChallengeBase & { code: TCode } & SentryErrorExtra<TCode>;
+}[ChallengeCode];
 
 /** `retry` sends the request once more, after the consumer re-authenticated; `fail` keeps the response. */
 export type AuthChallengeDecision = "retry" | "fail";
@@ -31,30 +41,18 @@ function readSentryAuthChallenge(status: number, body: unknown): SentryAuthChall
   if (!detail) {
     return undefined;
   }
-  const base = { status, message: detail.message };
-  const extra = (key: string) => {
-    const value = detail.extra[key];
-    return typeof value === "string" ? value : undefined;
-  };
-  // Each case names its code: the open `SentryErrorCode` union does not narrow.
-  switch (detail.code) {
-    case "sso-required":
-      return { ...base, code: "sso-required", loginUrl: extra("loginUrl"), organizationSlug: extra("organizationSlug") };
-    case "sudo-required":
-      return { ...base, code: "sudo-required", username: extra("username") };
-    case "primary-email-verification-required":
-      return { ...base, code: "primary-email-verification-required", username: extra("username") };
-    case "member-disabled-over-limit":
-      return { ...base, code: "member-disabled-over-limit", next: extra("next") };
-    case "superuser-required":
-      return { ...base, code: "superuser-required", orgSlug: extra("orgSlug") };
-    case "staff-required":
-      return { ...base, code: "staff-required" };
-    case "2fa-required":
-      return { ...base, code: "2fa-required" };
-    default:
-      return undefined;
+  const code = CHALLENGE_CODES.find((challengeCode) => challengeCode === detail.code);
+  if (!code) {
+    return undefined;
   }
+  // Every key of the code's `extra`, even when absent, as `string | undefined`.
+  const fields = Object.fromEntries(
+    SENTRY_ERROR_EXTRA_KEYS[code].map((key: string) => {
+      const value = detail.extra[key];
+      return [key, typeof value === "string" ? value : undefined];
+    }),
+  );
+  return { status, message: detail.message, code, ...fields } as SentryAuthChallenge;
 }
 
 /** The auth challenge behind an SDK error, if any. */

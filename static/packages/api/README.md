@@ -458,7 +458,7 @@ if ("error" in result) {
 
 ### Error codes
 
-Many Sentry errors have a `{"detail": {"code", "message", "extra"}}` body. For those, `SentryApiError` and its subclasses also have `code`, `detailMessage` (the body's `message`; `message` stays the error's own), and `extra`. Other bodies leave the three fields unset. `code` is a `SentryErrorCode`: one of the `KnownSentryErrorCode` values, such as `sudo-required` or `sso-required`, or any other string the server sends. Map codes to your own copy with a `switch`, and fall back for codes you don't handle:
+Many Sentry errors have a `{"detail": {"code", "message", "extra"}}` body. For those, `SentryApiError` and its subclasses also have `code`, `detailMessage` (the body's `message`; `message` stays the error's own), and `extra`. Other bodies leave the three fields unset. `code` is a `SentryErrorCode`: one of the `KnownSentryErrorCode` values, which come from the spec's `SentryApiErrorBody` component, such as `sudo-required` or `sso-required`, or any other string the server sends. Map codes to your own copy with a `switch`, and fall back for codes you don't handle:
 
 ```ts
 import { isSentryErrorCode, SentryApiError } from "@sentry/api";

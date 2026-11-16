@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, expectTypeOf, test, vi } from "vitest";
 import {
   type AuthChallengeHandler,
@@ -103,6 +104,23 @@ describe("auth challenges", () => {
   test("ignores other errors", () => {
     expect(getSentryAuthChallenge(new Error("sudo-required"))).toBeUndefined();
     expect(getSentryAuthChallenge(new SentryApiError(undefined, sentryBody("sudo-required"), undefined, false))).toBeUndefined();
+  });
+
+  test("carries the extra fields the spec's SentryApiErrorBody lists for each code", () => {
+    const spec = JSON.parse(readFileSync(new URL("../spec/openapi-derefed.json", import.meta.url), "utf8"));
+    type Variant = { properties: { code: { enum: [string] }; extra: { properties: Record<string, unknown> } }; "x-sentry-status": number };
+    const variants: Variant[] = spec.components.schemas.SentryApiErrorBody.properties.detail.oneOf;
+    const challenges = variants.flatMap((variant) => {
+      const extra = Object.fromEntries(Object.keys(variant.properties.extra.properties).map((key) => [key, `${key}-value`]));
+      const body = sentryBody(variant.properties.code.enum[0], extra);
+      const challenge = getSentryAuthChallenge(errorWith(variant["x-sentry-status"], body));
+      return challenge ? [{ challenge, extra }] : [];
+    });
+    expect(challenges.map(({ challenge }) => challenge.code).sort()).toEqual([
+      "2fa-required", "member-disabled-over-limit", "primary-email-verification-required", "sso-required",
+      "staff-required", "sudo-required", "superuser-required",
+    ]);
+    for (const { challenge, extra } of challenges) expect(challenge).toMatchObject(extra);
   });
 });
 
