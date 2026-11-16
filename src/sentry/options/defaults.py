@@ -3020,6 +3020,14 @@ register(
     default=10_000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Outbox category names (e.g. ORGANIZATION_MEMBER_UPDATE) whose synchronous
+# drains are tagged with the calling endpoint or task. Opt-in to bound cardinality.
+register(
+    "hybridcloud.outbox.sync_drain_caller_tag.categories",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",

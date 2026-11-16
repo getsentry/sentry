@@ -7,8 +7,11 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 from django.db import InterfaceError, OperationalError, connections, router, transaction
+from django.test import RequestFactory
+from django.urls import ResolverMatch
 from pytest import raises
 
+from sentry.app import env
 from sentry.hybridcloud.models import ApiTokenReplica
 from sentry.hybridcloud.models.outbox import (
     CellOutbox,
@@ -517,6 +520,14 @@ class OutboxDrainTest(TransactionTestCase):
         assert mock_process_cell_outbox.call_count == 2
 
 
+def _drain_timer_tags(mock_timer: Mock) -> list[dict[str, str]]:
+    return [
+        c.kwargs["tags"]
+        for c in mock_timer.call_args_list
+        if c.args and c.args[0] == "outbox.sync_shard_drain.duration"
+    ]
+
+
 class CellOutboxTest(TestCase):
     @patch.object(CellOutbox, "drain_shard")
     @patch("sentry.hybridcloud.models.outbox.metrics.timer")
@@ -527,14 +538,66 @@ class CellOutboxTest(TestCase):
             with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
                 Organization(id=10).outbox_for_update().save()
 
-        mock_timer.assert_called_once_with(
-            "outbox.sync_shard_drain.duration",
-            tags={
+        assert _drain_timer_tags(mock_timer) == [
+            {"category": "ORGANIZATION_UPDATE", "outbox_name": "sentry.CellOutbox"}
+        ]
+        mock_drain_shard.assert_called_once_with()
+
+    @override_options(
+        {"hybridcloud.outbox.sync_drain_caller_tag.categories": ["ORGANIZATION_UPDATE"]}
+    )
+    @patch.object(CellOutbox, "drain_shard")
+    @patch("sentry.hybridcloud.models.outbox.metrics.timer")
+    def test_sync_shard_drain_tags_calling_endpoint(
+        self, mock_timer: Mock, mock_drain_shard: Mock
+    ) -> None:
+        request = RequestFactory().put("/")
+        request.resolver_match = ResolverMatch(
+            lambda: None, (), {}, url_name="sentry-api-0-organization-details"
+        )
+        with env.active_request(request), self.captureOnCommitCallbacks(execute=True):
+            with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+                Organization(id=10).outbox_for_update().save()
+
+        assert _drain_timer_tags(mock_timer) == [
+            {
                 "category": "ORGANIZATION_UPDATE",
                 "outbox_name": "sentry.CellOutbox",
-            },
-        )
-        mock_drain_shard.assert_called_once_with()
+                "caller": "PUT:sentry-api-0-organization-details",
+            }
+        ]
+
+    @override_options(
+        {"hybridcloud.outbox.sync_drain_caller_tag.categories": ["ORGANIZATION_UPDATE"]}
+    )
+    @patch("sentry.hybridcloud.models.outbox.current_task")
+    @patch.object(CellOutbox, "drain_shard")
+    @patch("sentry.hybridcloud.models.outbox.metrics.timer")
+    def test_sync_shard_drain_tags_calling_task(
+        self, mock_timer: Mock, mock_drain_shard: Mock, mock_current_task: Mock
+    ) -> None:
+        mock_current_task.return_value = Mock(taskname="sentry.tasks.example")
+        with self.captureOnCommitCallbacks(execute=True):
+            with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+                Organization(id=10).outbox_for_update().save()
+
+        assert [t["caller"] for t in _drain_timer_tags(mock_timer)] == ["sentry.tasks.example"]
+
+    @override_options(
+        {"hybridcloud.outbox.sync_drain_caller_tag.categories": ["ORGANIZATION_MEMBER_UPDATE"]}
+    )
+    @patch.object(CellOutbox, "drain_shard")
+    @patch("sentry.hybridcloud.models.outbox.metrics.timer")
+    def test_sync_shard_drain_skips_caller_for_unlisted_category(
+        self, mock_timer: Mock, mock_drain_shard: Mock
+    ) -> None:
+        with self.captureOnCommitCallbacks(execute=True):
+            with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+                Organization(id=10).outbox_for_update().save()
+
+        assert _drain_timer_tags(mock_timer) == [
+            {"category": "ORGANIZATION_UPDATE", "outbox_name": "sentry.CellOutbox"}
+        ]
 
     def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):

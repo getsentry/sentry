@@ -25,8 +25,10 @@ from django.db.transaction import Atomic
 from django.utils import timezone
 from sentry_sdk import traces
 from sentry_sdk.traces import StreamedSpan
+from taskbroker_client.state import current_task
 
 from sentry import options
+from sentry.app import env
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -73,6 +75,17 @@ def _ensure_not_null(k: str, v: Any) -> Any:
     if v is None:
         raise ValueError(f"Attribute {k} was None, but it needed to be set!")
     return v
+
+
+def _current_caller() -> str:
+    """The endpoint (method:url_name) or task running a synchronous drain."""
+    request = env.request
+    if request is not None and request.resolver_match is not None:
+        return f"{request.method}:{request.resolver_match.url_name or 'unknown'}"
+    task = current_task()
+    if task is not None:
+        return task.taskname
+    return "unknown"
 
 
 class OutboxBase(Model):
@@ -226,13 +239,11 @@ class OutboxBase(Model):
         super().save(*args, **kwargs)
 
     def _drain_shard_with_metrics(self) -> None:
-        with metrics.timer(
-            "outbox.sync_shard_drain.duration",
-            tags={
-                "category": OutboxCategory(self.category).name,
-                "outbox_name": self._meta.label,
-            },
-        ):
+        category = OutboxCategory(self.category).name
+        tags = {"category": category, "outbox_name": self._meta.label}
+        if category in options.get("hybridcloud.outbox.sync_drain_caller_tag.categories"):
+            tags["caller"] = _current_caller()
+        with metrics.timer("outbox.sync_shard_drain.duration", tags=tags):
             self.drain_shard()
 
     @contextlib.contextmanager
