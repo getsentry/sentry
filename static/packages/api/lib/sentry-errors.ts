@@ -77,28 +77,29 @@ export type SentryErrorDetail = {
   extra: Record<string, unknown>;
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 /** Read a `SentryAPIException` body; undefined for any other body. */
 export function readSentryErrorDetail(body: unknown): SentryErrorDetail | undefined {
-  const detail = isRecord(body) ? body.detail : undefined;
-  if (!isRecord(detail) || typeof detail.code !== "string" || detail.code === "") {
+  if (typeof body !== "object" || body === null || !("detail" in body)) {
     return undefined;
   }
+  const { detail } = body;
+  if (typeof detail !== "object" || detail === null || !("code" in detail) || typeof detail.code !== "string" || detail.code === "") {
+    return undefined;
+  }
+  const extra = "extra" in detail ? detail.extra : undefined;
   return {
     code: detail.code,
-    message: typeof detail.message === "string" ? detail.message : "",
-    extra: isRecord(detail.extra) ? detail.extra : {},
+    message: "message" in detail && typeof detail.message === "string" ? detail.message : "",
+    extra: typeof extra === "object" && extra !== null && !Array.isArray(extra) ? Object.fromEntries(Object.entries(extra)) : {},
   };
 }
 
 /** Read a body with a top-level string `code`; its other fields stay on `body`. */
 function readTopLevelCode(body: unknown): SentryErrorDetail | undefined {
-  if (!isRecord(body) || typeof body.code !== "string" || body.code === "") {
+  if (typeof body !== "object" || body === null || !("code" in body) || typeof body.code !== "string" || body.code === "") {
     return undefined;
   }
-  return { code: body.code, message: typeof body.detail === "string" ? body.detail : "", extra: {} };
+  return { code: body.code, message: "detail" in body && typeof body.detail === "string" ? body.detail : "", extra: {} };
 }
 
 /** An API failure with its parsed body and raw response. */

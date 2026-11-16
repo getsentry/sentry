@@ -49,6 +49,11 @@ describe("Sentry error codes", () => {
 
   test("defaults a missing message and extra", () => {
     expect(errorWith(400, { detail: { code: "invalid-request" } })).toMatchObject({ code: "invalid-request", detailMessage: "", extra: {} });
+    for (const extra of [null, "orgSlug", ["orgSlug"]]) {
+      const error = errorWith(400, { detail: { code: "invalid-request", message: 1, extra } });
+      expect(error.detailMessage).toBe("");
+      expect(error.extra).toEqual({});
+    }
   });
 
   test("keeps the fields through status narrowing and on /client errors", async () => {
