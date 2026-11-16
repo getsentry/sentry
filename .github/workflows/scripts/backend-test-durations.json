@@ -1074,7 +1074,6 @@
     "tests/sentry/issues/endpoints/test_project_stacktrace_link.py": 4.5,
     "tests/sentry/issues/endpoints/test_project_stacktrace_source_context.py": 2.5,
     "tests/sentry/issues/endpoints/test_project_user_issue.py": 2.0,
-    "tests/sentry/issues/endpoints/test_related_issues.py": 5.3,
     "tests/sentry/issues/endpoints/test_shared_group_details.py": 2.4,
     "tests/sentry/issues/endpoints/test_team_all_unresolved_issues.py": 2.9,
     "tests/sentry/issues/endpoints/test_team_groups_old.py": 2.1,

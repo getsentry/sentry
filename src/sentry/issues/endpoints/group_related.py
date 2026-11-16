@@ -142,6 +142,6 @@ class GroupRelatedEndpoint(GroupEndpoint):
 
 
 def _readable_projects(request: Request, organization_id: int) -> list[Project]:
-    """The organization's active projects that the caller can read, as RelatedIssuesEndpoint does."""
+    """The organization's active projects that the caller can read."""
     projects = Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
     return filter_projects_by_permissions(list(projects), request, include_all_accessible=True)

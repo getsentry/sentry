@@ -354,7 +354,6 @@ from sentry.issues.endpoints import (
     ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
     ProjectStacktraceSourceContextEndpoint,
-    RelatedIssuesEndpoint,
     SharedGroupDetailsEndpoint,
     ShortIdLookupEndpoint,
     TeamGroupsOldEndpoint,
@@ -1071,11 +1070,6 @@ def create_group_urls(
             r"^(?P<issue_id>[^/]+)/current-release/$",
             GroupCurrentReleaseEndpoint.as_view(),
             name=f"{name_prefix}-group-current-release",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/related-issues/$",
-            RelatedIssuesEndpoint.as_view(),
-            name=f"{name_prefix}-related-issues",
         ),
     ]
 

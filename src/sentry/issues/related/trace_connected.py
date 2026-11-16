@@ -1,51 +1,16 @@
 # Module to evaluate if other errors happened in the same trace.
-#
-# Refer to README in module for more details.
 from sentry.api.utils import default_start_end_dates
-from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.occurrences.common_queries import get_group_ids_for_trace_id
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
-from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import bulk_snuba_queries
-
-
-# If we drop trace connected issues from similar issues we can stop using the group
-def trace_connected_analysis(
-    group: Group,
-    projects: list[Project],
-    event_id: str | None = None,
-    project_id: int | None = None,
-) -> tuple[list[int], dict[str, str]]:
-    """Determine if the group has a trace connected to it and return other issues that were part of it."""
-    issues: list[int] = []
-    meta: dict[str, str] = {}
-    if event_id:
-        # If we are passing an specific event_id, we need to get the project_id
-        assert project_id is not None
-        event = eventstore.backend.get_event_by_id(project_id, event_id, group_id=group.id)
-        # If we are requesting an specific event, we want to be notified with an error
-        assert event is not None
-        # This ensures that the event is actually part of the group and we are notified
-        assert event.group is not None
-        assert event.group.id == group.id
-    else:
-        # If we drop trace connected issues from similar issues we can remove this
-        event = group.get_recommended_event_for_environments()
-
-    if event:
-        issues, meta = trace_connected_issues(event, projects)
-    else:
-        meta["error"] = "No event found for group."
-
-    return issues, meta
 
 
 def _trace_connected_issues_snuba(

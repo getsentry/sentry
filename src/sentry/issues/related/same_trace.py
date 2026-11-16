@@ -1,9 +1,8 @@
 """
 Finds issues with errors in the same trace as an issue's latest event.
 
-It reuses trace_connected_issues(), which also backs the trace section of the Similar Issues tab
-(RelatedIssuesEndpoint): it looks up the issues of up to 100 error events in the trace, over the last
-90 days.
+It uses trace_connected_issues(), which looks up the issues of up to 100 error events in the trace,
+over the last 90 days.
 """
 
 from collections.abc import Sequence
