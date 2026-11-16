@@ -704,29 +704,26 @@ class OAuthTokenView(View):
             # The code is consumed by any redemption attempt, including an expired one.
             setup_code_id = setup_code.id
             setup_code.delete()
-            token = (
-                None
-                if setup_code.is_expired()
-                else ApiToken.objects.create(
-                    application=application,
-                    user_id=setup_code.user_id,
-                    scope_list=setup_code.scope_list,
-                    scoping_organization_id=setup_code.organization_id,
+            analytics_args = {
+                "user_id": setup_code.user_id,
+                "organization_id": setup_code.organization_id,
+                "application_id": application.id,
+                "setup_code_id": setup_code_id,
+            }
+            if setup_code.is_expired():
+                analytics.record(OAuthSetupCodeRedeemedEvent(**analytics_args, outcome="expired"))
+                return self.error(
+                    request=request, name="invalid_grant", reason="setup code expired"
                 )
-            )
 
-        analytics.record(
-            OAuthSetupCodeRedeemedEvent(
+            token = ApiToken.objects.create(
+                application=application,
                 user_id=setup_code.user_id,
-                organization_id=setup_code.organization_id,
-                application_id=application.id,
-                setup_code_id=setup_code_id,
-                outcome="expired" if token is None else "exchanged",
+                scope_list=setup_code.scope_list,
+                scoping_organization_id=setup_code.organization_id,
             )
-        )
-        if token is None:
-            return self.error(request=request, name="invalid_grant", reason="setup code expired")
 
+        analytics.record(OAuthSetupCodeRedeemedEvent(**analytics_args, outcome="exchanged"))
         metrics.incr("oauth_setup_code.token_exchange", sample_rate=1.0)
         logger.info(
             "oauth.setup-code-exchanged",
