@@ -1725,6 +1725,24 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert error_call.args[0] == "autofix.pr_iteration.consume_feedback.failed"
         assert error_call.kwargs["exc_info"] is True
 
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=SeerApiError("boom", 500))
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_unexpected_trigger_failure_on_a_legacy_run_drops_the_batch(
+        self,
+        mock_fetch: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        # No SeerRun row, so the pause can't clear the in-flight list.
+        mock_fetch.return_value = self._state()
+        self._enqueue_ui_feedback("fix it")
+
+        with pytest.raises(SeerApiError):
+            self._call()
+
+        assert peek_queued_autofix_feedback(67890) == []
+        # It never reaches Seer, so the UI must stop showing it as queued.
+        assert peek_in_flight_autofix_feedback(67890) == []
+
     @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=PrIterationNoPullRequestException())
     @patch(f"{TASK_PATH}.fetch_run_status")
     def test_a_trigger_that_cannot_succeed_drops_the_batch(

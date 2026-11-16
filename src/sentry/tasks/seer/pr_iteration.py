@@ -994,6 +994,7 @@ def _drain_queued_autofix_feedback(
         # This iteration never started, so drop its row.
         _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
         if isinstance(error, SeerOutOfCreditsException):
+            # Moves the batch from the in-flight list back to the queue.
             _hold_for_credits(
                 log_ctx=log_ctx,
                 run_id=run_id,
@@ -1007,6 +1008,10 @@ def _drain_queued_autofix_feedback(
             release_in_flight_autofix_feedback(run_id, consumable_items)
         return
     except Exception as error:
+        # Pausing clears the list too, but not for a legacy run with no SeerRun
+        # or when the pause fails. If Seer stored the block before failing, the
+        # UI already hides the item, so releasing it is safe either way.
+        release_in_flight_autofix_feedback(run_id, consumable_items)
         _stop_after_drain_failure(
             log_ctx=log_ctx,
             run_id=run_id,

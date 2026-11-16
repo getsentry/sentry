@@ -15,6 +15,7 @@ from sentry.utils.redis import load_redis_script, redis_clusters
 logger = logging.getLogger(__name__)
 
 drain_list_into = load_redis_script("utils/drain_list_into.lua")
+move_list_items_to_front = load_redis_script("utils/move_list_items_to_front.lua")
 
 _QUEUE_TTL_SECONDS = 60 * 60 * 24
 # As long as the consume task's processing deadline: Seer has the feedback, or
@@ -102,16 +103,19 @@ def enqueue_autofix_feedback(
 
 
 def requeue_autofix_feedback(run_id: int, items: Sequence[QueuedAutofixFeedback]) -> None:
-    """Put popped items back at the front of the run's queue, in their original order."""
+    """Move popped items from the in-flight list back to the front of the queue.
+
+    They keep their original order. The move is one script, so a poll never
+    sees the items in neither list.
+    """
     if not items:
         return
 
-    redis = redis_clusters.get(_REDIS_CLUSTER)
-    key = _feedback_queue_key(run_id)
-    with redis.pipeline() as pipe:
-        pipe.lpush(key, *(item.json() for item in reversed(items)))
-        pipe.expire(key, _QUEUE_TTL_SECONDS)
-        pipe.execute()
+    move_list_items_to_front(
+        [_in_flight_key(run_id), _feedback_queue_key(run_id)],
+        [_QUEUE_TTL_SECONDS, *(_redis_value(item) for item in items)],
+        redis_clusters.get(_REDIS_CLUSTER),
+    )
 
 
 def record_skipped_autofix_feedback(
@@ -152,6 +156,10 @@ def clear_queued_autofix_feedback(run_id: int) -> None:
     client = redis_clusters.get(_REDIS_CLUSTER)
     client.delete(_feedback_queue_key(run_id))
     client.delete(_in_flight_key(run_id))
+
+
+def _redis_value(item: QueuedAutofixFeedback) -> str:
+    return item._raw if item._raw is not None else item.json()
 
 
 def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
@@ -202,7 +210,8 @@ def pop_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
     The move is one script, so a poll never sees the items in neither list. Once
     Seer has an item, the UI state stops showing it (see ``ui_state``). Items
     that won't reach Seer must be taken off with
-    ``release_in_flight_autofix_feedback``; the rest are left to expire.
+    ``release_in_flight_autofix_feedback``, or put back on the queue with
+    ``requeue_autofix_feedback``; the rest are left to expire.
     """
     client = redis_clusters.get(_REDIS_CLUSTER)
     raw_items = drain_list_into(
@@ -231,7 +240,7 @@ def release_in_flight_autofix_feedback(run_id: int, items: Sequence[QueuedAutofi
     try:
         with redis_clusters.get(_REDIS_CLUSTER).pipeline() as pipe:
             for item in items:
-                pipe.lrem(key, 1, item._raw if item._raw is not None else item.json())
+                pipe.lrem(key, 1, _redis_value(item))
             pipe.execute()
     except Exception:
         logger.warning("autofix.feedback_queue.release_in_flight_failed", exc_info=True)
