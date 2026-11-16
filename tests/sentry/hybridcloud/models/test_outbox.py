@@ -18,7 +18,12 @@ from sentry.hybridcloud.models.outbox import (
     outbox_context,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs, schedule_outbox_model
+from sentry.hybridcloud.tasks.deliver_from_outbox import (
+    _get_category_depths,
+    _record_category_depths,
+    enqueue_outbox_jobs,
+    schedule_outbox_model,
+)
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
@@ -975,6 +980,11 @@ class OutboxAggregationTest(TestCase):
             OutboxCategory.AUDIT_LOG_EVENT.value: 12,
             OutboxCategory.ORGANIZATION_UPDATE.value: 1,
         }
+        assert ControlOutbox.get_cell_category_depths() == {
+            ("eu", OutboxCategory.AUDIT_LOG_EVENT.value): 4,
+            ("us", OutboxCategory.AUDIT_LOG_EVENT.value): 8,
+            ("us", OutboxCategory.ORGANIZATION_UPDATE.value): 1,
+        }
 
     @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
     def test_category_shard_depth_gauge(self, mock_metrics: Mock) -> None:
@@ -993,26 +1003,49 @@ class OutboxAggregationTest(TestCase):
             drain_task=Mock(),
         )
 
-        gauge_calls_by_category = {
-            gauge_call.kwargs["tags"]["category"]: gauge_call
+        gauge_calls = [
+            gauge_call.kwargs
             for gauge_call in mock_metrics.gauge.mock_calls
             if gauge_call.args and gauge_call.args[0] == "deliver_from_outbox.category_shard_depth"
-        }
+        ]
 
-        assert gauge_calls_by_category[OutboxCategory.AUDIT_LOG_EVENT.name].kwargs == dict(
-            value=12,
-            tags={
-                "silo": "control",
-                "type": "ControlOutbox",
-                "category": OutboxCategory.AUDIT_LOG_EVENT.name,
-            },
-            sample_rate=1.0,
+        def expected(cell: str, category: OutboxCategory, value: int) -> dict[str, Any]:
+            return dict(
+                value=value,
+                tags={
+                    "silo": "control",
+                    "type": "ControlOutbox",
+                    "category": category.name,
+                    "destination_cell": cell,
+                },
+                sample_rate=1.0,
+            )
+
+        assert sorted(gauge_calls, key=repr) == sorted(
+            [
+                expected("eu", OutboxCategory.AUDIT_LOG_EVENT, 4),
+                expected("us", OutboxCategory.AUDIT_LOG_EVENT, 8),
+                expected("us", OutboxCategory.ORGANIZATION_UPDATE, 1),
+            ],
+            key=repr,
         )
-        assert gauge_calls_by_category[OutboxCategory.ORGANIZATION_UPDATE.name].kwargs == dict(
-            value=1,
+
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
+    def test_category_shard_depth_gauge_without_cell(self, mock_metrics: Mock) -> None:
+        # Cell outboxes all go to control, so they have no destination_cell tag.
+        with patch.object(
+            CellOutbox,
+            "get_category_depths",
+            return_value={OutboxCategory.ORGANIZATION_UPDATE.value: 3},
+        ):
+            _record_category_depths(SiloMode.CELL, CellOutbox, _get_category_depths(CellOutbox))
+
+        mock_metrics.gauge.assert_called_once_with(
+            "deliver_from_outbox.category_shard_depth",
+            value=3,
             tags={
-                "silo": "control",
-                "type": "ControlOutbox",
+                "silo": "region",
+                "type": "CellOutbox",
                 "category": OutboxCategory.ORGANIZATION_UPDATE.name,
             },
             sample_rate=1.0,
@@ -1069,7 +1102,7 @@ class OutboxAggregationTest(TestCase):
     @override_options({"hybridcloud.outbox.category_depth_metric.enabled": False})
     @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
     def test_category_shard_depth_gauge_disabled(self, mock_metrics: Mock) -> None:
-        with patch.object(ControlOutbox, "get_category_depths") as mock_depths:
+        with patch.object(ControlOutbox, "get_cell_category_depths") as mock_depths:
             schedule_outbox_model(
                 silo_mode=SiloMode.CONTROL,
                 outbox_model=ControlOutbox,

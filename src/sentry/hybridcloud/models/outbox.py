@@ -613,6 +613,17 @@ class ControlOutboxBase(OutboxBase):
 
     cell_name = models.CharField(max_length=CELL_NAME_LENGTH, db_column="region_name")
 
+    @classmethod
+    def get_cell_category_depths(cls) -> dict[tuple[str, int], int]:
+        """
+        Like get_category_depths, but also grouped by destination cell, so a
+        backlog for one cell can be told apart from the rest.
+
+        :return: A mapping of (cell name, category value) to total depth.
+        """
+        rows = cls.objects.values("cell_name", "category").annotate(depth=Count("*"))
+        return {(row["cell_name"], row["category"]): row["depth"] for row in rows}
+
     def send_signal(self) -> None:
         process_control_outbox.send(
             sender=OutboxCategory(self.category),
