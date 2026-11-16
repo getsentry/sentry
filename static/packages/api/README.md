@@ -261,6 +261,23 @@ It runs once per request, including `prepareRequest`, after `requestValidator`
 and before request interceptors. A per-call `resolveBaseUrl` replaces the
 configured one. A throw rejects the request unchanged, before `fetch` is called.
 
+### Linking to Sentry
+
+To link to something in Sentry, use the URL the API returns instead of building one from the base URL and slugs. Those URLs account for how the deployment is set up, such as organization subdomains or a self-hosted URL prefix:
+
+- Issues have `permalink`, the issue's page in Sentry.
+- AI conversations have `webUrl`, the conversation's page in Sentry.
+- Organizations have `links.organizationUrl`, the organization's base URL, and `links.regionUrl`, the base URL of its region's API. `regionUrl` is what a `resolveBaseUrl` like the one above returns.
+- External issues also have a `webUrl`, but it links to the issue in the other tool, not to Sentry.
+
+```ts
+const { data: organization } = await sentry.getOrganization({
+  path: { organization_id_or_slug: "my-org" },
+  throwOnError: true,
+});
+console.log(organization.links.organizationUrl, organization.links.regionUrl);
+```
+
 ### Preparing a raw request
 
 Use `sentry.client.prepareRequest` when a consumer needs to inspect a request
