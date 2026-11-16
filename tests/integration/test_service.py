@@ -16,7 +16,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 class IntegrationServiceTest(TestCase):
     jwt = "my_cool_jwt"
 
-    def generate_integration(self, metadata: dict[str, Any] | None = None):
+    def generate_integration(self, metadata: dict[str, Any] | None = None) -> Integration:
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -32,7 +32,7 @@ class IntegrationServiceTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_refresh_expired_token(self, mock_jwt):
+    def test_refresh_expired_token(self, mock_jwt: mock.MagicMock) -> None:
         integration = self.generate_integration(
             metadata={
                 "access_token": "token_1",
@@ -75,7 +75,7 @@ class IntegrationServiceTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_refresh_token_within_grace_period(self, mock_jwt):
+    def test_refresh_token_within_grace_period(self, mock_jwt: mock.MagicMock) -> None:
         integration = self.generate_integration(
             metadata={
                 "access_token": "token_1",
@@ -114,7 +114,7 @@ class IntegrationServiceTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_no_refresh_token_outside_grace_period(self, mock_jwt):
+    def test_no_refresh_token_outside_grace_period(self, mock_jwt: mock.MagicMock) -> None:
         integration = self.generate_integration(
             metadata={
                 "access_token": "token_valid",
@@ -138,7 +138,7 @@ class IntegrationServiceTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_refresh_token_missing_expiration_time(self, mock_jwt):
+    def test_refresh_token_missing_expiration_time(self, mock_jwt: mock.MagicMock) -> None:
         integration = self.generate_integration(
             metadata={
                 "access_token": "token_no_expiry",
@@ -176,7 +176,7 @@ class IntegrationServiceTest(TestCase):
             "pull_requests": "read",
         }
 
-    def test_missing_integration(self):
+    def test_missing_integration(self) -> None:
         rpc_integration = integration_service.refresh_github_access_token(
             integration_id=12345,
             organization_id=self.organization.id,
@@ -184,7 +184,7 @@ class IntegrationServiceTest(TestCase):
 
         assert rpc_integration is None
 
-    def test_disabled_integration(self):
+    def test_disabled_integration(self) -> None:
         integration = self.generate_integration()
         with assume_test_silo_mode_of(Integration):
             integration.status = ObjectStatus.DISABLED
@@ -197,7 +197,7 @@ class IntegrationServiceTest(TestCase):
 
         assert rpc_integration is None
 
-    def test_missing_installation(self):
+    def test_missing_installation(self) -> None:
         # Generate a new integration with an installation on a different org.
         integration = self.create_integration(
             organization=self.create_organization(owner=self.create_user()),
@@ -214,7 +214,9 @@ class IntegrationServiceTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_refresh_permissions_reads_without_minting_a_token(self, mock_jwt):
+    def test_refresh_permissions_reads_without_minting_a_token(
+        self, mock_jwt: mock.MagicMock
+    ) -> None:
         """The point of this call is the permissions, not the token.
 
         GitHub reports an installation's current permissions on the
@@ -249,7 +251,7 @@ class IntegrationServiceTest(TestCase):
         assert len(responses.calls) == 1
         assert responses.calls[0].request.headers["Authorization"] == f"Bearer {self.jwt}"
 
-    def test_refresh_permissions_for_an_install_on_another_organization(self):
+    def test_refresh_permissions_for_an_install_on_another_organization(self) -> None:
         """An integration id alone is not enough to reach an installation.
 
         The org has to actually have it installed, or a caller anywhere in the
@@ -269,7 +271,7 @@ class IntegrationServiceTest(TestCase):
             is None
         )
 
-    def test_refresh_permissions_for_an_unknown_integration(self):
+    def test_refresh_permissions_for_an_unknown_integration(self) -> None:
         integration = self.generate_integration()
 
         assert (
@@ -280,7 +282,7 @@ class IntegrationServiceTest(TestCase):
             is None
         )
 
-    def test_refresh_permissions_for_a_disabled_integration(self):
+    def test_refresh_permissions_for_a_disabled_integration(self) -> None:
         integration = self.generate_integration()
         with assume_test_silo_mode_of(Integration):
             integration.status = ObjectStatus.DISABLED

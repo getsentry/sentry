@@ -1,27 +1,22 @@
 import {useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useLeaveTeam} from 'sentry/views/settings/organizationTeams/hooks/useLeaveTeam';
-import {
-  hasOrgRoleOverwrite,
-  RoleOverwritePanelAlert,
-} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
-import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
-import {
-  TeamLink,
-  TeamsTable,
-} from 'sentry/views/settings/organizationTeams/teamsTableStyles';
-import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
+
+import {useLeaveTeam} from './hooks/useLeaveTeam';
+import {hasOrgRoleOverwrite, RoleOverwritePanelAlert} from './roleOverwriteWarning';
+import {TeamProjectsCell} from './teamProjectsCell';
+import {TeamLink, TeamsTable} from './teamsTableStyles';
+import {getButtonHelpText} from './utils';
 
 interface YourTeamsTableProps {
   allTeamsCount: number;

@@ -1,6 +1,7 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconUser} from '@sentry/icons/user';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -25,13 +26,20 @@ import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
+import type {TableColumn} from 'sentry/views/discover/table/types';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/cellActions';
 import {
   CONVERSATION_FIELDS,
   type Conversation,
@@ -108,8 +116,18 @@ const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
 
 type ColumnWidths = Partial<Record<ColumnKey, number>>;
 
+function isColumnKey(key: string): key is ColumnKey {
+  return Object.hasOwn(COLUMN_DEFAULTS, key);
+}
+
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
+
+type CellActionHandler = (
+  action: Actions,
+  column: TableColumn<keyof TableDataRow>,
+  value: string | number
+) => void;
 
 export function getConversationTimeSpan(
   conversation: Pick<Conversation, 'timeSpan' | 'generationDuration'>
@@ -197,41 +215,85 @@ export function parseStoredColumnWidths(value?: unknown): ColumnWidths {
   return widths;
 }
 
-interface ConversationsTableProps {
-  conversations: ReturnType<typeof useConversations>;
+type ConversationsResult = ReturnType<typeof useConversations>;
+
+type ConversationsTableSource = Pick<
+  ConversationsResult,
+  'data' | 'error' | 'isFetching' | 'pageLinks' | 'setCursor' | 'unsetCursor'
+> &
+  Partial<Pick<ConversationsResult, 'setSort' | 'sort'>>;
+
+export interface ConversationsTableColumn {
+  key: string;
+  name: string;
+  renderBodyCell: (conversation: Conversation) => React.ReactNode;
+  width: number;
 }
 
-export function ConversationsTable({conversations}: ConversationsTableProps) {
+interface ConversationsTableProps {
+  conversations: ConversationsTableSource;
+  additionalColumns?: ConversationsTableColumn[];
+  disableCellActions?: boolean;
+  hidePagination?: boolean;
+  persistColumnWidths?: boolean;
+  projects?: number[];
+}
+
+export function ConversationsTable({
+  conversations,
+  additionalColumns,
+  disableCellActions = false,
+  hidePagination = false,
+  persistColumnWidths = true,
+  projects,
+}: ConversationsTableProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const detailProjects = projects ?? selection.projects;
   const {data, isFetching, error, pageLinks, setCursor, unsetCursor, sort, setSort} =
     conversations;
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
+  );
 
   const [storedWidths, setStoredWidths] = useLocalStorageState<ColumnWidths>(
     COLUMN_WIDTHS_STORAGE_KEY,
     parseStoredColumnWidths
   );
+  const [sessionWidths, setSessionWidths] = useState<Partial<Record<string, number>>>({});
+  const columnWidths: Partial<Record<string, number>> = persistColumnWidths
+    ? storedWidths
+    : sessionWidths;
 
   const columnOrder = useMemo<Array<GridColumnOrder<ColumnKey>>>(
     () =>
       COLUMN_ORDER.map(key => ({
         key,
         name: COLUMN_DEFAULTS[key].name,
-        width: storedWidths[key] ?? COLUMN_DEFAULTS[key].width,
+        width: columnWidths[key] ?? COLUMN_DEFAULTS[key].width,
       })),
-    [storedWidths]
+    [columnWidths]
   );
 
   const handleResizeColumn = useCallback(
-    (_columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
+    (_columnIndex: number, nextColumn: GridColumnOrder<string>) => {
+      const key = nextColumn.key;
+      if (!persistColumnWidths) {
+        setSessionWidths(current => ({...current, [key]: nextColumn.width}));
+        return;
+      }
+      if (!isColumnKey(key)) {
+        return;
+      }
       // Keyed by column rather than by index so a stored width survives a
       // change to the column order.
-      setStoredWidths(current => ({...current, [nextColumn.key]: nextColumn.width}));
+      setStoredWidths(current => ({...current, [key]: nextColumn.width}));
     },
-    [setStoredWidths]
+    [persistColumnWidths, setStoredWidths]
   );
 
   const hasNoTools = useMemo(
@@ -240,34 +302,60 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
     [data]
   );
 
-  const displayedColumns = useMemo(
-    () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
-    [columnOrder, hasNoTools]
-  );
+  const displayedColumns = useMemo<Array<GridColumnOrder<string>>>(() => {
+    const columns = collapseToolsColumnWhenUnused(columnOrder, hasNoTools);
+    if (!additionalColumns?.length) {
+      return columns;
+    }
+    const extraColumns = additionalColumns.map(({key, name, width}) => ({
+      key,
+      name,
+      width: columnWidths[key] ?? width,
+    }));
+    return columns.flatMap(column =>
+      column.key === 'conversation' ? [column, ...extraColumns] : [column]
+    );
+  }, [additionalColumns, columnOrder, columnWidths, hasNoTools]);
   const staticColumnWidths = useMemo(
     () =>
-      storedWidths.conversation === undefined ||
-      storedWidths.conversation === COL_WIDTH_UNDEFINED
+      columnWidths.conversation === undefined ||
+      columnWidths.conversation === COL_WIDTH_UNDEFINED
         ? {conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`}
         : undefined,
-    [storedWidths.conversation]
+    [columnWidths.conversation]
   );
 
-  const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
+  const handlePaginate: typeof setCursor = (cursor, pageDelta) => {
     trackAnalytics('conversations.table.paginate', {
       organization,
       direction: pageDelta > 0 ? 'next' : 'previous',
     });
-    setCursor(cursor, path, query, pageDelta);
+    setCursor(cursor, pageDelta);
   };
+
+  const handleCellAction = useCallback<CellActionHandler>(
+    (action, column, value) => {
+      const search = new MutableSearch(searchQuery ?? '');
+      updateQuery(search, action, column, value);
+      if (action === Actions.COPY_TO_CLIPBOARD) {
+        return;
+      }
+      setSearchQuery(search.formatString() || null);
+      unsetCursor();
+    },
+    [searchQuery, setSearchQuery, unsetCursor]
+  );
 
   const handleRowClick = useCallback(
     (dataRow: Conversation, _key: number, event: React.MouseEvent) => {
-      const url = getConversationDetailUrl(
-        organization.slug,
-        dataRow,
-        selection.projects
-      );
+      if (
+        event.target instanceof Element &&
+        (event.target.closest('button, [role="menu"]') ||
+          !event.currentTarget.contains(event.target))
+      ) {
+        return;
+      }
+      const url = getConversationDetailUrl(organization.slug, dataRow, detailProjects);
       // Mirror native link behavior instead of navigating in place: Cmd/Ctrl+click
       // opens a new tab (no features string) and Shift+click opens a new window
       // (a features string makes browsers open a window rather than a tab).
@@ -281,14 +369,21 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
       }
       navigate(url);
     },
-    [navigate, organization.slug, selection.projects]
+    [detailProjects, navigate, organization.slug]
   );
 
   const getColumnSort = useCallback(
-    (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
+    (column: GridColumnOrder<string>): GridColumnSort | undefined => {
+      if (!isColumnKey(column.key)) {
+        return undefined;
+      }
       const field = SORT_FIELD_BY_COLUMN[column.key];
       if (!field) {
         return undefined;
+      }
+      const align = RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined;
+      if (!setSort) {
+        return align ? {align} : undefined;
       }
 
       let direction: 'asc' | 'desc' | undefined;
@@ -298,7 +393,7 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
         direction = 'desc';
       }
       return {
-        align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined,
+        align,
         direction,
         onSort: () => {
           setSort(direction === 'desc' ? field : `-${field}`);
@@ -310,10 +405,23 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
   );
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
-      <BodyCell column={column} conversation={dataRow} />
-    ),
-    []
+    (column: GridColumnOrder<string>, dataRow: Conversation) => {
+      const additionalColumn = additionalColumns?.find(({key}) => key === column.key);
+      if (additionalColumn) {
+        return additionalColumn.renderBodyCell(dataRow);
+      }
+      if (!isColumnKey(column.key)) {
+        return null;
+      }
+      return (
+        <BodyCell
+          columnKey={column.key}
+          conversation={dataRow}
+          onCellAction={disableCellActions ? undefined : handleCellAction}
+        />
+      );
+    },
+    [additionalColumns, disableCellActions, handleCellAction]
   );
 
   return (
@@ -344,40 +452,74 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
       </FixedRowHeightGrid>
       {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
           only spacing between the table and the controls. */}
-      <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
+      {!hidePagination && (
+        <TablePagination {...getPaginationProps(pageLinks)} onCursor={handlePaginate} />
+      )}
     </Stack>
   );
 }
 
 function BodyCell({
-  column,
+  columnKey,
   conversation,
+  onCellAction,
 }: {
-  column: GridColumnOrder<ColumnKey>;
+  columnKey: ColumnKey;
   conversation: Conversation;
+  onCellAction: CellActionHandler | undefined;
 }) {
-  switch (column.key) {
+  switch (columnKey) {
     case 'conversation':
       return <ConversationCell conversation={conversation} />;
     case 'timeSpan':
       return (
-        <Text tabular>
-          <PerformanceDuration
-            milliseconds={getConversationTimeSpan(conversation)}
-            abbreviation
-          />
-        </Text>
+        <FilterCellAction
+          field={
+            conversation.timeSpan
+              ? CONVERSATION_FIELDS.timeSpan.key
+              : CONVERSATION_FIELDS.generationDuration.key
+          }
+          type="duration"
+          value={getConversationTimeSpan(conversation)}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          <Text tabular>
+            <PerformanceDuration
+              milliseconds={getConversationTimeSpan(conversation)}
+              abbreviation
+            />
+          </Text>
+        </FilterCellAction>
       );
     case 'messages':
       return (
-        <Text tabular>
-          <Count value={conversation.llmCalls} />
-        </Text>
+        <FilterCellAction
+          field={CONVERSATION_FIELDS.messages.key}
+          type="integer"
+          value={conversation.llmCalls}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          <Text tabular>
+            <Count value={conversation.llmCalls} />
+          </Text>
+        </FilterCellAction>
       );
     case 'errors':
-      return <ErrorCell value={conversation.errors} />;
-    case 'cost':
       return (
+        <FilterCellAction
+          field={CONVERSATION_FIELDS.errors.key}
+          type="integer"
+          value={conversation.errors}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          <ErrorCell value={conversation.errors} />
+        </FilterCellAction>
+      );
+    case 'cost': {
+      const cost = (
         <Text tabular>
           {conversation.totalCost !== null && conversation.totalCost < 0 ? (
             <NegativeCostInfo cost={conversation.totalCost} />
@@ -386,6 +528,21 @@ function BodyCell({
           )}
         </Text>
       );
+      if (conversation.totalCost === null) {
+        return cost;
+      }
+      return (
+        <FilterCellAction
+          field={CONVERSATION_FIELDS.totalCost.key}
+          type="number"
+          value={conversation.totalCost}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          {cost}
+        </FilterCellAction>
+      );
+    }
     case 'tools':
       return <ToolsCell toolNames={conversation.toolNames} />;
     case 'age':
@@ -397,6 +554,46 @@ function BodyCell({
     default:
       return null;
   }
+}
+
+function FilterCellAction({
+  children,
+  conversationId,
+  field,
+  onCellAction,
+  type,
+  value,
+}: {
+  children: React.ReactNode;
+  conversationId: string;
+  field: string;
+  onCellAction: CellActionHandler | undefined;
+  type: ColumnValueType;
+  value: number;
+}) {
+  if (!onCellAction) {
+    return children;
+  }
+
+  const column: TableColumn<keyof TableDataRow> = {
+    key: field,
+    name: field,
+    type,
+    column: {kind: 'field', field},
+    isSortable: false,
+    width: COL_WIDTH_UNDEFINED,
+  };
+
+  return (
+    <CellAction
+      column={column}
+      dataRow={{id: conversationId, [field]: value}}
+      allowActions={ALLOWED_CELL_ACTIONS}
+      handleCellAction={(action, cellValue) => onCellAction(action, column, cellValue)}
+    >
+      {children}
+    </CellAction>
+  );
 }
 
 function getConversationTitle(
@@ -687,6 +884,12 @@ const FixedRowHeightGrid = styled('div')`
      size because its larger min-height wins over this fixed height. */
   tbody td {
     height: ${ROW_HEIGHT}px;
+  }
+
+  /* Tighter padding fits two rows of tool tags; [role='cell'] skips the hover layer td. */
+  tbody td[role='cell'] {
+    padding-top: ${p => p.theme.space.md};
+    padding-bottom: ${p => p.theme.space.md};
   }
 `;
 

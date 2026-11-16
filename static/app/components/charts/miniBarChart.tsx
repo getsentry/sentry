@@ -6,11 +6,11 @@ import {useTheme} from '@emotion/react';
 import type {GridComponentOption} from 'echarts';
 import set from 'lodash/set';
 
-import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import {BarChart, type BarChartProps, type BarChartSeries} from './barChart';
+import type {BaseChartProps} from './baseChart';
 
 function makeBaseChartOptions({
   animateBars,
@@ -66,7 +66,7 @@ function makeBaseChartOptions({
       top: labelYAxisExtents || showMarkLineLabel ? 6 : 0,
       bottom: labelYAxisExtents || showMarkLineLabel ? 4 : 0,
       left: markLineLabelSide === 'left' ? (showMarkLineLabel ? 35 : 4) : 0,
-      right: markLineLabelSide === 'right' ? (showMarkLineLabel ? 25 : 4) : 0,
+      right: markLineLabelSide === 'right' ? (showMarkLineLabel ? 35 : 4) : 0,
     },
     xAxis: {
       axisLine: showXAxisLine

@@ -6,7 +6,8 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import BackendOverviewPage from 'sentry/views/insights/pages/backend/backendOverviewPage';
+
+import BackendOverviewPage from './backendOverviewPage';
 
 const organization = OrganizationFixture({features: ['performance-view']});
 const pageFilterSelection = PageFiltersFixture({
@@ -148,10 +149,6 @@ const setupMocks = () => {
         dataset: 'metrics',
       },
     },
-  });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-histogram/',
-    body: {data: [], meta: []},
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/key-transactions-list/',

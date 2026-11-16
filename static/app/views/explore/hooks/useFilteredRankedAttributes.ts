@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 
-import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
+import type {AttributeBreakdownsComparison} from './useAttributeBreakdownComparison';
 
 type RankedAttribute = AttributeBreakdownsComparison['rankedAttributes'][number];
 

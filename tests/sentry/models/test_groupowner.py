@@ -15,25 +15,25 @@ class GroupOwnerTest(TestCase):
             repo=self.create_repo(self.project),
         )
 
-        self.lookup_kwargs = {
+        self.lookup_kwargs: dict[str, object] = {
             "group_id": self.group.id,
             "type": GroupOwnerType.SUSPECT_COMMIT.value,
             "user_id": self.user.id,
             "project_id": self.project.id,
             "organization_id": self.organization.id,
         }
-        self.scm_extra_lookup = {"context__asjsonb__commitId": self.c.id}
+        self.scm_extra_lookup: dict[str, object] = {"context__asjsonb__commitId": self.c.id}
 
-        self.defaults = {
+        self.defaults: dict[str, object] = {
             "date_added": self.timestamp,
         }
 
-        self.scm_context_defaults = {
+        self.scm_context_defaults: dict[str, object] = {
             "commitId": self.c.id,
             "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
 
-        self.rb_context_defaults = {
+        self.rb_context_defaults: dict[str, object] = {
             "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
         }
 

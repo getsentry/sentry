@@ -6,6 +6,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {NuqsAdapter} from 'sentry/router/nuqsAdapter';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
@@ -28,7 +29,7 @@ interface SimpleRouterProps {
 function SimpleRouter({element}: SimpleRouterProps) {
   const [router] = useState(() => createBrowserRouter([{path: '*', element}]));
 
-  return <RouterProvider router={router} />;
+  return <RouterProvider router={router} useTransitions={false} />;
 }
 
 async function processItem(initConfig: OnSentryInitConfiguration) {
@@ -56,9 +57,11 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
                 <CommandPaletteProvider>
                   <SimpleRouter
                     element={
-                      <ScrapsProviders>
-                        <Component {...props} />
-                      </ScrapsProviders>
+                      <NuqsAdapter>
+                        <ScrapsProviders>
+                          <Component {...props} />
+                        </ScrapsProviders>
+                      </NuqsAdapter>
                     }
                   />
                 </CommandPaletteProvider>

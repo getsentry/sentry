@@ -1,9 +1,8 @@
-import {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
-import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
-import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
-import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
-import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
-
+import {ContinuousProfile} from './continuousProfile';
+import {EventedProfile} from './eventedProfile';
+import {importProfile} from './importProfile';
+import {JSSelfProfile} from './jsSelfProfile';
+import {SampledProfile} from './sampledProfile';
 import {SentrySampledProfile} from './sentrySampledProfile';
 import {makeSentryContinuousProfile, makeSentrySampledProfile} from './testUtils';
 

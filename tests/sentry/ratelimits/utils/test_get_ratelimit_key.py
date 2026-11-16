@@ -175,6 +175,19 @@ class GetRateLimitKeyTest(TestCase):
             == "ip:default:APITestEndpoint:GET:127.0.0.1"
         )
 
+    def test_service_account(self) -> None:
+        self.request.user = AnonymousUser()
+        self.request.auth = AuthenticatedToken(
+            kind="service_account", entity_id=42, organization_id=self.organization.id
+        )
+
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == "user:default:APITestEndpoint:GET:service_account:42"
+        )
+
     def test_org_auth_token(self) -> None:
         self.request.user = AnonymousUser()
         self.request.auth = AuthenticatedToken.from_token(
@@ -261,6 +274,27 @@ class GetRateLimitKeyTest(TestCase):
             )
             == f"org:default:APITestEndpoint:GET:{self.organization.id}"
         )
+
+    @mock.patch("sentry.ratelimits.utils.get_organization_id_from_token")
+    def test_integration_token_without_api_token_row(self, mock_get_org: mock.MagicMock) -> None:
+        # What SENTRY_EXTRA_API_AUTHENTICATION classes return for an integration.
+        internal_integration = self.create_internal_integration(
+            name="my_app", organization=self.organization
+        )
+        with assume_test_silo_mode_of(User):
+            self.request.user = User.objects.get(id=internal_integration.proxy_user_id)
+        self.request.auth = AuthenticatedToken(
+            kind="api_token",
+            organization_id=self.organization.id,
+            user_id=internal_integration.proxy_user_id,
+        )
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"org:default:APITestEndpoint:GET:{self.organization.id}"
+        )
+        mock_get_org.assert_not_called()
 
 
 class DummyEndpoint(Endpoint):

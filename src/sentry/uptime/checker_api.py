@@ -1,15 +1,28 @@
 import uuid
+from collections.abc import Sequence
+from typing import NotRequired, TypedDict
 
 import requests
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.uptime.models import UptimeRegionScheduleMode
-from sentry.uptime.types import CheckConfig
+from sentry.uptime.types import CheckConfig, RequestHeader, RequestMethod
+
+
+class _PreviewCheckData(TypedDict):
+    url: str
+    timeout_ms: int | float
+    method: NotRequired[RequestMethod]
+    headers: NotRequired[Sequence[RequestHeader]]
+    body: NotRequired[str]
+    assertion: NotRequired[object]
 
 
 # Create a "preview check" that we send to an uptime checker to validate the config
 # (in particular, the assertion.)
-def create_preview_check(validated_data, region: UptimeRegionConfig) -> CheckConfig:
+def create_preview_check(
+    validated_data: _PreviewCheckData, region: UptimeRegionConfig
+) -> CheckConfig:
     config: CheckConfig = {
         "subscription_id": uuid.UUID(int=0).hex,
         "url": validated_data.get("url"),
@@ -21,17 +34,21 @@ def create_preview_check(validated_data, region: UptimeRegionConfig) -> CheckCon
         "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,
     }
 
-    if validated_data.get("method") is not None:
-        config["request_method"] = validated_data.get("method")
+    method = validated_data.get("method")
+    if method is not None:
+        config["request_method"] = method
 
-    if validated_data.get("headers") is not None:
-        config["request_headers"] = validated_data.get("headers")
+    headers = validated_data.get("headers")
+    if headers is not None:
+        config["request_headers"] = headers
 
-    if validated_data.get("body") is not None:
-        config["request_body"] = validated_data.get("body")
+    body = validated_data.get("body")
+    if body is not None:
+        config["request_body"] = body
 
-    if validated_data.get("assertion") is not None:
-        config["assertion"] = validated_data.get("assertion")
+    assertion = validated_data.get("assertion")
+    if assertion is not None:
+        config["assertion"] = assertion
 
     return config
 

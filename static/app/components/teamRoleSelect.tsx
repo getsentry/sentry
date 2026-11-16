@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import type {ControlProps} from '@sentry/scraps/select';
 
-import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import type {Organization, Team, TeamMember} from 'sentry/types/organization';
 import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,
 } from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+
+import {RoleSelectControl} from './roleSelectControl';
 
 interface Props {
   member: TeamMember;
@@ -16,7 +17,9 @@ interface Props {
   organization: Organization;
   team: Team;
   disabled?: boolean;
-  size?: ControlProps['size'];
+  keepMenuInViewport?: boolean;
+  menuPortalTarget?: ControlProps<string>['menuPortalTarget'];
+  size?: ControlProps<string>['size'];
 }
 
 export function TeamRoleSelect({
@@ -25,6 +28,8 @@ export function TeamRoleSelect({
   member,
   onChangeTeamRole,
   disabled,
+  keepMenuInViewport,
+  menuPortalTarget,
   size,
 }: Props) {
   const {orgRoleList, teamRoleList, features} = organization;
@@ -66,6 +71,8 @@ export function TeamRoleSelect({
       roles={teamRoleList}
       value={teamRole.id}
       onChange={option => onChangeTeamRole(option.value)}
+      keepMenuInViewport={keepMenuInViewport}
+      menuPortalTarget={menuPortalTarget}
       size={size}
     />
   );

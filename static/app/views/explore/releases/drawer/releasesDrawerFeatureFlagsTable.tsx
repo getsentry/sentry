@@ -12,7 +12,8 @@ import {Placeholder} from 'sentry/components/placeholder';
 import type {GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+
+import {ReleasesDrawerFields} from './utils';
 
 const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'provider', name: t('Provider')},

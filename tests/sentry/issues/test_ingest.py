@@ -1,7 +1,9 @@
 from collections import namedtuple
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from hashlib import md5
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import patch
 
@@ -50,6 +52,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
@@ -74,7 +77,10 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             end=now + timedelta(days=1),
             selected_columns=["event_id", "group_id", "occurrence_id"],
             groupby=None,
-            filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+            filter_keys={
+                "project_id": [self.project.id],
+                "event_id": cast("Sequence[int]", [event.event_id]),
+            },
             tenant_ids={"referrer": "r", "organization_id": 1},
         )
         assert len(result["data"]) == 1
@@ -161,11 +167,29 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test_new_group_with_user_assignee(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id, assignee=f"user:{self.user.id}")
-        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        captured_contexts: list[ViewerContext | None] = []
+        assign = GroupAssignee.objects.assign
+
+        def capture_context(*args: Any, **kwargs: Any) -> Any:
+            captured_contexts.append(get_viewer_context())
+            return assign(*args, **kwargs)
+
+        with patch(
+            "sentry.issues.ingest.GroupAssignee.objects.assign", side_effect=capture_context
+        ):
+            _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.LOW
         assignee = GroupAssignee.objects.get(group=group_info.group)
         assert assignee.user_id == self.user.id
+        assert captured_contexts == [
+            ViewerContext(
+                actor=Actor(type=ActorType.SYSTEM),
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+            )
+        ]
 
     def test_new_group_with_team_assignee(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
@@ -254,7 +278,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             name="Test Metric Detector",
             type="metric_issue",
             enabled=True,
-            config={"threshold_period": 1, "detection_type": "static"},
+            config={"detection_type": "static"},
             workflow_condition_group=condition_group,
         )
         _ = AlertRuleDetector.objects.create(

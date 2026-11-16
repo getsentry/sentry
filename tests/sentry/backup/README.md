@@ -1,42 +1,23 @@
 # Backup tests
 
-This directory tests a number of scenarios where we take an empty database, import a given backup
-`.json` file, optionally perform some transform, re-export it and validate the diff. The expected
-result is that only the changes we have made are reflected in the final diff between the original
-input `.json` that we imported, and the final output `.json` that we exported.
+These tests start from an empty database, import a backup `.json` file, optionally transform it, export it again, and diff the two. The diff must contain only the changes the test made.
+
+## Add or change a relocatable model
+
+The suite checks every model whose `__relocation_scope__` is not `RelocationScope.Excluded`. When you add such a model, or add fields to one, update the following until CI passes.
+
+1. **Exhaustive fixtures.** Create at least one instance of the model in the matching `create_exhaustive_*` method in `src/sentry/testutils/helpers/backups.py`. Use `create_exhaustive_organization` for organization or project-scoped models and `create_exhaustive_user` for user-scoped ones. Without it, `test_exhaustive.py` and the `ScopingTests` in `test_exports.py` and `test_imports.py` fail with "Some `expected_models` entries were not found" or "models were not included in the export".
+2. **Comparators.** If a field changes on import, such as `date_added` and `date_updated` from `DefaultFieldsModel`, register a comparator for the model in `get_default_comparators()` in `src/sentry/backup/comparators.py`, for example `DateUpdatedComparator("date_updated", "date_added")`. Without it, `test_exhaustive_dirty_pks` fails with `UnequalJSON` findings on those fields.
+3. **Coverage checks.** `test_coverage.py` may also require:
+   - a collision test in `test_imports.py`, registered in `COLLISION_TESTED`, if the model has unique constraints not based on `Organization` or `Global`-scoped foreign keys.
+   - a dynamic relocation scope test in `test_models.py`, registered in `DYNAMIC_RELOCATION_SCOPE_TESTED`, if `__relocation_scope__` is a set of scopes.
 
 ## Comparators
 
-A number of fields in the export JSON format are not so easily compared before and after running
-through an import/export cycle. We introduce "comparators" to account for such cases. Comparators
-are custom, model-specific ways of comparing portions of two json files that take into account more
-nuanced validations beyond the simple character-for-character matching that the default diffing
-algorithm provides for us.
+Some fields cannot match byte for byte after an import and export cycle. An import rewrites `date_updated`, and some hashes change. A comparator checks the relation the field must keep instead, for example that the exported `date_updated` is not earlier than the imported one.
 
-For example, `date_updated` fields that change due to the very act of importing the JSON, or hashes
-that may change between import and export. In these cases, we may choose to simply validate that the
-exported `date_updated` is greater than the imported value for the same model instance, or that
-hashes match some general regex rule around size and valid characters without being identical.
-
-Comparator functions should implement the `JSONMutatingComparator` callback protocol, and be
-included in the `COMPARATORS` dictionary, matching them to the models they are applicable to. Note
-that the comparator is explicitly described as "mutating" - this is important, as part of its
-functionality is to _modify the compared fields in both the expected and actual output, so that
-text-based JSON diffing does not fail on them_. In the example above, the `date_updated` field in
-_both_ the expected and actual JSON should be replaced with some obvious sentinel value indicating
-that a comparator-initiated mutation took place, like `__COMPARATOR_DATE_UPDATED__`.
-
-While it may be tempting to remove the offending field, or to make the actual match the expected
-after the comparison is completed, this is discouraged, as it will result in the subsequent JSON
-diff looking identical, potentially confusing future readers. Better to just throw up a very obvious
-signal that "a framework-generated replacement occurred here" to make future debugging less
-stressful.
+Comparators subclass `JSONScrubbingComparator` in `src/sentry/backup/comparators.py`, and `get_default_comparators()` maps each model to its comparators. Each comparator implements `compare()`. Its `scrub()` then moves the compared fields out of `fields` into a separate `scrubbed` dictionary on both sides, so the text diff skips them. All `compare()` calls for a model run before any `scrub()` call, so two comparators on the same field do not change each other's input.
 
 ## Snapshots
 
-A number of default starter snapshots are provided to bootstrap this test flow.
-
-### fresh_install.json
-
-This represents the state of the database immediately after running `./install.sh` to create a new
-instance of `self-hosted`.
+Snapshot fixtures live in `fixtures/backup/`. `fresh-install.json` is the database state right after `./install.sh` creates a new `self-hosted` instance.

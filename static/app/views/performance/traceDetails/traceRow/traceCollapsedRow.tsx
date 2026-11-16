@@ -8,7 +8,8 @@ import {
 } from 'sentry/views/performance/traceDetails/traceGuards';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {CollapsedNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/collapsedNode';
-import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+
+import type {TraceRowProps} from './traceRow';
 
 export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
   const stats = useMemo(() => {
@@ -37,19 +38,13 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
 
   return (
     <div
-      // oxlint-disable-next-line react/refs
       key={props.index}
-      // oxlint-disable-next-line react/refs
       tabIndex={props.tabIndex}
       className="Collapsed TraceRow"
-      // oxlint-disable-next-line react/refs
       onPointerDown={props.onRowClick}
-      // oxlint-disable-next-line react/refs
       onKeyDown={props.onRowKeyDown}
-      // oxlint-disable-next-line react/refs
       style={props.style}
     >
-      {/* oxlint-disable-next-line react/refs */}
       <div className="TraceLeftColumn" ref={props.registerListColumnRef}>
         {/* oxlint-disable-next-line react/refs */}
         <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
@@ -68,7 +63,6 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
             : null}
         </div>
       </div>
-      {/* oxlint-disable-next-line react/refs -- This is a React element, not a ref. */}
       {props.pinnedAttributeCell}
     </div>
   );

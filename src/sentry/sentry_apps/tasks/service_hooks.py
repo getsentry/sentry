@@ -1,4 +1,5 @@
 from time import time
+from typing import Any, cast
 
 from taskbroker_client.retry import Retry
 
@@ -15,8 +16,10 @@ from sentry.utils import json
 from sentry.utils.cache import cache
 
 
-def get_payload_v0(event):
-    group = event.group
+def get_payload_v0(
+    event: Event | GroupEvent,
+) -> dict[str, Any]:
+    group = cast("Group", event.group)
     project = group.project
 
     group_context = serialize(group)
@@ -89,10 +92,12 @@ def process_service_hook(
     else:
         raise NotImplementedError
 
+    guid = servicehook.guid
+    assert guid is not None
     headers = {
         "Content-Type": "application/json",
         "X-ServiceHook-Timestamp": str(int(time())),
-        "X-ServiceHook-GUID": servicehook.guid,
+        "X-ServiceHook-GUID": guid,
         "X-ServiceHook-Signature": servicehook.build_signature(payload),
     }
 

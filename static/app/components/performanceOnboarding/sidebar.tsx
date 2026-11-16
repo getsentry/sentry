@@ -1,5 +1,8 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -28,34 +31,22 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useApi} from 'sentry/utils/useApi';
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import {filterProjects} from './utils';
 
-function decodeProjectIds(projectIds: unknown): string[] | null {
-  if (Array.isArray(projectIds)) {
-    return projectIds;
-  }
-
-  if (typeof projectIds === 'string') {
-    return [projectIds];
-  }
-
-  return null;
-}
-
 export function usePerformanceOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.PERFORMANCE_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 
@@ -86,7 +77,7 @@ function DrawerContent() {
 }
 
 function SidebarContent() {
-  const location = useLocation<{project: string[] | null}>();
+  const [projectIds] = useQueryState('project', pageFilterParsers.project);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
@@ -96,10 +87,7 @@ function SidebarContent() {
   const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
     filterProjects(projects);
 
-  const priorityProjectIds = useMemo(() => {
-    const decodedProjectIds = decodeProjectIds(location.query.project);
-    return decodedProjectIds === null ? null : new Set(decodedProjectIds);
-  }, [location.query.project]);
+  const priorityProjectIds = useMemo(() => new Set(projectIds), [projectIds]);
 
   useEffect(() => {
     if (
@@ -111,7 +99,7 @@ function SidebarContent() {
     }
 
     // Establish current project
-    if (priorityProjectIds) {
+    if (priorityProjectIds.size > 0) {
       const projectMap: Record<string, Project> = projects.reduce((acc, project) => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[project.id] = project;
@@ -193,7 +181,7 @@ function SidebarContent() {
         },
       };
 
-      if (priorityProjectIds?.has(String(project.id))) {
+      if (priorityProjectIds.has(String(project.id))) {
         acc.unshift(itemProps);
       } else {
         acc.push(itemProps);
@@ -232,7 +220,10 @@ function SidebarContent() {
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const firstIssue = useEventWaiter({
     eventType: 'transaction',
     organization,

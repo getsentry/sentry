@@ -1,7 +1,6 @@
 import type {AlertProps} from '@sentry/scraps/alert';
 
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
-import type {CodeReviewTrigger} from 'sentry/types/seer';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
@@ -13,6 +12,7 @@ import type {
 import type {Avatar, ObjectStatus, Scope} from './core';
 import type {ParsedOwnershipRule} from './ownership';
 import type {BaseRelease} from './release';
+import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
 
 export type {
@@ -325,6 +325,7 @@ export type SentryAppComponent<
     | SentryAppSchemaStacktraceLink
     | SentryAppSchemaElement,
 > = {
+  installationUuid: string;
   schema: Schema;
   sentryApp: {
     avatars: Avatar[];
@@ -334,7 +335,10 @@ export type SentryAppComponent<
   };
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
-  error?: string | boolean;
+  /**
+   * Empty string when the component prepared successfully
+   */
+  error?: '' | {context?: Record<string, unknown>; detail?: string};
 };
 
 export type SentryAppAvatar = Avatar & {

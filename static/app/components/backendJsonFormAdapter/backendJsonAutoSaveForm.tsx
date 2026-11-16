@@ -8,11 +8,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
-import {
-  ProjectMapperAddRow,
-  ProjectMapperNextButton,
-  ProjectMapperTable,
-} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {FieldValue, JsonFormAdapterFieldConfig} from './types';
 import {getDefaultForField, getDisabledProp, getZodType, transformChoices} from './utils';
@@ -78,46 +73,6 @@ export function BackendJsonAutoSaveForm<
                 />
               </Stack>
             )}
-          </fieldApi.Base>
-        )}
-      </AutoSaveForm>
-    );
-  }
-
-  if (field.type === 'project_mapper') {
-    return (
-      <AutoSaveForm
-        name={fieldName}
-        schema={schema}
-        initialValue={value}
-        mutationOptions={mutationOptions}
-      >
-        {fieldApi => (
-          <fieldApi.Base>
-            {(baseProps, {indicator}) => {
-              const handleChangeAndSave = (newValue: Array<[number, string]>) => {
-                fieldApi.handleChange(newValue);
-                baseProps.onBlur();
-              };
-              return (
-                <Stack flexGrow={1} gap="xl">
-                  <ProjectMapperTable
-                    config={field}
-                    value={fieldApi.state.value}
-                    onDelete={handleChangeAndSave}
-                    disabled={!!getDisabledProp(field) || baseProps.disabled}
-                  />
-                  <ProjectMapperAddRow
-                    config={field}
-                    value={fieldApi.state.value}
-                    onAdd={handleChangeAndSave}
-                    indicator={indicator}
-                    disabled={!!getDisabledProp(field) || baseProps.disabled}
-                  />
-                  <ProjectMapperNextButton config={field} value={fieldApi.state.value} />
-                </Stack>
-              );
-            }}
           </fieldApi.Base>
         )}
       </AutoSaveForm>

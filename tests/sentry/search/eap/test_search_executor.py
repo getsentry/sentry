@@ -10,7 +10,7 @@ from sentry.utils.cursors import Cursor
 
 
 class TestSearchFiltersToQueryString:
-    def test_all_operator_types(self):
+    def test_all_operator_types(self) -> None:
         cases = [
             (SearchFilter(SearchKey("level"), "=", SearchValue("error")), "level:error"),
             (SearchFilter(SearchKey("level"), "!=", SearchValue("error")), "!level:error"),
@@ -44,7 +44,7 @@ class TestSearchFiltersToQueryString:
                 f"Failed for operator {sf.operator}"
             )
 
-    def test_value_formatting(self):
+    def test_value_formatting(self) -> None:
         dt = datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
         cases = [
             # Wildcards pass through as-is
@@ -89,7 +89,7 @@ class TestSearchFiltersToQueryString:
         for sf, expected in cases:
             assert search_filters_to_query_string([sf]) == expected
 
-    def test_has_and_not_has_filters(self):
+    def test_has_and_not_has_filters(self) -> None:
         # has:user.email → parsed as op=!=, value=""
         has_filter = SearchFilter(SearchKey("user.email"), "!=", SearchValue(""))
         assert search_filters_to_query_string([has_filter]) == "has:user.email"
@@ -98,7 +98,7 @@ class TestSearchFiltersToQueryString:
         not_has_filter = SearchFilter(SearchKey("user.email"), "=", SearchValue(""))
         assert search_filters_to_query_string([not_has_filter]) == "!has:user.email"
 
-    def test_skipped_filters_are_dropped(self):
+    def test_skipped_filters_are_dropped(self) -> None:
         filters = [
             SearchFilter(SearchKey("event.type"), "=", SearchValue("error")),
             SearchFilter(SearchKey("release.stage"), "=", SearchValue("adopted")),
@@ -111,7 +111,7 @@ class TestSearchFiltersToQueryString:
         ]
         assert search_filters_to_query_string(filters) == ""
 
-    def test_aggregation_filters_translated(self):
+    def test_aggregation_filters_translated(self) -> None:
         dt = datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
         cases = [
             (
@@ -136,7 +136,7 @@ class TestSearchFiltersToQueryString:
                 f"Failed for {sf.key.name}:{sf.operator}{sf.value.raw_value}"
             )
 
-    def test_error_unhandled_translation(self):
+    def test_error_unhandled_translation(self) -> None:
         # error.unhandled:1 → looking for unhandled → !error.handled:1
         assert (
             search_filters_to_query_string(
@@ -159,11 +159,11 @@ class TestSearchFiltersToQueryString:
             == "error.handled:1"
         )
 
-    def test_error_main_thread_key_translated(self):
+    def test_error_main_thread_key_translated(self) -> None:
         filters = [SearchFilter(SearchKey("error.main_thread"), "=", SearchValue("1"))]
         assert search_filters_to_query_string(filters) == "exception_main_thread:1"
 
-    def test_realistic_mixed_query(self):
+    def test_realistic_mixed_query(self) -> None:
         filters = [
             SearchFilter(SearchKey("level"), "=", SearchValue("error")),
             SearchFilter(SearchKey("error.unhandled"), "=", SearchValue("1")),

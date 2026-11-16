@@ -49,6 +49,15 @@ class OrganizationCodeMappingCodeOwnersTest(APITestCase):
         resp = self.client.get(self.url)
         assert resp.status_code == 404
 
+    def test_invalid_code_mapping_id(self) -> None:
+        for config_id in ("abc", "99999999999999999999"):
+            url = reverse(
+                "sentry-api-0-organization-code-mapping-codeowners",
+                args=[self.organization.slug, config_id],
+            )
+            resp = self.client.get(url)
+            assert resp.status_code == 404
+
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=None,

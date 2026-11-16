@@ -1,23 +1,27 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconImage} from '@sentry/icons/image';
 import round from 'lodash/round';
 
-import {Tag} from '@sentry/scraps/badge';
+import {Badge, Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import type {TagVariant} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   findQuestion,
   getAnswerLabel,
-  getAnswerLabels,
+  getEvaluationResults,
   getScoreName,
+  type EvaluatedContentPart,
+  type EvaluatedMessage,
   type EvaluationAnswer,
   type EvaluationQuestion,
   type EvaluationQuestionEntry,
+  type EvaluationResult,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 
@@ -27,75 +31,203 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 // Pretty/Raw toggle, since surfaces offer a raw view of the whole message.
 
 /**
- * The text that was evaluated. Plain strings render as formatted text, anything
- * else as JSON. Long content is clipped behind "Show More" by default so it
- * doesn't push the questions and answers out of view.
+ * The content that was evaluated, as a message list. Text parts render as
+ * formatted text, image parts as a placeholder, and raw parts as JSON. A single
+ * message renders without its role; multiple messages are each labelled. Long
+ * content is clipped behind "Show More" by default so it doesn't push the
+ * questions and answers out of view.
  */
-export function EvaluatedText({state, clip = true}: {state: unknown; clip?: boolean}) {
-  if (typeof state === 'string') {
-    return (
-      <TraceDrawerComponents.MultilineText mode="pretty" clip={clip}>
-        {state}
-      </TraceDrawerComponents.MultilineText>
-    );
+export function EvaluatedContent({
+  state,
+  clip = true,
+}: {
+  state: EvaluatedMessage[];
+  clip?: boolean;
+}) {
+  const [firstMessage] = state;
+  if (firstMessage && state.length === 1) {
+    return <MessageParts parts={firstMessage.parts} clip={clip} />;
   }
-  return <TraceDrawerComponents.MultilineJSON value={state} clip={clip} mode="pretty" />;
-}
-
-/**
- * One card per question, with its instructions, type and allowed answers.
- */
-export function EvaluationQuestions({questions}: {questions: EvaluationQuestionEntry[]}) {
   return (
     <Stack gap="md">
-      {questions.map(question =>
-        question.kind === 'invalid' ? (
-          <Card key={question.key} title={question.key} trailing={<UnrecognizedTag />}>
-            <RawValue value={question.value} />
-          </Card>
-        ) : (
-          <Card
-            key={question.key}
-            title={question.key}
-            description={question.instructions}
-            trailing={<Tag variant="muted">{question.type}</Tag>}
-          >
-            <QuestionOptions question={question} />
-          </Card>
-        )
-      )}
+      {state.map((message, index) => (
+        <Stack key={index} gap="xs">
+          {message.role ? (
+            <Text size="sm" variant="muted">
+              {message.role}
+            </Text>
+          ) : null}
+          <MessageParts parts={message.parts} clip={clip} />
+        </Stack>
+      ))}
     </Stack>
   );
 }
 
+function MessageParts({parts, clip}: {clip: boolean; parts: EvaluatedContentPart[]}) {
+  return (
+    <MessagePartsStack gap="sm">
+      {parts.map((part, index) => {
+        if (part.kind === 'text') {
+          return (
+            <TraceDrawerComponents.MultilineText key={index} mode="pretty" clip={clip}>
+              {part.text}
+            </TraceDrawerComponents.MultilineText>
+          );
+        }
+        if (part.kind === 'image') {
+          return <ImagePlaceholder key={index} />;
+        }
+        return (
+          <TraceDrawerComponents.MultilineJSON
+            key={index}
+            value={part.value}
+            clip={clip}
+            mode="pretty"
+          />
+        );
+      })}
+    </MessagePartsStack>
+  );
+}
+
+// TODO(aknaus): Drop MultilineText's own bottom margin so the parts can be
+// spaced by the Stack gap alone, and remove this override.
+const MessagePartsStack = styled(Stack)`
+  && > * {
+    margin-bottom: 0;
+  }
+`;
+
 /**
- * One card per answer. Pass the questions to show what each answer responds to
- * and to name score values after the question's criteria.
+ * Stands in for an image part; the image itself is never rendered.
  */
-export function EvaluationAnswers({
-  answers,
-  questions,
+function ImagePlaceholder() {
+  return (
+    <Flex align="center" gap="sm" background="secondary" radius="md" padding="md">
+      <IconImage size="sm" variant="muted" />
+      <Text size="sm" variant="muted">
+        {t('Image')}
+      </Text>
+    </Flex>
+  );
+}
+
+/**
+ * One card per question, paired with its answer: the question's type and
+ * instructions, the answer, and the allowed answers with their probabilities.
+ * Either side may be missing, e.g. when the output couldn't be read, and an
+ * unrecognized side is shown as its raw value.
+ */
+export function EvaluationResults({
+  questions = [],
+  answers = [],
 }: {
-  answers: EvaluationAnswer[];
+  answers?: EvaluationAnswer[];
   questions?: EvaluationQuestionEntry[];
 }) {
   return (
     <Stack gap="md">
-      {answers.map(answer => {
-        const question = findQuestion(questions, answer.key);
-        return (
-          <Card
-            key={answer.key}
-            title={answer.key}
-            description={question?.instructions}
-            trailing={<AnswerSummary answer={answer} question={question} />}
-          >
-            <AnswerDetail answer={answer} question={question} />
-          </Card>
-        );
-      })}
+      {getEvaluationResults(questions, answers).map(result => (
+        <ResultCard key={result.key} result={result} />
+      ))}
     </Stack>
   );
+}
+
+function ResultCard({result}: {result: EvaluationResult}) {
+  const {key, question, answer} = result;
+  const validQuestion = question?.kind === 'question' ? question : undefined;
+  const type = question?.kind === 'invalid' ? t('Unrecognized') : getResultType(result);
+  const confidence = getConfidence(answer);
+  return (
+    <Container border="primary" radius="md" padding="md lg">
+      <Stack gap="sm">
+        <Flex align="baseline" justify="between" gap="md">
+          <Flex flex="0 1 auto" minWidth="0" align="baseline" gap="sm">
+            <Container flex="0 1 auto" minWidth="0">
+              <InfoText title={key} mode="overflowOnly" bold>
+                {key}
+              </InfoText>
+            </Container>
+            {type ? (
+              <Container flex="0 1 auto" minWidth="0">
+                <InfoText title={type} mode="overflowOnly" size="sm" variant="muted">
+                  {type}
+                </InfoText>
+              </Container>
+            ) : null}
+          </Flex>
+          <Flex flex="0 1 auto" minWidth="0" justify="end" align="center" gap="sm">
+            {answer ? (
+              <AnswerSummary answer={answer} question={validQuestion} />
+            ) : (
+              <Text size="sm" variant="muted">
+                {t('No answer')}
+              </Text>
+            )}
+            {confidence === undefined ? null : <ConfidenceBadge value={confidence} />}
+          </Flex>
+        </Flex>
+        {validQuestion?.instructions ? (
+          <Text size="sm" variant="muted">
+            {validQuestion.instructions}
+          </Text>
+        ) : null}
+        {question?.kind === 'invalid' ? <RawValue value={question.value} /> : null}
+        {answer?.kind === 'invalid' ? (
+          <RawValue value={answer.value} />
+        ) : (
+          <AnswerOptions answer={answer} question={validQuestion} />
+        )}
+      </Stack>
+    </Container>
+  );
+}
+
+export function ConfidenceBadge({
+  value,
+  title = t('Confidence'),
+}: {
+  value: number;
+  title?: React.ReactNode;
+}) {
+  return (
+    <Container flexShrink={0}>
+      <Tooltip title={title} skipWrapper>
+        <Badge variant="muted">{formatPercentage(value, 0)}</Badge>
+      </Tooltip>
+    </Container>
+  );
+}
+
+function getConfidence(answer: EvaluationAnswer | undefined): number | undefined {
+  switch (answer?.kind) {
+    case 'boolean':
+      return Math.max(answer.probability, 1 - answer.probability);
+    case 'score':
+    case 'choice':
+      return answer.confidence;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * The question's type as sent, or else the kind of its answer.
+ */
+function getResultType({question, answer}: EvaluationResult): string | undefined {
+  if (question?.kind === 'question') {
+    return question.type;
+  }
+  switch (answer?.kind) {
+    case 'boolean':
+    case 'score':
+    case 'choice':
+      return answer.kind;
+    default:
+      return undefined;
+  }
 }
 
 /**
@@ -110,9 +242,20 @@ export function EvaluationResultSummary({
 }) {
   return (
     <Flex wrap="wrap" gap="xs">
-      {getAnswerLabels(answers, questions).map(([key, label]) => (
-        <TruncatedTag key={key}>{`${key}: ${label}`}</TruncatedTag>
-      ))}
+      {answers.map(answer => {
+        const label = getAnswerLabel(answer, findQuestion(questions, answer.key));
+        if (label === null) {
+          return null;
+        }
+        return (
+          <TruncatedTag
+            key={answer.key}
+            variant={answer.kind === 'refusal' ? 'warning' : 'muted'}
+          >
+            {`${answer.key}: ${label}`}
+          </TruncatedTag>
+        );
+      })}
     </Flex>
   );
 }
@@ -121,95 +264,26 @@ export function EvaluationResultSummary({
  * Marks a question or answer that doesn't match the expected shape and is shown
  * as its raw value.
  */
-function UnrecognizedTag() {
+export function UnrecognizedTag() {
   return <Tag variant="muted">{t('Unrecognized')}</Tag>;
 }
 
-function TruncatedTag({children}: {children: string}) {
+export function TruncatedTag({
+  children,
+  variant = 'muted',
+}: {
+  children: string;
+  variant?: TagVariant;
+}) {
   return (
     <Tooltip title={children} showOnlyOnOverflow skipWrapper>
-      <Tag variant="muted">{children}</Tag>
+      <Tag variant={variant}>{children}</Tag>
     </Tooltip>
   );
 }
 
-function RawValue({value}: {value: unknown}) {
+export function RawValue({value}: {value: unknown}) {
   return <TraceDrawerComponents.MultilineJSON value={value} mode="pretty" />;
-}
-
-function Card({
-  title,
-  description,
-  trailing,
-  children,
-}: {
-  title: string;
-  trailing: React.ReactNode;
-  children?: React.ReactNode;
-  description?: string;
-}) {
-  return (
-    <Container border="primary" radius="md" padding="md lg">
-      <Stack gap="sm">
-        <Flex align="center" justify="between" gap="md">
-          <Container flex="0 0 auto" maxWidth="50%">
-            <InfoText title={title} mode="overflowOnly" bold>
-              {title}
-            </InfoText>
-          </Container>
-          <Flex flex="0 1 auto" minWidth="0" justify="end">
-            {trailing}
-          </Flex>
-        </Flex>
-        {description ? (
-          <Text size="sm" variant="muted">
-            {description}
-          </Text>
-        ) : null}
-        {children}
-      </Stack>
-    </Container>
-  );
-}
-
-function QuestionOptions({question}: {question: EvaluationQuestion}) {
-  const {criteria} = question;
-
-  // A scale, e.g. `["low", "medium", "high"]`, where the index is the value.
-  if (Array.isArray(criteria)) {
-    return criteria.length > 0 ? (
-      <Flex wrap="wrap" gap="xs">
-        {criteria.map((label, index) => (
-          <TruncatedTag key={index}>
-            {question.type === 'score' ? `${index} · ${label}` : label}
-          </TruncatedTag>
-        ))}
-      </Flex>
-    ) : null;
-  }
-
-  // Described options, e.g. `{"billing": "Charges and refunds"}`.
-  const options = Object.entries(criteria ?? {});
-  if (options.length === 0) {
-    return null;
-  }
-  return (
-    <Grid
-      columns="fit-content(40%) minmax(0, 1fr)"
-      gap="xs md"
-      align="baseline"
-      paddingTop="xs"
-    >
-      {options.map(([label, description]) => [
-        <Container key={`${label}:label`} minWidth="0">
-          <TruncatedTag>{label}</TruncatedTag>
-        </Container>,
-        <Text key={`${label}:description`} size="sm" variant="muted">
-          {description}
-        </Text>,
-      ])}
-    </Grid>
-  );
 }
 
 function AnswerSummary({
@@ -221,43 +295,20 @@ function AnswerSummary({
 }) {
   switch (answer.kind) {
     case 'boolean': {
-      const isYes = answer.probability >= 0.5;
-      const confidence = isYes ? answer.probability : 1 - answer.probability;
-      return (
-        <Flex align="baseline" gap="xs">
-          <Text bold>{getAnswerLabel(answer)}</Text>
-          <Text size="sm" variant="muted">
-            {formatPercentage(confidence, 0)}
-          </Text>
-        </Flex>
-      );
+      return <AnswerHeadline label={answer.probability >= 0.5 ? t('Yes') : t('No')} />;
     }
     case 'score': {
-      if (hasDistribution(answer)) {
-        return <Text bold>{round(answer.score, 2)}</Text>;
-      }
+      const score = String(round(answer.score, 2));
       const name = getScoreName(answer, answer.score, question);
-      return (
-        <Flex align="baseline" gap="xs" minWidth="0">
-          <InfoText title={name} mode="overflowOnly" bold>
-            {name ?? round(answer.score, 2)}
-          </InfoText>
-          {name ? (
-            <Text size="sm" variant="muted">
-              {round(answer.score, 2)}
-            </Text>
-          ) : null}
-        </Flex>
-      );
+      return <AnswerHeadline label={name ?? score} detail={name ? score : undefined} />;
     }
     case 'choice':
-      if (hasDistribution(answer)) {
-        return null;
-      }
+      return <AnswerHeadline label={answer.choice} />;
+    case 'refusal':
       return (
-        <InfoText title={answer.choice} mode="overflowOnly" bold>
-          {answer.choice}
-        </InfoText>
+        <Tooltip title={t('The model declined to answer.')}>
+          <Tag variant="warning">{t('Refused')}</Tag>
+        </Tooltip>
       );
     case 'invalid':
       return <UnrecognizedTag />;
@@ -266,103 +317,176 @@ function AnswerSummary({
   }
 }
 
-function hasDistribution(answer: {probabilities?: Record<string, number>}): boolean {
-  return Object.keys(answer.probabilities ?? {}).length > 0;
+function AnswerHeadline({label, detail}: {label: string; detail?: string}) {
+  return (
+    <Flex align="baseline" justify="end" gap="xs" minWidth="0">
+      <Container flex="0 1 auto" minWidth="0">
+        <InfoText title={label} mode="overflowOnly" bold>
+          {label}
+        </InfoText>
+      </Container>
+      {detail ? (
+        <Container flexShrink={0}>
+          <Text size="sm" variant="muted">
+            {detail}
+          </Text>
+        </Container>
+      ) : null}
+    </Flex>
+  );
 }
 
-function AnswerDetail({
+interface AnswerOption {
+  label: string;
+  /** Matches a score value or choice, e.g. "2" or "billing". */
+  value: string;
+  description?: string;
+}
+
+/**
+ * The allowed answers. Score questions list their scale, where the index is
+ * the score value (`["low", "medium", "high"]`); choice questions describe each
+ * option (`{"billing": "Charges and refunds"}`).
+ */
+function getQuestionOptions(question: EvaluationQuestion): AnswerOption[] {
+  const {criteria, descriptions} = question;
+  if (Array.isArray(criteria)) {
+    const isScore = question.type === 'score';
+    return criteria.map((label, index) => ({
+      value: isScore ? String(index) : label,
+      label: isScore ? `${index} · ${label}` : label,
+      description: descriptions?.[index],
+    }));
+  }
+  return Object.entries(criteria ?? {}).map(([value, description]) => ({
+    value,
+    label: value,
+    description,
+  }));
+}
+
+/**
+ * The allowed answers with the probability of each, when the answer reports
+ * them, or else as tags with the chosen one highlighted.
+ */
+function AnswerOptions({
   answer,
   question,
 }: {
-  answer: EvaluationAnswer;
+  answer?: EvaluationAnswer;
   question?: EvaluationQuestion;
 }) {
-  switch (answer.kind) {
-    case 'score':
-      return (
-        <Fragment>
-          <ProbabilityList
-            // Ascending score values, e.g. 0, 1, 2.
-            entries={Object.entries(answer.probabilities ?? {}).sort(
-              ([a], [b]) => Number(a) - Number(b)
-            )}
-            selected={String(Math.round(answer.score))}
-            getLabel={label => getScoreName(answer, Number(label), question) ?? label}
-          />
-          <Confidence value={answer.confidence} />
-        </Fragment>
-      );
-    case 'choice':
-      return (
-        <Fragment>
-          <ProbabilityList
-            // Most likely option first.
-            entries={Object.entries(answer.probabilities ?? {}).sort(
-              ([, a], [, b]) => b - a
-            )}
-            selected={answer.choice}
-          />
-          <Confidence value={answer.confidence} />
-        </Fragment>
-      );
-    case 'invalid':
-      return <RawValue value={answer.value} />;
-    default:
-      return null;
+  const options = question ? getQuestionOptions(question) : [];
+
+  if (answer?.kind === 'score' || answer?.kind === 'choice') {
+    const selected =
+      answer.kind === 'score' ? String(Math.round(answer.score)) : answer.choice;
+    const probabilities = Object.entries(answer.probabilities ?? {});
+    if (probabilities.length === 0) {
+      return <OptionTags options={options} selected={selected} />;
+    }
+    const entries = probabilities.map(([value, probability]) => ({
+      value,
+      probability,
+      label:
+        answer.kind === 'score'
+          ? formatScoreValue(value, getScoreName(answer, Number(value), question))
+          : value,
+      description: options.find(option => option.value === value)?.description,
+    }));
+    return (
+      <ProbabilityList
+        entries={
+          answer.kind === 'score'
+            ? // Ascending score values, e.g. 0, 1, 2.
+              entries.sort((a, b) => Number(a.value) - Number(b.value))
+            : // Most likely option first.
+              entries.sort((a, b) => b.probability - a.probability)
+        }
+        selected={selected}
+      />
+    );
   }
+
+  return <OptionTags options={options} />;
 }
 
-function Confidence({value}: {value?: number}) {
-  if (value === undefined) {
+function formatScoreValue(value: string, name: string | undefined): string {
+  return name ? `${value} · ${name}` : value;
+}
+
+function OptionTags({options, selected}: {options: AnswerOption[]; selected?: string}) {
+  if (options.length === 0) {
     return null;
   }
   return (
-    <Text size="sm" variant="muted">
-      {tct('Confidence: [value]', {value: formatPercentage(value, 0)})}
-    </Text>
+    <Flex wrap="wrap" gap="xs">
+      {options.map(option => (
+        <Tooltip
+          key={option.value}
+          title={getOptionTitle(option)}
+          showOnlyOnOverflow={!option.description}
+          skipWrapper
+        >
+          <Tag variant={option.value === selected ? 'info' : 'muted'}>{option.label}</Tag>
+        </Tooltip>
+      ))}
+    </Flex>
   );
 }
 
 /**
- * One bar per option or score value, in the given order.
+ * Tooltip content for an option: its label above its description, so a
+ * truncated label can still be read, or else just the label.
+ */
+function getOptionTitle({label, description}: AnswerOption): React.ReactNode {
+  if (!description) {
+    return label;
+  }
+  return (
+    <Stack gap="xs">
+      <Text bold>{label}</Text>
+      <Text>{description}</Text>
+    </Stack>
+  );
+}
+
+/**
+ * One bar per option or score value, in the given order. Descriptions show in a
+ * tooltip on the label.
  */
 function ProbabilityList({
   entries,
   selected,
-  getLabel = label => label,
 }: {
-  /** `[label, probability]` pairs. */
-  entries: Array<[string, number]>;
+  entries: Array<AnswerOption & {probability: number}>;
   selected: string;
-  getLabel?: (label: string) => string;
 }) {
-  if (entries.length === 0) {
-    return null;
-  }
-
   return (
     <Container paddingTop="xs">
       <Grid columns="fit-content(50%) minmax(0, 1fr) 3em" gap="xs md" align="center">
-        {entries.map(([label, probability]) => {
-          const isSelected = label === selected;
+        {entries.map(entry => {
+          const {value, label, description, probability} = entry;
+          const isSelected = value === selected;
           return [
             <InfoText
-              key={`${label}:label`}
-              title={getLabel(label)}
-              mode="overflowOnly"
+              key={`${value}:label`}
+              title={getOptionTitle(entry)}
+              mode={description ? undefined : 'overflowOnly'}
               size="sm"
               variant={isSelected ? 'primary' : 'muted'}
               bold={isSelected}
+              ellipsis
             >
-              {getLabel(label)}
+              {label}
             </InfoText>,
-            <BarTrack key={`${label}:bar`}>
+            <BarTrack key={`${value}:bar`}>
               <BarFill
                 isSelected={isSelected}
                 style={{width: `${Math.min(Math.max(probability, 0), 1) * 100}%`}}
               />
             </BarTrack>,
-            <Text key={`${label}:value`} size="sm" variant="muted" align="right">
+            <Text key={`${value}:value`} size="sm" variant="muted" align="right">
               {formatPercentage(probability, 0)}
             </Text>,
           ];

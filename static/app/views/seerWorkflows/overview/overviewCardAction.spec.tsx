@@ -5,12 +5,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {OverviewCardAction} from 'sentry/views/seerWorkflows/overview/overviewCardAction';
-import type {
-  OverviewRun,
-  OverviewRunIssue,
-  ProjectConfig,
-} from 'sentry/views/seerWorkflows/overview/types';
+
+import {OverviewCardAction} from './overviewCardAction';
+import type {OverviewRun, OverviewRunIssue, ProjectConfig} from './types';
 
 jest.mock('sentry/utils/analytics');
 

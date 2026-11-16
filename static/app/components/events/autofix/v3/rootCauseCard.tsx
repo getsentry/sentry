@@ -8,23 +8,27 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   getAutofixArtifactFromSection,
+  getSingleRunStop,
   isRootCauseArtifact,
+  isSingleRunAutofix,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
-import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEvidence';
-import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
-import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
-import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
-import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+import {ArtifactCard} from './artifactCard';
+import {ArtifactDetails} from './artifactDetails';
+import {ArtifactLoadingDetails} from './artifactLoadingDetails';
+import {AutofixEvidence} from './autofixEvidence';
+import {AutofixResetPrompt} from './autofixResetPrompt';
+import {useAutofixSectionEvidence} from './useAutofixSectionEvidence';
+import {useResetAutofixStep} from './useResetAutofixStep';
+import {useRethinkInChat} from './useRethinkInChat';
+import {useRerunSingleRun} from './useToggleSingleRunChat';
+import {artifactToMarkdown} from './utils';
 
 interface RootCauseCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -37,8 +41,21 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
+  const stop = getSingleRunStop(section);
+  const stopDetails = stop ? (
+    <ArtifactDetails>
+      <Text bold>{t('Why Seer stopped')}</Text>
+      <SeerMarkdown raw={stop.reason} />
+      <Text bold>{t('Suggestion')}</Text>
+      <SeerMarkdown raw={stop.suggestion} />
+    </ArtifactDetails>
+  ) : null;
 
   const {copy} = useCopyToClipboard();
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
+  const singleRunRerun = useRerunSingleRun(autofix, {
+    enabled: isSingleRun && section.status !== 'processing' && !artifact?.data && !stop,
+  });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
@@ -68,7 +85,8 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
           : undefined
       }
-      allowReset
+      // Single runs reject step restarts; people redo the root cause by replying in the chat.
+      allowReset={!isSingleRunAutofix(autofix.runState)}
       onReset={canReset ? (rethinkInChat ?? (() => setShouldShowReset(true))) : undefined}
       resetInChat={defined(rethinkInChat)}
     >
@@ -89,6 +107,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
           )}
           <ArtifactDetails>
             <SeerMarkdown raw={artifact.data.one_line_description} />
+            {artifact.data.cause ? <SeerMarkdown raw={artifact.data.cause} /> : null}
           </ArtifactDetails>
           {artifact.data.five_whys?.length ? (
             <Fragment>
@@ -131,7 +150,10 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
               </Flex>
             </ArtifactDetails>
           )}
+          {stopDetails}
         </Fragment>
+      ) : stopDetails ? (
+        stopDetails
       ) : (
         <ArtifactDetails>
           <Text>
@@ -143,7 +165,8 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
             <Button
               variant="primary"
               icon={<IconRefresh />}
-              onClick={() => handleReset()}
+              disabled={isSingleRun && singleRunRerun.disabled}
+              onClick={isSingleRun ? singleRunRerun.rerun : () => handleReset()}
             >
               {t('Re-run')}
             </Button>

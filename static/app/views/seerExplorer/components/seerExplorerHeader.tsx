@@ -10,16 +10,17 @@ import {Text} from '@sentry/scraps/text';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {SeerExplorerDebugMenu} from 'sentry/views/seerExplorer/components/seerExplorerDebugMenu';
-import {
-  SeerExplorerHeaderActions,
-  SeerExplorerHeaderActionsMenu,
-} from 'sentry/views/seerExplorer/components/seerExplorerHeaderActions';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
 } from 'sentry/views/seerExplorer/types';
+
+import {SeerExplorerDebugMenu} from './seerExplorerDebugMenu';
+import {
+  SeerExplorerHeaderActions,
+  SeerExplorerHeaderActionsMenu,
+} from './seerExplorerHeaderActions';
 
 /**
  * The shared inner header content (title + action cluster) for Seer Explorer.
@@ -38,12 +39,11 @@ interface SeerExplorerHeaderProps {
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
   onOverrideBashModeToggle: () => void;
-  onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
   onTogglePictureInPicture: () => void;
   overrideBashModeEnabled: boolean;
-  overrideCtxEngEnable: boolean;
   showThinking: boolean;
+  conversationsUrl?: string;
   disableNewChatButton?: boolean;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
   sidebarPosition?: SeerExplorerSidebarPosition;
@@ -54,12 +54,11 @@ export function SeerExplorerHeader({
   onChangeSession,
   onCopySessionClick,
   onCopyLinkClick,
-  overrideCtxEngEnable,
-  onOverrideCtxEngEnableToggle,
   overrideBashModeEnabled,
   onOverrideBashModeToggle,
   showThinking,
   onShowThinkingToggle,
+  conversationsUrl,
   isPipSupported,
   isPoppedOut,
   onTogglePictureInPicture,
@@ -116,6 +115,7 @@ export function SeerExplorerHeader({
     isPoppedOut,
     sidebarPosition,
     onSidebarPositionChange,
+    hasNoChats: !search && !debouncedSearch && !isError && data?.length === 0,
     sessionOptions,
     sessionsLoading: isFetching || isSearchPending,
     sessionsError: isError,
@@ -132,12 +132,11 @@ export function SeerExplorerHeader({
       <Flex flex="1" />
       <Flex gap="sm" align="center">
         <SeerExplorerDebugMenu
-          overrideCtxEngEnable={overrideCtxEngEnable}
-          onOverrideCtxEngEnableToggle={onOverrideCtxEngEnableToggle}
           overrideBashModeEnabled={overrideBashModeEnabled}
           onOverrideBashModeToggle={onOverrideBashModeToggle}
           showThinking={showThinking}
           onShowThinkingToggle={onShowThinkingToggle}
+          conversationsUrl={conversationsUrl}
         />
         <Flex display={{zero: 'none', '2xs': 'flex'}} align="center">
           <SeerExplorerHeaderActions {...actionsProps} />

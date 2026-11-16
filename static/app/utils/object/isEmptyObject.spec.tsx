@@ -1,4 +1,4 @@
-import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {isEmptyObject} from './isEmptyObject';
 
 describe('isEmptyObject', () => {
   it('checks own enumerable object properties', () => {

@@ -1,7 +1,8 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from time import time
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.utils import timezone
 
 from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
@@ -10,10 +11,38 @@ from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     PerformanceSlowDBQueryGroupType,
 )
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
-from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
-from sentry.testutils.cases import TestCase
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.project import Project
+from sentry.tasks.auto_resolve_issues import auto_resolve_project_issues, schedule_auto_resolution
+from sentry.tasks.clear_expired_snoozes import clear_expired_snoozes
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.activity import ActivityType
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "activity_type",
+    [ActivityType.AUTO_SET_ONGOING, ActivityType.SET_REGRESSION, ActivityType.SET_ESCALATING],
+)
+def test_regression_escalation_and_auto_ongoing_do_not_reset_the_clock(
+    factories: Factories, default_project: Project, activity_type: ActivityType
+) -> None:
+    default_project.update_option("sentry:resolve_age", 1)
+    group = factories.create_group(
+        project=default_project, last_seen=timezone.now() - timedelta(days=1)
+    )
+    factories.create_group_activity(group, type=activity_type.value)
+
+    auto_resolve_project_issues(default_project.id)
+
+    group.refresh_from_db()
+    assert group.status == GroupStatus.RESOLVED
 
 
 class ScheduleAutoResolutionTest(TestCase):
@@ -150,3 +179,90 @@ class ScheduleAutoResolutionTest(TestCase):
             schedule_auto_resolution()
 
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+
+
+class AutoResolutionReopeningTest(APITestCase):
+    @freeze_time()
+    def test_api_reopening_resets_the_clock(self) -> None:
+        self.login_as(self.user)
+        self.project.update_option("sentry:resolve_age", 1)
+        last_seen = timezone.now() - timedelta(days=1)
+        group = self.create_group(last_seen=last_seen)
+        auto_resolve_project_issues(self.project.id)
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        response = self.client.put(
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
+            data={"status": "unresolved"},
+            format="json",
+        )
+        assert response.status_code == 200
+        reopened_at = timezone.now()
+
+        other_issues = [self.create_group(last_seen=last_seen) for _ in range(2)]
+        with freeze_time(reopened_at + timedelta(minutes=59)), self.tasks():
+            auto_resolve_project_issues(self.project.id, chunk_size=1)
+        assert set(
+            Group.objects.filter(id__in=[issue.id for issue in other_issues]).values_list(
+                "status", flat=True
+            )
+        ) == {GroupStatus.RESOLVED}
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.last_seen == last_seen
+
+        with freeze_time(reopened_at + timedelta(hours=1)):
+            auto_resolve_project_issues(self.project.id)
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+    def test_reopening_after_selection_preserves_status_and_inbox(self) -> None:
+        self.login_as(self.user)
+        self.project.update_option("sentry:resolve_age", 1)
+        now = timezone.now()
+        group = self.create_group(last_seen=now - timedelta(days=1))
+        add_group_to_inbox(group, GroupInboxReason.NEW)
+
+        def reopen_before_update() -> datetime:
+            group.update(status=GroupStatus.RESOLVED)
+            response = self.client.put(
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
+                data={"status": "unresolved"},
+                format="json",
+            )
+            assert response.status_code == 200
+            return now
+
+        # The resolution timestamp is read after selection, before the UPDATE.
+        with patch("sentry.tasks.auto_resolve_issues.django_timezone") as task_clock:
+            task_clock.now.side_effect = reopen_before_update
+            auto_resolve_project_issues(
+                self.project.id, cutoff=int((now - timedelta(hours=1)).timestamp())
+            )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert GroupInbox.objects.filter(group=group).exists()
+        assert not Activity.objects.filter(
+            group=group, type=ActivityType.SET_RESOLVED_BY_AGE.value
+        ).exists()
+
+    @freeze_time()
+    def test_expired_snooze_resets_the_clock(self) -> None:
+        self.login_as(self.user)
+        self.project.update_option("sentry:resolve_age", 1)
+        group = self.create_group(last_seen=timezone.now() - timedelta(days=1))
+        response = self.client.put(
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
+            data={"status": "ignored", "statusDetails": {"ignoreDuration": 60}},
+            format="json",
+        )
+        assert response.status_code == 200
+
+        with freeze_time(timezone.now() + timedelta(hours=1, seconds=1)):
+            clear_expired_snoozes()
+            auto_resolve_project_issues(self.project.id)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED

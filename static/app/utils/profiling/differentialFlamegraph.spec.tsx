@@ -1,8 +1,8 @@
-import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
-import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
+import type {FlamegraphTheme} from './flamegraph/flamegraphTheme';
+import {SampledProfile} from './profile/sampledProfile';
+import {createFrameIndex} from './profile/utils';
+import {DifferentialFlamegraph} from './differentialFlamegraph';
+import {Flamegraph} from './flamegraph';
 
 const schema: Profiling.Schema = {
   metadata: {} as Profiling.Schema['metadata'],

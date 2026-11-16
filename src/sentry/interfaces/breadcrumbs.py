@@ -1,5 +1,9 @@
 __all__ = ("Breadcrumbs",)
 
+from collections.abc import Mapping
+from datetime import datetime
+from typing import Any, Self
+
 from sentry.interfaces.base import Interface
 from sentry.utils.dates import parse_timestamp, to_datetime
 from sentry.utils.json import prune_empty_keys
@@ -26,7 +30,7 @@ class Breadcrumbs(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data: dict[str, Any]) -> Self | None:
         values = []
         for index, crumb in enumerate(get_path(data, "values", filter=True, default=())):
             # TODO(ja): Handle already invalid and None breadcrumbs
@@ -34,7 +38,7 @@ class Breadcrumbs(Interface):
 
         return super().to_python({"values": values})
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         return prune_empty_keys(
             {
                 "values": [
@@ -56,9 +60,9 @@ class Breadcrumbs(Interface):
         )
 
     @classmethod
-    def normalize_crumb(cls, crumb):
+    def normalize_crumb(cls, crumb: Mapping[str, Any]) -> dict[str, Any]:
         crumb = dict(crumb)
-        ts = parse_timestamp(crumb.get("timestamp"))
+        ts: datetime | None = parse_timestamp(crumb.get("timestamp"))
         if ts:
             crumb["timestamp"] = ts.timestamp()
         else:
@@ -69,8 +73,10 @@ class Breadcrumbs(Interface):
 
         return crumb
 
-    def get_api_context(self, is_public=False, platform=None):
-        def _convert(x):
+    def get_api_context(
+        self, is_public: bool = False, platform: str | None = None
+    ) -> Mapping[str, Any]:
+        def _convert(x: Mapping[str, Any]) -> dict[str, Any]:
             return {
                 "type": x["type"],
                 "timestamp": x["timestamp"] and to_datetime(x["timestamp"]),
@@ -83,7 +89,12 @@ class Breadcrumbs(Interface):
 
         return {"values": [_convert(v) for v in self.values]}
 
-    def get_api_meta(self, meta, is_public=False, platform=None):
+    def get_api_meta(
+        self,
+        meta: Mapping[str, Any],
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:
         if meta and "values" not in meta:
             return {"values": meta}
         else:

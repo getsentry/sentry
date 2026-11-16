@@ -4,12 +4,13 @@ import heapq
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import ClassVar
 
 import sentry_sdk
+from django.utils import timezone as django_timezone
 
 from sentry import options
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
@@ -43,6 +44,8 @@ from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.statistical_detectors.tasks")
 
+MISSING_ISSUE_GROUP_GRACE_PERIOD = timedelta(hours=1)
+
 
 @dataclass(frozen=True)
 class TrendBundle:
@@ -67,7 +70,7 @@ class RegressionDetector(ABC):
     def min_throughput_threshold(cls) -> int: ...
 
     @classmethod
-    def configure_tags(cls):
+    def configure_tags(cls) -> None:
         sentry_sdk.set_tag("regression.source", cls.source)
         sentry_sdk.set_attribute("regression.source", cls.source)
         sentry_sdk.set_tag("regression.kind", cls.source)
@@ -79,7 +82,9 @@ class RegressionDetector(ABC):
 
     @classmethod
     @abstractmethod
-    def detector_store_factory(cls) -> DetectorStore: ...
+    def detector_store_factory(
+        cls,
+    ) -> DetectorStore[Mapping[str | bytes, bytes | float | int | str]]: ...
 
     @classmethod
     def all_payloads(
@@ -106,7 +111,7 @@ class RegressionDetector(ABC):
 
     @classmethod
     def detect_trends(
-        cls, projects: list[Project], start: datetime, batch_size=100
+        cls, projects: list[Project], start: datetime, batch_size: int = 100
     ) -> Generator[TrendBundle]:
         unique_project_ids: set[int] = set()
 
@@ -197,7 +202,11 @@ class RegressionDetector(ABC):
 
     @classmethod
     def all_timeseries(
-        cls, objects: list[tuple[Project, int | str]], start: datetime, function: str, chunk_size=25
+        cls,
+        objects: list[tuple[Project, int | str]],
+        start: datetime,
+        function: str,
+        chunk_size: int = 25,
     ) -> Generator[tuple[int, int | str, SnubaTSResult]]:
         # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
         # 336 data points per transaction name, so we can safely get 25 transaction
@@ -223,7 +232,7 @@ class RegressionDetector(ABC):
         objects: list[tuple[Project, int | str]],
         start: datetime,
         function: str,
-        timeseries_per_batch=10,
+        timeseries_per_batch: int = 10,
         viewer_context: SeerViewerContext | None = None,
     ) -> Generator[BreakpointData]:
         serializer = SnubaTSResultSerializer(None, None, None)
@@ -314,7 +323,7 @@ class RegressionDetector(ABC):
     def get_regression_groups(
         cls,
         bundles: Generator[TrendBundle],
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[TrendBundle]:
         for trend_chunk in chunked(bundles, batch_size):
             active_regression_groups = {
@@ -352,7 +361,7 @@ class RegressionDetector(ABC):
         cls,
         bundles: Generator[TrendBundle],
         timestamp: datetime,
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[TrendBundle]:
         groups_to_resolve = []
 
@@ -400,7 +409,7 @@ class RegressionDetector(ABC):
         cls,
         bundles: Generator[TrendBundle],
         timestamp: datetime,
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[TrendBundle]:
         escalated = 0
 
@@ -431,7 +440,13 @@ class RegressionDetector(ABC):
         escalated_groups = []
         groups_to_escalate = []
 
-        for bundle in cls._filter_escalating_groups(candidates, batch_size=batch_size):
+        for bundle, should_escalate in cls._filter_escalating_groups(
+            candidates, batch_size=batch_size
+        ):
+            if not should_escalate:
+                yield bundle
+                continue
+
             state = bundle.state
             group = bundle.regression_group
 
@@ -480,12 +495,47 @@ class RegressionDetector(ABC):
         )
 
     @classmethod
+    def _log_missing_issue_group(
+        cls,
+        regression_group: RegressionGroup | None,
+        project_id: int,
+        object_id: int | str,
+        *,
+        within_grace_period: bool,
+        operation: str,
+    ) -> None:
+        sentry_sdk.logger.warning(
+            "Missing issue group for regression issue",
+            attributes={
+                "regression.project_id": project_id,
+                "regression.group_id": regression_group.id
+                if regression_group is not None
+                else None,
+                "regression.object_id": str(object_id),
+                "regression.fingerprint": (
+                    regression_group.fingerprint
+                    if regression_group is not None
+                    else generate_fingerprint(cls.regression_type, object_id)
+                ),
+                "regression.version": regression_group.version
+                if regression_group is not None
+                else None,
+                "regression.type": cls.regression_type.value,
+                "regression.within_grace_period": within_grace_period,
+                "regression.operation": operation,
+            },
+        )
+
+    @classmethod
     def _filter_escalating_groups(
         cls,
         bundles_to_escalate: list[TrendBundle],
-        batch_size=100,
-    ) -> Generator[TrendBundle]:
+        batch_size: int = 100,
+    ) -> Generator[tuple[TrendBundle, bool]]:
+        now = django_timezone.now()
+
         for bundles in chunked(bundles_to_escalate, batch_size):
+            groups_to_close = []
             pairs = {
                 generate_issue_group_key(
                     bundle.payload.project_id,
@@ -501,26 +551,48 @@ class RegressionDetector(ABC):
             for key, bundle in pairs.items():
                 issue_group = issue_groups.get(key)
                 if issue_group is None:
-                    sentry_sdk.capture_message("Missing issue group for regression issue")
+                    regression_group = bundle.regression_group
+                    within_grace_period = (
+                        regression_group is not None
+                        and regression_group.date_added + MISSING_ISSUE_GROUP_GRACE_PERIOD > now
+                    )
+                    cls._log_missing_issue_group(
+                        regression_group,
+                        bundle.payload.project_id,
+                        bundle.payload.group,
+                        within_grace_period=within_grace_period,
+                        operation="filter_escalating_groups",
+                    )
+                    # If the regression group still doesn't have an issue group
+                    # even after the grace period, it's broken - reset it back
+                    # to a state where a future breakpoint will trigger a new
+                    # issue.
+                    if regression_group is not None and not within_grace_period:
+                        regression_group.active = False
+                        groups_to_close.append(regression_group)
+                        yield bundle, False
                     continue
 
                 if (
                     issue_group.status == GroupStatus.UNRESOLVED
                     and issue_group.substatus == GroupSubStatus.ONGOING
                 ):
-                    yield bundle
+                    yield bundle, True
                 elif (
                     issue_group.status == GroupStatus.IGNORED
                     and issue_group.substatus == GroupSubStatus.UNTIL_ESCALATING
                 ):
-                    yield bundle
+                    yield bundle, True
+
+            RegressionGroup.objects.bulk_update(groups_to_close, ["active"])
 
     @classmethod
     def get_regression_versions(
         cls,
         regressions: Generator[BreakpointData],
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[tuple[int, datetime | None, BreakpointData]]:
+        now = django_timezone.now()
         active_regressions = []
 
         for regression_chunk in chunked(regressions, batch_size):
@@ -567,13 +639,23 @@ class RegressionDetector(ABC):
             for key, regression_group, regression in triples:
                 issue_group = issue_groups.get(key)
                 if issue_group is None:
-                    sentry_sdk.capture_message("Missing issue group for regression issue")
-                    continue
+                    within_grace_period = (
+                        regression_group.date_added + MISSING_ISSUE_GROUP_GRACE_PERIOD > now
+                    )
+                    cls._log_missing_issue_group(
+                        regression_group,
+                        regression_group.project_id,
+                        regression["transaction"],
+                        within_grace_period=within_grace_period,
+                        operation="get_regression_versions",
+                    )
+                    if within_grace_period:
+                        continue
 
-                # Only status we care about is if there is a resolved issue group that
-                # corresponds to the regression group. In that case, we should end
-                # the active regression group and create a new regression group.
-                if issue_group.status == GroupStatus.RESOLVED:
+                # If the regression group still doesn't have an issue group even
+                # after the grace period, it's broken - treat it as resolved so
+                # that future breakpoints will trigger a new issue.
+                if issue_group is None or issue_group.status == GroupStatus.RESOLVED:
                     regression_group.active = False
                     groups_to_close.append(regression_group)
                     yield regression_group.version, regression_group.date_regressed, regression
@@ -591,7 +673,7 @@ class RegressionDetector(ABC):
     def save_regressions_with_versions(
         cls,
         regressions: Generator[BreakpointData],
-        batch_size=100,
+        batch_size: int = 100,
     ) -> Generator[BreakpointData]:
         versioned_regressions = cls.get_regression_versions(regressions)
 

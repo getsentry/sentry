@@ -21,6 +21,7 @@ type SingleQueryProps = {
   visualizes: BaseVisualize[];
   agent?: string[];
   allowRegexOperators?: boolean;
+  errorsOnly?: boolean;
   groupBys?: string[]; // This needs to be passed in because saveQuery relies on being within the Explore PageParamsContext to fetch params
 };
 
@@ -30,6 +31,7 @@ export function ExploreParams({
   visualizes,
   groupBys,
   agent,
+  errorsOnly,
   className,
 }: SingleQueryProps & {className?: string}) {
   const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
@@ -133,6 +135,13 @@ export function ExploreParams({
         </Flex>
       );
     });
+  }
+  if (errorsOnly) {
+    tokens.push(
+      <Flex as="span" wrap="wrap" gap="xs" overflow="hidden" key="errorsOnly">
+        <ExploreParamTitle>{t('Errors only')}</ExploreParamTitle>
+      </Flex>
+    );
   }
   if (groupBys && groupBys.length > 0) {
     tokens.push(

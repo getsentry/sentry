@@ -5,13 +5,10 @@ import inspect
 import logging
 from collections.abc import Generator
 from copy import deepcopy
-from threading import Lock
-from typing import Any, Literal, TypeGuard, TypeVar, cast, overload
+from typing import Any, Literal, TypeVar, cast, overload
 
-import rb
 from django.utils.functional import SimpleLazyObject
 from redis.client import Script, StrictRedis
-from redis.connection import ConnectionPool
 from sentry_redis_tools.clients import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
@@ -20,11 +17,8 @@ from sentry import options
 from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.exceptions import InvalidConfiguration
 from sentry.options import OptionsManager
-from sentry.utils import warnings
 from sentry.utils.env import in_test_environment
 from sentry.utils.redis_key_specs import COMMAND_KEY_SPECS
-from sentry.utils.versioning import Version, check_versions
-from sentry.utils.warnings import DeprecatedSettingWarning
 
 logger = logging.getLogger(__name__)
 
@@ -36,67 +30,6 @@ _REDIS_DEFAULT_CLIENT_ARGS = {
     # operating system level timeout kicks in
     "socket_timeout": 3.0
 }
-
-_pool_cache: dict[str, ConnectionPool] = {}
-_pool_lock = Lock()
-
-
-def _shared_pool(**opts: Any) -> ConnectionPool:
-    if "host" in opts:
-        key = "{}:{}/{}".format(opts["host"], opts["port"], opts["db"])
-    else:
-        key = "{}/{}".format(opts["path"], opts["db"])
-    pool = _pool_cache.get(key)
-    if pool is not None:
-        return pool
-    with _pool_lock:
-        pool = _pool_cache.get(key)
-        if pool is not None:
-            return pool
-        pool = ConnectionPool(**opts)
-        _pool_cache[key] = pool
-        return pool
-
-
-class RBClusterManager:
-    def __init__(self, options_manager: OptionsManager) -> None:
-        self._clusters: dict[str, rb.Cluster] = {}
-        self._options_manager = options_manager
-
-    def _factory(
-        self,
-        *,
-        hosts: list[dict[int, Any]] | dict[int, Any] | None = None,
-        **config: Any,
-    ) -> rb.Cluster:
-        if not hosts:
-            hosts = []
-        # rb expects a dict of { host, port } dicts where the key is the host
-        # ID. Coerce the configuration into the correct format if necessary.
-        hosts = {k: v for k, v in enumerate(hosts)} if isinstance(hosts, list) else hosts
-        config["hosts"] = hosts
-
-        pool_options: dict[str, Any] = config.pop("client_args", {})
-        pool_options = {**_REDIS_DEFAULT_CLIENT_ARGS, **pool_options}
-        config["pool_options"] = pool_options
-
-        return rb.Cluster(**config, pool_cls=_shared_pool)
-
-    def get(self, key: str) -> rb.Cluster:
-        try:
-            return self._clusters[key]
-        except KeyError:
-            pass
-
-        cfg = self._options_manager.get("redis.clusters", {}).get(key)
-        if cfg is None:
-            raise KeyError(f"Invalid cluster name: {key}")
-
-        if cfg.get("is_redis_cluster", False):
-            raise KeyError("Invalid cluster type, expected rb cluster")
-
-        ret = self._clusters[key] = self._factory(**cfg)
-        return ret
 
 
 class RedisClusterManager:
@@ -297,6 +230,51 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
             "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
             "sentry.utils.sentry_apps.webhooks.send_and_save_webhook_request",
         ),
+        # INFRENG-931: inbound filter feature adoption runs inside the project creation transaction
+        # https://linear.app/getsentry/issue/INFRENG-931
+        (
+            "sentry.models.featureadoption.FeatureAdoptionManager.record",
+            "sentry.receivers.features.record_inbound_filter_toggled",
+            "sentry.api.helpers.default_inbound_filters.set_default_inbound_filters",
+        ),
+        # INFRENG-932: delete-and-discard feature adoption runs inside the discard transaction
+        # https://linear.app/getsentry/issue/INFRENG-932
+        (
+            "sentry.models.featureadoption.FeatureAdoptionManager.record",
+            "sentry.receivers.features.deleted_and_discarded_issue",
+            "sentry.api.helpers.group_index.update.handle_discard",
+        ),
+    }
+)
+
+# INFRENG-727: Existing lock calls inside DB transactions. The redis-blaster lock backend was not
+# wrapped by this check, so these stayed hidden until default locks moved to RedisClusterLockBackend.
+_REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
+    {
+        # --------------------------------
+        # Getsentry stacks. Getsentry tests use the same default lock backend and the same check.
+        # --------------------------------
+        #
+        # Remove this entry when REVENG-686 lands:
+        # https://linear.app/getsentry/issue/REVENG-686/delete-tally-usage
+        (
+            "getsentry.billing.reserved_budgets.reserved_budget_subscription_lock.<locals>.get_decorator.<locals>.lock_wrapper",
+            "getsentry.billing.reserved_budgets.recompute_all_reserved_budget_spends",
+        ),
+        # Platform trial locks in TrialService._create_product_trial and _create_subscription_trial.
+        # Remove these entries when REVENG-695 lands:
+        (
+            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_product_trial",
+        ),
+        (
+            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_subscription_trial",
+        ),
+        # Customer model_lock in MissingCustomerRelation.repair.
+        # Remove this entry when REVENG-694 lands
+        (
+            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
+            "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
+        ),
     }
 )
 
@@ -347,12 +325,64 @@ def _assert_redis_transaction_allowed(message: str) -> None:
             return
         if _matches_redis_transaction_ratchet(callers):
             return
+        if _matches_redis_transaction_lock_ratchet(callers):
+            return
+
+        _redis_transaction_violations.append((message, callers))
         raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
+
+
+# Redis calls that the transaction check rejected since the last call to
+# `pop_redis_transaction_violations`: the message and the caller stack of each one
+_redis_transaction_violations: list[tuple[str, tuple[str, ...]]] = []
+
+
+def pop_redis_transaction_violations() -> list[tuple[str, tuple[str, ...]]]:
+    """
+    Returns the recorded transaction check violations and clears the record.
+
+    The pytest plugin calls this at the teardown of each test and fails the test if a violation
+    was recorded. A test that causes a violation on purpose calls this to clear it.
+    """
+    count = len(_redis_transaction_violations)
+    violations = _redis_transaction_violations[:count]
+    del _redis_transaction_violations[:count]
+    return violations
 
 
 def _matches_redis_transaction_ratchet(callers: tuple[str, ...]) -> bool:
     for signature in _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET:
         remaining_callers = iter(callers)
+        if all(caller in remaining_callers for caller in signature):
+            return True
+    return False
+
+
+_REDIS_LOCK_BACKEND_CALLERS = (
+    "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+    "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+)
+_REDIS_LOCK_INTERNAL_PREFIXES = ("sentry.utils.locking.", "sentry.utils.retries.", "contextlib.")
+
+
+def _matches_redis_transaction_lock_ratchet(
+    callers: tuple[str, ...],
+    allowlist: frozenset[tuple[str, ...]] = _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET,
+) -> bool:
+    if not callers or callers[0] not in _REDIS_LOCK_BACKEND_CALLERS:
+        return False
+    owner_index = 0
+    while owner_index < len(callers) and callers[owner_index].startswith(
+        _REDIS_LOCK_INTERNAL_PREFIXES
+    ):
+        owner_index += 1
+    if owner_index == len(callers):
+        return False
+    owner = callers[owner_index]
+    for owner_signature, *signature in allowlist:
+        if owner_signature != owner:
+            continue
+        remaining_callers = iter(callers[owner_index + 1 :])
         if all(caller in remaining_callers for caller in signature):
             return True
     return False
@@ -525,134 +555,79 @@ def _add_key_prefix(
     return client
 
 
-# TODO(epurkhiser): When migration of all rb cluster to true redis clusters has
-# completed, remove the rb ``clusters`` module variable and rename
-# redis_clusters to clusters.
-clusters = RBClusterManager(options.default_manager)
 redis_clusters = RedisClusterManager(options.default_manager)
 
 
-def get_cluster_from_options(
-    setting: str,
-    options: dict[str, Any],
-    cluster_manager: RBClusterManager = clusters,
-) -> tuple[rb.Cluster, dict[str, Any]]:
-    cluster_option_name = "cluster"
-    default_cluster_name = "default"
-    cluster_constructor_option_names = frozenset(("hosts",))
+@overload
+def get_dynamic_cluster_from_options(
+    setting: str, config: dict[str, Any], *, decode_responses: Literal[True]
+) -> tuple[bool, RedisCluster[str] | StrictRedis[str], dict[str, Any]]: ...
 
-    options = options.copy()
-    cluster_options = {
-        key: options.pop(key)
-        for key in set(options.keys()).intersection(cluster_constructor_option_names)
-    }
-    if cluster_options:
-        if cluster_option_name in options:
-            raise InvalidConfiguration(
-                "Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.".format(
-                    cluster_option_name,
-                    ", ".join(repr(name) for name in cluster_constructor_option_names),
-                )
-            )
-        else:
-            warnings.warn(
-                DeprecatedSettingWarning(
-                    "{} parameter of {}".format(
-                        ", ".join(repr(name) for name in cluster_constructor_option_names), setting
-                    ),
-                    f'{setting}["{cluster_option_name}"]',
-                    removed_in_version="8.5",
-                ),
-                stacklevel=2,
-            )
-        cluster = rb.Cluster(pool_cls=_shared_pool, **cluster_options)
-    else:
-        cluster = cluster_manager.get(options.pop(cluster_option_name, default_cluster_name))
 
-    return cluster, options
+@overload
+def get_dynamic_cluster_from_options(
+    setting: str, config: dict[str, Any], *, decode_responses: Literal[False]
+) -> tuple[bool, RedisCluster[bytes] | StrictRedis[bytes], dict[str, Any]]: ...
 
 
 def get_dynamic_cluster_from_options(
-    setting: str, config: dict[str, Any]
-) -> tuple[bool, RedisCluster[str] | StrictRedis[str] | rb.Cluster, dict[str, Any]]:
+    setting: str, config: dict[str, Any], *, decode_responses: bool
+) -> tuple[
+    bool,
+    RedisCluster[str] | StrictRedis[str] | RedisCluster[bytes] | StrictRedis[bytes],
+    dict[str, Any],
+]:
+    """
+    Returns ``(is_redis_cluster, client, config)`` for the cluster that ``config`` names.
+
+    Response type is determined by each individual caller:
+    - ``str`` for ``decode_responses=True``
+    - ``bytes`` for ``decode_responses=False``
+
+    The type is the same for a cluster with ``is_redis_cluster`` and for a single host.
+
+    A cluster without ``is_redis_cluster`` must have one host. For these, the ``cluster`` option
+    is removed from the returned config.
+    """
+    if "hosts" in config:
+        raise InvalidConfiguration(
+            f"{setting} does not support the 'hosts' option. Set 'cluster' to a name in redis.clusters."
+        )
+
     cluster_name = config.get("cluster", "default")
     cluster_opts: dict[str, Any] | None = options.default_manager.get("redis.clusters").get(
         cluster_name
     )
     if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
-        # RedisCluster, StrictRedis
-        return True, redis_clusters.get(cluster_name), config
+        if decode_responses:
+            return True, redis_clusters.get(cluster_name), config
+        return True, redis_clusters.get_binary(cluster_name), config
 
-    # RBCluster
-    cluster, config = get_cluster_from_options(setting, config)
-    return False, cluster, config
+    host_count = len(cluster_opts.get("hosts", [])) if cluster_opts is not None else 1
+    if host_count != 1:
+        # Self-hosted configs can still have a multi-host entry from the redis-blaster days.
+        # Without this message the process fails with a KeyError that does not say what to change.
+        raise InvalidConfiguration(
+            f"{setting} uses the Redis cluster {cluster_name!r} in redis.clusters. This entry has "
+            f"{host_count} hosts and does not set is_redis_cluster. "
+            "Sentry no longer spreads keys across hosts on the client side, so an "
+            "entry without is_redis_cluster must have exactly one host. Keep one host, or set "
+            "is_redis_cluster to True if the hosts are a Redis Cluster."
+        )
 
-
-def get_cluster_routing_client(
-    cluster: RedisCluster[T] | rb.Cluster, is_redis_cluster: bool
-) -> RedisCluster[T] | rb.RoutingClient:
-    if is_instance_redis_cluster(cluster, is_redis_cluster):
-        return cluster
-    elif is_instance_rb_cluster(cluster, is_redis_cluster):
-        return cluster.get_routing_client()
-    else:
-        raise AssertionError("unreachable")
-
-
-def is_instance_redis_cluster(
-    val: rb.Cluster | RedisCluster[str], is_redis_cluster: bool
-) -> TypeGuard[RedisCluster[str]]:
-    return is_redis_cluster
+    config = config.copy()
+    config.pop("cluster", None)
+    if decode_responses:
+        return False, redis_clusters.get(cluster_name), config
+    return False, redis_clusters.get_binary(cluster_name), config
 
 
-def is_instance_rb_cluster(
-    val: rb.Cluster | RedisCluster[str], is_redis_cluster: bool
-) -> TypeGuard[rb.Cluster]:
-    return not is_redis_cluster
-
-
-def validate_dynamic_cluster(
-    is_redis_cluster: bool, cluster: rb.Cluster | RedisCluster[str]
-) -> None:
+def validate_dynamic_cluster(cluster: RedisCluster[Any] | StrictRedis[Any]) -> None:
     try:
-        if is_instance_redis_cluster(cluster, is_redis_cluster):
-            cluster.ping()
-            cluster.connection_pool.disconnect()
-        elif is_instance_rb_cluster(cluster, is_redis_cluster):
-            with cluster.all() as client:
-                client.ping()
-            cluster.disconnect_pools()
-        else:
-            raise AssertionError("unreachable")
+        cluster.ping()
+        cluster.connection_pool.disconnect()
     except Exception as e:
         raise InvalidConfiguration(str(e)) from e
-
-
-def check_cluster_versions(
-    cluster: rb.Cluster,
-    required: Version,
-    recommended: Version | None = None,
-    label: str | None = None,
-) -> None:
-    try:
-        with cluster.all() as client:
-            results = client.info()
-        cluster.disconnect_pools()
-    except Exception as e:
-        # Any connection issues should be caught here.
-        raise InvalidConfiguration(str(e)) from e
-
-    versions = {}
-    for id, info in results.value.items():
-        host = cluster.hosts[id]
-        # NOTE: This assumes there is no routing magic going on here, and
-        # all requests to this host are being served by the same database.
-        key = f"{host.host}:{host.port}"
-        versions[key] = Version([int(part) for part in str(info["redis_version"]).split(".", 3)])
-
-    check_versions(
-        "Redis" if label is None else f"Redis ({label})", versions, required, recommended
-    )
 
 
 def load_redis_script(path: str) -> Script:

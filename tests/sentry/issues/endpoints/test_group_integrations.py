@@ -1,3 +1,6 @@
+from unittest import mock
+
+from sentry.integrations.services.integration import integration_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -83,6 +86,31 @@ class GroupIntegrationsTest(APITestCase):
             response.data[0]["externalIssues"][0]["url"]
             == "https://github.com/example-org/example-repo/issues/321"
         )
+
+    def test_multiple_linked_issues_reuse_fetched_integration(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        integration = self.create_integration(
+            organization=self.organization, external_id="example:1", provider="example"
+        )
+        for key in ("APP-1", "APP-2"):
+            self.create_integration_external_issue(group=group, integration=integration, key=key)
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/"
+
+        with (
+            self.feature("organizations:integrations-issue-basic"),
+            mock.patch.object(
+                integration_service, "get_integration", wraps=integration_service.get_integration
+            ) as get_integration,
+        ):
+            response = self.client.get(path)
+
+        assert response.status_code == 200
+        assert sorted(ei["key"] for ei in response.data[0]["externalIssues"]) == [
+            "APP-1",
+            "APP-2",
+        ]
+        get_integration.assert_not_called()
 
     def test_feature_disabled(self) -> None:
         self.login_as(user=self.user)

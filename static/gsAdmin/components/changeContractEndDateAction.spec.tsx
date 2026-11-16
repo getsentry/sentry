@@ -6,7 +6,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import {closeModal} from '@sentry/scraps/modal';
 
 import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDateAction';
 
@@ -15,7 +15,7 @@ describe('ChangeContractEndDateAction', () => {
   const contractPeriodEnd = '2024-04-01';
 
   beforeEach(() => {
-    ModalStore.reset();
+    closeModal();
     jest.clearAllMocks();
   });
 

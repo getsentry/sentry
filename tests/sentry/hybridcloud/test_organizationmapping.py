@@ -205,7 +205,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
 class OrganizationMappingReplicationTest(TransactionTestCase):
     def test_replicates_all_flags(self) -> None:
         self.organization = self.create_organization(slug="santry", cell="us")
-        self.organization.flags = 255  # all flags set
+        setattr(self.organization, "flags", 255)  # all flags set
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
             update=update_organization_mapping_from_instance(

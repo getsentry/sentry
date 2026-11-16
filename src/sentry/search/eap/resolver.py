@@ -39,7 +39,7 @@ from sentry_sdk import traces
 
 from sentry.api import event_search
 from sentry.discover import arithmetic
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
 from sentry.explore.models import ExploreSavedFormula
 from sentry.models.group import Group, parse_short_id
 from sentry.models.project import Project
@@ -290,6 +290,7 @@ class SearchResolver:
                 event_search.default_config,
                 wildcard_free_text=True,
                 allow_regex=self._allows_regex(),
+                has_filter_value=None,
             ),
             params=self.params.filter_params,
             get_field_type=self.get_field_type,
@@ -341,33 +342,40 @@ class SearchResolver:
         # If occurrences dataset, cache group_id to issues mapping.
         self._init_issue_short_id_cache(parsed_terms)
 
-        if any(
-            isinstance(term, event_search.ParenExpression)
-            or event_search.SearchBoolean.is_operator(term)
-            for term in parsed_terms
-        ):
+        has_boolean = False
+        for term in parsed_terms:
+            if (isinstance(term, event_search.ParenExpression)) or (
+                event_search.SearchBoolean.is_operator(term) and len(parsed_terms) > 1
+            ):
+                has_boolean = True
+                break
+        if has_boolean:
             return self._resolve_boolean_conditions(parsed_terms)
         else:
             return self._resolve_terms(parsed_terms)
 
     def _resolve_boolean_conditions(
-        self, terms: event_filter.ParsedTerms
+        self, terms: event_filter.ParsedTerms, depth: int = 0
     ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
     ]:
+        if depth >= constants.MAX_BOOLEAN_DEPTH:
+            raise InvalidSearchQuery(
+                "Maximum number of boolean conditions reached, try reworking your to avoid this, for example multiple OR conditions to the same field can be replaced by field:[a,b,c]"
+            )
         if len(terms) == 0:
             return None, None, []
         elif len(terms) == 1:
             if isinstance(terms[0], event_search.ParenExpression):
-                return self._resolve_boolean_conditions(terms[0].children)
+                return self._resolve_boolean_conditions(terms[0].children, depth=depth + 1)
             elif isinstance(terms[0], event_search.SearchFilter):
                 return self._resolve_terms([terms[0]])
             elif isinstance(terms[0], event_search.AggregateFilter):
                 return self._resolve_terms([terms[0]])
             else:
-                raise NotImplementedError("Haven't handled all the search expressions yet")
+                return self._resolve_terms(terms)
 
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
@@ -413,8 +421,8 @@ class SearchResolver:
             lhs, rhs = terms[:1], terms[1:]
             operator = "and"
 
-        where_lhs, having_lhs, contexts_lhs = self._resolve_boolean_conditions(lhs)
-        where_rhs, having_rhs, contexts_rhs = self._resolve_boolean_conditions(rhs)
+        where_lhs, having_lhs, contexts_lhs = self._resolve_boolean_conditions(lhs, depth=depth + 1)
+        where_rhs, having_rhs, contexts_rhs = self._resolve_boolean_conditions(rhs, depth=depth + 1)
         contexts = contexts_lhs + contexts_rhs
 
         where = None
@@ -691,8 +699,7 @@ class SearchResolver:
                                 value=self._resolve_search_value(
                                     resolved_column, term.operator, non_none_values
                                 ),
-                                ignore_case=self.params.case_insensitive
-                                and resolved_column.search_type == "string",
+                                ignore_case=self._ignores_case(resolved_column),
                             )
                         )
                     )
@@ -713,8 +720,7 @@ class SearchResolver:
                                 value=self._resolve_search_value(
                                     resolved_column, term.operator, non_none_values
                                 ),
-                                ignore_case=self.params.case_insensitive
-                                and resolved_column.search_type == "string",
+                                ignore_case=self._ignores_case(resolved_column),
                             )
                         )
                     )
@@ -780,8 +786,7 @@ class SearchResolver:
                     key=resolved_column.proto_definition,
                     op=operator,
                     value=self._resolve_search_value(resolved_column, term.operator, value),
-                    ignore_case=self.params.case_insensitive
-                    and resolved_column.search_type == "string",
+                    ignore_case=self._ignores_case(resolved_column),
                 )
             ),
             context_definition,
@@ -939,6 +944,13 @@ class SearchResolver:
             # There is no OP_NOT_REGEXP, so negation is expressed by wrapping the match
             return TraceItemFilter(not_filter=NotFilter(filters=[match]))
         return match
+
+    def _ignores_case(self, column: ResolvedAttribute) -> bool:
+        return (
+            self.params.case_insensitive
+            and column.search_type == "string"
+            and not column.canonical_case
+        )
 
     def _resolve_search_value(
         self,
@@ -1169,6 +1181,16 @@ class SearchResolver:
         ):
             raise HiddenApiAttribute(f"Could not parse {column}")
 
+    def _function_argument_hint(self, argument: str) -> str | None:
+        """A fix for a function argument of the wrong type, sent as the 400's `hint`."""
+        # Transactions are stored as spans, which keep their duration in span.duration.
+        if (
+            self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_SPAN
+            and argument == "transaction.duration"
+        ):
+            return "Use span.duration instead of transaction.duration on the spans dataset."
+        return None
+
     def resolve_attribute(
         self, column: str, public_alias_override: str | None = None
     ) -> tuple[ResolvedAttribute, list[VirtualColumnDefinition | None]]:
@@ -1211,6 +1233,7 @@ class SearchResolver:
                 internal_type=internal_match.internal_type,
                 validator=internal_match.validator,
                 normalizer=internal_match.normalizer,
+                canonical_case=internal_match.canonical_case,
                 processor=internal_match.processor,
             )
         else:
@@ -1389,8 +1412,10 @@ class SearchResolver:
                 argument_index += 1
                 if argument_definition.validator is not None:
                     if not argument_definition.validator(argument):
-                        raise InvalidSearchQuery(
-                            f"{argument} is not a valid argument for {function_name}"
+                        raise InvalidFunctionArgumentQuery(
+                            f"{argument} is not a valid argument for {function_name}",
+                            function=function_name,
+                            argument=argument,
                         )
                 if isinstance(argument_definition, AttributeArgumentDefinition):
                     parsed_argument, _ = self.resolve_attribute(argument)
@@ -1427,12 +1452,18 @@ class SearchResolver:
             ):
                 if argument_definition.field_allowlist is not None:
                     if parsed_argument.public_alias not in argument_definition.field_allowlist:
-                        raise InvalidSearchQuery(
-                            f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}."
+                        raise InvalidFunctionArgumentQuery(
+                            f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}.",
+                            function=function_name,
+                            argument=argument,
+                            hint=self._function_argument_hint(argument),
                         )
                 else:
-                    raise InvalidSearchQuery(
-                        f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
+                    raise InvalidFunctionArgumentQuery(
+                        f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}",
+                        function=function_name,
+                        argument=argument,
+                        hint=self._function_argument_hint(argument),
                     )
 
         resolved_arguments: ResolvedArguments = []
@@ -1519,6 +1550,22 @@ class SearchResolver:
                 ),
                 [],
             )
+        # Fold equations that are only literals so Snuba does not evaluate them.
+        # Field equations such as `span.duration / 1000` still go through the RPC.
+        elif len(fields) == 0 and len(functions) == 0:
+            try:
+                value = arithmetic.resolve_arithmetic(operation)
+            except ZeroDivisionError:
+                raise arithmetic.ArithmeticValidationError("division by 0 is not allowed")
+            return (
+                ResolvedLiteral(
+                    public_alias=f"equation|{equation}" if alias is None else alias,
+                    search_type="number",
+                    value=value,
+                ),
+                [],
+            )
+
         lhs, lhs_contexts = (
             self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
         )

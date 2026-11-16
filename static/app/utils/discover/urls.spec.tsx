@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import {getDiscoverLandingUrl} from './urls';
 
 describe('getDiscoverLandingUrl', () => {
   it('is correct for with discover-query and discover-basic features', () => {

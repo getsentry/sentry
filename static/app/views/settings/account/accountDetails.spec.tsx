@@ -1,8 +1,12 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserDetailsFixture} from 'sentry-fixture/userDetails';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AccountDetails from 'sentry/views/settings/account/accountDetails';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
+
+import AccountDetails from './accountDetails';
 
 function mockUserDetails(params?: any) {
   MockApiClient.clearMockResponses();
@@ -75,6 +79,39 @@ describe('AccountDetails', () => {
         );
       });
       expect(document.body).not.toHaveClass('theme-light');
+    });
+
+    it('shows the theme picked from the user menu', async () => {
+      const user = UserDetailsFixture();
+      const darkUser = UserDetailsFixture({options: {...user.options, theme: 'dark'}});
+      ConfigStore.set('user', user);
+      MockApiClient.addMockResponse({
+        url: '/users/me/',
+        method: 'PUT',
+        body: darkUser,
+      });
+      render(
+        <div>
+          <UserDropdown />
+          <AccountDetails />
+        </div>,
+        {organization: OrganizationFixture({features: ['settings-v3']})}
+      );
+
+      expect(await screen.findByText('Light')).toBeInTheDocument();
+
+      MockApiClient.addMockResponse({
+        url: '/users/me/',
+        method: 'GET',
+        body: darkUser,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: user.email}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Preferences'}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Dark'}));
+
+      expect(await screen.findByText('Dark')).toBeInTheDocument();
+      expect(screen.queryByText('Light')).not.toBeInTheDocument();
     });
   });
 });

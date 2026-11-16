@@ -1,8 +1,13 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
+from rest_framework.request import Request
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.loader.browsersdkversion import (
     get_browser_sdk_version_choices,
@@ -10,39 +15,49 @@ from sentry.loader.browsersdkversion import (
 )
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
 from sentry.models.projectkey import ProjectKey
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class RateLimit(TypedDict):
-    window: int
-    count: int
+    window: Annotated[int, ApiDescription("Rate limit window in seconds")]
+    count: Annotated[int, ApiDescription("Number of events accepted per window")]
 
 
 class DSN(TypedDict):
-    secret: str
-    public: str
-    csp: str
-    security: str
-    minidump: str
-    nel: str
-    unreal: str
-    crons: str
-    cdn: str
-    playstation: str
-    integration: str
-    otlp_traces: str
-    otlp_logs: str
+    secret: Annotated[Url, ApiDescription("DSN that includes the secret key")]
+    public: Annotated[Url, ApiDescription("Public DSN to configure SDKs with")]
+    csp: Annotated[Url, ApiDescription("Endpoint for Content Security Policy reports")]
+    security: Annotated[Url, ApiDescription("Endpoint for security reports")]
+    minidump: Annotated[Url, ApiDescription("Endpoint for minidump crash reports")]
+    nel: Annotated[Url, ApiDescription("Endpoint for Network Error Logging reports")]
+    unreal: Annotated[Url, ApiDescription("Endpoint for Unreal Engine crash reports")]
+    crons: Annotated[Url, ApiDescription("Endpoint for cron monitor check-ins")]
+    cdn: Annotated[Url, ApiDescription("URL of the JavaScript SDK Loader script")]
+    playstation: Annotated[Url, ApiDescription("Endpoint for PlayStation crash reports")]
+    integration: Annotated[
+        Url,
+        ApiDescription("Base URL for integration endpoints, such as the OpenTelemetry endpoints"),
+    ]
+    otlp_traces: Annotated[Url, ApiDescription("OpenTelemetry (OTLP) endpoint for traces")]
+    otlp_logs: Annotated[Url, ApiDescription("OpenTelemetry (OTLP) endpoint for logs")]
 
 
 class BrowserSDK(TypedDict):
-    choices: list[list[str]]
+    choices: Annotated[
+        list[list[str]],
+        ApiDescription("JavaScript SDK versions the Loader can serve, as [value, label] pairs"),
+    ]
 
 
 class DynamicSDKLoaderOptions(TypedDict):
-    hasReplay: bool
-    hasPerformance: bool
-    hasDebug: bool
-    hasFeedback: bool
-    hasLogsAndMetrics: bool
+    hasReplay: Annotated[bool, ApiDescription("Whether the Loader enables Session Replay")]
+    hasPerformance: Annotated[bool, ApiDescription("Whether the Loader enables tracing")]
+    hasDebug: Annotated[bool, ApiDescription("Whether the Loader loads the debug bundle")]
+    hasFeedback: Annotated[bool, ApiDescription("Whether the Loader enables User Feedback")]
+    hasLogsAndMetrics: Annotated[
+        bool, ApiDescription("Whether the Loader enables logs and metrics")
+    ]
 
 
 class ProjectKeySerializerResponse(TypedDict):
@@ -50,26 +65,46 @@ class ProjectKeySerializerResponse(TypedDict):
     This represents a Sentry Project Client Key.
     """
 
-    id: str
-    name: str
-    label: str
-    public: str | None
-    secret: str | None
-    projectId: int
-    isActive: bool
-    rateLimit: RateLimit | None
-    dsn: DSN
-    browserSdkVersion: str
-    browserSdk: BrowserSDK
-    dateCreated: datetime | None
-    dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
-    useCase: NotRequired[str]
+    id: Annotated[str, ApiDescription("ID of the client key, same as its public key")]
+    name: Annotated[str, ApiDescription("Name of the client key")]
+    label: Annotated[str, ApiDescription("Name of the client key, same as name")]
+    public: Annotated[str | None, ApiDescription("Public key")]
+    secret: Annotated[str | None, ApiDescription("Secret key")]
+    projectId: Annotated[int, ApiDescription("ID of the project the key belongs to")]
+    isActive: Annotated[bool, ApiDescription("Whether the client key accepts events")]
+    rateLimit: Annotated[
+        RateLimit | None,
+        ApiDescription("Rate limit for events sent with the key. Null when there's none"),
+    ]
+    dsn: Annotated[DSN, ApiDescription("DSN and ingestion endpoints for the key")]
+    browserSdkVersion: Annotated[str, ApiDescription("JavaScript SDK version the Loader serves")]
+    browserSdk: Annotated[
+        BrowserSDK, ApiDescription("JavaScript SDK versions the Loader can serve")
+    ]
+    dateCreated: Annotated[
+        datetime | None, ApiDescription("When the client key was created (ISO 8601)")
+    ]
+    dynamicSdkLoaderOptions: Annotated[
+        DynamicSDKLoaderOptions, ApiDescription("Features the JavaScript SDK Loader enables")
+    ]
+    useCase: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "What the key is used for, such as user or profiling. Only included for superusers"
+            ),
+        ]
+    ]
 
 
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
     def serialize(
-        self, obj: ProjectKey, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: ProjectKey,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> ProjectKeySerializerResponse:
         # obj.public_key should always be set but it isn't required in the ProjectKey model.
         # Because of this mypy complains that ProjectKeySerializerResponse attrs id, name, and label
@@ -91,22 +126,22 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
                 else None
             ),
             "dsn": {
-                "secret": obj.dsn_private,
-                "public": obj.dsn_public,
-                "csp": obj.csp_endpoint,
-                "security": obj.security_endpoint,
-                "minidump": obj.minidump_endpoint,
-                "nel": obj.nel_endpoint,
-                "unreal": obj.unreal_endpoint,
-                "crons": obj.crons_endpoint,
-                "cdn": obj.js_sdk_loader_cdn_url,
-                "playstation": obj.playstation_endpoint,
-                "integration": obj.integration_endpoint,
-                "otlp_traces": obj.otlp_traces_endpoint,
-                "otlp_logs": obj.otlp_logs_endpoint,
+                "secret": absolute_url(obj.dsn_private),
+                "public": absolute_url(obj.dsn_public),
+                "csp": absolute_url(obj.csp_endpoint),
+                "security": absolute_url(obj.security_endpoint),
+                "minidump": absolute_url(obj.minidump_endpoint),
+                "nel": absolute_url(obj.nel_endpoint),
+                "unreal": absolute_url(obj.unreal_endpoint),
+                "crons": absolute_url(obj.crons_endpoint),
+                "cdn": absolute_url(obj.js_sdk_loader_cdn_url),
+                "playstation": absolute_url(obj.playstation_endpoint),
+                "integration": absolute_url(obj.integration_endpoint),
+                "otlp_traces": absolute_url(obj.otlp_traces_endpoint),
+                "otlp_logs": absolute_url(obj.otlp_logs_endpoint),
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
-            "browserSdk": {"choices": get_browser_sdk_version_choices(obj.project)},
+            "browserSdk": {"choices": cast(Any, get_browser_sdk_version_choices(obj.project))},
             "dateCreated": obj.date_added,
             "dynamicSdkLoaderOptions": {
                 "hasReplay": get_dynamic_sdk_loader_option(obj, DynamicSdkLoaderOption.HAS_REPLAY),
@@ -123,7 +158,7 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
             },
         }
 
-        request = kwargs.get("request")
+        request = cast(Request, kwargs.get("request"))
         if request and is_active_superuser(request):
             data["useCase"] = obj.use_case
 

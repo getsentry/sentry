@@ -1,5 +1,16 @@
 declare namespace TypeLoader {
-  type ComponentDoc = import('react-docgen-typescript').ComponentDoc;
+  type PropDoc = Pick<
+    import('react-docgen-typescript').PropItem,
+    'name' | 'description' | 'required' | 'parent'
+  > & {
+    type: Pick<import('react-docgen-typescript').PropItemType, 'name' | 'raw'>;
+  };
+
+  interface ComponentDoc {
+    description: string;
+    displayName: string;
+    props: Record<string, PropDoc>;
+  }
 
   interface TypeLoaderResult {
     props?: Record<string, TypeLoader.ComponentDoc>;

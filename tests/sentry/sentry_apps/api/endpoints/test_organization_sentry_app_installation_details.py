@@ -55,6 +55,25 @@ class SentryAppInstallationDetailsTest(APITestCase):
             prevent_token_exchange=True,
         )
 
+        published_application = self.published_app.application
+        unpublished_application = self.unpublished_app.application
+        published_proxy_user = self.published_app.proxy_user
+        unpublished_proxy_user = self.unpublished_app.proxy_user
+        installation_grant = self.installation.api_grant
+        installation2_grant = self.installation2.api_grant
+        assert published_application is not None
+        assert unpublished_application is not None
+        assert published_proxy_user is not None
+        assert unpublished_proxy_user is not None
+        assert installation_grant is not None
+        assert installation2_grant is not None
+        self.published_client_id = published_application.client_id
+        self.unpublished_client_id = unpublished_application.client_id
+        self.published_proxy_user = published_proxy_user
+        self.unpublished_proxy_user = unpublished_proxy_user
+        self.installation_grant = installation_grant
+        self.installation2_grant = installation2_grant
+
         self.url = reverse(
             "sentry-api-0-sentry-app-installation-details", args=[self.installation2.uuid]
         )
@@ -97,7 +116,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
             },
             "organization": {"slug": self.org.slug, "id": self.org.id},
             "uuid": self.installation2.uuid,
-            "code": self.installation2.api_grant.code,
+            "code": self.installation2_grant.code,
             "status": "pending",
         }
 
@@ -177,9 +196,9 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         super().setUp()
         self.token = GrantExchanger(
             install=self.installation,
-            code=self.installation.api_grant.code,
-            client_id=self.published_app.application.client_id,
-            user=self.published_app.proxy_user,
+            code=self.installation_grant.code,
+            client_id=self.published_client_id,
+            user=self.published_proxy_user,
         ).run()
 
     @patch("sentry.analytics.record")
@@ -226,9 +245,9 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
     def test_sentry_app_installation_mark_installed_wrong_app(self) -> None:
         self.token = GrantExchanger(
             install=self.installation2,
-            code=self.installation2.api_grant.code,
-            client_id=self.unpublished_app.application.client_id,
-            user=self.unpublished_app.proxy_user,
+            code=self.installation2_grant.code,
+            client_id=self.unpublished_client_id,
+            user=self.unpublished_proxy_user,
         ).run()
         self.url = reverse(
             "sentry-api-0-sentry-app-installation-details", args=[self.installation.uuid]

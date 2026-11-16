@@ -5,7 +5,7 @@ import sortBy from 'lodash/sortBy';
 import Prism from 'prismjs';
 
 import {Alert} from '@sentry/scraps/alert';
-import {loadPrismLanguage} from '@sentry/scraps/code';
+import {loadPrismLanguage} from '@sentry/scraps/codeBlock';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {List} from 'sentry/components/list';
@@ -100,6 +100,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
 
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
+    // oxlint-disable-next-line react/todo
     import('prismjs/plugins/line-highlight/prism-line-highlight');
   }, []);
 

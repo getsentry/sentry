@@ -8,9 +8,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import type {HeadingProps} from '@sentry/scraps/text';
 
-import {useStory} from 'sentry/stories/view/useStory';
 import {slugify} from 'sentry/utils/slugify';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+import {useStory} from './useStory';
 
 export function StoryHeading(props: HeadingProps) {
   const {story} = useStory();

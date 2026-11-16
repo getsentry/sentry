@@ -4,13 +4,16 @@ import hashlib
 from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Sequence
+from dataclasses import dataclass
 from random import randint
 from typing import Any
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
+    is_redis_span,
     total_span_time,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
@@ -22,6 +25,76 @@ from sentry.issues.grouptype import (
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.utils import metrics
 from sentry.utils.sdk import sdk_logger
+
+# Connection lifecycle spans that SDKs report with a plain `db` op. They are kept in MN+1 patterns as
+# context, but never count as queries.
+_DB_CONNECTION_SPAN_DESCRIPTIONS = frozenset(
+    {
+        "connect",  # Python SDK, Django
+        "pg.connect",  # JavaScript SDK, pg
+        "pg-pool.connect",  # JavaScript SDK, pg-pool
+        "prisma:engine:connection",  # JavaScript SDK, Prisma
+    }
+)
+
+
+def _is_db_connection_span(span: Span) -> bool:
+    op = span.get("op") or ""
+    if not op.startswith("db"):
+        return False
+    description = (span.get("description") or "").strip()
+    return op.startswith("db.connection") or description in _DB_CONNECTION_SPAN_DESCRIPTIONS
+
+
+def _is_db_query_span(span: Span) -> bool:
+    return span["op"].startswith("db") and not _is_db_connection_span(span)
+
+
+_PRISMA_SERIALIZE_DESCRIPTIONS = ("prisma:client:serialize", "prisma:engine:serialize")
+
+
+def _equivalence_key(span: Span) -> tuple[Any, ...] | None:
+    """
+    Spans are equivalent when their keys are equal: db spans by op and hash, `default` spans by
+    op and description, other spans by op. Spans without an op are never equivalent.
+    """
+    op = span.get("op")
+    if not op:
+        return None
+    if op == "default":
+        return (op, span.get("description"))
+    if op.startswith("db"):
+        return (op, span.get("hash"))
+    return (op,)
+
+
+def _is_pattern_db_query(span: Span) -> bool:
+    """Whether this span counts as the db query an MN+1 pattern needs."""
+    op = span.get("op") or ""
+    if not op.startswith("db") or is_redis_span(span) or _is_db_connection_span(span):
+        return False
+    description = get_span_description(span)
+    return bool(description) and not description.endswith("...")
+
+
+@dataclass(frozen=True, slots=True)
+class RecentSpan:
+    """A recently seen span, with the facts every later span is compared against."""
+
+    span: Span
+    key: tuple[Any, ...] | None
+    is_db_query: bool
+
+    @classmethod
+    def from_span(cls, span: Span) -> RecentSpan:
+        return cls(span, _equivalence_key(span), _is_pattern_db_query(span))
+
+
+def _has_db_query_and_different_span(pattern: Sequence[RecentSpan], key: tuple[Any, ...]) -> bool:
+    """Whether the pattern has a db query and a span that isn't equivalent to `key`."""
+    return any(recent.is_db_query for recent in pattern) and any(
+        recent.key != key for recent in pattern
+    )
 
 
 class MNPlusOneState(ABC):
@@ -35,20 +108,8 @@ class MNPlusOneState(ABC):
         return None
 
     def _equivalent(self, a: Span, b: Span) -> bool:
-        """db spans are equivalent if their ops and hashes match. Other spans are
-        equivalent if their ops match."""
-        first_op = a.get("op") or None
-        second_op = b.get("op") or None
-        if not first_op or not second_op or first_op != second_op:
-            return False
-
-        if first_op == "default":
-            return a.get("description") == b.get("description")
-
-        if first_op.startswith("db"):
-            return a.get("hash") == b.get("hash")
-
-        return True
+        key = _equivalence_key(a)
+        return key is not None and key == _equivalence_key(b)
 
 
 class SearchingForMNPlusOne(MNPlusOneState):
@@ -72,7 +133,10 @@ class SearchingForMNPlusOne(MNPlusOneState):
     ) -> None:
         self.settings = settings
         self.event = event
-        self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
+        self.recent_spans: deque[RecentSpan] = deque(
+            (RecentSpan.from_span(span) for span in initial_spans or []),
+            self.settings["max_sequence_length"],
+        )
         self.parent_map = parent_map or {}
         """
         A mapping of all visited spans IDs to their parent span IDs (span_id -> parent_span_id).
@@ -86,63 +150,46 @@ class SearchingForMNPlusOne(MNPlusOneState):
         if span_id and parent_span_id:
             self.parent_map[span_id] = parent_span_id
 
+        current = RecentSpan.from_span(span)
+
         # Can't be a potential MN+1 without at least 2 previous spans.
         if len(self.recent_spans) <= 1:
-            self.recent_spans.append(span)
+            self.recent_spans.append(current)
             return (self, None)
 
         # Has an MN pattern begun to repeat itself? If so, transition to the
         # ContinuingMNPlusOne state.
         # Convert the recent_spans deque into a list for slicing. Skip the last
         # item in the list because that would find an N+1 instead.
-        recent_span_list = list(self.recent_spans)
-        for i, recent_span in enumerate(recent_span_list[:-1]):
-            if self._equivalent(span, recent_span):
+        if current.key is not None:
+            recent_span_list = list(self.recent_spans)
+            for i, recent_span in enumerate(recent_span_list[:-1]):
+                if recent_span.key != current.key:
+                    continue
                 pattern = recent_span_list[i:]
-                if self._is_valid_pattern(pattern):
-                    return (
-                        ContinuingMNPlusOne(
-                            settings=self.settings,
-                            event=self.event,
-                            pattern=pattern,
-                            first_span=span,
-                            parent_map=self.parent_map,
-                        ),
-                        None,
-                    )
+                # Later candidates are suffixes of this one, so if it lacks a db query or a span
+                # that isn't equivalent to the current span, every later candidate does too.
+                if not _has_db_query_and_different_span(pattern, current.key):
+                    break
+                # Patterns shouldn't start with a serialize span, since that follows an
+                # operation or query.
+                if recent_span.span.get("description", "") in _PRISMA_SERIALIZE_DESCRIPTIONS:
+                    continue
+                return (
+                    ContinuingMNPlusOne(
+                        settings=self.settings,
+                        event=self.event,
+                        pattern=[recent.span for recent in pattern],
+                        first_span=span,
+                        parent_map=self.parent_map,
+                    ),
+                    None,
+                )
 
         # We haven't found a pattern yet, so remember this span and keep
         # looking.
-        self.recent_spans.append(span)
+        self.recent_spans.append(current)
         return (self, None)
-
-    def _is_valid_pattern(self, pattern: Sequence[Span]) -> bool:
-        """A valid pattern contains at least one db operation and is not all equivalent."""
-        found_db_op = False
-        found_different_span = False
-
-        # Patterns shouldn't start with a serialize span, since that follows an operation or query.
-        first_span_description = pattern[0].get("description", "")
-        if (
-            first_span_description == "prisma:client:serialize"
-            or first_span_description == "prisma:engine:serialize"
-        ):
-            return False
-
-        for span in pattern:
-            op = span.get("op") or ""
-            description = span.get("description") or ""
-            found_db_op = found_db_op or bool(
-                op.startswith("db")
-                and not op.startswith("db.redis")
-                and description
-                and not description.endswith("...")
-            )
-            found_different_span = found_different_span or not self._equivalent(pattern[0], span)
-            if found_db_op and found_different_span:
-                return True
-
-        return False
 
 
 class ContinuingMNPlusOne(MNPlusOneState):
@@ -227,14 +274,14 @@ class ContinuingMNPlusOne(MNPlusOneState):
         offender_span_count = len(self.pattern) * times_occurred
         offender_spans = self.spans[:offender_span_count]
 
-        # Consider all spans when evaluating the duration threshold, however at least 10 percent
-        # of the total duration of offenders should be from db spans.
+        # Consider all spans when evaluating the duration threshold, however at least some percentage
+        # of the total duration of offenders should be from db query spans.
         total_spans_duration = total_span_time(offender_spans)
         if total_spans_duration < self.settings["total_duration_threshold"]:
             metrics.incr("mn_plus_one_db_span_detector.below_duration_threshold")
             return None
 
-        offender_db_spans = [span for span in offender_spans if span["op"].startswith("db")]
+        offender_db_spans = [span for span in offender_spans if _is_db_query_span(span)]
         total_db_spans_duration = total_span_time(offender_db_spans)
         pct_db_spans = total_db_spans_duration / total_spans_duration if total_spans_duration else 0
         if pct_db_spans < self.settings["min_percentage_of_db_spans"]:
@@ -251,7 +298,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             metrics.incr("mn_plus_one_db_span_detector.no_db_span")
             return None
 
-        db_span_description = db_span.get("description") or ""
+        db_span_description = get_span_description(db_span)
 
         db_span_ids = [span["span_id"] for span in offender_db_spans]
         offender_span_ids = [span["span_id"] for span in offender_spans]
@@ -315,10 +362,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
 
     def _first_relevant_db_span(self) -> Span | None:
         for span in self.spans:
-            if (
-                span["op"].startswith("db")
-                and get_span_evidence_value(span, include_op=False) != "prisma:engine:connection"
-            ):
+            if _is_db_query_span(span):
                 return span
         return None
 
@@ -401,10 +445,11 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     (hence, MN+1).
 
     To create a problem from a set a spans, this detector looks for the following:
-    - A pattern of at least one db span and one non-db span (set by `max_sequence_length`)
-    - The pattern is repeated sequentially with no intervening spans (set by `min_occurrences_of_pattern`)
+    - A pattern of at least one db query span and one non-db span (set by `max_sequence_length`).
+      Connection lifecycle spans are part of the pattern but do not count as queries.
+    - The pattern is repeated sequentially with no intervening spans (set by `minimum_occurrences_of_pattern`)
     - The total duration of the repeated pattern is above the threshold (set by `total_duration_threshold`)
-    - The total duration of the db spans is above the percentage threshold for the whole sequence (set by `min_percentage_of_db_spans`)
+    - The total duration of the db query spans is above the percentage threshold for the whole sequence (set by `min_percentage_of_db_spans`)
     - The pattern has at least one common parent span within the event, and within the configured depth (set by `max_allowable_depth`)
 
     Uses a small state machine internally.

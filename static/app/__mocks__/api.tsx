@@ -219,6 +219,14 @@ class Client implements ApiNamespace.Client {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
+          // Specs pass a promise as `body` to keep a request pending until they
+          // resolve it. resolve(data) already waits for that promise, but
+          // resolve([data, ...args]) would return the pending promise itself as
+          // the body, so wait for it before building the includeAllArgs tuple.
+          if (includeAllArgs && typeof data?.then === 'function') {
+            data.then((settled: unknown) => resolve([settled, ...args]), reject);
+            return;
+          }
           resolve(includeAllArgs ? [data, ...args] : data);
         },
         error: (error, ..._args) => {

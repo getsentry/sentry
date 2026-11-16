@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
@@ -21,6 +22,7 @@ from sentry.uptime.types import (
     UptimeMonitorMode,
 )
 from sentry.utils.outcomes import Outcome
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -59,7 +61,7 @@ class ComputeHttpRequestSizeTest(UptimeTestCase):
 
 
 class UptimeMonitorDataSourceValidatorTest(TestCase):
-    def get_valid_data(self, **kwargs):
+    def get_valid_data(self, **kwargs: Any) -> dict[str, Any]:
         return {
             "url": kwargs.get("url", "https://www.google.com"),
             "interval_seconds": kwargs.get(
@@ -127,7 +129,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
             "request": self.make_request(user=self.user),
         }
 
-    def get_valid_data(self, **kwargs):
+    def get_valid_data(self, **kwargs: Any) -> dict[str, Any]:
         return {
             "name": kwargs.get("name", "Test Uptime Monitor"),
             "type": UptimeDomainCheckFailure.slug,
@@ -153,7 +155,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
             ),
         }
 
-    def assert_valid_uptime_conditions(self, detector):
+    def assert_valid_uptime_conditions(self, detector: Detector) -> None:
         """Verify detector has correct uptime DataConditionGroup and DataConditions."""
         condition_group = detector.workflow_condition_group
         assert condition_group is not None

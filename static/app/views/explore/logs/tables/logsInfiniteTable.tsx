@@ -15,6 +15,7 @@ import type {Virtualizer} from '@tanstack/react-virtual';
 import {Button} from '@sentry/scraps/button';
 import {useClockDisplay} from '@sentry/scraps/datetime';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -25,6 +26,7 @@ import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -35,7 +37,11 @@ import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  useLogsAutoRefreshEnabled,
+  useSetLogsAutoRefresh,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LOGS_ROW_ID_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -57,11 +63,6 @@ import {
   LogTableBody,
   LogTableHeadCell,
 } from 'sentry/views/explore/logs/styles';
-import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
-import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
-import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
-import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
-import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -88,6 +89,17 @@ import {
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
+
+import {calculateLogsTableMinWidth} from './calculateLogsTableMinWidth';
+import {LogsEmptyResults} from './logsEmptyResults';
+import {LogsRateLimitError} from './logsRateLimitError';
+import {LogRowContent} from './logsTableRow';
+import {useLogsTableColumnWidths} from './useLogsTableColumnWidths';
+
+/**
+ * This sentinel value means the pseudo row sits after every loaded row.
+ */
+const SECOND_TO_LAST_ROW_SENTINEL = -2;
 
 type LogsTableProps = {
   analyticsPageSource: LogsAnalyticsPageSource;
@@ -155,6 +167,7 @@ export function LogsInfiniteTable({
     refetch,
     fetchNextPage,
     fetchPreviousPage,
+    canFetchNextPage,
     isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
@@ -163,6 +176,9 @@ export function LogsInfiniteTable({
     canResumeAutoFetch,
     resumeAutoFetch,
     totalPayloadBytes,
+    anchor,
+    anchorToLog,
+    clearAnchor,
   } = useLogsPageDataQueryResult();
   const meta = useMemo(
     () =>
@@ -198,7 +214,7 @@ export function LogsInfiniteTable({
       row =>
         isRegularLogResponseItem(row) && getLogRowTimestampMillis(row) < eventTimestamp
     );
-    return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
+    return index === -1 ? SECOND_TO_LAST_ROW_SENTINEL : index; // If the event is older than all the data, add it to the end with a sentinel value of SECOND_TO_LAST_ROW_SENTINEL. This causes the useEffect to not continously add it.
   }, [additionalData, baseData, isPending, isError]);
 
   const data = useMemo(() => {
@@ -214,7 +230,8 @@ export function LogsInfiniteTable({
       withEvent = baseData || [];
     } else {
       withEvent = [...baseData];
-      const newSelectedIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
+      const newSelectedIndex =
+        pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL ? baseData.length : pseudoRowIndex;
       withEvent.splice(
         newSelectedIndex,
         0,
@@ -361,20 +378,25 @@ export function LogsInfiniteTable({
     [virtualizer]
   );
 
-  // The -2 sentinel means the pseudo row sits after every loaded row. Reading the
-  // row count from an effect event keeps it out of the effect deps, so scrolling
+  // Reading the row count from an effect event keeps it out of the effect deps, so scrolling
   // does not repeat each time the infinite table loads another page.
   const scrollToPseudoRow = useEffectEvent(() => {
-    const scrollToIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
+    const scrollToIndex =
+      pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL ? baseData.length : pseudoRowIndex;
     virtualizer.scrollToIndex(scrollToIndex, {
       behavior: 'smooth',
       align: 'center',
     });
   });
 
+  // Scrolling to the end would load another page and move the event's row again.
+  const isPseudoRowPastLoadedPages =
+    pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL && canFetchNextPage;
+
   useEffect(() => {
     if (
       pseudoRowIndex === -1 ||
+      isPseudoRowPastLoadedPages ||
       !tableBodyRef?.current ||
       additionalData?.scrollToDisabled
     ) {
@@ -382,7 +404,13 @@ export function LogsInfiniteTable({
     }
     const timeoutId = setTimeout(() => scrollToPseudoRow(), 100);
     return () => clearTimeout(timeoutId);
-  }, [pseudoRowIndex, virtualizer, tableBodyRef, additionalData?.scrollToDisabled]);
+  }, [
+    pseudoRowIndex,
+    isPseudoRowPastLoadedPages,
+    virtualizer,
+    tableBodyRef,
+    additionalData?.scrollToDisabled,
+  ]);
 
   const hasReplay = !!embeddedOptions?.replay;
 
@@ -506,6 +534,50 @@ export function LogsInfiniteTable({
     };
   }, []);
 
+  const organization = useOrganization();
+
+  const scrollToAnchor = useEffectEvent((anchorId: string) => {
+    const index = data.findIndex(row => row[OurLogKnownFieldKey.ID] === anchorId);
+    if (index === -1) {
+      trackAnalytics('logs.table.pinned_row_not_in_results', {
+        log_id: anchorId,
+        organization,
+      });
+      toast.error(t('This log is not in the current results'));
+      clearAnchor();
+      return;
+    }
+    virtualizer.scrollToIndex(index, {align: 'center'});
+  });
+
+  useEffect(() => {
+    if (anchor && !isPending && !isError) {
+      scrollToAnchor(anchor.id);
+    }
+  }, [anchor, isPending, isError]);
+
+  const setAutoRefresh = useSetLogsAutoRefresh();
+
+  const handleScrollToLog = useCallback(
+    (dataRow: OurLogsResponseItem) => {
+      if (autoRefresh) {
+        setAutoRefresh('paused');
+        anchorToLog(dataRow);
+        return;
+      }
+
+      const index = data.findIndex(
+        row => row[OurLogKnownFieldKey.ID] === dataRow[OurLogKnownFieldKey.ID]
+      );
+      if (index === -1) {
+        anchorToLog(dataRow);
+      } else {
+        handleScrollToRow(index);
+      }
+    },
+    [anchorToLog, autoRefresh, data, handleScrollToRow, setAutoRefresh]
+  );
+
   const logsPinning = useLogsPinning();
   const pinnedLogsQuery = usePinnedLogsQuery({allRows: data, logsPinning});
 
@@ -546,6 +618,7 @@ export function LogsInfiniteTable({
           isHoverLinked={hoveredRowId === rowId}
           setHoveredRowId={setHoveredRowId}
           togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
+          onScrollToLog={handleScrollToLog}
         />
       );
     },
@@ -555,6 +628,7 @@ export function LogsInfiniteTable({
       handleExpand,
       handleExpandHeight,
       handleTogglePinnedRow,
+      handleScrollToLog,
       highlightTerms,
       hoveredRowId,
       logEnd,

@@ -82,7 +82,9 @@ describe('tryton onboarding docs', () => {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
+      screen.getByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).toBeInTheDocument();
   });
 
@@ -92,7 +94,9 @@ describe('tryton onboarding docs', () => {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+      screen.queryByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).not.toBeInTheDocument();
   });
 

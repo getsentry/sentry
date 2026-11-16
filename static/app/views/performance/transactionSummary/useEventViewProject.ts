@@ -6,6 +6,7 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 export function useEventViewProject(
   projects: Project[],
   eventView: EventView,
+  // oxlint-disable-next-line react/todo
   projectId = String(eventView.project[0])
 ) {
   return useMemo(

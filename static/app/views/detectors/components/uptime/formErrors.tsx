@@ -4,10 +4,9 @@ import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {
-  isLeafOp,
-  leafOpsMatchByValue,
-} from 'sentry/views/detectors/components/uptime/assertions/utils';
+
+import {isLeafOp, leafOpsMatchByValue} from './assertions/utils';
+import {usePreviewCheckResult} from './previewCheckContext';
 import {
   CompilationErrorType,
   PreviewCheckErrorKind,
@@ -18,9 +17,7 @@ import {
   type PreviewCheckResult,
   type UptimeAndOp,
   type UptimeOp,
-} from 'sentry/views/detectors/components/uptime/types';
-
-import {usePreviewCheckResult} from './previewCheckContext';
+} from './types';
 
 export function mapPreviewCheckErrorToMessage(
   error: PreviewCheckError | null

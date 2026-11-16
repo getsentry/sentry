@@ -1,24 +1,27 @@
-export interface DroppedEventsBucket {
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+type OutcomeTag = 'intentional' | 'unintentional';
+
+export interface OutcomeRow {
   category: string;
   count: number;
   end: number;
   outcome: string;
   reason: string;
   start: number;
+  tags: OutcomeTag[];
   type: string;
 }
 
 export interface DroppedDataProps {
-  acceptedEvents?: DroppedEventsBucket[];
-  droppedEvents?: DroppedEventsBucket[];
+  dataset: DiscoverDatasets;
+  acceptedEvents?: OutcomeRow[];
+  droppedEvents?: OutcomeRow[];
   onClick?: () => void;
 }
 
-export interface EventVolume {
+export interface OutcomeVolume {
   count: number;
-}
-
-export interface OutcomeVolume extends EventVolume {
   outcome: string;
 }
 
@@ -26,11 +29,10 @@ export interface OutcomeVolume extends EventVolume {
  * Dropped and accepted volume for one chart time bucket.
  */
 export interface DroppedDataBucket {
-  accepted: EventVolume;
+  accepted: number;
   byOutcome: OutcomeVolume[];
-  dropped: EventVolume;
+  dropped: number;
   end: number;
-  events: DroppedEventsBucket[];
   ratio: number;
   start: number;
 }

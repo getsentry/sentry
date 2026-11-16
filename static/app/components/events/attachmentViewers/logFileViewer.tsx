@@ -2,15 +2,16 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {AnsiText} from 'sentry/components/ansiText';
-import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
-import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
-import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {applyCarriageReturns} from 'sentry/utils/ansiEscapeCodes';
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+
+import {PreviewPanelItem} from './previewPanelItem';
+import type {ViewerProps} from './utils';
+import {getAttachmentUrl} from './utils';
 
 export function LogFileViewer(props: ViewerProps) {
   const attachmentUrl = resolveHostname(`/api/0${getAttachmentUrl(props)}?download`);

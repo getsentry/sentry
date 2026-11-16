@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 from sentry.db.pending_deletion import build_pending_deletion_key
@@ -16,7 +17,7 @@ class RenamePendingDeleteTest(TestCase):
             external_id="external_id",
         )
 
-    def assert_organization_option(self, repo):
+    def assert_organization_option(self, repo: Any) -> None:
         option = OrganizationOption.objects.get(
             organization_id=repo.organization_id, key=build_pending_deletion_key(repo)
         )

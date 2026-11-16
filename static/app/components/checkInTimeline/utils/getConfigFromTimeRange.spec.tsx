@@ -163,4 +163,16 @@ describe('getConfigFromTimeRange', () => {
       timezone,
     });
   });
+
+  it('does not pick an interval above maxBucketInterval', () => {
+    const start = new Date('2023-07-31T00:00:00Z');
+    const end = new Date('2023-08-30T00:00:00Z');
+    const oneDay = 24 * 60 * 60;
+
+    const uncapped = getConfigFromTimeRange(start, end, 80, timezone);
+    expect(uncapped.rollupConfig.interval).toBeGreaterThan(oneDay);
+
+    const capped = getConfigFromTimeRange(start, end, 80, timezone, oneDay);
+    expect(capped.rollupConfig.interval).toBeLessThanOrEqual(oneDay);
+  });
 });

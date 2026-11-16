@@ -5,8 +5,9 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+
+import {useSpansSaveQuery} from './useSaveQuery';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -75,7 +76,7 @@ describe('useSpansSaveQuery', () => {
           environment: ['production'],
           start: '2024-01-01T00:00:00.000Z',
           end: '2024-01-01T01:00:00.000Z',
-          range: '1h',
+          statsPeriod: '1h',
           query: [
             expect.objectContaining({
               fields: ['span.op', 'span.duration'],

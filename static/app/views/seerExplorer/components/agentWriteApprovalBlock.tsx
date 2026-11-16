@@ -5,8 +5,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   AgentWriteApprovalResult,
   getScopeDetails,
@@ -106,14 +106,15 @@ export function AgentWriteApprovalBlock({
         respondToUserInput(inputId, {decision}, {onError: resetDecision});
         return;
       }
-      addErrorMessage(t('You do not have all the requested permissions.'));
+      toast.error(t('You do not have all the requested permissions.'));
       respondToUserInput(
         inputId,
         {decision, reason: 'insufficient_scope'},
         {onError: resetDecision}
       );
     } catch {
-      addErrorMessage(t('Failed to approve this permission.'));
+      toast.error(t('Failed to approve this permission.'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsSubmitting(false);
     }

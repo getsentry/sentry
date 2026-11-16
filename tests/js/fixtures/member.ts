@@ -14,7 +14,6 @@ export function MemberFixture(params: Partial<Member> = {}): Member {
     pending: false,
     expired: false,
     dateCreated: '2020-01-01T00:00:00.000Z',
-    invite_link: null,
     inviterName: null,
     isOnlyOwner: false,
     orgRoleList: [],

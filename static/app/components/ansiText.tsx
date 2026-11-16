@@ -24,6 +24,7 @@ interface AnsiTextProps {
 export function AnsiText({
   children,
   preserveWhitespace,
+  // oxlint-disable-next-line react/todo
   renderText = text => text,
 }: AnsiTextProps) {
   const theme = useTheme();

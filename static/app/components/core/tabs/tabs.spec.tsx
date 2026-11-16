@@ -1,13 +1,8 @@
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {useLocation} from 'react-router';
 
-import {TabList, TabPanels, Tabs} from '.';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 const TABS = [
   {key: 'details', label: 'Details', content: 'So by colonel hearted ferrars.'},
@@ -29,263 +24,175 @@ const TABS = [
   },
 ] as const;
 
-describe('Tabs', () => {
-  it('renders tabs list', () => {
-    render(
-      <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>
-    );
+function LinkedTabs({
+  value,
+  onChange,
+  keyboardActivation = 'manual',
+  disabled,
+}: {
+  disabled?: boolean;
+  keyboardActivation?: 'manual' | 'automatic';
+  onChange?: (key: string) => void;
+  value?: string;
+}) {
+  return (
+    <Tabs
+      defaultValue="details"
+      value={value}
+      onChange={onChange}
+      keyboardActivation={keyboardActivation}
+      disabled={disabled}
+    >
+      <TabList>
+        {TABS.map(tab => (
+          <TabList.Item key={tab.key} to={`/tabs/${tab.key}/`}>
+            {tab.label}
+          </TabList.Item>
+        ))}
+      </TabList>
+    </Tabs>
+  );
+}
 
-    // The full tabs list is rendered
-    expect(screen.getByRole('tablist')).toHaveAttribute('aria-orientation', 'horizontal');
-    expect(screen.getAllByRole('tab')).toHaveLength(TABS.length);
-    TABS.forEach(tab => {
-      expect(screen.getByRole('tab', {name: tab.label})).toBeInTheDocument();
+function RoutedTabs({onChange}: {onChange: (key: string) => void}) {
+  const {pathname} = useLocation();
+  return <LinkedTabs value={pathname.split('/')[2]} onChange={onChange} />;
+}
+
+describe('Tabs routing', () => {
+  it.each(['{Enter}', ' '])('navigates to the focused tab with %s', async key => {
+    const onChange = jest.fn();
+    const {router} = render(<LinkedTabs onChange={onChange} />, {
+      initialRouterConfig: {location: {pathname: '/tabs/details/'}},
     });
 
-    // The first tab item is selected and its content visible
-    expect(screen.getByRole('tab', {name: TABS[0].label})).toHaveAttribute(
-      'aria-selected',
-      'true'
+    await userEvent.tab();
+    onChange.mockClear();
+    await userEvent.keyboard('{ArrowRight}');
+
+    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveFocus();
+    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
+      'href',
+      '/tabs/activity/'
     );
-    expect(screen.getByText(TABS[0].content)).toBeInTheDocument();
+    expect(router.location.pathname).toBe('/tabs/details/');
+    expect(onChange).not.toHaveBeenCalled();
+
+    await userEvent.keyboard(key);
+
+    await waitFor(() => expect(router.location.pathname).toBe('/tabs/activity/'));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('activity');
+
+    router.navigate(-1);
+    await waitFor(() => expect(router.location.pathname).toBe('/tabs/details/'));
   });
 
-  it('renders tabs list when disabled', () => {
-    render(
-      <Tabs disabled>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>
-    );
-
-    // The first tab item is selected and its content visible
-    expect(screen.getByRole('tab', {name: TABS[0].label})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-    expect(screen.getByText(TABS[0].content)).toBeInTheDocument();
-
-    // All tabs are marked as disabled
-    TABS.forEach(tab => {
-      expect(screen.getByRole('tab', {name: tab.label})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+  it('navigates once when a tab link is clicked', async () => {
+    const onChange = jest.fn();
+    const {router} = render(<LinkedTabs onChange={onChange} />, {
+      initialRouterConfig: {location: {pathname: '/tabs/details/'}},
     });
-  });
 
-  it('changes tabs on click', async () => {
-    render(
-      <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>
-    );
-
-    // Click on the Activity tab
     await userEvent.click(screen.getByRole('tab', {name: 'Activity'}));
 
-    // The Activity tab is selected and its content rendered
-    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-    expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
+    await waitFor(() => expect(router.location.pathname).toBe('/tabs/activity/'));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('activity');
+
+    router.navigate(-1);
+    await waitFor(() => expect(router.location.pathname).toBe('/tabs/details/'));
   });
 
-  it('changes tabs using keyboard navigation', async () => {
-    render(
-      <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>
-    );
+  it.each(['MetaLeft', 'ControlLeft', 'ShiftLeft', 'AltLeft'])(
+    'does not change selection or navigate locally on a %s click',
+    async modifier => {
+      const user = userEvent.setup();
+      const onChange = jest.fn();
+      const {router} = render(<LinkedTabs onChange={onChange} />, {
+        initialRouterConfig: {location: {pathname: '/tabs/details/'}},
+      });
 
-    // Focus on tab list
-    await userEvent.tab();
-    expect(screen.getByRole('tab', {name: 'Details'})).toHaveFocus();
+      const preventNativeNavigation = jest.fn((event: MouseEvent) => {
+        expect(event.defaultPrevented).toBe(false);
+        event.preventDefault();
+      });
+      document.addEventListener('click', preventNativeNavigation);
+      try {
+        await user.keyboard(`[${modifier}>]`);
+        await user.click(screen.getByRole('tab', {name: 'Activity'}));
+        await user.keyboard(`[/${modifier}]`);
+      } finally {
+        document.removeEventListener('click', preventNativeNavigation);
+      }
 
-    // Press Arrow Right to select the next tab to the right (Activity)
-    await userEvent.keyboard('{arrowRight}{enter}');
-
-    // The Activity tab is selected and its contents rendered
-    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-    expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
-  });
-
-  it('changes tabs on key press in vertical orientation', async () => {
-    render(
-      <Tabs orientation="vertical">
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>
-    );
-
-    // Focus on tab list
-    await userEvent.tab();
-    expect(screen.getByRole('tab', {name: 'Details'})).toHaveFocus();
-
-    // Press Arrow Right to select the next tab below (Activity)
-    await userEvent.keyboard('{arrowRight}{enter}');
-
-    // The Activity tab should now be selected and its contents rendered
-    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-    expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
-  });
-
-  it('renders disabled tabs', () => {
-    render(
-      <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key} disabled>
-              {tab.label}
-            </TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>
-    );
-
-    TABS.forEach(tab => {
-      expect(screen.getByRole('tab', {name: tab.label})).toHaveAttribute(
-        'aria-disabled',
+      expect(preventNativeNavigation).toHaveBeenCalledTimes(1);
+      expect(router.location.pathname).toBe('/tabs/details/');
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByRole('tab', {name: 'Details'})).toHaveAttribute(
+        'aria-selected',
         'true'
       );
-    });
-  });
+    }
+  );
 
-  it('renders tab links', async () => {
-    render(
-      <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key} to="/#some-link">
-              {tab.label}
-            </TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>
+  it('does not navigate on automatic keyboard selection until the link is activated', async () => {
+    const onChange = jest.fn();
+    const {router} = render(
+      <LinkedTabs keyboardActivation="automatic" onChange={onChange} />,
+      {initialRouterConfig: {location: {pathname: '/tabs/details/'}}}
     );
 
-    TABS.forEach(tab => {
-      const tabEl = screen.getByRole('tab', {name: tab.label});
-      expect(within(tabEl).getByRole('link', {hidden: true})).toHaveAttribute(
-        'href',
-        '/#some-link'
-      );
+    await userEvent.tab();
+    onChange.mockClear();
+    await userEvent.keyboard('{ArrowRight}');
+
+    expect(router.location.pathname).toBe('/tabs/details/');
+    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveFocus();
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('activity');
+
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => expect(router.location.pathname).toBe('/tabs/activity/'));
+    router.navigate(-1);
+    await waitFor(() => expect(router.location.pathname).toBe('/tabs/details/'));
+  });
+
+  it('does not render navigable links when all tabs are disabled', async () => {
+    const {router} = render(<LinkedTabs disabled />, {
+      initialRouterConfig: {location: {pathname: '/tabs/details/'}},
     });
 
-    // Command/ctrl/shift-clicking on a tab link doesn't change the tab selection.
-    // The expected behavior is that clicking on a tab link will open a new browser
-    // tab/window. The current view shouldn't update.
-    const secondTabEl = screen.getByRole('tab', {name: TABS[1].label});
-    const secondTabLink = within(secondTabEl).getByRole('link', {hidden: true});
+    for (const tab of screen.getAllByRole('tab')) {
+      expect(tab).toHaveAttribute('aria-disabled', 'true');
+      expect(tab).not.toHaveAttribute('href');
+      await userEvent.click(tab);
+    }
+    expect(router.location.pathname).toBe('/tabs/details/');
+  });
 
-    const user = userEvent.setup();
+  it('does not navigate when the controlled value changes', () => {
+    const onChange = jest.fn();
+    const {router, rerender} = render(
+      <LinkedTabs value="details" onChange={onChange} />,
+      {
+        initialRouterConfig: {location: {pathname: '/tabs/details/'}},
+      }
+    );
 
-    await user.keyboard('[MetaLeft>]');
-    await user.click(secondTabLink);
-    await user.keyboard('[/MetaLeft]');
+    rerender(<LinkedTabs value="activity" onChange={onChange} />);
 
-    await user.keyboard('[ControlLeft>]');
-    await user.click(secondTabLink);
-    await user.keyboard('[/ControlLeft]');
-
-    await user.keyboard('[ShiftLeft>]');
-    await user.click(secondTabLink);
-    await user.keyboard('[/ShiftLeft]');
-
-    expect(screen.getByRole('tab', {name: TABS[0].label})).toHaveAttribute(
+    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-  });
-
-  it('should not allow disabled tabs to be links', () => {
-    render(
-      <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key} to="/#some-link" disabled>
-              {tab.label}
-            </TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>
-    );
-
-    TABS.forEach(tab => {
-      const tabEl = screen.getByRole('tab', {name: tab.label});
-      expect(within(tabEl).queryByRole('link', {hidden: true})).not.toBeInTheDocument();
-    });
+    expect(router.location.pathname).toBe('/tabs/details/');
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 
-describe('Tabs overflow', () => {
+describe('Tabs overflow routing', () => {
   // Every tab measures this wide; the container width is varied per test to
   // control how many tabs fit. The component reserves 48px for the trigger.
   const TAB_WIDTH = 100;
@@ -309,7 +216,10 @@ describe('Tabs overflow', () => {
       .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
       .mockImplementation(function (this: HTMLElement) {
         let width = 0;
-        if (this.getAttribute('role') === 'tab') {
+        if (
+          this.getAttribute('role') === 'tab' ||
+          this.querySelector(':scope > [role="tab"]')
+        ) {
           width = tabWidth;
         } else if (this.querySelector(':scope > [role="tablist"]')) {
           width = containerWidth;
@@ -345,175 +255,71 @@ describe('Tabs overflow', () => {
     window.ResizeObserver = originalResizeObserver;
   });
 
-  function resizeContainerTo(width: number) {
-    containerWidth = width;
-    act(() => {
-      resizeCallbacks.forEach(callback => callback([], {} as ResizeObserver));
-    });
-  }
+  it.each(['click', 'keyboard'])(
+    'navigates once to an overflowing link by %s',
+    async interaction => {
+      containerWidth = 260;
+      const onChange = jest.fn();
+      const {router} = render(<RoutedTabs onChange={onChange} />, {
+        initialRouterConfig: {location: {pathname: '/tabs/details/'}},
+      });
 
-  function renderTabs(orientation?: 'horizontal' | 'vertical') {
-    return render(
-      <Tabs orientation={orientation}>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>
-    );
-  }
+      await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
+      const item = screen.getByRole('menuitemradio', {name: 'User Feedback'});
+      expect(item).toHaveAttribute('href', '/tabs/user-feedback/');
 
-  it('does not render an overflow menu when all tabs fit', () => {
-    containerWidth = 1000;
-    renderTabs();
+      if (interaction === 'click') {
+        await userEvent.click(item);
+      } else {
+        await userEvent.keyboard('{Enter}');
+      }
 
-    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
-  });
+      await waitFor(() => expect(router.location.pathname).toBe('/tabs/user-feedback/'));
+      expect(
+        screen.getByRole('tab', {name: 'User Feedback', hidden: true})
+      ).toHaveAttribute('aria-selected', 'true');
+      expect(onChange).not.toHaveBeenCalled();
 
-  it('does not overflow when the tabs fill the container to a fraction of a pixel', async () => {
-    // A shrink-to-fit container is exactly as wide as its tabs, which is not a
-    // whole number of pixels. Rounding the container down would push the last
-    // tab into the menu, shrink the container around the remaining tabs, and
-    // repeat until only the first tab is left.
-    const gap = 4;
-    const realGetComputedStyle = window.getComputedStyle;
-    jest
-      .spyOn(window, 'getComputedStyle')
-      .mockImplementation(element =>
-        element.getAttribute('role') === 'tablist'
-          ? ({columnGap: `${gap}px`} as CSSStyleDeclaration)
-          : realGetComputedStyle(element)
+      router.navigate(-1);
+      await waitFor(() => expect(router.location.pathname).toBe('/tabs/details/'));
+      expect(screen.getByRole('tab', {name: 'Details'})).toHaveAttribute(
+        'aria-selected',
+        'true'
       );
-    tabWidth = 100.125;
-    const tabsWithGaps = TABS.length * tabWidth + (TABS.length - 1) * gap;
-    containerWidth = tabsWithGaps;
-    renderTabs();
+    }
+  );
 
-    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
-    expect(screen.getAllByRole('tab')).toHaveLength(TABS.length);
-
-    // One pixel less than the tabs and their gaps must overflow, which only
-    // holds if the gaps are counted.
-    resizeContainerTo(tabsWithGaps - 1);
-
-    expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
-  });
-
-  it('moves tabs that do not fit into an overflow menu', async () => {
-    // Fits the first two tabs (budget = 260 - 48 = 212 => 2 * 100).
+  it('preserves selection when an overflowing link is opened with a modifier', async () => {
+    const user = userEvent.setup();
     containerWidth = 260;
-    renderTabs();
+    const onChange = jest.fn();
+    const {router} = render(<LinkedTabs onChange={onChange} />, {
+      initialRouterConfig: {location: {pathname: '/tabs/details/'}},
+    });
 
-    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
+    await user.click(screen.getByRole('button', {name: 'More tabs'}));
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await user.keyboard('[MetaLeft>]');
+      await user.click(screen.getByRole('menuitemradio', {name: 'Attachments'}));
+      await user.keyboard('[/MetaLeft]');
+      await waitFor(() => expect(errorSpy).toHaveBeenCalled());
+      expect(
+        errorSpy.mock.calls
+          .flat()
+          .every(message =>
+            String(message).includes('Not implemented: navigation to another Document')
+          )
+      ).toBe(true);
+    } finally {
+      errorSpy.mockRestore();
+    }
 
-    expect(screen.getByRole('option', {name: 'User Feedback'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Attachments'})).toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Details'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Activity'})).not.toBeInTheDocument();
-  });
-
-  it('keeps the first tab visible when only it and the overflow trigger fit', async () => {
-    containerWidth = 120;
-    renderTabs();
-
-    expect(screen.getByRole('tab', {name: 'Details'})).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
-
-    expect(screen.queryByRole('option', {name: 'Details'})).not.toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'User Feedback'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Attachments'})).toBeInTheDocument();
-  });
-
-  it('recomputes overflow when the container is resized', async () => {
-    containerWidth = 1000;
-    renderTabs();
-
-    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
-
-    resizeContainerTo(260);
-    await userEvent.click(await screen.findByRole('button', {name: 'More tabs'}));
-    expect(screen.getByRole('option', {name: 'User Feedback'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Attachments'})).toBeInTheDocument();
-
-    resizeContainerTo(1000);
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole('button', {name: 'More tabs'})
-    );
-  });
-
-  it('activates an overflowing tab when selected from the menu', async () => {
-    containerWidth = 260;
-    renderTabs();
-
-    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Attachments'}));
-
-    expect(screen.getByRole('tab', {name: 'Attachments'})).toHaveAttribute(
+    expect(router.location.pathname).toBe('/tabs/details/');
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('tab', {name: 'Details'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(screen.getByText(TABS[3].content)).toBeInTheDocument();
-  });
-
-  it('never overflows tabs in vertical orientation', () => {
-    containerWidth = 260;
-    renderTabs('vertical');
-
-    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
-  });
-
-  it('recomputes overflow when tabs are reordered without a resize', async () => {
-    // Fits the first three tabs (budget = 380 - 48 = 332 >= 3 * 100).
-    containerWidth = 380;
-
-    function TabsWithItems({
-      items,
-    }: {
-      items: ReadonlyArray<{key: string; label: string}>;
-    }) {
-      return (
-        <Tabs>
-          <TabList>
-            {items.map(tab => (
-              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-            ))}
-          </TabList>
-        </Tabs>
-      );
-    }
-
-    const {rerender} = render(<TabsWithItems items={TABS} />);
-
-    // Initially the trailing tab (Attachments) is the one that overflows.
-    expect(screen.getByRole('button', {name: 'More tabs'})).toBeInTheDocument();
-
-    // Reorder so Activity becomes the trailing tab. The total width is
-    // unchanged, so the ResizeObserver never fires – overflow must still be
-    // recomputed from the new order.
-    rerender(
-      <TabsWithItems
-        items={[
-          {key: 'details', label: 'Details'},
-          {key: 'user-feedback', label: 'User Feedback'},
-          {key: 'attachments', label: 'Attachments'},
-          {key: 'activity', label: 'Activity'},
-        ]}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
-
-    // The new trailing tab overflows; the previously-overflowing one is now
-    // visible (not stuck in the menu based on the old order).
-    expect(screen.getByRole('option', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.queryByRole('option', {name: 'Attachments'})).not.toBeInTheDocument();
   });
 });

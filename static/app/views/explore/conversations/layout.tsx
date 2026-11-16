@@ -1,12 +1,10 @@
-import {Fragment} from 'react';
 import {Outlet} from 'react-router';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -17,11 +15,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
-import {
-  CONVERSATIONS_LANDING_TITLE,
-  MAX_PICKABLE_DAYS,
-} from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {CONVERSATIONS_LANDING_TITLE, MAX_PICKABLE_DAYS} from './settings';
 
 function ConversationsLayout() {
   const organization = useOrganization();
@@ -74,14 +70,7 @@ function ConversationsHeader() {
   // The detail page renders its own breadcrumbs (with the project badge and
   // copy affordance) into the TopBar slots, so the layout only owns the title
   // for the landing page.
-  return (
-    <Fragment>
-      {isDetailPage ? null : <ConversationsLandingHeader />}
-      <TopBar.Slot name="feedback">
-        <FeedbackButton>{null}</FeedbackButton>
-      </TopBar.Slot>
-    </Fragment>
-  );
+  return isDetailPage ? null : <ConversationsLandingHeader />;
 }
 
 function ConversationsLandingHeader() {

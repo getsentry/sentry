@@ -1,6 +1,7 @@
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from sentry.integrations.services.repository.model import RpcRepository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
@@ -18,7 +19,9 @@ class ExampleRepositoryProvider(IntegrationRepositoryProvider):
         config["integration_id"] = installation.model.id
         return config
 
-    def compare_commits(self, repo, start_sha, end_sha):
+    def compare_commits(
+        self, repo: RpcRepository, start_sha: str | None, end_sha: str
+    ) -> Sequence[Mapping[str, object]]:
         return [
             {"id": "62de626b7c7cfb8e77efb4273b1a3df4123e6216", "repository": repo.name},
             {"id": "58de626b7c7cfb8e77efb4273b1a3df4123e6345", "repository": repo.name},

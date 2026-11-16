@@ -23,14 +23,8 @@ function getFontFaceCSS(): string {
     @font-face {
       font-family: 'Rubik';
       font-style: normal;
-      font-weight: 400;
-      src: url('file://${FONTS_DIR}/rubik-regular.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Rubik';
-      font-style: normal;
-      font-weight: 500 600;
-      src: url('file://${FONTS_DIR}/rubik-medium.woff2') format('woff2');
+      font-weight: 400 600;
+      src: url('file://${FONTS_DIR}/rubik-variable.woff2') format('woff2');
     }
     @font-face {
       font-family: 'Roboto Mono';

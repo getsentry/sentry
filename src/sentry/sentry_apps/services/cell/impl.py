@@ -1,9 +1,8 @@
-from datetime import datetime, timezone
 from typing import Any
 
 from django.db import router, transaction
 
-from sentry import deletions, tsdb
+from sentry import deletions
 from sentry.auth.access import Access, OrganizationGlobalMembership, from_user
 from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.issues.action_log import (
@@ -27,15 +26,12 @@ from sentry.sentry_apps.external_requests.select_requester import SelectRequeste
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.sentry_apps.services.cell.model import (
     RpcEmptyResult,
-    RpcInteractionStatsResult,
     RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
     RpcSentryAppError,
     RpcServiceHookProjectsResult,
-    RpcTimeSeriesPoint,
 )
 from sentry.sentry_apps.services.cell.serial import (
     serialize_platform_external_issue,
@@ -47,11 +43,8 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppIntegratorError,
     SentryAppSentryError,
 )
-from sentry.tsdb.base import TSDBModel
 from sentry.users.services.user import RpcUser
 from sentry.utils.locking import UnableToAcquireLock
-
-COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
 def _get_external_issue_action_actor(
@@ -631,90 +624,5 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                     ),
                 )
             deletions.exec_sync_many(list(hook_projects))
-
-        return RpcEmptyResult()
-
-    def get_interaction_stats(
-        self,
-        *,
-        sentry_app: RpcSentryApp,
-        component_types: list[str],
-        since: float,
-        until: float,
-        resolution: int | None = None,
-    ) -> RpcInteractionStatsResult:
-        """
-        Matches: src/sentry/sentry_apps/api/endpoints/sentry_app_interaction.py @ GET
-        """
-
-        start_dt = datetime.fromtimestamp(since, tz=timezone.utc)
-        end_dt = datetime.fromtimestamp(until, tz=timezone.utc)
-
-        tsdb_kwargs: dict[str, Any] = {
-            "start": start_dt,
-            "end": end_dt,
-            "tenant_ids": {"organization_id": sentry_app.owner_id},
-        }
-        if resolution is not None:
-            tsdb_kwargs["rollup"] = resolution
-
-        views_data = tsdb.backend.get_range(
-            model=TSDBModel.sentry_app_viewed,
-            keys=[sentry_app.id],
-            **tsdb_kwargs,
-        ).get(sentry_app.id, [])
-        views = [RpcTimeSeriesPoint(time=t, count=c) for t, c in views_data]
-
-        component_keys = [
-            self.get_component_interaction_key(sentry_app.slug, ct) for ct in component_types
-        ]
-        component_data = tsdb.backend.get_range(
-            model=TSDBModel.sentry_app_component_interacted,
-            keys=component_keys,
-            **tsdb_kwargs,
-        )
-        component_interactions = {
-            key.split(":")[1]: [RpcTimeSeriesPoint(time=t, count=c) for t, c in value]
-            for key, value in component_data.items()
-        }
-
-        return RpcInteractionStatsResult(
-            views=views,
-            component_interactions=component_interactions,
-        )
-
-    def record_interaction(
-        self,
-        *,
-        sentry_app: RpcSentryApp,
-        tsdb_field: str,
-        component_type: str | None = None,
-    ) -> RpcEmptyResult:
-        """
-        Matches: src/sentry/sentry_apps/api/endpoints/sentry_app_interaction.py @ POST
-        """
-        model = getattr(TSDBModel, tsdb_field, None)
-
-        if model == TSDBModel.sentry_app_component_interacted:
-            if component_type is None or component_type not in COMPONENT_TYPES:
-                return RpcEmptyResult(
-                    success=False,
-                    error=RpcSentryAppError(
-                        message=f"The field componentType is required and must be one of {COMPONENT_TYPES}",
-                        status_code=400,
-                    ),
-                )
-            key = self.get_component_interaction_key(sentry_app.slug, component_type)
-            tsdb.backend.incr(model, key)
-        elif model == TSDBModel.sentry_app_viewed:
-            tsdb.backend.incr(model, sentry_app.id)
-        else:
-            return RpcEmptyResult(
-                success=False,
-                error=RpcSentryAppError(
-                    message="The tsdbField must be one of: sentry_app_viewed, sentry_app_component_interacted",
-                    status_code=400,
-                ),
-            )
 
         return RpcEmptyResult()

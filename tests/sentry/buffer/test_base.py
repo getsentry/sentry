@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry.buffer.base import Buffer, BufferField
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.models.group import Group
+from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -139,3 +140,29 @@ class BufferTest(TestCase):
         call_kwargs = mock_update.call_args[1]
         assert "times_seen" not in call_kwargs
         assert call_kwargs["last_seen"] == the_date
+
+    def test_process_increments_group_tombstone_times_seen(self) -> None:
+        tombstone = GroupTombstone.objects.create(
+            project_id=self.project.id, previous_group_id=12345, times_seen=5
+        )
+        self.buf.process(GroupTombstone, {"times_seen": 3}, {"id": tombstone.id})
+        tombstone.refresh_from_db()
+        assert tombstone.times_seen == 8
+
+    def test_process_caps_group_tombstone_times_seen(self) -> None:
+        tombstone = GroupTombstone.objects.create(
+            project_id=self.project.id,
+            previous_group_id=12345,
+            times_seen=BoundedPositiveIntegerField.MAX_VALUE - 1,
+        )
+        the_date = timezone.now() + timedelta(days=5)
+        self.buf.process(
+            GroupTombstone, {"times_seen": 5}, {"id": tombstone.id}, {"last_seen": the_date}
+        )
+        tombstone.refresh_from_db()
+        assert tombstone.times_seen == BoundedPositiveIntegerField.MAX_VALUE
+        assert tombstone.last_seen == the_date
+
+        self.buf.process(GroupTombstone, {"times_seen": 1}, {"id": tombstone.id})
+        tombstone.refresh_from_db()
+        assert tombstone.times_seen == BoundedPositiveIntegerField.MAX_VALUE

@@ -1,5 +1,5 @@
 import type {Key} from 'react';
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item} from '@react-stately/collections';
@@ -11,8 +11,8 @@ import {Badge} from '@sentry/scraps/badge';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
+import {Overlay} from '@sentry/scraps/overlay';
 
-import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
 import {t} from 'sentry/locale';
@@ -21,10 +21,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 export function DebugNotificationsSearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const searchKeys = useMemo(() => {
-    return [{match: '/', callback: () => inputRef.current?.focus()}];
-  }, []);
-  useHotkeys(searchKeys);
+  useHotkeys([{hotkey: '/', callback: () => inputRef.current?.focus()}]);
   const {data: registry = {}} = useRegistry();
   const sourceData = Object.values(registry)
     .flat()

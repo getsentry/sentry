@@ -1,12 +1,13 @@
 import re
-from typing import Any
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any, cast
 
 from sentry.db.models.fields.node import NodeData
 from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from sentry.utils.safe import get_path
 
 
-def strip_frame(frame):
+def strip_frame(frame: Mapping[str, object] | None) -> Mapping[str, object] | None:
     if frame:
         frame = {
             "data": {
@@ -25,14 +26,22 @@ def strip_frame(frame):
     return frame
 
 
-def strip_stacktrace(stacktrace):
+def strip_stacktrace(
+    stacktrace: Mapping[str, object] | None,
+) -> Mapping[str, object] | None:
     if stacktrace:
-        stacktrace = dict(stacktrace)
-        stacktrace["frames"] = [strip_frame(x) for x in stacktrace.get("frames") or ()]
+        result = dict(stacktrace)
+        result["frames"] = [
+            strip_frame(cast(Mapping[str, object] | None, x))
+            for x in cast(Sequence[object], stacktrace.get("frames") or ())
+        ]
         try:
-            stacktrace["registers"] = {k: v for k, v in stacktrace["registers"].items()}
+            registers = cast(Mapping[str, object], stacktrace["registers"])
         except KeyError:
             pass
+        else:
+            result["registers"] = {k: v for k, v in registers.items()}
+        return result
 
     return stacktrace
 
@@ -41,29 +50,39 @@ STRIP_TRAILING_ADDR_RE = re.compile(" ?/ 0x[0-9a-fA-F]+$")
 SNAPSHOT_CONTEXTS_TO_STRIP = frozenset(("reprocessing", "trace"))
 
 
-def strip_trailing_addr(value):
+def strip_trailing_addr(value: str) -> str:
     return STRIP_TRAILING_ADDR_RE.sub("", value)
 
 
-def normalize_native_exception(exc):
+def normalize_native_exception(
+    exc: Mapping[str, object] | None,
+) -> Mapping[str, object] | None:
     if exc:
-        exc = dict(exc)
-        exc["type"] = strip_trailing_addr(exc["type"])
-        exc["value"] = strip_trailing_addr(exc["value"])
+        normalized = dict(exc)
+        normalized["type"] = strip_trailing_addr(cast(str, exc["type"]))
+        normalized["value"] = strip_trailing_addr(cast(str, exc["value"]))
+        return normalized
 
     return exc
 
 
-def strip_stacktrace_container(container):
+def strip_stacktrace_container(
+    container: Mapping[str, object] | None,
+) -> Mapping[str, object] | None:
     if container:
-        container = dict(container)
-        container["stacktrace"] = strip_stacktrace(container.get("stacktrace"))
-        container["raw_stacktrace"] = strip_stacktrace(container.get("raw_stacktrace"))
+        result = dict(container)
+        result["stacktrace"] = strip_stacktrace(
+            cast(Mapping[str, object] | None, container.get("stacktrace"))
+        )
+        result["raw_stacktrace"] = strip_stacktrace(
+            cast(Mapping[str, object] | None, container.get("raw_stacktrace"))
+        )
+        return result
 
     return container
 
 
-def insta_snapshot_native_stacktrace_data(self, event: NodeData, **kwargs: Any):
+def insta_snapshot_native_stacktrace_data(self: Any, event: NodeData, **kwargs: Any) -> None:
     # limit amount of data going into a snapshot so that they don't break all
     # the time due to unrelated changes.
     self.insta_snapshot(
@@ -107,7 +126,7 @@ def insta_snapshot_javascript_stacktrace_data(
     )
 
 
-def redact_location(candidates):
+def redact_location(candidates: Iterable[dict[str, object]]) -> None:
     """Redacts the sentry location URI to be independent of the specific ID.
 
     This modifies the data passed in, returns None.
@@ -119,5 +138,5 @@ def redact_location(candidates):
         except KeyError:
             continue
         else:
-            if location_re.search(location):
+            if location_re.search(cast(str, location)):
                 candidate["location"] = "sentry://project_debug_file/x"

@@ -7,11 +7,13 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
+import {toast} from '@sentry/scraps/toast';
+
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
+
+import {WidgetTemplatesList} from './widgetTemplatesList';
 
 jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
   getDefaultWidgets: jest.fn(() => [
@@ -29,12 +31,11 @@ jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
 
 const mockGetDefaultWidgets = jest.mocked(getDefaultWidgets);
 
-jest.mock('sentry/actionCreators/indicator');
-
 describe('WidgetTemplatesList', () => {
   const onSave = jest.fn();
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     jest.useFakeTimers();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
@@ -146,7 +147,7 @@ describe('WidgetTemplatesList', () => {
     act(() => jest.runAllTimers());
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith('Unable to add widget');
+      expect(toast.error).toHaveBeenCalledWith('Unable to add widget');
     });
 
     // show we're still on the widget templates list

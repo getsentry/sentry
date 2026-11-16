@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 import {IconProject} from '@sentry/icons/project';
 import {LayoutGroup, motion} from 'framer-motion';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -29,24 +30,19 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
-import {
-  WIZARD_STORAGE_KEY,
-  type WizardState,
-} from 'sentry/views/projectInstall/scmCreateProjectSession';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {AgenticCreateProject} from './agenticCreateProject';
+import {useProjectCreationPageOrigin} from './projectCreationOrigin';
+import {WIZARD_STORAGE_KEY, type WizardState} from './scmCreateProjectSession';
 
 const CREATE_PROJECT_MAX_WIDTH = '700px';
 
@@ -60,11 +56,14 @@ const INITIAL_STATE: WizardState = {
   selectedRepository: undefined,
 };
 
+const autoFillParsers = {
+  referrer: parseAsString,
+  project: parseAsString,
+};
+
 export function ScmCreateProject() {
   const organization = useOrganization();
-  const location = useLocation();
-  const referrer = decodeScalar(location.query.referrer);
-  const projectId = decodeScalar(location.query.project);
+  const [{referrer, project: projectId}] = useQueryStates(autoFillParsers);
 
   // Single page-viewed event for the whole flow. Unlike onboarding's discrete
   // steps, every section renders at once here, so the per-section step_viewed
@@ -210,8 +209,8 @@ function ScmCreateProjectWizard({
   );
 
   // Clear state derived from the repository when the repo changes. Platform,
-  // features, and the project-details form are repo-dependent (auto-detection
-  // seeds the platform, which in turn seeds the project name). The restored
+  // features, and the project-details form are all repo-dependent: auto-detection
+  // seeds the platform and the repo name seeds the project name. The restored
   // created project is too: the reuse check skips the repository link, so a
   // new repository must create a new project (mirrors onboarding's
   // clearDerivedState).

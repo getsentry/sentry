@@ -1,5 +1,3 @@
-import {MemoryRouter} from 'react-router';
-
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 const TABS = [
@@ -14,15 +12,7 @@ const allSizes = ['md', 'sm', 'xs'] as const;
 
 describe('TabList', () => {
   function Wrapper({children}: {children: React.ReactNode}) {
-    return (
-      // TabList renders tab links and calls useNavigate(), which needs a
-      // router in context even under SSR.
-      <MemoryRouter>
-        {/* Padding so selection indicators / focus rings aren't clipped by
-          rootElement.screenshot()'s border-box crop. */}
-        <div style={{padding: 8}}>{children}</div>
-      </MemoryRouter>
-    );
+    return <div style={{padding: 8}}>{children}</div>;
   }
 
   describe.each(allVariants)('variant %s', variant => {

@@ -12,7 +12,11 @@ from django.core.cache import cache
 from django.db.models import Q
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
+from sentry.api.serializers.models.commit import (
+    CommitSerializer,
+    CommitSerializerResponse,
+    get_users_for_commits,
+)
 from sentry.api.serializers.release_details_types import Author, NonMappableUser
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
@@ -65,7 +69,15 @@ def release_cache_key(release: Release) -> str:
 
 
 def _get_commits(releases: Sequence[Release]) -> Sequence[Commit]:
-    commits = []
+    commits: list[Commit] = []
+    # Releases share commits, dedupe by id since comparing model instances
+    # against the whole list gets slow for releases with thousands of commits.
+    seen_commit_ids: set[int] = set()
+
+    def add_commit(commit: Commit) -> None:
+        if commit.id not in seen_commit_ids:
+            seen_commit_ids.add(commit.id)
+            commits.append(commit)
 
     fetched = cache.get_many([release_cache_key(release) for release in releases])
     if fetched:
@@ -75,7 +87,8 @@ def _get_commits(releases: Sequence[Release]) -> Sequence[Commit]:
             if cached_commits is None:
                 missed.append(release)
             else:
-                commits += [c for c in cached_commits if c not in commits]
+                for commit in cached_commits:
+                    add_commit(commit)
     else:
         missed = list(releases)
 
@@ -89,8 +102,7 @@ def _get_commits(releases: Sequence[Release]) -> Sequence[Commit]:
         to_cache = defaultdict(list)
         for rc in release_commits:
             to_cache[release_cache_key(rc.release)].append(rc.commit)
-            if rc.commit not in commits:
-                commits.append(rc.commit)
+            add_commit(rc.commit)
         cache.set_many(to_cache)
 
     return commits
@@ -183,7 +195,7 @@ class AuthorCommits(TypedDict):
 class AuthorCommitsSerialized(TypedDict):
     group_owner_id: int
     author: Author | None
-    commits: Sequence[MutableMapping[str, Any]]
+    commits: Sequence[CommitSerializerResponse]
 
 
 class AnnotatedFrame(TypedDict):

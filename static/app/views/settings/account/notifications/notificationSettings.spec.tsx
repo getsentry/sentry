@@ -1,8 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
-import {NotificationSettings} from 'sentry/views/settings/account/notifications/notificationSettings';
+
+import {NOTIFICATION_SETTING_FIELDS} from './fields';
+import {NotificationSettings} from './notificationSettings';
 
 function renderMockRequests() {
   MockApiClient.addMockResponse({
