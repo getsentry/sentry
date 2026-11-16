@@ -6,6 +6,8 @@ on:
       - master
   pull_request:
     types: [opened, synchronize, reopened, labeled]
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
