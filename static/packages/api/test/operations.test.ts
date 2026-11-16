@@ -73,6 +73,7 @@ describe("operation discovery", () => {
       deprecated: false,
       experimental: false,
       idempotent: true,
+      routing: { silo: "unknown" },
     }]);
 
     const next = fixture(["logs", "spans", "new_dataset"]);
@@ -134,6 +135,38 @@ describe("operation discovery", () => {
     expect(Object.fromEntries(catalog.map(operation => [operation.functionName, operation.experimental]))).toEqual({
       listThings: true, createThing: false,
     });
+  });
+
+  test("copies Sentry's routing declarations and rejects malformed ones", async () => {
+    const response = { responses: { "200": { description: "OK" } } };
+    const orgPath = "/organizations/{organization_id_or_slug}/things/";
+    const orgParameter = [{ name: "organization_id_or_slug", in: "path", required: true, schema: { type: "string" } }];
+    const spec = (routing: object) => ({
+      ...fixture(),
+      paths: {
+        [orgPath]: {
+          parameters: orgParameter,
+          get: { operationId: "listThings", ...response, "x-sentry-routing": routing },
+        },
+        "/organizations/": { get: { operationId: "listOrganizations", ...response, "x-sentry-routing": { silo: "both" } } },
+      },
+    });
+    const { catalog, source } = await generate(spec({ silo: "cell", organizationParameter: "organization_id_or_slug" }));
+    expect(Object.fromEntries(catalog.map(operation => [operation.functionName, operation.routing]))).toEqual({
+      listOrganizations: { silo: "both" },
+      listThings: { silo: "cell", organizationParameter: "organization_id_or_slug" },
+    });
+    expect(() => extractOperations(spec({ silo: "region" }), source))
+      .toThrow(`GET ${orgPath} declares an unsupported x-sentry-routing silo: region`);
+    expect(() => extractOperations(spec({ silo: "cell", organizationParameter: "organization_slug" }), source))
+      .toThrow("organizationParameter organization_slug, which is not in its path");
+  });
+
+  test("ships the released routing declarations", () => {
+    expect(operations.find(operation => operation.functionName === "listOrganizationProjects")?.routing)
+      .toEqual({ silo: "cell", organizationParameter: "organization_id_or_slug" });
+    expect(operations.find(operation => operation.functionName === "listOrganizations")?.routing)
+      .toEqual({ silo: "both" });
   });
 
   test("flags the same released operations that the SDK documents as experimental", () => {
