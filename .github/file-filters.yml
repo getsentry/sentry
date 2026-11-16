@@ -79,7 +79,8 @@ test_utility_only_paths:
   - 'src/sentry/replays/testutils.py'
   - 'fixtures/search-syntax/**/*'
 
-# Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
+# Also used in `getsentry-dispatch.yml` and `getsentry-merge-queue-dispatch.yml`
+# to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
   - 'pyproject.toml'

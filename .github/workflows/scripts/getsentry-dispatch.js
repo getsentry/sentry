@@ -17,8 +17,38 @@ const DISPATCHES = [
   },
 ];
 
+// Merge groups only need the check that the merge queue requires.
+const MERGE_GROUP_WORKFLOW = 'backend.yml';
+
 const RETRY_DELAYS_MS = [5000, 15000, 30000, 60000];
 const MAX_WORKFLOW_DISPATCH_INPUTS_LENGTH = 65_535;
+
+/**
+ * Returns the pull request number, the SHA for getsentry to test, and the SHA to
+ * report the check on.
+ *
+ * For a merge group, this runs from a workflow_run event. The group's head
+ * commit is both what lands and what the merge queue waits for checks on. Its
+ * branch names the last pull request in the group:
+ * gh-readonly-queue/<base branch>/pr-<number>-<base sha>
+ */
+function getSentryTarget({context, mergeCommitSha}) {
+  const workflowRun = context.payload.workflow_run;
+  if (workflowRun) {
+    return {
+      pullRequestNumber:
+        workflowRun.head_branch.match(/\/pr-(\d+)-[0-9a-f]{40}$/)?.[1] ?? '',
+      sentrySha: workflowRun.head_sha,
+      reportSha: workflowRun.head_sha,
+    };
+  }
+  const pullRequest = context.payload.pull_request;
+  return {
+    pullRequestNumber: `${pullRequest.number}`,
+    sentrySha: mergeCommitSha,
+    reportSha: pullRequest.head.sha,
+  };
+}
 
 async function dispatchWithRetry({github, core, workflow, inputs}) {
   const maxAttempts = RETRY_DELAYS_MS.length + 1;
@@ -57,6 +87,11 @@ export async function dispatch({
 }) {
   core.startGroup('Dispatching request to getsentry.');
 
+  const {pullRequestNumber, sentrySha, reportSha} = getSentryTarget({
+    context,
+    mergeCommitSha,
+  });
+
   const dispatches =
     targetWorkflow !== undefined
       ? [
@@ -67,18 +102,20 @@ export async function dispatch({
               'backend_all',
           },
         ]
-      : DISPATCHES;
+      : context.payload.workflow_run
+        ? DISPATCHES.filter(d => d.workflow === MERGE_GROUP_WORKFLOW)
+        : DISPATCHES;
 
   await Promise.all(
     dispatches.map(({workflow, pathFilterName}) => {
       const inputs = {
-        pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
+        pull_request_number: pullRequestNumber, // needs to be string
         skip: `${fileChanges[pathFilterName] !== 'true'}`, // even though this is a boolean, it must be cast to a string
 
         // sentrySHA is the sha getsentry should run against.
-        'sentry-sha': mergeCommitSha,
+        'sentry-sha': sentrySha,
         // prSHA is the sha actions should post commit statuses too.
-        'sentry-pr-sha': context.payload.pull_request.head.sha,
+        'sentry-pr-sha': reportSha,
 
         // Changed files for selective testing. Empty string means full suite.
         'sentry-changed-files': sentryChangedFiles || '',

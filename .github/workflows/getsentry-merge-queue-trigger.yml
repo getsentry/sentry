@@ -1,0 +1,19 @@
+# Starts `getsentry-merge-queue-dispatch.yml` for each merge group.
+#
+# merge_group runs use the workflow files from the merge group commit, so this
+# workflow gets no secrets and does nothing. The dispatcher runs from master.
+name: getsentry merge queue trigger
+
+on:
+  merge_group:
+    types: [checks_requested]
+
+permissions: {}
+
+jobs:
+  trigger:
+    name: getsentry merge queue trigger
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - run: echo "Requesting getsentry tests for $GITHUB_SHA"

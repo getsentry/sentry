@@ -169,5 +169,5 @@ repos:
         args: [--external-sources]
       - id: shellcheck
         name: shellcheck (POSIX sh)
-        files: ^\.github/workflows/scripts/openapi-diff\.sh$
+        files: ^\.github/workflows/scripts/(openapi-diff|getsentry-merge-group-changed-files)\.sh$
         args: [--shell=sh, --enable=check-extra-masked-returns]
