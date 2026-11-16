@@ -10,7 +10,12 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
+from sentry.seer.credits import (
+    SeerFeature,
+    SeerOperation,
+    check_seer_operation,
+    get_denial_reason,
+)
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -52,6 +57,10 @@ class OrganizationSeerCreditCheckEndpoint(OrganizationEndpoint):
             if operation == SeerOperation.AGENT_CHAT_MESSAGE
             else SeerFeature.AUTOFIX
         )
+        credits = check_seer_operation(organization, feature, operation)
         return Response(
-            {"hasEnoughCredits": can_run_seer_operation(organization, feature, operation)}
+            {
+                "hasEnoughCredits": credits.has_enough_credits,
+                "denialReason": get_denial_reason(credits),
+            }
         )

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
@@ -41,6 +42,7 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
@@ -1085,6 +1087,81 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         assert update_validator.is_valid(), update_validator.errors
         updated_detector = update_validator.save()
         assert updated_detector.name == new_name
+
+    def test_update_enabled_ignores_subscription_outside_detector_project(self) -> None:
+        detector = self.create_static_detector()
+        other_project = self.create_project(organization=self.create_organization())
+        other_snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            query="",
+            aggregate="count()",
+            time_window=timedelta(minutes=1),
+            resolution=timedelta(minutes=1),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.ERROR],
+        )
+        other_subscription = create_snuba_subscription(
+            project=other_project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=other_snuba_query,
+        )
+        original_status = other_subscription.status
+        DataSource.objects.filter(detector=detector).update(source_id=str(other_subscription.id))
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data={"enabled": False}, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        update_validator.save()
+
+        other_subscription.refresh_from_db()
+        assert other_subscription.status == original_status
+
+    def test_update_data_source_ignores_subscription_outside_detector_project(self) -> None:
+        detector = self.create_static_detector()
+        other_project = self.create_project(organization=self.create_organization())
+        other_snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            query="original",
+            aggregate="count()",
+            time_window=timedelta(minutes=1),
+            resolution=timedelta(minutes=1),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.ERROR],
+        )
+        other_subscription = create_snuba_subscription(
+            project=other_project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=other_snuba_query,
+        )
+        DataSource.objects.filter(detector=detector).update(source_id=str(other_subscription.id))
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector,
+            data={
+                "dataSources": [
+                    {
+                        "queryType": SnubaQuery.Type.ERROR.value,
+                        "dataset": Dataset.Events.value,
+                        "query": "rewritten",
+                        "aggregate": "count()",
+                        "timeWindow": 3600,
+                        "environment": self.environment.name,
+                        "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                    }
+                ]
+            },
+            context=self.context,
+            partial=True,
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        with pytest.raises(ValidationError):
+            update_validator.save()
+
+        other_snuba_query.refresh_from_db()
+        assert other_snuba_query.query == "original"
 
     def test_update_data_source_marks_query_as_user_updated_when_snapshot_exists(self) -> None:
         detector = self.create_static_detector()

@@ -13,11 +13,8 @@ export function useOnboardingAgentSetupRun({enabled}: {enabled: boolean}) {
   } = useOnboardingContext();
   const session = useMemo(
     () =>
-      agenticProgressClientRunId && agenticProgressOnboardingCode
-        ? {
-            clientRunId: agenticProgressClientRunId,
-            onboardingCode: agenticProgressOnboardingCode,
-          }
+      agenticProgressClientRunId && !agenticProgressOnboardingCode
+        ? {clientRunId: agenticProgressClientRunId}
         : undefined,
     [agenticProgressClientRunId, agenticProgressOnboardingCode]
   );
@@ -30,5 +27,10 @@ export function useOnboardingAgentSetupRun({enabled}: {enabled: boolean}) {
     [setAgenticProgressClientRunId, setAgenticProgressOnboardingCode]
   );
 
-  return useAgenticSetupRun({enabled, session, onSessionChange});
+  return useAgenticSetupRun({
+    createOnboardingCode: false,
+    enabled,
+    session,
+    onSessionChange,
+  });
 }

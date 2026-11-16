@@ -13,7 +13,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
-import {useIssueDetailsEventView} from './hooks/useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventView} from './hooks/issueDetailsEventsQuery';
 import {EventGraph} from './eventGraph';
 import {GroupDataContextProvider} from './groupDataContext';
 

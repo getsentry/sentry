@@ -323,7 +323,7 @@ def produces_variants(
         # discard app variant if system variant produces the same hash, or if
         # the function returned None when invoked with `context['variant'] ==
         # 'system'`. The actual logic for discarding is within
-        # `Component.get_grouping_component_variants`, so hashes are compared
+        # `Strategy.get_grouping_components`, so hashes are compared
         # at the outermost level of the tree.
         #
         # Return value is a dictionary of `{"!system": ..., "app": ...}`,

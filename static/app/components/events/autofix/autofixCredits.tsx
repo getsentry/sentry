@@ -119,11 +119,11 @@ export function AutofixOutOfCreditsAlert({
   action,
   reason,
 }: AutofixOutOfCreditsAlertProps) {
-  const {hasEnoughCredits} = useAutofixCreditCheck(action);
+  const {hasEnoughCredits, denialReason} = useAutofixCreditCheck(action);
 
   if (hasEnoughCredits) {
     return null;
   }
 
-  return <SeerOutOfCreditsCta reason={reason} />;
+  return <SeerOutOfCreditsCta reason={reason} denialReason={denialReason} />;
 }

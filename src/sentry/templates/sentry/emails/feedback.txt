@@ -1,4 +1,4 @@
-{% spaceless %}
+{% load sentry_helpers %}{% spaceless %}
 {% autoescape off %}
 {% if enhanced_privacy %}
 Details about this feedback are not shown in this notification since enhanced
@@ -26,7 +26,7 @@ Feedback Data
 Tags
 ----
 {% for tag_key, tag_value in tags %}
-* {{ tag_key }} = {{ tag_value }}{% endfor %}
+* {{ tag_key|sanitize_periods }} = {{ tag_value }}{% endfor %}
 
 {% if interfaces %}{% for label, _, text in interfaces %}
 {{ label }}

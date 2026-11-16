@@ -20,12 +20,15 @@ from sentry.agent_handoff.runbook import (
 from sentry.ratelimits import backend as ratelimiter
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import control_silo_view
 
 _CLAIM_WINDOW = 60
 _MAX_CLAIM_BYTES = 1024
 _HANDOFF_CODE = re.compile(r"sntryh_[A-Za-z0-9_-]{43}")
-_UNAVAILABLE = "# This Sentry Guide Is No Longer Available\n\nAsk the user to return to Sentry and generate a new private handoff prompt.\n"
+_UNAVAILABLE = (
+    "# Handoff Code Unavailable\n\nAsk the user to return to Sentry and copy a new prompt.\n"
+)
 
 
 def _markdown(body: str, *, status: int = 200) -> HttpResponse:
@@ -33,6 +36,7 @@ def _markdown(body: str, *, status: int = 200) -> HttpResponse:
 
 
 @control_silo_view
+@ai_machine_readable
 class AgentHandoffView(View):
     http_method_names = ["get", "post", "head", "options"]
 
@@ -83,7 +87,8 @@ class AgentHandoffView(View):
             window=_CLAIM_WINDOW,
         ):
             response = _markdown(
-                "# Try Again Shortly\n\nRetry the same private handoff in 60 seconds.\n", status=429
+                "# Try Again Shortly\n\nWait 60 seconds, then retry the same handoff code.\n",
+                status=429,
             )
             response["Retry-After"] = str(_CLAIM_WINDOW)
             return response

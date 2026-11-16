@@ -31,11 +31,6 @@ describe('useCrossPlatformProject', () => {
     ProjectsStore.loadInitialData([mockProject]);
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-    ProjectsStore.reset();
-  });
-
   it('returns null for project if >1 project is selected', () => {
     initializePageFilters([1, 2, 3]);
 

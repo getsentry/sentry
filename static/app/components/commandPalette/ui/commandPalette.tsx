@@ -624,7 +624,7 @@ export function CommandPalette({
                 <StyledInputGroupInput
                   seerEnabled={seerExplorerEnabled}
                   autoFocus
-                  data-1p-ignore
+                  type="search"
                   ref={state.input}
                   value={state.query}
                   aria-label={t('Search commands')}

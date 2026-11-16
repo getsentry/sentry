@@ -48,11 +48,11 @@ class Viewers:
     total: int
 
 
-def record_heartbeat(investigation_id: int, user_id: int, now: datetime | None = None) -> Heartbeat:
+def record_heartbeat(notebook_id: int, user_id: int, now: datetime | None = None) -> Heartbeat:
     """Mark `user_id` as viewing the investigation and return who else is viewing it."""
     now_ts = (now or timezone.now()).timestamp()
     cutoff = now_ts - PRESENCE_WINDOW.total_seconds()
-    key = _key(investigation_id)
+    key = _key(notebook_id)
 
     # A sorted set of user id -> last heartbeat time. Read the caller's previous time
     # (new visit if missing or stale), update it, prune members older than the window,
@@ -75,36 +75,34 @@ def record_heartbeat(investigation_id: int, user_id: int, now: datetime | None =
     [(NotebookSeen, lambda seen: (seen.notebook_id,))],
     cache_ttl=timedelta(hours=1),
 )
-def seen_by(investigation_id: int) -> list[tuple[int, datetime]]:
+def seen_by(notebook_id: int) -> list[tuple[int, datetime]]:
     """(user id, last seen) for an investigation, most recent first. Recalculated on every write."""
     return list(
-        NotebookSeen.objects.filter(notebook_id=investigation_id)
+        NotebookSeen.objects.filter(notebook_id=notebook_id)
         .order_by("-last_seen")
         .values_list("user_id", "last_seen")[:SEEN_CACHE_LIMIT]
     )
 
 
-def record_visit(
-    investigation: Notebook, user_id: int, limit: int = DEFAULT_VIEWER_LIMIT
-) -> Viewers:
+def record_visit(notebook: Notebook, user_id: int, limit: int = DEFAULT_VIEWER_LIMIT) -> Viewers:
     """
     Record a heartbeat and list the investigation's other viewers: active ones first, then historical
     """
     now = timezone.now()
-    heartbeat = record_heartbeat(investigation.id, user_id, now)
+    heartbeat = record_heartbeat(notebook.id, user_id, now)
     active_ids = {uid for uid, _ in heartbeat.active}
 
-    seen = seen_by(investigation.id)
+    seen = seen_by(notebook.id)
     own_last_seen = next((last_seen for uid, last_seen in seen if uid == user_id), None)
     if own_last_seen is None and heartbeat.was_present:
         own_last_seen = (
-            NotebookSeen.objects.filter(notebook=investigation, user_id=user_id)
+            NotebookSeen.objects.filter(notebook=notebook, user_id=user_id)
             .values_list("last_seen", flat=True)
             .first()
         )
     if not heartbeat.was_present or own_last_seen is None or now - own_last_seen >= SEEN_REFRESH:
         NotebookSeen.objects.update_or_create(
-            notebook=investigation, user_id=user_id, defaults={"last_seen": now}
+            notebook=notebook, user_id=user_id, defaults={"last_seen": now}
         )
 
     viewers = [
@@ -119,8 +117,8 @@ def record_visit(
     return Viewers(viewers=viewers[:limit], total=len(viewers))
 
 
-def _key(investigation_id: int) -> str:
-    return f"{KEY_PREFIX}{investigation_id}"
+def _key(notebook_id: int) -> str:
+    return f"{KEY_PREFIX}{notebook_id}"
 
 
 def _client() -> RedisCluster[str] | StrictRedis[str]:

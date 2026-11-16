@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -12,8 +13,8 @@ import type {DataCategoryInfo} from 'sentry/types/core';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 import type {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
@@ -74,7 +75,10 @@ function ProjectDetails({
   project,
   storedSpikes,
 }: ProjectDetailsProps) {
-  const navigate = useNavigate();
+  const [, setSpikeCursor] = useQueryState(
+    SPIKE_TABLE_CURSOR_KEY,
+    parseAsString.withOptions({history: 'push'})
+  );
 
   const spikesForDataCategory = storedSpikes.filter(
     spike => spike.dataCategory === dataCategoryInfo.name
@@ -103,13 +107,8 @@ function ProjectDetails({
         isLoading={loading}
       />
       <Pagination
-        pageLinks={pageLink}
-        onCursor={(cursor, path, query) => {
-          navigate({
-            pathname: path,
-            query: {...query, [SPIKE_TABLE_CURSOR_KEY]: cursor},
-          });
-        }}
+        {...getPaginationProps(pageLink)}
+        onCursor={cursor => void setSpikeCursor(cursor ?? null)}
       />
     </ErrorBoundary>
   );

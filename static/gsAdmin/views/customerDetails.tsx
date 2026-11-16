@@ -209,6 +209,25 @@ export function CustomerDetails() {
     },
   });
 
+  const onEnableRestrictedMembersMutation = useMutation({
+    mutationFn: (params: {notes?: string; ticketURL?: string}) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/members/enable-restricted/',
+          {path: {organizationIdOrSlug: orgId}}
+        ),
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => toast.loading('Enabling restricted members\u2026'),
+    onSuccess: () => {
+      toast.success('Enabled all members restricted by the member limit.');
+    },
+    onError: () => {
+      toast.error('Could not enable restricted members. Try again.');
+    },
+  });
+
   const onToggleBillingPlatformMigrationMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
       fetchMutation({
@@ -496,8 +515,12 @@ export function CustomerDetails() {
           },
           {
             key: 'convertToSponsored',
-            name: 'Convert to Sponsored',
-            help: 'Convert this account to a sponsored plan (e.g. education, open source).',
+            name: subscription.isSponsored
+              ? 'Change Sponsorship'
+              : 'Convert to Sponsored',
+            help: subscription.isSponsored
+              ? "Change or remove this account's sponsorship."
+              : 'Convert this account to a sponsored plan (e.g. education, open source).',
             disabled: subscription.isPartner,
             disabledReason: 'Partner accounts cannot be put on sponsored plans',
             confirmModalOpts: {
@@ -709,6 +732,16 @@ export function CustomerDetails() {
               ),
             },
             onAction: params => onUpdateMutation.mutate({...params}),
+          },
+          {
+            key: 'enableRestrictedMembers',
+            name: 'Enable Restricted Members',
+            help: 'Remove the member-limit restriction from every member of this organization.',
+            confirmModalOpts: {
+              confirmText: 'Enable Members',
+            },
+            onAction: params => onEnableRestrictedMembersMutation.mutate(params),
+            ...actionRequiresBillingAdmin,
           },
           {
             key: 'changeDates',

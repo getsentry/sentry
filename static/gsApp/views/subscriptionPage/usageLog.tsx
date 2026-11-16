@@ -23,6 +23,7 @@ import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getTimeFormat} from 'sentry/utils/dates';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -206,7 +207,7 @@ export default function UsageLog() {
           </Timeline.Container>
         )}
       </Grid>
-      <Pagination pageLinks={data?.headers.Link} onCursor={handleCursor} />
+      <Pagination {...getPaginationProps(data?.headers.Link)} onCursor={handleCursor} />
     </Fragment>
   );
 

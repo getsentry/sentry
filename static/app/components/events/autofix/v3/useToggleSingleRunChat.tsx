@@ -1,5 +1,7 @@
 import {useCallback} from 'react';
 
+import {useAutofixCreditsDisabled} from 'sentry/components/events/autofix/autofixCredits';
+import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -20,19 +22,26 @@ export function useOpenSingleRunChat() {
   );
 }
 
-export function useToggleSingleRunChat(runId: SeerExplorerRunId | undefined) {
-  const {closeSeerExplorer, isOpen} = useSeerExplorerContext();
-  const {runId: openRunId} = useSeerExplorerChatState();
+export function useRerunSingleRun(
+  autofix: ReturnType<typeof useExplorerAutofix>,
+  {enabled}: {enabled: boolean}
+) {
+  const {startStep} = autofix;
   const openSingleRunChat = useOpenSingleRunChat();
+  const disabled = useAutofixCreditsDisabled('root_cause', {enabled});
 
-  return useCallback(() => {
-    if (runId === undefined) {
-      return;
+  const rerun = useCallback(async () => {
+    const run = await startStep('root_cause');
+    if (run.isSingleRun) {
+      openSingleRunChat(run.runId);
     }
-    if (isOpen && String(openRunId) === String(runId)) {
-      closeSeerExplorer();
-    } else {
-      openSingleRunChat(runId);
-    }
-  }, [runId, isOpen, openRunId, openSingleRunChat, closeSeerExplorer]);
+  }, [startStep, openSingleRunChat]);
+
+  return {rerun, disabled};
+}
+
+export function useIsSingleRunChatOpen(runId: SeerExplorerRunId | undefined) {
+  const {isOpen} = useSeerExplorerContext();
+  const {runId: openRunId} = useSeerExplorerChatState();
+  return runId !== undefined && isOpen && String(openRunId) === String(runId);
 }

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Generator, Sequence
-from typing import Any
+from typing import Any, TypedDict
 from unittest.mock import patch
 
 import orjson
@@ -12,27 +12,29 @@ from sentry.auth.principal import RequestPrincipal
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
     MAX_PROJECTION_BYTES,
-    ActionPayloadSerializer,
     ActionRequestedPayloadSerializer,
     ActionWithdrawnPayloadSerializer,
     OrchestrationProjectionSerializer,
-    RelaxedContractSerializer,
     ReportBlockStartedPayloadSerializer,
     ReportBlockUpsertedPayloadSerializer,
     ReportClearPayloadSerializer,
     ReportTextDeltaPayloadSerializer,
-    StrictCharField,
     valid_action_request,
     valid_action_requests,
     valid_linked_issues,
 )
-from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_kinds.base import (
+from sentry.notebooks.contracts import (
+    ActionPayloadSerializer,
+    RelaxedContractSerializer,
+    StrictCharField,
+)
+from sentry.notebooks.models import Notebook, NotebookActionRequest
+from sentry.notebooks.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.services.action_kinds.base import (
     ActionKind,
     ApplyContext,
     CannotApplyReason,
 )
-from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.utils import json
 from tests.sentry.notebooks.test_contracts import golden_payload
 
@@ -543,9 +545,14 @@ class _Payload(ActionPayloadSerializer):
         return None if action.get("target") == "advice" else action
 
 
-class RecordingKind(ActionKind):
+class _Details(TypedDict):
+    target: str
+
+
+class RecordingKind(ActionKind[_Details]):
     kind = "test_kind"
     payload_serializer = _Payload
+    applied_details = _Details
 
     def __init__(self) -> None:
         # The requests after_upsert ran for, in order.
@@ -570,12 +577,12 @@ class RecordingKind(ActionKind):
         self,
         action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Notebook],
+        notebooks: dict[int, Notebook],
         access: Access,
         user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         self.checked.append(
-            ([item.id for item in action_requests], sorted(investigations), access, user)
+            ([item.id for item in action_requests], sorted(notebooks), access, user)
         )
         return {item.id: self.reason for item in action_requests}
 
@@ -591,7 +598,7 @@ class RecordingKind(ActionKind):
         if self.raises is not None:
             raise self.raises
 
-    def apply(self, context: ApplyContext) -> dict[str, object]:
+    def apply(self, context: ApplyContext) -> _Details:
         self.calls.append("apply")
         if self.raises is not None:
             raise self.raises

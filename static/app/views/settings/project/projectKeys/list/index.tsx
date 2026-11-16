@@ -19,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -222,7 +223,7 @@ export default function ProjectKeys() {
               params={params}
             />
           ))}
-          <Pagination pageLinks={keyListResponse.headers.Link} />
+          <Pagination {...getPaginationProps(keyListResponse.headers.Link)} />
         </Fragment>
       )}
     </div>

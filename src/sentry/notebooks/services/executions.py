@@ -23,9 +23,9 @@ from sentry.notebooks.models import (
     NotebookStatus,
 )
 from sentry.notebooks.services.notebooks import (
-    InvestigationConflictError,
-    InvestigationValidationError,
-    lock_investigation,
+    NotebookConflictError,
+    NotebookValidationError,
+    lock_notebook,
 )
 from sentry.notebooks.telemetry import record_execution_cancelled
 from sentry.utils import json
@@ -76,9 +76,7 @@ def _compact_query_context(
     try:
         validated = validate_query_result(result)
     except ValidationError:
-        raise InvestigationValidationError(
-            {"context": "A query context block has no usable result."}
-        )
+        raise NotebookValidationError({"context": "A query context block has no usable result."})
     return {
         "schemaVersion": validated["schemaVersion"],
         "tableMarkdown": validated["tableMarkdown"][:max_text_chars],
@@ -186,14 +184,14 @@ def _materialize_notebook_context(
                 project.id for project in visible_execution.data_projects.all()
             )
             if not represented_project_ids.issubset(accessible_project_ids):
-                raise InvestigationValidationError(
+                raise NotebookValidationError(
                     {"context": "One or more context blocks use inaccessible project data."}
                 )
             context_project_ids.update(represented_project_ids)
         context.append(item)
 
     if len(json.dumps(context).encode()) > MAX_CONTEXT_BYTES:
-        raise InvestigationValidationError(
+        raise NotebookValidationError(
             {"context": "The notebook context is too large to send to the agent."}
         )
     return dependencies, context, sorted(context_project_ids)
@@ -215,7 +213,7 @@ def build_block_execution_snapshot(
             "logs",
             "metrics",
         }:
-            raise InvestigationValidationError({"detail": "The template dataset hint is invalid."})
+            raise NotebookValidationError({"detail": "The template dataset hint is invalid."})
 
     prompt = (block.prompt or block.content).strip()
     source = block.notebook.source
@@ -236,7 +234,7 @@ def build_block_execution_snapshot(
                 previous_execution.data_projects.values_list("id", flat=True)
             )
             if not previous_project_ids.issubset(accessible_project_ids):
-                raise InvestigationValidationError(
+                raise NotebookValidationError(
                     {"context": "The previous query result uses inaccessible project data."}
                 )
             reference_time = previous_execution.started_at or previous_execution.date_added
@@ -270,7 +268,7 @@ def build_block_execution_snapshot(
             )
             context_project_ids = sorted(set(context_project_ids).union(previous_project_ids))
             if len(json.dumps(context).encode()) > MAX_CONTEXT_BYTES:
-                raise InvestigationValidationError(
+                raise NotebookValidationError(
                     {"context": "The query context is too large to send to the agent."}
                 )
     snapshot: dict[str, Any] = {
@@ -301,7 +299,7 @@ def build_block_execution_snapshot(
 def create_block_execution(
     *,
     block: NotebookBlock,
-    expected_investigation_version: int,
+    expected_notebook_version: int,
     expected_block_version: int,
     user_id: int,
     project_ids: list[int],
@@ -313,48 +311,46 @@ def create_block_execution(
         requested_execution = NotebookBlockExecution.objects.filter(request_id=request_id).first()
         if requested_execution is not None:
             if requested_execution.block_id != block.id:
-                raise InvestigationValidationError(
+                raise NotebookValidationError(
                     {"requestId": "This execution request ID is already in use."}
                 )
             return requested_execution, False
 
     database = router.db_for_write(NotebookBlockExecution)
     with transaction.atomic(using=database):
-        locked_investigation = lock_investigation(block.notebook, expected_investigation_version)
+        locked_notebook = lock_notebook(block.notebook, expected_notebook_version)
         locked = (
             NotebookBlock.objects.select_for_update(of=("self",))
             .select_related("current_execution")
-            .get(id=block.id, notebook=locked_investigation)
+            .get(id=block.id, notebook=locked_notebook)
         )
-        locked.notebook = locked_investigation
+        locked.notebook = locked_notebook
         if locked.version != expected_block_version:
-            raise InvestigationConflictError("Block has changed.")
+            raise NotebookConflictError("Block has changed.")
         if locked.deleted_at is not None:
-            raise InvestigationValidationError({"detail": "The block has been deleted."})
+            raise NotebookValidationError({"detail": "The block has been deleted."})
         if locked.notebook.status != NotebookStatus.ACTIVE:
-            raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
+            raise NotebookValidationError({"detail": "Archived investigations are read-only."})
         if locked.kind == NotebookBlockKind.TEXT and not locked.prompt.strip():
-            raise InvestigationValidationError(
-                {"detail": "The text block needs a generation prompt."}
-            )
+            raise NotebookValidationError({"detail": "The text block needs a generation prompt."})
         if locked.kind == NotebookBlockKind.QUERY and not (locked.prompt or locked.content).strip():
-            raise InvestigationValidationError({"detail": "The query block needs a question."})
+            raise NotebookValidationError({"detail": "The query block needs a question."})
         if locked.kind == NotebookBlockKind.QUERY and not project_ids:
-            raise InvestigationValidationError(
+            raise NotebookValidationError(
                 {"detail": "Select at least one accessible project before running this query."}
             )
         if len(project_ids) != len(set(project_ids)):
-            raise InvestigationValidationError({"detail": "Invalid project scope."})
+            raise NotebookValidationError({"detail": "Invalid project scope."})
         if not set(project_ids).issubset(accessible_project_ids):
-            raise InvestigationValidationError({"detail": "One or more projects are inaccessible."})
+            raise NotebookValidationError({"detail": "One or more projects are inaccessible."})
         projects = list(
             Project.objects.filter(
-                organization_id=locked_investigation.organization_id,
+                organization_id=locked_notebook.organization_id,
                 id__in=project_ids,
             ).order_by("id")
         )
         if len(projects) != len(project_ids):
-            raise InvestigationValidationError({"detail": "Invalid project scope."})
+            raise NotebookValidationError({"detail": "Invalid project scope."})
 
         snapshot, fingerprint = build_block_execution_snapshot(
             block=locked,
@@ -398,7 +394,7 @@ def create_block_execution(
             )
             if not created:
                 if execution.block_id != locked.id:
-                    raise InvestigationValidationError(
+                    raise NotebookValidationError(
                         {"requestId": "This execution request ID is already in use."}
                     )
                 return execution, False

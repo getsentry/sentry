@@ -45,9 +45,9 @@ export const SubscriptionStore = {
     store.setState({}, true);
   },
 
-  set(orgSlug: string, data: Partial<Subscription>): void {
-    const subscription = {
-      ...store.getState()[orgSlug]!,
+  set(orgSlug: string, data: Subscription): void {
+    const subscription: Subscription = {
+      ...store.getState()[orgSlug],
       ...data,
       setAt: Date.now(), // Refetch usage data if Subscription is updated
     };
@@ -58,6 +58,18 @@ export const SubscriptionStore = {
       SubscriptionStore.callbacks[orgSlug].forEach(cb => cb(subscription));
       delete SubscriptionStore.callbacks[orgSlug];
     }
+  },
+
+  /**
+   * Merges fields into an already loaded subscription. Does nothing when the
+   * subscription has not loaded, so a partial object is never stored as one.
+   */
+  update(orgSlug: string, data: Partial<Subscription>): void {
+    const current = store.getState()[orgSlug];
+    if (!current) {
+      return;
+    }
+    SubscriptionStore.set(orgSlug, {...current, ...data});
   },
 
   get(orgSlug: string, callback: GetCallback): Promise<void> {
@@ -94,8 +106,15 @@ export const SubscriptionStore = {
     // Concurrent callers share the request so each one can see its outcome.
     SubscriptionStore.loadingData[orgSlug] ??= SubscriptionStore.api
       .requestPromise(`/customers/${orgSlug}/`)
+      .then((data: Subscription | '' | null) => {
+        // The endpoint can answer 200 with an empty body when serialization fails.
+        if (!data) {
+          throw new Error('Empty subscription response');
+        }
+        return data;
+      })
       .then(
-        (data: Subscription) => {
+        data => {
           if (markStartedTrial) {
             data.isTrialStarted = true;
           }

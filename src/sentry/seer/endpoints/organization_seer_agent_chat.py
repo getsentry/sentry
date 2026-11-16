@@ -17,6 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.auth.principal import acting_user, acting_user_id
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
@@ -37,14 +38,20 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import continue_single_run
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
+from sentry.seer.autofix.prompt_redaction import redact_autofix_prompts
 from sentry.seer.autofix.single_run import is_single_run
-from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
+from sentry.seer.credits import (
+    SeerFeature,
+    SeerOperation,
+    check_seer_operation,
+    get_denial_reason,
+)
 from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
 from sentry.seer.endpoints.utils import (
     SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL,
-    SEER_OUT_OF_CREDITS_CODE,
     ResolvedSeerRun,
     resolve_seer_run,
+    seer_out_of_credits_response,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
@@ -274,11 +281,8 @@ def _maybe_reply_to_single_run(
             can_publish=request.access.has_any_project_scope(project, PUBLISH_SCOPES),
             referrer=AutofixReferrer.SEER_EXPLORER,
         )
-    except SeerOutOfCreditsException:
-        return Response(
-            {"detail": SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, "code": SEER_OUT_OF_CREDITS_CODE},
-            status=402,
-        )
+    except SeerOutOfCreditsException as e:
+        return seer_out_of_credits_response(SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, e.denial_reason)
     except SeerApiError as e:
         if e.status == 404:
             return Response({"session": None}, status=404)
@@ -342,9 +346,10 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=resolved.seer_run_state_id)
+            session = state if has_elevated_mode(request) else redact_autofix_prompts(state)
             return Response(
                 SeerAgentChatStateResponse(
-                    session=state,
+                    session=session,
                     sentry_run_id=resolved.uuid,
                     feature_id=SINGLE_RUN_FEATURE_ID if is_single_run(state) else None,
                 ).dict()
@@ -449,13 +454,14 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         if not has_access and not is_dashboard_generate_run:
             raise PermissionDenied(error)
         # Do not bill for dashboard generation.
-        if not is_dashboard_generate_run and not can_run_seer_operation(
-            organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
-        ):
-            return Response(
-                {"detail": SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, "code": SEER_OUT_OF_CREDITS_CODE},
-                status=402,
+        if not is_dashboard_generate_run:
+            credits = check_seer_operation(
+                organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
             )
+            if not credits.has_enough_credits:
+                return seer_out_of_credits_response(
+                    SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, get_denial_reason(credits)
+                )
 
         try:
             # Seer only exposes write_pull_request when coding and bash mode are also on.
@@ -490,6 +496,11 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_code_mode_tools=enable_code_mode_tools,
                 enable_investigation_tools=True,
                 enable_inbox_tools=True,
+                # Only users who can install integrations are asked to fix repo access.
+                enable_scm_connect_prompt=features.has(
+                    "organizations:ask-seer-scm-connect-prompt", organization, actor=request.user
+                )
+                and request.access.has_scope("org:integrations"),
                 reasoning_effort="medium",
             )
             if resolved is not None:

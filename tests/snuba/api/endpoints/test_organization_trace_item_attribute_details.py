@@ -268,3 +268,24 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["context"]["isConvention"] is True
         assert "isInOtel" not in response.data["context"]
+
+    def test_returns_unit_in_context_when_the_attribute_has_one(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(minutes=10).replace(microsecond=0),
+            measurements={"http.response_content_length": 100},
+        )
+
+        response = self.do_request(
+            query={
+                "attributeName": "http.response_content_length",
+                "attributeType": "number",
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["context"]["unit"] == "byte"

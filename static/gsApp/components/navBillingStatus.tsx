@@ -100,11 +100,11 @@ function QuotaRequestRecipients() {
       <Description>
         {isSuccess
           ? tct(
-              'Your org has no active Owners or Billing members, so nobody will get this request. Contact us at [mailto:support@sentry.io] for help.',
+              'Your organization has no active Owners or Billing members, so nobody will get this request. Contact us at [mailto:support@sentry.io] for help.',
               {mailto: <a href="mailto:support@sentry.io" />}
             )
           : t(
-              "Your org's Owners and Billing members will get an email asking them to increase your quota."
+              "Your organization's Owners and Billing members will get an email asking them to increase your quota."
             )}
       </Description>
     );
@@ -116,7 +116,7 @@ function QuotaRequestRecipients() {
   return (
     <Description>
       {tct(
-        "Your org's Owners and Billing members ([recipients]) will get an email asking them to increase your quota.",
+        "Your organization's Owners and Billing members ([recipients]) will get an email asking them to increase your quota.",
         {
           recipients: (
             <Fragment>

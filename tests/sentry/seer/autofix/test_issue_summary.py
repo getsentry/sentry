@@ -896,7 +896,7 @@ class TestGetStoppingPointFromFixability:
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
-@patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
+@patch("sentry.seer.autofix.issue_summary.is_seer_seat_or_token_billed_enabled", return_value=True)
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1059,7 +1059,7 @@ class TestApplyUserPreferenceUpperBound:
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
-@patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
+@patch("sentry.seer.autofix.issue_summary.is_seer_seat_or_token_billed_enabled", return_value=True)
 class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1370,7 +1370,7 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
         assert is_group_eligible_for_automation(self.group) is False
 
 
-@patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
+@patch("sentry.seer.autofix.issue_summary.is_seer_seat_or_token_billed_enabled", return_value=True)
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestGetAutomationStoppingPoint(TestCase):
     def setUp(self) -> None:

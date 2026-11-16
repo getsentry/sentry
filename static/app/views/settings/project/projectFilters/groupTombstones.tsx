@@ -26,6 +26,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -229,7 +230,9 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
                 <SimpleTable.Empty>{t('You have no discarded issues')}</SimpleTable.Empty>
               )}
             </SimpleTable>
-            {tombstonesPageLinks && <Pagination pageLinks={tombstonesPageLinks} />}
+            {tombstonesPageLinks && (
+              <Pagination {...getPaginationProps(tombstonesPageLinks)} />
+            )}
           </Fragment>
         )}
       </Access>
