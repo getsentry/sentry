@@ -49,8 +49,9 @@ function decode(segment: string): string {
  *
  * The matcher takes a method and a concrete path, such as
  * `GET /api/0/organizations/acme/issues/`, and returns the operation whose
- * template matches it. The path may include `API_BASE_PATH`, a query string,
- * or an origin, and empty segments are ignored, so a missing trailing slash
+ * template matches it. The path may include `API_BASE_PATH`, also under a
+ * prefix such as `/sentry/api/0/`, a query string, or an origin, and empty
+ * segments are ignored, so a missing trailing slash
  * still matches. A literal segment wins over a parameter at the first segment
  * where templates differ, so `/snapshots/latest-base/` wins over
  * `/snapshots/{snapshot_id}/`.
@@ -67,8 +68,12 @@ export function createOperationMatcher<Operation extends ApiOperationTemplate>(
     root ??= buildIndex(operations);
     if (!URL.canParse(path, PLACEHOLDER_ORIGIN)) return;
     let pathname = new URL(path, PLACEHOLDER_ORIGIN).pathname;
-    if (pathname === API_BASE_PATH || pathname.startsWith(`${API_BASE_PATH}/`)) {
-      pathname = pathname.slice(API_BASE_PATH.length);
+    // Anywhere in the path: a self-hosted install may serve the API under a prefix.
+    const base = pathname.indexOf(`${API_BASE_PATH}/`);
+    if (base !== -1) {
+      pathname = pathname.slice(base + API_BASE_PATH.length);
+    } else if (pathname.endsWith(API_BASE_PATH)) {
+      pathname = "/";
     }
     return find(root, segments(pathname), 0, [], method.toUpperCase());
   };
