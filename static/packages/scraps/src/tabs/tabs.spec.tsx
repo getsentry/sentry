@@ -516,6 +516,52 @@ describe('Tabs overflow', () => {
     );
   });
 
+  it('recomputes overflow when the resize frame callback runs during a render', async () => {
+    // Firefox can run the ResizeObserver's animation frame callback while a
+    // React render is in progress. The recompute must not throw in that case.
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      callback(0);
+      return 0;
+    });
+
+    function ResizeDuringRender({active}: {active: boolean}) {
+      if (active) {
+        resizeCallbacks.forEach(callback => callback([], {} as ResizeObserver));
+      }
+      return null;
+    }
+
+    function renderWithResizeDuringRender(active: boolean) {
+      return (
+        <ThemeWrapper>
+          <Tabs>
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Tabs>
+          <ResizeDuringRender active={active} />
+        </ThemeWrapper>
+      );
+    }
+
+    containerWidth = 1000;
+    const {rerender} = render(renderWithResizeDuringRender(false));
+    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
+
+    containerWidth = 260;
+    expect(() => rerender(renderWithResizeDuringRender(true))).not.toThrow();
+
+    expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
+  });
+
   it.each(['click', 'keyboard'])(
     'activates an overflowing tab by %s and closes the menu',
     async interaction => {

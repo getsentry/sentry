@@ -1,13 +1,5 @@
 import type {RefObject, CSSProperties} from 'react';
-import {
-  useContext,
-  useEffect,
-  useEffectEvent,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
@@ -113,7 +105,11 @@ function useOverflowTabs({
   const tabWidthsRef = useRef(new Map<string | number, number>());
 
   // Measures the list against the available space and updates the overflow set.
-  const recompute = useEffectEvent(() => {
+  // This is intentionally a plain function kept in a ref (refreshed after every
+  // commit) rather than a useEffectEvent: React throws when a useEffectEvent
+  // function is invoked while a render is in progress, and Firefox can run the
+  // ResizeObserver's animation frame callback below in the middle of a render.
+  const recompute = () => {
     if (disabled) {
       setOverflowTabs(prev => (prev.length === 0 ? prev : []));
       return;
@@ -185,6 +181,11 @@ function useOverflowTabs({
         ? prev
         : nextOverflow
     );
+  };
+
+  const recomputeRef = useRef<(() => void) | null>(null);
+  useLayoutEffect(() => {
+    recomputeRef.current = recompute;
   });
 
   // Recompute whenever an input that affects the overflow result changes: the
@@ -197,8 +198,7 @@ function useOverflowTabs({
   ].join('|');
 
   useLayoutEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    recompute();
+    recomputeRef.current?.();
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [recomputeSignature]);
 
@@ -217,10 +217,10 @@ function useOverflowTabs({
     }
 
     const resizeObserver = new ResizeObserver(() => {
-      // Defer recompute to outside the render/layout phase. In Firefox,
-      // ResizeObserver callbacks can fire synchronously during rendering,
-      // which throws when calling a useEffectEvent-wrapped function.
-      rafRef.current = requestAnimationFrame(() => recompute());
+      // Defer recompute to the next frame to batch observer notifications.
+      // Called through the ref so it stays safe even if the browser (Firefox)
+      // runs this frame callback while a React render is in progress.
+      rafRef.current = requestAnimationFrame(() => recomputeRef.current?.());
     });
     resizeObserver.observe(outerWrap);
     resizeObserver.observe(tabList);
