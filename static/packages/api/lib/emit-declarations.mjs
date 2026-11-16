@@ -6,7 +6,12 @@
  * file imports anything else in src/. Each worker builds a program from one
  * group of root files, reports its diagnostics, and writes its declarations;
  * the files outside every group form one more program.
+ *
+ * Hey API's modules import each other without file extensions, which NodeNext
+ * resolution rejects, so the emit gives those specifiers the `.ts` extension
+ * the rest of src/ uses. Declaration files resolve `.ts` to `.d.ts`.
  */
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parentPort, Worker, workerData } from "node:worker_threads";
@@ -25,11 +30,41 @@ function readConfig() {
   return ts.parseJsonConfigFileContent(config, ts.sys, fileURLToPath(new URL("..", import.meta.url)));
 }
 
+/** Extensions NodeNext resolves; Hey API's `.gen` suffix is not one. */
+const MODULE_EXTENSIONS = new Set([".ts", ".mts", ".cts", ".js", ".mjs", ".cjs", ".json"]);
+
+/** `specifier` with a file extension, if it is relative and has none. */
+function withExtension(specifier, fromFile) {
+  if (!/^\.\.?\//.test(specifier) || MODULE_EXTENSIONS.has(path.extname(specifier))) return specifier;
+  const target = path.resolve(path.dirname(fromFile), specifier);
+  if (existsSync(`${target}.ts`)) return `${specifier}.ts`;
+  if (existsSync(path.join(target, "index.ts"))) return `${specifier}/index.ts`;
+  throw new Error(`${fromFile} imports ${specifier}, which is not a module in src/`);
+}
+
+/** A declaration transformer that adds extensions to relative module specifiers. */
+const addImportExtensions = context => file => {
+  const { factory } = context;
+  const visit = node => {
+    if (!(ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) || !node.moduleSpecifier) {
+      return ts.visitEachChild(node, visit, context);
+    }
+    const before = node.moduleSpecifier.text;
+    const after = withExtension(before, file.fileName);
+    if (after === before) return node;
+    const specifier = factory.createStringLiteral(after);
+    return ts.isImportDeclaration(node)
+      ? factory.updateImportDeclaration(node, node.modifiers, node.importClause, specifier, node.attributes)
+      : factory.updateExportDeclaration(node, node.modifiers, node.isTypeOnly, node.exportClause, specifier, node.attributes);
+  };
+  return ts.visitNode(file, visit);
+};
+
 /** Emit `rootNames`' declarations; returns tsc's formatted diagnostics, if any. */
 function emit(rootNames) {
   const { options } = readConfig();
   const program = ts.createProgram({ rootNames, options });
-  const result = program.emit();
+  const result = program.emit(undefined, undefined, undefined, true, { afterDeclarations: [addImportExtensions] });
   const diagnostics = [...ts.getPreEmitDiagnostics(program), ...result.diagnostics];
   return ts.formatDiagnosticsWithColorAndContext(diagnostics, formatHost);
 }

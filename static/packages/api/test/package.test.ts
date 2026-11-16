@@ -156,14 +156,14 @@ describe("package entry points", () => {
           {path: {organization_id_or_slug: "example"}}, {limit: 5, resume},
         );
       `);
-      writeFileSync(join(directory, "tsconfig.json"), JSON.stringify({
-        compilerOptions: {
-          module: "ESNext", moduleResolution: "bundler", strict: true,
-          noEmit: true, types: [], lib: ["ES2022", "DOM"],
-        },
-        files: ["types.ts"],
-      }));
-      execFileSync("node", [join(root, "node_modules", "typescript", "bin", "tsc6"), "-p", directory]);
+      // NodeNext needs an extension on every relative import in the declarations.
+      for (const resolution of [{ module: "NodeNext" }, { module: "ESNext", moduleResolution: "bundler" }]) {
+        writeFileSync(join(directory, "tsconfig.json"), JSON.stringify({
+          compilerOptions: { ...resolution, strict: true, noEmit: true, types: [], lib: ["ES2022", "DOM"] },
+          files: ["types.ts"],
+        }));
+        execFileSync("node", [join(root, "node_modules", "typescript", "bin", "tsc6"), "-p", directory]);
+      }
 
       symlinkSync(join(root, "node_modules", "typescript"), join(directory, "node_modules", "typescript"), "dir");
       writeFileSync(join(directory, "analysis.mjs"), `
