@@ -162,7 +162,7 @@ def _transaction_status_filter_converter(
 
 
 def _resolve_issue_id_values(
-    value: Sequence[str] | str | int,
+    value: list[str] | str | int,
     params: FilterConvertParams | None,
 ) -> Sequence[str | int] | str | int:
     """Coerce ``issue.id`` filter values into group ids.
@@ -171,7 +171,7 @@ def _resolve_issue_id_values(
     short ids (e.g. ``PROJECT-123``), which are resolved against the
     organization when one is available in ``params``.
     """
-    values: Sequence[str | int] = value if isinstance(value, (list, tuple)) else [value]
+    values: list[str | int] = value if isinstance(value, list) else [value]
     short_ids = [v for v in values if isinstance(v, str) and v and not v.isdigit()]
     resolved: dict[str, int] = {}
     if short_ids and params and "organization_id" in params:
@@ -191,10 +191,15 @@ def _resolve_issue_id_values(
                 raise InvalidSearchQuery(f"Invalid value '{short_ids}' for 'issue.id' filter")
             resolved[short_id_raw] = group_ids[(parsed.project_slug, parsed.short_id)]
 
-    coerced: list[str | int] = [
-        int(v) if isinstance(v, str) and v.isdigit() else resolved.get(v, v) for v in values
-    ]
-    return coerced if isinstance(value, (list, tuple)) else coerced[0]
+    coerced: list[str | int] = []
+    for v in values:
+        if isinstance(v, str) and v.isdigit():
+            coerced.append(int(v))
+        elif isinstance(v, str):
+            coerced.append(resolved.get(v, v))
+        else:
+            coerced.append(v)
+    return coerced if isinstance(value, list) else coerced[0]
 
 
 def _issue_id_filter_converter(
@@ -205,6 +210,7 @@ def _issue_id_filter_converter(
     value = search_filter.value.value
     # name_expr can be overridden to a coalesce expression for null handling
     name_expr: Any = name
+    resolved_values = _resolve_issue_id_values(value, params)
     # Handle "has" queries
     if (
         search_filter.value.raw_value == ""
@@ -216,12 +222,12 @@ def _issue_id_filter_converter(
         # represented by NULL everywhere else. We use coalesce here so we can treat this
         # consistently
         name_expr = ["coalesce", [name, 0]]
-        if search_filter.is_in_filter:
-            value = [v if v else 0 for v in _resolve_issue_id_values(value, params)]
+        if search_filter.is_in_filter and isinstance(resolved_values, list):
+            value = [v if v else 0 for v in resolved_values]
         else:
             value = 0
     else:
-        value = _resolve_issue_id_values(value, params)
+        value = resolved_values
 
     # Skip isNull check on group_id value as we want to
     # allow snuba's prewhere optimizer to find this condition.

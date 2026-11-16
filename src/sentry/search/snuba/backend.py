@@ -588,7 +588,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
 
 def _make_issue_id_filter(
-    ids: Sequence[int | str] | int | str, project_ids: Sequence[int], organization: Any
+    ids: list[int | str] | int | str, project_ids: Sequence[int], organization: Any
 ) -> Q:
     """Build a group id filter from ``issue.id`` filter values.
 
@@ -597,7 +597,7 @@ def _make_issue_id_filter(
     the search returns no results instead of raising, mirroring numeric ids that
     do not exist.
     """
-    values: Sequence[int | str] = ids if isinstance(ids, (list, tuple)) else [ids]
+    values: list[int | str] = ids if isinstance(ids, list) else [ids]
     numeric_ids: list[int] = []
     short_ids: list[str] = []
     for value in values:

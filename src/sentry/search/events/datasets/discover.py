@@ -1819,7 +1819,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             )
 
     def _resolve_issue_id_values(
-        self, value: Sequence[str] | str | int
+        self, value: list[str] | str | int
     ) -> Sequence[str | int] | str | int:
         """Coerce ``issue.id`` filter values into group ids.
 
@@ -1827,7 +1827,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         short ids (e.g. ``PROJECT-123``), which are resolved against the
         organization. Unresolvable short ids raise ``InvalidIssueSearchQuery``.
         """
-        values: Sequence[str | int] = value if isinstance(value, (list, tuple)) else [value]
+        values: list[str | int] = value if isinstance(value, list) else [value]
         short_ids = [v for v in values if isinstance(v, str) and v and not v.isdigit()]
         resolved: dict[str, int] = {}
         if short_ids and self.builder.params.organization is not None:
@@ -1849,10 +1849,15 @@ class DiscoverDatasetConfig(DatasetConfig):
                     raise InvalidIssueSearchQuery(short_ids)
                 resolved[short_id_raw] = group_ids[(parsed.project_slug, parsed.short_id)]
 
-        coerced: list[str | int] = [
-            int(v) if isinstance(v, str) and v.isdigit() else resolved.get(v, v) for v in values
-        ]
-        return coerced if isinstance(value, (list, tuple)) else coerced[0]
+        coerced: list[str | int] = []
+        for v in values:
+            if isinstance(v, str) and v.isdigit():
+                coerced.append(int(v))
+            elif isinstance(v, str):
+                coerced.append(resolved.get(v, v))
+            else:
+                coerced.append(v)
+        return coerced if isinstance(value, list) else coerced[0]
 
     def _issue_id_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         name = search_filter.key.name
