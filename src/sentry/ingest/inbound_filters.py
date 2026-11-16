@@ -742,9 +742,8 @@ def _has_field(name: str) -> GlobCondition:
     return {"op": "glob", "name": name, "value": ["*"]}
 
 
-# Restricts a filter to the items of its data type. Prevents generic conditions like
-# `ip_address` from matching data types other than the one the user chose on the custom
-# inbound filter.
+# Restricts a filter to the items of its data type. Relay checks every filter against every
+# item, and other item types answer some of the same fields.
 _DATA_TYPE_GUARDS: Mapping[DataType, RuleCondition] = {
     # Matches error events but not transactions, which an `event.*` field would also match.
     # Relay reads the event's own type as the path prefix, and errors are the `error`,
@@ -836,7 +835,6 @@ def _custom_filter_condition(
         return None
 
     rule_conditions: list[RuleCondition] = []
-    has_ip_condition = False
     for condition in conditions:
         try:
             condition_type = ConditionType(condition.get("type", ""))
@@ -853,14 +851,13 @@ def _custom_filter_condition(
             return None
         if operator in COMPARISON_OPERATORS and len(values) != 1:
             return None
-        has_ip_condition |= condition_type is ConditionType.IP_ADDRESS
         negated = _NEGATED_OPERATORS.get(operator) if operator is not None else None
         if negated is None:
             rule_conditions.append(matcher.match(operator, values))
         else:
             rule_conditions.append(_negation(matcher, negated, values))
 
-    data_type_guard = _DATA_TYPE_GUARDS.get(DataType(data_type)) if has_ip_condition else None
+    data_type_guard = _DATA_TYPE_GUARDS.get(DataType(data_type))
     if data_type_guard is not None:
         rule_conditions.insert(0, data_type_guard)
 
