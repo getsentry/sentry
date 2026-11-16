@@ -1,7 +1,8 @@
-name: Bump @sentry/api in sentry-docs and toolkit
+name: Dispatch @sentry/api consumers
 
-# Each published api@ release asks sentry-docs and getsentry/toolkit to pin the
-# new @sentry/api version. Craft publishes to npm before it publishes the
+# Each published api@ release asks the repositories that depend on @sentry/api
+# to pin the new version. Each one runs bump-sentry-api.yml, a thin caller of
+# bump-sentry-api-consumer.yml. Craft publishes to npm before it publishes the
 # GitHub release, but the registry can lag, so the dispatches wait until npm
 # serves the new version.
 on:
@@ -31,8 +32,6 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: .github/workflows/scripts/wait-for-api-release-on-npm.sh "$RELEASE_TAG"
 
-  # Each downstream repo has its own bump workflow. To add one, add an entry
-  # with the app that can dispatch workflows there.
   dispatch:
     needs: wait-for-npm
     runs-on: ubuntu-latest
@@ -40,36 +39,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        repo: [sentry-docs, toolkit]
         include:
+          # Entries without an app use the release bot. It isn't known to be
+          # installed on sentry-docs, which keeps the app it already uses.
           - repo: sentry-docs
-            workflow: bump-api-schema-sha.yml
-            ref: master
             app-client-id-var: SENTRY_API_SCHEMA_UPDATER_APP_CLIENT_ID
             app-private-key-secret: SENTRY_API_SCHEMA_UPDATER_PRIVATE_KEY
-          # Keeps one PR on the newest release, so toolkit's CI checks the CLI
-          # and MCP packages against each release as it ships.
-          - repo: toolkit
-            workflow: bump-sentry-api.yml
-            ref: main
-            app-client-id-var: SENTRY_RELEASE_BOT_CLIENT_ID
-            app-private-key-secret: SENTRY_RELEASE_BOT_PRIVATE_KEY
     name: dispatch (${{ matrix.repo }})
     steps:
       - name: Get auth token
         id: token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          client-id: ${{ vars[matrix.app-client-id-var] }}
-          private-key: ${{ secrets[matrix.app-private-key-secret] }}
+          client-id: ${{ vars[matrix.app-client-id-var || 'SENTRY_RELEASE_BOT_CLIENT_ID'] }}
+          private-key: ${{ secrets[matrix.app-private-key-secret || 'SENTRY_RELEASE_BOT_PRIVATE_KEY'] }}
           owner: getsentry
           repositories: ${{ matrix.repo }}
           permission-actions: write
 
-      # Dispatch by file name: workflow display names have changed before.
+      # Dispatch by file name, on the repository's default branch.
       - name: Dispatch the bump
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           REPO: getsentry/${{ matrix.repo }}
-          WORKFLOW: ${{ matrix.workflow }}
-          REF: ${{ matrix.ref }}
-        run: gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$REF"
+        run: gh workflow run bump-sentry-api.yml --repo "$REPO"
