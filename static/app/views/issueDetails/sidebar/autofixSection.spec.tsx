@@ -379,8 +379,9 @@ describe('AutofixSection', () => {
 
       expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
       expect(router.location.pathname).toBe(
-        `/organizations/${autofixPageOrganization.slug}/issues/${mockGroup.id}/autofix/`
+        `/organizations/${autofixPageOrganization.slug}/issues/${mockGroup.id}/`
       );
+      expect(router.location.query.tab).toBe('autofix');
     });
 
     it('only opens the Explorer panel on Open Autofix without the Autofix tab', async () => {
