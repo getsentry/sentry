@@ -1,4 +1,3 @@
-import qs from 'query-string';
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -8,6 +7,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {Mode} from './contexts/pageParamsContext/mode';

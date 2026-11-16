@@ -1,6 +1,6 @@
-import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import * as qs from 'sentry/utils/url/qs';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 

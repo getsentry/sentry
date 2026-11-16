@@ -1,9 +1,9 @@
 import {IconReleases} from '@sentry/icons/releases';
-import queryString from 'query-string';
 
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import * as queryString from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';

@@ -1,6 +1,5 @@
 import type * as React from 'react';
 import {createContext, useCallback, useContext, type FunctionComponent} from 'react';
-import * as queryString from 'query-string';
 
 import type {LinkProps} from './link';
 
@@ -40,12 +39,40 @@ export const useLinkBehavior = <T extends LinkProps>(props: T) => {
   return {Component: component, behavior: () => behavior(props)};
 };
 
+function encodeQueryComponent(value: unknown): string {
+  return encodeURIComponent(String(value)).replace(
+    /[!'()*]/g,
+    char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+}
+
+/**
+ * Follows the app's `sentry/utils/url/qs`, which this package cannot import:
+ * sorted keys, repeated keys for arrays, a bare key for `null`, and no key for
+ * `undefined`.
+ */
+function stringifyQuery(query: Record<string, unknown>): string {
+  return Object.keys(query)
+    .sort()
+    .flatMap(key => {
+      const value = query[key];
+      return (Array.isArray(value) ? value : [value])
+        .filter(item => item !== undefined)
+        .map(item =>
+          item === null
+            ? encodeQueryComponent(key)
+            : `${encodeQueryComponent(key)}=${encodeQueryComponent(item)}`
+        );
+    })
+    .join('&');
+}
+
 function destinationToHref(to: LinkProps['to']): string {
   if (typeof to === 'string') {
     return to;
   }
   const {pathname = '', hash = '', search = '', query} = to;
-  const querySearch = query ? queryString.stringify(query) : search;
+  const querySearch = query ? stringifyQuery(query) : search;
   return `${pathname}${querySearch && !querySearch.startsWith('?') ? '?' : ''}${querySearch}${hash && !hash.startsWith('#') ? '#' : ''}${hash}`;
 }
 

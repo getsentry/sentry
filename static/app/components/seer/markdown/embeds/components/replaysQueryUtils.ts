@@ -1,7 +1,6 @@
-import queryString from 'query-string';
-
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import type {Organization} from 'sentry/types/organization';
+import * as queryString from 'sentry/utils/url/qs';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 
 export type ReplaysQueryData = EmbedOutput<'replaysQuery'>;

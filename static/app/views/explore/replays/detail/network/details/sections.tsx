@@ -1,6 +1,5 @@
 import type {MouseEvent} from 'react';
 import {useEffect, useMemo} from 'react';
-import queryString from 'query-string';
 
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -20,6 +19,7 @@ import {
   isRequestFrame,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
+import * as queryString from 'sentry/utils/url/qs';
 import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
 

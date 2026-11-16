@@ -1,11 +1,11 @@
 import {useCallback, useState} from 'react';
 import type {LocationDescriptor} from 'history';
-import queryString from 'query-string';
 
 import {toast} from '@sentry/scraps/toast';
 
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import * as queryString from 'sentry/utils/url/qs';
 import {
   getValidToolLinks,
   resolveLink,
