@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("monitors", "0020_backfill_checkin_config"),
+        ("monitors", "0023_drop_checkin_monitor"),
     ]
 
     operations = [
