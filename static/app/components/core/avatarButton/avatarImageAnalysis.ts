@@ -258,7 +258,7 @@ export function darkenUntilContrasts(hex: string, theme: Theme['type']): string 
 export async function resolveImageAvatarColors(
   url: string,
   theme: Theme['type']
-): Promise<{chonk: string | undefined; style: 'fill' | 'padded'} | null> {
+): Promise<{chonk: string; dominant: string; style: 'fill' | 'padded'} | null> {
   const sampled = await fetchAvatarColor(url);
   if (!sampled?.chonk) {
     return null;
@@ -272,5 +272,5 @@ export async function resolveImageAvatarColors(
       ? sampled.chonk
       : darkenUntilContrasts(sampled.chonk, theme);
 
-  return {chonk, style: sampled.style};
+  return {chonk, dominant: sampled.chonk, style: sampled.style};
 }

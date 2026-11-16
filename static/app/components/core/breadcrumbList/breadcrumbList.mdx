@@ -183,14 +183,11 @@ text-only crumb.
   />
 </Storybook.Demo>
 ```tsx
-const {trailingActions, ...current} = currentItem;
-
-<Flex containerType="inline-size" align="center" gap="sm" flex="1" minWidth="0">
+<Flex containerType="inline-size" align="center" flex="1" minWidth="0">
   <Flex as="nav" aria-label={t('Breadcrumbs')} align="center" gap="sm" minWidth="0">
     <BreadcrumbList items={[{type: 'link', label: t('All Tags'), to: allTagsUrl}]} />
-    <BreadcrumbList.Current item={current} />
+    <BreadcrumbList.Current item={currentItem} />
   </Flex>
-  <BreadcrumbList.TrailingActions actions={trailingActions} />
 </Flex>
 ```
 
@@ -198,10 +195,9 @@ const {trailingActions, ...current} = currentItem;
 `trailingActions`. It has no pagination.
 
 Use trailing actions for things you do with the current item itself, such as
-exporting it or opening its full view. Controls that change what the drawer
-shows, like search, filters, or sorting, belong in the drawer. Render the actions
-with `BreadcrumbList.TrailingActions` after the `<nav>` rather than inside it, so
-buttons and menus aren't announced as part of the breadcrumb landmark.
+exporting it or opening its full view. They render right after the label.
+Controls that change what the drawer shows, like search, filters, or sorting,
+belong in the drawer.
 
 ## Item types
 

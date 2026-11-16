@@ -1,5 +1,5 @@
 """
-Test helper for asserting that actions were published to the action log.
+Test helpers for publishing and capturing actions in the action log.
 
 Usage::
 
@@ -20,14 +20,36 @@ from contextlib import contextmanager
 from typing import Any
 from unittest import mock
 
-from sentry.issues.action_log.publish import _publish_callbacks
+from sentry.issues.action_log.publish import _publish_callbacks, publish_action
 from sentry.issues.action_log.types import (
+    SYSTEM_ACTOR,
+    ActionSource,
     GroupAction,
     GroupActionActor,
     GroupActionType,
 )
+from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.testutils.helpers.features import Feature
+from sentry.testutils.outbox import outbox_runner
+
+
+def publish_action_for_test(
+    *,
+    group: Group,
+    action: GroupAction,
+    actor: GroupActionActor = SYSTEM_ACTOR,
+    source: str = ActionSource.API,
+) -> None:
+    """Publish an action for a group and synchronously drain pending outbox jobs."""
+    with outbox_runner():
+        publish_action(
+            action,
+            source=source,
+            group_id=group.id,
+            project=group.project,
+            actor=actor,
+        )
 
 
 @contextmanager

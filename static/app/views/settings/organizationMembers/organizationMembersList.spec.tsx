@@ -360,6 +360,32 @@ describe('OrganizationMembersList', () => {
     });
   });
 
+  it('pushes the search query and drops the cursor when searching', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+
+    const {router} = render(<OrganizationMembersList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/members/`,
+          query: {cursor: '0:100:0'},
+        },
+        route: '/settings/:orgId/members/',
+      },
+    });
+
+    await userEvent.type(
+      await screen.findByPlaceholderText('Search Members'),
+      'member{enter}'
+    );
+
+    await waitFor(() => expect(router.location.query).toEqual({query: 'member'}));
+    expect(router.historyAction).toBe('PUSH');
+  });
+
   it('can filter members', async () => {
     const searchMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',

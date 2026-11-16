@@ -11,6 +11,8 @@ class AuthTokenType(enum.StrEnum):
     ORG = "sntrys_"
     USER_APP = "sntrya_"
     INTEGRATION = "sntryi_"
+    # "m" for machine, since "s" is already taken by org tokens.
+    SERVICE_ACCOUNT = "sntrym_"
 
     # tokens created prior to our prefixing
     __empty__: None = None

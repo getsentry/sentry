@@ -40,10 +40,11 @@ import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
@@ -66,13 +67,15 @@ export function ReleasesAdoptionChart({
 
   // needs to have different granularity, that's why we use custom getInterval instead of getSessionsInterval
   const interval = useMemo(() => {
-    const datetimeObj = {
-      start: decodeScalar(location.query.start),
-      end: decodeScalar(location.query.end),
-      period: decodeScalar(location.query.statsPeriod),
-    };
-
-    const diffInMinutes = getDiffInMinutes(datetimeObj);
+    const {start, end, statsPeriod} = loadQueryParamsFromLocation(
+      pageFilterParsers,
+      location
+    );
+    const diffInMinutes = getDiffInMinutes({
+      start,
+      end,
+      period: statsPeriod || undefined,
+    });
 
     // limit on backend is set to six hours
     if (diffInMinutes < 360) {

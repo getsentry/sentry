@@ -18,6 +18,135 @@ describe('attributesTree', () => {
 
   const theme = ThemeFixture();
 
+  it.each([
+    ['span.op', 'sentry.op', 'span.op'],
+    ['sentry.logger.name', 'sentry.logger.name', 'logger.name'],
+    ['log.custom.name', 'log.custom.name', 'custom.name'],
+    ['tags[sentry.custom,number]', 'sentry.custom', 'custom'],
+  ])('gates display normalization for %s', (name, rawName, legacyName) => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {name, rawName, type: 'str', value: 'test value'},
+    ];
+    const rendererExtra = {theme, location, navigate: jest.fn(), organization};
+    const {rerender} = render(
+      <AttributesTree attributes={attributes} rendererExtra={rendererExtra} />
+    );
+
+    expect(screen.getByTitle(legacyName)).toBeInTheDocument();
+    expect(screen.getByText('test value')).toBeInTheDocument();
+
+    rerender(
+      <AttributesTree
+        attributes={attributes}
+        rendererExtra={{
+          ...rendererExtra,
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+        }}
+      />
+    );
+
+    expect(screen.getByTitle(rawName)).toBeInTheDocument();
+    expect(screen.queryByTitle(legacyName)).not.toBeInTheDocument();
+    expect(screen.getByText('test value')).toBeInTheDocument();
+  });
+
+  it('falls back to legacy display when rawName is unavailable', () => {
+    render(
+      <AttributesTree
+        attributes={[{name: 'sentry.custom', type: 'str', value: 'test value'}]}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+        }}
+      />
+    );
+
+    expect(screen.getByTitle('custom')).toBeInTheDocument();
+    expect(screen.getByText('test value')).toBeInTheDocument();
+  });
+
+  it.each([false, true])(
+    'preserves caller order with mixed raw names (raw names enabled: %s)',
+    useRawAttributeNames => {
+      render(
+        <AttributesTree
+          columnCount={1}
+          attributes={[
+            {
+              name: 'span.op',
+              rawName: 'sentry.op',
+              type: 'str',
+              value: 'operation value',
+            },
+            {
+              name: 'span.duration',
+              rawName: 'sentry.duration_ms',
+              type: 'int',
+              value: 42,
+            },
+            {name: 'middle', type: 'str', value: 'fallback value'},
+            {
+              name: 'tags[aaa.custom,string]',
+              rawName: 'aaa.custom',
+              type: 'str',
+              value: 'custom value',
+            },
+          ]}
+          rendererExtra={{
+            theme,
+            location,
+            navigate: jest.fn(),
+            organization: OrganizationFixture({
+              features: useRawAttributeNames
+                ? ['trace-item-details-raw-attribute-names']
+                : [],
+            }),
+          }}
+        />
+      );
+
+      expect(
+        screen
+          .getAllByText(/^(operation value|42|fallback value|custom value)$/)
+          .map(element => element.textContent)
+      ).toEqual(['operation value', '42', 'fallback value', 'custom value']);
+    }
+  );
+
+  it('preserves deliberate order without raw names when the flag is enabled', () => {
+    render(
+      <AttributesTree
+        columnCount={1}
+        attributes={[
+          {name: 'operation', type: 'str', value: 'http.server'},
+          {name: 'duration', type: 'str', value: '200ms'},
+          {name: 'start_timestamp', type: 'str', value: 'start value'},
+          {name: 'end_timestamp', type: 'str', value: 'end value'},
+        ]}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization: OrganizationFixture({
+            features: ['trace-item-details-raw-attribute-names'],
+          }),
+        }}
+      />
+    );
+
+    expect(
+      screen
+        .getAllByText(/^(http.server|200ms|start value|end value)$/)
+        .map(element => element.textContent)
+    ).toEqual(['http.server', '200ms', 'start value', 'end value']);
+  });
+
   it('correctly renders attributes tree', () => {
     const attributes: TraceItemResponseAttribute[] = [
       {

@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
@@ -44,6 +45,7 @@ export default function SentryAppExternalInstallation() {
 function SentryAppExternalInstallationContent() {
   const params = useParams<{sentryAppSlug: string}>();
   const location = useLocation();
+  const [state] = useQueryState('state');
   const api = useApi();
   // The selected organization fetched from org details
   const [organization, setOrganization] = useState<Organization>();
@@ -192,7 +194,6 @@ function SentryAppExternalInstallationContent() {
         code: install.code,
         orgSlug: organization.slug,
       };
-      const state = location.query.state as string | undefined;
       if (state) {
         queryParams.state = state;
       }
@@ -200,7 +201,7 @@ function SentryAppExternalInstallationContent() {
       return testableWindowLocation.assign(redirectUrl);
     }
     return onClose();
-  }, [api, organization, sentryApp, onClose, location.query.state]);
+  }, [api, organization, sentryApp, onClose, state]);
 
   if (sentryAppLoading || orgsLoading || !sentryApp) {
     return <LoadingIndicator />;

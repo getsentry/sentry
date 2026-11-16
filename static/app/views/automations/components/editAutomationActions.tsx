@@ -1,11 +1,11 @@
 import {Observer} from 'mobx-react-lite';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Grid} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import type {FormModel} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';

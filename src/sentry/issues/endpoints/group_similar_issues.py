@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
     )
     def get(self, request: Request, group: Group) -> Response:
         # Any project using embeddings-based grouping will not work with this endpoint
-        if group.project.get_option("sentry:similarity_backfill_completed"):
+        if project_uses_seer_similarity(group.project):
             return Response([])
 
         features = similarity.features

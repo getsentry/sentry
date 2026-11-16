@@ -29,6 +29,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
 from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
@@ -283,7 +284,7 @@ def truncate_denormalizations(project: Project, group: Group) -> None:
     )
 
     # Don't do MinHash work if we use embeddings-based similarity.
-    if not project.get_option("sentry:similarity_backfill_completed"):
+    if not project_uses_seer_similarity(project):
         similarity.delete(project, group)
 
 
@@ -435,7 +436,7 @@ def repair_denormalizations(
     repair_tsdb_data(caches, project, events)
 
     # Don't do MinHash work if we use embeddings-based similarity.
-    if not project.get_option("sentry:similarity_backfill_completed"):
+    if not project_uses_seer_similarity(project):
         for event in events:
             similarity.record(project, [event])
 

@@ -12,7 +12,7 @@ import {convertBuilderStateToWidget} from './convertBuilderStateToWidget';
 import {convertWidgetToQueryParams} from './convertWidgetToBuilderStateParams';
 
 describe('widget transformation persistence', () => {
-  it('round trips duplicate axes and distinct pipelines for each filter through the URL', () => {
+  it('round trips duplicate axes and distinct transformations for each filter through the URL', () => {
     const widget = WidgetFixture({
       widgetType: WidgetType.SPANS,
       displayType: DisplayType.LINE,
@@ -51,7 +51,7 @@ describe('widget transformation persistence', () => {
     );
   });
 
-  it('omits the transformations param for widgets without pipelines', () => {
+  it('omits the transformations param for widgets without transformations', () => {
     const widget = WidgetFixture({
       widgetType: WidgetType.SPANS,
       displayType: DisplayType.LINE,
@@ -68,7 +68,7 @@ describe('widget transformation persistence', () => {
     expect(convertWidgetToQueryParams(widget)).not.toHaveProperty('transformations');
   });
 
-  it('saves pipelines for equations', () => {
+  it('saves transformations for equations', () => {
     const widget = convertBuilderStateToWidget({
       dataset: WidgetType.SPANS,
       displayType: DisplayType.LINE,

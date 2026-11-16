@@ -11,8 +11,8 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
-import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
 
 import IntegrationDetailedView from './integrationDetailedView';
@@ -619,12 +619,14 @@ describe('IntegrationDetailedView', () => {
           .mockImplementation(() => {});
         const queryClient = makeTestQueryClient();
         queryClient.setQueryData(
-          normalizeQueryKey([
-            getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+          apiOptions.as<OrganizationIntegration[]>()(
+            '/organizations/$organizationIdOrSlug/integrations/',
+            {
               path: {organizationIdOrSlug: organization.slug},
-            }),
-            {query: {provider_key: 'slack', includeConfig: 0}},
-          ]),
+              query: {provider_key: 'slack', includeConfig: 0},
+              staleTime: 0,
+            }
+          ).queryKey,
           {json: cached, headers: {}}
         );
         MockApiClient.addMockResponse({

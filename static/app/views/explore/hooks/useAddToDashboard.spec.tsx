@@ -336,12 +336,11 @@ describe('AddToDashboardButton', () => {
     );
   });
 
-  it('adds every aggregate and its pipeline plotted on the same chart', async () => {
+  it('adds every aggregate and its transformations plotted on the same chart', async () => {
     render(
       <Wrapper>
         <TestPage visualizeIndex={0} includeChartGroup />
-      </Wrapper>,
-      {organization: OrganizationFixture({features: ['explore-multi-aggregate-charts']})}
+      </Wrapper>
     );
 
     act(() => setMode(Mode.AGGREGATE));

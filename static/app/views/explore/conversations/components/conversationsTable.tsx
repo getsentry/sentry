@@ -29,6 +29,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -114,6 +115,10 @@ const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = 
 const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
 
 type ColumnWidths = Partial<Record<ColumnKey, number>>;
+
+function isColumnKey(key: string): key is ColumnKey {
+  return Object.hasOwn(COLUMN_DEFAULTS, key);
+}
 
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
@@ -210,14 +215,42 @@ export function parseStoredColumnWidths(value?: unknown): ColumnWidths {
   return widths;
 }
 
-interface ConversationsTableProps {
-  conversations: ReturnType<typeof useConversations>;
+type ConversationsResult = ReturnType<typeof useConversations>;
+
+type ConversationsTableSource = Pick<
+  ConversationsResult,
+  'data' | 'error' | 'isFetching' | 'pageLinks' | 'setCursor' | 'unsetCursor'
+> &
+  Partial<Pick<ConversationsResult, 'setSort' | 'sort'>>;
+
+export interface ConversationsTableColumn {
+  key: string;
+  name: string;
+  renderBodyCell: (conversation: Conversation) => React.ReactNode;
+  width: number;
 }
 
-export function ConversationsTable({conversations}: ConversationsTableProps) {
+interface ConversationsTableProps {
+  conversations: ConversationsTableSource;
+  additionalColumns?: ConversationsTableColumn[];
+  disableCellActions?: boolean;
+  hidePagination?: boolean;
+  persistColumnWidths?: boolean;
+  projects?: number[];
+}
+
+export function ConversationsTable({
+  conversations,
+  additionalColumns,
+  disableCellActions = false,
+  hidePagination = false,
+  persistColumnWidths = true,
+  projects,
+}: ConversationsTableProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const detailProjects = projects ?? selection.projects;
   const {data, isFetching, error, pageLinks, setCursor, unsetCursor, sort, setSort} =
     conversations;
 
@@ -231,24 +264,36 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
     COLUMN_WIDTHS_STORAGE_KEY,
     parseStoredColumnWidths
   );
+  const [sessionWidths, setSessionWidths] = useState<Partial<Record<string, number>>>({});
+  const columnWidths: Partial<Record<string, number>> = persistColumnWidths
+    ? storedWidths
+    : sessionWidths;
 
   const columnOrder = useMemo<Array<GridColumnOrder<ColumnKey>>>(
     () =>
       COLUMN_ORDER.map(key => ({
         key,
         name: COLUMN_DEFAULTS[key].name,
-        width: storedWidths[key] ?? COLUMN_DEFAULTS[key].width,
+        width: columnWidths[key] ?? COLUMN_DEFAULTS[key].width,
       })),
-    [storedWidths]
+    [columnWidths]
   );
 
   const handleResizeColumn = useCallback(
-    (_columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
+    (_columnIndex: number, nextColumn: GridColumnOrder<string>) => {
+      const key = nextColumn.key;
+      if (!persistColumnWidths) {
+        setSessionWidths(current => ({...current, [key]: nextColumn.width}));
+        return;
+      }
+      if (!isColumnKey(key)) {
+        return;
+      }
       // Keyed by column rather than by index so a stored width survives a
       // change to the column order.
-      setStoredWidths(current => ({...current, [nextColumn.key]: nextColumn.width}));
+      setStoredWidths(current => ({...current, [key]: nextColumn.width}));
     },
-    [setStoredWidths]
+    [persistColumnWidths, setStoredWidths]
   );
 
   const hasNoTools = useMemo(
@@ -257,25 +302,35 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
     [data]
   );
 
-  const displayedColumns = useMemo(
-    () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
-    [columnOrder, hasNoTools]
-  );
+  const displayedColumns = useMemo<Array<GridColumnOrder<string>>>(() => {
+    const columns = collapseToolsColumnWhenUnused(columnOrder, hasNoTools);
+    if (!additionalColumns?.length) {
+      return columns;
+    }
+    const extraColumns = additionalColumns.map(({key, name, width}) => ({
+      key,
+      name,
+      width: columnWidths[key] ?? width,
+    }));
+    return columns.flatMap(column =>
+      column.key === 'conversation' ? [column, ...extraColumns] : [column]
+    );
+  }, [additionalColumns, columnOrder, columnWidths, hasNoTools]);
   const staticColumnWidths = useMemo(
     () =>
-      storedWidths.conversation === undefined ||
-      storedWidths.conversation === COL_WIDTH_UNDEFINED
+      columnWidths.conversation === undefined ||
+      columnWidths.conversation === COL_WIDTH_UNDEFINED
         ? {conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`}
         : undefined,
-    [storedWidths.conversation]
+    [columnWidths.conversation]
   );
 
-  const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
+  const handlePaginate: typeof setCursor = (cursor, pageDelta) => {
     trackAnalytics('conversations.table.paginate', {
       organization,
       direction: pageDelta > 0 ? 'next' : 'previous',
     });
-    setCursor(cursor, path, query, pageDelta);
+    setCursor(cursor, pageDelta);
   };
 
   const handleCellAction = useCallback<CellActionHandler>(
@@ -300,11 +355,7 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
       ) {
         return;
       }
-      const url = getConversationDetailUrl(
-        organization.slug,
-        dataRow,
-        selection.projects
-      );
+      const url = getConversationDetailUrl(organization.slug, dataRow, detailProjects);
       // Mirror native link behavior instead of navigating in place: Cmd/Ctrl+click
       // opens a new tab (no features string) and Shift+click opens a new window
       // (a features string makes browsers open a window rather than a tab).
@@ -318,14 +369,21 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
       }
       navigate(url);
     },
-    [navigate, organization.slug, selection.projects]
+    [detailProjects, navigate, organization.slug]
   );
 
   const getColumnSort = useCallback(
-    (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
+    (column: GridColumnOrder<string>): GridColumnSort | undefined => {
+      if (!isColumnKey(column.key)) {
+        return undefined;
+      }
       const field = SORT_FIELD_BY_COLUMN[column.key];
       if (!field) {
         return undefined;
+      }
+      const align = RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined;
+      if (!setSort) {
+        return align ? {align} : undefined;
       }
 
       let direction: 'asc' | 'desc' | undefined;
@@ -335,7 +393,7 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
         direction = 'desc';
       }
       return {
-        align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined,
+        align,
         direction,
         onSort: () => {
           setSort(direction === 'desc' ? field : `-${field}`);
@@ -347,10 +405,23 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
   );
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
-      <BodyCell column={column} conversation={dataRow} onCellAction={handleCellAction} />
-    ),
-    [handleCellAction]
+    (column: GridColumnOrder<string>, dataRow: Conversation) => {
+      const additionalColumn = additionalColumns?.find(({key}) => key === column.key);
+      if (additionalColumn) {
+        return additionalColumn.renderBodyCell(dataRow);
+      }
+      if (!isColumnKey(column.key)) {
+        return null;
+      }
+      return (
+        <BodyCell
+          columnKey={column.key}
+          conversation={dataRow}
+          onCellAction={disableCellActions ? undefined : handleCellAction}
+        />
+      );
+    },
+    [additionalColumns, disableCellActions, handleCellAction]
   );
 
   return (
@@ -381,21 +452,23 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
       </FixedRowHeightGrid>
       {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
           only spacing between the table and the controls. */}
-      <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
+      {!hidePagination && (
+        <TablePagination {...getPaginationProps(pageLinks)} onCursor={handlePaginate} />
+      )}
     </Stack>
   );
 }
 
 function BodyCell({
-  column,
+  columnKey,
   conversation,
   onCellAction,
 }: {
-  column: GridColumnOrder<ColumnKey>;
+  columnKey: ColumnKey;
   conversation: Conversation;
-  onCellAction: CellActionHandler;
+  onCellAction: CellActionHandler | undefined;
 }) {
-  switch (column.key) {
+  switch (columnKey) {
     case 'conversation':
       return <ConversationCell conversation={conversation} />;
     case 'timeSpan':
@@ -494,10 +567,14 @@ function FilterCellAction({
   children: React.ReactNode;
   conversationId: string;
   field: string;
-  onCellAction: CellActionHandler;
+  onCellAction: CellActionHandler | undefined;
   type: ColumnValueType;
   value: number;
 }) {
+  if (!onCellAction) {
+    return children;
+  }
+
   const column: TableColumn<keyof TableDataRow> = {
     key: field,
     name: field,

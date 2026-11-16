@@ -37,7 +37,7 @@ describe('ActivityDrawer', () => {
   function renderDrawer() {
     return render(
       <GroupIdProvider groupId={group.id}>
-        <ActivityDrawer project={project} />
+        <ActivityDrawer />
       </GroupIdProvider>,
       {
         initialRouterConfig: {

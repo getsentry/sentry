@@ -25,6 +25,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {StoryTreeNode} from './storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
+  isTreeSection,
   SECTION_CONFIG,
   SECTION_ORDER,
   useStoryHierarchy,
@@ -203,7 +204,7 @@ export function StorySearch() {
             options: searchItems(allCoreNodes, deferredInputValue),
           });
         }
-      } else if (section === 'product' && data.stories.length > 0) {
+      } else if (isTreeSection(section) && data.stories.length > 0) {
         const flattenedStories = data.stories.flatMap(tree => tree.flat());
         sections.push({
           key: section,

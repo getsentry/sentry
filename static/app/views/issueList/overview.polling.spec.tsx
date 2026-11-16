@@ -118,7 +118,7 @@ describe('IssueList -> Polling', () => {
     });
 
     jest.mocked(StreamGroup).mockClear();
-    TagStore.init();
+    TagStore.reset();
   });
 
   it('toggles polling for new issues', async () => {

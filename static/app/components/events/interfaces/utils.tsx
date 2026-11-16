@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import qs from 'query-string';
 
 import {FILTER_MASK} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -181,7 +181,7 @@ export function stringifyQueryList(
 
   const queryObj: Record<string, string[]> = {};
   for (const kv of query) {
-    if (kv !== null && kv.length === 2) {
+    if (kv?.length === 2) {
       const [key, value] = kv;
       if (value !== null) {
         if (Array.isArray(queryObj[key])) {

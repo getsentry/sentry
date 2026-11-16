@@ -1,18 +1,14 @@
 import {Fragment} from 'react';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {Feature} from 'sentry/components/acl/feature';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -21,7 +17,9 @@ import {PrCommentRules} from './prCommentRules';
 import {PrCommentsToggle} from './prCommentsToggle';
 import {StatusCheckRules} from './statusCheckRules';
 
-type PreprodTab = 'size' | 'distribution';
+const PREPROD_TABS = ['size', 'distribution'] as const;
+
+type PreprodTab = (typeof PREPROD_TABS)[number];
 
 const SIZE_ENABLED_READ_KEY = 'sentry:preprod_size_enabled_by_customer';
 const SIZE_ENABLED_WRITE_KEY = 'preprodSizeEnabledByCustomer';
@@ -33,19 +31,15 @@ const DISTRIBUTION_ENABLED_WRITE_KEY = 'preprodDistributionEnabledByCustomer';
 const DISTRIBUTION_ENABLED_QUERY_READ_KEY = 'sentry:preprod_distribution_enabled_query';
 const DISTRIBUTION_ENABLED_QUERY_WRITE_KEY = 'preprodDistributionEnabledQuery';
 
-const VALID_TABS: PreprodTab[] = ['size', 'distribution'];
-
 export default function PreprodSettings() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const queryTab = decodeScalar(location?.query?.tab);
-  const tab = VALID_TABS.includes(queryTab as PreprodTab)
-    ? (queryTab as PreprodTab)
-    : 'size';
+  const [tabParam, setTabParam] = useQueryState(
+    'tab',
+    parseAsStringLiteral(PREPROD_TABS)
+  );
+  const tab = tabParam ?? 'size';
 
   const handleTabChange = (newTab: PreprodTab) => {
-    navigate({query: {...location.query, tab: newTab}});
+    setTabParam(newTab, {history: 'push'});
   };
 
   return (
@@ -61,14 +55,6 @@ export default function PreprodSettings() {
           'Configure status checks and thresholds for your mobile build size analysis.'
         )}
       />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
       <Stack gap="lg">
         <PreprodQuotaAlert />
         <Container borderBottom="primary">

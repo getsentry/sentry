@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -6,23 +7,29 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {t} from 'sentry/locale';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {PreviewPanelItem} from './previewPanelItem';
 import type {ViewerProps} from './utils';
-import {getAttachmentUrl} from './utils';
 
 export function JsonViewer(props: ViewerProps) {
-  const query = useApiQuery(
-    [
-      getAttachmentUrl(props),
-      {headers: {Accept: '*/*; charset=utf-8'}, query: {download: true}},
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+  const query = useQuery({
+    ...apiOptions.as<Record<PropertyKey, unknown> | string>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/$attachmentId/',
+      {
+        path: {
+          organizationIdOrSlug: props.orgSlug,
+          projectIdOrSlug: props.projectSlug,
+          eventId: props.eventId,
+          attachmentId: props.attachment.id,
+        },
+        headers: {Accept: '*/*; charset=utf-8'},
+        query: {download: true},
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+  });
 
   if (query.isPending) {
     return (
@@ -47,7 +54,7 @@ export function JsonViewer(props: ViewerProps) {
     /**
      * The api might return a string or an object depending on headers and filename.
      */
-    json = typeof query.data === 'object' ? query.data : JSON.parse(query.data as string);
+    json = typeof query.data === 'object' ? query.data : JSON.parse(query.data);
   } catch (e) {
     json = null;
   }

@@ -28,6 +28,7 @@ import {t, tct} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
@@ -89,13 +90,14 @@ export function FunctionTrendsWidget({
   );
 
   const handleCursor = useCallback(
-    (cursor: any, pathname: any, query: any) => {
+    (cursor: string | undefined) => {
+      const {pathname, query} = location;
       navigate({
         pathname,
         query: {...query, [cursorName]: cursor},
       });
     },
-    [cursorName, navigate]
+    [cursorName, location, navigate]
   );
 
   const paginationAnalyticsEvent = useCallback(
@@ -222,10 +224,12 @@ function FunctionTrendsWidgetHeader({
           )}
           <Subtitle>{t('Functions by most regressed.')}</Subtitle>
           <StyledPagination
-            pageLinks={pageLinks}
+            {...getPaginationProps(pageLinks)}
             size="xs"
             onCursor={handleCursor}
-            paginationAnalyticsEvent={paginationAnalyticsEvent}
+            onPageChange={(_cursor, delta) =>
+              paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+            }
           />
         </HeaderContainer>
       );
@@ -237,10 +241,12 @@ function FunctionTrendsWidgetHeader({
           )}
           <Subtitle>{t('Functions by most improved.')}</Subtitle>
           <StyledPagination
-            pageLinks={pageLinks}
+            {...getPaginationProps(pageLinks)}
             size="xs"
             onCursor={handleCursor}
-            paginationAnalyticsEvent={paginationAnalyticsEvent}
+            onPageChange={(_cursor, delta) =>
+              paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+            }
           />
         </HeaderContainer>
       );

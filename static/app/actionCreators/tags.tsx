@@ -1,4 +1,3 @@
-import {keepPreviousData} from '@tanstack/react-query';
 import type {Query} from 'history';
 
 import {toast} from '@sentry/scraps/toast';
@@ -11,9 +10,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AddAlert} from 'sentry/views/app/globalAlerts';
 
@@ -234,9 +231,7 @@ export function fetchFeatureFlagValues({
 export type FetchOrganizationTagsParams = {
   orgSlug: string;
   dataset?: Dataset;
-  enabled?: boolean;
   end?: string;
-  keepPreviousData?: boolean;
   projectIds?: string[];
   start?: string;
   statsPeriod?: string | null;
@@ -244,7 +239,7 @@ export type FetchOrganizationTagsParams = {
   useFlagsBackend?: boolean;
 };
 
-const makeFetchOrganizationTags = ({
+export const organizationTagsApiOptions = ({
   orgSlug,
   dataset,
   projectIds,
@@ -253,7 +248,7 @@ const makeFetchOrganizationTags = ({
   statsPeriod,
   start,
   end,
-}: FetchOrganizationTagsParams): ApiQueryKey => {
+}: FetchOrganizationTagsParams) => {
   const query: Query = {};
 
   query.dataset = dataset;
@@ -270,24 +265,9 @@ const makeFetchOrganizationTags = ({
   if (end) {
     query.end = end;
   }
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/tags/', {
-      path: {
-        organizationIdOrSlug: orgSlug,
-      },
-    }),
-    {query},
-  ];
-};
-
-export const useFetchOrganizationTags = (
-  params: FetchOrganizationTagsParams,
-  options: Partial<UseApiQueryOptions<Tag[]>>
-) => {
-  return useApiQuery<Tag[]>(makeFetchOrganizationTags(params), {
+  return apiOptions.as<Tag[]>()('/organizations/$organizationIdOrSlug/tags/', {
+    path: {organizationIdOrSlug: orgSlug},
+    query,
     staleTime: Infinity,
-    placeholderData: params.keepPreviousData ? keepPreviousData : undefined,
-    enabled: params.enabled,
-    ...options,
   });
 };

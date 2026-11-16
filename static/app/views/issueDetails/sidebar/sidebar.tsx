@@ -25,7 +25,7 @@ import {
 
 import {AutofixSection} from './autofixSection';
 import {DetectorSection} from './detectorSection';
-import {ExternalIssueSidebarList} from './externalIssueSidebarList';
+import {ExternalIssueSidebarSection} from './externalIssueSidebarSection';
 import {FirstLastSeenSection} from './firstLastSeenSection';
 import {MergedIssuesSidebarSection} from './mergedSidebarSection';
 import {PeopleSection} from './peopleSection';
@@ -101,7 +101,7 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
             </ErrorBoundary>
           )}
           <ErrorBoundary mini>
-            <ExternalIssueSidebarList group={group} event={event} />
+            <ExternalIssueSidebarSection group={group} event={event} />
           </ErrorBoundary>
           <ErrorBoundary mini>
             <ActivitySection group={group} />

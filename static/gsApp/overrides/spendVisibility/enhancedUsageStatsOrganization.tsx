@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -11,11 +12,9 @@ import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 import type {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
@@ -76,7 +75,10 @@ function ProjectDetails({
   project,
   storedSpikes,
 }: ProjectDetailsProps) {
-  const navigate = useNavigate();
+  const [, setSpikeCursor] = useQueryState(
+    SPIKE_TABLE_CURSOR_KEY,
+    parseAsString.withOptions({history: 'push'})
+  );
 
   const spikesForDataCategory = storedSpikes.filter(
     spike => spike.dataCategory === dataCategoryInfo.name
@@ -105,13 +107,8 @@ function ProjectDetails({
         isLoading={loading}
       />
       <Pagination
-        pageLinks={pageLink}
-        onCursor={(cursor, path, query) => {
-          navigate({
-            pathname: path,
-            query: {...query, [SPIKE_TABLE_CURSOR_KEY]: cursor},
-          });
-        }}
+        {...getPaginationProps(pageLink)}
+        onCursor={cursor => void setSpikeCursor(cursor ?? null)}
       />
     </ErrorBoundary>
   );
@@ -276,46 +273,42 @@ function EnhancedUsageStatsOrganization({
   });
 
   const spikesListQueryEnabled = isSingleProject && !!project;
-  const spikesList = useApiQuery<SpikesList>(
-    [
-      // Get all the spikes in the time period
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/',
-        {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.id!},
-        }
-      ),
+  const spikesList = useQuery({
+    // Get all the spikes in the time period
+    ...apiOptions.as<SpikesList>()(
+      '/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/',
       {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.id!},
         query: {
           ...endpointQueryDatetime,
         },
-      },
-    ],
-    {staleTime: Infinity, retry: false, enabled: spikesListQueryEnabled}
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+    enabled: spikesListQueryEnabled,
+  });
 
   const spikeThresholdsQueryEnabled = isSingleProject && !!project && hasAccurateSpikes;
-  const spikeThresholds = useApiQuery<SpikeThresholds>(
-    [
-      // Only fetch spike thresholds if the interval is 1h
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project?.slug!,
-          },
-        }
-      ),
+  const spikeThresholds = useQuery({
+    // Only fetch spike thresholds if the interval is 1h
+    ...apiOptions.as<SpikeThresholds>()(
+      '/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project?.slug!,
+        },
         query: {
           ...endpointQueryDatetime,
           interval: REQUIRED_INTERVAL,
         },
-      },
-    ],
-    {staleTime: Infinity, retry: false, enabled: spikeThresholdsQueryEnabled}
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+    enabled: spikeThresholdsQueryEnabled,
+  });
 
   useRouteAnalyticsParams({
     subscription,

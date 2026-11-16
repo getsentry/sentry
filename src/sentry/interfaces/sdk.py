@@ -1,15 +1,18 @@
 __all__ = ("Sdk",)
 
 from collections.abc import Mapping
-from typing import Any, Self, TypedDict
+from typing import Annotated, Any, Self, TypedDict
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
 
 
 class EventSdkApiContext(TypedDict):
-    name: str | None
-    version: str | None
+    name: Annotated[
+        str | None, ApiDescription("Name of the SDK that sent the event, such as sentry.python")
+    ]
+    version: Annotated[str | None, ApiDescription("Version of the SDK")]
 
 
 class Sdk(Interface):

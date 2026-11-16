@@ -109,15 +109,7 @@ function ScreenDetailsPage() {
               hideDefaultTabs
               tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
               headerTitle={transactionName}
-              breadcrumbs={[
-                {
-                  label: t('Mobile Vitals'),
-                  to: moduleURL,
-                },
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
+              breadcrumbs={[{type: 'link', label: t('Mobile Vitals'), to: moduleURL}]}
             />
             <Layout.Body>
               <Layout.Main width="full">

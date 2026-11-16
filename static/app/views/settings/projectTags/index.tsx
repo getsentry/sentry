@@ -4,12 +4,12 @@ import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
 import {Access} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import {HighlightsSettingsForm} from 'sentry/components/events/highlights/highlightsSettingsForm';
@@ -24,10 +24,9 @@ import {t, tct} from 'sentry/locale';
 import type {TagWithTopValues} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -41,49 +40,34 @@ export default function ProjectTags() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
 
-  const api = useApi();
   const queryClient = useQueryClient();
 
-  const {
-    data: tags,
-    isPending,
-    isError,
-  } = useQuery(
-    apiOptions.as<TagWithTopValues[]>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/',
-      {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        staleTime: 0,
-      }
-    )
+  const tagsOptions = apiOptions.as<TagWithTopValues[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      staleTime: 0,
+    }
   );
+  const {data: tags, isPending, isError} = useQuery(tagsOptions);
 
   const {mutate} = useMutation<DeleteTagResponse, RequestError, DeleteTagVariables>({
     mutationFn: ({key}: DeleteTagVariables) =>
-      api.requestPromise(
-        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/$key/', {
+      fetchMutation({
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/$key/', {
           path: {
             organizationIdOrSlug: organization.slug,
             projectIdOrSlug: project.slug,
             key,
           },
         }),
-        {
-          method: 'DELETE',
-        }
-      ),
+        method: 'DELETE',
+      }),
     onSuccess: (_, {key}) => {
-      setApiQueryData<TagWithTopValues[]>(
-        queryClient,
-        [
-          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/', {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: project.slug,
-            },
-          }),
-        ],
-        oldTags => oldTags?.filter(tag => tag.key !== key)
+      queryClient.setQueryData(tagsOptions.queryKey, previous =>
+        previous
+          ? {...previous, json: previous.json.filter(tag => tag.key !== key)}
+          : undefined
       );
     },
     onError: () => {

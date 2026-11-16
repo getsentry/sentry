@@ -246,7 +246,7 @@ describe('shouldTriggerHighAccuracy', () => {
     {sampleCount: 0, expected: true},
     {sampleCount: 4, expected: false},
   ])(
-    'uses the visible pipeline sample count ($sampleCount)',
+    'uses the sample count after visible transformations ($sampleCount)',
     ({sampleCount, expected}) => {
       const transformed = TimeSeriesFixture({
         yAxis: 'count(span.duration)',

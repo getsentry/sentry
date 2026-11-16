@@ -1,4 +1,4 @@
-from typing import Literal, TypedDict
+from typing import Annotated, Literal, TypedDict
 
 from django.core.cache import cache
 from drf_spectacular.utils import extend_schema
@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.deploy import Deploy
@@ -22,8 +23,11 @@ from sentry.utils.hashlib import hash_values
 
 
 class ReleaseSetupStepResponse(TypedDict):
-    step: Literal["tag", "repo", "commit", "deploy"]
-    complete: bool
+    step: Annotated[
+        Literal["tag", "repo", "commit", "deploy"],
+        ApiDescription("Setup step: tag, repo, commit or deploy"),
+    ]
+    complete: Annotated[bool, ApiDescription("Whether the project completed the step")]
 
 
 @extend_schema(tags=["Releases"])

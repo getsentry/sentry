@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Collection
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.http import QueryDict
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -22,6 +22,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -56,15 +57,33 @@ class StacktraceLinkContext(TypedDict):
 
 
 class StacktraceLinkResponseOptional(TypedDict, total=False):
-    sourcePath: str | None
-    attemptedUrl: str | None
+    sourcePath: Annotated[
+        str | None,
+        ApiDescription("Path of the file in the repository after the code mapping is applied"),
+    ]
+    attemptedUrl: Annotated[
+        str | None, ApiDescription("URL Sentry tried when it couldn't find the file")
+    ]
 
 
 class StacktraceLinkResponse(StacktraceLinkResponseOptional):
-    error: str | None
-    config: RepositoryProjectPathConfigSerializerResponse | None
-    sourceUrl: str | None
-    integrations: list[IntegrationSerializerResponse]
+    error: Annotated[
+        str | None,
+        ApiDescription(
+            "Why no link was found, such as no_code_mappings_for_project, stack_root_mismatch or file_not_found. Null when a link was found"
+        ),
+    ]
+    config: Annotated[
+        RepositoryProjectPathConfigSerializerResponse | None,
+        ApiDescription("Code mapping used for the link. Null when no code mapping matches"),
+    ]
+    sourceUrl: Annotated[
+        str | None, ApiDescription("URL of the file in the repository. Null when no link was found")
+    ]
+    integrations: Annotated[
+        list[IntegrationSerializerResponse],
+        ApiDescription("Source code integrations of the organization"),
+    ]
 
 
 def generate_context(parameters: QueryDict) -> StacktraceLinkContext:

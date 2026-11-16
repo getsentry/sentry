@@ -25,11 +25,13 @@ class AggregateFieldData(TypedDict, total=False):
     chartType: int
     yAxes: list[str]
     groupBy: str
+    transformations: list[str]
 
 
 class VisualizeData(TypedDict):
     yAxes: list[str]
     chartType: NotRequired[int]
+    transformations: NotRequired[list[str]]
 
 
 class CrossEventData(TypedDict):
@@ -81,7 +83,9 @@ class VisualizeSerializer(serializers.Serializer):
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField())
     transformations = serializers.ListField(
-        child=serializers.CharField(trim_whitespace=False), required=False
+        child=serializers.CharField(trim_whitespace=False),
+        required=False,
+        help_text="Ordered fill(...) and smooth(...) expressions. Use an empty list to clear the pipeline.",
     )
 
 
@@ -94,7 +98,9 @@ class AggregateFieldSerializer(serializers.Serializer):
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField(), required=False)
     transformations = serializers.ListField(
-        child=serializers.CharField(trim_whitespace=False), required=False
+        child=serializers.CharField(trim_whitespace=False),
+        required=False,
+        help_text="Ordered fill(...) and smooth(...) expressions. Use an empty list to clear the pipeline.",
     )
 
     # group bys
@@ -317,24 +323,24 @@ class ExploreSavedQuerySerializer(serializers.Serializer[object, ExploreSavedQue
 
     # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
     def validate(self, data: ExploreSavedQueryInput) -> ExploreSavedQueryValidatedData:
-        transformation_pipelines: list[Sequence[str]] = []
+        visualization_transformations: list[Sequence[str]] = []
         for query_data in data["query"]:
             for field in ("visualize", "aggregateField"):
                 for visualization in cast(
                     Sequence[Mapping[str, object]], query_data.get(field) or []
                 ):
                     if "transformations" in visualization:
-                        transformation_pipelines.append(
+                        visualization_transformations.append(
                             cast(Sequence[str], visualization["transformations"])
                         )
-        if transformation_pipelines and not features.has(
+        if visualization_transformations and not features.has(
             "organizations:explore-interpolation-and-smoothing",
             self.context["organization"],
             actor=self.context["user"],
         ):
             raise ParseError(detail="You do not have access to query transformations.")
 
-        for transformations in transformation_pipelines:
+        for transformations in visualization_transformations:
             with handle_query_errors():
                 parse_transformations(transformations)
 

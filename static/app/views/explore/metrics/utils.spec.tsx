@@ -8,6 +8,7 @@ import {NONE_UNIT} from './constants';
 import {decodeMetricsQueryParams} from './metricQuery';
 import {
   createTraceMetricEventsFilter,
+  getAggregatesMetricsTotalFilter,
   getEquationMetricsTotalFilter,
   getMetricsUrlFromSavedQueryUrl,
   mapMetricUnitToFieldType,
@@ -313,6 +314,66 @@ describe('getEquationMetricsTotalFilter', () => {
     const result = getEquationMetricsTotalFilter(equation);
     expect(result).toBe(
       '( metric.name:metricA metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) OR ( metric.name:metricB metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
+    );
+  });
+
+  it('does not filter by unit for aggregates with a dash unit', () => {
+    const equation =
+      'equation|sum(value,metricA,counter,-) + count(value,metricB,distribution,millisecond)';
+    const result = getEquationMetricsTotalFilter(equation);
+    expect(result).toBe(
+      '( metric.name:metricA metric.type:counter ) OR ( metric.name:metricB metric.type:distribution metric.unit:millisecond )'
+    );
+  });
+});
+
+describe('getAggregatesMetricsTotalFilter', () => {
+  it('does not filter by unit when an aggregate has a dash unit', () => {
+    const result = getAggregatesMetricsTotalFilter([
+      'p50(value,my_metric,distribution,-)',
+    ]);
+
+    expect(result).toBe('( metric.name:my_metric metric.type:distribution )');
+  });
+
+  it('merges identical filters when aggregates read the same metric', () => {
+    const result = getAggregatesMetricsTotalFilter([
+      'p50(value,my_metric,distribution,millisecond)',
+      'p95(value,my_metric,distribution,millisecond)',
+    ]);
+
+    expect(result).toBe(
+      '( metric.name:my_metric metric.type:distribution metric.unit:millisecond )'
+    );
+  });
+
+  it('does not filter by unit when an _if aggregate has a dash unit', () => {
+    const result = getAggregatesMetricsTotalFilter([
+      'sum_if(`status:error`,value,metricA,counter,-)',
+    ]);
+
+    expect(result).toBe('( metric.name:metricA metric.type:counter )');
+  });
+
+  it('filters by unit when aggregates have none or a specific unit', () => {
+    const result = getAggregatesMetricsTotalFilter([
+      'sum(value,metricA,counter,none)',
+      'avg(value,metricB,distribution,millisecond)',
+    ]);
+
+    expect(result).toBe(
+      '( metric.name:metricA metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) OR ( metric.name:metricB metric.type:distribution metric.unit:millisecond )'
+    );
+  });
+
+  it('skips aggregates that do not name a trace metric', () => {
+    const result = getAggregatesMetricsTotalFilter([
+      'count()',
+      'avg(value,metricB,distribution,millisecond)',
+    ]);
+
+    expect(result).toBe(
+      '( metric.name:metricB metric.type:distribution metric.unit:millisecond )'
     );
   });
 });

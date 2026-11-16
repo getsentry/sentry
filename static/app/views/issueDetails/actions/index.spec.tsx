@@ -195,6 +195,62 @@ describe('GroupActions', () => {
     });
   });
 
+  describe('impact assessment', () => {
+    const organizationWithImpactAssessment = OrganizationFixture({
+      ...organization,
+      features: ['seer-impact-assessment'],
+    });
+
+    it('is hidden without the feature', async () => {
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: /Assess impact/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('starts an impact assessment and shows the internal feature badge', async () => {
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/impact/assess/`,
+        method: 'POST',
+        body: {runId: '8a8551a0-2ace-4b70-ae23-1cc670df5abc'},
+      });
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization: organizationWithImpactAssessment,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(screen.getByLabelText('alpha')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /Assess impact/}));
+
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      expect(await screen.findByText('Impact assessment started')).toBeInTheDocument();
+    });
+
+    it('shows an error when the impact assessment cannot be started', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/impact/assess/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Internal error'},
+      });
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization: organizationWithImpactAssessment,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /Assess impact/}));
+
+      expect(
+        await screen.findByText('Unable to start impact assessment')
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('reprocessing', () => {
     it('renders ReprocessAction component if org has native exception event', async () => {
       const event = EventStacktraceExceptionFixture({

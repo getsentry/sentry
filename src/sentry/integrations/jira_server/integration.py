@@ -611,16 +611,19 @@ class JiraServerIntegration(IssueSyncIntegration):
     def get_group_description(
         self, group: Group, event: GroupEvent | None, **kwargs: object
     ) -> str:
-        output = [
-            "Sentry Issue: [{}|{}]".format(
-                group.qualified_short_id,
-                absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
-            )
-        ]
+        issue_link = self.format_link(
+            group.qualified_short_id or "an issue",
+            absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
+        )
+        output = [f"Sentry Issue: {issue_link}"]
         body = self.get_group_body(group, event)
         if body:
             output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
+
+    @staticmethod
+    def format_link(text: str, url: str) -> str:
+        return f"[{text}|{url}]"
 
     def get_issue_link_data(self, url: str) -> dict[str, str]:
         base_url = self.model.metadata["base_url"]
@@ -675,7 +678,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         except ApiError as e:
             self.raise_error(e)
 
-    def make_choices(self, values: Sequence[Mapping[str, Any]]) -> list[tuple[object, str]]:
+    def make_choices(self, values: Sequence[Mapping[str, Any]]) -> list[tuple[str | int, str]]:
         if not values:
             return []
         results = []
@@ -693,7 +696,8 @@ class JiraServerIntegration(IssueSyncIntegration):
                 value = item["label"]
             else:
                 continue
-            results.append((key, cast("str", value)))
+            # Jira gives every allowed value that has a name an ID.
+            results.append((cast("str | int", key), cast("str", value)))
         return results
 
     def error_message_from_json(self, data: Mapping[str, Any]) -> str:

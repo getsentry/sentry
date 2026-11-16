@@ -1,10 +1,19 @@
 import logging
+import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from unittest import mock
 
 import pytest
 
-from sentry.apidocs.formats import absolute_url, iso_datetime
+from sentry.apidocs.formats import (
+    absolute_url,
+    email_address,
+    hex_id,
+    iso_datetime,
+    numeric_id,
+    slug,
+    uuid_str,
+)
 
 
 def test_iso_datetime_returns_isoformat() -> None:
@@ -41,6 +50,81 @@ def test_absolute_url_accepts(url: str) -> None:
 def test_absolute_url_rejects(url: str) -> None:
     with pytest.raises(ValueError, match="no scheme or host"):
         absolute_url(url)
+
+
+def test_uuid_str_formats_a_uuid() -> None:
+    value = uuid.UUID("6a2c8b1e-5d4f-4c3b-9a8e-7f6d5c4b3a21")
+    assert uuid_str(value) == "6a2c8b1e-5d4f-4c3b-9a8e-7f6d5c4b3a21"
+
+
+@pytest.mark.parametrize(
+    "value", ["6a2c8b1e-5d4f-4c3b-9a8e-7f6d5c4b3a21", "6A2C8B1E-5D4F-4C3B-9A8E-7F6D5C4B3A21"]
+)
+def test_uuid_str_accepts(value: str) -> None:
+    assert uuid_str(value) == value
+
+
+@pytest.mark.parametrize(
+    "value", ["", "6a2c8b1e5d4f4c3b9a8e7f6d5c4b3a21", "6a2c8b1e-5d4f-4c3b-9a8e-7f6d5c4b3a21\n"]
+)
+def test_uuid_str_rejects(value: str) -> None:
+    with pytest.raises(ValueError, match="hyphenated UUID"):
+        uuid_str(value)
+
+
+def test_hex_id_accepts() -> None:
+    assert hex_id("9fac2ceed9344f2bbfdd1fdacb0ed9b1") == "9fac2ceed9344f2bbfdd1fdacb0ed9b1"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "",
+        "9FAC2CEED9344F2BBFDD1FDACB0ED9B1",
+        "9fac2cee-d934-4f2b-bfdd-1fdacb0ed9b1",
+        "9fac2ceed9344f2bbfdd1fdacb0ed9b",
+    ],
+)
+def test_hex_id_rejects(value: str) -> None:
+    with pytest.raises(ValueError, match="32 lowercase hex"):
+        hex_id(value)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"), [(1, "1"), (4505281256090153, "4505281256090153"), ("42", "42")]
+)
+def test_numeric_id_accepts(value: int | str, expected: str) -> None:
+    assert numeric_id(value) == expected
+
+
+@pytest.mark.parametrize("value", [-1, "", "abc", "1.5", "١"])
+def test_numeric_id_rejects(value: int | str) -> None:
+    with pytest.raises(ValueError, match="string of digits"):
+        numeric_id(value)
+
+
+@pytest.mark.parametrize("value", ["my-project", "my_project", "MyOrg", "123"])
+def test_slug_accepts(value: str) -> None:
+    assert slug(value) == value
+
+
+@pytest.mark.parametrize("value", ["", "my project", "my/project", "my.project"])
+def test_slug_rejects(value: str) -> None:
+    with pytest.raises(ValueError, match="letters, digits"):
+        slug(value)
+
+
+@pytest.mark.parametrize("value", ["user@example.com", "first.last+tag@sub.example.co.uk"])
+def test_email_address_accepts(value: str) -> None:
+    assert email_address(value) == value
+
+
+@pytest.mark.parametrize(
+    "value", ["", "user", "@example.com", "user@", "a@b@example.com", "user @example.com"]
+)
+def test_email_address_rejects(value: str) -> None:
+    with pytest.raises(ValueError, match="isn't an email address"):
+        email_address(value)
 
 
 def test_invalid_value_is_logged_outside_tests(caplog: pytest.LogCaptureFixture) -> None:

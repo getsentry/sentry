@@ -91,7 +91,6 @@ import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents'
 import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
-import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
 import {statsEventMap, type StatsEventParameters} from './analytics/statsAnalyticsEvents';
 import type {TempestEventParameters} from './analytics/tempestAnalyticsEvents';
 import {tempestEventMap} from './analytics/tempestAnalyticsEvents';
@@ -182,7 +181,6 @@ const allEventMap: Record<string, string | null> = {
   ...ecosystemEventMap,
   ...integrationEventMap,
   ...projectCreationEventMap,
-  ...starfishEventMap,
   ...signupEventMap,
   ...statsEventMap,
   ...quickStartEventMap,

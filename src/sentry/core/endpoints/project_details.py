@@ -25,7 +25,13 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectResponse, DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
@@ -38,13 +44,11 @@ from sentry.auth.principal import acting_user_id
 from sentry.constants import (
     PROJECT_SLUG_MAX_LENGTH,
     RESERVED_PROJECT_SLUGS,
-    SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
-from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
@@ -67,6 +71,7 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 from sentry.tasks.seer.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
 
@@ -397,12 +402,6 @@ E.g. `['release', 'environment']`""",
         required=False,
         help_text="ID of a project whose settings, teams, and keys should be copied into this one.",
     )
-    targetSampleRate = serializers.FloatField(
-        required=False,
-        min_value=0,
-        max_value=1,
-        help_text="Target proportion of transactions to retain, from `0` to `1`. Requires manual dynamic sampling mode.",
-    )
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(
         required=False,
         many=True,
@@ -599,24 +598,6 @@ E.g. `['release', 'environment']`""",
     def validate_safeFields(self, value: list[str]) -> list[str]:
         return validate_pii_selectors(value)
 
-    def validate_targetSampleRate(self, value: float) -> float:
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_custom_dynamic_sampling(organization, actor=actor):
-            raise serializers.ValidationError(
-                "Organization does not have the custom dynamic sample rate feature enabled."
-            )
-
-        if (
-            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-            != DynamicSamplingMode.PROJECT.value
-        ):
-            raise serializers.ValidationError(
-                "Must enable Manual Mode to configure project sample rates."
-            )
-
-        return value
-
     def validate_tempestFetchScreenshots(self, value: bool) -> bool:
         organization = self.context["project"].organization
         if not has_tempest_access(organization):
@@ -690,6 +671,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         request=None,
         responses={
             200: DetailedProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -740,8 +722,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         request=ProjectAdminSerializer,
         responses={
             200: DetailedProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
         },
         examples=ProjectExamples.DETAILED_PROJECT,
     )
@@ -967,13 +951,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:enable_native_source_server_mapping"] = result[
                     "enableNativeSourceServerMapping"
                 ]
-        if result.get("targetSampleRate") is not None:
-            if project.update_option(
-                "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
-            ):
-                changed_proj_settings["sentry:target_sample_rate"] = round(
-                    result["targetSampleRate"], 4
-                )
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
@@ -1437,7 +1414,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if project.get_option("sentry:similarity_backfill_completed"):
+            if project_uses_seer_similarity(project):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)

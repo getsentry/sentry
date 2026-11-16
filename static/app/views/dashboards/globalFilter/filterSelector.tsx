@@ -1,7 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
-import * as Sentry from '@sentry/react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
@@ -278,15 +277,15 @@ export function FilterSelector({
 
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
-    const addOption = (value: string, map: Map<string, SelectOption<string>>) => {
-      if (typeof value !== 'string') {
-        Sentry.withScope(scope => {
-          scope.setExtra('value', value);
-          scope.setExtra('filterKey', globalFilter.tag.key);
-          Sentry.captureException(
-            new Error('Dashboard filter addOption received a non-string value')
-          );
-        });
+    const addOption = (rawValue: unknown, map: Map<string, SelectOption<string>>) => {
+      // Coerce non-string primitives (e.g. numeric tag values returned by the API) to strings.
+      const value =
+        typeof rawValue === 'string'
+          ? rawValue
+          : typeof rawValue === 'number' || typeof rawValue === 'boolean'
+            ? String(rawValue)
+            : '';
+      if (!value) {
         return;
       }
       const option: SelectOption<string> = {
@@ -344,7 +343,6 @@ export function FilterSelector({
     stagedFilterValues,
     searchQuery,
     canSelectMultipleValues,
-    globalFilter.tag.key,
     stagedOperator,
   ]);
 
@@ -619,7 +617,10 @@ const translateKnownFilterOptions = (
   const key = globalFilter.tag.key;
   const dataset = globalFilter.dataset;
 
-  if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
+  if (
+    key === SpanFields.USER_GEO_SUBREGION &&
+    (dataset === WidgetType.SPANS || dataset === WidgetType.TRACEMETRICS)
+  ) {
     return options.map(option => {
       const translatedLabel =
         subregionCodeToName[option.value as SubregionCode] || option.label;

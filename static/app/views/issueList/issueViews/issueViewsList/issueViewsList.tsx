@@ -14,7 +14,6 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -22,6 +21,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -200,7 +200,7 @@ function IssueViewSection({
         hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />
       <Pagination
-        pageLinks={pageLinks}
+        {...getPaginationProps(pageLinks)}
         onCursor={newCursor => {
           setCursor(newCursor ?? null);
         }}
@@ -367,16 +367,7 @@ export default function IssueViewsList() {
           name="breadcrumbs"
           title={{type: 'page-title', label: t('All Views')}}
         />
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            size="sm"
-            feedbackOptions={issueViewsFeedbackOptions}
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
+        <TopBar.Slot name="feedback" feedbackOptions={issueViewsFeedbackOptions} />
         <Layout.Body>
           <MainTableLayout>
             <Grid align="center" gap="md" columns="1fr auto">

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import {IconClock} from '@sentry/icons/clock';
 import {IconTimer} from '@sentry/icons/timer';
@@ -44,7 +44,12 @@ import {
 } from './globalFilter/utils';
 import {useDashboardChartInterval} from './hooks/useDashboardChartInterval';
 import {useDashboardMaxPickableDays} from './hooks/useDashboardMaxPickableDays';
-import {useDashboardQueryPriority} from './hooks/useDashboardQueryPriority';
+import {
+  enqueueDashboardWrite,
+  isSavedDashboardId,
+  useDashboardQueryPriority,
+  useSaveDashboardQueryPriority,
+} from './hooks/useDashboardQueryPriority';
 import {useDatasetSearchBarData} from './hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from './hooks/useInvalidateStarredDashboards';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
@@ -58,6 +63,7 @@ import type {
   DashboardDetails,
   DashboardFilters,
   DashboardPermissions,
+  DashboardQueryPriority,
   GlobalFilter,
 } from './types';
 import {DashboardFilterKeys} from './types';
@@ -75,6 +81,7 @@ export type FiltersBarProps = {
   dashboardPermissions?: DashboardPermissions;
   onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onCancel?: () => void;
+  onDashboardQueryPrioritySaved?: (dashboard: DashboardDetails) => void;
   onSave?: () => Promise<void>;
   prebuiltDashboardId?: PrebuiltDashboardId;
   shouldBusySaveButton?: boolean;
@@ -93,6 +100,7 @@ export function FiltersBar({
   location,
   onCancel,
   onDashboardFilterChange,
+  onDashboardQueryPrioritySaved,
   onSave,
   shouldBusySaveButton,
   prebuiltDashboardId,
@@ -220,15 +228,66 @@ export function FiltersBar({
   );
   const tagKeysInMultipleDatasets = getTagKeysInMultipleDatasets(visibleGlobalFilters);
 
-  const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
+  const [chartInterval, setChartInterval, intervalOptions] = useDashboardChartInterval();
   const {
     enabled: showQueryPriority,
     options: queryPriorityOptions,
     priority,
     setPriority,
-  } = useDashboardQueryPriority();
+  } = useDashboardQueryPriority(dashboard?.queryPriority);
+  const {mutateAsync: saveQueryPriority} = useSaveDashboardQueryPriority();
+  // Bumps when the selection is replaced, so an older request does not start
+  // or update the page. Unmount is separate: the write still goes out, but
+  // its result must not land on whatever page is open now.
+  const queryPrioritySaveId = useRef(0);
+  const queryPriorityUnmounted = useRef(false);
+  useEffect(
+    () => () => {
+      queryPriorityUnmounted.current = true;
+    },
+    []
+  );
+  const handleQueryPriorityChange = (value: DashboardQueryPriority) => {
+    const previous = priority;
+    setPriority(value);
+    // Viewers can still change the selection for this visit. Only an editor
+    // of a saved dashboard writes it back.
+    if (!hasEditAccess || isPreview || !dashboard || !isSavedDashboardId(dashboard.id)) {
+      return;
+    }
+    // Compare the selection the user already sees. Props can still hold the
+    // previous saved value after a save finishes, and using them would skip
+    // the write that puts the old value back.
+    if (previous === value) {
+      return;
+    }
+    const saveId = ++queryPrioritySaveId.current;
+    const dashboardId = dashboard.id;
+    enqueueDashboardWrite(async () => {
+      if (saveId !== queryPrioritySaveId.current) {
+        return;
+      }
+      try {
+        const updated = await saveQueryPriority({dashboardId, queryPriority: value});
+        if (
+          updated &&
+          saveId === queryPrioritySaveId.current &&
+          !queryPriorityUnmounted.current
+        ) {
+          onDashboardQueryPrioritySaved?.(updated);
+        }
+      } catch {
+        // The mutation already reports the error. Put the dropdown back only
+        // when the failed selection is still the one on screen.
+        if (saveId === queryPrioritySaveId.current && !queryPriorityUnmounted.current) {
+          setPriority(previous);
+        }
+      }
+    });
+  };
   const queryPriorityLabel =
-    queryPriorityOptions.find(option => option.value === priority)?.label ?? t('Normal');
+    queryPriorityOptions.find(option => option.value === priority)?.label ??
+    t('Balanced Querying');
   return (
     <Flex
       align={{zero: 'stretch', xl: 'start'}}
@@ -390,24 +449,24 @@ export function FiltersBar({
         {showQueryPriority && (
           <CompactSelect
             value={priority}
-            onChange={option => setPriority(option.value)}
+            onChange={option => handleQueryPriorityChange(option.value)}
             trigger={triggerProps => (
               <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconTimer />}
-                aria-label={t('Query priority: %s', queryPriorityLabel)}
+                aria-label={t('Query Speed: %s', queryPriorityLabel)}
               >
                 {queryPriorityLabel}
               </OverlayTrigger.Button>
             )}
-            menuTitle={t('Query priority')}
+            menuTitle={t('Query Speed')}
             menuWidth={240}
             options={queryPriorityOptions}
           />
         )}
         <CompactSelect
-          value={interval}
-          onChange={option => setInterval(option.value)}
+          value={chartInterval}
+          onChange={option => setChartInterval(option.value)}
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} icon={<IconClock />} />
           )}

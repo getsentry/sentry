@@ -57,7 +57,7 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
             )
 
         if data.show_investigation_button and (
-            investigation_action := cls._get_investigation_action(data)
+            investigation_action := cls._get_investigation_action(data, link_decorator)
         ):
             button = BlockSlackMessageBuilder.get_button_action(investigation_action)
             blocks.append({"type": "actions", "elements": [button]})
@@ -93,9 +93,19 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         return renderable
 
     @staticmethod
-    def _get_investigation_action(data: MetricAlertNotificationData) -> MessageAction | None:
+    def _get_investigation_action(
+        data: MetricAlertNotificationData, link_decorator: NotificationLinkDecorator
+    ) -> MessageAction | None:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
+
+        if data.investigation_url:
+            return MessageAction(
+                name="open_investigation",
+                label="Open Investigation",
+                url=link_decorator.decorate_url(data.investigation_url),
+                action_id="link_clicked",
+            )
 
         try:
             group = Group.objects.get_from_cache(id=data.group_id)

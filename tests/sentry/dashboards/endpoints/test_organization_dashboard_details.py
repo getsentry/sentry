@@ -167,11 +167,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
 
-    def test_features_required(self) -> None:
-        with self.feature({"organizations:dashboards-basic": False}):
-            response = self.do_request("get", self.url(self.dashboard.id))
-            assert response.status_code == 404
-
     def test_dashboard_widget_returns_limit(self) -> None:
         response = self.do_request("get", self.url(self.dashboard.id))
         assert response.status_code == 200, response.content
@@ -817,11 +812,6 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 204
         assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
 
-    def test_features_required(self) -> None:
-        with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request("delete", self.url(self.dashboard.id))
-            assert response.status_code == 404
-
     def test_delete_dashboard_with_edit_permissions_not_granted(self) -> None:
         creator = self.create_user()
         dashboard = Dashboard.objects.create(
@@ -995,13 +985,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(1234567890))
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
-
-    def test_feature_required(self) -> None:
-        with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
-            )
-            assert response.status_code == 404, response.data
 
     def test_change_dashboard_title(self) -> None:
         with outbox_runner():
@@ -4997,19 +4980,6 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 204, response.content
         assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
         assert not DashboardLastVisited.objects.filter(dashboard=self.dashboard).exists()
-
-    def test_visit_dashboard_no_access(self) -> None:
-        last_visited = self.dashboard.last_visited
-        assert self.dashboard.visits == 1
-
-        with self.feature({"organizations:dashboards-edit": False}):
-            response = self.do_request("post", self.url(self.dashboard.id))
-
-        assert response.status_code == 404
-
-        dashboard = Dashboard.objects.get(id=self.dashboard.id)
-        assert dashboard.visits == 1
-        assert dashboard.last_visited == last_visited
 
 
 class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):

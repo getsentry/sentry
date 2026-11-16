@@ -38,7 +38,7 @@ describe('useAddMetricToDashboard', () => {
     jest.clearAllMocks();
   });
 
-  it('keeps each metric widget paired with its pipelines when saving all metrics', () => {
+  it('keeps each metric widget paired with its transformations when saving all metrics', () => {
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
       mode: Mode.AGGREGATE,

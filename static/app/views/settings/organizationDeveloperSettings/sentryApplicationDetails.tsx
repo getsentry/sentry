@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {createSerializer, parseAsString, useQueryStates} from 'nuqs';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -22,7 +24,6 @@ import {
   sentryAppTokensApiOptions,
 } from 'sentry/actionCreators/sentryApps';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
-import {Confirm} from 'sentry/components/confirm';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -45,7 +46,6 @@ import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {selectText} from 'sentry/utils/selectText';
@@ -570,21 +570,27 @@ const TEMPLATE_FORMS: Record<string, React.ComponentType> = {
   'claude-routine': ClaudeRoutineTemplateForm,
 };
 
+const templateQueryParsers = {
+  template: parseAsString,
+  referrer: parseAsString,
+};
+
+const serializeTemplateQuery = createSerializer(templateQueryParsers);
+
 export default function SentryApplicationDetails() {
   const location = useLocation();
   const {appSlug} = useParams<{appSlug: string}>();
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const [templateQuery] = useQueryStates(templateQueryParsers);
 
   const isInternalRoute = location.pathname.endsWith('new-internal/');
   const isPublicRoute = location.pathname.endsWith('new-public/');
 
-  const templateSlug = isInternalRoute
-    ? decodeScalar(location.query.template)
-    : undefined;
+  const templateSlug = isInternalRoute ? templateQuery.template : undefined;
   const template = getSentryAppTemplates().find(entry => entry.slug === templateSlug);
   const templateFormSlug = template?.slug;
-  const referrer = decodeScalar(location.query.referrer);
+  const referrer = templateQuery.referrer || undefined;
 
   useEffect(() => {
     if (templateFormSlug && TEMPLATE_FORMS[templateFormSlug]) {
@@ -664,7 +670,7 @@ function TemplateHeader({template}: {template: SentryAppTemplate}) {
           <Link
             to={{
               pathname: `/settings/${organization.slug}/developer-settings/new-internal/`,
-              query: {...location.query, template: undefined},
+              search: serializeTemplateQuery(location.search, {template: null}),
             }}
           >
             {t('Start from a blank integration instead')}

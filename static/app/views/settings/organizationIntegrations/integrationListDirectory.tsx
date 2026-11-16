@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {useSearchParams} from 'react-router';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
+import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
@@ -42,9 +42,6 @@ import {
   sortIntegrations,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
@@ -108,8 +105,7 @@ function useIntegrationPages<T>(
 function useIntegrationList() {
   const queryOptions = {staleTime: 0};
   const organization = useOrganization();
-  const [searchParams] = useSearchParams();
-  const extraAppSlug = searchParams.get('extra_app');
+  const [extraAppSlug] = useQueryState('extra_app', parseAsString);
   const isExtraAppEnabled = !!extraAppSlug;
 
   const {
@@ -238,8 +234,10 @@ function useIntegrationList() {
 export default function IntegrationListDirectory() {
   const title = t('Integrations');
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [{category, search}, setQueryParams] = useQueryStates({
+    category: parseAsString.withDefault(''),
+    search: parseAsString.withDefault(''),
+  });
   const {
     appInstalls,
     anyPending,
@@ -249,9 +247,6 @@ export default function IntegrationListDirectory() {
     publishedApps,
     legacyWebhooks,
   } = useIntegrationList();
-
-  const category = decodeScalar(location.query.category) ?? '';
-  const search = decodeScalar(location.query.search) ?? '';
 
   const legacyWebhookProjectCount = legacyWebhooks?.projects?.length ?? 0;
 
@@ -274,12 +269,7 @@ export default function IntegrationListDirectory() {
 
   const onCategoryChange = useCallback(
     ({value: newCategory}: SelectOption<string>) => {
-      navigate(
-        {
-          query: {...location.query, category: newCategory ? newCategory : undefined},
-        },
-        {replace: true}
-      );
+      setQueryParams({category: newCategory});
       if (newCategory) {
         trackIntegrationAnalytics('integrations.directory_category_selected', {
           view: 'integrations_directory',
@@ -288,17 +278,12 @@ export default function IntegrationListDirectory() {
         });
       }
     },
-    [location, navigate, organization]
+    [setQueryParams, organization]
   );
 
   const onSearchChange = useCallback(
     (newSearch: string) => {
-      navigate(
-        {
-          query: {...location.query, search: newSearch ? newSearch : undefined},
-        },
-        {replace: true}
-      );
+      setQueryParams({search: newSearch});
       if (newSearch) {
         trackIntegrationAnalytics('integrations.directory_item_searched', {
           view: 'integrations_directory',
@@ -309,7 +294,7 @@ export default function IntegrationListDirectory() {
         });
       }
     },
-    [location, navigate, organization, list, category, legacyWebhooks]
+    [setQueryParams, organization, list, category, legacyWebhooks]
   );
 
   /**

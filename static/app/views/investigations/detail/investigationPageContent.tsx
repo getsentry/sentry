@@ -13,7 +13,6 @@ import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct, tn} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -214,6 +213,7 @@ export function InvestigationPageContent({
   title: InvestigationTitle;
 }) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const composerRef = useRef<HTMLDivElement>(null);
   const activityRef = useRef<HTMLElement>(null);
   const {data: comments} = useInvestigationComments(investigation.id, {
@@ -222,6 +222,11 @@ export function InvestigationPageContent({
   const commentCount = comments?.json.length ?? 0;
   const hasMoreComments =
     parseLinkHeader(comments?.headers.Link ?? null).next?.results === true;
+  const commentsLabel = hasMoreComments
+    ? t('%s+ comments', commentCount)
+    : commentCount > 0
+      ? tn('%s comment', '%s comments', commentCount)
+      : t('Comment');
   const isArchived = investigation.status === 'archived';
   const {data: commentCounts} = useQuery({
     ...investigationCommentCountsQueryOptions(organization.slug, investigation.id),
@@ -243,6 +248,21 @@ export function InvestigationPageContent({
   if (recheckRunWait.waiting && isRunLive(orchestration)) {
     recheckRunWait.stop();
   }
+  // A run waiting on a person stops this page polling, and answering it only
+  // moves the projection. Once the run is past the wait, re-read the
+  // investigation so the notebook polls again while Seer writes it.
+  const runLeftAwaitingInput =
+    investigation.orchestration?.status === 'awaiting_input' &&
+    orchestration !== undefined &&
+    orchestration.status !== 'awaiting_input';
+  useEffect(() => {
+    if (runLeftAwaitingInput) {
+      void queryClient.invalidateQueries({
+        queryKey: getInvestigationDetailQueryOptions(organization.slug, investigation.id)
+          .queryKey,
+      });
+    }
+  }, [investigation.id, organization.slug, queryClient, runLeftAwaitingInput]);
   const actionRequestsStale = useRefetchStaleActionRequests(
     investigation.id,
     orchestration,
@@ -309,6 +329,21 @@ export function InvestigationPageContent({
           },
         })
     : undefined;
+  const askSeerAboutHypotheses = askSeer
+    ? (hypotheses: InvestigationHypothesis[]) =>
+        askSeer({
+          prompt: t('What would you like to know about these hypotheses?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            hypotheses: hypotheses.map(hypothesis =>
+              getHypothesisLLMContext(
+                hypothesis,
+                hypothesis.id === orchestration?.report.primaryHypothesisId
+              )
+            ),
+          },
+        })
+    : undefined;
   const outline = getInvestigationOutline({
     blocks: visibleBlocks,
     hasActivity: showActivity,
@@ -346,77 +381,58 @@ export function InvestigationPageContent({
               </Flex>
             ) : null}
           </Grid>
-          <Flex align="center" justify="between" gap="md">
-            <Flex flex="1" minWidth={0} align="center" gap="sm" wrap="wrap">
-              {source.groupId ? (
-                <Link
-                  to={normalizeUrl(
-                    `/organizations/${organization.slug}/issues/${source.groupId}/`
-                  )}
-                >
-                  <Flex as="span" align="center" gap="xs">
-                    <IconIssues size="xs" />
-                    {source.monitorName ?? t('View issue')}
-                  </Flex>
-                </Link>
-              ) : (
-                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
-              )}
-              <MetaDivider />
-              <Text variant="muted">
-                {tct('Last update: [date]', {
-                  date: <DateTime date={investigation.dateUpdated} year />,
-                })}
-              </Text>
-              {!showActivity ||
-              (investigation.status === 'archived' && commentCount === 0) ? null : (
-                <Fragment>
-                  <MetaDivider />
-                  <Button
-                    size="sm"
-                    variant="link"
-                    icon={<IconChat size="xs" />}
-                    onClick={() => {
-                      if (investigation.status === 'archived') {
-                        activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
-                        return;
-                      }
-                      composerRef.current?.scrollIntoView?.({
-                        block: 'center',
-                        behavior: 'smooth',
-                      });
-                      composerRef.current?.focus({preventScroll: true});
-                    }}
-                  >
-                    {hasMoreComments
-                      ? t('%s+ comments', commentCount)
-                      : commentCount > 0
-                        ? tn('%s comment', '%s comments', commentCount)
-                        : t('Comment')}
-                  </Button>
-                </Fragment>
-              )}
-              <InvestigationViewers
-                investigationId={investigation.id}
-                separator={<MetaDivider />}
-              />
-            </Flex>
-            <Container flexShrink={0}>
-              <FeedbackButton
-                feedbackOptions={{
-                  formTitle: t('Give feedback on this investigation'),
-                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
-                  tags: {
-                    'feedback.source': 'investigation',
-                    'feedback.owner': 'ml-ai',
-                    'investigation.id': investigation.id,
-                    'investigation.source_type': investigation.sourceType,
-                  },
-                }}
+          <Flex minWidth={0} align="center" gap="sm" wrap="wrap">
+            {source.groupId ? (
+              <Link
+                to={normalizeUrl(
+                  `/organizations/${organization.slug}/issues/${source.groupId}/`
+                )}
               >
-                {t('Give feedback')}
-              </FeedbackButton>
-            </Container>
+                <Flex as="span" align="center" gap="xs">
+                  <IconIssues size="xs" />
+                  {source.monitorName ?? t('View issue')}
+                </Flex>
+              </Link>
+            ) : (
+              <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
+            )}
+            <MetaDivider />
+            <Text variant="muted">
+              {tct('Last update: [date]', {
+                date: <DateTime date={investigation.dateUpdated} year />,
+              })}
+            </Text>
+            {!showActivity ||
+            (investigation.status === 'archived' && commentCount === 0) ? null : (
+              <Fragment>
+                <MetaDivider />
+                <Button
+                  size="sm"
+                  variant="link"
+                  icon={<IconChat size="xs" />}
+                  aria-label={commentsLabel}
+                  onClick={() => {
+                    if (investigation.status === 'archived') {
+                      activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
+                      return;
+                    }
+                    composerRef.current?.scrollIntoView?.({
+                      block: 'center',
+                      behavior: 'smooth',
+                    });
+                    composerRef.current?.focus({preventScroll: true});
+                  }}
+                >
+                  <CommentCount>
+                    {hasMoreComments ? `${commentCount}+` : commentCount}
+                  </CommentCount>
+                </Button>
+              </Fragment>
+            )}
+            <InvestigationViewers
+              investigationId={investigation.id}
+              separator={<MetaDivider />}
+            />
           </Flex>
         </Stack>
       </Container>
@@ -484,6 +500,7 @@ export function InvestigationPageContent({
                         phase={investigation.orchestration.phase}
                         status={investigation.orchestration.status}
                         onAskSeer={askSeerAboutHypothesis}
+                        onAskSeerAboutHypotheses={askSeerAboutHypotheses}
                       />
                     ) : null}
                     <AnchoredActionRequests
@@ -638,4 +655,14 @@ const DetailsBody = styled(Stack)`
 const MetaDivider = styled('span')`
   height: 16px;
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
+/**
+ * Digits have no descenders, so the line box's descender room pushes a
+ * centered number above the icon. Trimming to the cap height and baseline
+ * centers the glyphs themselves.
+ */
+const CommentCount = styled('span')`
+  text-box-edge: cap alphabetic;
+  text-box-trim: trim-both;
 `;

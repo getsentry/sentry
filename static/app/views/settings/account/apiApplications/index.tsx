@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {IconAdd} from '@sentry/icons/add';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -16,9 +16,9 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {ApiApplication} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -26,6 +26,10 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {Row} from './row';
 
 const ROUTE_PREFIX = '/settings/account/api/';
+
+const applicationsOptions = apiOptions.as<ApiApplication[]>()('/api-applications/', {
+  staleTime: 0,
+});
 
 export default function ApiApplications() {
   const {openModal} = useModal();
@@ -41,10 +45,7 @@ export default function ApiApplications() {
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<ApiApplication[]>([ENDPOINT], {
-    staleTime: 0,
-    enabled: !isDemoModeActive(),
-  });
+  } = useQuery({...applicationsOptions, enabled: !isDemoModeActive()});
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -86,8 +87,10 @@ export default function ApiApplications() {
   };
 
   const handleRemoveApplication = (app: ApiApplication) => {
-    setApiQueryData<any>(queryClient, [ENDPOINT], (oldAppList: any) =>
-      oldAppList.filter((a: any) => a.id !== app.id)
+    queryClient.setQueryData(applicationsOptions.queryKey, response =>
+      response
+        ? {...response, json: response.json.filter(a => a.id !== app.id)}
+        : response
     );
   };
 

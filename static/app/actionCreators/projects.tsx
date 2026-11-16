@@ -12,35 +12,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
-type UpdateParams = {
-  orgId: string;
-  projectId: string;
-  data?: Record<string, any>;
-};
-
-export function update(api: Client, params: UpdateParams) {
-  const endpoint = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-    path: {
-      organizationIdOrSlug: params.orgId,
-      projectIdOrSlug: params.projectId,
-    },
-  });
-  return api
-    .requestPromise(endpoint, {
-      method: 'PUT',
-      data: params.data,
-    })
-    .then(
-      data => {
-        ProjectsStore.onUpdateSuccess(data);
-        return data;
-      },
-      (err: Error) => {
-        throw err;
-      }
-    );
-}
-
 export function transferProject(
   api: Client,
   orgId: string,

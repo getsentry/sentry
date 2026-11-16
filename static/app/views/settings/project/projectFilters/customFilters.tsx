@@ -10,6 +10,7 @@ import startCase from 'lodash/startCase';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -23,7 +24,6 @@ import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -58,13 +58,54 @@ import {
 
 // Values a condition shows in the table before the rest fold into a count.
 const MAX_VISIBLE_VALUES = 3;
+// Values the tooltip of that count lists before it points at the editor, which
+// shows them all. A tooltip cannot scroll, so a long list would cover the page.
+const MAX_TOOLTIP_VALUES = 10;
+const VALUE_TOOLTIP_WIDTH = 360;
 
+// A value laid out for a tooltip: left aligned, since a centered pattern that
+// wraps is hard to read. It fills the tooltip width so that a long pattern
+// without spaces breaks at the edge instead of running past it.
+function ValueText({value}: {value: string}) {
+  return (
+    <Text monospace size="sm" align="left" display="block">
+      {value}
+    </Text>
+  );
+}
+
+function ValueList({values, total}: {total: number; values: string[]}) {
+  return (
+    <Stack gap="xs">
+      {values.map((value, index) => (
+        <ValueText key={index} value={value} />
+      ))}
+      {total > values.length && (
+        <Text size="sm" variant="muted" align="left">
+          {t(
+            'Showing %s of %s. Edit the filter to see every value.',
+            values.length,
+            total
+          )}
+        </Text>
+      )}
+    </Stack>
+  );
+}
+
+// A value shrinks to its cell and shows the whole pattern on hover when cut.
 function ValueTag({value}: {value: string}) {
   return (
     <Tag variant="muted">
-      <Text monospace size="sm">
+      <InfoText
+        mode="overflowOnly"
+        title={<ValueText value={value} />}
+        maxWidth={VALUE_TOOLTIP_WIDTH}
+        monospace
+        size="sm"
+      >
         {value}
-      </Text>
+      </InfoText>
     </Tag>
   );
 }
@@ -106,14 +147,12 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
           <Tag variant="muted">
             <InfoText
               size="sm"
+              maxWidth={VALUE_TOOLTIP_WIDTH}
               title={
-                <Stack align="start" gap="xs">
-                  {hidden.map((value, index) => (
-                    <Text key={index} monospace size="sm">
-                      {value}
-                    </Text>
-                  ))}
-                </Stack>
+                <ValueList
+                  values={hidden.slice(0, MAX_TOOLTIP_VALUES)}
+                  total={hidden.length}
+                />
               }
             >
               {tn('%s more', '%s more', hidden.length)}
@@ -590,7 +629,7 @@ export function CustomFilters({project}: {project: Project}) {
                     </Text>
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
-                    <Stack align="start" gap="xs">
+                    <Stack gap="xs" minWidth="0">
                       {filter.conditions.map((condition, index) => (
                         <ConditionSummary key={index} condition={condition} />
                       ))}

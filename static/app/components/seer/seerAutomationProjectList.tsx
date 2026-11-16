@@ -1,7 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
-import {useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -28,7 +28,7 @@ import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -128,13 +128,32 @@ function getSeerDropdownLabel(key: string) {
 
 export function SeerAutomationProjectList() {
   const organization = useOrganization();
-  const api = useApi({persistInFlight: true});
   const {projects, fetching, fetchError} = useProjects();
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+
+  const {mutateAsync: updateProject} = useMutation({
+    mutationFn: ({
+      projectSlug,
+      data,
+    }: {
+      data: Record<string, unknown>;
+      projectSlug: string;
+    }) =>
+      fetchMutation({
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+          },
+        }),
+        method: 'PUT',
+        data,
+      }),
+  });
 
   const filteredProjects = useMemo(() => {
     return projects.filter(
@@ -236,18 +255,7 @@ export function SeerAutomationProjectList() {
               updateData.seerScannerAutomation = true;
             }
 
-            return api.requestPromise(
-              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }),
-              {
-                method: 'PUT',
-                data: updateData,
-              }
-            );
+            return updateProject({projectSlug: project.slug, data: updateData});
           })
         );
       }
@@ -285,18 +293,10 @@ export function SeerAutomationProjectList() {
             if (!project) {
               return Promise.resolve();
             }
-            return api.requestPromise(
-              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }),
-              {
-                method: 'PUT',
-                data: {seerScannerAutomation: value},
-              }
-            );
+            return updateProject({
+              projectSlug: project.slug,
+              data: {seerScannerAutomation: value},
+            });
           })
         );
       }

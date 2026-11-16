@@ -70,6 +70,7 @@ EXPOSABLE_FEATURES = [
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
     "projects:relay-nintendo-event-rewrite",
+    "projects:relay-unreal-crash-context-stacktrace",
     "projects:relay-upload-multipart",
     "projects:resumable-uploads",
 ]

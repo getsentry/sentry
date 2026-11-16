@@ -1,7 +1,8 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface UseTransactionProps {
   event_id: string;
@@ -10,28 +11,21 @@ interface UseTransactionProps {
 }
 
 export function useTransaction(props: UseTransactionProps) {
-  return useApiQuery<EventTransaction>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
-        {
-          path: {
-            organizationIdOrSlug: props.organization.slug,
-            projectIdOrSlug: props.project_slug,
-            eventId: props.event_id,
-          },
-        }
-      ),
+  return useQuery({
+    ...apiOptions.as<EventTransaction>()(
+      '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
       {
+        path: {
+          organizationIdOrSlug: props.organization.slug,
+          projectIdOrSlug: props.project_slug,
+          eventId: props.event_id,
+        },
         query: {
           referrer: 'trace-details-summary',
         },
-      },
-    ],
-    {
-      // 10 minutes
-      staleTime: 1000 * 60 * 10,
-      enabled: !!props.project_slug && !!props.event_id,
-    }
-  );
+        staleTime: 1000 * 60 * 10,
+      }
+    ),
+    enabled: !!props.project_slug && !!props.event_id,
+  });
 }

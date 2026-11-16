@@ -278,7 +278,9 @@ def get_merged_settings(
     # If feature flag is disabled, always use LEGACY mode because we can't decide check the feature
     # flag without a Project.
     # TODO: WFE config should fall back to DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS without a Project.
-    if not project or not features.has("projects:workflow-engine-performance-detectors", project):
+    if settings_mode != SettingsMode.LEGACY and (
+        not project or not features.has("projects:workflow-engine-performance-detectors", project)
+    ):
         settings_mode = SettingsMode.LEGACY
 
     if settings_mode == SettingsMode.LEGACY:
@@ -791,6 +793,7 @@ def run_detector_on_data(detector: PerformanceDetector, data: dict[str, Any]) ->
         detector.visit_span(span)
 
     detector.on_complete()
+    detector.log_duplicate_fingerprints()
 
 
 def build_tree(spans: Sequence[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:

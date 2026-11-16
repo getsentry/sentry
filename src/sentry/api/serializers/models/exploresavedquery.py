@@ -1,11 +1,12 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Literal, TypedDict, cast
+from typing import Annotated, Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.principal import has_user
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.explore.models import (
@@ -27,87 +28,144 @@ ExploreSavedQueryMode = Literal["samples", "aggregate"]
 
 
 class MetricResponseTypeOptional(TypedDict, total=False):
-    unit: str | None
+    unit: Annotated[str | None, ApiDescription("Unit of the metric. Null when it has none")]
 
 
 class MetricResponseType(MetricResponseTypeOptional):
-    name: str
-    type: Literal["counter", "gauge", "distribution"]
+    name: Annotated[str, ApiDescription("Name of the metric")]
+    type: Annotated[
+        Literal["counter", "gauge", "distribution"], ApiDescription("Type of the metric")
+    ]
 
 
 class VisualizeResponseTypeOptional(TypedDict, total=False):
-    chartType: int
-    transformations: list[str]
+    chartType: Annotated[int, ApiDescription("Chart type used to plot the aggregates")]
+    transformations: Annotated[
+        list[str], ApiDescription("Transformations applied to the plotted series")
+    ]
 
 
 class VisualizeResponseType(VisualizeResponseTypeOptional):
-    yAxes: list[str]
+    yAxes: Annotated[list[str], ApiDescription("Aggregates to plot")]
 
 
 class AggregateFieldResponseType(TypedDict, total=False):
-    chartType: int
-    yAxes: list[str]
-    groupBy: str
-    transformations: list[str]
+    chartType: Annotated[int, ApiDescription("Chart type used to plot the aggregates")]
+    yAxes: Annotated[list[str], ApiDescription("Aggregates to plot")]
+    groupBy: Annotated[str, ApiDescription("Field to group the aggregates by")]
+    transformations: Annotated[
+        list[str], ApiDescription("Transformations applied to the plotted series")
+    ]
 
 
 class QueryResponseTypeOptional(TypedDict, total=False):
-    fields: list[str] | None
-    orderby: str | None
-    groupby: list[str] | None
-    query: str | None
-    visualize: list[VisualizeResponseType] | None
-    aggregateField: list[AggregateFieldResponseType] | None
-    aggregateOrderby: str | None
-    metric: MetricResponseType | None
-    caseInsensitive: bool
+    fields: Annotated[list[str] | None, ApiDescription("Fields shown in the samples table")]
+    orderby: Annotated[str | None, ApiDescription("Field the samples are sorted by")]
+    groupby: Annotated[list[str] | None, ApiDescription("Fields the aggregates are grouped by")]
+    query: Annotated[str | None, ApiDescription("Search query that filters the results")]
+    visualize: Annotated[
+        list[VisualizeResponseType] | None, ApiDescription("Charts shown for the query")
+    ]
+    aggregateField: Annotated[
+        list[AggregateFieldResponseType] | None,
+        ApiDescription("Aggregates and group-by fields shown in aggregate mode"),
+    ]
+    aggregateOrderby: Annotated[
+        str | None, ApiDescription("Field the aggregate results are sorted by")
+    ]
+    metric: Annotated[
+        MetricResponseType | None, ApiDescription("Metric the query reads, for metric queries")
+    ]
+    caseInsensitive: Annotated[bool, ApiDescription("Whether the search query ignores letter case")]
 
 
 class QueryResponseType(QueryResponseTypeOptional):
-    mode: ExploreSavedQueryMode
+    mode: Annotated[
+        ExploreSavedQueryMode, ApiDescription("Whether the query shows samples or aggregates")
+    ]
 
 
 class CrossEventResponseTypeOptional(TypedDict, total=False):
-    metric: MetricResponseType | None
+    metric: Annotated[
+        MetricResponseType | None,
+        ApiDescription("Metric the cross-event query reads, for metric queries"),
+    ]
 
 
 class CrossEventResponseType(CrossEventResponseTypeOptional):
-    query: str
-    type: Literal["spans", "logs", "metrics"]
+    query: Annotated[str, ApiDescription("Search query of the cross-event query")]
+    type: Annotated[
+        Literal["spans", "logs", "metrics"],
+        ApiDescription("Event type the cross-event query targets"),
+    ]
 
 
 class ExploreSavedQueryResponseOptional(TypedDict, total=False):
-    environment: list[str]
-    query: list[QueryResponseType]
-    statsPeriod: str
-    start: str
-    end: str
-    interval: str
-    crossEvents: list[CrossEventResponseType]
-    agent: list[str]
-    errorsOnly: bool
+    environment: Annotated[list[str], ApiDescription("Saved environment filter")]
+    query: Annotated[
+        list[QueryResponseType], ApiDescription("Searches, fields and charts saved in the query")
+    ]
+    statsPeriod: Annotated[str, ApiDescription("Saved relative time range, such as `24h`")]
+    start: Annotated[str, ApiDescription("Saved absolute start time (ISO 8601)")]
+    end: Annotated[str, ApiDescription("Saved absolute end time (ISO 8601)")]
+    interval: Annotated[str, ApiDescription("Saved resolution of the time series")]
+    crossEvents: Annotated[
+        list[CrossEventResponseType], ApiDescription("Saved queries across other event types")
+    ]
+    agent: Annotated[list[str], ApiDescription("Agent names that filter AI conversations")]
+    errorsOnly: Annotated[
+        bool, ApiDescription("Whether only AI conversations with errors are shown")
+    ]
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
-    orderby: list[dict[str, str]] | None
-    equations: list[dict[str, str | list[str]]] | None
-    columns: list[str]
+    orderby: Annotated[
+        list[dict[str, str]] | None,
+        ApiDescription("Sort orders dropped when the query was migrated. Null when none were"),
+    ]
+    equations: Annotated[
+        list[dict[str, str | list[str]]] | None,
+        ApiDescription("Equations dropped when the query was migrated. Null when none were"),
+    ]
+    columns: Annotated[list[str], ApiDescription("Columns dropped when the query was migrated")]
 
 
 class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
-    id: str
-    name: str
-    projects: list[int]
-    dataset: ExploreSavedQueryDatasetType
-    expired: bool
-    dateAdded: datetime
-    dateUpdated: datetime
-    lastVisited: datetime | None
-    createdBy: UserSerializerResponse | None
-    starred: bool
-    position: int | None
-    isPrebuilt: bool
-    changedReason: ExploreSavedQueryChangedReasonType | None
+    id: Annotated[str, ApiDescription("ID of the saved query")]
+    name: Annotated[str, ApiDescription("Name of the saved query")]
+    projects: Annotated[
+        list[int],
+        ApiDescription("IDs of the projects the query filters by. `[-1]` means all projects"),
+    ]
+    dataset: Annotated[ExploreSavedQueryDatasetType, ApiDescription("Dataset the query reads")]
+    expired: Annotated[
+        bool,
+        ApiDescription("Whether the saved start time is outside the data retention period"),
+    ]
+    dateAdded: Annotated[datetime, ApiDescription("When the query was created (ISO 8601)")]
+    dateUpdated: Annotated[datetime, ApiDescription("When the query was last edited (ISO 8601)")]
+    lastVisited: Annotated[
+        datetime | None,
+        ApiDescription("When the requesting user last opened the query. Null when they haven't"),
+    ]
+    createdBy: Annotated[
+        UserSerializerResponse | None,
+        ApiDescription(
+            "User who created the query. Null when a token created it or the user is gone"
+        ),
+    ]
+    starred: Annotated[bool, ApiDescription("Whether the requesting user starred the query")]
+    position: Annotated[
+        int | None,
+        ApiDescription("Position in the requesting user's starred list. Null when not starred"),
+    ]
+    isPrebuilt: Annotated[bool, ApiDescription("Whether Sentry provides the query")]
+    changedReason: Annotated[
+        ExploreSavedQueryChangedReasonType | None,
+        ApiDescription(
+            "What was dropped when the query was migrated from Discover. Null when it wasn't migrated"
+        ),
+    ]
 
 
 class ExploreSavedQueryAttrs(TypedDict, total=False):

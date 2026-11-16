@@ -73,7 +73,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             )
 
     def test_simple(self) -> None:
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
         assert response.data == serialize([self.workflow, self.workflow_two, self.workflow_three])
 
         # Verify X-Hits header is present and correct
@@ -85,7 +85,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         other_org = self.create_organization()
         self.create_workflow(organization_id=other_org.id, name="Other Org Workflow")
 
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
         assert len(response.data) == 3
         workflow_names = {w["name"] for w in response.data}
         assert "Other Org Workflow" not in workflow_names
@@ -129,13 +129,17 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert "not a valid integer id" in str(response.data["id"])
 
     def test_sort_by_name(self) -> None:
-        response = self.get_success_response(self.organization.slug, qs_params={"sortBy": "-name"})
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": "-1", "sortBy": "-name"}
+        )
         assert [w["name"] for w in response.data] == [
             self.workflow_three.name,
             self.workflow_two.name,
             self.workflow.name,
         ]
-        response2 = self.get_success_response(self.organization.slug, qs_params={"sortBy": "name"})
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"project": "-1", "sortBy": "name"}
+        )
         assert [w["name"] for w in response2.data] == [
             self.workflow.name,
             self.workflow_two.name,
@@ -148,9 +152,13 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         self.create_workflow(organization_id=fresh_org.id, name="Name")
         self.create_workflow(organization_id=fresh_org.id, name="Name")
 
-        response1 = self.get_success_response(fresh_org.slug, qs_params={"sortBy": "name"})
+        response1 = self.get_success_response(
+            fresh_org.slug, qs_params={"project": "-1", "sortBy": "name"}
+        )
         assert len(response1.data) == 3
-        response2 = self.get_success_response(fresh_org.slug, qs_params={"sortBy": "-name"})
+        response2 = self.get_success_response(
+            fresh_org.slug, qs_params={"project": "-1", "sortBy": "-name"}
+        )
         assert [w["id"] for w in response2.data] == list(
             reversed([w["id"] for w in response1.data])
         )
@@ -171,7 +179,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
 
         response = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "connectedDetectors"}
+            self.organization.slug, qs_params={"project": "-1", "sortBy": "connectedDetectors"}
         )
         assert [w["name"] for w in response.data] == [
             self.workflow_two.name,
@@ -180,7 +188,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         ]
 
         response2 = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "-connectedDetectors"}
+            self.organization.slug, qs_params={"project": "-1", "sortBy": "-connectedDetectors"}
         )
         assert [w["name"] for w in response2.data] == [
             self.workflow.name,
@@ -215,20 +223,20 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
         # Priority detector_x - workflow_a should come first
         response = self.get_success_response(
-            fresh_org.slug, qs_params={"priorityDetector": str(detector_x.id)}
+            fresh_org.slug, qs_params={"project": "-1", "priorityDetector": str(detector_x.id)}
         )
         assert response.data[0]["name"] == workflow_a.name
 
         # Priority detector_y - workflow_b should come first
         response2 = self.get_success_response(
-            fresh_org.slug, qs_params={"priorityDetector": str(detector_y.id)}
+            fresh_org.slug, qs_params={"project": "-1", "priorityDetector": str(detector_y.id)}
         )
         assert response2.data[0]["name"] == workflow_b.name
 
         # Can combine with sortBy - priority detector still comes first, then sorted by name
         response3 = self.get_success_response(
             fresh_org.slug,
-            qs_params={"priorityDetector": str(detector_x.id), "sortBy": "-name"},
+            qs_params={"project": "-1", "priorityDetector": str(detector_x.id), "sortBy": "-name"},
         )
         # workflow_a (priority) first, then others sorted by -name (C before B)
         assert response3.data[0]["name"] == workflow_a.name
@@ -278,7 +286,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         self._create_action_for_workflow(self.workflow, Action.Type.EMAIL, self.FAKE_EMAIL_CONFIG)
 
         response = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "actions"}
+            self.organization.slug, qs_params={"project": "-1", "sortBy": "actions"}
         )
         assert [w["name"] for w in response.data] == [
             self.workflow_two.name,
@@ -287,7 +295,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         ]
 
         response2 = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "-actions"}
+            self.organization.slug, qs_params={"project": "-1", "sortBy": "-actions"}
         )
         assert [w["name"] for w in response2.data][0] == [
             self.workflow.name,
@@ -297,7 +305,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
     def test_sort_by_last_triggered(self) -> None:
         response = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "lastTriggered"}
+            self.organization.slug, qs_params={"project": "-1", "sortBy": "lastTriggered"}
         )
         # in ascending order, un-triggered is first.
         assert [w["name"] for w in response.data] == [
@@ -307,7 +315,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         ]
 
         response2 = self.get_success_response(
-            self.organization.slug, qs_params={"sortBy": "-lastTriggered"}
+            self.organization.slug, qs_params={"project": "-1", "sortBy": "-lastTriggered"}
         )
         assert [w["name"] for w in response2.data] == [
             self.workflow_two.name,
@@ -316,35 +324,38 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         ]
 
     def test_query_filter_by_name(self) -> None:
-        response = self.get_success_response(self.organization.slug, qs_params={"query": "apple"})
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": "-1", "query": "apple"}
+        )
         assert len(response.data) == 2
         assert {self.workflow.name, self.workflow_three.name} == {w["name"] for w in response.data}
 
         # With tag syntax, exact only.
         assert (
             self.get_success_response(
-                self.organization.slug, qs_params={"query": "name:apple"}
+                self.organization.slug, qs_params={"project": "-1", "query": "name:apple"}
             ).data
             == []
         )
 
         assert (
             self.get_success_response(
-                self.organization.slug, qs_params={"query": 'name:"apple workflow"'}
+                self.organization.slug,
+                qs_params={"project": "-1", "query": 'name:"apple workflow"'},
             ).data[0]["name"]
             == self.workflow.name
         )
 
         # wildcard
         response2 = self.get_success_response(
-            self.organization.slug, qs_params={"query": "name:ap*"}
+            self.organization.slug, qs_params={"project": "-1", "query": "name:ap*"}
         )
         assert len(response2.data) == 1
         assert response2.data[0]["name"] == self.workflow.name
 
         # Non-match
         response3 = self.get_success_response(
-            self.organization.slug, qs_params={"query": "Chicago"}
+            self.organization.slug, qs_params={"project": "-1", "query": "Chicago"}
         )
         assert len(response3.data) == 0
 
@@ -439,16 +450,29 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         self.create_detector_workflow(workflow=self.workflow_two, detector=non_member_detector)
 
         response = self.get_success_response(self.organization.slug)
-        assert {w["id"] for w in response.data} == {
-            str(self.workflow.id),
-            str(self.workflow_three.id),
-        }
+        assert {w["id"] for w in response.data} == {str(self.workflow.id)}
 
         for qs_params in (
             {"project": "-1"},
             {"project": str(non_member_project.id)},
             {"id": str(self.workflow_two.id)},
             {"detector": str(non_member_detector.id)},
+        ):
+            response = self.get_success_response(self.organization.slug, qs_params=qs_params)
+            assert str(self.workflow_two.id) in {w["id"] for w in response.data}, qs_params
+
+    def test_no_project_filter_excludes_detached_workflows(self) -> None:
+        self.create_detector_workflow(
+            workflow=self.workflow, detector=self.create_detector(project=self.project)
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        assert {w["id"] for w in response.data} == {str(self.workflow.id)}
+
+        for qs_params in (
+            {"project": "-1"},
+            {"projectSlug": "$all"},
+            {"id": str(self.workflow_two.id)},
         ):
             response = self.get_success_response(self.organization.slug, qs_params=qs_params)
             assert str(self.workflow_two.id) in {w["id"] for w in response.data}, qs_params
@@ -463,7 +487,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         # Two actions should match, but they are from the same workflow so we only expect
         # one result.
         response = self.get_success_response(
-            self.organization.slug, qs_params={"query": "action:slack"}
+            self.organization.slug, qs_params={"project": "-1", "query": "action:slack"}
         )
         assert len(response.data) == 1
         assert response.data[0]["name"] == self.workflow.name
@@ -471,25 +495,25 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         # No partial matches with tags.
         assert (
             self.get_success_response(
-                self.organization.slug, qs_params={"query": "action:sla"}
+                self.organization.slug, qs_params={"project": "-1", "query": "action:sla"}
             ).data
             == []
         )
 
         assert (
-            self.get_success_response(self.organization.slug, qs_params={"query": "Slack"}).data[0][
-                "name"
-            ]
+            self.get_success_response(
+                self.organization.slug, qs_params={"project": "-1", "query": "Slack"}
+            ).data[0]["name"]
             == self.workflow.name
         )
 
         response2 = self.get_success_response(
-            self.organization.slug, qs_params={"query": "action:discord"}
+            self.organization.slug, qs_params={"project": "-1", "query": "action:discord"}
         )
         assert len(response2.data) == 0
 
         response3 = self.get_success_response(
-            self.organization.slug, qs_params={"query": "action:[slack,email]"}
+            self.organization.slug, qs_params={"project": "-1", "query": "action:[slack,email]"}
         )
         assert len(response3.data) == 2
         assert {self.workflow.name, self.workflow_two.name} == {w["name"] for w in response3.data}
@@ -570,7 +594,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
     def test_query_by_created_by_me(self) -> None:
         self.workflow.update(created_by_id=self.user.id)
         response = self.get_success_response(
-            self.organization.slug, qs_params={"query": "created_by:me"}
+            self.organization.slug, qs_params={"project": "-1", "query": "created_by:me"}
         )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.workflow.id)
@@ -581,13 +605,15 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         self.workflow_two.update(created_by_id=other_user.id)
 
         response = self.get_success_response(
-            self.organization.slug, qs_params={"query": f"created_by:{self.user.email}"}
+            self.organization.slug,
+            qs_params={"project": "-1", "query": f"created_by:{self.user.email}"},
         )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.workflow.id)
 
         response2 = self.get_success_response(
-            self.organization.slug, qs_params={"query": f"created_by:{other_user.email}"}
+            self.organization.slug,
+            qs_params={"project": "-1", "query": f"created_by:{other_user.email}"},
         )
         assert len(response2.data) == 1
         assert response2.data[0]["id"] == str(self.workflow_two.id)
@@ -597,7 +623,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         self.workflow_two.update(created_by_id=self.user.id)
 
         response = self.get_success_response(
-            self.organization.slug, qs_params={"query": f"!created_by:{self.user.email}"}
+            self.organization.slug,
+            qs_params={"project": "-1", "query": f"!created_by:{self.user.email}"},
         )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.workflow_three.id)
@@ -609,7 +636,10 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            qs_params={"query": f"created_by:[{self.user.email},{other_user.email}]"},
+            qs_params={
+                "project": "-1",
+                "query": f"created_by:[{self.user.email},{other_user.email}]",
+            },
         )
         assert len(response.data) == 2
         assert {w["id"] for w in response.data} == {
@@ -624,7 +654,10 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            qs_params={"query": f"!created_by:[{self.user.email},{other_user.email}]"},
+            qs_params={
+                "project": "-1",
+                "query": f"!created_by:[{self.user.email},{other_user.email}]",
+            },
         )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.workflow_three.id)
@@ -636,6 +669,57 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             qs_params={"query": "created_by:nonexistent@example.com"},
         )
         assert len(response.data) == 0
+
+    def test_hidden_workflows_are_not_returned_by_default(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+        )
+
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
+
+        assert str(hidden_workflow.id) not in {w["id"] for w in response.data}
+
+        assert int(response["X-Hits"]) == 3
+
+    def test_filter_by_visible_workflow_types(self) -> None:
+        self.create_workflow(
+            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": "-1", "type": "alert"}
+        )
+
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+            str(self.workflow_three.id),
+        }
+
+    def test_filter_by_hidden_workflow_type_returns_error(self) -> None:
+        self.create_workflow(
+            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+        )
+
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"type": "inbox"}, status_code=400
+        )
+
+        assert "Invalid workflow type" in str(response.data)
+
+    def test_filter_with_multiple_types_including_hidden_type_returns_error(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"type": ["alert", "inbox"]}, status_code=400
+        )
+
+        assert "inbox" in str(response.data)
+
+    def test_filter_by_invalid_workflow_type_returns_error(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"type": "bogus"}, status_code=400
+        )
+
+        assert "Invalid workflow type" in str(response.data)
 
 
 @cell_silo_test
@@ -2032,7 +2116,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
     def test_bulk_enable_workflows_by_query_success(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
-            qs_params={"query": "test"},
+            qs_params={"project": "-1", "query": "test"},
             raw_data={"enabled": True},
         )
 
@@ -2111,6 +2195,46 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         assert self.workflow.enabled is False
         assert self.workflow_two.enabled is False
         assert self.workflow_three.enabled is False
+
+    def test_bulk_update_by_query_skips_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id,
+            name="Hidden Workflow",
+            enabled=False,
+            type=Workflow.Type.INBOX,
+        )
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": "-1", "query": "Workflow"},
+            raw_data={"enabled": True},
+        )
+
+        hidden_workflow.refresh_from_db()
+        self.workflow.refresh_from_db()
+
+        assert hidden_workflow.enabled is False
+        assert self.workflow.enabled is True
+
+    def test_bulk_update_by_id_skips_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id,
+            name="Hidden Workflow",
+            enabled=False,
+            type=Workflow.Type.INBOX,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(hidden_workflow.id)},
+            raw_data={"enabled": True},
+        )
+
+        assert response.data == {"detail": "No workflows found."}
+
+        hidden_workflow.refresh_from_db()
+
+        assert hidden_workflow.enabled is False
 
 
 @cell_silo_test
@@ -2243,7 +2367,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         with outbox_runner():
             self.get_success_response(
                 self.organization.slug,
-                qs_params={"query": "test"},
+                qs_params={"project": "-1", "query": "test"},
                 status_code=204,
             )
 
@@ -2403,6 +2527,37 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
             actor=self.user,
         )
 
+    def test_bulk_delete_by_query_skips_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+        )
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"project": "-1", "query": "Workflow"},
+                status_code=204,
+            )
+
+        self.assert_unaffected_workflows([hidden_workflow])
+
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+
+    def test_bulk_delete_by_id_skips_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"id": str(hidden_workflow.id)}, status_code=200
+        )
+
+        assert response.data == {"detail": "No workflows found."}
+
+        self.assert_unaffected_workflows([hidden_workflow])
+
 
 @cell_silo_test
 class OrganizationWorkflowProjectAccessTest(
@@ -2470,7 +2625,7 @@ class OrganizationWorkflowProjectAccessTest(
         self.login_as(self.limited_user)
 
         # List all workflows - should only see user's workflow and unattached workflow
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
         workflow_ids = {w["id"] for w in response.data}
 
         assert str(self.user_workflow.id) in workflow_ids
@@ -2499,7 +2654,7 @@ class OrganizationWorkflowProjectAccessTest(
         self.login_as(no_access_user)
 
         # List all workflows - should ONLY see the unattached workflow
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
         workflow_ids = {w["id"] for w in response.data}
 
         # User should NOT see workflows connected to projects (even by listing all)

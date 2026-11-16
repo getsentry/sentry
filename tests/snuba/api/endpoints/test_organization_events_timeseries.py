@@ -558,7 +558,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             return response
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -578,6 +578,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert kwargs["attributes"] == {
             "org_id": self.organization.id,
             "org_slug": self.organization.slug,
+            "is_blocked": True,
             # no dataset param was passed, so the requested value is empty
             "requested_dataset": "",
             # but the default dataset is used
@@ -586,7 +587,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         }
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_fires_for_transactions(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_transactions(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -608,7 +611,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert kwargs["attributes"]["requested_dataset"] == "transactions"
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_when_flag_off(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_allowlisted_org(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -623,10 +628,12 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         )
 
-        mock_sdk_logger.warning.assert_not_called()
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"]["is_blocked"] is False
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_for_non_external_request(
+    def test_legacy_dataset_log_not_fired_for_non_external_request(
         self, mock_sdk_logger: mock.MagicMock
     ) -> None:
         data = {
@@ -647,7 +654,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         mock_sdk_logger.warning.assert_not_called()
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_for_non_legacy_dataset(
+    def test_legacy_dataset_log_not_fired_for_non_legacy_dataset(
         self, mock_sdk_logger: mock.MagicMock
     ) -> None:
         data = {

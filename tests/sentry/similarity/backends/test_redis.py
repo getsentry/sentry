@@ -19,7 +19,7 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
     @cached_property
     def index(self) -> RedisScriptMinHashIndexBackend:
         return RedisScriptMinHashIndexBackend(
-            redis.clusters.get("default").get_local_client(0),
+            redis.redis_clusters.get_binary("default"),
             "sim",
             signature_builder,
             16,

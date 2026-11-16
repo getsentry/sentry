@@ -16,6 +16,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {PageHeader} from 'admin/components/pageHeader';
+import {SyntheticMetricBreachForm} from 'admin/views/syntheticMetricBreachForm';
 
 const formSchema = z.object({
   locality: z.string().min(1, 'Select a region'),
@@ -65,6 +66,7 @@ const SINGLE_RUN_ORGANIZATION_SLUG = 'sentry';
 const singleRunFormSchema = z.object({
   locality: z.string().min(1, 'Select a region'),
   shortId: z.string().trim().min(1, 'Enter an issue short ID'),
+  automated: z.boolean(),
 });
 
 type SingleRunResponse = {
@@ -333,7 +335,11 @@ function SingleRunForm() {
       return fetchMutation<SingleRunResponse>({
         url: getApiUrl('/internal/seer/autofix/single-run/'),
         method: 'POST',
-        data: {organization_slug: SINGLE_RUN_ORGANIZATION_SLUG, short_id: data.shortId},
+        data: {
+          organization_slug: SINGLE_RUN_ORGANIZATION_SLUG,
+          short_id: data.shortId,
+          automated: data.automated,
+        },
         options: {host: data.locality},
       });
     },
@@ -350,6 +356,7 @@ function SingleRunForm() {
   const defaultValues: z.input<typeof singleRunFormSchema> = {
     locality: localities[0]?.url ?? '',
     shortId: '',
+    automated: false,
   };
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -363,7 +370,7 @@ function SingleRunForm() {
     <form.AppForm form={form}>
       <Container background="secondary" border="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
-          <Heading as="h3">Start Single-Run Autofix</Heading>
+          <Heading as="h3">[Temporary, for testing] Start Single-Run Autofix</Heading>
           <Text as="p" variant="muted">
             Start a single-run Autofix on one issue in the Sentry org, using the
             project&apos;s Autofix settings.
@@ -387,6 +394,13 @@ function SingleRunForm() {
                   onChange={field.handleChange}
                   placeholder="SENTRY-5RDF"
                 />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="automated">
+            {field => (
+              <field.Layout.Stack label="Start as automated (no owner)">
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
           </form.AppField>
@@ -418,6 +432,7 @@ export function SeerAdminPage() {
             <NightShiftForm />
             <AutofixRetryForm />
             <SingleRunForm />
+            <SyntheticMetricBreachForm />
           </Stack>
         </Container>
       </Stack>

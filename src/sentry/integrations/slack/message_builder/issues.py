@@ -424,9 +424,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.has_mentions_read_scope = has_mentions_read_scope
         self.workflow_id = workflow_id
         self.link_decorator = link_decorator
-        self._has_autofix = SeerAutofixOperator.has_access(
-            organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
-        ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
+        self._has_autofix = (
+            not is_unfurl
+            and SeerAutofixOperator.has_access(
+                organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
+            )
+            and SeerAutofixOperator.can_trigger_autofix(group=self.group)
+        )
 
     def get_title_block(
         self,

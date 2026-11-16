@@ -568,7 +568,7 @@ class SnubaTagStorage(TagStorage):
         self,
         projects: Sequence[int],
         group: Group | None,
-        environments: Sequence[str | int] | None,
+        environment_ids: Sequence[int] | None,
         start: datetime | None,
         end: datetime | None,
         limit: int | None = 1000,
@@ -601,8 +601,8 @@ class SnubaTagStorage(TagStorage):
         aggregations = [["count()", "", "count"]]
 
         filters: MutableMapping[str, Sequence[Any]] = {"project_id": sorted(projects)}
-        if environments:
-            filters["environment"] = sorted(environments)
+        if environment_ids:
+            filters["environment"] = sorted(environment_ids)
         if group is not None:
             # We override dataset changes from `dataset` here. They aren't relevant
             # when filtering by a group.
@@ -741,7 +741,7 @@ class SnubaTagStorage(TagStorage):
     def get_tag_keys_for_projects(
         self,
         projects: Sequence[int],
-        environments: Sequence[str] | None,
+        environment_ids: Sequence[int] | None,
         start: datetime,
         end: datetime,
         dataset: Dataset = Dataset.Events,
@@ -777,7 +777,7 @@ class SnubaTagStorage(TagStorage):
         return self.__get_tag_keys_for_projects(
             projects,
             None,
-            environments,
+            environment_ids,
             start,
             end,
             dataset=dataset,

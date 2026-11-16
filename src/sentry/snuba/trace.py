@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, NotRequired, TypedDic
 from sentry_sdk import traces
 
 from sentry import options
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -35,6 +35,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.common_columns import COMMON_COLUMNS
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
@@ -147,7 +148,8 @@ class SerializedSpan(SerializedEvent):
     ]
     additional_attributes: NotRequired[
         Annotated[
-            dict[str, Any],
+            # The value types `Spans.run_trace_query` reads from an attribute.
+            dict[str, str | int | float | bool],
             ApiDescription(
                 "Extra span attributes requested with additional_attributes, keyed by attribute name"
             ),
@@ -181,7 +183,9 @@ class SerializedUptimeCheck(SerializedEvent):
     name: Annotated[str, ApiDescription("URL the uptime check requested")]
     region_name: Annotated[str, ApiDescription("Region the uptime check ran from")]
     additional_attributes: Annotated[
-        dict[str, Any], ApiDescription("Extra uptime check attributes, keyed by attribute name")
+        dict[str, int | str | float | bool],
+        ApiDescription("Extra uptime check attributes, keyed by attribute name"),
+        ApiSchema(lambda: _uptime_additional_attributes_schema()),
     ]
 
 
@@ -711,14 +715,96 @@ def _run_uptime_results_query(
     return table_rpc([uptime_query])
 
 
+_UPTIME_ATTRIBUTE_DESCRIPTIONS = {
+    "id": "ID of the uptime result",
+    "trace": "ID of the trace the uptime check belongs to",
+    "span_id": "ID of the span the uptime checker made up for the check",
+    "environment": "Environment of the uptime monitor",
+    "guid": "Unique ID of the uptime check",
+    "subscription_id": "ID of the uptime subscription the check ran for",
+    "check_id": "ID of the uptime check",
+    "check_status": "Outcome of the check",
+    "region": "Slug of the region the check ran from",
+    "scheduled_check_time_us": "When the check was scheduled to run, in microseconds",
+    "actual_check_time_us": "When the check ran, in microseconds",
+    "check_duration_us": "Duration of the check in microseconds",
+    "status_reason_type": "Kind of failure",
+    "status_reason_description": "Description of why the check failed",
+    "assertion_failure_data": "Assertion that failed, as JSON",
+    "method": "HTTP method of the first request of the check",
+    "original_url": "URL of the first request of the check, before redirects",
+    "request_sequence": "Position of the request in the redirect chain, starting at 0",
+    "request_type": "HTTP method of the request",
+    "request_url": "URL of the request",
+    "http_status_code": "HTTP status code of the response",
+    "request_body_size_bytes": "Size of the request body in bytes",
+    "response_body_size_bytes": "Size of the response body in bytes",
+    "request_duration_us": "Duration of the request in microseconds",
+    "dns_lookup_start_us": "When the DNS lookup started, in microseconds",
+    "dns_lookup_duration_us": "Duration of the DNS lookup in microseconds",
+    "tcp_connection_start_us": "When the TCP connection started, in microseconds",
+    "tcp_connection_duration_us": "Duration of the TCP connection in microseconds",
+    "tls_handshake_start_us": "When the TLS handshake started, in microseconds",
+    "tls_handshake_duration_us": "Duration of the TLS handshake in microseconds",
+    "time_to_first_byte_start_us": "When the wait for the first response byte started, in microseconds",
+    "time_to_first_byte_duration_us": "Time to the first response byte in microseconds",
+    "send_request_start_us": "When sending the request started, in microseconds",
+    "send_request_duration_us": "Duration of sending the request in microseconds",
+    "receive_response_start_us": "When receiving the response started, in microseconds",
+    "receive_response_duration_us": "Duration of receiving the response in microseconds",
+    "incident_status": "Whether the check is part of an incident: 1 if it is, 0 if not",
+}
+# Attributes the EAP converter copies from an enum in the uptime-results Kafka schema.
+_UPTIME_KAFKA_ENUMS = {
+    "check_status": "CheckStatus",
+    "status_reason_type": "CheckStatusReasonType",
+    "method": "RequestType",
+    "request_type": "RequestType",
+}
+# How `_serialize_columnar_uptime_item` reads each search type.
+_UPTIME_JSON_TYPES = {
+    "integer": "integer",
+    "string": "string",
+    "number": "number",
+    "boolean": "boolean",
+    "byte": "integer",
+}
+
+
+def _uptime_additional_columns() -> dict[str, ResolvedAttribute]:
+    """Uptime result columns that go into `additional_attributes`, by internal name."""
+    common_column_names = {col.internal_name for col in COMMON_COLUMNS}
+    return {
+        col.internal_name: col
+        for col in UPTIME_ATTRIBUTE_DEFINITIONS.values()
+        if col.internal_name not in common_column_names
+    }
+
+
+def _uptime_additional_attributes_schema() -> dict[str, Any]:
+    """
+    Built from the uptime attribute definitions, so a new attribute needs a description
+    in `_UPTIME_ATTRIBUTE_DESCRIPTIONS` before the API schema builds.
+    """
+    from sentry.apidocs.json_schemas import kafka_definition_schema
+
+    properties = {}
+    for col in _uptime_additional_columns().values():
+        alias = col.public_alias
+        schema = {"type": _UPTIME_JSON_TYPES[col.search_type]}
+        if alias in _UPTIME_KAFKA_ENUMS:
+            schema = kafka_definition_schema("uptime-results", _UPTIME_KAFKA_ENUMS[alias])
+        properties[alias] = {**schema, "description": _UPTIME_ATTRIBUTE_DESCRIPTIONS[alias]}
+    return {"type": "object", "properties": properties}
+
+
 def _serialize_columnar_uptime_item(
     row_dict: dict[str, AttributeValue],
     project_slugs: dict[int, str],
     check_id_to_occurrences: Mapping[str, list[TraceIssueOccurrenceData]] | None = None,
 ) -> dict[str, Any]:
     """Convert a columnar uptime row to a serialized uptime check span format"""
-    columns_by_name = {col.internal_name: col for col in UPTIME_ATTRIBUTE_DEFINITIONS.values()}
-    common_column_names = {col.internal_name for col in COMMON_COLUMNS}
+    additional_columns = _uptime_additional_columns()
 
     trace_id = row_dict["sentry.trace_id"].val_str
     check_status = row_dict["check_status"].val_str
@@ -738,7 +824,7 @@ def _serialize_columnar_uptime_item(
     def get_value(attr_name: str, attr_value: AttributeValue) -> int | str | float | bool | None:
         if attr_value.is_null:
             return None
-        resolved_column = columns_by_name[attr_name]
+        resolved_column = additional_columns[attr_name]
         if resolved_column.search_type == "integer":
             return attr_value.val_int
         elif resolved_column.search_type == "string":
@@ -753,8 +839,8 @@ def _serialize_columnar_uptime_item(
 
     additional_attrs = {}
     for attr_name, attr_value in row_dict.items():
-        if attr_name in columns_by_name and attr_name not in common_column_names:
-            resolved_column = columns_by_name[attr_name]
+        if attr_name in additional_columns:
+            resolved_column = additional_columns[attr_name]
             resolved_val = get_value(attr_name, attr_value)
             if resolved_val is not None:
                 additional_attrs[resolved_column.public_alias] = resolved_val

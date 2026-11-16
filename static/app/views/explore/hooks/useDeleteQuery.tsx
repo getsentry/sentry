@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
@@ -11,27 +12,30 @@ import {
 } from './useGetSavedQueries';
 
 export function useDeleteQuery() {
-  const api = useApi();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
 
+  const {mutateAsync} = useMutation({
+    mutationFn: ({queryId, queryType}: SavedQueryRef) =>
+      fetchMutation({
+        url:
+          queryType === SavedQueryType.EXPLORE
+            ? getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+                path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
+              })
+            : getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
+                path: {organizationIdOrSlug: organization.slug, queryId: String(queryId)},
+              }),
+        method: 'DELETE',
+      }),
+  });
+
   const deleteQuery = useCallback(
-    async ({queryId, queryType}: SavedQueryRef) => {
-      await api.requestPromise(
-        queryType === SavedQueryType.EXPLORE
-          ? getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
-              path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
-            })
-          : getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
-              path: {organizationIdOrSlug: organization.slug, queryId: String(queryId)},
-            }),
-        {
-          method: 'DELETE',
-        }
-      );
+    async (savedQueryRef: SavedQueryRef) => {
+      await mutateAsync(savedQueryRef);
       invalidateSavedQueries();
     },
-    [api, organization.slug, invalidateSavedQueries]
+    [mutateAsync, invalidateSavedQueries]
   );
 
   return {deleteQuery};

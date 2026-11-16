@@ -580,7 +580,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'investigate'}]},
     });
     const launchMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/notebooks/',
+      url: '/organizations/org-slug/investigations/',
       method: 'POST',
       body: {id: '4567'},
     });

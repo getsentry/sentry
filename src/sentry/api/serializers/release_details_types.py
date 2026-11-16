@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Any, TypeAlias, TypedDict
+from typing import Annotated, TypeAlias, TypedDict
 
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.release_health.base import ReleaseHealthStats
@@ -10,13 +10,27 @@ class VersionInfoOptional(TypedDict, total=False):
     description: Annotated[str, ApiDescription("Human-readable version, such as 1.0.0 (123)")]
 
 
+# The semver fields are only set when the version parses as a semantic version.
+class VersionInfoVersionOptional(TypedDict, total=False):
+    major: Annotated[int, ApiDescription("Major version")]
+    minor: Annotated[int, ApiDescription("Minor version")]
+    patch: Annotated[int, ApiDescription("Patch version")]
+    pre: Annotated[str | None, ApiDescription("Pre-release identifier, such as rc1")]
+    buildCode: Annotated[str | None, ApiDescription("Build code, such as 123")]
+    components: Annotated[int, ApiDescription("Number of version components given")]
+
+
+class VersionInfoVersion(VersionInfoVersionOptional):
+    raw: Annotated[str, ApiDescription("Version string the release was created with")]
+
+
 class VersionInfo(VersionInfoOptional):
     package: Annotated[
         str | None,
         ApiDescription("Package name parsed from the release version, such as com.example.app"),
     ]
     version: Annotated[
-        dict[str, Any],
+        VersionInfoVersion,
         ApiDescription(
             "Parsed version: the raw string, plus major, minor, patch, pre, buildCode and components when it's a semantic version"
         ),
@@ -42,6 +56,12 @@ class NonMappableUser(TypedDict):
 
 
 Author: TypeAlias = UserSerializerResponse | NonMappableUser
+
+
+class EmptyAuthor(TypedDict):
+    """The commit and pull request serializers emit ``{}`` for ``author`` when there's
+    no mapped author, so the published schema must allow an empty object alongside a
+    populated ``Author``."""
 
 
 class HealthDataOptional(TypedDict, total=False):

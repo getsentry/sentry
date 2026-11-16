@@ -3,13 +3,14 @@ from typing import Annotated, NotRequired, ReadOnly, TypedDict
 
 import pytest
 
-from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.formats import (
     GIT_REF_MAX_LENGTH,
     GIT_REF_PATTERN_OPTIONAL_EMPTY,
     ApiFormat,
     GitRef,
     IsoDateTime,
+    JsonValue,
     Url,
 )
 from sentry.apidocs.spectacular_ports import resolve_type_hint
@@ -89,6 +90,18 @@ def test_functional_typed_dict_field_description() -> None:
     }
 
 
+class EmptyResponse(TypedDict):
+    """Always an empty object."""
+
+
+def test_typed_dict_without_fields_is_an_empty_object() -> None:
+    assert resolve_type_hint(EmptyResponse) == {
+        "type": "object",
+        "description": "Always an empty object.",
+        "maxProperties": 0,
+    }
+
+
 class FormattedResponse(TypedDict):
     created: Annotated[IsoDateTime, ApiDescription("A timestamp")]
     expires: IsoDateTime | None
@@ -113,6 +126,44 @@ def test_annotated_field_formats() -> None:
         },
         "custom": {"type": "string", "format": "email", "maxLength": 10},
         "optional": {"type": "string", "format": "uri", "description": "An optional link"},
+    }
+
+
+JSON_VALUE_SCHEMA = {
+    "description": "Any JSON value",
+    "anyOf": [
+        {"type": "object", "additionalProperties": True, "nullable": True},
+        {"type": "array", "items": {}},
+        {"type": "string"},
+        {"type": "number"},
+        {"type": "boolean"},
+    ],
+}
+
+
+class JsonValueResponse(TypedDict):
+    data: Annotated[JsonValue, ApiDescription("Data an SDK sent")]
+    by_key: dict[str, JsonValue]
+    optional: NotRequired[JsonValue]
+
+
+def test_json_value() -> None:
+    assert resolve_type_hint(JsonValueResponse)["properties"] == {
+        "data": {**JSON_VALUE_SCHEMA, "description": "Data an SDK sent"},
+        "by_key": {"type": "object", "additionalProperties": JSON_VALUE_SCHEMA},
+        "optional": JSON_VALUE_SCHEMA,
+    }
+
+
+class SchemaResponse(TypedDict):
+    built: Annotated[
+        object, ApiDescription("Built elsewhere"), ApiSchema(lambda: {"type": "integer"})
+    ]
+
+
+def test_annotated_field_schema_replaces_the_generated_one() -> None:
+    assert resolve_type_hint(SchemaResponse)["properties"] == {
+        "built": {"type": "integer", "description": "Built elsewhere"},
     }
 
 

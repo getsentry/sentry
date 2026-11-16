@@ -196,7 +196,7 @@ def record_generic_event_processed(
     # Check to make sure more the ip address is being sent.
     # testing for this in test_no_user_tracking_for_ip_address_only
     # list(d.keys()) pattern is to make this python3 safe
-    if user_keys and len(set(user_keys) - {"ip_address", "sentry_user"}) > 0:
+    if user_keys and len(set(user_keys) - {"ip_address"}) > 0:
         feature_slugs.append("user_tracking")
 
     # Custom Tags

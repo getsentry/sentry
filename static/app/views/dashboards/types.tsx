@@ -214,6 +214,11 @@ export type GlobalFilter = {
 };
 
 /**
+ * Saved on the dashboard. `normal` is the default when the field is unset.
+ */
+export type DashboardQueryPriority = 'normal' | 'faster';
+
+/**
  * Saved dashboard with widgets
  */
 export type DashboardDetails = {
@@ -230,6 +235,7 @@ export type DashboardDetails = {
   period?: string;
   permissions?: DashboardPermissions;
   prebuiltId?: PrebuiltDashboardId;
+  queryPriority?: DashboardQueryPriority;
   start?: string;
   utc?: boolean;
 };

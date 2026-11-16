@@ -17,6 +17,7 @@ import {isAPIPayloadSimilar, isFieldsSimilar} from 'sentry/utils/discover/eventV
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {Measurements} from 'sentry/utils/measurements/measurements';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -310,7 +311,7 @@ export class Table extends PureComponent<TableProps, TableState> {
             );
           }}
         </Measurements>
-        <Pagination pageLinks={pageLinks} onCursor={onCursor} />
+        <Pagination {...getPaginationProps(pageLinks)} onCursor={onCursor} />
       </Container>
     );
   }

@@ -585,7 +585,7 @@ export function EventsChart(props: EventsChartProps) {
 
               return (
                 <TransitionChart
-                  loading={loading}
+                  loading={loading || !!loadingAdditionalSeries}
                   reloading={reloading || !!reloadingAdditionalSeries}
                   height={height ? `${height}px` : undefined}
                 >

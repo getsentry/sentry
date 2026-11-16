@@ -573,3 +573,45 @@ class PreprodExamples:
             response_only=True,
         ),
     ]
+
+    ASSEMBLE_ARTIFACT = [
+        OpenApiExample(
+            "Build created",
+            value={
+                "state": "created",
+                "missingChunks": [],
+                "artifactUrl": "https://org-slug.sentry.io/preprod/size/123/",
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+        OpenApiExample(
+            "Chunks missing",
+            value={
+                "state": "not_found",
+                "missingChunks": ["5b1e9c6d0f2a4e8b7c3d1a9f0e6b2c4d8a7f3e1b"],
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    SNAPSHOT_ARCHIVE_STATUS = [
+        OpenApiExample(
+            "Archive ready",
+            value={"ready": True},
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    START_SNAPSHOT_ARCHIVE = [
+        OpenApiExample(
+            "Archive build started",
+            value={
+                "detail": "Building your snapshot archive — we'll email you a download link when it's ready."
+            },
+            status_codes=["202"],
+            response_only=True,
+        ),
+    ]

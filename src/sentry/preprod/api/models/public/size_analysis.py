@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any, Literal, TypedDict, cast
+from typing import Annotated, Literal, TypedDict, cast
 
 import sentry_sdk
 
@@ -63,9 +63,9 @@ class DiffItemResponseDict(TypedDict):
     path: Annotated[str, ApiDescription("Path of the file or group")]
     itemType: Annotated[str | None, ApiDescription("Type of the file or group")]
     type: Annotated[DiffType, ApiDescription("How the item changed")]
-    # Recursive type (list[DiffItemResponseDict]) breaks drf-spectacular schema generation
     diffItems: Annotated[
-        list[Any] | None, ApiDescription("Changes to the item's children, in the same shape")
+        list[DiffItemResponseDict] | None,
+        ApiDescription("Changes to the item's children, in the same shape"),
     ]
 
 
@@ -192,10 +192,172 @@ class SizeAnalysisSummaryResponseDict(_SizeAnalysisBaseResponseDict):
     comparisons: list[ComparisonSummaryResponseDict] | None
 
 
+class InsightFileResponseDict(TypedDict):
+    filePath: Annotated[str, ApiDescription("Path of the file inside the build")]
+    totalSavings: Annotated[int, ApiDescription("Potential savings for the file in bytes")]
+
+
+class InsightFileGroupResponseDict(TypedDict):
+    name: Annotated[str, ApiDescription("Name of the group")]
+    files: Annotated[list[InsightFileResponseDict], ApiDescription("Files in the group")]
+    totalSavings: Annotated[int, ApiDescription("Potential savings for the group in bytes")]
+
+
+class FilesInsightResponseDict(TypedDict):
+    totalSavings: Annotated[int, ApiDescription("Potential savings of the insight in bytes")]
+    files: Annotated[list[InsightFileResponseDict], ApiDescription("Files the insight applies to")]
+
+
+class GroupsInsightResponseDict(TypedDict):
+    totalSavings: Annotated[int, ApiDescription("Potential savings of the insight in bytes")]
+    groups: Annotated[
+        list[InsightFileGroupResponseDict], ApiDescription("Groups of files the insight applies to")
+    ]
+
+
+class OptimizableImageFileResponseDict(TypedDict):
+    filePath: Annotated[str, ApiDescription("Path of the image inside the build")]
+    currentSize: Annotated[int, ApiDescription("Current size of the image in bytes")]
+    minifySavings: Annotated[int, ApiDescription("Savings from minifying the image in bytes")]
+    minifiedSize: Annotated[
+        int | None, ApiDescription("Size of the minified image in bytes. Null when not computed")
+    ]
+    conversionSavings: Annotated[
+        int, ApiDescription("Savings from converting the image to HEIC in bytes")
+    ]
+    heicSize: Annotated[
+        int | None, ApiDescription("Size of the image as HEIC in bytes. Null when not computed")
+    ]
+    idiom: Annotated[
+        str | None, ApiDescription("Asset catalog idiom of the image. Null outside asset catalogs")
+    ]
+    colorspace: Annotated[
+        str | None,
+        ApiDescription("Asset catalog color space of the image. Null outside asset catalogs"),
+    ]
+
+
+class ImageOptimizationInsightResponseDict(TypedDict):
+    totalSavings: Annotated[int, ApiDescription("Potential savings of the insight in bytes")]
+    optimizableFiles: Annotated[
+        list[OptimizableImageFileResponseDict], ApiDescription("Images that can be optimized")
+    ]
+
+
+class StripBinaryFileResponseDict(TypedDict):
+    filePath: Annotated[str, ApiDescription("Path of the binary inside the build")]
+    debugSectionsSavings: Annotated[
+        int, ApiDescription("Savings from stripping debug sections in bytes")
+    ]
+    symbolTableSavings: Annotated[
+        int, ApiDescription("Savings from stripping the symbol table in bytes")
+    ]
+    totalSavings: Annotated[int, ApiDescription("Potential savings for the binary in bytes")]
+
+
+class StripBinaryInsightResponseDict(TypedDict):
+    totalSavings: Annotated[int, ApiDescription("Potential savings of the insight in bytes")]
+    files: Annotated[
+        list[StripBinaryFileResponseDict], ApiDescription("Binaries that can be stripped")
+    ]
+    totalDebugSectionsSavings: Annotated[
+        int, ApiDescription("Savings from stripping debug sections of all binaries in bytes")
+    ]
+    totalSymbolTableSavings: Annotated[
+        int, ApiDescription("Savings from stripping symbol tables of all binaries in bytes")
+    ]
+
+
+class VideoCompressionFileResponseDict(TypedDict):
+    filePath: Annotated[str, ApiDescription("Path of the video inside the build")]
+    totalSavings: Annotated[int, ApiDescription("Potential savings for the video in bytes")]
+    recommendedCodec: Annotated[str, ApiDescription("Codec recommended for the video")]
+
+
+class VideoCompressionInsightResponseDict(TypedDict):
+    totalSavings: Annotated[int, ApiDescription("Potential savings of the insight in bytes")]
+    files: Annotated[
+        list[VideoCompressionFileResponseDict], ApiDescription("Videos that can be compressed")
+    ]
+
+
+# Keep in sync with AndroidInsightResults in sentry.preprod.size_analysis.models
+class AndroidInsightsResponseDict(TypedDict):
+    platform: Annotated[Literal["android"], ApiDescription("Platform of the build")]
+    duplicateFiles: Annotated[
+        GroupsInsightResponseDict | None, ApiDescription("Files that are duplicated")
+    ]
+    webpOptimization: Annotated[
+        FilesInsightResponseDict | None, ApiDescription("Images that can be converted to WebP")
+    ]
+    largeImages: Annotated[FilesInsightResponseDict | None, ApiDescription("Large images")]
+    largeVideos: Annotated[FilesInsightResponseDict | None, ApiDescription("Large videos")]
+    largeAudio: Annotated[FilesInsightResponseDict | None, ApiDescription("Large audio files")]
+    hermesDebugInfo: Annotated[
+        FilesInsightResponseDict | None,
+        ApiDescription("Hermes bytecode files that contain debug info"),
+    ]
+    multipleNativeLibraryArchs: Annotated[
+        FilesInsightResponseDict | None,
+        ApiDescription("Native libraries for architectures other than arm64-v8a"),
+    ]
+
+
+# Keep in sync with AppleInsightResults in sentry.preprod.size_analysis.models
+class AppleInsightsResponseDict(TypedDict):
+    platform: Annotated[Literal["apple"], ApiDescription("Platform of the build")]
+    duplicateFiles: Annotated[
+        GroupsInsightResponseDict | None, ApiDescription("Files that are duplicated")
+    ]
+    largeImages: Annotated[FilesInsightResponseDict | None, ApiDescription("Large images")]
+    largeAudios: Annotated[FilesInsightResponseDict | None, ApiDescription("Large audio files")]
+    largeVideos: Annotated[FilesInsightResponseDict | None, ApiDescription("Large videos")]
+    stripBinary: Annotated[
+        StripBinaryInsightResponseDict | None,
+        ApiDescription("Binaries with debug sections or symbols that can be stripped"),
+    ]
+    localizedStringsMinify: Annotated[
+        FilesInsightResponseDict | None,
+        ApiDescription("Localized strings files with comments that can be stripped"),
+    ]
+    smallFiles: Annotated[
+        FilesInsightResponseDict | None,
+        ApiDescription("Files smaller than the file system block size"),
+    ]
+    looseImages: Annotated[
+        GroupsInsightResponseDict | None,
+        ApiDescription("Images that could move into an asset catalog"),
+    ]
+    hermesDebugInfo: Annotated[
+        FilesInsightResponseDict | None,
+        ApiDescription("Hermes bytecode files that contain debug info"),
+    ]
+    imageOptimization: Annotated[
+        ImageOptimizationInsightResponseDict | None, ApiDescription("Images that can be optimized")
+    ]
+    mainBinaryExportedSymbols: Annotated[
+        FilesInsightResponseDict | None,
+        ApiDescription("Main binaries with export metadata that can be reduced"),
+    ]
+    unnecessaryFiles: Annotated[
+        FilesInsightResponseDict | None, ApiDescription("Files that can be removed")
+    ]
+    audioCompression: Annotated[
+        FilesInsightResponseDict | None, ApiDescription("Audio files that can be compressed")
+    ]
+    videoCompression: Annotated[
+        VideoCompressionInsightResponseDict | None, ApiDescription("Videos that can be compressed")
+    ]
+    alternateIconsOptimization: Annotated[
+        ImageOptimizationInsightResponseDict | None,
+        ApiDescription("Alternate app icons that can be optimized"),
+    ]
+
+
 class SizeAnalysisResponseDict(_SizeAnalysisBaseResponseDict):
     insights: Annotated[
-        dict[str, Any] | None,
-        ApiDescription("Suggestions for reducing the build's size, keyed by insight type"),
+        AndroidInsightsResponseDict | AppleInsightsResponseDict | None,
+        ApiDescription("Suggestions for reducing the build's size. Null when there are none"),
     ]
     appComponents: Annotated[
         list[AppComponentResponseDict] | None,

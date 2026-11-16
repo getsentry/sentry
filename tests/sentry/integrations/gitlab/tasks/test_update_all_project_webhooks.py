@@ -342,7 +342,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
         {
             "gitlab.webhook-reconcile.rate-limit.burst": 3,
             "gitlab.webhook-reconcile.rate-limit.per-second": 1,
-            "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds": 601,
+            "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds": 1801,
         }
     )
     @patch("sentry.integrations.gitlab.tasks.randint", return_value=300)
@@ -375,7 +375,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
                 countdown=306,
             ),
         ]
-        assert mock_randint.call_args_list == [call(67, 601), call(67, 601), call(67, 601)]
+        assert mock_randint.call_args_list == [call(67, 1801), call(67, 1801), call(67, 1801)]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
@@ -601,6 +601,9 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         )
         self.consume_capacity = capacity_patcher.start()
         self.addCleanup(capacity_patcher.stop)
+        time_patcher = patch("sentry.integrations.gitlab.tasks.time", return_value=300)
+        self.task_time = time_patcher.start()
+        self.addCleanup(time_patcher.stop)
         with assume_test_silo_mode(SiloMode.CELL):
             self.repo = self.create_gitlab_repo(
                 name="test-repo",
@@ -636,6 +639,63 @@ class UpdateProjectWebhookTest(GitLabTestCase):
     def _unmarked_webhook_url(self) -> str:
         installation = self.integration.get_installation(organization_id=self.organization.id)
         return installation.get_client().project_webhook_url()
+
+    @patch("sentry.integrations.gitlab.tasks.randint", side_effect=[99, 601])
+    def test_task_spreads_hourly_burst_before_calling_gitlab(self, randint: MagicMock) -> None:
+        self.task_time.return_value = 120
+        self.consume_capacity.reset_mock()
+
+        with (
+            patch.object(update_project_webhook, "apply_async") as apply_async,
+            patch("sentry.integrations.gitlab.tasks.logger.info") as logger_info,
+        ):
+            update_project_webhook(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                repository_id=self.repo.id,
+                rate_limit_deferrals=4,
+            )
+
+        apply_async.assert_called_once_with(
+            kwargs={
+                "integration_id": self.integration.id,
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "rate_limit_deferrals": 4,
+            },
+            countdown=601,
+        )
+        assert randint.call_args_list == [call(1, 100), call(180, 3000)]
+        self.consume_capacity.assert_not_called()
+        logger_info.assert_called_once_with(
+            "update-project-webhook.hourly-burst-deferred",
+            extra={
+                "integration_id": self.integration.id,
+                "organization_id": self.organization.id,
+                "rate_limit_countdown": 601,
+                "rate_limit_source": "hourly_burst",
+                "repository_id": self.repo.id,
+            },
+        )
+
+    @patch("sentry.integrations.gitlab.tasks.randint", return_value=100)
+    @patch("sentry.integrations.gitlab.tasks.integration_service.get_integration")
+    def test_task_allows_one_percent_through_hourly_burst(
+        self, get_integration: MagicMock, randint: MagicMock
+    ) -> None:
+        self.task_time.return_value = 0
+        get_integration.return_value = None
+
+        with patch.object(update_project_webhook, "apply_async") as apply_async:
+            update_project_webhook(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                repository_id=self.repo.id,
+            )
+
+        apply_async.assert_not_called()
+        randint.assert_called_once_with(1, 100)
+        get_integration.assert_called_once()
 
     @override_options({"gitlab.webhook-reconcile.rate-limit.retry-delay-seconds": 10})
     @patch("sentry.integrations.gitlab.tasks.randint", return_value=3)
@@ -711,7 +771,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
             },
             countdown=127,
         )
-        randint.assert_called_once_with(0, 3600)
+        randint.assert_called_once_with(0, 300)
         incr.assert_any_call("gitlab.project_webhook.reconcile", tags={"outcome": "rate_limited"})
         mock_logger_info.assert_not_called()
         assert_slo_metric(record_event, event_outcome=EventLifecycleOutcome.HALTED)

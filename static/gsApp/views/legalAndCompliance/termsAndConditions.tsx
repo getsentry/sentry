@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {IconBusiness} from '@sentry/icons/business';
 import {IconCheckmark} from '@sentry/icons/checkmark';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Heading} from '@sentry/scraps/text';
@@ -13,10 +13,8 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -42,12 +40,11 @@ interface TermsProps {
   subscription: Subscription;
 }
 
-function makeFetchPoliciesQueryKey(subscription: Subscription): ApiQueryKey {
-  return [
-    getApiUrl('/customers/$organizationIdOrSlug/policies/', {
-      path: {organizationIdOrSlug: subscription.slug},
-    }),
-  ];
+function policiesOptions(subscription: Subscription) {
+  return apiOptions.as<Record<string, Policy>>()(
+    '/customers/$organizationIdOrSlug/policies/',
+    {path: {organizationIdOrSlug: subscription.slug}, staleTime: 0}
+  );
 }
 
 export function TermsAndConditions({subscription}: TermsProps) {
@@ -60,9 +57,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Record<string, Policy>>(makeFetchPoliciesQueryKey(subscription), {
-    staleTime: 0,
-  });
+  } = useQuery(policiesOptions(subscription));
 
   if (isPending) {
     return (
@@ -95,11 +90,11 @@ export function TermsAndConditions({subscription}: TermsProps) {
       },
     });
 
-    setApiQueryData<Record<string, Policy>>(
-      queryClient,
-      makeFetchPoliciesQueryKey(subscription),
-      oldState => ({...oldState, [data.slug]: data})
-    );
+    queryClient.setQueryData(policiesOptions(subscription).queryKey, previous => ({
+      ...previous,
+      headers: previous?.headers ?? {},
+      json: {...previous?.json, [data.slug]: data},
+    }));
     toast.dismiss();
   };
 

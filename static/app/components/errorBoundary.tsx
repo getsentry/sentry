@@ -74,6 +74,8 @@ export class ErrorBoundary extends Component<Props, State> {
     // This ensures that when React Fast Refresh occurs, the error boundary
     // doesn't persist stale error state after code fixes
     if (process.env.NODE_ENV === 'development') {
+      // https://github.com/oxc-project/tsgolint/issues/1278
+      // oxlint-disable-next-line typescript/prefer-optional-chain
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.accept(this.handleClose);
       }
@@ -104,6 +106,8 @@ export class ErrorBoundary extends Component<Props, State> {
   componentWillUnmount(): void {
     // Clean up HMR listeners to prevent memory leaks
     if (process.env.NODE_ENV === 'development') {
+      // https://github.com/oxc-project/tsgolint/issues/1278
+      // oxlint-disable-next-line typescript/prefer-optional-chain
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.dispose(this.handleClose);
       }
