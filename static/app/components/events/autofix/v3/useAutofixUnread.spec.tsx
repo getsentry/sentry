@@ -1,7 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useAutofixUnread} from './useAutofixUnread';
 
@@ -31,6 +31,14 @@ describe('useAutofixUnread', () => {
     localStorage.clear();
   });
 
+  afterEach(() => {
+    try {
+      jest.runOnlyPendingTimers();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('is unread once a run stops and clears after viewing the tab', async () => {
     mockRun('completed');
 
@@ -43,6 +51,7 @@ describe('useAutofixUnread', () => {
   });
 
   it('stays read while a run works and turns unread when it finishes', async () => {
+    jest.useFakeTimers();
     const request = mockRun('processing');
 
     const {result} = renderUnread();
@@ -51,6 +60,7 @@ describe('useAutofixUnread', () => {
 
     MockApiClient.clearMockResponses();
     mockRun('completed');
-    await waitFor(() => expect(result.current).toBe(true), {timeout: 3000});
+    await act(() => jest.advanceTimersByTimeAsync(1000));
+    await waitFor(() => expect(result.current).toBe(true));
   });
 });
