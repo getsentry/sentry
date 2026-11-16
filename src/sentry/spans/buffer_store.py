@@ -506,7 +506,7 @@ class SpansBufferStore:
                 redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
 
                 for span_batch in itertools.batched(flushed_segment.spans, 100):
-                    span_ids = [output_span.payload["span_id"] for output_span in span_batch]
+                    span_ids = [output_span.span_id for output_span in span_batch]
                     p.hdel(redirect_map_key, *span_ids)
 
                 if flushed_segment.payload_keys:

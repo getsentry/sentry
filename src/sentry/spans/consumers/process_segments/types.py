@@ -52,6 +52,27 @@ def attribute_value(span: Mapping[str, Any], key: str, *, default: Any | None = 
     return attr.get("value", default)
 
 
+def attach_segment_metadata(span: SpanEvent, segment_span_id: str) -> None:
+    """
+    Attach the segment the span buffer assigned this span to.
+
+    Sets the `sentry.segment.id` attribute unless the span already carries a
+    segment ID, and always overwrites `is_segment`. This runs either in the span
+    buffer flusher or, for messages that carry `segment_span_id`, in the
+    process_segment task.
+    """
+    if not attribute_value(span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_ID):
+        attributes = span.get("attributes")
+        if not isinstance(attributes, dict):
+            span["attributes"] = attributes = {}
+        attributes[ATTRIBUTE_NAMES.SENTRY_SEGMENT_ID] = {
+            "type": "string",
+            "value": segment_span_id,
+        }
+
+    span["is_segment"] = segment_span_id == span["span_id"]
+
+
 def is_gen_ai_span(span: SpanEvent) -> bool:
     return attribute_value(span, ATTRIBUTE_NAMES.GEN_AI_OPERATION_NAME) is not None or get_span_op(
         span

@@ -21,7 +21,6 @@ from sentry.utils import metrics
 type DataPoint = tuple[bytes, float]
 type EvalshaData = list[DataPoint]
 type QueueKey = bytes
-type SpanPayload = dict[str, Any]
 
 
 def _unflatten_data(flat: Sequence[Any]) -> EvalshaData:
@@ -145,10 +144,24 @@ class InsertedSubsegment(NamedTuple):
 
 class OutputSpan(NamedTuple):
     """
-    A span payload after flush-time segment metadata has been attached.
+    A serialized span payload ready to be produced.
+
+    `payload` is a JSON object. It has segment metadata (`sentry.segment.id`,
+    `is_segment`) attached unless the owning `FlushedSegment` defers that to the
+    process_segment task, see `FlushedSegment.deferred_segment_span_id`.
     """
 
-    payload: SpanPayload
+    span_id: str
+    payload: bytes
+
+
+class SegmentMessage(NamedTuple):
+    """
+    A serialized process_segment task message.
+    """
+
+    payload: bytes
+    num_spans: int
 
 
 class FlushCandidate(NamedTuple):
@@ -238,8 +251,11 @@ class FlushedSegment(NamedTuple):
     spans: list[OutputSpan]
     project_id: int  # Used to track outcomes
     payload_keys: list[PayloadKey] = []  # For cleanup
+    # When set, the span payloads are forwarded as they were stored and the
+    # process_segment task attaches segment metadata using this segment span ID.
+    deferred_segment_span_id: str | None = None
 
-    def to_messages(self) -> list[dict[str, Any]]:
+    def to_messages(self) -> list[SegmentMessage]:
         """
         Build producer messages for this segment.
 
@@ -251,30 +267,24 @@ class FlushedSegment(NamedTuple):
         """
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
 
-        spans: list[SpanPayload] = [span.payload for span in self.spans]
-
-        sizes = [len(orjson.dumps(s)) for s in spans]
+        sizes = [len(span.payload) for span in self.spans]
         if sum(sizes) <= max_segment_bytes:
-            return [{"flush_id": uuid.uuid4().hex, "spans": spans}]
+            return [self._encode_message(self.spans, skip_enrichment=False)]
 
-        messages: list[dict[str, Any]] = []
-        current: list[SpanPayload] = []
+        messages: list[SegmentMessage] = []
+        current: list[OutputSpan] = []
         current_size = 0
 
-        for span, size in zip(spans, sizes):
+        for span, size in zip(self.spans, sizes):
             if current and current_size + size > max_segment_bytes:
-                messages.append(
-                    {"flush_id": uuid.uuid4().hex, "spans": current, "skip_enrichment": True}
-                )
+                messages.append(self._encode_message(current, skip_enrichment=True))
                 current = []
                 current_size = 0
             current.append(span)
             current_size += size
 
         if current:
-            messages.append(
-                {"flush_id": uuid.uuid4().hex, "spans": current, "skip_enrichment": True}
-            )
+            messages.append(self._encode_message(current, skip_enrichment=True))
 
         if len(messages) > 1:
             metrics.timing(
@@ -284,3 +294,26 @@ class FlushedSegment(NamedTuple):
             metrics.timing("spans.buffer.oversized_segments_size", sum(sizes))
 
         return messages
+
+    def _encode_message(
+        self, spans: Sequence[OutputSpan], *, skip_enrichment: bool
+    ) -> SegmentMessage:
+        """
+        Serialize a process_segment message by splicing the already serialized
+        span payloads, instead of decoding and re-encoding them.
+
+        Without `deferred_segment_span_id` this produces exactly the bytes of
+        `orjson.dumps({"flush_id": ..., "spans": [...], "skip_enrichment": True})`
+        (the last key only for chunked segments).
+        """
+        parts = [b'{"flush_id":"', uuid.uuid4().hex.encode("ascii"), b'"']
+        if self.deferred_segment_span_id is not None:
+            parts.append(b',"segment_span_id":')
+            parts.append(orjson.dumps(self.deferred_segment_span_id))
+        parts.append(b',"spans":[')
+        parts.append(b",".join(span.payload for span in spans))
+        parts.append(b"]")
+        if skip_enrichment:
+            parts.append(b',"skip_enrichment":true')
+        parts.append(b"}")
+        return SegmentMessage(b"".join(parts), len(spans))

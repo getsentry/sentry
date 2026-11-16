@@ -60,6 +60,14 @@ This happens in two steps: Get the to-be-flushed segments in `flush_segments`,
 then the consumer produces them, then they are deleted from Redis
 (`done_flush_segments`)
 
+Every produced span carries the segment it was assigned to: the
+`sentry.segment.id` attribute (unless the span already had one) and
+`is_segment`. Either `flush_segments` attaches these, which requires parsing and
+re-serializing every span, or, for the fraction of segments set by
+`spans.buffer.flusher.defer-segment-metadata`, the stored payloads are forwarded
+unmodified together with a message-level `segment_span_id` and the
+`process_segment` task attaches them after parsing the message.
+
 On top of this, the global queue is sharded by partition, meaning that each
 consumer reads and writes to shards that correspond to its own assigned
 partitions. This means that extra care needs to be taken when recreating topics
@@ -100,11 +108,12 @@ from __future__ import annotations
 import itertools
 import logging
 import math
+import random
 from collections import defaultdict
-from collections.abc import Generator, Sequence
+from collections.abc import Callable, Generator, Sequence
 from hashlib import blake2b
-from typing import Any, cast
 
+import msgspec
 import orjson
 import zstandard
 from django.conf import settings
@@ -133,7 +142,7 @@ from sentry.spans.buffer_types import (
     Span,
     Subsegment,
 )
-from sentry.spans.consumers.process_segments.types import attribute_value
+from sentry.spans.consumers.process_segments.types import attach_segment_metadata
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.spans.segment_key import (
     SegmentKey,
@@ -155,6 +164,41 @@ def _compute_salt(spans: Sequence[Span]) -> str:
         b"".join(s.span_id.encode("ascii") for s in spans),
         digest_size=16,
     ).hexdigest()
+
+
+class _SpanId(msgspec.Struct, gc=False):
+    span_id: str
+
+
+# Decoding into a struct with a single field validates the whole document but
+# skips every other value without building Python objects for it.
+_SPAN_ID_DECODER = msgspec.json.Decoder(_SpanId)
+
+
+def _output_span_with_segment_metadata(payload: bytes, segment_span_id: str) -> OutputSpan:
+    span: SpanEvent = orjson.loads(payload)
+    attach_segment_metadata(span, segment_span_id)
+    return OutputSpan(span_id=span["span_id"], payload=orjson.dumps(span))
+
+
+def _output_span_without_segment_metadata(payload: bytes, segment_span_id: str) -> OutputSpan:
+    """
+    Forward the stored payload as is, leaving segment metadata to the
+    process_segment task. Only the span ID is read, for cleanup and metrics.
+
+    msgspec does not validate UTF-8 inside the values it skips, while orjson
+    does. A payload with invalid UTF-8 (which Relay does not produce) therefore
+    fails to decode in the task, where the non-deferred path fails here.
+    """
+    try:
+        span_id = _SPAN_ID_DECODER.decode(payload).span_id
+    except msgspec.DecodeError:
+        # The ingest consumer only stores payloads with a string span_id, so
+        # this should not happen. Handle it exactly like the non-deferred path;
+        # the task attaching metadata again is a no-op.
+        metrics.incr("spans.buffer.flush_segments.defer_segment_metadata_fallback")
+        return _output_span_with_segment_metadata(payload, segment_span_id)
+    return OutputSpan(span_id=span_id, payload=payload)
 
 
 class SpansBuffer:
@@ -482,6 +526,7 @@ class SpansBuffer:
         return_segments: dict[SegmentKey, FlushedSegment] = {}
         num_has_root_spans = 0
         any_shard_at_limit = False
+        defer_segment_metadata_rate = options.get("spans.buffer.flusher.defer-segment-metadata")
 
         for loaded_segment in loaded_segments:
             segment_key = loaded_segment.segment_key
@@ -491,29 +536,28 @@ class SpansBuffer:
             if len(segment) >= max_segments_per_shard:
                 any_shard_at_limit = True
 
+            # Attaching segment metadata here means parsing and re-serializing
+            # every span. The process_segment task parses every span anyway, so
+            # it can attach the metadata much more cheaply.
+            defer_segment_metadata = (
+                defer_segment_metadata_rate > 0.0 and random.random() < defer_segment_metadata_rate
+            )
+            build_output_span: Callable[[bytes, str], OutputSpan] = (
+                _output_span_without_segment_metadata
+                if defer_segment_metadata
+                else _output_span_with_segment_metadata
+            )
+
             output_spans: list[OutputSpan] = []
             has_root_span = False
             metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
             # This incr metric is needed to get a rate overall.
             metrics.incr("spans.buffer.flush_segments.count_spans_per_segment", amount=len(segment))
             for payload in segment:
-                span: SpanEvent = orjson.loads(payload)
-
-                if not attribute_value(span, "sentry.segment.id"):
-                    attributes = span.get("attributes")
-                    if not isinstance(attributes, dict):
-                        span["attributes"] = attributes = {}
-                    attributes["sentry.segment.id"] = {
-                        "type": "string",
-                        "value": segment_span_id,
-                    }
-
-                is_segment = segment_span_id == span["span_id"]
-                span["is_segment"] = is_segment
-                if is_segment:
+                output_span = build_output_span(payload, segment_span_id)
+                if output_span.span_id == segment_span_id:
                     has_root_span = True
-
-                output_spans.append(OutputSpan(payload=cast(dict[str, Any], span)))
+                output_spans.append(output_span)
 
             metrics.incr(
                 "spans.buffer.flush_segments.num_segments_per_shard",
@@ -524,6 +568,7 @@ class SpansBuffer:
                 spans=output_spans,
                 project_id=int(project_id.decode("ascii")),
                 payload_keys=loaded_segment.payload_keys,
+                deferred_segment_span_id=segment_span_id if defer_segment_metadata else None,
             )
             num_has_root_spans += int(has_root_span)
 

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import itertools
+import uuid
 from collections.abc import Iterator, Sequence
-from typing import cast
+from typing import Any, NamedTuple, cast
 from unittest import mock
 
 import orjson
@@ -23,10 +24,12 @@ from sentry.spans.buffer_types import (
     LoadedSegment,
     OutputSpan,
     SegmentIngestMetadata,
+    SegmentMessage,
     Span,
     Subsegment,
 )
 from sentry.spans.consumers.process.factory import decode_process_span_event
+from sentry.spans.consumers.process_segments.tasks import _decode_segment
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.outcomes import Outcome
@@ -53,6 +56,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.evalsha-latency-threshold": 100,
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.buffer.debug-traces": [],
+    "spans.buffer.flusher.defer-segment-metadata": 0.0,
     "spans.process-segments.schema-validation": 1.0,
 }
 
@@ -77,14 +81,20 @@ def _payload(span_id: str) -> bytes:
     return orjson.dumps({"span_id": span_id})
 
 
+def _output_span(payload: dict[str, Any]) -> OutputSpan:
+    return OutputSpan(span_id=payload["span_id"], payload=orjson.dumps(payload))
+
+
 def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> OutputSpan:
-    return OutputSpan(
-        payload={
+    # Keys are in the order the flusher writes them, so this also checks the
+    # serialized bytes.
+    return _output_span(
+        {
             "span_id": span_id.decode("ascii"),
-            "is_segment": is_segment,
             "attributes": {
                 "sentry.segment.id": {"type": "string", "value": segment_id.decode("ascii")},
             },
+            "is_segment": is_segment,
         }
     )
 
@@ -112,7 +122,7 @@ def _span(
 
 def _normalize_output(output: dict[SegmentKey, FlushedSegment]) -> None:
     for segment in output.values():
-        segment.spans.sort(key=lambda span: span.payload["span_id"])
+        segment.spans.sort(key=lambda span: span.span_id)
 
 
 def _delete_span_buffer_keys(client: StrictRedis[bytes] | RedisCluster[bytes]) -> None:
@@ -731,7 +741,8 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
 
     rv = buffer.flush_segments(now=11)
     segment = rv[_segment_id(1, "a" * 32, "b" * 16)]
-    assert segment.spans[0].payload["attributes"]["sentry.segment.id"]["value"] == "b" * 16
+    payload = orjson.loads(segment.spans[0].payload)
+    assert payload["attributes"]["sentry.segment.id"]["value"] == "b" * 16
 
 
 def test_deep(buffer: SpansBuffer, subtests: pytest.Subtests) -> None:
@@ -1145,11 +1156,10 @@ def test_compression_functionality(compression_level: int) -> None:
 
         span_ids = set()
         for span in segment.spans:
-            assert "data" in span.payload
-            assert "extra_data" in span.payload
-            assert span.payload["data"]["message"] == "x" * 1000
-            assert span.payload["extra_data"]["field"] == "y" * 500
-            span_ids.add(span.payload["span_id"])
+            payload = orjson.loads(span.payload)
+            assert payload["data"]["message"] == "x" * 1000
+            assert payload["extra_data"]["field"] == "y" * 500
+            span_ids.add(span.span_id)
 
         expected_span_ids = {"a" * 16, "b" * 16, "c" * 16}
         assert span_ids == expected_span_ids
@@ -1222,7 +1232,7 @@ def test_max_segment_bytes_detaches_over_limit(
     assert len(detached_keys) == 1
     detached_segment = rv[detached_keys[0]]
     assert len(detached_segment.spans) == 1
-    assert detached_segment.spans[0].payload["span_id"] == "d" * 16
+    assert detached_segment.spans[0].span_id == "d" * 16
 
 
 @mock.patch("sentry.spans.buffer.Project")
@@ -1270,7 +1280,7 @@ def test_max_segment_bytes_under_limit_merges_normally(
     assert len(rv) == 1
     segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
     assert len(segment.spans) == 2
-    span_ids = {s.payload["span_id"] for s in segment.spans}
+    span_ids = {s.span_id for s in segment.spans}
     assert span_ids == {"b" * 16, "c" * 16}
 
 
@@ -1335,7 +1345,7 @@ def test_flush_oversized_segments(mock_project_model: mock.MagicMock, buffer: Sp
         buffer.process_spans(batch2, now=0)
         rv = buffer.flush_segments(now=61)
 
-    all_span_ids = {span.payload["span_id"] for seg in rv.values() for span in seg.spans}
+    all_span_ids = {span.span_id for seg in rv.values() for span in seg.spans}
     assert all_span_ids == {"a" * 16, "b" * 16, "c" * 16, "d" * 16, "e" * 16}
     assert sum(len(seg.spans) for seg in rv.values()) == 5
     # Confirms the byte-limit detach actually triggered. Exact count depends on
@@ -1347,7 +1357,7 @@ def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
     spans = [{"span_id": "a"}, {"span_id": "b"}]
     segment = FlushedSegment(
         queue_key=b"test",
-        spans=[OutputSpan(payload=s) for s in spans],
+        spans=[_output_span(s) for s in spans],
         project_id=1,
     )
     with override_options(
@@ -1358,10 +1368,12 @@ def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
     ):
         messages = segment.to_messages()
     assert len(messages) == 1
-    assert messages[0]["spans"] == spans
-    assert "skip_enrichment" not in messages[0]
-    assert "flush_id" in messages[0]
-    assert len(messages[0]["flush_id"]) == 32  # UUID hex string
+    assert messages[0].num_spans == 2
+    message = orjson.loads(messages[0].payload)
+    assert message["spans"] == spans
+    assert "skip_enrichment" not in message
+    assert "segment_span_id" not in message
+    assert len(message["flush_id"]) == 32  # UUID hex string
 
 
 def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:
@@ -1394,7 +1406,7 @@ def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:
     ]
     segment = FlushedSegment(
         queue_key=b"test",
-        spans=[OutputSpan(payload=s) for s in spans],
+        spans=[_output_span(s) for s in spans],
         project_id=1,
     )
     with override_options(
@@ -1403,10 +1415,12 @@ def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:
             "spans.buffer.max-segment-bytes": 500,
         }
     ):
-        messages = segment.to_messages()
+        encoded_messages = segment.to_messages()
 
+    messages = [orjson.loads(m.payload) for m in encoded_messages]
     assert len(messages) == 2
     assert [len(m["spans"]) for m in messages] == [3, 2]
+    assert [m.num_spans for m in encoded_messages] == [3, 2]
 
     all_spans = [span for m in messages for span in m["spans"]]
     assert all_spans == spans
@@ -1429,7 +1443,7 @@ def test_to_messages_single_large_span(buffer: SpansBuffer) -> None:
     """A single span larger than max_bytes still gets its own message."""
     segment = FlushedSegment(
         queue_key=b"test",
-        spans=[OutputSpan(payload={"span_id": "a" * 16})],
+        spans=[_output_span({"span_id": "a" * 16})],
         project_id=1,
     )
     with override_options(
@@ -1440,9 +1454,156 @@ def test_to_messages_single_large_span(buffer: SpansBuffer) -> None:
     ):
         messages = segment.to_messages()
     assert len(messages) == 1
-    assert messages[0]["skip_enrichment"] is True
-    assert "flush_id" in messages[0]
-    assert len(messages[0]["flush_id"]) == 32
+    message = orjson.loads(messages[0].payload)
+    assert message["skip_enrichment"] is True
+    assert len(message["flush_id"]) == 32
+
+
+_TO_MESSAGES_SPANS: list[dict[str, Any]] = [
+    {
+        "span_id": "a" * 16,
+        "name": 'café ☃ "quoted"\n',
+        "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
+        "is_segment": True,
+    },
+    {
+        "span_id": "b" * 16,
+        "links": [{"span_id": "a" * 16, "attributes": None}],
+        "attributes": {"sentry.segment.id": {"type": "string", "value": "a" * 16}},
+        "is_segment": False,
+    },
+]
+
+
+def test_to_messages_matches_serializing_the_message() -> None:
+    """Splicing span payloads produces the bytes the flusher used to serialize."""
+    segment = FlushedSegment(
+        queue_key=b"test",
+        spans=[_output_span(s) for s in _TO_MESSAGES_SPANS],
+        project_id=1,
+    )
+    flush_id = uuid.UUID(int=1)
+    with (
+        override_options({**DEFAULT_OPTIONS, "spans.buffer.max-segment-bytes": 10000}),
+        mock.patch("sentry.spans.buffer_types.uuid.uuid4", return_value=flush_id),
+    ):
+        messages = segment.to_messages()
+
+    assert messages == [
+        SegmentMessage(
+            payload=orjson.dumps({"flush_id": flush_id.hex, "spans": _TO_MESSAGES_SPANS}),
+            num_spans=2,
+        )
+    ]
+
+
+def test_to_messages_matches_serializing_chunked_messages() -> None:
+    segment = FlushedSegment(
+        queue_key=b"test",
+        spans=[_output_span(s) for s in _TO_MESSAGES_SPANS],
+        project_id=1,
+    )
+    flush_id = uuid.UUID(int=1)
+    with (
+        override_options({**DEFAULT_OPTIONS, "spans.buffer.max-segment-bytes": 10}),
+        mock.patch("sentry.spans.buffer_types.uuid.uuid4", return_value=flush_id),
+    ):
+        messages = segment.to_messages()
+
+    assert messages == [
+        SegmentMessage(
+            payload=orjson.dumps(
+                {"flush_id": flush_id.hex, "spans": [span], "skip_enrichment": True}
+            ),
+            num_spans=1,
+        )
+        for span in _TO_MESSAGES_SPANS
+    ]
+
+
+def test_to_messages_with_deferred_segment_metadata() -> None:
+    stored_payloads = [b'{"span_id":"aaaaaaaaaaaaaaaa"}', b'{ "span_id" : "bbbbbbbbbbbbbbbb" }']
+    segment = FlushedSegment(
+        queue_key=b"test",
+        spans=[
+            OutputSpan(span_id="a" * 16, payload=stored_payloads[0]),
+            OutputSpan(span_id="b" * 16, payload=stored_payloads[1]),
+        ],
+        project_id=1,
+        deferred_segment_span_id="a" * 16,
+    )
+    flush_id = uuid.UUID(int=1)
+    with (
+        override_options({**DEFAULT_OPTIONS, "spans.buffer.max-segment-bytes": 10000}),
+        mock.patch("sentry.spans.buffer_types.uuid.uuid4", return_value=flush_id),
+    ):
+        messages = segment.to_messages()
+
+    assert messages == [
+        SegmentMessage(
+            payload=(
+                b'{"flush_id":"%s","segment_span_id":"aaaaaaaaaaaaaaaa","spans":[%s,%s]}'
+                % (flush_id.hex.encode(), stored_payloads[0], stored_payloads[1])
+            ),
+            num_spans=2,
+        )
+    ]
+    assert orjson.loads(messages[0].payload) == {
+        "flush_id": flush_id.hex,
+        "segment_span_id": "a" * 16,
+        "spans": [{"span_id": "a" * 16}, {"span_id": "b" * 16}],
+    }
+
+
+def test_to_messages_chunks_deferred_segment_metadata() -> None:
+    stored_payloads = [b'{"span_id":"aaaaaaaaaaaaaaaa"}', b'{"span_id":"bbbbbbbbbbbbbbbb"}']
+    segment = FlushedSegment(
+        queue_key=b"test",
+        spans=[
+            OutputSpan(span_id="a" * 16, payload=stored_payloads[0]),
+            OutputSpan(span_id="b" * 16, payload=stored_payloads[1]),
+        ],
+        project_id=1,
+        deferred_segment_span_id="a" * 16,
+    )
+    with override_options({**DEFAULT_OPTIONS, "spans.buffer.max-segment-bytes": 40}):
+        messages = segment.to_messages()
+
+    assert [_decode_segment(message.payload) for message in messages] == [
+        ([{"span_id": "a" * 16, "attributes": mock.ANY, "is_segment": True}], True),
+        ([{"span_id": "b" * 16, "attributes": mock.ANY, "is_segment": False}], True),
+    ]
+
+
+def test_flush_segments_with_deferred_segment_metadata(buffer: SpansBuffer) -> None:
+    spans = [
+        _span("a" * 16, "b" * 16),
+        _span("c" * 16, "b" * 16),
+        _span("b" * 16, None, is_segment_span=True),
+    ]
+
+    with override_options({"spans.buffer.flusher.defer-segment-metadata": 1.0}):
+        process_spans(spans, buffer, now=0)
+        rv = buffer.flush_segments(now=11)
+
+    _normalize_output(rv)
+    assert rv == {
+        _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            payload_keys=mock.ANY,
+            project_id=1,
+            spans=[
+                OutputSpan(span_id="a" * 16, payload=_payload("a" * 16)),
+                OutputSpan(span_id="b" * 16, payload=_payload("b" * 16)),
+                OutputSpan(span_id="c" * 16, payload=_payload("c" * 16)),
+            ],
+            deferred_segment_span_id="b" * 16,
+        )
+    }
+
+    # Cleanup relies on the span IDs read from the payloads.
+    buffer.done_flush_segments(rv)
+    assert_clean(buffer.client)
 
 
 def test_to_messages_unique_flush_ids_across_calls(buffer: SpansBuffer) -> None:
@@ -1450,7 +1611,7 @@ def test_to_messages_unique_flush_ids_across_calls(buffer: SpansBuffer) -> None:
     spans = [{"span_id": "a"}, {"span_id": "b"}]
     segment = FlushedSegment(
         queue_key=b"test",
-        spans=[OutputSpan(payload=s) for s in spans],
+        spans=[_output_span(s) for s in spans],
         project_id=1,
     )
     with override_options(
@@ -1462,7 +1623,10 @@ def test_to_messages_unique_flush_ids_across_calls(buffer: SpansBuffer) -> None:
         messages1 = segment.to_messages()
         messages2 = segment.to_messages()
 
-    assert messages1[0]["flush_id"] != messages2[0]["flush_id"]
+    assert (
+        orjson.loads(messages1[0].payload)["flush_id"]
+        != orjson.loads(messages2[0].payload)["flush_id"]
+    )
 
 
 def test_kafka_slice_id(buffer: SpansBuffer) -> None:
@@ -1933,7 +2097,7 @@ def test_flush_lock_detaches_subsegment(
     assert len(detached_keys) == 1
     detached_segment = rv2[detached_keys[0]]
     assert len(detached_segment.spans) == 1
-    assert detached_segment.spans[0].payload["span_id"] == "c" * 16
+    assert detached_segment.spans[0].span_id == "c" * 16
 
     buffer.done_flush_segments(rv2)
 
@@ -2057,7 +2221,7 @@ def test_build_flushed_segments_adds_segment_metadata() -> None:
     )
 
     flushed_segment = flushed_segments[segment_key]
-    output_payloads = {span.payload["span_id"]: span.payload for span in flushed_segment.spans}
+    output_payloads = {span.span_id: orjson.loads(span.payload) for span in flushed_segment.spans}
     assert flushed_segment.queue_key == queue_key
     assert flushed_segment.project_id == 1
     assert flushed_segment.payload_keys == [payload_key]
@@ -2068,6 +2232,211 @@ def test_build_flushed_segments_adds_segment_metadata() -> None:
         == segment_span_id
     )
     assert num_has_root_spans == 1
+    assert flushed_segment.deferred_segment_span_id is None
+
+
+def test_build_flushed_segments_defers_segment_metadata() -> None:
+    buffer = SpansBuffer(assigned_shards=[0])
+    trace_id = "a" * 32
+    segment_span_id = "b" * 16
+    child_span_id = "c" * 16
+    segment_key = _segment_id(1, trace_id, segment_span_id)
+    queue_key = buffer.store.get_queue_key(0)
+    payload_key = _payload_key(1, trace_id, "1" * 32)
+    payloads = [_payload(segment_span_id), _payload(child_span_id)]
+
+    with override_options({**DEFAULT_OPTIONS, "spans.buffer.flusher.defer-segment-metadata": 1.0}):
+        flushed_segments, num_has_root_spans, _ = buffer._build_flushed_segments(
+            [LoadedSegment(FlushCandidate(0, queue_key, segment_key, 5), payloads, [payload_key])],
+            max_segments_per_shard=2,
+            now=10,
+        )
+
+    assert flushed_segments == {
+        segment_key: FlushedSegment(
+            queue_key=queue_key,
+            spans=[
+                OutputSpan(span_id=segment_span_id, payload=payloads[0]),
+                OutputSpan(span_id=child_span_id, payload=payloads[1]),
+            ],
+            project_id=1,
+            payload_keys=[payload_key],
+            deferred_segment_span_id=segment_span_id,
+        )
+    }
+    assert num_has_root_spans == 1
+
+
+# Stored span payloads in the shapes the flusher has to attach segment metadata
+# to. `%(span_id)s` is the span's own ID, `%(segment_span_id)s` the ID of the
+# segment span the buffer assigned it to.
+_SEGMENT_METADATA_PAYLOADS = [
+    pytest.param(b'{"span_id":"%(span_id)s"}', id="no-attributes"),
+    pytest.param(
+        b'{"span_id":"%(span_id)s","attributes":null,"is_segment":null}', id="null-attributes"
+    ),
+    pytest.param(b'{"span_id":"%(span_id)s","attributes":[1]}', id="non-object-attributes"),
+    pytest.param(
+        b'{"span_id":"%(span_id)s","attributes":{},"is_segment":true}', id="empty-attributes"
+    ),
+    pytest.param(
+        b'{"attributes":{"sentry.segment.id":{"type":"string","value":"aaaaaaaaaaaaaaaa"}},'
+        b'"is_segment":false,"span_id":"%(span_id)s"}',
+        id="existing-segment-id",
+    ),
+    pytest.param(
+        b'{"span_id":"%(span_id)s","attributes":{"sentry.segment.id":{"type":"string","value":""}}}',
+        id="empty-segment-id",
+    ),
+    pytest.param(
+        b'{"span_id":"%(span_id)s","attributes":{"sentry.segment.id":null,"other":null}}',
+        id="null-segment-id",
+    ),
+    pytest.param(
+        b'{"span_id":"%(span_id)s","attributes":'
+        b'{"sentry.segment_id":{"type":"string","value":"aaaaaaaaaaaaaaaa"}}}',
+        id="deprecated-segment-id",
+    ),
+    pytest.param(
+        b'{"span_id":"%(span_id)s","attributes":'
+        b'{"transaction.span_id":{"type":"string","value":""}}}',
+        id="empty-deprecated-segment-id",
+    ),
+    pytest.param(
+        b'{\n  "links": [{"trace_id": "%(trace_id)s", "span_id": "%(segment_span_id)s"}],\n'
+        b'  "attributes": {\n'
+        b'    "span_id": {"type": "string", "value": "%(segment_span_id)s"},\n'
+        b'    "is_segment": {"type": "boolean", "value": true}\n'
+        b"  },\n"
+        b'  "is_segment" : false ,\n'
+        b'  "span_id" : "%(span_id)s"\n'
+        b"}\n",
+        id="whitespace-and-nested-span-ids",
+    ),
+    pytest.param(
+        b'{"span_id":"%(span_id)s","name":"caf\\u00e9 \\"quoted\\"\\n","attributes":'
+        b'{"k\\u00e9y":{"type":"string","value":"\xe2\x98\x83"}}}',
+        id="escapes-and-unicode",
+    ),
+    pytest.param(
+        b'{"span_id":"%(span_id)s","start_timestamp":1.7e9,"end_timestamp":1700000000.123456789,'
+        b'"attributes":{"big":{"type":"integer","value":18446744073709551615},'
+        b'"neg":{"type":"double","value":-0.0}}}',
+        id="numbers",
+    ),
+    pytest.param(
+        b'{"span_id":"ffffffffffffffff","span_id":"%(span_id)s"}', id="duplicate-span-id-key"
+    ),
+]
+
+
+class _FlushedAndDecoded(NamedTuple):
+    segment: FlushedSegment
+    num_has_root_spans: int
+    # What the process_segment task passes on to `process_segment`
+    spans: list[SpanEvent]
+    skip_enrichment: list[bool]
+
+
+def _flush_and_decode(payloads: list[bytes], *, defer_rate: float) -> _FlushedAndDecoded:
+    buffer = SpansBuffer(assigned_shards=[0])
+    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    flush_candidate = FlushCandidate(0, buffer.store.get_queue_key(0), segment_key, 5)
+
+    with override_options(
+        {**DEFAULT_OPTIONS, "spans.buffer.flusher.defer-segment-metadata": defer_rate}
+    ):
+        flushed_segments, num_has_root_spans, _ = buffer._build_flushed_segments(
+            [LoadedSegment(flush_candidate, payloads, [])],
+            max_segments_per_shard=10,
+            now=10,
+        )
+        messages = flushed_segments[segment_key].to_messages()
+
+    # Decode the messages exactly as the process_segment task does.
+    decoded = [_decode_segment(message.payload) for message in messages]
+    return _FlushedAndDecoded(
+        segment=flushed_segments[segment_key],
+        num_has_root_spans=num_has_root_spans,
+        spans=[span for spans, _ in decoded for span in spans],
+        skip_enrichment=[skip_enrichment for _, skip_enrichment in decoded],
+    )
+
+
+@pytest.mark.parametrize("payload_template", _SEGMENT_METADATA_PAYLOADS)
+def test_deferred_segment_metadata_parity(payload_template: bytes) -> None:
+    """
+    Whether the flusher attaches segment metadata itself or defers it to the
+    process_segment task, the task has to end up with the same spans.
+    """
+    values = {b"trace_id": b"a" * 32, b"segment_span_id": b"b" * 16}
+    payloads = [
+        payload_template % {**values, b"span_id": b"b" * 16},
+        payload_template % {**values, b"span_id": b"c" * 16},
+    ]
+
+    legacy = _flush_and_decode(payloads, defer_rate=0.0)
+    deferred = _flush_and_decode(payloads, defer_rate=1.0)
+
+    # Comparing serialized spans also compares key order and float signs.
+    assert orjson.dumps(deferred.spans) == orjson.dumps(legacy.spans)
+    assert deferred.spans == legacy.spans
+    assert [span["is_segment"] for span in deferred.spans] == [True, False]
+    assert deferred.skip_enrichment == legacy.skip_enrichment == [False]
+    assert deferred.num_has_root_spans == legacy.num_has_root_spans == 1
+
+    # The deferred path forwards the stored bytes and only reads the span ID.
+    assert [span.payload for span in deferred.segment.spans] == payloads
+    assert [span.span_id for span in deferred.segment.spans] == ["b" * 16, "c" * 16]
+    assert [span.span_id for span in legacy.segment.spans] == ["b" * 16, "c" * 16]
+    assert deferred.segment.deferred_segment_span_id == "b" * 16
+    assert legacy.segment.deferred_segment_span_id is None
+
+
+def test_deferred_segment_metadata_falls_back_for_unexpected_span_id() -> None:
+    # Not a string span ID. The ingest consumer rejects these, but the flusher
+    # still has to handle them like the non-deferred path does.
+    payloads = [b'{"span_id":"bbbbbbbbbbbbbbbb"}', b'{"span_id":12}']
+
+    legacy = _flush_and_decode(payloads, defer_rate=0.0)
+    deferred = _flush_and_decode(payloads, defer_rate=1.0)
+
+    assert orjson.dumps(deferred.spans) == orjson.dumps(legacy.spans)
+    assert deferred.segment.spans[0].payload == payloads[0]
+    assert orjson.loads(deferred.segment.spans[1].payload) == legacy.spans[1]
+
+
+def test_deferred_segment_metadata_with_invalid_utf8() -> None:
+    # The span ID decoder skips over the invalid string, so the payload reaches
+    # the task, which rejects the message like the non-deferred flusher would.
+    payloads = [b'{"span_id":"bbbbbbbbbbbbbbbb","name":"\xff"}']
+
+    with pytest.raises(orjson.JSONDecodeError):
+        _flush_and_decode(payloads, defer_rate=0.0)
+    with pytest.raises(orjson.JSONDecodeError):
+        _flush_and_decode(payloads, defer_rate=1.0)
+
+
+def test_deferred_segment_metadata_rate_is_per_segment() -> None:
+    buffer = SpansBuffer(assigned_shards=[0])
+    queue_key = buffer.store.get_queue_key(0)
+    segment_keys = [_segment_id(1, "a" * 32, span_id * 16) for span_id in "bcd"]
+    loaded_segments = [
+        LoadedSegment(FlushCandidate(0, queue_key, segment_key, 5), [_payload("e" * 16)], [])
+        for segment_key in segment_keys
+    ]
+
+    with (
+        override_options({**DEFAULT_OPTIONS, "spans.buffer.flusher.defer-segment-metadata": 0.5}),
+        mock.patch("sentry.spans.buffer.random.random", side_effect=[0.1, 0.9, 0.4]),
+    ):
+        flushed_segments, _, _ = buffer._build_flushed_segments(
+            loaded_segments, max_segments_per_shard=10, now=10
+        )
+
+    assert [
+        flushed_segments[segment_key].deferred_segment_span_id for segment_key in segment_keys
+    ] == ["b" * 16, None, "d" * 16]
 
 
 def test_record_segment_loss_metrics_records_dropped_spans() -> None:
@@ -2251,7 +2620,7 @@ def test_distributed_deep_tree(distributed_buffer: SpansBuffer) -> None:
     _normalize_output(rv)
     seg_key = _segment_id(1, "a" * 32, "a" * 16)
     assert len(rv[seg_key].spans) == 4
-    assert {s.payload["span_id"] for s in rv[seg_key].spans} == {
+    assert {s.span_id for s in rv[seg_key].spans} == {
         "a" * 16,
         "b" * 16,
         "c" * 16,
@@ -2332,27 +2701,31 @@ def test_schema_examples(buffer: SpansBuffer, example: dict[str, object]) -> Non
     assert len(segment.spans) == 1
 
     output_span = segment.spans[0]
-    assert output_span.payload["span_id"] == example["span_id"]
-    assert output_span.payload["trace_id"] == example["trace_id"]
+    output_payload = orjson.loads(output_span.payload)
+    assert output_span.span_id == example["span_id"]
+    assert output_payload["span_id"] == example["span_id"]
+    assert output_payload["trace_id"] == example["trace_id"]
 
     # Verify top-level keys are preserved (except is_segment and attributes
     # which the buffer modifies)
     for key in example:
         if key in ("is_segment", "attributes"):
             continue
-        assert key in output_span.payload, f"Key {key!r} missing from output payload"
+        assert key in output_payload, f"Key {key!r} missing from output payload"
 
     # Validate that the output span still conforms to the ingest-spans schema.
     # It's not explicitly written anywhere that the spans schema in
     # buffered-segments is the same one as the input schema, but right now
     # that's what it is.
-    get_topic_codec(Topic.INGEST_SPANS).validate(cast(SpanEvent, output_span.payload))
+    get_topic_codec(Topic.INGEST_SPANS).validate(cast(SpanEvent, output_payload))
 
     # Validate that the assembled segment conforms to the buffered-segments
     # schema. Nothing produces to or consumes that topic anymore, but the schema
     # still describes the payload the flusher hands to process_segment_task.
     buffered_segments_codec = get_topic_codec(Topic.BUFFERED_SEGMENTS)
-    buffered_segments_codec.validate({"spans": [span.payload for span in segment.spans]})
+    buffered_segments_codec.validate(
+        {"spans": [orjson.loads(span.payload) for span in segment.spans]}
+    )
 
     buffer.done_flush_segments(rv)
     assert_clean(buffer.client)
