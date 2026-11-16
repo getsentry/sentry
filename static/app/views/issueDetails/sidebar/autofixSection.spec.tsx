@@ -36,6 +36,12 @@ jest.mock('sentry/views/seerExplorer/seerExplorerChatStateContext', () => ({
   useSeerExplorerChatState: () => ({runId: mockOpenRunId}),
 }));
 
+jest.mock('sentry/constants', () => ({
+  ...jest.requireActual('sentry/constants'),
+  get NODE_ENV() {
+    return process.env.SENTRY_TEST_NODE_ENV ?? 'test';
+  },
+}));
 jest.mock('sentry/utils/cells');
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -440,6 +446,61 @@ describe('AutofixSection', () => {
         expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 'abc'})
       );
     });
+
+    it.each([
+      ['development', '?seerRcaLoadTest=1', ['']],
+      ['development', '', undefined],
+      ['production', '?seerRcaLoadTest=1', undefined],
+    ] as const)(
+      'sends the RCA load-test timestamp in %s with %s',
+      async (env, search, sentAt) => {
+        const envOverride = jest.replaceProperty(process, 'env', {
+          ...process.env,
+          SENTRY_TEST_NODE_ENV: env,
+        });
+        try {
+          const url = `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`;
+          MockApiClient.addMockResponse({url, body: {autofix: null}});
+          const post = MockApiClient.addMockResponse({
+            url,
+            method: 'POST',
+            body: {run_id: 5, sentry_run_id: 'abc'},
+          });
+
+          const {router} = render(
+            <AutofixSection group={mockGroup} project={mockProject} />,
+            {
+              organization,
+              initialRouterConfig: {
+                location: {
+                  pathname: '/',
+                  query: Object.fromEntries(new URLSearchParams(search)),
+                },
+              },
+            }
+          );
+          expect(router.location.search).toBe(search);
+
+          await userEvent.click(
+            await screen.findByRole('button', {name: 'Start Analysis'})
+          );
+          await waitFor(() =>
+            expect(post).toHaveBeenCalledWith(
+              url,
+              expect.objectContaining({
+                data: {
+                  step: 'root_cause',
+                  referrer: 'api.web',
+                  ...(sentAt ? {sent_at: sentAt} : {}),
+                },
+              })
+            )
+          );
+        } finally {
+          envOverride.restore();
+        }
+      }
+    );
 
     it('does not open the Explorer panel when the start is a step run', async () => {
       MockApiClient.addMockResponse({

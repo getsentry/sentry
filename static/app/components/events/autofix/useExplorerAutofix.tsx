@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useLocation} from 'react-router';
 
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
@@ -8,6 +9,7 @@ import {
   getRefusedPRMessage,
   getRefusedStepMessage,
 } from 'sentry/components/seer/outOfCredits/messages';
+import {NODE_ENV} from 'sentry/constants';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
@@ -913,6 +915,10 @@ export function useExplorerAutofix(
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const {search} = useLocation();
+  const rcaLoadTest =
+    NODE_ENV === 'development' &&
+    new URLSearchParams(search).get('seerRcaLoadTest') === '1';
   const user = useUser();
   const orgSlug = organization.slug;
   const serviceWorker = useServiceWorker();
@@ -981,6 +987,9 @@ export function useExplorerAutofix(
 
       try {
         const data: Record<string, any> = {step, referrer: 'api.web'};
+        if (rcaLoadTest && step === 'root_cause') {
+          data.sent_at = [''];
+        }
 
         if (defined(startStepOptions?.insertIndex)) {
           data.insert_index = startStepOptions.insertIndex;
@@ -1116,7 +1125,16 @@ export function useExplorerAutofix(
         throw e;
       }
     },
-    [api, group.shortId, groupId, orgSlug, organization, queryClient, serviceWorker]
+    [
+      api,
+      group.shortId,
+      groupId,
+      orgSlug,
+      organization,
+      queryClient,
+      rcaLoadTest,
+      serviceWorker,
+    ]
   );
 
   /**
