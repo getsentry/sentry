@@ -44,7 +44,7 @@ function mountModal(
 }
 
 describe('TransactionThresholdModal', () => {
-  const organization = OrganizationFixture({features: []});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '1',

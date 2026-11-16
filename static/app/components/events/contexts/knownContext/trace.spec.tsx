@@ -46,7 +46,7 @@ const MOCK_REDACTION = {
 
 describe('TraceContext', () => {
   const location = LocationFixture();
-  const organization = OrganizationFixture({features: []});
+  const organization = OrganizationFixture();
 
   it('returns values and according to the parameters', () => {
     expect(

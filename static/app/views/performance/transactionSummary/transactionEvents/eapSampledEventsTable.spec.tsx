@@ -13,9 +13,7 @@ import {SampledEventsTable} from './eapSampledEventsTable';
 
 describe('EAP SampledEventsTable', () => {
   const project = ProjectFixture({id: '1', platform: 'javascript'});
-  const organization = OrganizationFixture({
-    features: [],
-  });
+  const organization = OrganizationFixture();
 
   const META_FIELDS = {
     span_id: 'string',

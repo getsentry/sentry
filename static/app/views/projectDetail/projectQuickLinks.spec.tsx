@@ -6,7 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {ProjectQuickLinks} from './projectQuickLinks';
 
 describe('ProjectDetail > ProjectQuickLinks', () => {
-  const organization = OrganizationFixture({features: []});
+  const organization = OrganizationFixture();
 
   afterEach(() => {
     jest.clearAllMocks();

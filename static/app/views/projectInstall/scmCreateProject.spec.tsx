@@ -92,7 +92,7 @@ const pythonPlatform: OnboardingSelectedSDK = {
 };
 
 describe('ScmCreateProject', () => {
-  const organization = OrganizationFixture({features: []});
+  const organization = OrganizationFixture();
   const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
   const selectedTeam = TeamFixture({
     id: '2',
@@ -365,7 +365,6 @@ describe('ScmCreateProject', () => {
       body: [],
     });
     const memberOrganization = OrganizationFixture({
-      features: [],
       access: ['org:read', 'project:read', 'team:read'],
       allowMemberProjectCreation: true,
     });
@@ -381,7 +380,6 @@ describe('ScmCreateProject', () => {
   it('keeps the repository section for members when an integration is connected', async () => {
     mockExistingGithubRepository();
     const memberOrganization = OrganizationFixture({
-      features: [],
       access: ['org:read', 'project:read', 'team:read'],
       allowMemberProjectCreation: true,
     });

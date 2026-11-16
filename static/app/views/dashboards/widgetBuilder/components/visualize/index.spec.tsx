@@ -40,9 +40,7 @@ function TraceMetricsVisualize() {
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: [],
-    });
+    organization = OrganizationFixture();
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 

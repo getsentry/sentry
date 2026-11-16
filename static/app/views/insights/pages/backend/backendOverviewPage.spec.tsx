@@ -9,7 +9,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import BackendOverviewPage from './backendOverviewPage';
 
-const organization = OrganizationFixture({features: []});
+const organization = OrganizationFixture();
 const pageFilterSelection = PageFiltersFixture({
   projects: [1, 2],
   datetime: {

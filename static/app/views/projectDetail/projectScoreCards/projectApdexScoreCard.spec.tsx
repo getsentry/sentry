@@ -107,7 +107,7 @@ describe('ProjectDetail > ProjectApdex', () => {
 
     render(
       <ProjectApdexScoreCard
-        organization={{...organization, features: []}}
+        organization={organization}
         hasTransactions={false}
         selection={selection}
         isProjectStabilized

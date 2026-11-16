@@ -152,9 +152,7 @@ describe('ProductSelectionAvailability', () => {
     });
 
     it('without session replay', async () => {
-      const organization = OrganizationFixture({
-        features: [],
-      });
+      const organization = OrganizationFixture();
       const initialRouterConfig = {
         location: {
           pathname: '/mock-pathname/',
@@ -305,7 +303,6 @@ describe('ProductSelectionAvailability', () => {
     it('without session replay', async () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
-        features: [],
       });
       const initialRouterConfig = {
         location: {
@@ -456,9 +453,7 @@ describe('ProductSelectionAvailability', () => {
     });
 
     it('without profiling and without session replay', async () => {
-      const organization = OrganizationFixture({
-        features: [],
-      });
+      const organization = OrganizationFixture();
       const initialRouterConfig = {
         location: {
           pathname: '/mock-pathname/',

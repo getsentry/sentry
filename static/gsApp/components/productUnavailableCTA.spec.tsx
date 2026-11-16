@@ -99,9 +99,7 @@ describe('ProductUnavailableCTA', () => {
 
     it('without session replay', async () => {
       const {organization} = initializeOrg({
-        organization: {
-          features: [],
-        },
+        organization: {},
       });
 
       const mockRequests = renderMockRequests({
@@ -171,7 +169,6 @@ describe('ProductUnavailableCTA', () => {
       const {organization} = initializeOrg({
         organization: {
           access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
-          features: [],
         },
       });
 

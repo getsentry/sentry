@@ -265,9 +265,7 @@ describe('TransactionReplays', () => {
 
   it("should show a message when the organization doesn't have access to the replay feature", async () => {
     renderComponent({
-      organizationProps: {
-        features: [],
-      },
+      organizationProps: {},
     });
 
     await waitFor(() => {

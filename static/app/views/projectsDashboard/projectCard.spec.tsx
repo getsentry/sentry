@@ -146,7 +146,7 @@ describe('ProjectCard', () => {
   });
 
   it('renders header link for transactions', async () => {
-    const organization = OrganizationFixture({features: []});
+    const organization = OrganizationFixture();
     const project = ProjectFixture({
       platform: 'javascript',
     });

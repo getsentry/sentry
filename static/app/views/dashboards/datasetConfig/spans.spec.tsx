@@ -21,9 +21,7 @@ describe('SpansConfig', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    organization = OrganizationFixture({
-      features: [],
-    });
+    organization = OrganizationFixture();
   });
 
   it('returns all of the EAP aggregations as primary options', () => {
@@ -100,7 +98,7 @@ describe('SpansConfig', () => {
       ],
     });
 
-    const org = OrganizationFixture({features: []});
+    const org = OrganizationFixture();
     const renderer = SpansConfig.getCustomFieldRenderer!(
       field,
       {},
