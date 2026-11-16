@@ -2,7 +2,8 @@ name: Bump @sentry/api in sentry-docs and toolkit
 
 # Each published api@ release asks sentry-docs and getsentry/toolkit to pin the
 # new @sentry/api version. Craft publishes to npm before it publishes the
-# GitHub release, so the version is already on npm when this runs.
+# GitHub release, but the registry can lag, so the dispatches wait until npm
+# serves the new version.
 on:
   release:
     types:
@@ -12,8 +13,26 @@ on:
 permissions: {}
 
 jobs:
-  dispatch:
+  wait-for-npm:
     if: startsWith(github.event.release.tag_name, 'api@')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/workflows/scripts/wait-for-api-release-on-npm.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Wait for the release on npm
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: .github/workflows/scripts/wait-for-api-release-on-npm.sh "$RELEASE_TAG"
+
+  dispatch:
+    needs: wait-for-npm
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -36,7 +55,7 @@ jobs:
   # toolkit's bump-sentry-api.yml keeps one PR on the newest release, so its CI
   # checks the CLI and MCP packages against each release as it ships.
   dispatch-toolkit:
-    if: startsWith(github.event.release.tag_name, 'api@')
+    needs: wait-for-npm
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
