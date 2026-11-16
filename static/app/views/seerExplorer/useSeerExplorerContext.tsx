@@ -12,7 +12,11 @@ export type SeerExplorerContextValue = {
    * Opens Explorer on an "Ask Seer" question from Seer and sends nothing until the user
    * replies. `context` is any JSON-serializable value describing what the question is about.
    */
-  openChatPrompt: (options: {prompt: string; context?: unknown}) => void;
+  openChatPrompt: (options: {
+    prompt: string;
+    referrer: SeerExplorerChatReferrer;
+    context?: unknown;
+  }) => void;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   sessionState: SeerExplorerSessionState;
   /**

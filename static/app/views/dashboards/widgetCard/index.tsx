@@ -182,6 +182,7 @@ function WidgetCard(props: Props) {
         ? t('What would you like to know about the "%s" widget?', props.widget.title)
         : t('What would you like to know about this widget?'),
       context: widgetLLMContext,
+      referrer: 'ask_seer.dashboard_widget',
     });
   const canAskSeer =
     organization.features.includes('seer-explorer-chat-prompts') &&

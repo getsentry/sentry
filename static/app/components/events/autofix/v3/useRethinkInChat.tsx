@@ -27,7 +27,12 @@ export function useRethinkInChat({
   const organization = useOrganization();
   const {openChatPrompt} = useSeerExplorerContext();
   const askSeer = useCallback(
-    () => openChatPrompt({prompt, context: {autofixStep: step}}),
+    () =>
+      openChatPrompt({
+        prompt,
+        context: {autofixStep: step},
+        referrer: 'ask_seer.autofix_step',
+      }),
     [openChatPrompt, prompt, step]
   );
 

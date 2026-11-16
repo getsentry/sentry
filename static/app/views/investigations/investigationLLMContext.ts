@@ -1,3 +1,5 @@
+import {useCallback} from 'react';
+
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -14,7 +16,10 @@ import type {
   InvestigationOrchestration,
 } from './types';
 
-type InvestigationChatPrompt = Parameters<SeerExplorerContextValue['openChatPrompt']>[0];
+type InvestigationChatPrompt = Omit<
+  Parameters<SeerExplorerContextValue['openChatPrompt']>[0],
+  'referrer'
+>;
 
 /**
  * "Ask Seer" about an investigation, one of its hypotheses, or one of its
@@ -35,13 +40,18 @@ export function useInvestigationAskSeer():
   | undefined {
   const organization = useOrganization();
   const {openChatPrompt} = useSeerExplorerContext();
+  const askSeer = useCallback(
+    (prompt: InvestigationChatPrompt) =>
+      openChatPrompt({...prompt, referrer: 'ask_seer.investigation'}),
+    [openChatPrompt]
+  );
 
   const isAvailable =
     // The chat endpoint drops the question and its context without this flag.
     organization.features.includes('seer-explorer-chat-prompts') &&
     isSeerExplorerEnabled(organization);
 
-  return isAvailable ? openChatPrompt : undefined;
+  return isAvailable ? askSeer : undefined;
 }
 
 /**

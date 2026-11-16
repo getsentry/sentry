@@ -516,6 +516,9 @@ export const useSeerExplorer = () => {
         dispatch({type: 'set chat prompt', payload: null});
       }
 
+      // A forwarded query names its entry point; a reply to an "Ask Seer" question carries it.
+      const entryPoint = referrer ?? chatPrompt?.referrer;
+
       const pageName = getPageReferrer();
 
       const {snapshot, screenshot} = capturePageContext({
@@ -532,7 +535,7 @@ export const useSeerExplorer = () => {
       if (effectiveRunId === null) {
         trackAnalytics('seer.explorer.session_created', {
           referrer: pageName,
-          entry_point: referrer,
+          entry_point: entryPoint,
           surface: 'global_panel',
           organization,
         });
@@ -565,7 +568,7 @@ export const useSeerExplorer = () => {
       sendMessageMutate({
         query,
         // Only a new run records where it started.
-        referrer: effectiveRunId === null ? referrer : undefined,
+        referrer: effectiveRunId === null ? entryPoint : undefined,
         chatPrompt,
         pendingChatPrompt: usesPendingChatPrompt ? pendingChatPrompt : null,
         requestId,

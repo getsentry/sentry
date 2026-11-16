@@ -12,7 +12,13 @@ export type SeerExplorerSidebarPosition = 'auto' | 'right' | 'bottom';
 /** The UI entry point that started a chat, recorded on the new run. */
 export type SeerExplorerChatReferrer =
   | 'command_palette.tab'
-  | 'command_palette.no_results';
+  | 'command_palette.no_results'
+  // A message Autofix posts into the chat, e.g. a next step handed to the agent.
+  | 'autofix'
+  // An "Ask Seer" question; the chat starts with the user's reply to it.
+  | 'ask_seer.autofix_step'
+  | 'ask_seer.dashboard_widget'
+  | 'ask_seer.investigation';
 
 /**
  * z.enum but forward-compatible: accepts any string at runtime while preserving

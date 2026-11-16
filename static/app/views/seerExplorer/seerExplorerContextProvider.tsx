@@ -244,9 +244,21 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   );
 
   const openChatPrompt = useCallback(
-    ({prompt, context}: {prompt: string; context?: unknown}) => {
+    ({
+      prompt,
+      context,
+      referrer,
+    }: {
+      prompt: string;
+      referrer: SeerExplorerChatReferrer;
+      context?: unknown;
+    }) => {
       openSeerExplorer({
-        chatPrompt: {text: prompt, context: serializeChatPromptContext(context)},
+        chatPrompt: {
+          text: prompt,
+          context: serializeChatPromptContext(context),
+          referrer,
+        },
       });
     },
     [openSeerExplorer]
@@ -259,7 +271,11 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const openChatWithMessage = useCallback(
     (query: string, options?: SendMessageOptions) => {
       // Append by default so the caller keeps the context the run has built up.
-      openSeerExplorer({initialQuery: query, appendToOpenRun: !options?.newChat});
+      openSeerExplorer({
+        initialQuery: query,
+        initialQueryReferrer: 'autofix',
+        appendToOpenRun: !options?.newChat,
+      });
     },
     [openSeerExplorer]
   );

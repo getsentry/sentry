@@ -264,6 +264,7 @@ describe('ArtifactCard', () => {
         expect(openChatPrompt).toHaveBeenCalledWith({
           prompt: question,
           context: {autofixStep: step},
+          referrer: 'ask_seer.autofix_step',
         });
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       }
