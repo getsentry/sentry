@@ -1,5 +1,5 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
-import {screen} from 'sentry-test/reactTestingLibrary';
+import {screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -18,21 +18,44 @@ describe('dotnet logs onboarding docs', () => {
       await screen.findByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
+      screen.queryByText(textWithMarkupMatcher(/EnableLogs = true/))
     ).not.toBeInTheDocument();
   });
 
   it('renders the UseSentry logs setup when a logger is given', async () => {
     renderWithOnboardingLayout(
-      {onboarding: logs({logger: 'logger'})},
-      {selectedProducts: [ProductSolution.LOGS]}
+      {
+        onboarding: logs({
+          logger: 'logger',
+          sdkPackage: {name: 'Sentry.Maui', registryKey: 'sentry.dotnet.maui'},
+        }),
+      },
+      {
+        releaseRegistry: {'sentry.dotnet.maui': {version: '1.99.9'}},
+        selectedProducts: [ProductSolution.LOGS],
+      }
     );
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/logger\.LogInformation/))
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.Maui -Version 1\.99\.9/)
+      )
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/set EnableLogs to true/))
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogWarning/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/the options you pass to UseSentry/))
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: '.NET Core CLI'}));
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/dotnet add package Sentry\.Maui -v 1\.99\.9/)
+      )
     ).toBeInTheDocument();
   });
 

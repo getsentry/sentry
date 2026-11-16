@@ -8,7 +8,13 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-import {getInstallSnippetCoreCli, getInstallSnippetPackageManager} from './utils';
+import {
+  getInstallSnippetCoreCli,
+  getInstallSnippetPackageManager,
+  type DotNetSdkPackage,
+} from './utils';
+
+const INJECTED_LOGGER = 'logger';
 
 export const logsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
@@ -29,27 +35,42 @@ SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
   ],
 });
 
+/**
+ * The second line logs a warning, not an error: `ILogger` entries at `Error` and above
+ * also create an issue in Sentry, which a test log shouldn't.
+ *
+ * @param logger The `ILogger` to log through. The default, `logger`, stands for an
+ * `ILogger<T>` the user injects, and the text says so.
+ */
 export const loggerLogsVerify = (
   params: DocsParams,
-  logger = 'logger'
+  logger = INJECTED_LOGGER
 ): ContentBlock => ({
   type: 'conditional',
   condition: params.isLogsSelected,
   content: [
     {
       type: 'text',
-      text: tct(
-        'Send a test log through [code:ILogger] from your app, then refresh this page to verify it arrived in Sentry.',
-        {
-          code: <code />,
-        }
-      ),
+      text:
+        logger === INJECTED_LOGGER
+          ? tct(
+              'Send a test log through an [code:ILogger<T>] that your class takes from dependency injection, then refresh this page to verify it arrived in Sentry.',
+              {
+                code: <code />,
+              }
+            )
+          : tct(
+              'Send a test log through [code:ILogger] from your app, then refresh this page to verify it arrived in Sentry.',
+              {
+                code: <code />,
+              }
+            ),
     },
     {
       type: 'code',
       language: 'csharp',
       code: `${logger}.LogInformation("A simple log message");
-${logger}.LogError("A {Parameter} log message", "formatted");`,
+${logger}.LogWarning("A {Parameter} log message", "formatted");`,
     },
   ],
 });
@@ -57,8 +78,14 @@ ${logger}.LogError("A {Parameter} log message", "formatted");`,
 /**
  * @param logger For platforms whose `UseSentry` options have `EnableLogs`: the `ILogger`
  * the verify snippet logs through. Leave it out for platforms that call `SentrySdk.Init`.
+ * @param sdkPackage The NuGet package the platform's onboarding installs, when that isn't
+ * `Sentry`. Installing `Sentry` at a newer major version than the platform's package
+ * breaks the app, at build or at startup.
  */
-export const logs = ({logger}: {logger?: string} = {}): OnboardingConfig => ({
+export const logs = ({
+  logger,
+  sdkPackage,
+}: {logger?: string; sdkPackage?: DotNetSdkPackage} = {}): OnboardingConfig => ({
   install: params => [
     {
       type: StepType.INSTALL,
@@ -78,12 +105,12 @@ export const logs = ({logger}: {logger?: string} = {}): OnboardingConfig => ({
             {
               label: 'Package Manager',
               language: 'shell',
-              code: getInstallSnippetPackageManager(params),
+              code: getInstallSnippetPackageManager(params, sdkPackage),
             },
             {
               label: '.NET Core CLI',
               language: 'shell',
-              code: getInstallSnippetCoreCli(params),
+              code: getInstallSnippetCoreCli(params, sdkPackage),
             },
           ],
         },
@@ -110,7 +137,7 @@ export const logs = ({logger}: {logger?: string} = {}): OnboardingConfig => ({
               {
                 type: 'text',
                 text: tct(
-                  'From version [code:7.0.0] on, logs you send with [code:SentrySdk.Logger] need no extra option. Initialize the SDK:',
+                  'From version [code:7.0.0] on, logs you send with [code:SentrySdk.Logger] need no extra option. On 6.x, also set [code:EnableLogs] to [code:true] in the options. Initialize the SDK:',
                   {
                     code: <code />,
                   }

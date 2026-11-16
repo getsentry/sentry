@@ -74,4 +74,20 @@ describe('aspnetcore onboarding docs', () => {
       screen.getByText(textWithMarkupMatcher(/app\.Logger\.LogInformation/))
     ).toBeInTheDocument();
   });
+
+  it('renders the logs onboarding for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.logsOnboarding!},
+      {selectedProducts: [ProductSolution.LOGS]}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNetCore -Version/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/app\.Logger\.LogInformation/))
+    ).toBeInTheDocument();
+  });
 });

@@ -52,4 +52,20 @@ describe('gcpfunctions onboarding docs', () => {
       screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
     ).toBeInTheDocument();
   });
+
+  it('renders the logs onboarding for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.logsOnboarding!},
+      {selectedProducts: [ProductSolution.LOGS]}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.Google\.Cloud\.Functions -Version/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
+  });
 });
