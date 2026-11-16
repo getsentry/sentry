@@ -3,6 +3,7 @@ from dataclasses import dataclass, replace
 from threading import Barrier
 from typing import Any, assert_type
 from unittest.mock import patch
+from urllib.parse import urlsplit
 
 import pytest
 from django.db import connections, router, transaction
@@ -109,6 +110,49 @@ def test_idempotency_key_sorts_nested_data() -> None:
     second = replace(first, details={"b": {"d": 3, "c": 2}, "a": 1})
 
     assert event_type.get_idempotency_key(data=first) == event_type.get_idempotency_key(data=second)
+
+
+@dataclass(frozen=True, kw_only=True)
+class LinkedMentionData(InboxEventData):
+    comment_id: int
+
+    def get_url(self, subject_url: str) -> str:
+        return urlsplit(subject_url)._replace(fragment=f"comment-{self.comment_id}").geturl()
+
+
+class LinkedItemType(StubItemType[SubjectReference]):
+    def get_url(self, *, organization: Organization, subject_id: str) -> str:
+        return f"https://sentry.example/subjects/{subject_id}/"
+
+
+def test_event_url() -> None:
+    organization = Organization(id=1, slug="org-slug")
+    item_type = LinkedItemType("test.reference")
+    plain = InboxEventType(
+        event_type="test.reference.mentioned",
+        summary=InboxEventSummary.ISSUE_USER_MENTIONED,
+        item_type=item_type,
+        data_class=MentionedData,
+        notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
+    )
+    linked = InboxEventType(
+        event_type="test.reference.linked",
+        summary=InboxEventSummary.ISSUE_USER_MENTIONED,
+        item_type=item_type,
+        data_class=LinkedMentionData,
+        notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
+    )
+
+    assert (
+        plain.get_url(organization=organization, subject_id="1", data=MentionedData(comment_id=123))
+        == "https://sentry.example/subjects/1/"
+    )
+    assert (
+        linked.get_url(
+            organization=organization, subject_id="1", data=LinkedMentionData(comment_id=123)
+        )
+        == "https://sentry.example/subjects/1/#comment-123"
+    )
 
 
 @pytest.mark.parametrize(
