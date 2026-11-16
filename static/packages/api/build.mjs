@@ -81,8 +81,8 @@ appendFileSync(
   [
     "",
     "export { API_BASE_PATH } from './api-base-path.gen.ts';",
-    "export { callWithTypedErrors, narrowError, SentryApiError } from './sentry-errors.ts';",
-    "export type { DocumentedSentryApiError, NarrowedResult, SentryApiResultError, SentryApiTransportError, SdkResult, UndocumentedSentryApiError } from './sentry-errors.ts';",
+    "export { callWithTypedErrors, getSentryApiErrorDetails, narrowError, SentryApiError } from './sentry-errors.ts';",
+    "export type { DocumentedSentryApiError, NarrowedResult, SentryApiErrorDetails, SentryApiResultError, SentryApiTransportError, SdkResult, UndocumentedSentryApiError } from './sentry-errors.ts';",
     "export { parseSentryLinkHeader, parseSentryLinks, readSentryResponseHeaders, unwrapResult, unwrapPaginatedResult, fetchPage, paginateAll, paginateUpTo, consumePage } from './sentry-pagination.ts';",
     "export type { SentryLink, SentryResponseHeaders, UnwrappedResult, PaginatedResponse, PaginatedCollection, PaginateAllOptions, PaginateUpToOptions, PageFetcher, BudgetedPageFetcher, CollectionPage, CollectionPageFetcher, PagePosition, PaginationContinuation } from './sentry-pagination.ts';",
     "export * from './error-results.gen.ts';",
