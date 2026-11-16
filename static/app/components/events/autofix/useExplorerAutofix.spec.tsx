@@ -682,6 +682,30 @@ describe('getOrderedAutofixSections', () => {
       );
     });
 
+    it('keeps single-run sections when a reply carries PR feedback', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {role: 'user', metadata: {step: 'single_run'}}}),
+          makeBlock({artifacts: [rootCause('H', 'C')]}),
+          makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py')]}),
+          makeBlock({
+            message: {
+              role: 'user',
+              metadata: {step: 'pr_iteration', iteration_index: '1'},
+            },
+          }),
+          makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py', 'diff2')]}),
+        ])
+      );
+
+      expect(sections.map(s => s.step)).toEqual(['root_cause', 'code_changes']);
+      expect(getAutofixArtifactFromSection(sections[0]!)).toEqual(
+        expect.objectContaining({
+          data: {one_line_description: 'H', cause: 'C', five_whys: []},
+        })
+      );
+    });
+
     it('reads the root cause the API returns under the root_cause key', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun([

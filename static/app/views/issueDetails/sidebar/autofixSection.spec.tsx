@@ -389,6 +389,23 @@ describe('AutofixSection', () => {
       expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
     });
 
+    it('disables Open Autofix while the Explorer panel shows this run', async () => {
+      mockIsExplorerOpen = true;
+      mockOpenRunId = 776;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));
+      expect(await screen.findByRole('button', {name: 'Open Autofix'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
     it('opens the Explorer panel when Start Analysis starts a single run', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,

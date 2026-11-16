@@ -31,6 +31,7 @@ jobs:
     # Map a step output to a job output
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
+      api_client: ${{ steps.changes.outputs.api_client }}
       backend: ${{ steps.changes.outputs.backend_all_without_acceptance }}
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
@@ -50,7 +51,8 @@ jobs:
           filters: .github/file-filters.yml
 
   api-docs:
-    if: needs.files-changed.outputs.api_docs == 'true'
+    # api_client includes api_docs: the api-client job needs this job's spec.
+    if: needs.files-changed.outputs.api_client == 'true'
     needs: files-changed
     name: api docs test
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
@@ -83,6 +85,20 @@ jobs:
       - name: Build and validate API docs
         run: make validate-api-docs
 
+      - name: Build the RPC method schema
+        run: make build-rpc-schema
+
+      - name: Collect the @sentry/api spec files
+        run: pnpm --filter @sentry/api run build:spec
+
+      - name: Upload the @sentry/api spec files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: api-spec
+          path: static/packages/api/spec/
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Wait for devservices
         run: python3 .github/actions/setup-sentry/devservices-bg.py wait
 
@@ -95,6 +111,39 @@ jobs:
           if command -v devservices; then
             devservices logs
           fi
+
+  # Builds, typechecks and tests the @sentry/api client against this commit's
+  # API spec, so a spec change that breaks the client cannot merge.
+  api-client:
+    if: needs.files-changed.outputs.api_client == 'true'
+    needs: [files-changed, api-docs]
+    name: api client
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 20
+    env:
+      SENTRY_API_SPEC_DIR: ${{ github.workspace }}/.artifacts/api-spec
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Download the @sentry/api spec files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: api-spec
+          path: ${{ env.SENTRY_API_SPEC_DIR }}
+
+      - name: Build
+        run: pnpm --filter @sentry/api run build
+
+      - name: Typecheck
+        run: pnpm --filter @sentry/api run typecheck
+
+      - name: Lint
+        run: pnpm --filter @sentry/api run lint:js
+
+      - name: Test
+        run: pnpm --filter @sentry/api run test:vitest
 
   # Selective testing - only on PRs, determine which tests to run based on coverage data.
   # This job is skipped on push-to-master where the full suite runs instead.
@@ -761,6 +810,7 @@ jobs:
   backend-required-check:
     needs:
       [
+        api-client,
         api-docs,
         backend-test,
         backend-migration-tests,

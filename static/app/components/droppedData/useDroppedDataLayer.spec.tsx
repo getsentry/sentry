@@ -54,9 +54,15 @@ describe('useDroppedDataLayer', () => {
     });
     expect(result.current.filterNote).toEqual({dataset: DiscoverDatasets.SPANS});
     expect(result.current.layerControl).toEqual({
-      dataset: DiscoverDatasets.SPANS,
-      hasDroppedData: true,
-      showDroppedData: true,
+      layers: [
+        {
+          value: 'dropped-data',
+          label: 'Dropped Spans',
+          selected: true,
+          disabled: false,
+          tooltip: undefined,
+        },
+      ],
       onChange: expect.any(Function),
     });
   });
@@ -98,13 +104,13 @@ describe('useDroppedDataLayer', () => {
     );
 
     await waitFor(() => expect(result.current.band).toBeDefined());
-    act(() => result.current.layerControl!.onChange(false));
+    act(() => result.current.layerControl!.onChange('dropped-data', false));
 
     expect(result.current.band).toBeUndefined();
     expect(result.current.filterNote).toBeUndefined();
-    expect(result.current.layerControl).toEqual(
-      expect.objectContaining({hasDroppedData: true, showDroppedData: false})
-    );
+    expect(result.current.layerControl!.layers).toEqual([
+      expect.objectContaining({selected: false, disabled: false}),
+    ]);
   });
 
   it('opens the drawer from the band', async () => {
@@ -134,9 +140,9 @@ describe('useDroppedDataLayer', () => {
     );
 
     await waitFor(() => expect(result.current.layerControl).toBeDefined());
-    expect(result.current.layerControl).toEqual(
-      expect.objectContaining({hasDroppedData: true, showDroppedData: true})
-    );
+    expect(result.current.layerControl!.layers).toEqual([
+      expect.objectContaining({selected: true, disabled: false}),
+    ]);
     expect(result.current.band).toBeUndefined();
     expect(result.current.filterNote).toBeUndefined();
   });
@@ -150,9 +156,15 @@ describe('useDroppedDataLayer', () => {
     );
 
     await waitFor(() => expect(result.current.layerControl).toBeDefined());
-    expect(result.current.layerControl).toEqual(
-      expect.objectContaining({hasDroppedData: false})
-    );
+    expect(result.current.layerControl!.layers).toEqual([
+      {
+        value: 'dropped-data',
+        label: 'Dropped Spans',
+        selected: false,
+        disabled: true,
+        tooltip: 'No significant dropped spans in this time range',
+      },
+    ]);
     expect(result.current.band).toBeUndefined();
     expect(result.current.filterNote).toBeUndefined();
   });

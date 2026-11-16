@@ -23,13 +23,13 @@ const pageFilterSelection = PageFiltersFixture({
 
 describe('useDefaultToAllProjects', () => {
   beforeEach(() => {
+    ProjectsStore.reset();
     PageFiltersStore.onInitializeUrlState(pageFilterSelection);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
     PageFiltersStore.reset();
-    ProjectsStore.reset();
   });
   it('should default to all projects when no projects are selected and user has no team projects', () => {
     const nonMemberProject = ProjectFixture({isMember: false});

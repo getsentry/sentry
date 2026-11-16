@@ -1,17 +1,22 @@
 import re
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 from django.http import HttpResponse
+from django.utils import timezone
 
+from sentry.agent_handoff.claims import ClaimOutcome
 from sentry.agent_handoff.codes import (
+    HANDOFF_LIFETIME,
     HandoffFlow,
     ProjectSetupContext,
     _get_redis_client,
     _handoff_key,
     consume_handoff,
     issue_handoff,
+    revoke_handoff,
 )
+from sentry.analytics.events.agent_handoff import AgentHandoffClaimedEvent
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
@@ -19,6 +24,8 @@ from sentry.onboarding.agentic_progress.model import ProgressUpdate, Stage, Stag
 from sentry.onboarding.agentic_progress.service import get_onboarding_progress_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -61,7 +68,7 @@ class AgentHandoffViewTest(TestCase):
 
     def claim(self, code: str, ip_address: str = "127.0.0.1") -> HttpResponse:
         return self.client.post(
-            "/agent-handoff/",
+            "/agent-handoff.md",
             urlencode({"handoff_code": code}),
             content_type="application/x-www-form-urlencoded",
             REMOTE_ADDR=ip_address,
@@ -70,7 +77,7 @@ class AgentHandoffViewTest(TestCase):
     def test_claim_mints_once_and_returns_the_private_guide(self) -> None:
         code = self.issue()
         response = self.client.post(
-            "/agent-handoff/",
+            "/agent-handoff.md",
             urlencode({"handoff_code": code}),
             content_type="application/x-www-form-urlencoded",
             HTTP_ACCEPT="text/markdown",
@@ -221,7 +228,7 @@ class AgentHandoffViewTest(TestCase):
 
     def test_preview_is_public_and_preserves_the_code(self) -> None:
         code = self.issue()
-        response = self.client.get("/agent-handoff/", HTTP_ACCEPT="text/markdown")
+        response = self.client.get("/agent-handoff.md", HTTP_ACCEPT="text/markdown")
         assert response.status_code == 200
         assert "The user initiated this agent handoff in Sentry" in response.content.decode()
         assert "It does not run those instructions" in response.content.decode()
@@ -269,11 +276,65 @@ class AgentHandoffViewTest(TestCase):
         code = self.issue(disable_ip_pinning=True)
         assert self.claim(code, ip_address="192.0.2.2").status_code == 200
 
+    def assert_claim_recorded(
+        self, record: MagicMock, outcome: ClaimOutcome, *, attributed: bool = True
+    ) -> None:
+        assert_last_analytics_event(
+            record,
+            AgentHandoffClaimedEvent(
+                outcome=outcome.value,
+                user_id=self.user.id if attributed else None,
+                organization_id=self.organization.id if attributed else None,
+                flow=HandoffFlow.ONBOARDING.value if attributed else None,
+                run_id=self.onboarding_context.run_id if attributed else None,
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    def test_records_accepted_claim(self, record: MagicMock) -> None:
+        assert self.claim(self.issue()).status_code == 200
+        self.assert_claim_recorded(record, ClaimOutcome.ACCEPTED)
+
+    @patch("sentry.analytics.record")
+    def test_records_expired_claim(self, record: MagicMock) -> None:
+        code = self.issue()
+        with freeze_time(timezone.now() + HANDOFF_LIFETIME):
+            assert self.claim(code).status_code == 410
+        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+        self.assert_claim_recorded(record, ClaimOutcome.EXPIRED)
+
+    @patch("sentry.analytics.record")
+    def test_records_ip_mismatch_claim(self, record: MagicMock) -> None:
+        code = self.issue(ip_address="192.0.2.1")
+        assert self.claim(code, ip_address="192.0.2.2").status_code == 403
+        self.assert_claim_recorded(record, ClaimOutcome.IP_MISMATCH)
+
+    @patch("sentry.analytics.record")
+    def test_records_claim_that_fails_revalidation_as_invalid(self, record: MagicMock) -> None:
+        code = self.issue()
+        self.user.update(is_active=False)
+        assert self.claim(code).status_code == 410
+        self.assert_claim_recorded(record, ClaimOutcome.INVALID)
+
+    @patch("sentry.analytics.record")
+    def test_records_reused_claim_as_unattributed_invalid(self, record: MagicMock) -> None:
+        code = self.issue()
+        assert self.claim(code).status_code == 200
+        assert self.claim(code).status_code == 410
+        self.assert_claim_recorded(record, ClaimOutcome.INVALID, attributed=False)
+
+    @patch("sentry.analytics.record")
+    def test_records_revoked_claim_as_unattributed_invalid(self, record: MagicMock) -> None:
+        code = self.issue()
+        revoke_handoff(code)
+        assert self.claim(code).status_code == 410
+        self.assert_claim_recorded(record, ClaimOutcome.INVALID, attributed=False)
+
 
 @control_silo_test
 class AgentHandoffPreviewTest(TestCase):
     def test_public_preview_uses_placeholders(self) -> None:
-        response = self.client.get("/agent-handoff/", {"preview": "1"})
+        response = self.client.get("/agent-handoff.md", {"preview": "1"})
 
         assert response.status_code == 200
         body = response.content.decode()
@@ -291,7 +352,7 @@ class AgentHandoffPreviewTest(TestCase):
         with patch(
             "sentry.agent_handoff.flows.onboarding.organization_service.issue_onboarding_reporting_code"
         ) as issue:
-            response = self.client.get("/agent-handoff/", {"preview": "1", "flow": "onboarding"})
+            response = self.client.get("/agent-handoff.md", {"preview": "1", "flow": "onboarding"})
 
         assert response.status_code == 200
         body = response.content.decode()
@@ -300,15 +361,15 @@ class AgentHandoffPreviewTest(TestCase):
         issue.assert_not_called()
 
     def test_preview_is_independent_of_the_session(self) -> None:
-        anonymous = self.client.get("/agent-handoff/", {"preview": "1"})
+        anonymous = self.client.get("/agent-handoff.md", {"preview": "1"})
         self.login_as(self.user)
-        authenticated = self.client.get("/agent-handoff/", {"preview": "1"})
+        authenticated = self.client.get("/agent-handoff.md", {"preview": "1"})
 
         assert anonymous.status_code == authenticated.status_code == 200
         assert anonymous.content == authenticated.content
 
     def test_unknown_preview_flow(self) -> None:
-        response = self.client.get("/agent-handoff/", {"preview": "1", "flow": "unknown"})
+        response = self.client.get("/agent-handoff.md", {"preview": "1", "flow": "unknown"})
 
         assert response.status_code == 400
         assert "Unknown Handoff Flow" in response.content.decode()

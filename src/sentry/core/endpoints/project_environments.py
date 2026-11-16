@@ -107,7 +107,8 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         return Response(serialize(items, request.user, EnvironmentProjectSerializer()))
 
     @extend_schema(
-        operation_id="Bulk Update Project Environments",
+        operation_id="updateProjectEnvironments",
+        summary="Bulk Update Project Environments",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

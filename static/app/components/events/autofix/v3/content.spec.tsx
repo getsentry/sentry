@@ -143,7 +143,7 @@ describe('SeerDrawerContent', () => {
       expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
     });
 
-    it('closes the chat when it is already open on this run', async () => {
+    it('disables Open Autofix while the chat is open on this run', () => {
       mockIsOpen = true;
       mockChatRunId = 776;
       render(
@@ -154,10 +154,10 @@ describe('SeerDrawerContent', () => {
         />
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
-
-      expect(mockCloseSeerExplorer).toHaveBeenCalled();
-      expect(mockOpenSeerExplorer).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', {name: 'Open Autofix'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
       mockIsOpen = false;
       mockChatRunId = null;
     });

@@ -46,6 +46,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
 }: AgentHandoffPromptProps<Flow>) {
   const links = useStore(ConfigStore, state => state.links);
   const [useIpPinning, setUseIpPinning] = useState(true);
+  const [isPromptSelected, setIsPromptSelected] = useState(false);
   const handoff = useAgentHandoff(flow, context);
   const copyDisabled = !context || handoff.isPending;
   const previewUrl = new URL(`/agent-handoff/?preview=1&flow=${flow}`, links.sentryUrl)
@@ -71,6 +72,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   const handlePointerDown: PointerEventHandler<HTMLDivElement> = event => {
     onPointerDown(event);
     if (event.button === 0) {
+      setIsPromptSelected(true);
       onSelect?.();
     }
   };
@@ -100,10 +102,12 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
                 size="sm"
                 tabIndex={tabIndex}
                 textWrap="wrap"
+                onBlur={() => setIsPromptSelected(false)}
                 onPointerDown={handlePointerDown}
               >
                 {getHandoffPrompt('sntryh_****', maskedCode => (
                   <MaskedCode
+                    data-selected={isPromptSelected || undefined}
                     monospace
                     variant="warning"
                     title={t('The secret code authorizes your agent on your behalf')}
@@ -217,9 +221,22 @@ const PromptText = styled(Text)`
 `;
 
 const MaskedCode = styled(InfoText)`
-  background: ${p => p.theme.tokens.background.transparent.warning.muted};
-  border-radius: ${p => p.theme.radius.sm};
-  padding: 0 ${p => p.theme.space['2xs']};
+  position: relative;
+  isolation: isolate;
   text-decoration: none;
   ${accentSelection}
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 calc(-1 * ${p => p.theme.space.xs});
+    z-index: -1;
+    background: ${p => p.theme.tokens.background.transparent.warning.muted};
+    border-radius: ${p => p.theme.radius.xs};
+    pointer-events: none;
+  }
+
+  &[data-selected]::before {
+    display: none;
+  }
 `;

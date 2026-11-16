@@ -1042,7 +1042,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
-                "field": ["performance_score(measurements.score.total)"],
+                "field": ["performance_score()"],
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -1054,10 +1054,13 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         # only LCP (weight 0.30) and CLS (weight 0.15) have data, so the other weights drop out
         expected = (1.0 * 0.30 + 0.5 * 0.15) / (0.30 + 0.15)
-        assert data[0]["performance_score(measurements.score.total)"] == pytest.approx(expected)
-        assert meta["fields"]["performance_score(measurements.score.total)"] == "percentage"
+        assert data[0]["performance_score()"] == pytest.approx(expected)
+        assert meta["fields"]["performance_score()"] == "percentage"
 
-    def test_web_vital_total_performance_score_without_data(self) -> None:
+    def test_web_vital_total_performance_score_legacy_argument(self) -> None:
+        # Queries saved before the argument was dropped still resolve, and the argument is ignored
+        self.store_eap_items([self._create_web_vital_score("lcp", 0.5)])
+
         response = self.do_request(
             {
                 "field": ["performance_score(measurements.score.total)"],
@@ -1069,7 +1072,21 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert data[0]["performance_score(measurements.score.total)"] is None
+        assert data[0]["performance_score(measurements.score.total)"] == pytest.approx(0.5)
+
+    def test_web_vital_total_performance_score_without_data(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["performance_score()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["performance_score()"] is None
 
     def test_web_vital_total_opportunity_score(self) -> None:
         self.store_eap_items(
@@ -1082,8 +1099,8 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
-                "field": ["transaction", "opportunity_score(measurements.score.total)"],
-                "orderby": "-opportunity_score(measurements.score.total)",
+                "field": ["transaction", "opportunity_score()"],
+                "orderby": "-opportunity_score()",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -1095,9 +1112,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert data[0]["transaction"] == "/slow"
         # (2 scores - 1.0 total ratio) / 3 scores overall; LCP is the only vital with data, so
         # it carries the full weight
-        assert data[0]["opportunity_score(measurements.score.total)"] == pytest.approx(1 / 3)
+        assert data[0]["opportunity_score()"] == pytest.approx(1 / 3)
         assert data[1]["transaction"] == "/fast"
-        assert data[1]["opportunity_score(measurements.score.total)"] == pytest.approx(0)
+        assert data[1]["opportunity_score()"] == pytest.approx(0)
 
     def test_web_vital_scores_alongside_metric_aggregates(self) -> None:
         # Regression guard: the query level metric filter must include the metrics the score
@@ -1115,7 +1132,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "field": [
                     "p75(value,browser.web_vital.cls,distribution,-)",
                     "avg(value,browser.web_vital.lcp.score,distribution,ratio)",
-                    "performance_score(measurements.score.total)",
+                    "performance_score()",
                 ],
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -1130,4 +1147,4 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             "avg(value,browser.web_vital.lcp.score,distribution,ratio)"
         ] == pytest.approx(0.5)
         expected = (0.5 * 0.30 + 0.25 * 0.15) / (0.30 + 0.15)
-        assert data[0]["performance_score(measurements.score.total)"] == pytest.approx(expected)
+        assert data[0]["performance_score()"] == pytest.approx(expected)

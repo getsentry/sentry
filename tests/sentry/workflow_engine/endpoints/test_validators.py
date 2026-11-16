@@ -155,6 +155,19 @@ class TestBaseDetectorTypeValidator(BaseValidatorTest):
         with pytest.raises(ValidationError, match="Detector type not compatible with detectors"):
             validator.validate_type(DetectorType.ISSUE_STREAM)
 
+    def test_validate_type_matches_instance(self) -> None:
+        validator = self.validator_class(instance=Detector(type=DetectorType.ERROR))
+        assert validator.validate_type("error") is DetectorType.ERROR
+
+    def test_validate_type_rejects_change_on_update(self) -> None:
+        @detector_settings_registry.register(DetectorType.METRIC_ISSUE)
+        class TestDetectorSettings(DetectorSettings):
+            validator = MetricIssueDetectorValidator
+
+        validator = self.validator_class(instance=Detector(type=DetectorType.ERROR))
+        with pytest.raises(ValidationError, match="The type of a monitor cannot be changed."):
+            validator.validate_type("metric_issue")
+
 
 # TODO - Move these tests into a base detector test file
 class DetectorValidatorTest(BaseValidatorTest):

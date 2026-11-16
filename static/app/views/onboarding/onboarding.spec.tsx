@@ -41,6 +41,7 @@ describe('Onboarding', () => {
     TeamStore.loadInitialData([TeamFixture()]);
   });
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
       body: {providers: [GitHubIntegrationProviderFixture()]},
@@ -56,7 +57,6 @@ describe('Onboarding', () => {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
     sessionStorage.clear();
     jest.clearAllMocks();
   });

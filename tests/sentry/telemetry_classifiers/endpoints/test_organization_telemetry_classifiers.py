@@ -285,7 +285,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
         assert response.data["project"] == ["Invalid project"]
         assert not TelemetryClassifier.objects.exists()
 
-    def test_requires_project_write(self) -> None:
+    def test_member_can_create(self) -> None:
         member = self.create_user()
         self.create_member(
             organization=self.organization, user=member, role="member", teams=[self.team]
@@ -293,9 +293,23 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
         self.login_as(member)
 
         with self.feature(self.features):
-            response = self.get_error_response(
-                self.organization.slug, **self.payload(), status_code=400
+            response = self.get_success_response(
+                self.organization.slug, **self.payload(), status_code=201
             )
+
+        assert response.data["createdBy"]["id"] == str(member.id)
+
+    def test_requires_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        # Build the payload first: the lazy team fixture adds every existing member to the team.
+        payload = self.payload()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        with self.feature(self.features):
+            response = self.get_error_response(self.organization.slug, **payload, status_code=400)
 
         assert response.data["project"] == ["Insufficient access to project"]
         assert not TelemetryClassifier.objects.exists()
