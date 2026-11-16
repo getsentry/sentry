@@ -1,5 +1,6 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconIssues} from '@sentry/icons/issues';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -38,6 +39,8 @@ import type {
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
 import {getActorName} from 'sentry/views/investigations/utils';
+import {AssigneePill} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/assigneeChip';
+import {InlineChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/inlineChip';
 import {
   ActivityLineContent,
   ActivityLineHeadline,
@@ -179,15 +182,16 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
         ? currentUser
         : members?.find(member => member.id === createdBy);
 
+  // References use the issue activity feed's inline chips.
   let details: React.ReactNode = null;
   if (user) {
-    details = tct('by [actor]', {actor: <Text bold>{getActorName(user)}</Text>});
+    details = tct('by [actor]', {actor: <AssigneePill assignee={user} />});
   } else if (trigger?.type === 'automation') {
     details = tct('by [automation] automation', {
       automation: (
-        <Text bold>
+        <InlineChip variant="constrained">
           {trigger.automation.name ?? getStrategyLabel(trigger.automation.strategy)}
-        </Text>
+        </InlineChip>
       ),
     });
   } else if (source.groupId) {
@@ -198,7 +202,10 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
             `/organizations/${organization.slug}/issues/${source.groupId}/`
           )}
         >
-          {source.monitorName ?? t('an issue')}
+          <InlineChip interactive tone="accent" variant="constrainedCompactLeading">
+            <IconIssues size="xs" />
+            {source.monitorName ?? t('an issue')}
+          </InlineChip>
         </Link>
       ),
     });
