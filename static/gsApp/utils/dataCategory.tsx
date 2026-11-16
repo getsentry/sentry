@@ -60,15 +60,6 @@ type CategoryNameProps = {
 };
 
 /**
- * Plans from the billing platform lowercase their category names except for
- * acronyms, which lowercases the Seer product name too ("seer credits"). Puts
- * it back, so a name in the middle of a sentence reads "Seer credits".
- */
-function capitalizeProductNames(name: string) {
-  return name.replace(/\bseer\b/g, 'Seer');
-}
-
-/**
  * Convert a billed category to a display name.
  */
 export function getPlanCategoryName({
@@ -83,7 +74,7 @@ export function getPlanCategoryName({
     category === DataCategory.SPANS && hadCustomDynamicSampling
       ? t('accepted spans')
       : displayNames
-        ? capitalizeProductNames(displayNames.plural)
+        ? displayNames.plural
         : (getCategoryInfoFromPlural(category)?.titleName?.toLowerCase() ?? category);
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
@@ -107,7 +98,7 @@ export function getSingularCategoryName({
     category === DataCategory.SPANS && hadCustomDynamicSampling
       ? t('accepted span')
       : displayNames
-        ? capitalizeProductNames(displayNames.singular)
+        ? displayNames.singular
         : (getCategoryInfoFromPlural(category)?.displayName ??
           category.substring(0, category.length - 1));
   return title
