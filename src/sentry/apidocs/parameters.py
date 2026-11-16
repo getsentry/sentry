@@ -274,6 +274,20 @@ Valid fields include:
         description="Filter projects by name or slug.",
     )
 
+    PROJECT_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        enum=["latestDeploys", "unusedFeatures"],
+        description=(
+            "Parts of the response to skip computing. Specify `latestDeploys` to omit "
+            "`latestDeploys`, and `unusedFeatures` to leave out feature flags that the Sentry "
+            "web UI does not use from `features`. Unknown values are ignored."
+        ),
+    )
+
     EXTERNAL_USER_ID = OpenApiParameter(
         name="external_user_id",
         location="path",
@@ -1052,6 +1066,21 @@ class MonitorParams:
         type=str,
         description="The owner of the monitor, in the format `user:id` or `team:id`. May be specified multiple times.",
     )
+    STATS_MONITOR = OpenApiParameter(
+        name="monitor",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="The GUIDs of the monitors to return stats for, up to 20. Monitors you can't access are left out.",
+    )
+    STATS_RESOLUTION = OpenApiParameter(
+        name="resolution",
+        location="query",
+        required=False,
+        type=str,
+        description="Size of each bucket, as a number followed by `s`, `m`, `h` or `d`, such as `30m`. Defaults to a size picked for the time range. At most 2,500 buckets are allowed.",
+    )
     PROCESSING_ERROR_ID = OpenApiParameter(
         name="processing_error_id",
         location="path",
@@ -1059,6 +1088,23 @@ class MonitorParams:
         type=OpenApiTypes.STR,
         pattern=SENTRY_HEX_ID_PATTERN,
         description="The ID of the processing error. It is a 32-character hexadecimal string.",
+    )
+
+
+class StatsRangeParams:
+    SINCE = OpenApiParameter(
+        name="since",
+        location="query",
+        required=False,
+        type=float,
+        description="Start of the time range, as a Unix timestamp in seconds. Defaults to one day before `until`.",
+    )
+    UNTIL = OpenApiParameter(
+        name="until",
+        location="query",
+        required=False,
+        type=float,
+        description="End of the time range, as a Unix timestamp in seconds. Defaults to now.",
     )
 
 
@@ -1076,6 +1122,21 @@ class UptimeParams:
         required=False,
         type=str,
         description="The owner of the uptime alert, in the format `user:id` or `team:id`. May be specified multiple times.",
+    )
+    STATS_DETECTOR_ID = OpenApiParameter(
+        name="uptimeDetectorId",
+        location="query",
+        required=True,
+        many=True,
+        type=int,
+        description="The IDs of the uptime monitors to return stats for, up to 100. The request fails if any of them is missing or you can't access it.",
+    )
+    STATS_RESOLUTION = OpenApiParameter(
+        name="resolution",
+        location="query",
+        required=False,
+        type=str,
+        description="Size of each bucket, as a number followed by `s`, `m`, `h` or `d`. Must be one of 15s, 30s, 1m, 2m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h or 24h, and no longer than the time range. At most 10,100 buckets are allowed. Defaults to the smallest of these that is at least the size picked for the time range.",
     )
 
 
@@ -1565,16 +1626,39 @@ class ExploreSavedQueriesParams:
         location="query",
         required=False,
         type=str,
-        description="""The property to sort results by. If not specified, the results are sorted by query name.
+        many=True,
+        description="""The property to sort results by. Repeat the parameter to sort by more than one. If not specified, the results are sorted by query name.
 
 Available fields are:
 - `name`
-- `dateCreated`
+- `dateAdded`
 - `dateUpdated`
 - `mostPopular`
 - `recentlyViewed`
 - `myqueries`
+- `mostStarred`
+- `starred`
+
+Prefix `name`, `dateAdded`, `dateUpdated`, `mostPopular` or `recentlyViewed` with `-` to reverse the order.
         """,
+    )
+
+    EXCLUDE = OpenApiParameter(
+        name="exclude",
+        location="query",
+        required=False,
+        type=str,
+        enum=["owned", "shared"],
+        description="Leave out the queries you created (`owned`) or the queries others created (`shared`).",
+    )
+
+    STARRED = OpenApiParameter(
+        name="starred",
+        location="query",
+        required=False,
+        type=str,
+        enum=["1"],
+        description="Pass `1` to return only the queries you starred, in your starred order.",
     )
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from drf_spectacular.utils import extend_schema
+from django.db.models import Q
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -53,6 +54,13 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                description="Case-insensitive substring match against the classifier name or result attribute.",
+            ),
             CursorQueryParam,
         ],
         responses={
@@ -75,6 +83,12 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         queryset = TelemetryClassifier.objects.filter(project__in=projects)
+
+        query = request.GET.get("query", "").strip()
+        if query:
+            queryset = queryset.filter(
+                Q(name__icontains=query) | Q(result_attribute__icontains=query)
+            )
 
         return self.paginate(
             request=request,
