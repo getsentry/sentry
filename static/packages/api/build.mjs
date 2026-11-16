@@ -30,6 +30,7 @@ await generateClient("./openapi-normalized.json", "src");
 // 2. Copy hand-written utilities into the generated src/ directory
 cpSync("lib/sentry-pagination.ts", "src/sentry-pagination.ts");
 cpSync("lib/sentry-errors.ts", "src/sentry-errors.ts");
+cpSync("lib/auth-challenges.ts", "src/auth-challenges.ts");
 cpSync("lib/browser-client.ts", "src/browser-client.ts");
 cpSync("lib/source-analysis.ts", "src/source-analysis.ts");
 cpSync("lib/api-client", "src/api-client", { recursive: true });
@@ -81,8 +82,10 @@ appendFileSync(
   [
     "",
     "export { API_BASE_PATH } from './api-base-path.gen.ts';",
-    "export { callWithTypedErrors, narrowError, SentryApiError } from './sentry-errors.ts';",
-    "export type { DocumentedSentryApiError, NarrowedResult, SentryApiResultError, SentryApiTransportError, SdkResult, UndocumentedSentryApiError } from './sentry-errors.ts';",
+    "export { callWithTypedErrors, isSentryErrorCode, narrowError, SentryApiError } from './sentry-errors.ts';",
+    "export type { DocumentedSentryApiError, KnownSentryErrorCode, NarrowedResult, SentryApiResultError, SentryApiTransportError, SentryErrorCode, SdkResult, UndocumentedSentryApiError } from './sentry-errors.ts';",
+    "export { getSentryAuthChallenge, withAuthChallenges } from './auth-challenges.ts';",
+    "export type { AuthChallengeDecision, AuthChallengeHandler, SentryAuthChallenge } from './auth-challenges.ts';",
     "export { parseSentryLinkHeader, parseSentryLinks, readSentryResponseHeaders, unwrapResult, unwrapPaginatedResult, fetchPage, paginateAll, paginateUpTo, consumePage } from './sentry-pagination.ts';",
     "export type { SentryLink, SentryResponseHeaders, UnwrappedResult, PaginatedResponse, PaginatedCollection, PaginateAllOptions, PaginateUpToOptions, PageFetcher, BudgetedPageFetcher, CollectionPage, CollectionPageFetcher, PagePosition, PaginationContinuation } from './sentry-pagination.ts';",
     "export * from './error-results.gen.ts';",
