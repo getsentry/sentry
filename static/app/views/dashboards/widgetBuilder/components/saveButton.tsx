@@ -1,9 +1,9 @@
 import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -56,7 +56,7 @@ export function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
       if (Object.keys(errorDetails).length > 0) {
         errorMessage = errorDetails[Object.keys(errorDetails)[0]!] as string;
       }
-      addErrorMessage(errorMessage);
+      toast.error(errorMessage);
     }
   };
 

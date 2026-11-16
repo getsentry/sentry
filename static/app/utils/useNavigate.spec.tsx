@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from './useNavigate';
 
 describe('useNavigate', () => {
   it('returns the navigate function', () => {

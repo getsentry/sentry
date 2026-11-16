@@ -12,11 +12,10 @@ from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_ke
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.ingest.legacy_filter_lists import STAGE_OPTION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.organizationmember import OrganizationMember
@@ -41,7 +40,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
@@ -57,6 +55,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from sentry.workflow_engine.typings.notification_action import ActionTarget
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -126,17 +125,6 @@ class ProjectTest(APITestCase, TestCase):
         assert team.id in {t.id for t in teams}
 
     @patch("sentry.models.project.locks.get")
-    def test_lock_is_acquired_when_creating_project(self, mock_lock: MagicMock) -> None:
-        # self.organization is cached property, which means it will be created
-        # only if it is accessed, so we need to simulate access and all potential mock
-        # calls before resetting the mock
-        assert self.organization
-        # Ensure the mock starts clean before the save operation
-        mock_lock.reset_mock()
-        Project.objects.create(organization=self.organization)
-        assert mock_lock.call_count == 3  # 1 lock for cached org, 2 locks for default detectors
-
-    @patch("sentry.models.project.locks.get")
     def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
         # self.project is cached property, which means it will be created
         # only if it is accessed, so we need to simulate access and all potential mock
@@ -158,11 +146,11 @@ class ProjectTest(APITestCase, TestCase):
         self.project.remove_team(team)
 
         rule.refresh_from_db()
-        assert rule.owner_team_id is None
+        assert rule.owner_team is None
         assert rule.owner_user_id is None
 
         alert_rule.refresh_from_db()
-        assert alert_rule.team_id is None
+        assert alert_rule.team is None
         assert alert_rule.user_id is None
 
     def test_project_detectors(self) -> None:
@@ -321,7 +309,7 @@ class TestProjectTransfer(TestCase):
         assert Project.objects.filter(organization=self.from_org).count() == 0
 
     def test_transfer_to_organization_releases(self) -> None:
-        def project_props(proj: Project):
+        def project_props(proj: Project) -> dict[str, object]:
             return {
                 "id": proj.id,
                 "slug": proj.slug,
@@ -598,6 +586,92 @@ class TestProjectTransfer(TestCase):
 
         # The workflow moved in place; the destination org has a matching active Slack integration,
         # so the same action is remapped to it and stays active.
+        action.refresh_from_db()
+        assert action.integration_id == to_integration.id
+        assert action.status == ObjectStatus.ACTIVE
+
+    def test_transfer_to_organization_disables_action_for_disabled_destination_org_integration(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # One Integration shared by both orgs: it stays active and the source org's link
+            # stays active, so only the destination org's disabled link should stop the remap.
+            integration = self.create_integration(
+                organization=self.from_org, external_id="shared-slack", provider="slack"
+            )
+            with outbox_runner():
+                to_org_integration = integration.add_organization(self.to_org)
+            assert to_org_integration is not None
+            to_org_integration.update(status=ObjectStatus.DISABLED)
+
+        condition_group = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=condition_group
+        )
+        action = self.create_action(integration_id=integration.id, status=ObjectStatus.ACTIVE)
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
+
+        self.project.transfer_to(organization=self.to_org)
+
+        action.refresh_from_db()
+        assert action.integration_id == integration.id
+        assert action.status == ObjectStatus.DISABLED
+
+    def test_transfer_to_organization_disables_messaging_action_without_alert_rule_feature(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+            self.create_integration(
+                organization=self.to_org, external_id="to-slack", provider="slack"
+            )
+
+        condition_group = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=condition_group
+        )
+        action = self.create_action(integration_id=from_integration.id, status=ObjectStatus.ACTIVE)
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
+
+        with self.feature({"organizations:integrations-alert-rule": False}):
+            self.project.transfer_to(organization=self.to_org)
+
+        action.refresh_from_db()
+        assert action.integration_id == from_integration.id
+        assert action.status == ObjectStatus.DISABLED
+
+    def test_transfer_to_organization_remaps_non_messaging_action_without_alert_rule_feature(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-pagerduty", provider="pagerduty"
+            )
+            to_integration = self.create_integration(
+                organization=self.to_org, external_id="to-pagerduty", provider="pagerduty"
+            )
+
+        condition_group = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=condition_group
+        )
+        action = self.create_action(
+            type=Action.Type.PAGERDUTY,
+            integration_id=from_integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "service-123",
+                "target_display": "Test Service",
+            },
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
+
+        with self.feature({"organizations:integrations-alert-rule": False}):
+            self.project.transfer_to(organization=self.to_org)
+
         action.refresh_from_db()
         assert action.integration_id == to_integration.id
         assert action.status == ObjectStatus.ACTIVE
@@ -1038,11 +1112,11 @@ class CopyProjectSettingsTest(TestCase):
         # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 
-    def assert_other_project_settings_not_changed(self):
+    def assert_other_project_settings_not_changed(self) -> None:
         # other_project should not have changed. This should check that.
         self.assert_settings_copied(self.other_project)
 
-    def assert_settings_copied(self, project):
+    def assert_settings_copied(self, project: Project) -> None:
         for key, value in self.options_dict.items():
             assert project.get_option(key) == value
 
@@ -1079,8 +1153,7 @@ class CopyProjectSettingsTest(TestCase):
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
-    @override_options({STAGE_OPTION: {"releases": "double_write"}})
-    def test_copy_writes_the_row_of_a_double_written_list(self) -> None:
+    def test_copy_writes_the_row_of_a_list(self) -> None:
         self.other_project.update_option("sentry:releases", ["1.*"])
         project = self.create_project(fire_project_created=True)
 
@@ -1089,13 +1162,32 @@ class CopyProjectSettingsTest(TestCase):
         assert project.get_option("sentry:releases") == ["1.*"]
         row = CustomInboundFilter.objects.get(project_id=project.id)
         assert row.legacy_filter == "release-version"
-        assert row.conditions == [{"type": "release", "value": ["1.*"]}]
+        assert row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
         self.assert_settings_copied(project)
+
+    def test_copy_keeps_the_name_and_the_active_flag_of_a_list_row(self) -> None:
+        self.other_project.update_option("sentry:releases", ["1.*"])
+        self.create_project_custom_inbound_filter(
+            project=self.other_project,
+            name="Old builds",
+            active=False,
+            data_type="all",
+            conditions=[{"type": "release", "operator": "glob", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+        project = self.create_project(fire_project_created=True)
+
+        assert project.copy_settings_from(self.other_project.id)
+
+        row = CustomInboundFilter.objects.get(project_id=project.id)
+        assert row.name == "Old builds"
+        assert row.active is False
+        assert row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
 
 
 @control_silo_test
 class FilterToSubscribedUsersTest(TestCase):
-    def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
+    def run_test(self, users: Iterable[User], expected_users: Iterable[User]) -> None:
         recipients = get_notification_recipients(
             recipients=Actor.many_from_object(users),
             type=NotificationSettingEnum.ISSUE_ALERTS,

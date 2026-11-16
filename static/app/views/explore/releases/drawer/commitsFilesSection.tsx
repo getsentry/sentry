@@ -15,8 +15,9 @@ import {
   NoReleaseRepos,
   NoRepositories,
 } from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
-import {CommitsList} from 'sentry/views/explore/releases/drawer/commitsList';
-import {FilesChangedList} from 'sentry/views/explore/releases/drawer/filesChangedList';
+
+import {CommitsList} from './commitsList';
+import {FilesChangedList} from './filesChangedList';
 
 interface CommitsSectionProps {
   isLoadingMeta: boolean;

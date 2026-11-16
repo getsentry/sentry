@@ -13,6 +13,7 @@ import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {isReactNativePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface TroubleshootingSectionProps {
@@ -41,10 +42,9 @@ export function TroubleshootingSection({
     }
   };
 
-  const troubleShootingDocUrl =
-    project.platform === 'react-native'
-      ? `${sourcemapsDocsUrl}troubleshooting/`
-      : `${sourcemapsDocsUrl}troubleshooting_js/`;
+  const troubleShootingDocUrl = isReactNativePlatform(project.platform)
+    ? `${sourcemapsDocsUrl}troubleshooting/`
+    : `${sourcemapsDocsUrl}troubleshooting_js/`;
 
   return (
     <Stack gap="md" padding="lg">

@@ -100,11 +100,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
 
-        with (
-            self.tasks(),
-            self.feature("organizations:auto-link-repos-by-name"),
-            self.options({"repository.auto-link-by-name-dry-run": False}),
-        ):
+        with self.tasks():
             sync_repos_for_org(self.oi.id)
 
         with assume_test_silo_mode(SiloMode.CELL):

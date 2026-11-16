@@ -17,9 +17,10 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
-import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
-import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
+
+import {AutomationFormProvider} from './forms/context';
+import {ActionNodeList} from './actionNodeList';
+import {AutomationBuilderTestProvider} from './testUtils';
 
 const slackActionHandler = ActionHandlerFixture();
 const actionHandlers: ActionHandler[] = [

@@ -37,9 +37,13 @@ class DashboardPermissions(Model):
         "sentry.Dashboard", on_delete=models.CASCADE, related_name="permissions"
     )
 
-    def has_edit_permissions(self, user_id):
+    def has_edit_permissions(self, user_id: int | None) -> bool:
         if self.is_editable_by_everyone:
             return True
+        # A caller with no user, like an API key, is neither the creator nor on a team. A None
+        # here would match dashboards with no creator and teams with pending invites.
+        if user_id is None:
+            return False
         if user_id == self.dashboard.created_by_id:
             return True  # Dashboard creator will always have edit perms
         return self.teams_with_edit_access.filter(

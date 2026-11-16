@@ -4,9 +4,11 @@ from .group_details import GroupDetailsEndpoint
 from .group_event_details import GroupEventDetailsEndpoint
 from .group_events import GroupEventsEndpoint
 from .group_hashes import GroupHashesEndpoint
+from .group_impact_assessment import GroupImpactAssessmentEndpoint
 from .group_notes import GroupNotesEndpoint
 from .group_notes_details import GroupNotesDetailsEndpoint
 from .group_pull_requests import GroupPullRequestsEndpoint
+from .group_related import GroupRelatedEndpoint
 from .group_similar_issues import GroupSimilarIssuesEndpoint
 from .group_similar_issues_embeddings import GroupSimilarIssuesEmbeddingsEndpoint
 from .group_tombstone import GroupTombstoneEndpoint
@@ -47,9 +49,11 @@ __all__ = (
     "GroupEventDetailsEndpoint",
     "GroupEventsEndpoint",
     "GroupHashesEndpoint",
+    "GroupImpactAssessmentEndpoint",
     "GroupNotesDetailsEndpoint",
     "GroupNotesEndpoint",
     "GroupPullRequestsEndpoint",
+    "GroupRelatedEndpoint",
     "GroupSimilarIssuesEmbeddingsEndpoint",
     "GroupSimilarIssuesEndpoint",
     "GroupTombstoneDetailsEndpoint",

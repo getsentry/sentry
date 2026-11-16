@@ -1,7 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {dragHandle} from 'sentry-test/dragMove';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
@@ -54,9 +61,14 @@ function mockConversations(body: Array<Record<string, unknown>>) {
   });
 }
 
-function TestConversationsTable() {
+function TestConversationsTable({persistColumnWidths}: {persistColumnWidths?: boolean}) {
   const conversations = useConversations();
-  return <ConversationsTable conversations={conversations} />;
+  return (
+    <ConversationsTable
+      conversations={conversations}
+      persistColumnWidths={persistColumnWidths}
+    />
+  );
 }
 
 function renderTable() {
@@ -71,6 +83,34 @@ describe('ConversationsTable', () => {
       PageFiltersStore.reset();
       PageFiltersStore.init();
     });
+  });
+
+  it('updates its table cursor while preserving unrelated query filters', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [{...BASE_CONVERSATION, title: 'Paginated conversation'}],
+      headers: {
+        Link: '<https://example.com/next>; rel="next"; results="true"; cursor="next-conversation"',
+      },
+    });
+    const {router} = render(<TestConversationsTable />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/conversations/',
+          query: {environment: ['production', 'staging']},
+        },
+      },
+    });
+    await screen.findByText('Paginated conversation');
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        environment: ['production', 'staging'],
+        tableCursor: 'next-conversation',
+      });
+    });
+    expect(router.location.pathname).toBe('/conversations/');
   });
 
   it('renders the shared no-data state when there are no conversations', async () => {
@@ -276,6 +316,31 @@ describe('ConversationsTable', () => {
     });
   });
 
+  it('ignores and does not persist column widths when persistence is disabled', async () => {
+    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({tools: 400}));
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'With tools', toolNames: ['execute_query']},
+    ]);
+
+    render(<TestConversationsTable persistColumnWidths={false} />, {organization});
+
+    await screen.findByText('With tools');
+    expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).not.toContain(
+      '400px'
+    );
+
+    dragHandle(screen.getByRole('separator', {name: 'Tools'}), {from: 0, to: 300});
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
+        '300px'
+      );
+    });
+    expect(JSON.parse(localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY)!)).toEqual({
+      tools: 400,
+    });
+  });
+
   it('restores the flexible conversation column after resetting its resize handle', async () => {
     localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({conversation: 300}));
     mockConversations([{...BASE_CONVERSATION, title: 'A conversation'}]);
@@ -385,6 +450,112 @@ describe('ConversationsTable', () => {
     expect(router.location.pathname).toBe(initialPath);
 
     openSpy.mockRestore();
+  });
+
+  it('adds a cell value to the search query without opening the conversation', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', llmCalls: 7}]);
+
+    const {router} = renderTable();
+    const initialPath = router.location.pathname;
+
+    await screen.findByText('Filter me');
+    const messagesCell = screen.getAllByRole('cell')[2]!;
+    await userEvent.click(within(messagesCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.messages:7')
+    );
+    expect(router.location.pathname).toBe(initialPath);
+  });
+
+  it('excludes a cell value from the existing search query', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', errors: 2}]);
+
+    const {router} = render(<TestConversationsTable />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {query: 'gen_ai.tool.name:search'}},
+      },
+    });
+
+    await screen.findByText('Filter me');
+    const errorsCell = screen.getAllByRole('cell')[3]!;
+    await userEvent.click(within(errorsCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe(
+        'gen_ai.tool.name:search !conversation.errors:2'
+      )
+    );
+  });
+
+  it('filters the timespan and cost with comparisons', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'Filter me', timeSpan: 1500, totalCost: 0.25},
+    ]);
+
+    const {router} = renderTable();
+
+    await screen.findByText('Filter me');
+    const timeSpanCell = screen.getAllByRole('cell')[1]!;
+    await userEvent.click(within(timeSpanCell).getByRole('button', {name: 'Actions'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.timeSpan:>1.50s')
+    );
+
+    const costCell = screen.getAllByRole('cell')[4]!;
+    await userEvent.click(within(costCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values less than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe(
+        'conversation.timeSpan:>1.50s conversation.totalCost:<0.25'
+      )
+    );
+  });
+
+  it('filters on generation duration when the timespan falls back to it', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'Filter me', timeSpan: 0, generationDuration: 2000},
+    ]);
+
+    const {router} = renderTable();
+
+    await screen.findByText('Filter me');
+    const timeSpanCell = screen.getAllByRole('cell')[1]!;
+    await userEvent.click(within(timeSpanCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values less than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.generationDuration:<2.00s')
+    );
+  });
+
+  it('does not offer cell actions for a missing cost', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', totalCost: null}]);
+
+    renderTable();
+
+    await screen.findByText('Filter me');
+    const costCell = screen.getAllByRole('cell')[4]!;
+    expect(
+      within(costCell).queryByRole('button', {name: 'Actions'})
+    ).not.toBeInTheDocument();
   });
 });
 

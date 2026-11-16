@@ -3,9 +3,10 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutofixAgent} from 'sentry/components/seer/projectDetails/autofixAgent';
 import type {DetailedProject} from 'sentry/types/project';
 import {NON_GITHUB_HANDOFF_WARNING} from 'sentry/utils/seer/preferredAgent';
+
+import {AutofixAgent} from './autofixAgent';
 
 describe('AutofixAgent', () => {
   let project: DetailedProject;

@@ -1,6 +1,7 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
@@ -51,28 +52,11 @@ type Summary = {
   rows_page_size: number;
   rows_total_pages: number;
   start: string;
-  unmatched_org_count: number;
-  unmatched_page: number;
-  unmatched_page_size: number;
-  unmatched_total_pages: number;
-};
-
-type UnmatchedSide = 'legacy_only' | 'platform_only';
-
-type UnmatchedRow = {
-  amount: number;
-  invoice_count: number;
-  // Present only when the org has exactly one invoice on its one side.
-  invoice_guid: string | null;
-  organization_id: number;
-  organization_slug: string | null;
-  side: UnmatchedSide;
 };
 
 type ComparisonResponse = {
   rows: Row[];
   summary: Summary;
-  unmatched: UnmatchedRow[];
 };
 
 const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
@@ -90,26 +74,24 @@ function formatDollars(cents: number | null) {
   return `$${dollars.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 }
 
-// Render a dollar amount, deep-linking to the org-scoped invoice detail page
-// when we have both the org slug and a single invoice's guid. The receipts
-// page (CustomerInvoiceDetailsEndpoint) resolves legacy and platform invoices
-// alike by guid. This is a plain anchor — not a router Link — because gsAdmin
-// is a separate app bundle from the org-facing settings UI, so navigating
-// there is a full page load (see the cross-app links in dataRequests.tsx).
+// Render a dollar amount, deep-linking to the admin invoice detail page when
+// the side has a single invoice. AdminInvoiceDetailsEndpoint resolves legacy
+// and platform invoices alike by guid, and unlike the org-scoped receipts
+// page it doesn't hide legacy shadow invoices for migrated orgs.
 function InvoiceAmount({
   cents,
   guid,
-  orgSlug,
+  region,
 }: {
   cents: number | null;
   guid: string | null;
-  orgSlug: string | null;
+  region: string | undefined;
 }) {
   const amount = formatDollars(cents);
-  if (!guid || !orgSlug) {
+  if (!guid || !region) {
     return amount;
   }
-  return <a href={`/settings/${orgSlug}/billing/receipts/${guid}/`}>{amount}</a>;
+  return <Link to={`/_admin/invoices/${region}/${guid}/`}>{amount}</Link>;
 }
 
 function formatPercent(pct: number | null) {
@@ -146,30 +128,24 @@ function formatCountOrNA(n: number | null | undefined) {
   return n.toLocaleString();
 }
 
-// `datetime-local` inputs use the user's local timezone with no offset
-// in the string (e.g. "2026-05-26T22:30"). Format a Date for that field.
-function toDatetimeLocalValue(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  );
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// The window covers whole UTC days. Most invoices of both kinds are created
+// in a burst just after 00:00 UTC, and the platform one can land an hour or
+// more after the legacy one. A window that starts or ends between them shows
+// one side only, so the endpoint takes days rather than times.
+
+// The UTC day (`YYYY-MM-DD`, the value of a `date` input) that contains `ms`.
+function utcDay(ms: number): string {
+  return Number.isNaN(ms) ? '' : new Date(ms).toISOString().slice(0, 10);
 }
 
-function nowLocal(): string {
-  return toDatetimeLocalValue(new Date());
-}
-
-function hoursAgoLocal(hours: number): string {
-  const d = new Date();
-  d.setHours(d.getHours() - hours);
-  return toDatetimeLocalValue(d);
-}
-
-// `datetime-local` value is local time without offset; convert to a UTC ISO
-// string so the server interprets it unambiguously.
-function localInputToUtcIso(value: string): string {
-  return new Date(value).toISOString();
+// The URL carries days only. Anything else is ignored.
+function parseDayParam(value: unknown): string | undefined {
+  const day = firstQueryValue(value);
+  return day && /^\d{4}-\d{2}-\d{2}$/.test(day) && utcDay(Date.parse(day)) === day
+    ? day
+    : undefined;
 }
 
 const PAGE_SIZE_OPTIONS: readonly number[] = [25, 50, 100, 250];
@@ -192,73 +168,72 @@ function parsePageSizeParam(value: unknown): number {
   return PAGE_SIZE_OPTIONS.includes(n) ? n : DEFAULT_PAGE_SIZE;
 }
 
-// A UTC ISO string from a `datetime-local` input that's already in UTC.
-// Used to convert the URL-persisted absolute time back into a value the
-// input control will accept (which is local-tz, no offset).
-function utcIsoToDatetimeLocalValue(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) {
-    return '';
-  }
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  );
-}
-
 export function InvoiceComparison() {
   const cells = getCells();
   const location = useLocation();
   const navigate = useNavigate();
-  const [cell, setCell] = useState(cells[0] ?? null);
 
   // URL is the source of truth for everything that affects the query and
   // the displayed paginator state, so refresh / share-link reproduces the
   // exact view. Local state only tracks what the user is typing in the
   // date inputs before they click Run.
-  const queryStart = firstQueryValue(location.query.start);
-  const queryEnd = firstQueryValue(location.query.end);
+  const [queryRegion, setQueryRegion] = useQueryState('region', parseAsString);
+  const cell = cells.find(c => c.name === queryRegion) ?? cells[0] ?? null;
+  const queryStart = parseDayParam(location.query.start);
+  const queryEnd = parseDayParam(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
-  const unmatchedPage = parsePageParam(location.query.unmatched_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
 
-  const [startInput, setStartInput] = useState(() =>
-    queryStart ? utcIsoToDatetimeLocalValue(queryStart) : hoursAgoLocal(24)
-  );
-  const [endInput, setEndInput] = useState(() =>
-    queryEnd ? utcIsoToDatetimeLocalValue(queryEnd) : nowLocal()
+  // Without a window in the URL (first visit, or a link that only carries
+  // pagination params) query yesterday, the last complete UTC day, so the
+  // tables load without waiting on Run. Frozen at mount so paginating doesn't
+  // shift the window.
+  const [defaultDay] = useState(() => utcDay(Date.now() - DAY_MS));
+  // A single bound in the URL is not a range. Filling the other side from the
+  // default makes the endpoint reject `end < start`, or loads every invoice
+  // since an old start (`compare_invoices` reads the whole window, then
+  // paginates), so don't query until both are set.
+  const urlHasBound = Boolean(queryStart || queryEnd);
+  const startDay = urlHasBound ? (queryStart ?? '') : defaultDay;
+  const endDay = urlHasBound ? (queryEnd ?? '') : defaultDay;
+  const hasWindow = Boolean(startDay && endDay);
+
+  const [startInput, setStartInput] = useState(startDay);
+  const [endInput, setEndInput] = useState(endDay);
+
+  // Keep the date inputs in sync with the window being shown on back/forward
+  // and in-app navigation (e.g. opening a shared link). Keyed on the shown
+  // days rather than the URL, so pinning the default window into an empty
+  // URL doesn't clobber dates typed but not yet run.
+  const [shownDays, setShownDays] = useState({startDay, endDay});
+  if (shownDays.startDay !== startDay || shownDays.endDay !== endDay) {
+    setShownDays({startDay, endDay});
+    if (startDay) {
+      setStartInput(startDay);
+    }
+    if (endDay) {
+      setEndInput(endDay);
+    }
+  }
+
+  // Written into every URL this page rewrites, so a refresh or shared link
+  // reproduces the window being shown. Left out for a one-sided URL so the
+  // bound that is there isn't replaced.
+  const pinnedWindow = useMemo(
+    () => (hasWindow ? {start: startDay, end: endDay} : {}),
+    [hasWindow, startDay, endDay]
   );
 
-  // Keep the date inputs in sync with the URL on back/forward and in-app
-  // navigation that changes start/end (e.g. opening a shared link). When the
-  // URL has no window yet we leave the inputs alone so the user's in-progress
-  // typing isn't clobbered.
-  useEffect(() => {
-    if (queryStart) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setStartInput(utcIsoToDatetimeLocalValue(queryStart));
-    }
-    if (queryEnd) {
-      setEndInput(utcIsoToDatetimeLocalValue(queryEnd));
-    }
-  }, [queryStart, queryEnd]);
-
-  const enabled = Boolean(queryStart && queryEnd && cell);
-  const {data, isPending, isError, error, isPlaceholderData} = useQuery({
+  const {data, isLoading, isError, error, isPlaceholderData} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
-      path: enabled && cell ? {region: cell.name} : skipToken,
+      path: cell && hasWindow ? {region: cell.name} : skipToken,
       host: cell?.locality_url,
-      query: enabled
-        ? {
-            start: queryStart,
-            end: queryEnd,
-            rows_page: rowsPage,
-            unmatched_page: unmatchedPage,
-            rows_page_size: pageSize,
-            unmatched_page_size: pageSize,
-          }
-        : undefined,
+      query: {
+        start: hasWindow ? startDay : undefined,
+        end: hasWindow ? endDay : undefined,
+        rows_page: rowsPage,
+        rows_page_size: pageSize,
+      },
       staleTime: 0,
     }),
     // Keep the previously-rendered page visible while paginating or
@@ -278,12 +253,12 @@ export function InvoiceComparison() {
       navigate(
         {
           pathname: location.pathname,
-          query: {...location.query, page_size: String(pageSize)},
+          query: {...location.query, ...pinnedWindow, page_size: String(pageSize)},
         },
         {replace: true}
       );
     }
-  }, [rawPageSize, pageSize, navigate, location.pathname, location.query]);
+  }, [rawPageSize, pageSize, navigate, location.pathname, location.query, pinnedWindow]);
 
   // If the backend clamped our requested page (e.g. user landed on
   // ?rows_page=99 against a 2-page result), rewrite the URL to the
@@ -301,12 +276,12 @@ export function InvoiceComparison() {
     if (data.summary.rows_page !== rowsPage) {
       fixes.rows_page = String(data.summary.rows_page);
     }
-    if (data.summary.unmatched_page !== unmatchedPage) {
-      fixes.unmatched_page = String(data.summary.unmatched_page);
-    }
     if (Object.keys(fixes).length > 0) {
       navigate(
-        {pathname: location.pathname, query: {...location.query, ...fixes}},
+        {
+          pathname: location.pathname,
+          query: {...location.query, ...pinnedWindow, ...fixes},
+        },
         {replace: true}
       );
     }
@@ -314,10 +289,10 @@ export function InvoiceComparison() {
     data,
     isPlaceholderData,
     rowsPage,
-    unmatchedPage,
     navigate,
     location.pathname,
     location.query,
+    pinnedWindow,
   ]);
 
   // The endpoint returns rows pre-sorted by |delta_pct| desc; this component
@@ -325,24 +300,24 @@ export function InvoiceComparison() {
   // tests for the contract.
   const rows = data?.rows ?? [];
 
-  const setPage = (key: 'rows_page' | 'unmatched_page', page: number) => {
+  const setRowsPage = (page: number) => {
     navigate({
       pathname: location.pathname,
-      query: {...location.query, [key]: String(page)},
+      query: {...location.query, ...pinnedWindow, rows_page: String(page)},
     });
   };
 
   const setPageSize = (size: number) => {
     // Changing page size with a non-1 page is almost never what the user
     // wants — the offset they were viewing maps to a different position in
-    // the resized list. Reset both paginators.
+    // the resized list. Reset the paginator.
     navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
+        ...pinnedWindow,
         page_size: String(size),
         rows_page: '1',
-        unmatched_page: '1',
       },
     });
   };
@@ -352,16 +327,15 @@ export function InvoiceComparison() {
       return;
     }
     // Re-running the comparison persists the chosen window to the URL and
-    // resets both paginators — the new window's result set is unrelated
-    // to the previous one's page numbers.
+    // resets the paginator — the new window's result set is unrelated to
+    // the previous one's page number.
     navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
-        start: localInputToUtcIso(startInput),
-        end: localInputToUtcIso(endInput),
+        start: startInput,
+        end: endInput,
         rows_page: '1',
-        unmatched_page: '1',
         page_size: String(pageSize),
       },
     });
@@ -372,17 +346,17 @@ export function InvoiceComparison() {
       <p>
         Per-org totals comparing legacy <code>Invoice</code> and shadow{' '}
         <code>PlatformInvoice</code> records <strong>generated</strong> in the selected
-        window (filtered on <code>date_added</code>, your local time — converted to UTC on
-        submit). <strong>Legacy invoices</strong> (count and dollar total) are scoped to
-        orgs that have invoices on both sides — legacy-only orgs haven't been onboarded to
-        the platform yet, so counting them would inflate the parity tallies with orgs that
-        can't be expected to match. <strong>Platform invoices</strong> reflect every{' '}
-        <code>PlatformInvoice</code> in the window; in production milestone-1 those are
-        equivalent to both-sided since <code>InvoicerService</code> only generates
-        platform invoices for orgs with a <code>Contract</code> (which already have a
-        legacy counterpart). The first table compares the both-sided orgs, sorted by
-        absolute % delta (relative to legacy), largest first. The second table lists
-        one-sided orgs by absolute amount so you can see who hasn't been onboarded yet.
+        whole UTC days from the first to the last selected day (filtered on{' '}
+        <code>date_added</code>). <strong>Legacy invoices</strong> (count and dollar
+        total) are scoped to orgs that have invoices on both sides — legacy-only orgs
+        haven't been onboarded to the platform yet, so counting them would inflate the
+        parity tallies with orgs that can't be expected to match.{' '}
+        <strong>Platform invoices</strong> reflect every <code>PlatformInvoice</code> in
+        the window; in production milestone-1 those are equivalent to both-sided since{' '}
+        <code>InvoicerService</code> only generates platform invoices for orgs with a{' '}
+        <code>Contract</code> (which already have a legacy counterpart). The table
+        compares the migrated orgs, sorted by absolute % delta (relative to legacy),
+        largest first.
       </p>
 
       <Panel>
@@ -395,27 +369,25 @@ export function InvoiceComparison() {
                 trigger={triggerProps => (
                   <OverlayTrigger.Button {...triggerProps} prefix="Region" />
                 )}
-                value={cell?.locality_url ?? ''}
-                options={cells.map(c => ({label: c.name, value: c.locality_url}))}
-                onChange={opt => {
-                  setCell(cells.find(c => c.locality_url === opt.value) ?? null);
-                }}
+                value={cell?.name ?? ''}
+                options={cells.map(c => ({label: c.name, value: c.name}))}
+                onChange={opt => setQueryRegion(opt.value)}
               />
             </Stack>
             <Stack gap="xs">
-              <FieldLabel htmlFor="start">Generated since (local)</FieldLabel>
+              <FieldLabel htmlFor="start">First day (UTC)</FieldLabel>
               <Input
                 id="start"
-                type="datetime-local"
+                type="date"
                 value={startInput}
                 onChange={e => setStartInput(e.target.value)}
               />
             </Stack>
             <Stack gap="xs">
-              <FieldLabel htmlFor="end">Generated until (local)</FieldLabel>
+              <FieldLabel htmlFor="end">Last day (UTC)</FieldLabel>
               <Input
                 id="end"
-                type="datetime-local"
+                type="date"
                 value={endInput}
                 onChange={e => setEndInput(e.target.value)}
               />
@@ -441,7 +413,9 @@ export function InvoiceComparison() {
         </PanelBody>
       </Panel>
 
-      {enabled && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
+      {/* isPending stays true while the query is skipped (no cell, or a
+          one-sided window), which would spin forever. */}
+      {isLoading && <LoadingIndicator>Comparing…</LoadingIndicator>}
 
       {isError && (
         <Alert.Container>
@@ -503,7 +477,7 @@ export function InvoiceComparison() {
                 totalPages={data.summary.rows_total_pages}
                 total={data.summary.row_count}
                 pageSize={data.summary.rows_page_size}
-                onChange={p => setPage('rows_page', p)}
+                onChange={setRowsPage}
               />
               <Table>
                 <thead>
@@ -539,7 +513,7 @@ export function InvoiceComparison() {
                         <InvoiceAmount
                           cents={row.legacy_amount}
                           guid={row.legacy_invoice_guid}
-                          orgSlug={row.organization_slug}
+                          region={cell?.name}
                         />{' '}
                         <Text size="sm" variant="muted">
                           ({row.legacy_invoice_count})
@@ -549,7 +523,7 @@ export function InvoiceComparison() {
                         <InvoiceAmount
                           cents={row.platform_amount}
                           guid={row.platform_invoice_guid}
-                          orgSlug={row.organization_slug}
+                          region={cell?.name}
                         />{' '}
                         <Text size="sm" variant="muted">
                           ({row.platform_invoice_count})
@@ -560,62 +534,6 @@ export function InvoiceComparison() {
                       <td>
                         <Tag variant={STATUS_VARIANT[row.status]}>{row.status}</Tag>
                       </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </PanelBody>
-          </Panel>
-
-          <Panel>
-            <PanelHeader>Unmatched orgs (one side only, sorted by |amount|)</PanelHeader>
-            <PanelBody>
-              <Paginator
-                page={data.summary.unmatched_page}
-                totalPages={data.summary.unmatched_total_pages}
-                total={data.summary.unmatched_org_count}
-                pageSize={data.summary.unmatched_page_size}
-                onChange={p => setPage('unmatched_page', p)}
-              />
-              <Table>
-                <thead>
-                  <tr>
-                    <th>Organization</th>
-                    <th>Side</th>
-                    <RightHeader>Amount</RightHeader>
-                    <RightHeader>Invoices</RightHeader>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.unmatched.length === 0 && (
-                    <tr>
-                      <td colSpan={4}>
-                        <em>No unmatched invoices in this range.</em>
-                      </td>
-                    </tr>
-                  )}
-                  {data.unmatched.map(row => (
-                    <tr key={`${row.side}-${row.organization_id}`}>
-                      <td>
-                        {row.organization_slug ? (
-                          <Link to={`/_admin/customers/${row.organization_slug}/`}>
-                            {row.organization_slug}
-                          </Link>
-                        ) : (
-                          <span>org#{row.organization_id}</span>
-                        )}
-                      </td>
-                      <td>
-                        <Tag variant="danger">{row.side}</Tag>
-                      </td>
-                      <RightCell>
-                        <InvoiceAmount
-                          cents={row.amount}
-                          guid={row.invoice_guid}
-                          orgSlug={row.organization_slug}
-                        />
-                      </RightCell>
-                      <RightCell>{row.invoice_count}</RightCell>
                     </tr>
                   ))}
                 </tbody>

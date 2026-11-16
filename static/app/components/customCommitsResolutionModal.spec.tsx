@@ -6,7 +6,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
-import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
+import {CustomCommitsResolutionModal} from './customCommitsResolutionModal';
 
 describe('CustomCommitsResolutionModal', () => {
   let commitsMock: any;

@@ -2,12 +2,14 @@ import {useMemo} from 'react';
 import {skipToken} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
-import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {coaleseIssueStatsPeriodQuery} from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+
+import {useMailbox} from './useMailbox';
 
 interface Props {
   listHeadTime: number;
@@ -18,14 +20,9 @@ interface Props {
 const PER_PAGE = 25;
 
 const feedbackListParsers = {
-  end: parseAsString.withDefault(''),
-  environment: parseAsStringArray,
+  ...pageFilterParsers,
   field: parseAsStringArray,
-  project: parseAsStringArray,
   query: parseAsString.withDefault(''),
-  start: parseAsString.withDefault(''),
-  statsPeriod: parseAsString.withDefault(''),
-  utc: parseAsString.withDefault(''),
 };
 
 function useFeedbackListQuery({listHeadTime, organization, prefetch}: Props) {

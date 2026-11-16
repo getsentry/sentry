@@ -6,7 +6,9 @@ from typing import Any
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
+    is_redis_span,
     total_span_time,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
@@ -79,7 +81,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if not span_id or not op:
             return
 
-        if not self._is_db_op(op):
+        if not self._is_db_span(span):
             # This breaks up the N+1 we're currently tracking.
             self._maybe_store_problem()
             self._reset_detection()
@@ -118,12 +120,13 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def on_complete(self) -> None:
         self._maybe_store_problem()
 
-    def _is_db_op(self, op: str) -> bool:
+    def _is_db_span(self, span: Span) -> bool:
+        op = span.get("op") or ""
         return (
             op.startswith("db")
-            and not op.startswith("db.redis")
             and not op.startswith("db.connection")
             and not op.startswith("db.cursor")
+            and not is_redis_span(span)
         )
 
     def _maybe_use_as_source(self, span: Span) -> None:
@@ -283,7 +286,7 @@ def is_cached_span(span: Span) -> bool:
 
 def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
-    query = span.get("description")
+    query = get_span_description(span)
     if is_source and query:
         return True
     else:
@@ -296,7 +299,7 @@ def get_valid_db_span_description(span: Span) -> str | None:
     See https://github.com/getsentry/relay/blob/25.3.0/relay-event-normalization/src/normalize/span/description/mod.rs#L68-L82
     Explicitly require a '{' in MongoDB spans to only trigger on queries rather than client calls.
     """
-    default_description = span.get("description", "")
+    default_description = get_span_description(span)
     db_system = span.get("sentry_tags", {}).get("system", "")
 
     # Connection spans can have `op` as `db` but we don't want to trigger on them.

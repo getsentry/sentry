@@ -5,6 +5,7 @@ from functools import cached_property
 import orjson
 import pytest
 import responses
+from requests import PreparedRequest
 
 from fixtures.bitbucket_server import (
     COMMIT_CHANGELIST_EXAMPLE,
@@ -19,6 +20,7 @@ from fixtures.bitbucket_server import (
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
+from sentry.integrations.bitbucket_server.webhook_config import build_webhook_update_data
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.repository import Repository
@@ -210,10 +212,44 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         hook = orjson.loads(responses.calls[0].request.body)
         secret = hook["configuration"]["secret"]
         assert len(secret) == 64
+        assert hook == {
+            "name": "sentry-bitbucket-server-repo-hook",
+            "url": f"http://testserver/extensions/bitbucket-server/organizations/{self.organization.id}/webhook/{self.integration.id}/",
+            "active": True,
+            "events": ["repo:refs_changed", "pr:merged"],
+            "configuration": {"secret": secret},
+        }
         repo.refresh_from_db()
         assert repo.config["webhook_id"] == 79
         assert repo.config["webhook_secret"] == secret
         assert rpc_repo.config["webhook_secret"] == secret
+
+    def test_build_webhook_update_data_preserves_existing_fields(self) -> None:
+        assert build_webhook_update_data(
+            {
+                "id": 79,
+                "name": "custom-hook-name",
+                "url": "https://sentry.example.com/custom-webhook",
+                "active": False,
+                "events": ["repo:refs_changed"],
+                "sslVerificationRequired": False,
+                "configuration": {
+                    "secret": "old-secret",
+                    "custom-setting": "preserved",
+                },
+            },
+            secret="new-secret",
+        ) == {
+            "name": "custom-hook-name",
+            "url": "https://sentry.example.com/custom-webhook",
+            "active": False,
+            "events": ["repo:refs_changed"],
+            "sslVerificationRequired": False,
+            "configuration": {
+                "secret": "new-secret",
+                "custom-setting": "preserved",
+            },
+        }
 
     @responses.activate
     def test_on_create_repository_keeps_existing_hook(self) -> None:
@@ -263,7 +299,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        def create(request):
+        def create(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
             Repository.objects.filter(id=repo.id).update(status=ObjectStatus.DISABLED)
             return 201, {}, '{"id": 79}'
 
@@ -318,7 +354,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             status=201,
         )
 
-        organization = self.organization
+        organization = serialize_rpc_organization(self.organization)
         integration = self.integration
 
         data = {
@@ -326,8 +362,8 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             "identifier": project + "/" + repo,
             "installation": integration.id,
         }
-        data = self.provider.get_repository_data(organization, data)
-        assert data == {
+        repository_config = self.provider.get_repository_data(organization, data)
+        assert repository_config == {
             "provider": "integrations:bitbucket_server",
             "repo": repo,
             "project": project,
@@ -366,5 +402,5 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
     def test_get_repository_data_no_installation_id(self) -> None:
         with pytest.raises(IntegrationError) as e:
-            self.provider.get_repository_data(self.organization, {})
+            self.provider.get_repository_data(serialize_rpc_organization(self.organization), {})
         assert "requires an integration id" in str(e.value)

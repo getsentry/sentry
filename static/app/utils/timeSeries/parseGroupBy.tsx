@@ -39,7 +39,7 @@ export function parseGroupBy(
   const groupBys = zipWith(groupKeys, groupValues, (key, value) => {
     return {
       key: key ?? '',
-      value: value ?? '',
+      value: value === 'None' ? null : (value ?? ''),
     };
   }).filter(groupBy => {
     return groupBy.key || groupBy.value;

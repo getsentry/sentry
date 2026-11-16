@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import Any
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.apps import apps
@@ -9,6 +11,9 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import buffer_tasks
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.lock import Lock
+
+if TYPE_CHECKING:
+    from sentry.buffer.base import BufferField
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +50,12 @@ def process_pending() -> None:
 )
 def process_incr(
     columns: dict[str, int] | None = None,
-    filters: dict[str, Any] | None = None,
-    extra: dict[str, Any] | None = None,
+    filters: dict[str, object] | None = None,
+    extra: dict[str, object] | None = None,
     signal_only: bool | None = None,
     model_name: str | None = None,
-    **kwargs,
-):
+    **kwargs: object,
+) -> None:
     """
     Processes a buffer event.
     """
@@ -75,10 +80,16 @@ def process_incr(
     )
 
 
-def buffer_incr(model: type[Model], *args, **kwargs):
+def buffer_incr(
+    model: type[Model],
+    columns: dict[str, int],
+    filters: dict[str, BufferField],
+    extra: dict[str, object] | None = None,
+    signal_only: bool | None = None,
+) -> None:
     from sentry import buffer
 
     sentry_sdk.set_tag("model", model._meta.model_name)
     sentry_sdk.set_attribute("model", model._meta.model_name)
 
-    buffer.backend.incr(model, *args, **kwargs)
+    buffer.backend.incr(model, columns, filters, extra=extra, signal_only=signal_only)

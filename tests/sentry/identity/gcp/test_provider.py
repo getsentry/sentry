@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Mapping
 from functools import cached_property
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
@@ -10,6 +11,7 @@ import pytest
 import responses
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
+from django.http import HttpRequest
 from django.test import Client, RequestFactory
 
 import sentry.identity
@@ -22,6 +24,7 @@ from sentry.identity.oauth2 import OAuth2CallbackView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.gcp.utils import GCP_MCP_URLS
+from sentry.pipeline.views.base import PipelineView
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import IdentityProvider
@@ -52,7 +55,7 @@ class GCPOAuth2LoginViewTest(TestCase):
         sentry.identity.unregister(DummyProvider)
 
     @cached_property
-    def view(self):
+    def view(self) -> GCPOAuth2LoginView:
         return GCPOAuth2LoginView(
             authorize_url=AUTHORIZE_URL,
             client_id="test-client-id",
@@ -197,7 +200,7 @@ class GCPTestProvider(DummyProvider):
     name = "GCP Test"
     key = "gcp-test"
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [
             GCPOAuth2LoginView(
                 authorize_url=AUTHORIZE_URL,
@@ -211,7 +214,7 @@ class GCPTestProvider(DummyProvider):
             ),
         ]
 
-    def build_identity(self, state):
+    def build_identity(self, state: Mapping[str, object]) -> Mapping[str, object]:
         return {"id": "test", "data": state.get("data", {})}
 
 
@@ -228,7 +231,7 @@ class GCPPipelineIntegrationTest(TestCase):
         super().tearDown()
         sentry.identity.unregister(GCPTestProvider)
 
-    def _make_request(self, **query_params):
+    def _make_request(self, **query_params: str) -> HttpRequest:
         request = RequestFactory().get("/", data=query_params)
         request.session = SessionBase()
         request.user = self.user
@@ -271,7 +274,7 @@ class GCPPipelineIntegrationTest(TestCase):
 
         # Callback view: simulate OAuth redirect back with code
         oauth_state = pipeline.fetch_state("state")
-        pipeline.request = self._make_request(code="auth-code", state=oauth_state)
+        pipeline.request = self._make_request(code="auth-code", state=cast(str, oauth_state))
         result = pipeline.current_step()
 
         assert result.status_code == 302

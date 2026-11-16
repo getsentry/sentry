@@ -10,8 +10,9 @@ import {IconWindow} from '@sentry/icons/window';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {
@@ -38,6 +39,7 @@ interface SessionOption {
  * overflow menu.
  */
 export interface SeerExplorerHeaderActionsProps {
+  hasNoChats: boolean;
   isPipSupported: boolean;
   isPoppedOut: boolean;
   onChangeSession: (runId: SeerExplorerRunId) => void;
@@ -53,7 +55,34 @@ export interface SeerExplorerHeaderActionsProps {
   sidebarPosition?: SeerExplorerSidebarPosition;
 }
 
+function getChatHistoryEmptyMessage({
+  sessionsError,
+  sessionsLoading,
+}: Pick<SeerExplorerHeaderActionsProps, 'sessionsError' | 'sessionsLoading'>) {
+  if (sessionsError) {
+    return t('Error loading session history.');
+  }
+  // Options are cleared while a fetch is in flight, so keep the list blank
+  // rather than flashing an empty state before results arrive.
+  if (sessionsLoading) {
+    return ' ';
+  }
+  return t('No chats match your search.');
+}
+
+function ChatHistoryEmptyState() {
+  return (
+    <Stack align="center" gap="xs" padding="xl lg">
+      <Text bold>{t('No chats yet')}</Text>
+      <Text size="sm" variant="muted" align="center">
+        {t('Your past conversations with Seer will show up here.')}
+      </Text>
+    </Stack>
+  );
+}
+
 function ChatHistorySelect({
+  hasNoChats,
   sessionOptions,
   sessionsLoading,
   sessionsError,
@@ -62,6 +91,7 @@ function ChatHistorySelect({
   onSearchChange,
 }: Pick<
   SeerExplorerHeaderActionsProps,
+  | 'hasNoChats'
   | 'sessionOptions'
   | 'sessionsLoading'
   | 'sessionsError'
@@ -77,12 +107,21 @@ function ChatHistorySelect({
       onChange={option => onChangeSession(option.value)}
       onOpenChange={onHistoryOpenChange}
       loading={sessionsLoading}
-      emptyMessage={sessionsError ? t('Error loading session history.') : ' '}
-      search={{
-        filter: false,
-        onChange: onSearchChange,
-        placeholder: t('Search chats\u2026'),
-      }}
+      emptyMessage={getChatHistoryEmptyMessage({
+        sessionsError,
+        sessionsLoading,
+      })}
+      search={
+        hasNoChats
+          ? undefined
+          : {
+              filter: false,
+              onChange: onSearchChange,
+              placeholder: t('Search chats\u2026'),
+            }
+      }
+      hideOptions={hasNoChats}
+      menuBody={hasNoChats ? <ChatHistoryEmptyState /> : undefined}
       menuTitle={t('Chat history')}
       // Seer's panel is a right-docked pane with `overflow: hidden` ancestors,
       // and CompactSelect renders its overlay inline (no portal), so `strategy:
@@ -119,6 +158,7 @@ export function SeerExplorerHeaderActions({
   onTogglePictureInPicture,
   sidebarPosition = 'auto',
   onSidebarPositionChange,
+  hasNoChats,
   sessionOptions,
   sessionsLoading,
   sessionsError,
@@ -211,6 +251,7 @@ export function SeerExplorerHeaderActions({
         />
       )}
       <ChatHistorySelect
+        hasNoChats={hasNoChats}
         sessionOptions={sessionOptions}
         sessionsLoading={sessionsLoading}
         sessionsError={sessionsError}
@@ -230,6 +271,7 @@ export function SeerExplorerHeaderActionsMenu({
   onTogglePictureInPicture,
   sidebarPosition = 'auto',
   onSidebarPositionChange,
+  hasNoChats,
   sessionOptions,
   sessionsLoading,
   sessionsError,
@@ -331,6 +373,7 @@ export function SeerExplorerHeaderActionsMenu({
           collapsing into the overflow menu — the DropdownMenu has no search,
           so a submenu couldn't offer the same filtering the inline actions do. */}
       <ChatHistorySelect
+        hasNoChats={hasNoChats}
         sessionOptions={sessionOptions}
         sessionsLoading={sessionsLoading}
         sessionsError={sessionsError}

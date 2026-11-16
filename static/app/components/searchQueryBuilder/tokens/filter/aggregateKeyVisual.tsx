@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
+
+import {useAggregateParamVisual} from './useAggregateParamVisual';
 
 export function AggregateKeyVisual({token}: {token: AggregateFilter}) {
   const fnName = getKeyName(token.key);

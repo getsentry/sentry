@@ -3,18 +3,22 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchviewstarred import GroupSearchViewStarredSerializer
+from sentry.auth.principal import require_user
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read"],
+        "GET": ["member:read", "user_preference:read"],
     }
+
+    # user_preference:read replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 @cell_silo_endpoint
@@ -23,6 +27,7 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
@@ -30,9 +35,9 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         Retrieve a list of starred views for the current organization member.
         """
 
-        assert request.user.id is not None
+        user = require_user(request)
         starred_views = GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id
+            organization=organization, user_id=user.id
         ).select_related("group_search_view")
 
         return self.paginate(

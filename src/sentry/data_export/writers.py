@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, BinaryIO
 
 from sentry.utils import json
+from sentry.utils.csv import escape_csv_value
 
 
 class OutputMode(str, enum.Enum):
@@ -54,8 +55,8 @@ class FileWriter:
     def writeheader(self) -> None:
         # Headers are only meaningful for CSV.
         if self.output_mode == OutputMode.CSV:
-            writer = self._get_csv_writer()
-            writer.writeheader()
+            fieldnames = self._get_csv_writer().fieldnames
+            self.writerow(dict(zip(fieldnames, fieldnames)))
 
     def writerow(self, row: Mapping[str, Any]) -> None:
         if self.output_mode == OutputMode.JSONL:
@@ -64,7 +65,7 @@ class FileWriter:
             return
 
         writer = self._get_csv_writer()
-        writer.writerow(row)
+        writer.writerow({key: escape_csv_value(value) for key, value in row.items()})
 
     def writerows(self, rows: Sequence[Mapping[str, Any]]) -> None:
         for row in rows:

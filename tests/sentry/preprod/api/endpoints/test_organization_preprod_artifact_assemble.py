@@ -159,6 +159,33 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert "base_sha" in error
         assert result == {}
 
+    def test_head_ref_valid_git_ref(self) -> None:
+        """Test git ref names, including nested and fully qualified ones, are accepted."""
+        for ref in ("main", "feature/xyz", "refs/heads/main", "pull/123/merge"):
+            body = orjson.dumps(
+                {"checksum": "a" * 40, "chunks": [], "head_ref": ref, "base_ref": ref}
+            )
+            result, error = validate_preprod_artifact_schema(body)
+            assert error is None, ref
+            assert result["head_ref"] == ref
+
+    def test_head_ref_invalid_git_ref(self) -> None:
+        """Test head_ref that isn't a valid git ref name returns error."""
+        for ref in ("feature xyz", "feature..xyz", "feature/", "feature.lock", "a~b"):
+            body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "head_ref": ref})
+            result, error = validate_preprod_artifact_schema(body)
+            assert error is not None, ref
+            assert "head_ref" in error
+            assert result == {}
+
+    def test_base_ref_invalid_git_ref(self) -> None:
+        """Test base_ref that isn't a valid git ref name returns error."""
+        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "base_ref": "main:dev"})
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is not None
+        assert "base_ref" in error
+        assert result == {}
+
     def test_pr_number_invalid(self) -> None:
         """Test invalid pr_number returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "pr_number": 0})

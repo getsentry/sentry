@@ -1,7 +1,7 @@
 import {Activity, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Assembly} from 'sentry/components/events/interfaces/frame/assembly';
@@ -13,13 +13,14 @@ import {
 } from 'sentry/components/events/interfaces/frame/utils';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+
+import {FrameVariablesGrid} from './frameVariablesGrid';
 
 interface FrameContentProps {
   effectiveContext?: Array<[number, string | null]>;
@@ -85,7 +86,7 @@ export function FrameContent({
             {t('Loading source context…')}
           </Container>
         ) : hasSourceContext ? (
-          <FrameSourceGrid>
+          <Grid width="100%" minWidth="0" columns="minmax(min-content, max-content) 1fr">
             {contextLines.map(([lineNumber, lineValue], lineIndex) => (
               <FrameSourceRow
                 key={`${lineNumber}-${lineIndex}`}
@@ -112,7 +113,7 @@ export function FrameContent({
                 </FrameSourceCode>
               </FrameSourceRow>
             ))}
-          </FrameSourceGrid>
+          </Grid>
         ) : shouldShowNoDetails ? (
           <Container padding="sm md">
             <Text size="xs" variant="muted">
@@ -145,13 +146,6 @@ export function FrameContent({
     </Activity>
   );
 }
-
-const FrameSourceGrid = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(min-content, max-content) 1fr;
-  width: 100%;
-  min-width: 0;
-`;
 
 const FrameSourceRow = styled('div')<{isActive: boolean}>`
   display: grid;

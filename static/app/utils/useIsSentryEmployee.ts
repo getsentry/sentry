@@ -1,4 +1,4 @@
-import {useUser} from 'sentry/utils/useUser';
+import {useUser} from './useUser';
 
 /**
  * Hook to check if the current user is a Sentry employee.

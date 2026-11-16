@@ -11,6 +11,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 
 logger = logging.getLogger("sentry")
@@ -39,9 +40,9 @@ class BroadcastDetailsEndpoint(Endpoint):
         self,
         request: Request,
         broadcast_id: int | str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         if request.access.has_permission("broadcasts.admin"):
             queryset = Broadcast.objects.all()
         else:
@@ -56,17 +57,21 @@ class BroadcastDetailsEndpoint(Endpoint):
         kwargs["broadcast"] = broadcast
         return args, kwargs
 
-    def _get_validator(self, request: Request):
+    def _get_validator(
+        self, request: Request
+    ) -> type[BroadcastValidator] | type[AdminBroadcastValidator]:
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastValidator
         return BroadcastValidator
 
-    def _get_serializer(self, request: Request):
+    def _get_serializer(
+        self, request: Request
+    ) -> type[BroadcastSerializer] | type[AdminBroadcastSerializer]:
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastSerializer
         return BroadcastSerializer
 
-    def _serialize_response(self, request: Request, broadcast):
+    def _serialize_response(self, request: Request, broadcast: Broadcast) -> Response:
         serializer_cls = self._get_serializer(request)
         return self.respond(serialize(broadcast, request.user, serializer=serializer_cls()))
 
@@ -117,7 +122,7 @@ class BroadcastDetailsEndpoint(Endpoint):
                     "broadcasts.update",
                     extra={
                         "ip_address": request.META["REMOTE_ADDR"],
-                        "user_id": request.user.id,
+                        "user_id": acting_user_id(request.user),
                         "broadcast_id": broadcast.id,
                         "data": update_kwargs,
                     },
@@ -126,7 +131,9 @@ class BroadcastDetailsEndpoint(Endpoint):
         if result.get("hasSeen"):
             try:
                 with transaction.atomic(using=router.db_for_write(Broadcast)):
-                    BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
+                    BroadcastSeen.objects.create(
+                        broadcast=broadcast, user_id=require_user(request).id
+                    )
             except IntegrityError:
                 pass
 

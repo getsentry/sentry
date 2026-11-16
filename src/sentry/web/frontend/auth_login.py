@@ -18,18 +18,18 @@ from sentry.web.frontend.react_page import ReactMixin
 
 
 class AdditionalContext:
-    def __init__(self):
-        self._callbacks = set()
+    def __init__(self) -> None:
+        self._callbacks: set[Callable[[HttpRequest], dict[str, object]]] = set()
 
-    def add_callback(self, callback: Callable[[HttpRequest], dict]) -> None:
+    def add_callback(self, callback: Callable[[HttpRequest], dict[str, object]]) -> None:
         """
         Callback should take a request object and return a dict of key-value pairs
         to add to the context.
         """
         self._callbacks.add(callback)
 
-    def run_callbacks(self, request: HttpRequest) -> dict:
-        context = {}
+    def run_callbacks(self, request: HttpRequest) -> dict[str, object]:
+        context: dict[str, object] = {}
         for cb in self._callbacks:
             try:
                 result = cb(request)
@@ -43,6 +43,7 @@ additional_context = AdditionalContext()
 
 
 @control_silo_view
+@method_decorator(never_cache, name="handle")
 class AuthPageView(BaseView, ReactMixin):
     auth_required = False
     enforce_rate_limit = True
@@ -50,11 +51,7 @@ class AuthPageView(BaseView, ReactMixin):
         limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=20, window=1)}}
     )
 
-    @method_decorator(never_cache)
-    def handle(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
-        return super().handle(request, *args, **kwargs)
-
-    def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+    def get(self, request: HttpRequest, **kwargs: object) -> HttpResponseBase:
         customer_domain_redirect = self.get_customer_domain_login_redirect(request)
         if customer_domain_redirect is not None:
             return customer_domain_redirect

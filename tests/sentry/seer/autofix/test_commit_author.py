@@ -2,8 +2,10 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.seer.autofix.commit_author import (
+    SeerCommitAuthor,
     commit_author_for_feedback,
     commit_author_for_github_actor,
     commit_author_for_user,
@@ -19,6 +21,8 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.testutils.cases import TestCase
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 OCTOCAT_EMAIL = "583231+octocat@users.noreply.github.com"
 LOGIN_ONLY_EMAIL = "octocat@users.noreply.github.com"
@@ -65,7 +69,7 @@ class CommitAuthorTest(TestCase):
         super().setUp()
         self.actor = self.create_user(name="Mona Lisa")
 
-    def _link_github(self, external_id: str | None = "583231"):
+    def _link_github(self, external_id: str | None = "583231") -> ExternalActor:
         return self.create_external_user(
             user=self.actor,
             organization=self.organization,
@@ -77,7 +81,7 @@ class CommitAuthorTest(TestCase):
             ),
         )
 
-    def _for_user(self, user):
+    def _for_user(self, user: User | RpcUser | AnonymousUser | None) -> SeerCommitAuthor | None:
         return commit_author_for_user(user, self.organization.id, referrer="test")
 
     def _assert_outcome(self, mock_metrics: MagicMock, expected: str) -> None:
@@ -126,7 +130,7 @@ class CommitAuthorTest(TestCase):
         }
 
     @patch("sentry.seer.autofix.commit_author.get_github_username_for_user", return_value="octocat")
-    def test_user_resolved_by_login_only_has_no_id(self, mock_lookup) -> None:
+    def test_user_resolved_by_login_only_has_no_id(self, mock_lookup: MagicMock) -> None:
         # The CommitAuthor email fallback yields a login with no ExternalActor row.
         assert self._for_user(self.actor) == {
             "name": "Mona Lisa",
@@ -165,7 +169,7 @@ class CommitAuthorTest(TestCase):
         "sentry.seer.autofix.commit_author.get_github_username_for_user",
         side_effect=Exception("boom"),
     )
-    def test_user_lookup_exception(self, mock_lookup) -> None:
+    def test_user_lookup_exception(self, mock_lookup: MagicMock) -> None:
         assert self._for_user(self.actor) is None
 
     def test_feedback_single_github_commenter(self) -> None:

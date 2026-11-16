@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -9,7 +9,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
-  getPreprodBuildsDisplay,
+  parseAsPreprodBuildsDisplay,
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
@@ -21,7 +21,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
@@ -29,6 +29,12 @@ import {getBuildsExportHref} from 'sentry/views/preprod/utils/buildsExportHref';
 import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQueryUtils';
 
 import {MobileBuildsChart} from './mobileBuildsChart';
+
+const mobileBuildsQueryParsers = {
+  cursor: parseAsString,
+  display: parseAsPreprodBuildsDisplay,
+  query: parseAsString,
+};
 
 type Props = {
   organization: Organization;
@@ -44,14 +50,14 @@ export function MobileBuilds({
   hideDisplayToggle,
 }: Props) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const [, setQueryParams] = useQueryStates(mobileBuildsQueryParsers);
 
-  const [searchQuery] = useQueryState('query', parseAsString);
-  const [cursor] = useQueryState('cursor', parseAsString);
-  const activeDisplay = useMemo(
-    () => defaultDisplay ?? getPreprodBuildsDisplay(location.query.display),
-    [defaultDisplay, location.query.display]
-  );
+  const {
+    cursor,
+    display: urlDisplay,
+    query: searchQuery,
+  } = loadQueryParamsFromLocation(mobileBuildsQueryParsers, location);
+  const activeDisplay = defaultDisplay ?? urlDisplay;
 
   const buildsQueryParams = useMemo(() => {
     const query: Record<string, any> = {
@@ -95,27 +101,27 @@ export function MobileBuilds({
 
   const handleSearch = useCallback(
     (query: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query},
-      });
+      // SearchQueryBuilder re-emits onSearch when initialQuery syncs from the URL.
+      if (query === (searchQuery ?? '')) {
+        return;
+      }
+      setQueryParams({cursor: null, query}, {history: 'push'});
     },
-    [location, navigate]
+    [searchQuery, setQueryParams]
   );
 
   const handleDisplayChange = useCallback(
     (display: PreprodBuildsDisplay) => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
+      setQueryParams(
+        {
+          cursor: null,
           display,
-          query: getUpdatedQueryForDisplay(searchQuery, display),
+          query: getUpdatedQueryForDisplay(searchQuery, display) ?? null,
         },
-      });
+        {history: 'push', clearOnDefault: false}
+      );
     },
-    [location, navigate, searchQuery]
+    [searchQuery, setQueryParams]
   );
 
   const handleExportCsv = useCallback(() => {

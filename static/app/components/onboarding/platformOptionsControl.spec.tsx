@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {PlatformOptionsControl} from 'sentry/components/onboarding/platformOptionsControl';
+import type {PlatformOption} from './gettingStartedDoc/types';
+import {PlatformOptionsControl} from './platformOptionsControl';
 
 describe('Onboarding Product Selection', () => {
   const platformOptions: Record<string, PlatformOption> = {

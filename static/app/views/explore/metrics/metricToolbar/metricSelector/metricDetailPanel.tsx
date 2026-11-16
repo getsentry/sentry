@@ -12,21 +12,16 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET} from 'sentry/views/explore/metrics/constants';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
-import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   createTraceMetricFilter,
   hasDisplayMetricUnit,
 } from 'sentry/views/explore/metrics/utils';
 
+import type {MetricSelectorOption} from './types';
+
 const METRIC_ATTRIBUTES_DEBOUNCE_DURATION = 200;
 
-export function MetricDetailPanel({
-  metric,
-  hasMetricUnitsUI,
-}: {
-  hasMetricUnitsUI: boolean;
-  metric: MetricSelectorOption | null;
-}) {
+export function MetricDetailPanel({metric}: {metric: MetricSelectorOption | null}) {
   if (!metric) {
     return (
       <Flex align="center" justify="center" flex="1">
@@ -46,7 +41,7 @@ export function MetricDetailPanel({
         </Text>
         <MetricTypeBadge metricType={metric.metricType} />
       </Flex>
-      {hasDisplayMetricUnit(hasMetricUnitsUI, metric.metricUnit) ? (
+      {hasDisplayMetricUnit(metric.metricUnit) ? (
         <Flex gap="xs" align="center">
           <Text variant="muted" size="md">
             {t('Unit')}

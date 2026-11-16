@@ -5,6 +5,7 @@
 
 from abc import abstractmethod
 from collections.abc import Callable
+from typing import Any, cast
 
 from django.db.models.base import Model
 
@@ -71,7 +72,7 @@ class ImportExportService(RpcService):
     @staticmethod
     def get_importer_for_model(
         model: type[Model],
-    ) -> Callable:
+    ) -> Callable[..., Any]:
         """
         Called should resolve their implementation of `export_by_model` by calling this method
         first, rather than calling `export_by_model` directly. See this class' comment for more
@@ -80,7 +81,10 @@ class ImportExportService(RpcService):
 
         if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore[attr-defined]
             return import_export_service.import_by_model
-        return ImportExportService.get_local_implementation().import_by_model  # type: ignore[attr-defined]
+        return cast(
+            "Callable[..., Any]",
+            ImportExportService.get_local_implementation().import_by_model,  # type: ignore[attr-defined]
+        )
 
     @rpc_method
     @abstractmethod
@@ -103,7 +107,7 @@ class ImportExportService(RpcService):
     @staticmethod
     def get_exporter_for_model(
         model: type[Model],
-    ) -> Callable:
+    ) -> Callable[..., Any]:
         """
         Called should resolve their implementation of `export_by_model` by calling this method
         first, rather than calling `export_by_model` directly. See this class' comment for more
@@ -112,7 +116,10 @@ class ImportExportService(RpcService):
 
         if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore[attr-defined]
             return import_export_service.export_by_model
-        return ImportExportService.get_local_implementation().export_by_model  # type: ignore[attr-defined]
+        return cast(
+            "Callable[..., Any]",
+            ImportExportService.get_local_implementation().export_by_model,  # type: ignore[attr-defined]
+        )
 
     @rpc_method
     @abstractmethod

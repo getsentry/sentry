@@ -3,6 +3,7 @@ from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.auth.principal import acting_user_id
 from sentry.auth.superuser import Superuser, logger
 
 
@@ -27,7 +28,7 @@ class SuperuserMiddleware(MiddlewareMixin):
                     "url": request.build_absolute_uri(),
                     "method": request.method,
                     "ip_address": request.META["REMOTE_ADDR"],
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                     "user_email": self._extract_email(request),
                 },
             )
@@ -47,7 +48,7 @@ class SuperuserMiddleware(MiddlewareMixin):
                         "superuser.superuser_access",
                         extra={
                             "superuser_token_id": su.token,
-                            "user_id": request.user.id,
+                            "user_id": acting_user_id(request.user),
                             "user_email": self._extract_email(request),
                             "su_org_accessed": org_slug,
                         },

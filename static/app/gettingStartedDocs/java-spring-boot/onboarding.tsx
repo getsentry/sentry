@@ -2,10 +2,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getProfilingSpringPropertiesSnippet,
-  getProfilingSpringYamlSnippet,
-} from 'sentry/gettingStartedDocs/java-spring-boot/profiling';
 import {metricsVerify} from 'sentry/gettingStartedDocs/java/metrics';
 import {
   getGradleInstallSnippet,
@@ -18,6 +14,10 @@ import {
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
+import {
+  getProfilingSpringPropertiesSnippet,
+  getProfilingSpringYamlSnippet,
+} from './profiling';
 import type {Params, PlatformOptions} from './utils';
 
 const getOpenTelemetryRunSnippet = (params: Params) => `

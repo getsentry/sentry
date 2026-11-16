@@ -1,4 +1,4 @@
-import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
+import {isSimilarOrigin} from './isSimilarOrigin';
 
 describe('isSimilarOrigin', () => {
   test.each([
@@ -32,4 +32,18 @@ describe('isSimilarOrigin', () => {
   ])('allows sibling domains %s and %s is %s', (target, origin, expected) => {
     expect(isSimilarOrigin(target, origin)).toBe(expected);
   });
+
+  test.each([
+    ['https://notsentry.io', 'https://sentry.io'],
+    ['https://sentry.io', 'https://notsentry.io'],
+    ['https://notsentry.io/api/0/users/', 'https://sentry.io'],
+    ['https://api.notsentry.io', 'https://sentry.io'],
+    ['https://example.com', 'https://myexample.com'],
+    ['https://myexample.com', 'https://example.com'],
+  ])(
+    'does not match hosts that only share a string suffix: %s and %s',
+    (target, origin) => {
+      expect(isSimilarOrigin(target, origin)).toBe(false);
+    }
+  );
 });

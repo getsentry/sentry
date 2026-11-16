@@ -26,6 +26,14 @@ export function useIssuePreviewPullRequests(group: Group) {
   return {pullRequests, isPending};
 }
 
+/**
+ * With more than one current PR, the header lists the PRs in place of a coding
+ * agent's result link.
+ */
+export function hidesCodingAgentResultLink(pullRequests: LinkedPullRequest[]): boolean {
+  return pullRequests.length > 1;
+}
+
 export function PullRequestButtons({
   disabled,
   group,

@@ -1,5 +1,6 @@
-import type {StoryCategory} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
+
+import type {StoryCategory} from './storyTree';
 
 export function useStoryParams(): {storyCategory?: StoryCategory; storySlug?: string} {
   const location = useLocation();

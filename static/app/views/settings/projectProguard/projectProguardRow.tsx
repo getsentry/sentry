@@ -4,13 +4,13 @@ import {IconDelete} from '@sentry/icons/delete';
 import {IconDownload} from '@sentry/icons/download';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
-import {Confirm} from 'sentry/components/confirm';
 import {FileSize} from 'sentry/components/fileSize';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';

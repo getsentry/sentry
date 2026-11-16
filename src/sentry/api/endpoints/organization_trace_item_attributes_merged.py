@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from typing import Any, NotRequired, TypedDict
 
 from rest_framework import serializers
@@ -32,6 +32,7 @@ from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import ColumnType, SearchResolverConfig, SupportedTraceItemType
+from sentry.search.events.types import SnubaParams
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 MERGEABLE_DATASETS = [
@@ -141,6 +142,106 @@ def merge_attributes_across_datasets(
     return list(merged.values())
 
 
+def list_merged_attributes(
+    endpoint: OrganizationTraceItemAttributesEndpoint,
+    request: Request,
+    organization: Organization,
+    snuba_params: SnubaParams,
+    datasets: Collection[str] | None,
+    attribute_types: Collection[str] | None,
+    substring_match: str,
+    include_context: bool,
+) -> list[MergedTraceItemAttribute]:
+    """
+    Each dataset's attributes are fetched in full and merged, since per-dataset
+    cursors can't be combined into a single ordering.
+    """
+    selected_datasets = [
+        dataset for dataset in MERGEABLE_DATASETS if not datasets or dataset in datasets
+    ]
+
+    supports_arrays = features.has(
+        "organizations:trace-item-array-query-support",
+        organization,
+        actor=request.user,
+    )
+    allowed_attribute_types = (
+        POSSIBLE_ATTRIBUTE_TYPES if supports_arrays else SCALAR_ATTRIBUTE_TYPES
+    )
+    selected_attribute_types = [
+        attribute_type
+        for attribute_type in allowed_attribute_types
+        if not attribute_types or attribute_type in attribute_types
+    ]
+
+    snuba_params.start, snuba_params.end = adjust_start_end_window(
+        snuba_params.start_date, snuba_params.end_date
+    )
+
+    include_internal = is_active_superuser(request) or is_active_staff(request)
+    include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
+    include_custom_context = include_context and features.has(
+        "organizations:data-browsing-attribute-context", organization, actor=request.user
+    )
+    max_attributes = options.get("explore.trace-items.keys.max")
+
+    tasks = []
+    for dataset in selected_datasets:
+        trace_item_type = SupportedTraceItemType(dataset)
+        column_definitions = get_column_definitions(trace_item_type)
+        resolver = SearchResolver(
+            params=snuba_params,
+            config=SearchResolverConfig(disable_array_attributes=not supports_arrays),
+            definitions=column_definitions,
+        )
+        meta = resolver.resolve_meta(referrer=resolve_attribute_referrer(dataset).value)
+        meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
+            trace_item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
+        )
+        for attribute_type in selected_attribute_types:
+            tasks.append((dataset, trace_item_type, column_definitions, meta, attribute_type))
+
+    attributes_by_dataset: dict[str, list[TraceItemAttributeKey]] = {
+        dataset: [] for dataset in selected_datasets
+    }
+    with ContextPropagatingThreadPoolExecutor(
+        thread_name_prefix=__name__,
+        max_workers=max(min(len(tasks), MAX_QUERY_WORKERS), 1),
+    ) as pool:
+        futures = [
+            (
+                dataset,
+                pool.submit(
+                    endpoint.query_trace_attributes,
+                    0,
+                    max_attributes,
+                    meta,
+                    None,
+                    substring_match,
+                    attribute_type,
+                    column_definitions,
+                    trace_item_type,
+                    include_internal,
+                    include_context=include_context,
+                    include_internal_convention_attributes=include_internal_convention_attributes,
+                ),
+            )
+            for dataset, trace_item_type, column_definitions, meta, attribute_type in tasks
+        ]
+        for dataset, future in futures:
+            result_attributes, _ = future.result()
+            attributes_by_dataset[dataset].extend(result_attributes)
+
+    if include_custom_context:
+        project_ids = [project.id for project in snuba_params.projects]
+        for dataset, attributes in attributes_by_dataset.items():
+            attach_custom_attribute_context(
+                attributes, organization, SupportedTraceItemType(dataset), project_ids
+            )
+
+    return merge_attributes_across_datasets(attributes_by_dataset)
+
+
 @cell_silo_endpoint
 class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttributesEndpoint):
     publish_status = {
@@ -148,10 +249,6 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        """
-        Each dataset's attributes are fetched in full and merged before paginating,
-        since per-dataset cursors can't be combined into a single ordering.
-        """
         if not features.has(
             "organizations:attribute-management", organization, actor=request.user
         ) or not self.has_feature(organization, request):
@@ -169,95 +266,21 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
             return response
 
         serialized: dict[str, Any] = serializer.validated_data
-        substring_match = serialized.get("substring_match", "")
-        selected_datasets = serialized.get("dataset") or MERGEABLE_DATASETS
-        datasets = [dataset for dataset in MERGEABLE_DATASETS if dataset in selected_datasets]
-
-        supports_arrays = features.has(
-            "organizations:trace-item-array-query-support",
-            organization,
-            actor=request.user,
-        )
-        allowed_attribute_types = (
-            POSSIBLE_ATTRIBUTE_TYPES if supports_arrays else SCALAR_ATTRIBUTE_TYPES
-        )
-        selected_attribute_types = serialized.get("attribute_type")
-        attribute_types = [
-            attribute_type
-            for attribute_type in allowed_attribute_types
-            if not selected_attribute_types or attribute_type in selected_attribute_types
-        ]
-
-        snuba_params.start, snuba_params.end = adjust_start_end_window(
-            snuba_params.start_date, snuba_params.end_date
-        )
-
-        include_internal = is_active_superuser(request) or is_active_staff(request)
-        include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
         sort = serialized["sort"]
         search = serialized.get("search", "")
         expand_context = "context" in serialized.get("expand", set())
-        include_context = expand_context or bool(search) or sort.removeprefix("-") == "description"
-        include_custom_context = include_context and features.has(
-            "organizations:data-browsing-attribute-context", organization, actor=request.user
+        merged = list_merged_attributes(
+            self,
+            request,
+            organization,
+            snuba_params,
+            datasets=serialized.get("dataset"),
+            attribute_types=serialized.get("attribute_type"),
+            substring_match=serialized.get("substring_match", ""),
+            include_context=expand_context
+            or bool(search)
+            or sort.removeprefix("-") == "description",
         )
-        max_attributes = options.get("explore.trace-items.keys.max")
-
-        tasks = []
-        for dataset in datasets:
-            trace_item_type = SupportedTraceItemType(dataset)
-            column_definitions = get_column_definitions(trace_item_type)
-            resolver = SearchResolver(
-                params=snuba_params,
-                config=SearchResolverConfig(disable_array_attributes=not supports_arrays),
-                definitions=column_definitions,
-            )
-            meta = resolver.resolve_meta(referrer=resolve_attribute_referrer(dataset).value)
-            meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
-                trace_item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
-            )
-            for attribute_type in attribute_types:
-                tasks.append((dataset, trace_item_type, column_definitions, meta, attribute_type))
-
-        attributes_by_dataset: dict[str, list[TraceItemAttributeKey]] = {
-            dataset: [] for dataset in datasets
-        }
-        with ContextPropagatingThreadPoolExecutor(
-            thread_name_prefix=__name__,
-            max_workers=max(min(len(tasks), MAX_QUERY_WORKERS), 1),
-        ) as pool:
-            futures = [
-                (
-                    dataset,
-                    pool.submit(
-                        self.query_trace_attributes,
-                        0,
-                        max_attributes,
-                        meta,
-                        None,
-                        substring_match,
-                        attribute_type,
-                        column_definitions,
-                        trace_item_type,
-                        include_internal,
-                        include_context=include_context,
-                        include_internal_convention_attributes=include_internal_convention_attributes,
-                    ),
-                )
-                for dataset, trace_item_type, column_definitions, meta, attribute_type in tasks
-            ]
-            for dataset, future in futures:
-                result_attributes, _ = future.result()
-                attributes_by_dataset[dataset].extend(result_attributes)
-
-        if include_custom_context:
-            project_ids = [project.id for project in snuba_params.projects]
-            for dataset, attributes in attributes_by_dataset.items():
-                attach_custom_attribute_context(
-                    attributes, organization, SupportedTraceItemType(dataset), project_ids
-                )
-
-        merged = merge_attributes_across_datasets(attributes_by_dataset)
         if search:
             merged = search_merged_attributes(merged, search)
         merged = sort_merged_attributes(merged, sort)
@@ -271,7 +294,7 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
                 data_fn=lambda offset, limit: merged[offset : offset + limit]
             ),
             default_per_page=100,
-            max_per_page=max_attributes,
+            max_per_page=options.get("explore.trace-items.keys.max"),
         )
         response["X-Hits"] = len(merged)
         return response

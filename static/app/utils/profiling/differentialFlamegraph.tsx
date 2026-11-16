@@ -1,5 +1,4 @@
-import {makeColorBufferForNodes} from 'sentry/utils/profiling/colors/utils';
-
+import {makeColorBufferForNodes} from './colors/utils';
 import type {ColorChannels, FlamegraphTheme} from './flamegraph/flamegraphTheme';
 import {Profile} from './profile/profile';
 import {Flamegraph, sortFlamegraphAlphabetically} from './flamegraph';

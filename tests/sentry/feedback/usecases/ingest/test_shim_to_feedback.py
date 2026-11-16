@@ -1,3 +1,7 @@
+from unittest.mock import MagicMock
+
+from sentry.models.project import Project
+
 """
 shim_to_feedback unit tests. Integration testing is done in test_create_feedback, test_project_user_reports, test_post_process, and test_update_user_reports.
 """
@@ -16,8 +20,8 @@ from sentry.testutils.pytest.fixtures import django_db_all
 @pytest.mark.parametrize("use_username", (False, True))
 @django_db_all
 def test_shim_to_feedback_event_user_used_if_missing(
-    default_project, mock_produce_occurrence_to_kafka, use_username
-):
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock, use_username: object
+) -> None:
     """Uses the error event's user context if user info is missing from the report."""
     report_dict = {
         "comments": "Shim this",
@@ -52,8 +56,8 @@ def test_shim_to_feedback_event_user_used_if_missing(
 @pytest.mark.parametrize("use_username", (False, True))
 @django_db_all
 def test_shim_to_feedback_event_user_does_not_override_report(
-    default_project, mock_produce_occurrence_to_kafka, use_username
-):
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock, use_username: object
+) -> None:
     """The report's user info should take precedence over the event."""
     report_dict = {
         "name": "Andrew",
@@ -88,7 +92,9 @@ def test_shim_to_feedback_event_user_does_not_override_report(
 
 
 @django_db_all
-def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_to_kafka) -> None:
+def test_shim_to_feedback_no_user_info(
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
+) -> None:
     """User fields default to "" if not present."""
     report_dict = {
         "comments": "Shim this",
@@ -116,7 +122,7 @@ def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_
 
 
 @django_db_all
-def test_shim_to_feedback_fails_if_required_fields_missing(default_project) -> None:
+def test_shim_to_feedback_fails_if_required_fields_missing(default_project: Project) -> None:
     # Email and comments are required to shim. Tests key errors are handled.
     report_dict = {
         "name": "andrew",

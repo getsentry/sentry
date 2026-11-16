@@ -19,6 +19,8 @@ class Span(TypedDict):
     timestamp: float
     same_process_as_parent: bool
     op: str
+    project_id: NotRequired[int]
+    organization_id: NotRequired[int]
     description: str | None
     fingerprint: Sequence[str] | None
     tags: Any | None

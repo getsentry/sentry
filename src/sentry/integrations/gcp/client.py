@@ -165,7 +165,8 @@ def verify_gcp_connection(
         raise IntegrationError("Failed to verify GCP connection. Please try again.")
 
     try:
-        return orjson.loads(response.data)
+        result = orjson.loads(response.data)
+        return result
     except orjson.JSONDecodeError:
         logger.error("gcp.verify_connection_invalid_response")
         raise IntegrationError("Failed to verify GCP connection. Please try again.")

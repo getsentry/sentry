@@ -37,9 +37,9 @@ function Banner(props: BannerProps) {
 
   return (
     <BannerWrapper>
-      <ActionsWrapper>
+      <Container maxWidth="50%">
         <BannerTitle>{props.title}</BannerTitle>
-        <BannerDescription>{props.description}</BannerDescription>
+        <Container marginBottom="lg">{props.description}</Container>
         <Flex align="center" gap="xs">
           <Flex gap="md">
             <Button
@@ -62,7 +62,7 @@ function Banner(props: BannerProps) {
             </LinkButton>
           </Flex>
         </Flex>
-      </ActionsWrapper>
+      </Container>
       <Container display={{zero: 'none', '2xl': 'flex'}}>
         {containerProps => <BannerBackground {...containerProps} image={props.image} />}
       </Container>
@@ -108,18 +108,10 @@ const BannerWrapper = styled('div')`
   container-type: inline-size;
 `;
 
-const ActionsWrapper = styled('div')`
-  max-width: 50%;
-`;
-
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BannerDescription = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`

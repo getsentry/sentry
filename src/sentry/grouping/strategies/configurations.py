@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.conf.server import FALL_2025_GROUPING_CONFIG, WINTER_2023_GROUPING_CONFIG
 from sentry.grouping.strategies.base import (
     StrategyConfiguration,
@@ -37,7 +39,10 @@ BASE_CONFIG_CLASS = create_strategy_configuration_class(
 )
 
 
-def register_grouping_config(id: str, **kwargs) -> type[StrategyConfiguration]:
+def register_grouping_config(
+    id: str,
+    **kwargs: Any,
+) -> type[StrategyConfiguration]:
     # Replace the base strategy id in kwargs with the base stategy class itself (or the default
     # base class, if no base is specified)
     base_config_id = kwargs.get("base")
@@ -51,10 +56,9 @@ def register_grouping_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     return strategy_class
 
 
-# This is the current default config
 register_grouping_config(
     id=WINTER_2023_GROUPING_CONFIG,
-    # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
+    # There's no `base` argument here because this config is based on `BASE_CONFIG_CLASS`. To base a
     # config on a previous config, include its `id` value as the value for `base` here.
     initial_context={
         # Shim to preserve hash values, since they're order-dependent
@@ -71,6 +75,7 @@ register_grouping_config(
     fingerprinting_bases=["javascript@2024-02-02"],
 )
 
+# This is the current default config (see `DEFAULT_GROUPING_CONFIG` in `sentry.conf.server`)
 register_grouping_config(
     id=FALL_2025_GROUPING_CONFIG,
     base=WINTER_2023_GROUPING_CONFIG,

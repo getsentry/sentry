@@ -7,7 +7,8 @@ import type {CollectionChildren} from '@react-types/shared';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
-import {DeletableToken} from 'sentry/components/tokenizedInput/token/deletableToken';
+
+import {DeletableToken} from './deletableToken';
 
 interface GridItem {
   key: string;

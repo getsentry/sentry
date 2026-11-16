@@ -2,7 +2,7 @@ import {useRef} from 'react';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useElementOffset} from 'sentry/utils/useElementOffset';
+import {useElementOffset} from './useElementOffset';
 
 function rect(top: number, left: number): DOMRect {
   return {

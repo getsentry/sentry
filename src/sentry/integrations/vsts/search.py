@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from rest_framework.response import Response
 
@@ -11,15 +11,20 @@ from sentry.integrations.vsts.integration import VstsIntegration
 
 T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
+if TYPE_CHECKING:
+    _SearchEndpointBase = SourceCodeSearchEndpoint[VstsIntegration]
+else:
+    _SearchEndpointBase = SourceCodeSearchEndpoint
+
 
 @control_silo_endpoint
-class VstsSearchEndpoint(SourceCodeSearchEndpoint):
+class VstsSearchEndpoint(_SearchEndpointBase):
     @property
-    def integration_provider(self):
+    def integration_provider(self) -> str:
         return IntegrationProviderSlug.AZURE_DEVOPS.value
 
     @property
-    def installation_class(self):
+    def installation_class(self) -> type[VstsIntegration]:
         return VstsIntegration
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:

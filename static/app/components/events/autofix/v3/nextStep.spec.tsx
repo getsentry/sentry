@@ -1,7 +1,8 @@
-import {focusManager} from '@tanstack/react-query';
+import {focusManager, QueryClientProvider} from '@tanstack/react-query';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
@@ -10,7 +11,12 @@ import type {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {
+  seerCreditCheckApiOptions,
+  type SeerCreditOperation,
+} from 'sentry/utils/seer/useSeerCreditCheck';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
@@ -1147,10 +1153,6 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('PullRequestNextStep', () => {
-    const prIterationOrganization = OrganizationFixture({
-      features: ['autofix-pr-iteration-manual'],
-    });
-
     function makePrIterationAutofix(
       overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
     ) {
@@ -1191,21 +1193,6 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('code_changes'), makeSection('pull_request')]}
           autofix={autofix}
-        />,
-        {organization: prIterationOrganization}
-      );
-      expect(container).toBeEmptyDOMElement();
-    });
-
-    it('returns null when the run is not valid for PR iteration', () => {
-      const autofix = makeAutofix({
-        runState: {run_id: 1, blocks: []} as any,
-      });
-      const {container} = render(
-        <SeerDrawerNextStep
-          group={GroupFixture()}
-          sections={[makeSection('pull_request')]}
-          autofix={autofix}
         />
       );
       expect(container).toBeEmptyDOMElement();
@@ -1217,8 +1204,7 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={makePrIterationAutofix({isPolling: true})}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
       expect(
         screen.getByText('Anything else you want to see on your PR?')
@@ -1232,8 +1218,7 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={makePrIterationAutofix()}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
       expect(
         screen.getByText('Anything else you want to see on your PR?')
@@ -1249,8 +1234,7 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture({id: '123'})}
           sections={[makeSection('pull_request')]}
           autofix={autofix}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'Add a test for this');
@@ -1273,8 +1257,7 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={autofix}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       const textbox = screen.getByRole('textbox');
@@ -1295,12 +1278,221 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={autofix}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       await userEvent.type(screen.getByRole('textbox'), '{Enter}');
       expect(autofix.startStep).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('out of Seer credits', () => {
+    const creditCheckUrl = '/organizations/org-slug/seer/credit-check/';
+    const creditCheckOrganization = OrganizationFixture({
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+    });
+
+    function mockCreditCheck(operation: string, hasEnoughCredits = false) {
+      return MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        match: [MockApiClient.matchQuery({operation})],
+        body: {hasEnoughCredits},
+      });
+    }
+
+    /**
+     * Renders, then waits for the check to answer. What a check disables is also
+     * disabled while it's in flight, so asserting before the answer proves
+     * nothing about the answer.
+     */
+    async function renderAndWaitForCheck(
+      ui: React.ReactElement,
+      {
+        operation,
+        organization = creditCheckOrganization,
+      }: {operation: SeerCreditOperation; organization?: Organization}
+    ) {
+      const queryClient = makeTestQueryClient();
+      render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>, {
+        organization,
+      });
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryState(
+            seerCreditCheckApiOptions(organization, operation).queryKey
+          )?.status
+        ).toBe('success')
+      );
+    }
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/autofix/repos/',
+        body: {repos: [{has_write_access: true}]},
+      });
+    });
+
+    it.each([
+      ['root_cause', 'autofix_solution', 'Yes, make a plan'],
+      ['solution', 'autofix_code_changes', 'Yes, write a code fix'],
+      ['code_changes', 'autofix_open_pr', 'Yes, draft a PR'],
+    ])(
+      'keeps the next step after %s on screen but disabled when %s is unaffordable',
+      async (step, operation, yesLabel) => {
+        const creditCheck = mockCreditCheck(operation);
+
+        render(
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection(step)]}
+            autofix={makeAutofix()}
+          />,
+          {organization: creditCheckOrganization}
+        );
+
+        await waitFor(() => expect(creditCheck).toHaveBeenCalledTimes(1));
+        expect(await screen.findByRole('button', {name: yesLabel})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'No'})).toBeDisabled();
+        // The surrounding drawer or tab shows the alert, never the prompt.
+        expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+      }
+    );
+
+    it('holds the next step disabled while the check is in flight', async () => {
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: true},
+        asyncDelay: new Promise(() => {}),
+      });
+
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={makeAutofix()}
+        />,
+        {organization: creditCheckOrganization}
+      );
+
+      expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'No'})).toBeDisabled();
+      // Nothing else on screen waits on the check.
+      expect(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      ).toBeEnabled();
+    });
+
+    it('leaves the coding agent hand-off available', async () => {
+      mockCreditCheck('autofix_solution');
+
+      await renderAndWaitForCheck(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={makeAutofix()}
+        />,
+        {operation: 'autofix_solution'}
+      );
+
+      expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Send to Copilot'})
+      ).toBeInTheDocument();
+    });
+
+    it('disables Ask Seer in code mode', async () => {
+      mockCreditCheck('autofix_solution');
+
+      await renderAndWaitForCheck(
+        <AutofixChatProvider sendMessage={jest.fn()}>
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection('root_cause')]}
+            autofix={makeAutofix()}
+          />
+        </AutofixChatProvider>,
+        {
+          operation: 'autofix_solution',
+          organization: OrganizationFixture({
+            ...codeModeOrganization,
+            features: [
+              ...codeModeOrganization.features,
+              'seer-credit-checks',
+              'token-billed-seer-enabled',
+            ],
+          }),
+        }
+      );
+
+      expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Ask Seer'})).toBeDisabled();
+    });
+
+    it('enables the next step when the org can afford it', async () => {
+      mockCreditCheck('autofix_solution', true);
+
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={makeAutofix()}
+        />,
+        {organization: creditCheckOrganization}
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeEnabled()
+      );
+      expect(screen.getByRole('button', {name: 'No'})).toBeEnabled();
+    });
+
+    it('disables the PR feedback form', async () => {
+      mockCreditCheck('autofix_pr_iteration');
+
+      await renderAndWaitForCheck(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={makeAutofix({runState: {run_id: 1, blocks: []} as any})}
+        />,
+        {operation: 'autofix_pr_iteration'}
+      );
+
+      // Submit is disabled anyway while the form is empty; the text box isn't.
+      expect(screen.getByRole('textbox')).toBeDisabled();
+    });
+
+    it('does not check credits for a step that is not offered', () => {
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause', [])]}
+          autofix={makeAutofix()}
+        />,
+        {organization: creditCheckOrganization}
+      );
+
+      expect(creditCheck).not.toHaveBeenCalled();
     });
   });
 });

@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
 
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -13,6 +14,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {BillingDetailsPanel} from 'getsentry/components/billingDetails/panel';
 import {CreditCardPanel} from 'getsentry/components/creditCardEdit/panel';
 import {withSubscription} from 'getsentry/components/withSubscription';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {FTCConsentLocation, type Subscription} from 'getsentry/types';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
@@ -33,6 +35,25 @@ function BillingInformation({subscription}: Props) {
 
   if (subscription?.isSelfServePartner) {
     return <Redirect to={`/settings/${organization.slug}/billing/overview/`} />;
+  }
+
+  // The customer endpoint returns 200 with an empty body when it cannot
+  // serialize the customer, so the subscription has no plan details.
+  if (subscription && !subscription.planDetails) {
+    return (
+      <SubscriptionPageContainer>
+        <SentryDocumentTitle
+          title={t('Billing Information')}
+          orgSlug={organization.slug}
+        />
+        <SettingsPageHeader title={t('Billing Information')} />
+        <LoadingError
+          onRetry={() => {
+            SubscriptionStore.loadData(organization.slug);
+          }}
+        />
+      </SubscriptionPageContainer>
+    );
   }
 
   return (

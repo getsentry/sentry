@@ -45,7 +45,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def _get_pre_autofix_cache(
         cls, *, entrypoint_key: str, group_id: int
-    ) -> SeerOperatorCacheResult | None:
+    ) -> SeerOperatorCacheResult[CachePayloadT] | None:
         cache_key = cls._get_pre_autofix_cache_key(entrypoint_key=entrypoint_key, group_id=group_id)
         cache_payload = cache.get(cache_key)
         if not cache_payload:
@@ -59,7 +59,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def _get_post_autofix_cache(
         cls, *, entrypoint_key: str, run_id: int
-    ) -> SeerOperatorCacheResult | None:
+    ) -> SeerOperatorCacheResult[CachePayloadT] | None:
         cache_key = cls._get_post_autofix_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
         cache_payload = cache.get(cache_key)
         if not cache_payload:
@@ -73,7 +73,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def populate_pre_autofix_cache(
         cls, *, entrypoint_key: str, group_id: int, cache_payload: CachePayloadT
-    ) -> SeerOperatorCacheResult:
+    ) -> SeerOperatorCacheResult[CachePayloadT]:
         with SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_POPULATE_PRE_AUTOFIX,
             entrypoint_key=entrypoint_key,
@@ -92,7 +92,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def populate_post_autofix_cache(
         cls, *, entrypoint_key: str, run_id: int, cache_payload: CachePayloadT
-    ) -> SeerOperatorCacheResult:
+    ) -> SeerOperatorCacheResult[CachePayloadT]:
         with SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_POPULATE_POST_AUTOFIX,
             entrypoint_key=entrypoint_key,
@@ -111,7 +111,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def get(
         cls, *, entrypoint_key: str, group_id: int | None = None, run_id: int | None = None
-    ) -> SeerOperatorCacheResult | None:
+    ) -> SeerOperatorCacheResult[CachePayloadT] | None:
         """
         Gets the most specific cache payload for a given entrypoint, group_id and/or run_id.
         If run_id cache hits, it's returned, and the group_id cache is deleted (if a group_id was provided).

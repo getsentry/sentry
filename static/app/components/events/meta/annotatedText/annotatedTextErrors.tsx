@@ -19,17 +19,12 @@ function ErrorMessage({error}: {error?: MetaError}) {
       return null;
     }
 
-    const errorMessage: React.ReactNode[] = [];
-
-    if (error[0]) {
-      errorMessage.push(<strong>{formatErrorKind(error[0])}</strong>);
-    }
-
-    if (error[1]?.reason) {
-      errorMessage.push(<div>{capitalize(error[1].reason)}</div>);
-    }
-
-    return <div>{errorMessage}</div>;
+    return (
+      <div>
+        {error[0] && <strong>{formatErrorKind(error[0])}</strong>}
+        {error[1]?.reason && <div>{capitalize(error[1].reason)}</div>}
+      </div>
+    );
   }
 
   if (!error) {
@@ -52,9 +47,9 @@ export function AnnotatedTextErrors({errors = []}: {errors: MetaError[] | undefi
         ) : (
           <Errors symbol="bullet">
             {errors.map((error, index) => (
-              <Error key={index}>
+              <ErrorItem key={index}>
                 <ErrorMessage error={error} />
-              </Error>
+              </ErrorItem>
             ))}
           </Errors>
         )
@@ -75,6 +70,6 @@ const StyledIconWarning = styled(IconWarning)`
 
 const Errors = styled(List)``;
 
-const Error = styled(ListItem)`
+const ErrorItem = styled(ListItem)`
   text-align: left;
 `;

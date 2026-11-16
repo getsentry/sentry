@@ -21,10 +21,7 @@ redelivers merge_request hooks on response timeout and the endpoint also
 dispatches each payload once per organization that added the repository; both
 can otherwise cause actions to be logged multiple times for a single MR-open.
 
-Both processors are gated by ``organizations:seer-gitlab-support`` — the same
-cohort flag ``handle_merge_request_event`` uses — so seeding only happens for orgs
-that are already opted in to GitLab code review. The downstream
-``should_increment_contributor_seat`` check additionally requires
+The downstream ``should_increment_contributor_seat`` check requires
 ``organizations:seat-based-seer-enabled``.
 
 Both processors skip seeding when the webhook actor (``event.user``) is not the
@@ -54,7 +51,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import features
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -63,7 +59,6 @@ from sentry.seer.code_review.contributor_seats import (
     record_contributor_action,
     track_contributor_seat,
 )
-from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -107,13 +102,10 @@ def track_gitlab_contributor_seat_processor(
     }
 
     if integration is None:
-        debug_log(logger, organization, "missing_integration", base_extra)
+        logger.info("missing_integration", extra=base_extra)
         return
 
     base_extra["integration_id"] = integration.id
-
-    if not features.has("organizations:seer-gitlab-support", organization):
-        return
 
     if object_attributes.get("action") != "open":
         return
@@ -125,13 +117,7 @@ def track_gitlab_contributor_seat_processor(
         user_username = event_user["username"]
         iid = object_attributes["iid"]
     except KeyError as e:
-        debug_log(
-            logger,
-            organization,
-            "missing_author_data",
-            {**base_extra, "error": str(e)},
-            level=logging.WARNING,
-        )
+        logger.warning("missing_author_data", extra={**base_extra, "error": str(e)})
         return
 
     base_extra["author_id"] = user_id
@@ -150,12 +136,12 @@ def track_gitlab_contributor_seat_processor(
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:
-        debug_log(logger, organization, "organization_not_found", base_extra)
+        logger.info("organization_not_found", extra=base_extra)
         return
 
     seen_key = f"{SEAT_SEEN_KEY_PREFIX}{organization.id}:{repo.id}:{iid}"
     if _is_duplicate_delivery(seen_key):
-        debug_log(logger, organization, "duplicate_delivery_skipped", base_extra)
+        logger.info("duplicate_delivery_skipped", extra=base_extra)
         return
 
     track_contributor_seat(
@@ -180,9 +166,6 @@ def track_gitlab_contributor_action_processor(
     **kwargs: Any,
 ) -> None:
     if integration is None:
-        return
-
-    if not features.has("organizations:seer-gitlab-support", organization):
         return
 
     object_attributes = event.get("object_attributes") or {}

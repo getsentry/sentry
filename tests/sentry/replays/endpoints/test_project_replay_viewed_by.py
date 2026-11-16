@@ -167,6 +167,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
         other_org_member = self.create_member(
             organization=self.create_organization(), user=self.create_user()
         )
+        assert other_org_member.user_id is not None
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))

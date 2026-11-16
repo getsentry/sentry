@@ -16,6 +16,7 @@ PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            canonical_case=True,
         ),
         ResolvedAttribute(
             public_alias=constants.TRACE_ALIAS,
@@ -23,6 +24,7 @@ PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            canonical_case=True,
         ),
         ResolvedAttribute(
             public_alias="environment",

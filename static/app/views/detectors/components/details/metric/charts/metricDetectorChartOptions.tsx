@@ -106,15 +106,8 @@ function createIncidentSeries(
           xAxis: incidentTimestamp,
         },
       ],
-      label: {
-        silent: true,
-        show: !!openPeriod.id,
-        position: 'insideEndBottom',
-        formatter: openPeriod.id,
-        color: lineColor,
-        fontSize: 10,
-        fontFamily: 'Rubik',
-      },
+      // Match the metric detector UI, which doesn't label open period lines
+      label: {show: false},
       tooltip: {
         formatter,
       },

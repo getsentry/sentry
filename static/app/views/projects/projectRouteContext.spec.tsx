@@ -6,10 +6,8 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {
-  ProjectRouteContext,
-  ProjectRouteProvider,
-} from 'sentry/views/projects/projectRouteContext';
+
+import {ProjectRouteContext, ProjectRouteProvider} from './projectRouteContext';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/redirectToProject', () => ({

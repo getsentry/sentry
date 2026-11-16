@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 @produces_variants(["default"])
 def expect_ct_v1(
     interface: ExpectCT, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     variant_name = context["variant_name"]
 
     return {
@@ -45,7 +45,7 @@ def expect_ct_v1(
 @produces_variants(["default"])
 def expect_staple_v1(
     interface: ExpectStaple, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     variant_name = context["variant_name"]
 
     return {
@@ -62,7 +62,7 @@ def expect_staple_v1(
 @produces_variants(["default"])
 def hpkp_v1(
     interface: Hpkp, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     variant_name = context["variant_name"]
 
     return {
@@ -79,8 +79,10 @@ def hpkp_v1(
 @produces_variants(["default"])
 def csp_v1(
     interface: Csp, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     variant_name = context["variant_name"]
+    normalized_blocked_uri = interface.normalized_blocked_uri
+    assert normalized_blocked_uri is not None
 
     violation_component = ViolationGroupingComponent()
     uri_component = URIGroupingComponent()
@@ -90,13 +92,13 @@ def csp_v1(
         uri_component.update(
             contributes=False,
             hint="ignored because violation takes precedence",
-            values=[interface.normalized_blocked_uri],
+            values=[normalized_blocked_uri],
         )
     else:
         violation_component.update(
             contributes=False, hint="ignored because it's not a local script violation"
         )
-        uri_component.update(values=[interface.normalized_blocked_uri])
+        uri_component.update(values=[normalized_blocked_uri])
 
     return {
         variant_name: CSPGroupingComponent(

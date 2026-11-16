@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
-import type {QueryStatus} from '@tanstack/react-query';
+import type {QueryStatus, UseQueryResult} from '@tanstack/react-query';
 
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {IssuesTraceTree} from 'sentry/views/performance/traceDetails/traceModels/issuesTraceTree';
@@ -10,7 +9,7 @@ import {useTraceState} from 'sentry/views/performance/traceDetails/traceState/tr
 
 type UseTraceTreeParams = {
   replay: HydratedReplayRecord | null;
-  trace: UseApiQueryResult<TraceTree.EAPTrace | undefined, any>;
+  trace: Pick<UseQueryResult<TraceTree.EAPTrace | undefined>, 'status' | 'data'>;
 };
 
 function getTraceViewQueryStatus(traceQueryStatus: QueryStatus): QueryStatus {
@@ -39,7 +38,7 @@ export function useIssuesTraceTree({trace, replay}: UseTraceTreeParams): IssuesT
       return;
     }
 
-    if (trace.data && trace.data.length === 0) {
+    if (trace.data?.length === 0) {
       setTree(t => (t.type === 'empty' ? t : IssuesTraceTree.Empty()));
       return;
     }

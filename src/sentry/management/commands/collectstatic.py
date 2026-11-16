@@ -1,4 +1,5 @@
 import os
+from collections.abc import Iterable
 from hashlib import md5
 from itertools import chain
 from operator import itemgetter
@@ -10,7 +11,7 @@ BUFFER_SIZE = 65536
 VERSION_PATH = "version"
 
 
-def checksum(file_):
+def checksum(file_: tuple[str, str]) -> str:
     hasher = md5()
     with open(file_[1], "rb") as fp:
         buf = fp.read(BUFFER_SIZE)
@@ -20,7 +21,7 @@ def checksum(file_):
     return hasher.hexdigest()
 
 
-def get_bundle_version(files):
+def get_bundle_version(files: Iterable[tuple[str, str]]) -> str:
     hasher = md5()
     for (short, _), sum in zip(files, map(checksum, files)):
         echo(f"{sum}  {short}")
@@ -29,7 +30,7 @@ def get_bundle_version(files):
 
 
 class Command(BaseCommand):
-    def collect(self):
+    def collect(self) -> dict[str, list[str]]:
         try:
             os.remove(self.storage.path(VERSION_PATH))
         except OSError:

@@ -4,7 +4,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {Message} from 'sentry/components/events/interfaces/message';
+import {Message} from './message';
 
 describe('Message entry', () => {
   it('display redacted data', async () => {

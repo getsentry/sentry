@@ -2,10 +2,6 @@ import {t} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {formatExportSort} from 'sentry/views/explore/components/exports/formatExportSort';
 import {AGGREGATE_EXPORT_MAX_ROWS} from 'sentry/views/explore/logs/constants';
-import {
-  LogsExportModalButton,
-  useLogsQueryInfo,
-} from 'sentry/views/explore/logs/exports/logsExportModalButton';
 import type {OurLogsAggregateResponseItem} from 'sentry/views/explore/logs/types';
 import {
   getLogsAggregatesFields,
@@ -17,6 +13,8 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+
+import {LogsExportModalButton, useLogsQueryInfo} from './logsExportModalButton';
 
 type LogsAggregateExportModalButtonProps = {
   isLoading: boolean;

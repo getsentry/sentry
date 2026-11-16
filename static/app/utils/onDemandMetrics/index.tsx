@@ -1,10 +1,11 @@
 import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {AggregationKey, FieldKey, getFieldDefinition} from 'sentry/utils/fields';
+
 import {
   ON_DEMAND_METRICS_UNSUPPORTED_TAGS,
   STANDARD_SEARCH_FIELD_KEYS,
-} from 'sentry/utils/onDemandMetrics/constants';
+} from './constants';
 
 function isStandardSearchFilterKey(key: string): boolean {
   return STANDARD_SEARCH_FIELD_KEYS.has(key as FieldKey);

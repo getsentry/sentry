@@ -1,6 +1,7 @@
 import {Fragment, memo, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
@@ -20,10 +21,9 @@ import {Outcome, type DataCategoryExact} from 'sentry/types/core';
 import type {DataPoint, ECharts} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {getReasonGroupName} from 'sentry/views/organizationStats/getReasonGroupName';
 
@@ -471,60 +471,48 @@ export const CustomerStats = memo(function CustomerStatsComponent({
     };
   }, [location.query, onDemandPeriodStart, onDemandPeriodEnd]);
 
-  const statsEndpointUrl = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-    path: {organizationIdOrSlug: orgSlug},
-  });
-
   const {
     isPending: loading,
     error,
     data: stats,
     refetch,
-  } = useApiQuery<Stats>(
-    [
-      statsEndpointUrl,
-      {
-        query: {
-          start: dataDatetime.start,
-          end: dataDatetime.end,
-          utc: dataDatetime.utc,
-          statsPeriod: dataDatetime.period,
-          interval: getInterval(dataDatetime),
-          groupBy: ['outcome', 'reason'],
-          field: 'sum(quantity)',
-          category: dataType,
-          ...(projectId ? {project: projectId} : {}),
-        },
+  } = useQuery({
+    ...apiOptions.as<Stats>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+      path: {organizationIdOrSlug: orgSlug},
+      query: {
+        start: dataDatetime.start,
+        end: dataDatetime.end,
+        utc: dataDatetime.utc,
+        statsPeriod: dataDatetime.period,
+        interval: getInterval(dataDatetime),
+        groupBy: ['outcome', 'reason'],
+        field: 'sum(quantity)',
+        category: dataType,
+        ...(projectId ? {project: projectId} : {}),
       },
-    ],
-    {
       staleTime: Infinity,
-      retry: false,
-    }
-  );
+    }),
+    retry: false,
+  });
 
-  const {data: abuseStats} = useApiQuery<Stats>(
-    [
-      statsEndpointUrl,
-      {
-        query: {
-          start: dataDatetime.start,
-          end: dataDatetime.end,
-          utc: dataDatetime.utc,
-          statsPeriod: dataDatetime.period,
-          interval: getInterval(dataDatetime),
-          groupBy: ['outcome', 'reason', 'category'],
-          field: 'sum(quantity)',
-          outcome: ['abuse'],
-          ...(projectId ? {project: projectId} : {}),
-        },
+  const {data: abuseStats} = useQuery({
+    ...apiOptions.as<Stats>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+      path: {organizationIdOrSlug: orgSlug},
+      query: {
+        start: dataDatetime.start,
+        end: dataDatetime.end,
+        utc: dataDatetime.utc,
+        statsPeriod: dataDatetime.period,
+        interval: getInterval(dataDatetime),
+        groupBy: ['outcome', 'reason', 'category'],
+        field: 'sum(quantity)',
+        outcome: ['abuse'],
+        ...(projectId ? {project: projectId} : {}),
       },
-    ],
-    {
       staleTime: Infinity,
-      retry: false,
-    }
-  );
+    }),
+    retry: false,
+  });
 
   const theme = useTheme();
   const series = useSeries();
