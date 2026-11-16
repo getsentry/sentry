@@ -471,6 +471,32 @@ sentry.client.interceptors.error.use((error, response, request) => {
 });
 ```
 
+To keep an existing error class, map to it in the interceptor. The SDK does not import your class. `getSentryApiErrorDetails` collects what such a class usually carries: `method`, `path`, `status`, `statusText`, the parsed `responseJSON` (only when the body was JSON), `responseText`, and a `summary` such as `GET /api/0/organizations/ 404`:
+
+```ts
+import { getSentryApiErrorDetails, SentryApiError, type SentryApiErrorDetails } from "@sentry/api";
+
+class RequestError extends Error {
+  readonly status?: number;
+  readonly responseJSON?: unknown;
+  readonly responseText?: string;
+
+  constructor(details: SentryApiErrorDetails, options?: ErrorOptions) {
+    super(details.summary, options);
+    this.name = "RequestError";
+    this.status = details.status;
+    this.responseJSON = details.responseJSON;
+    this.responseText = details.responseText;
+  }
+}
+
+sentry.client.interceptors.error.use((error, _response, request) =>
+  error instanceof SentryApiError ? new RequestError(getSentryApiErrorDetails(error, request), { cause: error }) : error,
+);
+```
+
+Operations then return or throw a `RequestError` for HTTP failures; cancellations and fetch rejections pass through unchanged.
+
 ### Opt-in status narrowing
 
 Every operation with documented error responses has a generated `narrowError_<operation>` wrapper. It narrows the default HTTP `SentryApiError` to the operation's status-to-body type map, preserving its metadata. These wrappers remain standalone functions; pass `sentry.client` to reuse the client configured above:
