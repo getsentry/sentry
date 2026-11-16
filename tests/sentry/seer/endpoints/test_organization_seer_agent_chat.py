@@ -16,7 +16,6 @@ from sentry.seer.agent.client_models import (
     UsageAccumulator,
 )
 from sentry.seer.agent.client_utils import snapshot_to_markdown
-from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
@@ -26,6 +25,12 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+
+DENIAL_REASON_CASES = [
+    (CheckSeerCreditsResponse.DENIAL_REASON_NOT_ENOUGH_CREDITS, "not_enough_credits"),
+    (CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED, "daily_cap_exceeded"),
+    (CheckSeerCreditsResponse.DENIAL_REASON_UNSPECIFIED, None),
+]
 
 
 @with_feature("organizations:seer-explorer")
@@ -592,25 +597,33 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.data["code"] == "run_in_flight"
         mock_continue.assert_not_called()
 
-    @patch(
-        "sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run",
-        side_effect=SeerOutOfCreditsException(),
-    )
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_reply_to_single_run_without_credits_is_402(
-        self, mock_client_class: MagicMock, mock_continue: MagicMock
-    ) -> None:
+    def test_reply_to_single_run_without_credits_is_402(self, mock_client_class: MagicMock) -> None:
         run = self._single_run(user_id=self.user.id)
 
-        response = self.client.post(
-            f"{self.url}{run.seer_run_state_id}/", {"query": "make a code fix"}, format="json"
-        )
+        for denial_reason, expected in DENIAL_REASON_CASES:
+            with (
+                self.subTest(denial_reason=expected),
+                patch(
+                    "sentry.seer_credit.backend.check_seer_credits",
+                    return_value=CheckSeerCreditsResponse(
+                        has_enough_credits=False, denial_reason=denial_reason
+                    ),
+                ),
+            ):
+                response = self.client.post(
+                    f"{self.url}{run.seer_run_state_id}/",
+                    {"query": "make a code fix"},
+                    format="json",
+                )
 
-        assert response.status_code == 402
-        assert response.data == {
-            "detail": "Your organization does not have enough credits left for you to message Seer.",
-            "code": "seer_out_of_credits",
-        }
+                assert response.status_code == 402
+                assert response.data == {
+                    "detail": "Your organization does not have enough credits left for you to message Seer.",
+                    "code": "seer_out_of_credits",
+                    "denialReason": expected,
+                }
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
@@ -1039,21 +1052,30 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 403
 
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
-    @patch(
-        "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
-    )
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_without_credits_returns_402(
-        self, mock_client_class: MagicMock, mock_check_seer_credits: MagicMock
+        self, mock_client_class: MagicMock
     ) -> None:
-        response = self.client.post(self.url, {"query": "What is this error about?"}, format="json")
+        for denial_reason, expected in DENIAL_REASON_CASES:
+            with (
+                self.subTest(denial_reason=expected),
+                patch(
+                    "sentry.seer_credit.backend.check_seer_credits",
+                    return_value=CheckSeerCreditsResponse(
+                        has_enough_credits=False, denial_reason=denial_reason
+                    ),
+                ),
+            ):
+                response = self.client.post(
+                    self.url, {"query": "What is this error about?"}, format="json"
+                )
 
-        assert response.status_code == 402
-        assert response.data == {
-            "detail": "Your organization does not have enough credits left for you to message Seer.",
-            "code": "seer_out_of_credits",
-        }
+                assert response.status_code == 402
+                assert response.data == {
+                    "detail": "Your organization does not have enough credits left for you to message Seer.",
+                    "code": "seer_out_of_credits",
+                    "denialReason": expected,
+                }
         mock_client_class.assert_not_called()
 
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
@@ -1095,6 +1117,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.data == {
             "detail": "Your organization does not have enough credits left for you to message Seer.",
             "code": "seer_out_of_credits",
+            "denialReason": None,
         }
         mock_client_class.assert_not_called()
 
