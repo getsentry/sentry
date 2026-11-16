@@ -100,7 +100,7 @@
     "@types/node": "26.6.4",
     "esbuild": "0.28.1",
     "fast-check": "4.10.2",
-    "oxlint": "1.90.0",
+    "oxlint": "1.93.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "valibot": "1.4.2",
     "vitest": "5.1.0",
