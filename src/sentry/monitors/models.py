@@ -586,8 +586,11 @@ class MonitorCheckIn(Model):
             # column
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
-            # Note: If we remove all indexes that start with `status`, we need to add the index back on the column
-            models.Index(fields=["status", "timeout_at"]),
+            models.Index(
+                fields=["timeout_at"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="sentry_monitorcheckin_timeout",
+            ),
             # used for dispatch_mark_unknown
             models.Index(
                 fields=["-date_added"],
