@@ -25,14 +25,10 @@ export function useOutOfCreditsRetry(
   action: AutofixAction,
   {enabled}: UseOutOfCreditsRetryOptions
 ) {
-  const {hasCheckedSinceMount, hasEnoughCredits} = useAutofixCreditCheck(action, {
-    enabled,
-  });
+  const {disabled, hasEnoughCredits} = useAutofixCreditCheck(action, {enabled});
 
   return {
-    // Held back until this mount's check answers, so it doesn't flash enabled
-    // on an earlier mount's cached answer.
-    disabled: !hasCheckedSinceMount || !hasEnoughCredits,
+    disabled,
     tooltip: hasEnoughCredits ? undefined : OUT_OF_CREDITS_RETRY_TOOLTIP,
   };
 }
