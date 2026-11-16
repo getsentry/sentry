@@ -16,6 +16,7 @@ import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 
+import {useExploreQuerySpeed} from './useExploreQuerySpeed';
 import {
   isExploreSavedQuery,
   useInvalidateSavedQueries,
@@ -64,6 +65,7 @@ type ExploreSavedQueryRequest = {
       chartType?: number;
     }>;
   }>;
+  queryPriority?: 'normal' | 'faster';
   start?: DateString;
   statsPeriod?: string;
 };
@@ -75,21 +77,44 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
   const {id, title} = queryParams;
 
   const [caseInsensitive] = useCaseInsensitivity();
+  const {
+    enabled: canSaveQueryPriority,
+    isReady: canSaveQuerySpeed,
+    speed,
+  } = useExploreQuerySpeed();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
   const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
-    return convertQueryParamsToRequest({
-      dataset,
-      queryParams,
-      pageFilters,
-      interval,
-      title: title ?? '',
-      caseInsensitive: caseInsensitive ? '1' : undefined,
-    });
-  }, [dataset, queryParams, pageFilters, interval, title, caseInsensitive]);
+    return {
+      ...convertQueryParamsToRequest({
+        dataset,
+        queryParams,
+        pageFilters,
+        interval,
+        title: title ?? '',
+        caseInsensitive: caseInsensitive ? '1' : undefined,
+      }),
+      // Replays have no Query Speed control. Spans and logs omit the field while
+      // the flag is off, while a saved priority is loading, or when that load
+      // failed. An update then keeps the stored priority.
+      ...(dataset !== 'replays' && canSaveQueryPriority && canSaveQuerySpeed
+        ? {queryPriority: speed}
+        : {}),
+    };
+  }, [
+    canSaveQueryPriority,
+    canSaveQuerySpeed,
+    caseInsensitive,
+    dataset,
+    interval,
+    pageFilters,
+    queryParams,
+    speed,
+    title,
+  ]);
 
   const {mutateAsync: saveQuery} = useMutation({
     mutationFn: ({name, starred = true}: {name: string; starred?: boolean}) =>

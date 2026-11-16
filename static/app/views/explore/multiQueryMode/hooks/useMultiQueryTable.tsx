@@ -8,6 +8,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {
   useProgressiveQuery,
@@ -33,6 +34,7 @@ export function useMultiQueryTableAggregateMode({
   enabled,
   queryExtras,
 }: Props) {
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
       const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
@@ -43,9 +45,17 @@ export function useMultiQueryTableAggregateMode({
   );
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableAggregateModeImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {groupBys, query, yAxes, sortBys, enabled, queryExtras},
+    queryHookArgs: {
+      groupBys,
+      query,
+      yAxes,
+      sortBys,
+      enabled: enabled && querySpeedReady,
+      queryExtras,
+    },
     queryOptions: {
       canTriggerHighAccuracy,
+      samplingMode,
     },
   });
 }
@@ -106,6 +116,7 @@ export function useMultiQueryTableSampleMode({
   enabled,
   queryExtras,
 }: Props) {
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
       const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
@@ -116,9 +127,16 @@ export function useMultiQueryTableSampleMode({
   );
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableSampleModeImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {query, yAxes, sortBys, enabled, queryExtras},
+    queryHookArgs: {
+      query,
+      yAxes,
+      sortBys,
+      enabled: enabled && querySpeedReady,
+      queryExtras,
+    },
     queryOptions: {
       canTriggerHighAccuracy,
+      samplingMode,
     },
   });
 }

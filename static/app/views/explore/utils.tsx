@@ -86,6 +86,7 @@ export interface GetExploreUrlArgs {
   interval?: string;
   mode?: Mode;
   query?: string;
+  queryPriority?: 'normal' | 'faster';
   referrer?: string;
   selection?: PageFilters;
   sort?: string;
@@ -110,6 +111,7 @@ export function getExploreUrl({
   chartSelection,
   visualize,
   query,
+  queryPriority,
   groupBy,
   sort,
   aggregateSort,
@@ -133,6 +135,7 @@ export function getExploreUrl({
     interval,
     mode,
     query,
+    queryPriority,
     aggregateField: aggregateField?.map(v => JSON.stringify(v)),
     visualize: visualize?.map(v => JSON.stringify(v)),
     groupBy,
@@ -247,6 +250,7 @@ export function getExploreMultiQueryUrl({
   queries,
   title,
   id,
+  queryPriority,
   referrer,
 }: {
   interval: string;
@@ -254,6 +258,7 @@ export function getExploreMultiQueryUrl({
   queries: ReadableExploreQueryParts[];
   selection: PageFilters;
   id?: number;
+  queryPriority?: 'normal' | 'faster';
   referrer?: string;
   title?: string;
 }) {
@@ -281,6 +286,7 @@ export function getExploreMultiQueryUrl({
     ),
     title,
     id,
+    queryPriority,
     utc,
     referrer,
   };

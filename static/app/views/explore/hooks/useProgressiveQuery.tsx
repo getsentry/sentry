@@ -52,6 +52,8 @@ interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
   onHighAccuracyError?: (result: ReturnType<TQueryFn>['result']) => void;
   onHighAccuracyRequest?: () => void;
   onHighAccuracySuccess?: (result: ReturnType<TQueryFn>['result']) => void;
+  // When set to low priority, the normal and high-accuracy passes stay disabled.
+  samplingMode?: SamplingMode;
 }
 
 /**
@@ -77,8 +79,11 @@ export function useProgressiveQuery<
   samplingMode?: SamplingMode;
 } {
   const disableExtrapolation = queryOptions?.disableExtrapolation || false;
+  const lowPriorityMode =
+    queryOptions?.samplingMode === SAMPLING_MODE.LOW_PRIORITY && queryHookArgs.enabled;
 
-  const nonExtrapolatedMode = disableExtrapolation && queryHookArgs.enabled;
+  const nonExtrapolatedMode =
+    !lowPriorityMode && disableExtrapolation && queryHookArgs.enabled;
   const nonExtrapolatedModeRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: {
@@ -88,7 +93,7 @@ export function useProgressiveQuery<
     enabled: nonExtrapolatedMode,
   });
 
-  const normalMode = !disableExtrapolation && queryHookArgs.enabled;
+  const normalMode = !lowPriorityMode && !disableExtrapolation && queryHookArgs.enabled;
   const normalSamplingModeRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: {
@@ -104,7 +109,10 @@ export function useProgressiveQuery<
       queryOptions?.canTriggerHighAccuracy?.(normalSamplingModeRequest.result) ?? false;
   }
   const highAccuracyMode =
-    !disableExtrapolation && queryHookArgs.enabled && triggerHighAccuracy;
+    !lowPriorityMode &&
+    !disableExtrapolation &&
+    queryHookArgs.enabled &&
+    triggerHighAccuracy;
   const highAccuracyRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: {
@@ -112,6 +120,14 @@ export function useProgressiveQuery<
       ...HIGH_ACCURACY_SAMPLING_MODE_QUERY_EXTRAS,
     },
     enabled: highAccuracyMode,
+  });
+  const lowPriorityRequest = queryHookImplementation({
+    ...queryHookArgs,
+    queryExtras: {
+      ...queryHookArgs.queryExtras,
+      samplingMode: SAMPLING_MODE.LOW_PRIORITY,
+    },
+    enabled: lowPriorityMode,
   });
 
   const highAccuracyIsFetching =
@@ -157,6 +173,13 @@ export function useProgressiveQuery<
       onHighAccuracyError();
     }
   }, [highAccuracyIsError]);
+
+  if (lowPriorityMode) {
+    return {
+      ...lowPriorityRequest,
+      samplingMode: SAMPLING_MODE.LOW_PRIORITY,
+    };
+  }
 
   if (nonExtrapolatedMode) {
     return {
