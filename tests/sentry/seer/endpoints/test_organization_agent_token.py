@@ -1765,6 +1765,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             return {"service_span": "permission-matrix-span", "project_id": self.project.id}
         if endpoint.endpoint_name == "OrganizationTraceItemAttributesEndpoint":
             return {"dataset": "spans", "project": [self.project.id]}
+        if endpoint.endpoint_name == "OrganizationGroupIndexStatsEndpoint":
+            return {"groups": [self._resource("group").id]}
         if endpoint.endpoint_name == "OrganizationTraceLogsEndpoint":
             return {"traceId": uuid4().hex, "statsPeriod": "1h"}
         if endpoint.endpoint_name == "ProjectTraceItemDetailsEndpoint":
