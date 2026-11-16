@@ -30,6 +30,7 @@ await generateClient("./openapi-normalized.json", "src");
 // 2. Copy hand-written utilities into the generated src/ directory
 cpSync("lib/sentry-pagination.ts", "src/sentry-pagination.ts");
 cpSync("lib/sentry-errors.ts", "src/sentry-errors.ts");
+cpSync("lib/query-string-serializer.ts", "src/query-string-serializer.ts");
 cpSync("lib/browser-client.ts", "src/browser-client.ts");
 cpSync("lib/source-analysis.ts", "src/source-analysis.ts");
 cpSync("lib/api-client", "src/api-client", { recursive: true });
@@ -82,6 +83,7 @@ appendFileSync(
     "",
     "export { API_BASE_PATH } from './api-base-path.gen.ts';",
     "export { callWithTypedErrors, narrowError, SentryApiError } from './sentry-errors.ts';",
+    "export { queryStringSerializer } from './query-string-serializer.ts';",
     "export type { DocumentedSentryApiError, NarrowedResult, SentryApiResultError, SentryApiTransportError, SdkResult, UndocumentedSentryApiError } from './sentry-errors.ts';",
     "export { parseSentryLinkHeader, unwrapResult, unwrapPaginatedResult, fetchPage, paginateAll, paginateUpTo, consumePage } from './sentry-pagination.ts';",
     "export type { UnwrappedResult, PaginatedResponse, PaginatedCollection, PaginateAllOptions, PaginateUpToOptions, PageFetcher, BudgetedPageFetcher, CollectionPage, CollectionPageFetcher, PagePosition, PaginationContinuation } from './sentry-pagination.ts';",

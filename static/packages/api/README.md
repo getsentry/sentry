@@ -119,6 +119,20 @@ await sentry.getOrganizationIssueEvent({ path, query: { collapse: [] } }); // in
 
 Standalone operations, bound methods, and `narrowError_*` wrappers behave the same way. The operation catalog describes the API itself, so it does not list these defaults.
 
+### Query serialization
+
+By default the client writes query keys in the order you pass them, omits `null` and `undefined`, repeats arrays (`field=id&field=title`) and writes objects in `deepObject` style (`filter[status]=open`). Pass `querySerializer` to change that for every request; it takes the query object and returns the string after `?`.
+
+`queryStringSerializer` matches `query-string@7`'s `stringify` with its default options, for code whose URLs, cache keys or test snapshots already depend on that output. It sorts keys, writes `null` as a bare key, omits `undefined`, repeats arrays, does not expand objects, and also percent-encodes `!'()*`:
+
+```ts
+import { createSentryClient, queryStringSerializer } from "@sentry/api";
+
+const sentry = createSentryClient({ baseUrl: "https://sentry.example.com", querySerializer: queryStringSerializer });
+sentry.client.buildUrl({ url: "/organizations/", query: { sortBy: "date", query: null, cursor: undefined } });
+// https://sentry.example.com/api/0/organizations/?query&sortBy=date
+```
+
 ### Operation discovery
 
 `@sentry/api/operations` exports a readonly catalog for offline discovery, without importing the client, validators, or transport:
