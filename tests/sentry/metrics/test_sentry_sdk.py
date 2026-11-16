@@ -7,11 +7,11 @@ from sentry.metrics.sentry_sdk import SentrySDKMetricsBackend
 
 class TestSentrySDKMetricsBackend:
     @pytest.fixture
-    def backend(self):
+    def backend(self) -> SentrySDKMetricsBackend:
         return SentrySDKMetricsBackend(prefix="test.", experimental_sample_rate=1.0)
 
     @mock.patch("sentry_sdk.metrics.count")
-    def test_incr(self, mock_count, backend):
+    def test_incr(self, mock_count: mock.MagicMock, backend: SentrySDKMetricsBackend) -> None:
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.incr("foo", tags={"x": "y"}, amount=2, unit="count")
 
@@ -23,7 +23,9 @@ class TestSentrySDKMetricsBackend:
         )
 
     @mock.patch("sentry_sdk.metrics.count")
-    def test_incr_no_unit(self, mock_count, backend):
+    def test_incr_no_unit(
+        self, mock_count: mock.MagicMock, backend: SentrySDKMetricsBackend
+    ) -> None:
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.incr("foo", tags={"x": "y"}, amount=2)
 
@@ -35,7 +37,7 @@ class TestSentrySDKMetricsBackend:
         )
 
     @mock.patch("sentry_sdk.metrics.gauge")
-    def test_gauge(self, mock_gauge, backend):
+    def test_gauge(self, mock_gauge: mock.MagicMock, backend: SentrySDKMetricsBackend) -> None:
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.gauge("bar", value=42.0, tags={"x": "y"}, unit="bytes")
 
@@ -47,7 +49,9 @@ class TestSentrySDKMetricsBackend:
         )
 
     @mock.patch("sentry_sdk.metrics.distribution")
-    def test_distribution(self, mock_distribution, backend):
+    def test_distribution(
+        self, mock_distribution: mock.MagicMock, backend: SentrySDKMetricsBackend
+    ) -> None:
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.distribution("baz", value=100.0, tags={"x": "y"}, unit="millisecond")
 
@@ -59,7 +63,9 @@ class TestSentrySDKMetricsBackend:
         )
 
     @mock.patch("sentry_sdk.metrics.count")
-    def test_incr_with_instance(self, mock_count, backend):
+    def test_incr_with_instance(
+        self, mock_count: mock.MagicMock, backend: SentrySDKMetricsBackend
+    ) -> None:
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.incr("foo", instance="web", tags={"x": "y"}, amount=1)
 
@@ -71,7 +77,9 @@ class TestSentrySDKMetricsBackend:
         )
 
     @mock.patch("sentry_sdk.metrics.distribution")
-    def test_timing(self, mock_distribution, backend):
+    def test_timing(
+        self, mock_distribution: mock.MagicMock, backend: SentrySDKMetricsBackend
+    ) -> None:
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.timing("foo", 42.0, tags={"x": "y"})
 
@@ -82,31 +90,57 @@ class TestSentrySDKMetricsBackend:
             attributes={"x": "y", "is_timing": True},
         )
 
-    def test_event_noop(self, backend):
+    def test_event_noop(self, backend: SentrySDKMetricsBackend) -> None:
         backend.event("title", "message")
 
-    def test_set_noop(self, backend):
+    def test_set_noop(self, backend: SentrySDKMetricsBackend) -> None:
         backend.set("foo", 4242, tags={"x": "y"})
 
     @mock.patch("sentry_sdk.metrics.count")
-    def test_incr_sampling(self, mock_count):
+    def test_incr_sampling(self, mock_count: mock.MagicMock) -> None:
         backend = SentrySDKMetricsBackend(prefix="test.", experimental_sample_rate=0.0)
         backend.incr("foo", amount=1)
         mock_count.assert_not_called()
 
     @mock.patch("sentry_sdk.metrics.count")
-    def test_incr_deny_list(self, mock_count):
+    def test_incr_allow_list(self, mock_count: mock.MagicMock) -> None:
         backend = SentrySDKMetricsBackend(
-            prefix="test.", experimental_sample_rate=1.0, deny_list=["test.denied"]
+            prefix="test.", experimental_sample_rate=1.0, allow_list=["test.allowed"]
         )
-        backend.incr("denied.metric", amount=1)
+        backend.incr("other.metric", amount=1)
         mock_count.assert_not_called()
 
         backend.incr("allowed.metric", amount=1)
         mock_count.assert_called_once()
 
     @mock.patch("sentry_sdk.metrics.count")
-    def test_incr_with_sample_rate(self, mock_count, backend):
+    def test_incr_deny_list_ignored(self, mock_count: mock.MagicMock) -> None:
+        backend = SentrySDKMetricsBackend(
+            prefix="test.", experimental_sample_rate=1.0, deny_list=["test.denied"]
+        )
+        backend.incr("denied.metric", amount=1)
+        mock_count.assert_called_once()
+
+    @mock.patch("sentry_sdk.metrics.count")
+    def test_incr_empty_allow_list_sends_nothing(self, mock_count: mock.MagicMock) -> None:
+        backend = SentrySDKMetricsBackend(
+            prefix="test.", experimental_sample_rate=1.0, allow_list=[]
+        )
+        backend.incr("any.metric", amount=1)
+        mock_count.assert_not_called()
+
+    @mock.patch("sentry_sdk.metrics.count")
+    def test_incr_allow_list_sampling(self, mock_count: mock.MagicMock) -> None:
+        backend = SentrySDKMetricsBackend(
+            prefix="test.", experimental_sample_rate=0.0, allow_list=["test.allowed"]
+        )
+        backend.incr("allowed.metric", amount=1)
+        mock_count.assert_not_called()
+
+    @mock.patch("sentry_sdk.metrics.count")
+    def test_incr_with_sample_rate(
+        self, mock_count: mock.MagicMock, backend: SentrySDKMetricsBackend
+    ) -> None:
         with (
             mock.patch.object(backend, "_should_send", return_value=True),
             mock.patch.object(backend, "_should_sample", return_value=True),
@@ -121,7 +155,9 @@ class TestSentrySDKMetricsBackend:
         )
 
     @mock.patch("sentry_sdk.metrics.gauge")
-    def test_gauge_with_sample_rate(self, mock_gauge, backend):
+    def test_gauge_with_sample_rate(
+        self, mock_gauge: mock.MagicMock, backend: SentrySDKMetricsBackend
+    ) -> None:
         with (
             mock.patch.object(backend, "_should_send", return_value=True),
             mock.patch.object(backend, "_should_sample", return_value=True),
@@ -136,7 +172,9 @@ class TestSentrySDKMetricsBackend:
         )
 
     @mock.patch("sentry_sdk.metrics.distribution")
-    def test_distribution_with_sample_rate(self, mock_distribution, backend):
+    def test_distribution_with_sample_rate(
+        self, mock_distribution: mock.MagicMock, backend: SentrySDKMetricsBackend
+    ) -> None:
         with (
             mock.patch.object(backend, "_should_send", return_value=True),
             mock.patch.object(backend, "_should_sample", return_value=True),
@@ -153,7 +191,9 @@ class TestSentrySDKMetricsBackend:
         )
 
     @mock.patch("sentry_sdk.metrics.distribution")
-    def test_timing_with_sample_rate(self, mock_distribution, backend):
+    def test_timing_with_sample_rate(
+        self, mock_distribution: mock.MagicMock, backend: SentrySDKMetricsBackend
+    ) -> None:
         with (
             mock.patch.object(backend, "_should_send", return_value=True),
             mock.patch.object(backend, "_should_sample", return_value=True),
@@ -168,7 +208,9 @@ class TestSentrySDKMetricsBackend:
         )
 
     @mock.patch("sentry_sdk.metrics.count")
-    def test_incr_effective_sample_rate_includes_experimental(self, mock_count):
+    def test_incr_effective_sample_rate_includes_experimental(
+        self, mock_count: mock.MagicMock
+    ) -> None:
         backend = SentrySDKMetricsBackend(prefix="test.", experimental_sample_rate=0.5)
         with (
             mock.patch.object(backend, "_should_sample_experimental", return_value=True),

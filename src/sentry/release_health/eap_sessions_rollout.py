@@ -10,7 +10,7 @@ import logging
 import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -40,7 +40,7 @@ from sentry.utils import metrics
 from sentry.utils.snuba_rpc import timeseries_rpc
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
     from sentry.snuba.metrics.query import DeprecatingMetricsQuery
 
@@ -139,7 +139,7 @@ def _agg_expr(
     )
 
 
-def _translate_where(where: Sequence) -> list[TraceItemFilter]:
+def _translate_where(where: Sequence[object]) -> list[TraceItemFilter]:
     """Translate snuba_sdk conditions to TraceItemFilters."""
     filters: list[TraceItemFilter] = []
     try:
@@ -168,7 +168,7 @@ def _build_eap_timeseries_request(
     start: datetime,
     end: datetime,
     rollup: int,
-    where: Sequence,
+    where: Sequence[object],
 ) -> TimeSeriesRequest:
     """Build a TimeSeriesRequest protobuf from explicit parameters."""
     start_timestamp = Timestamp()
@@ -401,7 +401,7 @@ def _transform_eap_response(
     rollup: int,
     include_totals: bool,
     include_series: bool,
-) -> dict:
+) -> dict[str, object]:
     """Convert a TimeSeriesResponse into the final get_series output format."""
     start_ts = int(start.timestamp())
     end_ts = int(end.timestamp())
@@ -428,7 +428,7 @@ def _transform_eap_response(
             values.append(0.0)
         grouped[group_key][label] = values[:num_buckets]
 
-    result_groups: list[dict] = []
+    result_groups: list[dict[str, object]] = []
 
     other_groupbys = [gb for gb in raw_groupby if gb != "session.status"]
     if not grouped and has_status_groupby and not other_groupbys:
@@ -453,7 +453,7 @@ def _transform_eap_response(
                 series_data[spec] = s
                 totals_data[spec] = t
 
-            group: dict = {}
+            group: dict[str, object] = {}
             if include_series:
                 group["series"] = {
                     field_alias_map[spec]: [float(v) if v is not None else None for v in vals]
@@ -484,7 +484,7 @@ def is_session_metrics_query(metrics_query: DeprecatingMetricsQuery) -> bool:
 def get_series_eap(
     metrics_query: DeprecatingMetricsQuery,
     org_id: int,
-) -> dict | None:
+) -> dict[str, object] | None:
     """Query EAP for session data matching a metrics/data endpoint query.
 
     Returns the result in the same format as get_series() with field names
@@ -567,16 +567,17 @@ def _safe_bucket_cutoff(intervals: list[str | datetime]) -> int:
 
 
 def _groups_match(
-    control_groups: list[dict],
-    exp_groups: list[dict],
+    control_groups: list[dict[str, object]],
+    exp_groups: list[dict[str, object]],
     cutoff: int,
 ) -> bool:
     """Compare groups, only looking at the first ``cutoff`` series values."""
     if len(control_groups) != len(exp_groups):
         return False
 
-    def _sort_key(g: dict) -> list[tuple[str, str]]:
-        return sorted((k, str(v)) for k, v in g.get("by", {}).items())
+    def _sort_key(g: dict[str, object]) -> list[tuple[str, str]]:
+        by = cast("Mapping[str, object]", g.get("by", {}))
+        return sorted((k, str(v)) for k, v in by.items())
 
     control_sorted = sorted(control_groups, key=_sort_key)
     exp_sorted = sorted(exp_groups, key=_sort_key)
@@ -584,8 +585,8 @@ def _groups_match(
     for cg, eg in zip(control_sorted, exp_sorted):
         if cg.get("by") != eg.get("by"):
             return False
-        c_series = cg.get("series", {})
-        e_series = eg.get("series", {})
+        c_series = cast("Mapping[str, list[object]]", cg.get("series", {}))
+        e_series = cast("Mapping[str, list[object]]", eg.get("series", {}))
         if c_series.keys() != e_series.keys():
             return False
         for field in c_series:
@@ -594,11 +595,11 @@ def _groups_match(
     return True
 
 
-def compare_get_series_results(control: dict, experimental: dict) -> None:
+def compare_get_series_results(control: dict[str, object], experimental: dict[str, object]) -> None:
     """Shadow-compare get_series results from legacy metrics and EAP."""
-    control_groups = control.get("groups", [])
-    exp_groups = experimental.get("groups", [])
-    intervals = control.get("intervals", [])
+    control_groups = cast("list[dict[str, object]]", control.get("groups", []))
+    exp_groups = cast("list[dict[str, object]]", experimental.get("groups", []))
+    intervals = cast("list[str | datetime]", control.get("intervals", []))
     is_null = len(exp_groups) == 0
 
     cutoff = _safe_bucket_cutoff(intervals)

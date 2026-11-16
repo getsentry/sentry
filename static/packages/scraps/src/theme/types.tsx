@@ -115,6 +115,14 @@ export type TagVariant =
  */
 export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'danger';
 
+export type ButtonVariant =
+  | 'secondary'
+  | 'primary'
+  | 'danger'
+  | 'warning'
+  | 'link'
+  | 'transparent';
+
 // Internal types
 
 type SizeKeys = readonly ['0', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl'];

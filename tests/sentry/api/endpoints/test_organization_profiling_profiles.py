@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -8,6 +9,7 @@ from rest_framework.exceptions import ErrorDetail
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
 from sentry.models.profilechunkattachment import ProfileChunkAttachment
+from sentry.models.project import Project
 from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset
@@ -29,7 +31,13 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
         self.ten_mins_ago = before_now(minutes=10)
         self.hour_ago = before_now(hours=1).replace(minute=0, second=0, microsecond=0)
 
-    def do_request(self, query, features=None, compat=True, **kwargs):
+    def do_request(
+        self,
+        query: dict[str, Any],
+        features: dict[str, bool] | list[str] | None = None,
+        compat: bool = True,
+        **kwargs: Any,
+    ) -> Any:
         if features is None:
             features = self.features
         with self.feature(features):
@@ -44,13 +52,13 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
 
     def store_transaction(
         self,
-        transaction=None,
-        profile_id=None,
-        profiler_id=None,
-        thread_id=None,
-        transaction_id=None,
-        project=None,
-    ):
+        transaction: str | None = None,
+        profile_id: str | None = None,
+        profiler_id: str | None = None,
+        thread_id: str | None = None,
+        transaction_id: str | None = None,
+        project: Project | None = None,
+    ) -> Any:
         data = load_data("transaction", timestamp=self.ten_mins_ago)
 
         if transaction is not None:
@@ -314,10 +322,10 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
     def test_queries_profile_candidates_from_functions_with_data(
         self,
-        mock_proxy_profiling_service,
-        mock_raw_snql_query,
-        mock_bulk_snuba_queries,
-    ):
+        mock_proxy_profiling_service: MagicMock,
+        mock_raw_snql_query: MagicMock,
+        mock_bulk_snuba_queries: MagicMock,
+    ) -> None:
         data = load_data("transaction", timestamp=self.hour_ago)
         data["transaction"] = "foo"
         profile_id = uuid4().hex
@@ -418,10 +426,10 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
     def test_queries_profile_candidates_from_transactions_with_data(
         self,
-        mock_proxy_profiling_service,
-        mock_raw_snql_query,
-        mock_query_chunks_for_profilers,
-    ):
+        mock_proxy_profiling_service: MagicMock,
+        mock_raw_snql_query: MagicMock,
+        mock_query_chunks_for_profilers: MagicMock,
+    ) -> None:
         # this transaction has no transaction profile or continuous profile
         self.store_transaction(transaction="foo", project=self.project)
 
@@ -533,7 +541,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
 
     def test_queries_profile_candidates_from_profiles_with_continuous_profiles(
         self,
-    ):
+    ) -> None:
         profile_id = uuid4().hex
         span_with_transaction_profile = self.create_span(
             project=self.project, start_ts=self.ten_mins_ago, duration=1000
@@ -627,9 +635,9 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
     def test_queries_profile_candidates_from_spans(
         self,
-        mock_proxy_profiling_service,
-        mock_bulk_snuba_queries,
-    ):
+        mock_proxy_profiling_service: MagicMock,
+        mock_bulk_snuba_queries: MagicMock,
+    ) -> None:
         # this span has a transaction profile
         profile_id = uuid4().hex
 
@@ -755,7 +763,7 @@ class OrganizationProfilingChunksTest(APITestCase):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                {"project": [self.project.id], "profiler_id": "not-a-uuid"},
+                {"project": [str(self.project.id)], "profiler_id": "not-a-uuid"},
             )
 
         assert response.status_code == 400
@@ -782,7 +790,7 @@ class OrganizationProfilingChunksTest(APITestCase):
             self.client.get(
                 self.url,
                 {
-                    "project": [self.project.id],
+                    "project": [str(self.project.id)],
                     "profiler_id": profiler_id,
                     "statsPeriod": "1d",
                 },
@@ -815,8 +823,11 @@ class OrganizationProfilingChunkAttachmentsTest(APITestCase):
         self.profiler_id = uuid4().hex
 
     def create_attachment(
-        self, chunk_id, name="trace.perfetto", content_type="application/x-perfetto"
-    ):
+        self,
+        chunk_id: str,
+        name: str = "trace.perfetto",
+        content_type: str = "application/x-perfetto",
+    ) -> ProfileChunkAttachment:
         return ProfileChunkAttachment.objects.create(
             project_id=self.project.id,
             profiler_id=self.profiler_id,
@@ -852,7 +863,7 @@ class OrganizationProfilingChunkAttachmentsTest(APITestCase):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                {"project": [self.project.id], "profiler_id": "not-a-uuid"},
+                {"project": [str(self.project.id)], "profiler_id": "not-a-uuid"},
             )
 
         assert response.status_code == 400
@@ -873,7 +884,7 @@ class OrganizationProfilingChunkAttachmentsTest(APITestCase):
             response = self.client.get(
                 self.url,
                 {
-                    "project": [self.project.id],
+                    "project": [str(self.project.id)],
                     "profiler_id": self.profiler_id,
                     "statsPeriod": "1d",
                 },
@@ -905,7 +916,7 @@ class OrganizationProfilingChunkAttachmentsTest(APITestCase):
             response = self.client.get(
                 self.url,
                 {
-                    "project": [self.project.id],
+                    "project": [str(self.project.id)],
                     "profiler_id": self.profiler_id,
                     "statsPeriod": "1d",
                 },
@@ -923,7 +934,7 @@ class OrganizationProfilingChunkAttachmentsTest(APITestCase):
             response = self.client.get(
                 self.url,
                 {
-                    "project": [self.project.id],
+                    "project": [str(self.project.id)],
                     "profiler_id": self.profiler_id,
                     "chunk_id": chunk_id,
                     "statsPeriod": "1d",

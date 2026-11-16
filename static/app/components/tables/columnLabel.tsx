@@ -4,10 +4,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  COLUMN_ALIGN_JUSTIFY,
-  type ColumnAlign,
-} from 'sentry/components/tables/sortableHeaderCell';
+import {COLUMN_ALIGN_JUSTIFY, type ColumnAlign} from './sortableHeaderCell';
 
 interface ColumnLabelProps {
   column: {name: ReactNode; tooltip?: ReactNode};
@@ -15,6 +12,7 @@ interface ColumnLabelProps {
   tooltip?: ReactNode;
 }
 
+// oxlint-disable-next-line react/todo
 export function ColumnLabel({align, column, tooltip = column.tooltip}: ColumnLabelProps) {
   const label = tooltip ? (
     <LabelTooltip showUnderline title={tooltip}>

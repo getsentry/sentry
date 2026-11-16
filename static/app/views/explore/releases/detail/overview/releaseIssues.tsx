@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueries} from '@tanstack/react-query';
-import {parseAsStringEnum, useQueryState} from 'nuqs';
+import {parseAsString, parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import {Pagination} from '@sentry/scraps/pagination';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {GroupList} from 'sentry/components/issues/groupList';
@@ -15,9 +15,11 @@ import {t, tct} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
 import type {ReleaseBounds} from 'sentry/views/explore/releases/utils';
 import {getReleaseParams} from 'sentry/views/explore/releases/utils';
@@ -55,6 +57,11 @@ interface Props {
 const parseAsIssuesType = parseAsStringEnum(Object.values(IssuesType)).withDefault(
   IssuesType.NEW
 );
+
+const releasePeriodParsers = {
+  pageStart: parseAsString,
+  pageStatsPeriod: parseAsString,
+};
 
 function getIssuesEndpoint(
   version: string,
@@ -188,7 +195,7 @@ export function ReleaseIssues({
   const organization = useOrganization();
 
   const [pageLinks, setPageLinks] = useState<string | null>(null);
-  const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
+  const [onCursor, setOnCursor] = useState<CursorHandler | undefined>();
 
   const [issuesType, setIssuesType] = useQueryState(
     'issuesType',
@@ -250,8 +257,11 @@ export function ReleaseIssues({
     }, []);
 
   const renderEmptyMessage = useCallback(() => {
-    const isEntireReleasePeriod =
-      !location.query.pageStatsPeriod && !location.query.pageStart;
+    const {pageStart, pageStatsPeriod} = loadQueryParamsFromLocation(
+      releasePeriodParsers,
+      location
+    );
+    const isEntireReleasePeriod = !pageStatsPeriod && !pageStart;
 
     const {statsPeriod} = getReleaseParams({
       location,
@@ -388,7 +398,11 @@ export function ReleaseIssues({
           </Container>
 
           <Container justifySelf="end">
-            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
+            <StyledPagination
+              {...getPaginationProps(pageLinks)}
+              onCursor={onCursor}
+              size="xs"
+            />
           </Container>
         </Grid>
       </Flex>

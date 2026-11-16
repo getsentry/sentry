@@ -71,6 +71,8 @@ class BaseScheduledDeletion(Model):
             )
 
         model_name = model.__name__
+        from sentry.auth.principal import acting_user_id  # circular import
+
         record, created = cls.objects.update_or_create(
             app_label=instance._meta.app_label,
             model_name=model_name,
@@ -78,7 +80,7 @@ class BaseScheduledDeletion(Model):
             defaults={
                 "date_scheduled": timezone.now() + timedelta(days=days, hours=hours),
                 "data": data or {},
-                "actor_id": actor.id if actor else None,
+                "actor_id": acting_user_id(actor) if actor else None,
             },
         )
 

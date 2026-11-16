@@ -3,6 +3,7 @@ NOTE: This circuit breaker implementation is deprecated and is slated to eventua
 the `CircuitBreaker` class found in `circuit_breaker2.py` instead.
 """
 
+from collections.abc import Callable
 from typing import TypedDict
 
 from django.core.cache import cache
@@ -11,8 +12,8 @@ from sentry import ratelimits as ratelimiter
 from sentry.utils import metrics
 
 DEFAULT_ERROR_LIMIT = 30
-ERROR_COUNT_CACHE_KEY = lambda key: f"circuit_breaker:{key}-error-count"
-PASSTHROUGH_RATELIMIT_KEY = lambda key: f"circuit_breaker:{key}-passthrough"
+ERROR_COUNT_CACHE_KEY: Callable[[str], str] = lambda key: f"circuit_breaker:{key}-error-count"
+PASSTHROUGH_RATELIMIT_KEY: Callable[[str], str] = lambda key: f"circuit_breaker:{key}-passthrough"
 
 
 class CircuitBreakerPassthrough(TypedDict, total=True):

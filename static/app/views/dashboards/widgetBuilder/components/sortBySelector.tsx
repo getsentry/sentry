@@ -17,8 +17,6 @@ import {
   MAX_CATEGORICAL_BAR_LIMIT,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {SortBySelectors} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelectors';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -31,6 +29,9 @@ import {
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+
+import {SectionHeader} from './common/sectionHeader';
+import {SortBySelectors} from './sortBySelectors';
 
 export function WidgetBuilderSortBySelector() {
   const {state, dispatch} = useWidgetBuilderContext();

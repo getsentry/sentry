@@ -10,6 +10,7 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist, StaffRequired, SuperuserRequired
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import has_staff_option
 from sentry.models.files.utils import get_relocation_storage
 from sentry.relocation.models.relocation import Relocation
@@ -40,7 +41,9 @@ class RelocationArtifactIndexEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("relocations.artifact.index.get.start", extra={"caller": request.user.id})
+        logger.info(
+            "relocations.artifact.index.get.start", extra={"caller": acting_user_id(request.user)}
+        )
 
         # TODO(schew2381): Remove the superuser reference below after feature flag is removed.
         # Must be superuser/staff AND have a `UserPermission` of `relocation.admin` to see access!

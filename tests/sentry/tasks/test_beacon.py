@@ -2,7 +2,7 @@ import platform
 from datetime import timedelta
 from importlib.metadata import PackageNotFoundError
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
@@ -119,13 +119,13 @@ class SendBeaconTest(OutcomesSnubaTest):
     @responses.activate
     def test_simple(
         self,
-        safe_urlread,
-        safe_urlopen,
-        mock_get_all_package_versions,
-        mock_cpu_count,
-        mock_cpu_percent,
-        mock_virtual_memory,
-    ):
+        safe_urlread: MagicMock,
+        safe_urlopen: MagicMock,
+        mock_get_all_package_versions: MagicMock,
+        mock_cpu_count: MagicMock,
+        mock_cpu_percent: MagicMock,
+        mock_virtual_memory: MagicMock,
+    ) -> None:
         self.organization
         self.project
         self.team
@@ -179,13 +179,13 @@ class SendBeaconTest(OutcomesSnubaTest):
     @responses.activate
     def test_no_cpu_ram_usage(
         self,
-        safe_urlread,
-        safe_urlopen,
-        mock_get_all_package_versions,
-        mock_cpu_count,
-        mock_cpu_percent,
-        mock_virtual_memory,
-    ):
+        safe_urlread: MagicMock,
+        safe_urlopen: MagicMock,
+        mock_get_all_package_versions: MagicMock,
+        mock_cpu_count: MagicMock,
+        mock_cpu_percent: MagicMock,
+        mock_virtual_memory: MagicMock,
+    ) -> None:
         self.organization
         self.project
         self.team
@@ -239,13 +239,13 @@ class SendBeaconTest(OutcomesSnubaTest):
     @responses.activate
     def test_anonymous(
         self,
-        safe_urlread,
-        safe_urlopen,
-        mock_get_all_package_versions,
-        mock_cpu_count,
-        mock_cpu_percent,
-        mock_virtual_memory,
-    ):
+        safe_urlread: MagicMock,
+        safe_urlopen: MagicMock,
+        mock_get_all_package_versions: MagicMock,
+        mock_cpu_count: MagicMock,
+        mock_cpu_percent: MagicMock,
+        mock_virtual_memory: MagicMock,
+    ) -> None:
         self.organization
         self.project
         self.team
@@ -298,13 +298,13 @@ class SendBeaconTest(OutcomesSnubaTest):
     @responses.activate
     def test_with_broadcasts(
         self,
-        safe_urlread,
-        safe_urlopen,
-        mock_get_all_package_versions,
-        mock_cpu_count,
-        mock_cpu_percent,
-        mock_virtual_memory,
-    ):
+        safe_urlread: MagicMock,
+        safe_urlopen: MagicMock,
+        mock_get_all_package_versions: MagicMock,
+        mock_cpu_count: MagicMock,
+        mock_cpu_percent: MagicMock,
+        mock_virtual_memory: MagicMock,
+    ) -> None:
         broadcast_id = uuid4().hex
         mock_get_all_package_versions.return_value = {}
         safe_urlread.return_value = json.dumps(
@@ -362,13 +362,13 @@ class SendBeaconTest(OutcomesSnubaTest):
     @responses.activate
     def test_disabled(
         self,
-        safe_urlread,
-        safe_urlopen,
-        mock_get_all_package_versions,
-        mock_cpu_count,
-        mock_cpu_percent,
-        mock_virtual_memory,
-    ):
+        safe_urlread: MagicMock,
+        safe_urlopen: MagicMock,
+        mock_get_all_package_versions: MagicMock,
+        mock_cpu_count: MagicMock,
+        mock_cpu_percent: MagicMock,
+        mock_virtual_memory: MagicMock,
+    ) -> None:
         mock_get_all_package_versions.return_value = {"foo": "1.0"}
 
         with self.settings(SENTRY_BEACON=False):
@@ -382,13 +382,13 @@ class SendBeaconTest(OutcomesSnubaTest):
     @responses.activate
     def test_debug(
         self,
-        safe_urlread,
-        safe_urlopen,
-        mock_get_all_package_versions,
-        mock_cpu_count,
-        mock_cpu_percent,
-        mock_virtual_memory,
-    ):
+        safe_urlread: MagicMock,
+        safe_urlopen: MagicMock,
+        mock_get_all_package_versions: MagicMock,
+        mock_cpu_count: MagicMock,
+        mock_cpu_percent: MagicMock,
+        mock_virtual_memory: MagicMock,
+    ) -> None:
         mock_get_all_package_versions.return_value = {"foo": "1.0"}
 
         with self.settings(DEBUG=True):
@@ -400,11 +400,11 @@ class SendBeaconTest(OutcomesSnubaTest):
     @responses.activate
     def test_metrics(
         self,
-        safe_urlopen,
-        mock_cpu_count,
-        mock_cpu_percent,
-        mock_virtual_memory,
-    ):
+        safe_urlopen: MagicMock,
+        mock_cpu_count: MagicMock,
+        mock_cpu_percent: MagicMock,
+        mock_virtual_memory: MagicMock,
+    ) -> None:
         metrics = [
             {
                 "description": "SentryApp",

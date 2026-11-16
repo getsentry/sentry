@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.group import Group
@@ -100,7 +100,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
         assert result == []
 
     @patch("sentry.seer.fetch_issues.by_function_name.raw_snql_query")
-    def test_snuba_query_exception(self, mock_query):
+    def test_snuba_query_exception(self, mock_query: MagicMock) -> None:
         mock_query.side_effect = Exception("Snuba error")
 
         result = _get_issues_for_file(
@@ -114,11 +114,13 @@ class TestGetIssuesForFile(CreateEventTestCase):
 
     def test_basic_matching(self) -> None:
         # Create events that should match our search criteria
-        group = self._create_event(
+        event = self._create_event(
             function_names=["target_func", "other_func"],
             filenames=["test.py", "other.py"],
             user_id="1",
-        ).group
+        )
+        assert event.group is not None
+        group = event.group
 
         result = _get_issues_for_file(
             projects=[self.project],
@@ -135,11 +137,13 @@ class TestGetIssuesForFile(CreateEventTestCase):
 
     def test_filename_mismatch(self) -> None:
         # Create event with different filename
-        group = self._create_event(
+        event = self._create_event(
             function_names=["target_func"],
             filenames=["other.py"],
             user_id="1",
-        ).group
+        )
+        assert event.group is not None
+        group = event.group
 
         result = _get_issues_for_file(
             projects=[self.project],
@@ -155,11 +159,13 @@ class TestGetIssuesForFile(CreateEventTestCase):
 
     def test_function_name_mismatch(self) -> None:
         # Create event with different function name
-        group = self._create_event(
+        event = self._create_event(
             function_names=["other_func"],
             filenames=["test.py"],
             user_id="1",
-        ).group
+        )
+        assert event.group is not None
+        group = event.group
 
         result = _get_issues_for_file(
             projects=[self.project],
@@ -175,12 +181,14 @@ class TestGetIssuesForFile(CreateEventTestCase):
 
     def test_event_too_old(self) -> None:
         # Create old event - use a smaller offset to avoid timestamp validation errors
-        group = self._create_event(
+        event = self._create_event(
             function_names=["target_func"],
             filenames=["test.py"],
             timestamp=before_now(days=NUM_DAYS_AGO + 1).isoformat(),
             user_id="1",
-        ).group
+        )
+        assert event.group is not None
+        group = event.group
 
         result = _get_issues_for_file(
             projects=[self.project],
@@ -196,11 +204,13 @@ class TestGetIssuesForFile(CreateEventTestCase):
 
     def test_javascript_simple(self) -> None:
         # Test with JavaScript files to ensure language-agnostic functionality
-        group = self._create_event(
+        event = self._create_event(
             function_names=["component.blue", "world"],
             filenames=["foo.js", "baz.js"],
             user_id="1",
-        ).group
+        )
+        assert event.group is not None
+        group = event.group
 
         result = _get_issues_for_file(
             projects=[self.project],
@@ -222,11 +232,13 @@ class TestGetIssuesForFile(CreateEventTestCase):
         function_names = ["other_func" for _ in range(STACKFRAME_COUNT - 1)] + ["world"]
         filenames = ["other.py" for _ in range(STACKFRAME_COUNT - 1)] + ["test.py"]
 
-        group = self._create_event(
+        event = self._create_event(
             function_names=function_names,
             filenames=filenames,
             user_id="1",
-        ).group
+        )
+        assert event.group is not None
+        group = event.group
 
         result = _get_issues_for_file(
             projects=[self.project],
@@ -242,13 +254,17 @@ class TestGetIssuesForFile(CreateEventTestCase):
 
     def test_multiple_matching_issues(self) -> None:
         # Create multiple events that should match
-        group1 = self._create_event(
+        event = self._create_event(
             function_names=["target_func"], filenames=["test.py"], user_id="1", culprit="issue1"
-        ).group
+        )
+        assert event.group is not None
+        group1 = event.group
 
-        group2 = self._create_event(
+        event = self._create_event(
             function_names=["target_func"], filenames=["test.py"], user_id="2", culprit="issue2"
-        ).group
+        )
+        assert event.group is not None
+        group2 = event.group
 
         result = _get_issues_for_file(
             projects=[self.project],
@@ -284,11 +300,13 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
 
     def test_successful_fetch(self) -> None:
         # Create some test events
-        group = self._create_event(
+        event = self._create_event(
             filenames=["test.py", "other.py"],
             function_names=["target_function", "other_func"],
             user_id="1",
-        ).group
+        )
+        assert event.group is not None
+        group = event.group
 
         with patch(
             "sentry.seer.fetch_issues.by_function_name._fetch_issues_from_repo_projects"
@@ -320,10 +338,12 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                 mock_serialize.assert_called_once_with([group])
 
     def test_custom_max_num_issues(self) -> None:
-        group = self._create_event(
+        event = self._create_event(
             filenames=["test.py"],
             function_names=["target_function"],
-        ).group
+        )
+        assert event.group is not None
+        group = event.group
 
         with patch(
             "sentry.seer.fetch_issues.by_function_name._fetch_issues_from_repo_projects"
@@ -354,7 +374,9 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                 assert call_args[1]["max_num_issues_per_file"] == 10
 
     def test_with_run_id(self) -> None:
-        group = self._create_event().group
+        event = self._create_event()
+        assert event.group is not None
+        group = event.group
 
         with patch(
             "sentry.seer.fetch_issues.by_function_name._fetch_issues_from_repo_projects"
@@ -450,7 +472,9 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
 
     @patch("sentry.seer.fetch_issues.by_function_name._get_projects_and_filenames_from_source_file")
     @patch("sentry.seer.fetch_issues.by_function_name._get_issues_for_file")
-    def test_no_projects_found_fallback(self, mock_get_issues, mock_get_projects):
+    def test_no_projects_found_fallback(
+        self, mock_get_issues: MagicMock, mock_get_projects: MagicMock
+    ) -> None:
         # Mock no projects found initially
         mock_get_projects.return_value = (set(), {"test.py"})
         mock_get_issues.return_value = []
@@ -478,7 +502,9 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
 
     @patch("sentry.seer.fetch_issues.by_function_name._get_projects_and_filenames_from_source_file")
     @patch("sentry.seer.fetch_issues.by_function_name._get_issues_for_file")
-    def test_projects_found_no_fallback(self, mock_get_issues, mock_get_projects):
+    def test_projects_found_no_fallback(
+        self, mock_get_issues: MagicMock, mock_get_projects: MagicMock
+    ) -> None:
         # Mock projects found
         mock_get_projects.return_value = ({self.project}, {"test.py"})
         mock_get_issues.return_value = []
@@ -507,8 +533,8 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
     @patch("sentry.seer.fetch_issues.by_function_name._get_projects_and_filenames_from_source_file")
     @patch("sentry.seer.fetch_issues.by_function_name._get_issues_for_file")
     def test_drops_projects_outside_the_authorized_repo_projects(
-        self, mock_get_issues, mock_get_projects
-    ):
+        self, mock_get_issues: MagicMock, mock_get_projects: MagicMock
+    ) -> None:
         other_project = self.create_project(organization=self.organization)
         mock_get_projects.return_value = ({self.project, other_project}, {"test.py"})
         mock_get_issues.return_value = []
@@ -540,6 +566,7 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
             function_names=["target_function", "other_func"],
             user_id="1",
         )
+        assert event.group is not None
         expected_group = event.group
 
         # Get repo projects

@@ -13,12 +13,19 @@ describe('python logs onboarding docs', () => {
     });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/enable_logs=True/))
+      await screen.findByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))
     ).toBeInTheDocument();
     expect(screen.getByText(textWithMarkupMatcher(/import logging/))).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Logs require Python SDK version 2\.68\.0 or higher/)
+      )
+    ).toBeInTheDocument();
   });
 
   it('does not render logs configuration when logs is not enabled', async () => {
@@ -29,7 +36,9 @@ describe('python logs onboarding docs', () => {
     expect(await screen.findByRole('heading', {name: /Configure/})).toBeInTheDocument();
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/enable_logs=True/))
+      screen.queryByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))

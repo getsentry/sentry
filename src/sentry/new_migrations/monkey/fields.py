@@ -1,3 +1,6 @@
+from collections.abc import Sequence
+from typing import TypeVar
+
 from django.db.migrations import RemoveField
 from django.db.models import Field, ManyToManyField
 from django.db.models.fields import NOT_PROVIDED
@@ -9,8 +12,13 @@ from sentry.new_migrations.monkey.state import DeletionAction, SentryProjectStat
 IGNORED_ATTRS = ["verbose_name", "help_text", "choices"]
 original_deconstruct = Field.deconstruct
 
+_ST = TypeVar("_ST")
+_GT = TypeVar("_GT")
 
-def deconstruct(self):
+
+def deconstruct(
+    self: Field[_ST, _GT],
+) -> tuple[str, str, Sequence[object], dict[str, object]]:
     """
     Overrides the default field deconstruct method. This is used to pop unwanted
     keyword arguments from the field during deconstruction, so that they will be ignored
@@ -23,8 +31,8 @@ def deconstruct(self):
 
 
 class SafeRemoveField(RemoveField):
-    def __init__(self, *args, deletion_action: DeletionAction, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, model_name: str, name: str, deletion_action: DeletionAction) -> None:
+        super().__init__(model_name, name)
         self.deletion_action = deletion_action
 
     def state_forwards(self, app_label: str, state: SentryProjectState) -> None:  # type: ignore[override]

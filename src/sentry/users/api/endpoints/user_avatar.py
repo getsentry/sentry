@@ -8,6 +8,8 @@ from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
+from sentry.auth.principal import require_user
+from sentry.db.models.base import Model
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -16,7 +18,7 @@ from sentry.users.services.user.service import user_service
 
 
 @control_silo_endpoint
-class UserAvatarEndpoint(AvatarMixin[UserAvatar], UserEndpoint):
+class UserAvatarEndpoint(AvatarMixin[UserAvatar, Model], UserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
@@ -34,7 +36,7 @@ class UserAvatarEndpoint(AvatarMixin[UserAvatar], UserEndpoint):
 
     def put(self, request: Request, **kwargs: Any) -> Response:
         user: User = kwargs["user"]
-        if user.id != request.user.id:
+        if user.id != require_user(request).id:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         obj, serializer = super().parse(request, **kwargs)
@@ -48,7 +50,7 @@ class UserAvatarEndpoint(AvatarMixin[UserAvatar], UserEndpoint):
             url_base = options.get("system.url-prefix")
             avatar_url = f"{url_base}/avatar/{user_avatar.ident}/"
         serialized_user = user_service.update_user(
-            user_id=request.user.id,
+            user_id=require_user(request).id,
             attrs=dict(avatar_url=avatar_url, avatar_type=user_avatar.avatar_type),
         )
         if serialized_user:

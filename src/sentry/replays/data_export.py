@@ -470,7 +470,7 @@ def export_replay_row_set_async(
     limit: int = EXPORT_QUERY_ROWS_PER_PAGE,
     offset: int = 0,
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
-):
+) -> None:
     """
     Export all replay rows which belong to the project and exist within the range.
 
@@ -543,7 +543,7 @@ def export_replay_project_async(
     limit: int,
     destination_bucket: str,
     num_pages: int = EXPORT_QUERY_PAGES_PER_TASK,
-):
+) -> None:
     """
     Export every replay for a given Sentry Project ID.
 
@@ -613,7 +613,7 @@ def export_replay_data(
     database_pages_per_task: int = EXPORT_QUERY_PAGES_PER_TASK,
     source_bucket: str = EXPORT_JOB_SOURCE_BUCKET,
     pubsub_topic_name: str | None = None,
-):
+) -> None:
     logger.info(
         "Starting replay export...",
         extra={

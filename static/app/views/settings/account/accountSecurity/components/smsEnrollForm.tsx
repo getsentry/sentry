@@ -9,12 +9,8 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {SmsAuthenticator} from 'sentry/types/auth';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
@@ -66,7 +62,7 @@ export function SmsEnrollForm({
         return;
       }
 
-      addLoadingMessage(
+      toast.loading(
         isCodeSent ? t('Verifying OTP...') : t('Sending code to %s...', value.phone)
       );
 
@@ -77,7 +73,7 @@ export function SmsEnrollForm({
           secret: authenticator.secret,
         });
       } catch (caughtError) {
-        addErrorMessage(
+        toast.error(
           getRequestErrorUserMessage(
             caughtError,
             isCodeSent
@@ -98,7 +94,7 @@ export function SmsEnrollForm({
         return;
       }
 
-      addSuccessMessage(t('Sent code to %s', value.phone));
+      toast.success(t('Sent code to %s', value.phone));
     },
   });
   const isSubmitting = useStore(form.store, state => state.isSubmitting);

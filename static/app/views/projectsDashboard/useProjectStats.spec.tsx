@@ -12,7 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {ProjectStats} from 'sentry/types/project';
-import {useProjectStats} from 'sentry/views/projectsDashboard/useProjectStats';
+
+import {useProjectStats} from './useProjectStats';
 
 describe('useProjectStats', () => {
   const organization = OrganizationFixture();

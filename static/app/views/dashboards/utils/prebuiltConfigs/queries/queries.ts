@@ -3,15 +3,16 @@ import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
 import {
   AVERAGE_DURATION_TEXT,
   BASE_FILTER_STRING,
   DASHBOARD_DESCRIPTION,
   DASHBOARD_TITLE,
   QUERIES_PER_MINUTE_TEXT,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
-import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+} from './settings';
 
 export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',

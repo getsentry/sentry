@@ -22,13 +22,14 @@ import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
-import {AutofixSection} from 'sentry/views/issueDetails/sidebar/autofixSection';
-import {DetectorSection} from 'sentry/views/issueDetails/sidebar/detectorSection';
-import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/sidebar/externalIssueSidebarList';
-import {FirstLastSeenSection} from 'sentry/views/issueDetails/sidebar/firstLastSeenSection';
-import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/sidebar/mergedSidebarSection';
-import {PeopleSection} from 'sentry/views/issueDetails/sidebar/peopleSection';
-import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/sidebar/similarIssuesSidebarSection';
+
+import {AutofixSection} from './autofixSection';
+import {DetectorSection} from './detectorSection';
+import {ExternalIssueSidebarSection} from './externalIssueSidebarSection';
+import {FirstLastSeenSection} from './firstLastSeenSection';
+import {MergedIssuesSidebarSection} from './mergedSidebarSection';
+import {PeopleSection} from './peopleSection';
+import {SimilarIssuesSidebarSection} from './similarIssuesSidebarSection';
 
 type Props = {group: Group; project: Project; event?: Event};
 
@@ -57,8 +58,8 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
   const isBottomSidebar =
     useResponsivePropValue({zero: 'bottom', '4xl': 'side'}) === 'bottom';
   const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
-  // Check if Seer (AI features) will be shown - must match SeerSection's logic
-  // SeerSection shows "Seer" title when the issue type supports it AND AI features are allowed
+  // Check if Seer (AI features) will be shown - must match AutofixSection's logic
+  // AutofixSection renders when the issue type supports it AND AI features are allowed
   const hasSeerFeatures =
     areAiFeaturesAllowed(organization) &&
     (issueTypeConfig.issueSummary.enabled || issueTypeConfig.autofix);
@@ -100,7 +101,7 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
             </ErrorBoundary>
           )}
           <ErrorBoundary mini>
-            <ExternalIssueSidebarList group={group} event={event} />
+            <ExternalIssueSidebarSection group={group} event={event} />
           </ErrorBoundary>
           <ErrorBoundary mini>
             <ActivitySection group={group} />

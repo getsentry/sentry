@@ -1,0 +1,685 @@
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import * as React from 'react';
+import isPropValid from '@emotion/is-prop-valid';
+import {useTheme, css} from '@emotion/react';
+import styled from '@emotion/styled';
+import {FocusScope} from '@react-aria/focus';
+import {useKeyboard} from '@react-aria/interactions';
+import {mergeProps} from '@react-aria/utils';
+import type {OverlayTriggerState} from '@react-stately/overlays';
+
+import {Badge} from '@sentry/scraps/badge';
+import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Footer, Header, Search, Title, ControlContext} from '@sentry/scraps/menu';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {Spinner} from '@sentry/scraps/spinner';
+import type {FormSize} from '@sentry/scraps/theme';
+import {useTranslation} from '@sentry/scraps/translation';
+import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
+
+import type {SingleListProps} from './list';
+import type {
+  SearchConfig,
+  SelectKey,
+  SelectOptionOrSectionWithKey,
+  SelectOptionWithKey,
+} from './types';
+import {getDisabledOptions, getHiddenOptions, getSearchConfig} from './utils';
+
+// autoFocus react attribute is sync called on render, this causes
+// layout thrashing and is bad for performance. This thin wrapper function
+// will defer the focus call until the next frame, after the browser and react
+// have had a chance to update the DOM, splitting the perf cost across frames.
+function nextFrameCallback(cb: () => void) {
+  if ('requestAnimationFrame' in window) {
+    window.requestAnimationFrame(() => cb());
+  } else {
+    setTimeout(() => {
+      cb();
+    }, 1);
+  }
+}
+
+export interface ControlProps
+  extends
+    Omit<
+      React.BaseHTMLAttributes<HTMLDivElement>,
+      // omit keys from SingleListProps because those will be passed to <List /> instead
+      | keyof Omit<SingleListProps<SelectKey>, 'children' | 'items' | 'mode' | 'label'>
+      | 'defaultValue'
+    >,
+    Pick<
+      UseOverlayProps,
+      | 'isOpen'
+      | 'onClose'
+      | 'offset'
+      | 'position'
+      | 'isDismissable'
+      | 'shouldCloseOnBlur'
+      | 'shouldCloseOnInteractOutside'
+      | 'onInteractOutside'
+      | 'preventOverflowOptions'
+      | 'flipOptions'
+      | 'strategy'
+    > {
+  children?: React.ReactNode;
+  className?: string;
+  /**
+   * If true, there will be a "Clear" button in the menu header.
+   */
+  clearable?: boolean;
+  disabled?: boolean;
+  /**
+   * Message to be displayed when all options have been filtered out (via search).
+   */
+  emptyMessage?: React.ReactNode;
+  /**
+   * If true, all select options will be hidden. This should only be used on a temporary
+   * basis in conjunction with `menuBody` to display special views/states (e.g. a
+   * secondary date range selector).
+   */
+  hideOptions?: boolean;
+  /**
+   * If true, there will be a loading indicator in the menu header.
+   */
+  loading?: boolean;
+  maxMenuHeight?: number | string;
+  /**
+   * Optional content to display below the menu's header and above the options.
+   */
+  menuBody?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.JSX.Element);
+  /**
+   * Footer to be rendered at the bottom of the menu.
+   */
+  menuFooter?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void; resetSearch: () => void}) => React.ReactNode);
+  /**
+   * Items to be displayed in the trailing (right) side of the menu's header.
+   */
+  menuHeaderTrailingItems?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  menuHeight?: number | string;
+  /**
+   * Minimum width for the menu overlay. When unset, the overlay's min-width matches
+   * the trigger's width (overlay default). When set, this value is used instead —
+   * useful when the trigger is intentionally narrow but the options need more room.
+   */
+  menuMinWidth?: number | string;
+  /**
+   * Title to display in the menu's header. Keep the title as short as possible.
+   */
+  menuTitle?: React.ReactNode;
+  menuWidth?: number | string;
+  /**
+   * Controls the selection widget type.
+   *
+   * - `'list'` (default) — a one-dimensional listbox navigated with Arrow Up/Down.
+   * - `'grid'` — a two-dimensional grid list where Arrow Up/Down moves between rows
+   *   and Arrow Left/Right moves between columns. Use this when options contain
+   *   interactive child elements (buttons/links) that need to be keyboard-reachable.
+   */
+  mode?: 'list' | 'grid';
+  /**
+   * Called when the clear button is clicked (applicable only when `clearable` is
+   * true).
+   */
+  onClear?: (props: {overlayState: OverlayTriggerState}) => void;
+  /**
+   * Called when the menu is opened or closed.
+   */
+  onOpenChange?: (newOpenState: boolean) => void;
+  /**
+   * Search configuration. When provided, enables the search input.
+   * Pass `true` to enable search with default settings, or a config object
+   * to customise placeholder, filtering, or the onChange callback.
+   */
+  search?: boolean | SearchConfig<SelectKey>;
+  size?: FormSize;
+
+  /**
+   * Optional replacement for the default trigger button. Note that the replacement must
+   * forward `props` and `ref` its outer wrap, otherwise many accessibility features
+   * won't work correctly.
+   */
+  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
+  triggerId?: string;
+}
+
+/**
+ * Controls Select's open state and exposes SelectContext to all chidlren.
+ */
+export function Control<Value extends SelectKey>({
+  // Control props
+  autoFocus,
+  trigger,
+  triggerId,
+  isOpen,
+  onClose,
+  isDismissable,
+  onInteractOutside,
+  shouldCloseOnInteractOutside,
+  shouldCloseOnBlur,
+  preventOverflowOptions,
+  flipOptions,
+  disabled,
+  position = 'bottom-start',
+  strategy = 'absolute',
+  offset,
+  hideOptions,
+  menuTitle,
+  maxMenuHeight = '32rem',
+  menuWidth,
+  menuMinWidth,
+  menuHeight,
+  menuHeaderTrailingItems,
+  menuBody,
+  menuFooter,
+  onOpenChange,
+  items = [],
+  isOptionDisabled,
+  value,
+
+  // Select props
+  size = 'md',
+  search: searchConfig,
+  clearable = false,
+  onClear,
+  loading = false,
+  mode = 'list',
+  children,
+  menuRef,
+  ...wrapperProps
+}: ControlProps & {
+  isOptionDisabled?: (option: SelectOptionWithKey<Value>) => boolean;
+  items?: Array<SelectOptionOrSectionWithKey<Value>>;
+  menuRef?: React.Ref<HTMLDivElement>;
+  value?: Value | Value[] | undefined;
+}) {
+  const {t} = useTranslation();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const pendingAutoFocus = useRef(false);
+
+  const normalizedSearch = getSearchConfig(searchConfig);
+  const searchEnabled = normalizedSearch !== undefined;
+  const searchFilter =
+    typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
+  const highlightSearch = normalizedSearch?.highlight ?? false;
+
+  /**
+   * Search/filter value, used to filter out the list of displayed elements
+   */
+  const [search, setSearch] = useState('');
+  const [searchInputValue, setSearchInputValue] = useState(search);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const updateSearch = (newValue: string) => {
+    normalizedSearch?.onChange?.(newValue);
+    setSearchInputValue(newValue);
+    if (normalizedSearch?.filter !== false) {
+      setSearch(newValue);
+    }
+  };
+
+  const selectableOptionCount = useMemo(() => {
+    const {hidden: hiddenOptions} = getHiddenOptions(
+      items,
+      search,
+      Infinity,
+      searchFilter
+    );
+    const disabledOptions = new Set(getDisabledOptions(items, isOptionDisabled));
+
+    return items.reduce((count, item) => {
+      if ('options' in item) {
+        return (
+          count +
+          item.options.filter(
+            option => !hiddenOptions.has(option.key) && !disabledOptions.has(option.key)
+          ).length
+        );
+      }
+
+      return (
+        count + (!hiddenOptions.has(item.key) && !disabledOptions.has(item.key) ? 1 : 0)
+      );
+    }, 0);
+  }, [items, search, searchFilter, isOptionDisabled]);
+
+  const {keyboardProps: searchKeyboardProps} = useKeyboard({
+    onKeyDown: e => {
+      // When the search input is focused, and the user presses Arrow Down,
+      // we should move the focus to the menu items list.
+      if (e.key === 'ArrowDown') {
+        e.preventDefault(); // Prevent scroll action
+        overlayRef.current
+          ?.querySelector<HTMLLIElement>(
+            `li[role="${mode === 'grid' ? 'row' : 'option'}"]`
+          )
+          ?.focus();
+      }
+
+      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+        e.preventDefault();
+
+        const firstOption = overlayRef.current?.querySelector<HTMLLIElement>(
+          `li[role="${mode === 'grid' ? 'row' : 'option'}"]:not([aria-disabled="true"])`
+        );
+        const focusOptionList = () => {
+          if (firstOption) {
+            firstOption.focus();
+            return;
+          }
+
+          overlayRef.current
+            ?.querySelector<HTMLUListElement>(
+              `ul[role="${mode === 'grid' ? 'grid' : 'listbox'}"]`
+            )
+            ?.focus();
+        };
+
+        if (selectableOptionCount > 0 && !loading) {
+          if (selectableOptionCount === 1 && firstOption) {
+            firstOption.click();
+          } else {
+            // Move focus to the first option, matching the next focus target when tabbing
+            // out of the search input.
+            focusOptionList();
+          }
+        }
+      }
+
+      // Continue propagation, otherwise the overlay won't close on Esc key press
+      e.continuePropagation();
+    },
+  });
+
+  const overflowBoundaryId = useBoundaryContext();
+  const getOverflowBoundary = useCallback(
+    () =>
+      (overflowBoundaryId ? document.getElementById(overflowBoundaryId) : null) ??
+      document.querySelector('main') ??
+      document.getElementById('main') ??
+      undefined,
+    [overflowBoundaryId]
+  );
+
+  // Manage overlay position
+  const {
+    isOpen: overlayIsOpen,
+    state: overlayState,
+    triggerRef,
+    triggerProps: overlayTriggerProps,
+    overlayRef,
+    overlayProps,
+  } = useOverlay({
+    disableTrigger: disabled,
+    type: mode === 'grid' ? 'menu' : 'listbox',
+    position,
+    offset,
+    isOpen,
+    isDismissable,
+    onInteractOutside,
+    shouldCloseOnInteractOutside,
+    shouldCloseOnBlur,
+    preventOverflowOptions,
+    getOverflowBoundary,
+    flipOptions,
+    strategy,
+    onOpenChange: open => {
+      pendingAutoFocus.current = open;
+      onOpenChange?.(open);
+
+      nextFrameCallback(() => {
+        if (open) {
+          // A child control may have taken focus before this frame.
+          if (!pendingAutoFocus.current) {
+            return;
+          }
+          pendingAutoFocus.current = false;
+
+          // Focus on search box if present
+          if (searchEnabled) {
+            searchRef.current?.focus();
+            return;
+          }
+
+          const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
+            `li[role="${mode === 'grid' ? 'row' : 'option'}"][aria-selected="true"]`
+          );
+
+          // Focus on first selected item
+          if (firstSelectedOption) {
+            firstSelectedOption.focus();
+            return;
+          }
+
+          // If no item is selected, focus on first item instead
+          overlayRef.current
+            ?.querySelector<HTMLLIElement>(
+              `li[role="${mode === 'grid' ? 'row' : 'option'}"]`
+            )
+            ?.focus();
+          return;
+        }
+
+        // On close
+        onClose?.();
+
+        // Clear search string
+        setSearchInputValue('');
+        setSearch('');
+
+        // Only restore focus if it's already here or lost to the body.
+        // This prevents focus from being stolen from other elements.
+        if (
+          document.activeElement === document.body ||
+          wrapperRef.current?.contains(document.activeElement)
+        ) {
+          triggerRef.current?.focus();
+        }
+      });
+    },
+  });
+
+  const wasRefAvailable = useRef(false);
+  useEffect(() => {
+    // Trigger ref is set by a setState in useOverlay, so we need to wait for it to be available
+    // We also need to make sure we only focus once
+    if (!triggerRef.current || wasRefAvailable.current) {
+      return;
+    }
+    wasRefAvailable.current = true;
+
+    if (autoFocus && !disabled) {
+      triggerRef.current.focus();
+    }
+  }, [autoFocus, disabled, triggerRef]);
+
+  /**
+   * The menu's full width, before any option has been filtered out. Used to maintain a
+   * constant width while the user types into the search box.
+   */
+  const [menuFullWidth, setMenuFullWidth] = useState<number>();
+  // When search box is focused, read the menu's width and lock it at that value to
+  // prevent visual jumps during search
+  const onSearchFocus = () => setMenuFullWidth(overlayRef.current?.offsetWidth);
+  // When search box is blurred, release the lock the menu's width
+  const onSearchBlur = () => !search && setMenuFullWidth(undefined);
+
+  /**
+   * Trigger label, generated from current selection values. If more than one option is
+   * selected, then a count badge will appear.
+   */
+  const triggerLabel: React.ReactNode = useMemo(() => {
+    const values = Array.isArray(value) ? value : [value];
+    const options = items
+      .flatMap(item => {
+        if ('options' in item) {
+          return item.options;
+        }
+        return item;
+      })
+      .filter(item => values.includes(item.value));
+
+    if (options.length === 0) {
+      return <TriggerLabel>{t('None')}</TriggerLabel>;
+    }
+
+    return (
+      <Fragment>
+        <TriggerLabel>{options[0]?.label}</TriggerLabel>
+        {options.length > 1 && (
+          <StyledBadge variant="muted">{`+${options.length - 1}`}</StyledBadge>
+        )}
+      </Fragment>
+    );
+  }, [items, t, value]);
+
+  const {keyboardProps: triggerKeyboardProps} = useKeyboard({
+    onKeyDown: e => {
+      // Open the select menu when user presses Arrow Up/Down.
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault(); // Prevent scroll
+        overlayState.open();
+      } else {
+        e.continuePropagation();
+      }
+    },
+  });
+
+  const hasSelection = useMemo(() => {
+    if (value === undefined) {
+      return false;
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    return true;
+  }, [value]);
+
+  const contextValue = useMemo(() => {
+    return {
+      overlayState,
+      overlayIsOpen,
+      search,
+      searchable: searchEnabled,
+      size,
+      disabled,
+      searchMatcher: searchFilter,
+      highlightSearch,
+    };
+  }, [
+    overlayState,
+    overlayIsOpen,
+    search,
+    searchEnabled,
+    size,
+    disabled,
+    searchFilter,
+    highlightSearch,
+  ]);
+
+  // A titled header keeps a hidden Clear button so the header doesn't resize when a
+  // selection is made. Without a title, that placeholder would be an empty header bar.
+  const showClearButton = clearable && (hasSelection || !!menuTitle);
+  const hasHeader = !!menuTitle || !!menuHeaderTrailingItems || showClearButton;
+
+  const theme = useTheme();
+
+  const mergedTriggerProps = mergeProps(
+    {id: triggerId, children: triggerLabel},
+    triggerKeyboardProps,
+    overlayTriggerProps
+  );
+
+  return (
+    <ControlContext value={contextValue}>
+      <Container width="max-content" position="relative" {...wrapperProps}>
+        {trigger ? (
+          // TriggerProps constrains ref forwarding; the runtime element is a button.
+          trigger(mergedTriggerProps as TriggerProps, overlayIsOpen)
+        ) : (
+          <OverlayTrigger.Button {...mergedTriggerProps} />
+        )}
+        <StyledPositionWrapper
+          visible={overlayIsOpen}
+          zIndex={theme.zIndex?.dropdown}
+          {...overlayProps}
+        >
+          {overlayIsOpen && (
+            <StyledOverlay
+              ref={menuRef}
+              onFocusCapture={() => {
+                pendingAutoFocus.current = false;
+              }}
+              width={menuWidth ?? menuFullWidth}
+              height={menuHeight}
+              minWidth={menuMinWidth ?? overlayProps.style?.minWidth}
+              maxWidth={
+                overlayProps.style?.maxWidth
+                  ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
+                  : undefined
+              }
+              maxHeight={overlayProps.style?.maxHeight}
+              maxHeightProp={maxMenuHeight}
+              data-menu-has-header={hasHeader}
+              data-menu-has-search={searchEnabled}
+              data-menu-has-footer={!!menuFooter}
+            >
+              <FocusScope contain>
+                {hasHeader && (
+                  <Header borderBottom={searchEnabled ? 'none' : 'muted'}>
+                    <Flex
+                      align="center"
+                      justify="between"
+                      gap="xl"
+                      minHeight="24px"
+                      padding={searchEnabled ? 'xs lg 0 lg' : 'xs lg'}
+                    >
+                      {menuTitle && <Title>{menuTitle}</Title>}
+                      <Flex align="center" gap="xs" marginLeft="auto">
+                        {loading && <StyledSpinner size={12} />}
+                        {typeof menuHeaderTrailingItems === 'function'
+                          ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                          : menuHeaderTrailingItems}
+                        {showClearButton && (
+                          <ClearButton
+                            onClick={() => onClear?.({overlayState})}
+                            size="zero"
+                            variant="transparent"
+                            aria-hidden={!hasSelection}
+                            disabled={!hasSelection}
+                          >
+                            {t('Clear')}
+                          </ClearButton>
+                        )}
+                      </Flex>
+                    </Flex>
+                  </Header>
+                )}
+                {searchEnabled && (
+                  <Search
+                    ref={searchRef}
+                    placeholder={normalizedSearch?.placeholder ?? 'Search…'}
+                    value={searchInputValue}
+                    onFocus={onSearchFocus}
+                    onBlur={onSearchBlur}
+                    onChange={e => updateSearch(e.target.value)}
+                    {...searchKeyboardProps}
+                  />
+                )}
+                {typeof menuBody === 'function'
+                  ? menuBody({closeOverlay: overlayState.close})
+                  : menuBody}
+                {!hideOptions && <Stack minHeight="0">{children}</Stack>}
+                {menuFooter && (
+                  <Footer>
+                    {/* Block wrapper so footer content spans the full width, as
+                        Footer is a row flex container that shrinks its children */}
+                    <Container width="100%">
+                      {typeof menuFooter === 'function'
+                        ? menuFooter({
+                            closeOverlay: overlayState.close,
+                            resetSearch: () => updateSearch(''),
+                          })
+                        : menuFooter}
+                    </Container>
+                  </Footer>
+                )}
+              </FocusScope>
+            </StyledOverlay>
+          )}
+        </StyledPositionWrapper>
+      </Container>
+    </ControlContext>
+  );
+}
+
+export const TriggerLabel = styled('span')`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+`;
+
+const StyledBadge = styled(Badge)`
+  margin-left: ${p => p.theme.space.xs};
+  flex-shrink: 0;
+  top: auto;
+`;
+
+const StyledSpinner = styled(Spinner)`
+  display: flex;
+  align-items: center;
+  && {
+    margin: 0;
+  }
+`;
+
+export const ClearButton = styled(Button)`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: 0 ${p => p.theme.space.xs};
+  margin: 0 -${p => p.theme.space.xs};
+
+  &[aria-hidden='true'] {
+    visibility: hidden;
+  }
+`;
+
+const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
+
+const StyledOverlay = styled(Overlay, {
+  shouldForwardProp: prop => isPropValid(prop),
+})<{
+  maxHeightProp: string | number;
+  height?: string | number;
+  maxHeight?: string | number;
+  maxWidth?: string | number;
+  minWidth?: string | number;
+  width?: string | number;
+}>`
+  /* Should be a flex container so that when maxHeight is set (to avoid page overflow),
+  ListBoxWrap/GridListWrap will also shrink to fit */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  ${p =>
+    p.width &&
+    css`
+      width: ${withUnits(p.width)};
+    `}
+  ${p =>
+    p.height &&
+    css`
+      height: ${withUnits(p.height)};
+    `}
+  ${p =>
+    p.minWidth &&
+    css`
+      min-width: ${withUnits(p.minWidth)};
+    `}
+  max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : '100%')};
+  max-height: ${p =>
+    p.maxHeight
+      ? `min(${withUnits(p.maxHeight)}, ${withUnits(p.maxHeightProp)})`
+      : withUnits(p.maxHeightProp)};
+`;
+
+const StyledPositionWrapper = styled(PositionWrapper, {
+  shouldForwardProp: prop => isPropValid(prop),
+})<{visible?: boolean; zIndex?: number}>`
+  min-width: 100%;
+  display: ${p => (p.visible ? 'block' : 'none')};
+  z-index: ${p => p?.zIndex};
+`;

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import _patch, patch
 
 from django.test.utils import override_settings
 
@@ -10,7 +12,7 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.testutils.helpers import override_options
 
 
-def mock_redis_buffer():
+def mock_redis_buffer() -> _patch[RedisBuffer]:
     return patch("sentry.buffer.backend", new=RedisBuffer())
 
 

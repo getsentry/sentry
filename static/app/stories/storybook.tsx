@@ -64,6 +64,10 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
 }
 
 function Story(props: {name: string; render: StoryRenderFunction}) {
+  // `render` calls hooks on this component's behalf. If the compiler memoizes
+  // the call on the stable `render` reference, every re-render skips those
+  // hooks and the story stays frozen on its first-render output.
+  'use no memo';
   const children = props.render();
   const isOneChild = Children.count(children) === 1;
 

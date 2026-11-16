@@ -3,8 +3,9 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {HighlightsSettingsForm} from 'sentry/components/events/highlights/highlightsSettingsForm';
 import * as analytics from 'sentry/utils/analytics';
+
+import {HighlightsSettingsForm} from './highlightsSettingsForm';
 
 describe('HighlightsSettingForm', () => {
   const organization = OrganizationFixture();

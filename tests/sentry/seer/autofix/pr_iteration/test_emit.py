@@ -32,6 +32,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.models.run import SeerRunPrIteration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
@@ -163,7 +164,7 @@ class PrIterationDetailsTest(TestCase):
             outcome=outcome,
         )
 
-    def _open_rows(self) -> list:
+    def _open_rows(self) -> list[SeerRunPrIteration]:
         return open_iterations(self.seer_run)
 
     def test_opening_stores_the_row_without_emitting(self) -> None:

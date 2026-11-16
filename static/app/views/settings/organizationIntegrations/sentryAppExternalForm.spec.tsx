@@ -5,7 +5,7 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {SentryAppExternalForm} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import {SentryAppExternalForm} from './sentryAppExternalForm';
 
 describe('SentryAppExternalForm', () => {
   const sentryApp = SentryAppFixture();

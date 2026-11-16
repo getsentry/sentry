@@ -1,5 +1,6 @@
 import sentry_sdk
 from rest_framework.exceptions import Throttled
+from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE
@@ -8,7 +9,7 @@ from sentry.utils.snuba import RateLimitExceeded
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
-def custom_exception_handler(exc, context):
+def custom_exception_handler(exc: Exception, context: dict[str, object]) -> Response | None:
     if isinstance(exc, RateLimitExceeded):
         context_request = context.get("request")
         request = getattr(context_request, "_request", None)

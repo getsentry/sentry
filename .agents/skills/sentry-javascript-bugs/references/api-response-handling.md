@@ -56,7 +56,7 @@ try {
   await api.requestPromise(`/customers/${orgSlug}/subscription/`, {method: 'PUT', data});
 } catch (error) {
   if (error.status === 402) {
-    addErrorMessage(t('Payment is required to make this change.'));
+    toast.error(t('Payment is required to make this change.'));
     return;
   }
   throw error;

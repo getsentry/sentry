@@ -13,11 +13,11 @@ import {
   resizeCanvasToDisplaySize,
   safeGetContext,
 } from 'sentry/utils/profiling/gl/utils';
-import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import type {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {uiFramesFragment, uiFramesVertext} from './shaders';
+import {UIFramesRenderer} from './UIFramesRenderer';
 
 // These are both mutable and are used to avoid unnecessary allocations during rendering.
 const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);

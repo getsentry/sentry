@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
+from typing import Any
 
 from django.core.exceptions import ValidationError
 from slack_sdk.errors import SlackApiError
@@ -105,11 +106,35 @@ def validate_slack_entity_id(*, integration_id: int, input_name: str, input_id: 
         )
 
 
-def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int) -> None:
+def get_slack_entity_name(*, integration_id: int, input_id: str) -> str:
     """
-    Validates that a user-input name and ID correspond to the same valid slack user.
-    Functionally identical to validate_channel_id, but for users.
+    Resolves the name of the user or channel that corresponds to a Slack ID.
+    Lets API callers provide only the ID, without a name to validate against.
     """
+    if is_input_a_user_id(input_id):
+        user = _get_user_info(integration_id=integration_id, input_user_id=input_id).get("user", {})
+        user_name = (
+            user.get("name")
+            or user.get("profile", {}).get("display_name")
+            or user.get("profile", {}).get("display_name_normalized")
+        )
+        if not user_name:
+            raise ValidationError("Did not receive user name from API results")
+        return user_name
+
+    channel_name = (
+        _get_channel_info(integration_id=integration_id, input_channel_id=input_id)
+        .get("channel", {})
+        .get("name")
+    )
+    if not channel_name:
+        raise ValidationError("Did not receive channel name from API results")
+    return channel_name
+
+
+def _get_user_info(
+    *, integration_id: int, input_user_id: str, input_name: str | None = None
+) -> dict[str, Any]:
     client = SlackSdkClient(integration_id=integration_id)
     try:
         results = client.users_info(user=input_user_id).data
@@ -139,6 +164,18 @@ def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int
     if not isinstance(results, dict):
         raise IntegrationError("Bad slack user list response.")
 
+    return results
+
+
+def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int) -> None:
+    """
+    Validates that a user-input name and ID correspond to the same valid slack user.
+    Functionally identical to validate_channel_id, but for users.
+    """
+    results = _get_user_info(
+        integration_id=integration_id, input_user_id=input_user_id, input_name=input_name
+    )
+
     stripped_user_name = strip_channel_name(input_name)
     possible_name_matches = [
         results.get("user", {}).get("name"),
@@ -151,12 +188,9 @@ def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int
         raise ValidationError("Slack username from ID does not match input username.")
 
 
-def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
-    """
-    In the case that the user is creating an alert via the API and providing the channel ID and name
-    themselves, we want to make sure both values are correct.
-    """
-
+def _get_channel_info(
+    *, integration_id: int, input_channel_id: str, name: str | None = None
+) -> dict[str, Any]:
     client = SlackSdkClient(integration_id=integration_id)
     try:
         results = client.conversations_info(channel=input_channel_id).data
@@ -189,6 +223,18 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
 
     if not isinstance(results, dict):
         raise IntegrationError("Bad slack channel list response.")
+
+    return results
+
+
+def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
+    """
+    In the case that the user is creating an alert via the API and providing the channel ID and name
+    themselves, we want to make sure both values are correct.
+    """
+    results = _get_channel_info(
+        integration_id=integration_id, input_channel_id=input_channel_id, name=name
+    )
 
     stripped_channel_name = strip_channel_name(name)
     results_channel_name = results.get("channel", {}).get("name")
@@ -363,7 +409,8 @@ def check_for_channel(
             sample_rate=1.0,
             tags={"type": "chat_deleteScheduledMessage"},
         )
-        return msg_response["channel"]
+        channel = msg_response["channel"]
+        return channel
     except SlackApiError as e:
         metrics.incr(
             SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,

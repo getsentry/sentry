@@ -1,14 +1,12 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {tct} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export interface ConsoleSdkInviteUser {
@@ -31,15 +29,11 @@ interface UseRevokeConsoleSdkPlatformInviteParams {
 }
 
 export function useConsoleSdkInvites(orgSlug: string) {
-  return useApiQuery<ConsoleSdkInviteUser[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
-        path: {organizationIdOrSlug: orgSlug},
-      }),
-    ],
-    {
-      staleTime: 5000,
-    }
+  return useQuery(
+    apiOptions.as<ConsoleSdkInviteUser[]>()(
+      '/organizations/$organizationIdOrSlug/console-sdk-invites/',
+      {path: {organizationIdOrSlug: orgSlug}, staleTime: 5000}
+    )
   );
 }
 
@@ -58,14 +52,12 @@ export function useRevokeConsoleSdkPlatformInvite() {
     },
     onMutate: ({email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
       if (email && platform) {
-        addLoadingMessage(
-          tct('Removing [platform] access for [email]', {platform, email})
-        );
+        toast.loading(tct('Removing [platform] access for [email]', {platform, email}));
       }
     },
     onSuccess: (_data, {email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
       if (email && platform) {
-        addSuccessMessage(
+        toast.success(
           tct('Successfully removed [platform] access for [email]', {platform, email})
         );
       }
@@ -81,7 +73,7 @@ export function useRevokeConsoleSdkPlatformInvite() {
             ? rawDetail
             : (rawDetail?.message ??
               tct('Failed to remove [platform] access for [email]', {platform, email}));
-        addErrorMessage(detail);
+        toast.error(detail);
       }
     },
     onSettled: (_data, _error, {orgSlug}: UseRevokeConsoleSdkPlatformInviteParams) => {

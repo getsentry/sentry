@@ -4,12 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {IssuesTraceTree} from 'sentry/views/performance/traceDetails/traceModels/issuesTraceTree';
-import {
-  makeEAPTrace,
-  makeUptimeCheck,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
-
+import {IssuesTraceTree} from './traceModels/issuesTraceTree';
+import {makeEAPTrace, makeUptimeCheck} from './traceModels/traceTreeTestUtils';
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {IssueTraceWaterfallOverlay} from './issuesTraceWaterfallOverlay';
 

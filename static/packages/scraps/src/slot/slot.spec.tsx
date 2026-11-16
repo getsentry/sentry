@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {render, screen} from '@testing-library/react';
 
 import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';

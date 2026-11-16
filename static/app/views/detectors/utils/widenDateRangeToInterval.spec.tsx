@@ -1,4 +1,4 @@
-import {widenDateRangeToInterval} from 'sentry/views/detectors/utils/widenDateRangeToInterval';
+import {widenDateRangeToInterval} from './widenDateRangeToInterval';
 
 const HOUR_SECONDS = 60 * 60;
 

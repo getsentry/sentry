@@ -1,22 +1,20 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {
   OrganizationIntegration,
   ServerlessFunction,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IntegrationServerlessRowProps {
@@ -30,10 +28,20 @@ export function IntegrationServerlessRow({
   onUpdate,
   serverlessFunction,
 }: IntegrationServerlessRowProps) {
-  const api = useApi();
   const organization = useOrganization();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/serverless-functions/`;
+
+  const {mutateAsync: updateServerlessFunction} = useMutation({
+    mutationFn: (data: {action: string; target: string}) =>
+      fetchMutation<ServerlessFunction>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/',
+          {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
+        ),
+        method: 'POST',
+        data,
+      }),
+  });
 
   const {version} = serverlessFunction;
   // during optimistic update, we might be enabled without a version
@@ -63,128 +71,75 @@ export function IntegrationServerlessRow({
       setIsSubmitting(true);
       // don't know the latest version but at least optimistically remove the update button
       onUpdate({outOfDate: false});
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       recordAction('updateVersion');
-      const resp = await api.requestPromise(endpoint, {
-        method: 'POST',
-        data,
-      });
+      const resp = await updateServerlessFunction(data);
       // update remaining after response
       onUpdate(resp);
-      addSuccessMessage(t('Success'));
+      toast.success(t('Success'));
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
-      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
+      const detail: unknown = err.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error occurred'));
     }
     setIsSubmitting(false);
-  }, [api, endpoint, onUpdate, recordAction, serverlessFunction]);
+  }, [onUpdate, recordAction, serverlessFunction, updateServerlessFunction]);
 
-  const handleToggle = useCallback(async () => {
+  const handleToggle = async () => {
     const action = serverlessFunction.enabled ? 'disable' : 'enable';
     const data = {
       action,
       target: serverlessFunction.name,
     };
     try {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       setIsSubmitting(true);
       // optimistically update enable state
       onUpdate({enabled: !serverlessFunction.enabled});
       recordAction(action);
-      const resp = await api.requestPromise(endpoint, {
-        method: 'POST',
-        data,
-      });
+      const resp = await updateServerlessFunction(data);
       // update remaining after response
       onUpdate(resp);
-      addSuccessMessage(t('Success'));
+      toast.success(t('Success'));
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
-      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
+      const detail: unknown = err.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error occurred'));
     }
     setIsSubmitting(false);
-  }, [api, endpoint, onUpdate, recordAction, serverlessFunction]);
+  };
 
   const layerStatus = useMemo(() => {
     if (!serverlessFunction.outOfDate) {
       return serverlessFunction.enabled ? t('Latest') : t('Disabled');
     }
     return (
-      <UpdateButton size="sm" variant="primary" onClick={handleUpdate}>
+      <Button size="sm" variant="primary" onClick={handleUpdate}>
         {t('Update')}
-      </UpdateButton>
+      </Button>
     );
   }, [serverlessFunction.outOfDate, serverlessFunction.enabled, handleUpdate]);
 
   return (
-    <Item>
-      <NameWrapper>
-        <Stack>
-          <Name>{serverlessFunction.name}</Name>
-          <RuntimeAndVersion>
-            <DetailWrapper>{serverlessFunction.runtime}</DetailWrapper>
-            <DetailWrapper>{versionText}</DetailWrapper>
-          </RuntimeAndVersion>
-        </Stack>
-      </NameWrapper>
-      <LayerStatusWrapper>{layerStatus}</LayerStatusWrapper>
-      <StyledSwitch
-        checked={serverlessFunction.enabled}
-        disabled={isSubmitting}
-        size="sm"
-        onChange={handleToggle}
-      />
-    </Item>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell direction="column" align="start" gap="md">
+        <Text wordBreak="break-word">{serverlessFunction.name}</Text>
+        <Text variant="muted">
+          {serverlessFunction.runtime}
+          {versionText}
+        </Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>{layerStatus}</SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Switch
+          aria-label={t('Enable %s', serverlessFunction.name)}
+          checked={serverlessFunction.enabled}
+          disabled={isSubmitting}
+          onChange={handleToggle}
+        />
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
-
-const Item = styled('div')`
-  padding: ${p => p.theme.space.xl};
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
-
-  display: grid;
-  grid-column-gap: ${p => p.theme.space.md};
-  align-items: center;
-  grid-template-columns: 2fr 1fr 0.5fr;
-  grid-template-areas: 'function-name layer-status enable-switch';
-`;
-
-const ItemWrapper = styled('span')`
-  height: 32px;
-  vertical-align: middle;
-  display: flex;
-  align-items: center;
-`;
-
-const NameWrapper = styled(ItemWrapper)`
-  grid-area: function-name;
-`;
-
-const LayerStatusWrapper = styled(ItemWrapper)`
-  grid-area: layer-status;
-`;
-
-const StyledSwitch = styled(Switch)`
-  grid-area: enable-switch;
-`;
-
-const UpdateButton = styled(Button)``;
-
-const Name = styled('span')`
-  padding-bottom: ${p => p.theme.space.md};
-`;
-
-const RuntimeAndVersion = styled('div')`
-  display: flex;
-  flex-direction: row;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const DetailWrapper = styled('div')`
-  line-height: 1.2;
-`;

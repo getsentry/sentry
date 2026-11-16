@@ -129,9 +129,6 @@ export class AddGiftEventsAction extends Component<Props, State> {
       if (dataCategory === DataCategory.SIZE_ANALYSIS) {
         postFix = total === '1' ? ' build' : ' builds';
       }
-      if (dataCategory === DataCategory.INSTALLABLE_BUILD) {
-        postFix = total === '1' ? ' install' : ' installs';
-      }
       return `Total: ${total}${postFix}`;
     }
 

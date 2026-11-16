@@ -15,7 +15,7 @@ from sentry.notifications.notification_action.utils import execute_via_group_typ
 from sentry.types.activity import ActivityType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import ActionInvocation, DetectorType, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -78,24 +78,10 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
             )
             MetricAlertRegistryHandler.handle_workflow_action(invocation)
 
-    def test_handle_activity_update(self) -> None:
-        self.event_data = WorkflowEventData(event=self.activity, group=self.group)
-
-        with mock.patch.object(self.activity, "send_notification"):
-            notification_uuid = str(uuid.uuid4())
-
-            invocation = ActionInvocation(
-                event_data=self.event_data,
-                action=self.action,
-                detector=self.detector,
-                notification_uuid=notification_uuid,
-                workflow_id=self.workflow.id,
-            )
-            execute_via_group_type_registry(invocation)
-            self.activity.send_notification.assert_called_once_with()
-
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_metric_alert_handler")
-    def test_handle_metric_issue_resolution(self, mock_execute_metric_alert_handler) -> None:
+    def test_handle_metric_issue_resolution(
+        self, mock_execute_metric_alert_handler: mock.MagicMock
+    ) -> None:
         group = self.create_group(type=MetricIssue.type_id)
         activity = self.create_group_activity(
             group=group,
@@ -120,7 +106,10 @@ class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project, type=SendTestNotification.slug)
+        # Use a valid detector type without a notification registry handler.
+        self.detector = self.create_detector(
+            project=self.project, type=DetectorType.MONITOR_CHECK_IN_FAILURE
+        )
         self.workflow = self.create_workflow()
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event(

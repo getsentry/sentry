@@ -1,3 +1,5 @@
+import type {AgentsTableTab} from 'sentry/views/explore/conversations/components/agentsTable';
+
 export type ConversationsEventParameters = {
   'conversations.detail.click-errors-link': Record<string, unknown>;
   'conversations.detail.click-trace-link': Record<string, unknown>;
@@ -6,6 +8,7 @@ export type ConversationsEventParameters = {
   'conversations.detail.expand-embedding': {expanded: boolean};
   'conversations.detail.expand-thinking': {expanded: boolean};
   'conversations.detail.expand-tool-calls': {expanded: boolean};
+  'conversations.detail.export-conversation': Record<string, unknown>;
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
   'conversations.detail.tab-switch': {
@@ -14,6 +17,7 @@ export type ConversationsEventParameters = {
   };
   'conversations.message.click': Record<string, unknown>;
   'conversations.message.click-evaluation': Record<string, unknown>;
+  'conversations.message.click-extraction': Record<string, unknown>;
   'conversations.message.click-memory': Record<string, unknown>;
   'conversations.message.click-tool-call': Record<string, unknown>;
   'conversations.onboarding.interaction': {
@@ -31,9 +35,12 @@ export type ConversationsEventParameters = {
     tab?: 'agent' | 'human';
     value?: string;
   };
-  'conversations.onboarding.page-view': Record<string, unknown>;
+  'conversations.onboarding.page-view': {
+    empty_state: 'no_agent_spans' | 'no_conversations';
+  };
   'conversations.page-view': Record<string, unknown>;
   'conversations.save_as': {
+    chart: string;
     save_type: 'alert' | 'dashboard';
   };
   'conversations.save_query_modal': {
@@ -41,7 +48,9 @@ export type ConversationsEventParameters = {
     save_type?: 'save_new_query' | 'rename_query';
     ui_source?: 'table';
   };
-  'conversations.table.page-view': Record<string, unknown>;
+  'conversations.table.page-view': {
+    tab: AgentsTableTab;
+  };
   'conversations.table.paginate': {
     direction: 'next' | 'previous';
   };
@@ -64,10 +73,12 @@ export const conversationsEventMap: Record<keyof ConversationsEventParameters, s
   'conversations.detail.copy-conversation': 'Conversations: Detail Copy Conversation',
   'conversations.detail.copy-conversation-id':
     'Conversations: Detail Copy Conversation ID',
+  'conversations.detail.export-conversation': 'Conversations: Detail Export Conversation',
   'conversations.detail.click-trace-link': 'Conversations: Detail Click Trace Link',
   'conversations.detail.click-errors-link': 'Conversations: Detail Click Errors Link',
   'conversations.message.click': 'Conversations: Message Click',
   'conversations.message.click-evaluation': 'Conversations: Message Click Evaluation',
+  'conversations.message.click-extraction': 'Conversations: Message Click Extraction',
   'conversations.message.click-memory': 'Conversations: Message Click Memory',
   'conversations.message.click-tool-call': 'Conversations: Message Click Tool Call',
 };

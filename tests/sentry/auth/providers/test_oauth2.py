@@ -28,14 +28,14 @@ class DummyOAuth2Provider(OAuth2Provider):
     def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         raise NotImplementedError
 
-    def build_config(self, state):
+    def build_config(self, state: Any) -> dict[str, Any]:
         raise NotImplementedError
 
 
 @control_silo_test
 class OAuth2ProviderTest(TestCase):
     @cached_property
-    def auth_provider(self):
+    def auth_provider(self) -> AuthProvider:
         return AuthProvider.objects.create(provider="oauth2", organization_id=self.organization.id)
 
     def test_refresh_identity_without_refresh_token(self) -> None:

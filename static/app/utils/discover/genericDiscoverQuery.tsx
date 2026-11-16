@@ -6,13 +6,10 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {
-  EventView,
-  ImmutableEventView,
-  LocationQuery,
-} from 'sentry/utils/discover/eventView';
-import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {useApi} from 'sentry/utils/useApi';
+
+import type {EventView, ImmutableEventView, LocationQuery} from './eventView';
+import {isAPIPayloadSimilar} from './eventView';
 
 interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;
@@ -368,3 +365,21 @@ export const parseError = (error: any): QueryError | null => {
 
   return new QueryError(t('An unknown error occurred.'), error);
 };
+
+export function getQueryErrorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object' || !('message' in error)) {
+    return undefined;
+  }
+
+  const {message} = error;
+  if (typeof message !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = message.trim();
+  if (!trimmed || trimmed === t('An unknown error occurred.')) {
+    return undefined;
+  }
+
+  return trimmed;
+}

@@ -557,6 +557,15 @@ describe('useSelectedProjectIds', () => {
 
     expect(result.current).toEqual([1, 2]);
   });
+
+  it('returns all projects when the user is a member of no projects', () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '3', isMember: false})]);
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), false);
+
+    const {result} = renderHookWithProviders(() => useSelectedProjectIds());
+
+    expect(result.current).toEqual([-1]);
+  });
 });
 
 describe('useSelectedProjectIdsForMutation', () => {
@@ -584,5 +593,14 @@ describe('useSelectedProjectIdsForMutation', () => {
     const {result} = renderHookWithProviders(() => useSelectedProjectIdsForMutation());
 
     expect(result.current).toEqual([10, 20]);
+  });
+
+  it('returns all projects when the user is a member of no projects', () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '20', isMember: false})]);
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), false);
+
+    const {result} = renderHookWithProviders(() => useSelectedProjectIdsForMutation());
+
+    expect(result.current).toEqual([-1]);
   });
 });

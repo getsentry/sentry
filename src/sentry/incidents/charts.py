@@ -5,11 +5,12 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry.api import client
 from sentry.api.base import logger
+from sentry.api.client import client
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
+from sentry.discover.arithmetic import is_equation
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.models.apikey import ApiKey
@@ -209,10 +210,16 @@ def build_metric_alert_chart(
         ),
     }
 
-    aggregate = translate_aggregate_field(
-        snuba_query.aggregate,
-        reverse=True,
-        allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
+    # translate_aggregate_field can't resolve equations. Only trace metric and span
+    # queries accept them, and the validator never translates those aggregates.
+    aggregate = (
+        snuba_query.aggregate
+        if is_equation(snuba_query.aggregate)
+        else translate_aggregate_field(
+            snuba_query.aggregate,
+            reverse=True,
+            allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
+        )
     )
     # If we allow alerts to be across multiple orgs this will break
     # TODO: determine whether this validation is necessary

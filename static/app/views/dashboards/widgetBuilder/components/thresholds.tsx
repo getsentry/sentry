@@ -8,11 +8,12 @@ import {
   HighlightedText,
   Thresholds,
 } from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
-import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
+
+import {SectionHeader} from './common/sectionHeader';
 
 type ThresholdsSectionProps = {
   dataType?: string;
@@ -105,11 +106,13 @@ export function ThresholdsSection({
           }
 
           if (newThresholds) {
+            // oxlint-disable-next-line react/todo
             newThresholds.max_values ??= {};
             if (value) {
               // Match the displayed unit on first entry without reinterpreting
               // existing unitless thresholds, which use the base unit.
               if (!hasThresholdValues) {
+                // oxlint-disable-next-line react/todo
                 newThresholds.unit ??= dataUnit || null;
               }
               newThresholds.max_values[maxKey] = Number(value);

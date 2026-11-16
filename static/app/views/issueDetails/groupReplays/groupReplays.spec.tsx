@@ -19,7 +19,16 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import GroupReplays from 'sentry/views/issueDetails/groupReplays';
+
+function GroupReplaysWithProvider({groupId}: {groupId: string}) {
+  return (
+    <GroupIdProvider groupId={groupId}>
+      <GroupReplays />
+    </GroupIdProvider>
+  );
+}
 
 const mockReplayCountUrl = '/organizations/org-slug/replay-count/';
 const mockReplayUrl = '/organizations/org-slug/replays/';
@@ -128,6 +137,7 @@ describe('GroupReplays', () => {
         pathname: `/organizations/org-slug/issues/${mockGroup.id}/replays/`,
         params: {orgId: 'org-slug', groupId: mockGroup.id},
         data: null,
+        loaderData: null,
         handle: {path: '/organizations/:orgId/issues/:groupId/replays/'},
       },
     ]);
@@ -141,7 +151,7 @@ describe('GroupReplays', () => {
   describe('Replay Feature Disabled', () => {
     it("should show a message when the organization doesn't have access to the replay feature", () => {
       const {organization} = init({organizationProps: {features: []}});
-      render(<GroupReplays />, {
+      render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig,
       });
@@ -159,7 +169,7 @@ describe('GroupReplays', () => {
           replayAccessMembers: [999], // User ID 1 is not in this list
         },
       });
-      render(<GroupReplays />, {
+      render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig,
       });
@@ -184,7 +194,7 @@ describe('GroupReplays', () => {
         match: [(_url, options) => !options.query?.returnIds],
         body: {[mockGroup.id]: 0},
       });
-      const {router} = render(<GroupReplays />, {
+      const {router} = render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig: {
           ...initialRouterConfig,
@@ -233,7 +243,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      render(<GroupReplays />, {
+      render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig,
       });
@@ -321,7 +331,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      render(<GroupReplays />, {
+      render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig,
       });
@@ -349,7 +359,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      render(<GroupReplays />, {
+      render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig,
       });
@@ -382,7 +392,7 @@ describe('GroupReplays', () => {
         body: {},
       });
 
-      render(<GroupReplays />, {
+      render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig,
       });
@@ -417,7 +427,7 @@ describe('GroupReplays', () => {
         },
       });
 
-      render(<GroupReplays />, {
+      render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig,
       });
@@ -486,7 +496,7 @@ describe('GroupReplays', () => {
       // Mock the system date to be 2022-09-28
       setMockDate(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
-      render(<GroupReplays />, {
+      render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig,
       });
@@ -605,7 +615,7 @@ describe('GroupReplays', () => {
         url: `/projects/${organization.slug}/${mockReplayRecord?.project_id}/replays/${mockReplayRecord?.id}/viewed-by/`,
       });
 
-      render(<GroupReplays />, {
+      render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig,
       });
@@ -680,7 +690,7 @@ describe('GroupReplays', () => {
         url: `/projects/${organization.slug}/${mockReplayRecord?.project_id}/replays/${mockReplayRecord?.id}/viewed-by/`,
       });
 
-      const {router} = render(<GroupReplays />, {
+      const {router} = render(<GroupReplaysWithProvider groupId={mockGroup.id} />, {
         organization,
         initialRouterConfig,
       });

@@ -3,9 +3,12 @@ from __future__ import annotations
 from collections import OrderedDict, defaultdict
 from collections.abc import MutableMapping
 from datetime import UTC, datetime, timedelta
+from typing import Annotated, TypedDict, cast
 
 from django.db.models import Count, DateTimeField, Func
 from django.db.models.functions import Extract
+from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,8 +17,18 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.parameters import (
+    GlobalParams,
+    MonitorParams,
+    OrganizationParams,
+    StatsRangeParams,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.monitors.endpoints.base_monitor_stats import validate_bucket_count
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 
 TRACKED_STATUSES = [
@@ -26,6 +39,22 @@ TRACKED_STATUSES = [
     CheckInStatus.TIMEOUT,
     CheckInStatus.UNKNOWN,
 ]
+
+MAX_STATS_MONITORS = 20
+
+
+class MonitorCheckInStatusCounts(TypedDict):
+    in_progress: Annotated[int, ApiDescription("Check-ins still in progress")]
+    ok: Annotated[int, ApiDescription("Check-ins that succeeded")]
+    error: Annotated[int, ApiDescription("Check-ins that failed")]
+    missed: Annotated[int, ApiDescription("Check-ins that were expected but never arrived")]
+    timeout: Annotated[int, ApiDescription("Check-ins that ran past the maximum runtime")]
+    unknown: Annotated[int, ApiDescription("Check-ins whose outcome is unknown")]
+
+
+# Each bucket is a `[timestamp, counts by environment name]` pair.
+MonitorStatsBucket = tuple[int, dict[str, MonitorCheckInStatusCounts]]
+OrganizationMonitorIndexStatsResponse = dict[str, list[MonitorStatsBucket]]
 
 
 def normalize_to_epoch(timestamp: datetime, seconds: int) -> int:
@@ -39,15 +68,46 @@ def normalize_to_epoch(timestamp: datetime, seconds: int) -> int:
     return epoch - (epoch % seconds)
 
 
+@extend_schema(tags=["Crons"])
 @cell_silo_endpoint
 class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.CRONS
 
+    @extend_schema(
+        operation_id="listOrganizationMonitorStats",
+        summary="Retrieve Check-In Stats for an Organization's Monitors",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            MonitorParams.STATS_MONITOR,
+            StatsRangeParams.SINCE,
+            StatsRangeParams.UNTIL,
+            MonitorParams.STATS_RESOLUTION,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationMonitorIndexStatsResponse", OrganizationMonitorIndexStatsResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     # TODO(epurkhiser): probably convert to snuba
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[OrganizationMonitorIndexStatsResponse]:
+        """
+        Return check-in counts by status for each requested monitor, in time buckets. The
+        response maps each monitor GUID to a list of `[timestamp, counts]` pairs, one for every
+        bucket in the range, where `timestamp` is the bucket start as a Unix timestamp and
+        `counts` maps each environment name to its counts by status.
+        """
         # Do not restrict rollups allowing us to define custom resolutions.
         # Important for this endpoint since we want our buckets to align with
         # the UI's timescale markers.
@@ -55,8 +115,13 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         start = normalize_to_epoch(args["start"], args["rollup"])
         end = normalize_to_epoch(args["end"], args["rollup"])
+        validate_bucket_count(start, end, args["rollup"])
 
-        monitor_guids: list[str] = request.GET.getlist("monitor")
+        monitor_guids: list[str] = list(dict.fromkeys(request.GET.getlist("monitor")))
+        if len(monitor_guids) > MAX_STATS_MONITORS:
+            raise ParseError(
+                detail=f"Too many monitors requested. Maximum is {MAX_STATS_MONITORS}."
+            )
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
         project_ids = [project.id for project in projects]
@@ -126,20 +191,14 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 environments = list(Environment.objects.filter(id__in=eids))
                 environment_map = {env.id: env.name for env in environments}
 
+        # MonitorEnvironment already carries monitor_id, so keep monitor_id out of the
+        # aggregate and let the monitor_environment/date/status index cover the query.
         check_ins = MonitorCheckIn.objects.filter(
+            monitor_environment_id__in=monitor_environment_map.keys(),
             date_added__gte=args["start"],
             date_added__lt=args["end"],
         )
-
-        group_by: tuple[str, ...]
-        if monitor_environment_map:
-            check_ins = check_ins.filter(monitor_environment_id__in=monitor_environment_map.keys())
-            # MonitorEnvironment already carries monitor_id, so keep monitor_id out of the
-            # aggregate and let the monitor_environment/date/status index cover the query.
-            group_by = ("bucket", "monitor_environment_id", "status")
-        else:
-            check_ins = check_ins.filter(monitor_id__in=monitor_map.keys())
-            group_by = ("monitor_id", "bucket", "monitor_environment_id", "status")
+        group_by = ("bucket", "monitor_environment_id", "status")
 
         # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(
@@ -155,8 +214,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         # retrieve the list of checkins in the time range and count each by
         # status. Bucketing is done at the postgres level for performance
         history = (
-            check_ins.all()
-            .annotate(bucket=bucket)
+            check_ins.annotate(bucket=bucket)
             .values(*group_by)
             .annotate(count=Count("*"))
             .values_list(*group_by, "count")
@@ -187,22 +245,15 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         # We manually sort the response output by guid and bucket. This is fine because the set
         # of keys is known (they're provided as a query parameter) and there is no pagination.
-        def sort_history_key(row):
-            if monitor_environment_map:
-                ts, meid, _status, _count = row
-                return monitor_map[monitor_environment_to_monitor_id[meid]], ts
+        def sort_history_key(row: tuple[int, int, object, int]) -> tuple[str, int]:
+            ts, meid, _status, _count = row
+            return monitor_map[monitor_environment_to_monitor_id[meid]], ts
 
-            mid, ts, _meid, _status, _count = row
-            return monitor_map[mid], ts
-
-        for row in sorted(list(history), key=sort_history_key):
-            if monitor_environment_map:
-                ts, meid, status, count = row
-                mid = monitor_environment_to_monitor_id[meid]
-            else:
-                mid, ts, meid, status, count = row
-
-            guid = monitor_map[mid]
+        # Every check-in has a monitor environment, so there is nothing to
+        # count without one.
+        rows = sorted(history, key=sort_history_key) if monitor_environment_map else []
+        for ts, meid, status, count in rows:
+            guid = monitor_map[monitor_environment_to_monitor_id[meid]]
 
             # Monitor environments can be null.  If we find a null monitor environment we
             # default to "production" by convention.
@@ -221,4 +272,5 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
             for guid, ts_to_envs in stats.items()
         }
 
-        return Response(stats_list)
+        # Each `[timestamp, env_mapping]` list serializes as the documented pair.
+        return Response(cast(OrganizationMonitorIndexStatsResponse, stats_list))

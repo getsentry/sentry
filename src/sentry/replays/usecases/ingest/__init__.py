@@ -94,7 +94,7 @@ RRWebEvent = (
 )
 
 
-def parse_recording_data(payload: bytes) -> list[dict]:
+def parse_recording_data(payload: bytes) -> list[dict[str, Any]]:
     try:
         # We're parsing with msgspec (if we can) and then transforming to the type that
         # JSON.loads returns.
@@ -108,7 +108,8 @@ def parse_recording_data(payload: bytes) -> list[dict]:
         # prod. We don't want a huge volume of logs slowing throughput. If there's a
         # significant volume of this metric we'll test against a broader cohort of data.
         metrics.incr("replays.recording_consumer.msgspec_decode_error")
-        return json.loads(payload)
+        decoded = json.loads(payload)
+        return decoded
 
 
 class DropEvent(Exception):
@@ -152,6 +153,7 @@ def process_recording_event(
     message: Event, use_new_recording_parser: bool = False
 ) -> ProcessedEvent:
     parsed_output = parse_replay_events(message, use_new_recording_parser)
+    trace_items: list[TraceItem]
     if parsed_output:
         replay_events, trace_items = parsed_output
     else:
@@ -185,7 +187,9 @@ def process_recording_event(
     )
 
 
-def parse_replay_events(message: Event, use_new_recording_parser: bool):
+def parse_replay_events(
+    message: Event, use_new_recording_parser: bool
+) -> tuple[ParsedEventMeta, list[TraceItem]] | None:
     try:
         if use_new_recording_parser:
             events = parse_recording_data(message["payload"])
@@ -282,7 +286,7 @@ def extract_user_info(replay_event: dict[str, Any] | None) -> dict[str, str | No
 
 
 @traces.trace
-def pack_replay_video(recording: bytes, video: bytes):
+def pack_replay_video(recording: bytes, video: bytes) -> bytes:
     return zlib.compress(pack(rrweb=recording, video=video))
 
 
@@ -382,7 +386,7 @@ def emit_replay_events(
 def _track_initial_segment_event_old(
     org_id: int,
     project_id: int,
-    replay_id,
+    replay_id: str,
     key_id: int | None,
     received: int,
 ) -> None:
@@ -419,7 +423,7 @@ def _track_initial_segment_event_old(
 def _track_initial_segment_event_new(
     org_id: int,
     project_id: int,
-    replay_id,
+    replay_id: str,
     key_id: int | None,
     received: int,
     has_seen_replays: AutoCache[int, bool],

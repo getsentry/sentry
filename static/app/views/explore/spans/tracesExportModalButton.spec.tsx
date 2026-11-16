@@ -20,9 +20,10 @@ import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
-import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {TracesExportModalButton} from 'sentry/views/explore/spans/tracesExportModalButton';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
+
+import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
+import {TracesExportModalButton} from './tracesExportModalButton';
 
 jest.mock('sentry/views/discover/utils', () => ({
   ...jest.requireActual('sentry/views/discover/utils'),
@@ -233,6 +234,59 @@ describe('TracesExportModalButton', () => {
       );
     });
     expect(downloadAsCsv).not.toHaveBeenCalled();
+  });
+
+  it('sends the case setting to server exports when ignoring case', async () => {
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: 9},
+    });
+
+    render(
+      <TracesExportModalButton
+        aggregatesTableResult={{
+          ...aggregatesTableResult,
+          result: makeQueryResult(
+            Array.from({length: 50}, (_, i) => ({
+              id: String(i),
+              'span.description': 'GET /',
+            })),
+            {pageLinks: HAS_MORE_ROWS_LINK}
+          ),
+        }}
+        spansTableResult={{eventView, result: makeQueryResult([])}}
+        rawSpanCounts={{
+          normal: {count: 0, isLoading: false},
+          total: {count: 0, isLoading: false},
+        }}
+      />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {pathname: '/', query: {mode: 'aggregate', caseInsensitive: '1'}},
+        },
+      }
+    );
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
+
+    await waitFor(() => {
+      expect(dataExportMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query_info: expect.objectContaining({caseInsensitive: '1'}),
+          }),
+        })
+      );
+    });
   });
 
   it('downloads a full aggregate page locally when it is the entire result set', async () => {

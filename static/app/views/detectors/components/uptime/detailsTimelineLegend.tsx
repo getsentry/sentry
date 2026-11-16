@@ -1,18 +1,19 @@
 import styled from '@emotion/styled';
 
 import {InfoTip} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
-import {CheckIndicator} from 'sentry/views/detectors/components/uptime/checkIndicator';
-import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
+
+import {CheckIndicator} from './checkIndicator';
+import {CheckStatus} from './types';
 
 export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boolean}) {
   return (
     <CheckLegend>
-      <CheckLegendItem>
+      <Grid as="li" align="center" column="1 / -1" columns="subgrid">
         <CheckIndicator status={CheckStatus.SUCCESS} />
         <Flex align="center" gap="md">
           {statusToText[CheckStatus.SUCCESS]}
@@ -28,8 +29,8 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
             )}
           />
         </Flex>
-      </CheckLegendItem>
-      <CheckLegendItem>
+      </Grid>
+      <Grid as="li" align="center" column="1 / -1" columns="subgrid">
         <CheckIndicator status={CheckStatus.FAILURE} />
         <Flex align="center" gap="md">
           {statusToText[CheckStatus.FAILURE]}
@@ -45,8 +46,8 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
             )}
           />
         </Flex>
-      </CheckLegendItem>
-      <CheckLegendItem>
+      </Grid>
+      <Grid as="li" align="center" column="1 / -1" columns="subgrid">
         <CheckIndicator status={CheckStatus.FAILURE_INCIDENT} />
         <Flex align="center" gap="md">
           {statusToText[CheckStatus.FAILURE_INCIDENT]}
@@ -62,9 +63,9 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
             )}
           />
         </Flex>
-      </CheckLegendItem>
+      </Grid>
       {showMissedLegend && (
-        <CheckLegendItem>
+        <Grid as="li" align="center" column="1 / -1" columns="subgrid">
           <CheckIndicator status={CheckStatus.MISSED_WINDOW} />
           <Flex align="center" gap="md">
             {statusToText[CheckStatus.MISSED_WINDOW]}
@@ -80,7 +81,7 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
               )}
             />
           </Flex>
-        </CheckLegendItem>
+        </Grid>
       )}
     </CheckLegend>
   );
@@ -92,11 +93,4 @@ const CheckLegend = styled('ul')`
   padding: 0;
   gap: ${p => p.theme.space.md};
   margin-bottom: 0;
-`;
-
-const CheckLegendItem = styled('li')`
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: center;
-  grid-column: 1 / -1;
 `;

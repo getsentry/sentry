@@ -6,7 +6,8 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
+
+import {useDefaultToAllProjects} from './useDefaultToAllProjects';
 
 jest.mock('sentry/components/pageFilters/actions');
 
@@ -22,13 +23,13 @@ const pageFilterSelection = PageFiltersFixture({
 
 describe('useDefaultToAllProjects', () => {
   beforeEach(() => {
+    ProjectsStore.reset();
     PageFiltersStore.onInitializeUrlState(pageFilterSelection);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
     PageFiltersStore.reset();
-    ProjectsStore.reset();
   });
   it('should default to all projects when no projects are selected and user has no team projects', () => {
     const nonMemberProject = ProjectFixture({isMember: false});

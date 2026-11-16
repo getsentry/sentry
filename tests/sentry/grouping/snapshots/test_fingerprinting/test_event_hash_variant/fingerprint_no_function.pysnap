@@ -12,8 +12,8 @@ config:
       - DatabaseUnavailable
     - - module
       - io.sentry.example.*
-    text: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "database-unavailable{{
-      function }}"
+    text: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "database-unavailable",
+      "{{ function }}"
   version: 1
 fingerprint:
 - database-unavailable
@@ -32,8 +32,8 @@ variants:
     contributes: true
     hint: null
     key: custom_server_fingerprint
-    matched_rule: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "database-unavailable{{
-      function }}"
+    matched_rule: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "database-unavailable",
+      "{{ function }}"
     type: custom_fingerprint
     values:
     - database-unavailable

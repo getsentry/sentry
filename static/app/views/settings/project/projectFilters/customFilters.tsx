@@ -10,20 +10,20 @@ import startCase from 'lodash/startCase';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -39,47 +39,101 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
+
 import type {
   CustomInboundFilter,
   CustomInboundFilterCondition,
-} from 'sentry/views/settings/project/projectFilters/customFilterModal';
+} from './customFilterModal';
 import {
   customFiltersQueryOptions,
   getCondition,
+  getConditionOperator,
   getCustomFilterUrl,
   getDataTypeLabel,
   getErrorDetail,
+  NEGATED_OPERATORS,
   openCustomFilterModal,
-} from 'sentry/views/settings/project/projectFilters/customFilterModal';
+  OPERATOR_LABELS,
+} from './customFilterModal';
 
 // Values a condition shows in the table before the rest fold into a count.
 const MAX_VISIBLE_VALUES = 3;
+// Values the tooltip of that count lists before it points at the editor, which
+// shows them all. A tooltip cannot scroll, so a long list would cover the page.
+const MAX_TOOLTIP_VALUES = 10;
+const VALUE_TOOLTIP_WIDTH = 360;
 
+// A value laid out for a tooltip: left aligned, since a centered pattern that
+// wraps is hard to read. It fills the tooltip width so that a long pattern
+// without spaces breaks at the edge instead of running past it.
+function ValueText({value}: {value: string}) {
+  return (
+    <Text monospace size="sm" align="left" display="block">
+      {value}
+    </Text>
+  );
+}
+
+function ValueList({values, total}: {total: number; values: string[]}) {
+  return (
+    <Stack gap="xs">
+      {values.map((value, index) => (
+        <ValueText key={index} value={value} />
+      ))}
+      {total > values.length && (
+        <Text size="sm" variant="muted" align="left">
+          {t(
+            'Showing %s of %s. Edit the filter to see every value.',
+            values.length,
+            total
+          )}
+        </Text>
+      )}
+    </Stack>
+  );
+}
+
+// A value shrinks to its cell and shows the whole pattern on hover when cut.
 function ValueTag({value}: {value: string}) {
   return (
     <Tag variant="muted">
-      <Text monospace size="sm">
+      <InfoText
+        mode="overflowOnly"
+        title={<ValueText value={value} />}
+        maxWidth={VALUE_TOOLTIP_WIDTH}
+        monospace
+        size="sm"
+      >
         {value}
-      </Text>
+      </InfoText>
     </Tag>
   );
 }
 
-// One condition of a filter: its property, then the values any of which matches.
+// One condition of a filter: its property, its operator unless the values speak
+// for themselves, then its values. A match reads "a or b"; a negated one reads
+// "a and b", as the search bar does, since the data must match none of them.
 function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}) {
   const visible = condition.value.slice(0, MAX_VISIBLE_VALUES);
   const hidden = condition.value.slice(MAX_VISIBLE_VALUES);
+  const operator = getConditionOperator(condition);
+  const joiner = NEGATED_OPERATORS.has(operator) ? t('and') : t('or');
 
   return (
     <Flex wrap="wrap" gap="xs" align="center">
       <Text size="sm" variant="muted">
         {getCondition(condition.type).label}
       </Text>
+      {OPERATOR_LABELS[operator] && (
+        <Text size="sm" variant="muted">
+          {OPERATOR_LABELS[operator]}
+        </Text>
+      )}
       {visible.map((value, index) => (
         <Fragment key={index}>
           {index > 0 && (
             <Text size="xs" variant="muted">
-              {t('or')}
+              {joiner}
             </Text>
           )}
           <ValueTag value={value} />
@@ -88,19 +142,17 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
       {hidden.length > 0 && (
         <Fragment>
           <Text size="xs" variant="muted">
-            {t('or')}
+            {joiner}
           </Text>
           <Tag variant="muted">
             <InfoText
               size="sm"
+              maxWidth={VALUE_TOOLTIP_WIDTH}
               title={
-                <Stack align="start" gap="xs">
-                  {hidden.map((value, index) => (
-                    <Text key={index} monospace size="sm">
-                      {value}
-                    </Text>
-                  ))}
-                </Stack>
+                <ValueList
+                  values={hidden.slice(0, MAX_TOOLTIP_VALUES)}
+                  total={hidden.length}
+                />
               }
             >
               {tn('%s more', '%s more', hidden.length)}
@@ -154,6 +206,11 @@ const STATS_CATEGORIES = [
 // A custom filter reports under this reason in ingest outcomes, followed by its id.
 // The backend builds the same string when it sends the filter to Relay.
 const OUTCOMES_REASON_PREFIX = 'custom-inbound-filter:';
+
+// A row that holds a legacy list reports under the id of that list instead.
+function getOutcomesReason(filter: CustomInboundFilter): string {
+  return filter.legacyFilter ?? `${OUTCOMES_REASON_PREFIX}${filter.id}`;
+}
 
 // What one filter dropped, per data category. A filter drops errors, logs, or trace
 // metrics, and each of those counts under its own category in ingest outcomes.
@@ -441,7 +498,7 @@ export function CustomFilters({project}: {project: Project}) {
       }),
     onSuccess: () => invalidate(),
     onError: error => {
-      addErrorMessage(getErrorDetail(error, t('Unable to update filter')));
+      toast.error(getErrorDetail(error, t('Unable to update filter')));
     },
   });
 
@@ -452,11 +509,11 @@ export function CustomFilters({project}: {project: Project}) {
         url: getCustomFilterUrl(organization, project, id),
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Filter deleted'));
+      toast.success(t('Filter deleted'));
       invalidate();
     },
     onError: error => {
-      addErrorMessage(getErrorDetail(error, t('Unable to delete filter')));
+      toast.error(getErrorDetail(error, t('Unable to delete filter')));
     },
   });
 
@@ -572,7 +629,7 @@ export function CustomFilters({project}: {project: Project}) {
                     </Text>
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
-                    <Stack align="start" gap="xs">
+                    <Stack gap="xs" minWidth="0">
                       {filter.conditions.map((condition, index) => (
                         <ConditionSummary key={index} condition={condition} />
                       ))}
@@ -581,7 +638,7 @@ export function CustomFilters({project}: {project: Project}) {
                   <FilteredVolumeCells
                     intervals={stats?.intervals ?? []}
                     seriesByCategory={stats?.seriesByReason.get(
-                      `${OUTCOMES_REASON_PREFIX}${filter.id}`
+                      getOutcomesReason(filter)
                     )}
                     isPending={isStatsPending}
                     isError={isStatsError}

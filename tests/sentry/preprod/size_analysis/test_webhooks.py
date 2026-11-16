@@ -1,6 +1,10 @@
 from io import BytesIO
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
+from sentry.models.commitcomparison import CommitComparison
+from sentry.models.files.file import File
+from sentry.preprod.api.models.public.size_analysis import SizeAnalysisSummaryResponseDict
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -26,12 +30,12 @@ class BuildWebhookPayloadTest(TestCase):
     # Helpers
     # ------------------------------------------------------------------
 
-    def _create_analysis_file(self, data):
+    def _create_analysis_file(self, data: dict[str, Any]) -> File:
         f = self.create_file(name="analysis.json", type="application/json")
         f.putfile(BytesIO(json.dumps(data).encode()))
         return f
 
-    def _make_analysis_data(self, **overrides):
+    def _make_analysis_data(self, **overrides: Any) -> dict[str, Any]:
         defaults = {
             "analysis_duration": 1.5,
             "download_size": 28311552,
@@ -46,8 +50,12 @@ class BuildWebhookPayloadTest(TestCase):
         return defaults
 
     def _make_comparison_data(
-        self, head_sizes, base_sizes, metrics_artifact_type=0, identifier=None
-    ):
+        self,
+        head_sizes: tuple[int, int],
+        base_sizes: tuple[int, int],
+        metrics_artifact_type: int = 0,
+        identifier: str | None = None,
+    ) -> dict[str, Any]:
         return {
             "diff_items": [{"size_diff": 100, "path": "/test", "type": "added"}],
             "insight_diff_items": [],
@@ -64,16 +72,16 @@ class BuildWebhookPayloadTest(TestCase):
 
     def _create_artifact_with_completed_analysis(
         self,
-        commit_comparison=None,
-        artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-        app_name="My App",
-        build_version="2.4.1",
-        build_number=347,
-        download_size=28311552,
-        install_size=41943040,
-        app_id="com.example.myapp",
-        analysis_data_overrides=None,
-    ):
+        commit_comparison: CommitComparison | None = None,
+        artifact_type: int = PreprodArtifact.ArtifactType.XCARCHIVE,
+        app_name: str = "My App",
+        build_version: str = "2.4.1",
+        build_number: int = 347,
+        download_size: int = 28311552,
+        install_size: int = 41943040,
+        app_id: str = "com.example.myapp",
+        analysis_data_overrides: dict[str, Any] | None = None,
+    ) -> tuple[PreprodArtifact, PreprodArtifactSizeMetrics]:
         """Create an artifact with a COMPLETED main metric backed by an analysis file."""
         artifact = self.create_preprod_artifact(
             project=self.project,
@@ -100,7 +108,7 @@ class BuildWebhookPayloadTest(TestCase):
         )
         return artifact, metric
 
-    def _assert_no_api_heavy_fields(self, payload):
+    def _assert_no_api_heavy_fields(self, payload: SizeAnalysisSummaryResponseDict) -> None:
         """Assert that API-only heavy fields are absent."""
         for field in ("insights", "appComponents"):
             assert field not in payload, f"API-only field '{field}' should not be present"
@@ -591,12 +599,12 @@ class BuildWebhookPayloadTest(TestCase):
 class SendSizeAnalysisWebhookTest(TestCase):
     """Tests for the send_size_analysis_webhook function."""
 
-    def _create_analysis_file(self, data):
+    def _create_analysis_file(self, data: dict[str, Any]) -> File:
         f = self.create_file(name="analysis.json", type="application/json")
         f.putfile(BytesIO(json.dumps(data).encode()))
         return f
 
-    def _create_artifact_with_completed_analysis(self):
+    def _create_artifact_with_completed_analysis(self) -> PreprodArtifact:
         artifact = self.create_preprod_artifact(
             project=self.project,
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
@@ -624,7 +632,7 @@ class SendSizeAnalysisWebhookTest(TestCase):
         return artifact
 
     @patch("sentry.preprod.size_analysis.webhooks.broadcast_webhooks_for_organization")
-    def test_sends_webhook(self, mock_broadcast):
+    def test_sends_webhook(self, mock_broadcast: MagicMock) -> None:
         """Webhook is sent for a completed build with API-subset payload."""
         artifact = self._create_artifact_with_completed_analysis()
 
@@ -641,7 +649,7 @@ class SendSizeAnalysisWebhookTest(TestCase):
         assert call_kwargs.kwargs["payload"]["state"] == "COMPLETED"
 
     @patch("sentry.preprod.size_analysis.webhooks.broadcast_webhooks_for_organization")
-    def test_does_not_send_for_not_ran(self, mock_broadcast):
+    def test_does_not_send_for_not_ran(self, mock_broadcast: MagicMock) -> None:
         """Webhook is NOT sent for NOT_RAN state."""
         artifact = self.create_preprod_artifact(project=self.project)
         self.create_preprod_artifact_size_metrics(
@@ -656,7 +664,7 @@ class SendSizeAnalysisWebhookTest(TestCase):
         mock_broadcast.delay.assert_not_called()
 
     @patch("sentry.preprod.size_analysis.webhooks.broadcast_webhooks_for_organization")
-    def test_does_not_send_for_no_metrics(self, mock_broadcast):
+    def test_does_not_send_for_no_metrics(self, mock_broadcast: MagicMock) -> None:
         """Webhook is NOT sent when no size metrics exist."""
         artifact = self.create_preprod_artifact(project=self.project)
 
@@ -665,7 +673,7 @@ class SendSizeAnalysisWebhookTest(TestCase):
         mock_broadcast.delay.assert_not_called()
 
     @patch("sentry.preprod.size_analysis.webhooks.broadcast_webhooks_for_organization")
-    def test_broadcast_exception_is_caught(self, mock_broadcast):
+    def test_broadcast_exception_is_caught(self, mock_broadcast: MagicMock) -> None:
         """Exceptions from broadcast are caught and logged, not re-raised."""
         artifact = self._create_artifact_with_completed_analysis()
         mock_broadcast.delay.side_effect = Exception("Celery task failed")

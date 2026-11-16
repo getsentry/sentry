@@ -1,7 +1,7 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from concurrent.futures import as_completed
-from typing import Any, TypedDict
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_sdk import traces
 
 from sentry import features
@@ -27,6 +28,7 @@ from sentry.api.helpers.ingestion_delay import (
 from sentry.api.paginator import EAPPageTokenPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import (
     CursorQueryParam,
@@ -36,6 +38,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
 from sentry.ingestion_delay.meta import IngestionMeta
@@ -106,24 +109,57 @@ class EventsMeta(TypedDict, total=False):
     no-projects path only carries `tips`, the standard path carries
     everything below."""
 
-    fields: dict[str, str]
-    units: dict[str, str | None]
-    tips: dict[str, str]
-    datasetReason: str
-    isMetricsData: bool
-    isMetricsExtractedData: bool
-    dataset: str
-    discoverSplitDecision: Any
-    dataScanned: str
-    bytesScanned: int
-    routingHint: str
-    debug_info: Any
+    fields: Annotated[
+        dict[str, str], ApiDescription("Type of each returned field, keyed by field name")
+    ]
+    units: Annotated[
+        dict[str, str | None],
+        ApiDescription(
+            "Unit of each returned field, keyed by field name, or null if the field has no unit"
+        ),
+    ]
+    tips: Annotated[
+        dict[str, str],
+        ApiDescription("Suggestions for improving the query, under the `query` and `columns` keys"),
+    ]
+    datasetReason: Annotated[
+        str, ApiDescription("Why the query ran on a different dataset than requested, or unchanged")
+    ]
+    isMetricsData: Annotated[bool, ApiDescription("Whether the results came from metrics data")]
+    isMetricsExtractedData: Annotated[
+        bool, ApiDescription("Whether the results came from metrics extracted on demand")
+    ]
+    dataset: Annotated[str, ApiDescription("Dataset that was queried")]
+    discoverSplitDecision: Annotated[
+        Literal["error-events", "transaction-like"],
+        ApiDescription(
+            "Dataset the results were taken from when a Discover dashboard widget query was split between errors and transactions"
+        ),
+    ]
+    dataScanned: Annotated[
+        str,
+        ApiDescription("Whether the query scanned the `full` data set or only a `partial` sample"),
+    ]
+    bytesScanned: Annotated[int, ApiDescription("Number of bytes the query scanned")]
+    routingHint: Annotated[
+        str,
+        ApiDescription(
+            "Opaque routing hint of an EAP table query. Pass it unchanged as routing_hint when fetching item details for a row"
+        ),
+    ]
+    debug_info: Annotated[
+        Any,
+        ApiDescription("Debug information about the query. Only present when `debug` is passed"),
+    ]
     ingestion: IngestionMeta
 
 
 # Only used for api docs
 class EventsApiResponse(TypedDict):
-    data: list[dict[str, Any]]
+    data: Annotated[
+        list[dict[str, Any]],
+        ApiDescription("Rows returned by the query, keyed by the requested fields"),
+    ]
     meta: EventsMeta
 
 
@@ -158,7 +194,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         batch_features = features.batch_has(
             feature_names,
             organization=organization,
-            actor=request.user,
+            actor=acting_user(request.user),
         )
 
         all_features: dict[str, bool] = {}
@@ -293,19 +329,21 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         sentry_sdk.set_attribute("query.referrer", referrer)
 
         # We are going to start ratcheting usage of this endpoint for legacy
-        # datasets. For now, log usage from blocked orgs but still permit the
-        # request.
+        # datasets. For now, log all external usage but still permit the
+        # request. Logging allowlisted (unblocked) orgs too lets us see who
+        # still relies on these datasets before shrinking the allowlist.
         is_external_api_request = request.auth and referrer == Referrer.API_AUTH_TOKEN_EVENTS
         is_legacy_dataset = dataset in {transactions, discover, metrics_enhanced_performance}
         is_blocked = batch_features.get(
             "organizations:events-endpoint-transactions-discover-blocked", False
         )
-        if is_external_api_request and is_legacy_dataset and is_blocked:
+        if is_external_api_request and is_legacy_dataset:
             sdk_logger.warning(
-                "events endpoint called by blocked org",
+                "events endpoint called with legacy dataset",
                 attributes={
                     "org_id": organization.id,
                     "org_slug": organization.slug,
+                    "is_blocked": is_blocked,
                     "effective_dataset": DATASET_LABELS.get(dataset, ""),
                     "requested_dataset": request.GET.get("dataset", ""),
                     "endpoint_name": "organization-events",
@@ -329,7 +367,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             offset: int,
             limit: int,
             query: str | None,
-        ):
+        ) -> dict[str, Any]:
             selected_columns = self.get_field_list(organization, request)
             orderby = self.get_orderby(request)
             if is_errors_query_for_error_upsampled_projects(
@@ -345,26 +383,29 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             sentry_sdk.set_tag("query.query_source", query_source.value)
             sentry_sdk.set_attribute("query.query_source", query_source.value)
 
-            return dataset_query(
-                selected_columns=selected_columns,
-                query=query or "",
-                snuba_params=snuba_params,
-                equations=self.get_equation_list(organization, request),
-                orderby=orderby,
-                offset=offset,
-                limit=limit,
-                referrer=referrer,
-                auto_fields=True,
-                auto_aggregations=True,
-                allow_metric_aggregates=allow_metric_aggregates,
-                use_aggregate_conditions=use_aggregate_conditions,
-                transform_alias_to_input_format=True,
-                # Whether the flag is enabled or not, regardless of the referrer
-                has_metrics=True,
-                on_demand_metrics_enabled=on_demand_metrics_enabled,
-                on_demand_metrics_type=on_demand_metrics_type,
-                fallback_to_transactions=True,
-                query_source=query_source,
+            return cast(
+                dict[str, Any],
+                dataset_query(
+                    selected_columns=selected_columns,
+                    query=query or "",
+                    snuba_params=snuba_params,
+                    equations=self.get_equation_list(organization, request),
+                    orderby=orderby,
+                    offset=offset,
+                    limit=limit,
+                    referrer=referrer,
+                    auto_fields=True,
+                    auto_aggregations=True,
+                    allow_metric_aggregates=allow_metric_aggregates,
+                    use_aggregate_conditions=use_aggregate_conditions,
+                    transform_alias_to_input_format=True,
+                    # Whether the flag is enabled or not, regardless of the referrer
+                    has_metrics=True,
+                    on_demand_metrics_enabled=on_demand_metrics_enabled,
+                    on_demand_metrics_type=on_demand_metrics_type,
+                    fallback_to_transactions=True,
+                    query_source=query_source,
+                ),
             )
 
         @traces.trace
@@ -374,7 +415,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             limit: int,
             scoped_query: str | None,
             dashboard_widget_id: str,
-        ):
+        ) -> dict[str, Any]:
             try:
                 widget = DashboardWidget.objects.get(
                     id=dashboard_widget_id, dashboard__organization_id=organization.id
@@ -462,7 +503,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             limit: int,
             scoped_query: str | None,
             discover_saved_query_id: str,
-        ):
+        ) -> dict[str, Any]:
             try:
                 discover_query = DiscoverSavedQuery.objects.get(
                     id=discover_saved_query_id, organization=organization
@@ -576,7 +617,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 sentry_sdk.capture_exception(e)
                 return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
-        def paginator_factory(scoped_dataset):
+        def paginator_factory(
+            scoped_dataset: Any,
+        ) -> tuple[GenericOffsetPaginator | EAPPageTokenPaginator, type[Cursor]]:
             """
             This factory closes over query and dataset in order to make an additional request to the errors dataset
             in the case that this request is from a dashboard widget or a discover query and we're trying to split
@@ -589,7 +632,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
             additional_queries = self.get_additional_queries(request)
 
-            def get_rpc_config():
+            def get_rpc_config() -> SearchResolverConfig:
                 if scoped_dataset not in RPC_DATASETS:
                     raise NotImplementedError
 
@@ -699,44 +742,50 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":
 
-                def flex_time_data_fn(limit, page_token):
+                def flex_time_data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
                     config = get_rpc_config()
 
-                    return scoped_dataset.run_table_query(
-                        params=snuba_params,
-                        query_string=scoped_query or "",
-                        selected_columns=self.get_field_list(organization, request),
-                        equations=self.get_equation_list(organization, request),
-                        orderby=self.get_orderby(request),
-                        offset=0,  # required but not used because we're using page tokens here
-                        limit=limit,
-                        referrer=referrer,
-                        config=config,
-                        sampling_mode=snuba_params.sampling_mode,
-                        page_token=page_token,
-                        additional_queries=additional_queries,
-                        max_string_length=max_string_length,
+                    return cast(
+                        dict[str, Any],
+                        scoped_dataset.run_table_query(
+                            params=snuba_params,
+                            query_string=scoped_query or "",
+                            selected_columns=self.get_field_list(organization, request),
+                            equations=self.get_equation_list(organization, request),
+                            orderby=self.get_orderby(request),
+                            offset=0,  # required but not used because we're using page tokens here
+                            limit=limit,
+                            referrer=referrer,
+                            config=config,
+                            sampling_mode=snuba_params.sampling_mode,
+                            page_token=page_token,
+                            additional_queries=additional_queries,
+                            max_string_length=max_string_length,
+                        ),
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor
 
-            def data_fn(offset, limit):
+            def data_fn(offset: int, limit: int) -> dict[str, Any]:
                 if scoped_dataset in RPC_DATASETS:
                     config = get_rpc_config()
 
-                    return scoped_dataset.run_table_query(
-                        params=snuba_params,
-                        query_string=scoped_query or "",
-                        selected_columns=self.get_field_list(organization, request),
-                        equations=self.get_equation_list(organization, request),
-                        orderby=self.get_orderby(request),
-                        offset=offset,
-                        limit=limit,
-                        referrer=referrer,
-                        config=config,
-                        sampling_mode=snuba_params.sampling_mode,
-                        additional_queries=additional_queries,
-                        max_string_length=max_string_length,
+                    return cast(
+                        dict[str, Any],
+                        scoped_dataset.run_table_query(
+                            params=snuba_params,
+                            query_string=scoped_query or "",
+                            selected_columns=self.get_field_list(organization, request),
+                            equations=self.get_equation_list(organization, request),
+                            orderby=self.get_orderby(request),
+                            offset=offset,
+                            limit=limit,
+                            referrer=referrer,
+                            config=config,
+                            sampling_mode=snuba_params.sampling_mode,
+                            additional_queries=additional_queries,
+                            max_string_length=max_string_length,
+                        ),
                     )
 
                 if save_discover_dataset_decision and discover_saved_query_id:
@@ -764,14 +813,15 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             "organizations:measured-ingestion-delay-metadata", False
         )
 
-        def _handle_results(results):
+        def _handle_results(results: Sequence[object]) -> EventsApiResponse:
             # Apply error upsampling for regular Events API
-            self.handle_error_upsampling(snuba_params.project_ids, results)
+            results_dict = cast(dict[str, Any], results)
+            self.handle_error_upsampling(snuba_params.project_ids, results_dict)
             handled = self.handle_results_with_meta(
                 request,
                 organization,
                 snuba_params.project_ids,
-                results,
+                results_dict,
                 standard_meta=True,
                 dataset=dataset,
             )
@@ -783,7 +833,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 status = get_ingestion_delay_status(dataset, snuba_params)
                 if status is not None:
                     handled["meta"]["ingestion"] = serialize_ingestion_status(status)
-            return handled
+            return cast(EventsApiResponse, handled)
 
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them

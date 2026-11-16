@@ -1,6 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
@@ -25,10 +26,10 @@ export function useRequestTeamAccess({organization, team}: UseRequestTeamAccessO
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('You have requested access to %s', `#${team.slug}`));
+      toast.success(t('You have requested access to %s', `#${team.slug}`));
     },
     onError: () => {
-      addErrorMessage(t('Unable to request access to %s', `#${team.slug}`));
+      toast.error(t('Unable to request access to %s', `#${team.slug}`));
     },
   });
 }

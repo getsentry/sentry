@@ -12,11 +12,9 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {
-  usePageContextCapture,
-  usePageContextReady,
-} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import type {ChatSuggestion} from 'sentry/views/seerExplorer/types';
+
+import {usePageContextCapture, usePageContextReady} from './usePageContextCapture';
 
 // How long the placeholders show before the fixed suggestions replace them.
 // Covers both the page loading its context and the request itself.
@@ -109,7 +107,6 @@ export function useChatSuggestions({
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const capturePageContext = usePageContextCapture();
-  const isPageReady = usePageContextReady(route);
 
   const queryKey = [
     'seer-chat-suggestions',
@@ -120,6 +117,7 @@ export function useChatSuggestions({
     allowStructuredContext,
   ];
   const serializedQueryKey = JSON.stringify(queryKey);
+  const isPageReady = usePageContextReady(route, serializedQueryKey);
 
   // Latched so a late response doesn't swap out suggestions the user is reading.
   const [timeoutReason, setTimeoutReason] = useState<TimeoutReason | null>(null);

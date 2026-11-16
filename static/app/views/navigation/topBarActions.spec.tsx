@@ -5,8 +5,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
+
+import {SearchButton} from './searchButton';
 
 const theme = ThemeFixture();
 

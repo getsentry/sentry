@@ -6,8 +6,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -49,17 +49,18 @@ export default function TeamDetails() {
         orgId: orgSlug,
         teamId: teamSlug,
       });
-      addSuccessMessage(
+      toast.success(
         tct('You have requested access to [team]', {
           team: `#${teamSlug}`,
         })
       );
     } catch {
-      addErrorMessage(
+      toast.error(
         tct('Unable to request access to [team]', {
           team: `#${teamSlug}`,
         })
       );
+      // oxlint-disable-next-line react/todo
     } finally {
       setRequesting(false);
     }

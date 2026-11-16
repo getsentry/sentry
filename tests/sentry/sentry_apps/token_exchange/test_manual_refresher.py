@@ -27,10 +27,16 @@ from sentry.testutils.silo import control_silo_test
 class TestManualRefresher(TestCase):
     def setUp(self) -> None:
         self.install = self.create_sentry_app_installation()
-        self.client_id = self.install.sentry_app.application.client_id
-        self.user = self.install.sentry_app.proxy_user
-
-        self.token = self.install.api_token
+        application = self.install.sentry_app.application
+        assert application is not None
+        user = self.install.sentry_app.proxy_user
+        assert user is not None
+        token = self.install.api_token
+        assert token is not None
+        self.application = application
+        self.client_id = application.client_id
+        self.user = user
+        self.token = token
 
         self.refresher = ManualTokenRefresher(
             install=self.install,
@@ -91,8 +97,11 @@ class TestManualRefresher(TestCase):
     def test_installation_must_exist(self, mock_record: MagicMock) -> None:
         # Create a new installation and then delete it
         deleted_install = self.create_sentry_app_installation()
-        deleted_client_id = deleted_install.sentry_app.application.client_id
+        deleted_application = deleted_install.sentry_app.application
+        assert deleted_application is not None
+        deleted_client_id = deleted_application.client_id
         deleted_user = deleted_install.sentry_app.proxy_user
+        assert deleted_user is not None
         deleted_install.delete()
 
         refresher = ManualTokenRefresher(
@@ -129,12 +138,16 @@ class TestManualRefresher(TestCase):
     def test_validates_installation_belongs_to_app(self, mock_record: MagicMock) -> None:
         # Create a different app and installation
         other_app = self.create_sentry_app(name="other-app", organization=self.organization)
+        other_application = other_app.application
+        assert other_application is not None
+        other_user = other_app.proxy_user
+        assert other_user is not None
 
         # Try to use this installation's client_id with the original install
         refresher = ManualTokenRefresher(
             install=self.install,
-            client_id=other_app.application.client_id,
-            user=other_app.proxy_user,
+            client_id=other_application.client_id,
+            user=other_user,
         )
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -242,7 +255,7 @@ class TestManualRefresher(TestCase):
 
         assert e.value.message == "Sentry App does not exist on attached Application"
         assert e.value.webhook_context == {
-            "application_id": self.install.sentry_app.application.id,
+            "application_id": self.application.id,
             "installation_uuid": self.install.uuid,
             "client_id": self.client_id[:SENSITIVE_CHARACTER_LIMIT],
         }
@@ -352,6 +365,7 @@ class TestManualRefresher(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_new_token_has_correct_properties(self, mock_record: MagicMock) -> None:
         old_token = self.install.api_token
+        assert old_token is not None
         new_token = self.refresher.run()
 
         # Verify new token has different ID and token value

@@ -84,6 +84,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    * Number of groups for a `groupBy` request. e.g., if `topEvents` is `5` and `groupBy` is `["transaction"]` this will group the results by `transaction` and fetch the top 5 results
    */
   topEvents?: number;
+  transformations?: ReadonlyArray<readonly string[]>;
 }
 
 export function useFetchSpanTimeSeries<
@@ -127,6 +128,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     logQuery,
     metricQuery,
     spanQuery,
+    transformations,
   } = options;
 
   const organization = useOrganization();
@@ -149,6 +151,11 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   const logQueryParams = logQuery?.map(formatSearchStringForQueryParam);
   const metricQueryParams = metricQuery?.map(formatSearchStringForQueryParam);
   const spanQueryParams = spanQuery?.map(formatSearchStringForQueryParam);
+  const transformationParams = Object.fromEntries(
+    (transformations ?? []).flatMap((steps, index) =>
+      steps.length ? [[`transformations[${index}]`, steps]] : []
+    )
+  );
 
   return useQuery({
     ...apiOptions.as<EventsTimeSeriesResponse>()(
@@ -161,6 +168,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           dataset,
           referrer,
           yAxis,
+          ...transformationParams,
           ...normalizeDateTimeParams(selection.datetime),
           project: selection.projects,
           environment: selection.environments,

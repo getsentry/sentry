@@ -12,9 +12,8 @@ The deprecated legacy alert API routes were removed in
 the detector and workflow APIs to manage alerts. The serializer and issue-alert
 POST/PUT rollout flags no longer have consumers and have been retired.
 
-Some compatibility code remains: rule history and statistics resolve legacy rule IDs
-to workflows, lookup endpoints expose associations between legacy and Workflow Engine
-models, and notification code still uses legacy-shaped data. Endpoint retirement does
+Some compatibility code remains: lookup endpoints expose associations between legacy and
+Workflow Engine models, and notification code still uses legacy-shaped data. Endpoint retirement does
 not imply that the association tables, serializers, or ID helpers are all unused.
 
 ## Handling IDs
@@ -41,8 +40,8 @@ Endpoints that accept IDs as input must handle both real legacy IDs (via associa
 ## Compatibility Endpoints
 
 Check the registered routes and their implementations when changing compatibility
-code. Rule history and statistics live in `src/sentry/rules/history/endpoints/`;
-association lookup routes live in `src/sentry/workflow_engine/endpoints/urls.py`.
+code. The association lookup routes (`alert-rule-workflow`, `alert-rule-detector`, and
+`incident-groupopenperiod`) live in `src/sentry/workflow_engine/endpoints/urls.py`.
 The endpoint-tracking decorator was removed with the deprecated routes.
 
 ## Unsupported legacy features

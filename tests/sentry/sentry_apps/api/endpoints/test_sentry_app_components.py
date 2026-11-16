@@ -33,7 +33,9 @@ class SentryAppComponentsTest(APITestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         )
 
-        self.component = self.sentry_app.components.first()
+        component = self.sentry_app.components.first()
+        assert component is not None
+        self.component = component
 
         self.login_as(user=self.user)
 
@@ -89,9 +91,15 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             status=SentryAppInstallationStatus.PENDING,
         )
 
-        self.component1 = self.sentry_app1.components.order_by("pk").first()
-        self.component2 = self.sentry_app2.components.order_by("pk").first()
-        self.component3 = self.sentry_app3.components.order_by("pk").first()
+        component1 = self.sentry_app1.components.order_by("pk").first()
+        component2 = self.sentry_app2.components.order_by("pk").first()
+        component3 = self.sentry_app3.components.order_by("pk").first()
+        assert component1 is not None
+        assert component2 is not None
+        assert component3 is not None
+        self.component1 = component1
+        self.component2 = component2
+        self.component3 = component3
 
         self.login_as(user=self.user)
 
@@ -109,6 +117,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             "type": "issue-link",
             "schema": self.component1.schema,
             "error": "",
+            "installationUuid": str(self.install1.uuid),
             "sentryApp": {
                 "uuid": self.sentry_app1.uuid,
                 "slug": self.sentry_app1.slug,
@@ -122,6 +131,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             "type": "issue-link",
             "schema": self.component2.schema,
             "error": "",
+            "installationUuid": str(self.install2.uuid),
             "sentryApp": {
                 "uuid": self.sentry_app2.uuid,
                 "slug": self.sentry_app2.slug,
@@ -134,9 +144,10 @@ class OrganizationSentryAppComponentsTest(APITestCase):
     def test_filter_by_type(self, run: MagicMock) -> None:
         sentry_app = self.create_sentry_app(schema={"elements": [{"type": "alert-rule"}]})
 
-        self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.org)
+        install = self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.org)
 
         component = sentry_app.components.first()
+        assert component is not None
 
         response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id, "filter": "alert-rule"}
@@ -148,6 +159,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "type": "alert-rule",
                 "schema": component.schema,
                 "error": "",
+                "installationUuid": str(install.uuid),
                 "sentryApp": {
                     "uuid": sentry_app.uuid,
                     "slug": sentry_app.slug,
@@ -182,6 +194,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "type": self.component1.type,
                 "schema": self.component1.schema,
                 "error": {"detail": "zoinks!", "context": {"foo": "bar"}},
+                "installationUuid": str(self.install1.uuid),
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -194,6 +207,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "type": self.component2.type,
                 "schema": self.component2.schema,
                 "error": "",
+                "installationUuid": str(self.install2.uuid),
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
@@ -234,6 +248,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "error": {
                     "detail": f"Something went wrong while getting options for Select FormField from {self.sentry_app1.slug}"
                 },
+                "installationUuid": str(self.install1.uuid),
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -248,6 +263,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "error": {
                     "detail": f"Something went wrong while getting options for Select FormField from {self.sentry_app2.slug}"
                 },
+                "installationUuid": str(self.install2.uuid),
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
@@ -297,6 +313,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "error": {
                     "detail": "Missing `value` or `label` in option data for Select FormField"
                 },
+                "installationUuid": str(self.install1.uuid),
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -311,6 +328,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "error": {
                     "detail": f"Invalid response format for Select FormField in {self.sentry_app2.slug} from uri: {component2_uris[0]}"
                 },
+                "installationUuid": str(self.install2.uuid),
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
@@ -340,6 +358,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "error": {
                     "detail": f"Something went wrong while trying to link issue for component: {str(self.component1.uuid)}. Sentry error ID: {capture_exception.return_value}"
                 },
+                "installationUuid": str(self.install1.uuid),
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -354,6 +373,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "error": {
                     "detail": f"Something went wrong while trying to link issue for component: {str(self.component2.uuid)}. Sentry error ID: {capture_exception.return_value}"
                 },
+                "installationUuid": str(self.install2.uuid),
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
@@ -387,6 +407,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "error": {
                     "detail": f"Something went wrong while trying to link issue for component: {self.component1.uuid}. Sentry error ID: {capture_exception.return_value}"
                 },
+                "installationUuid": str(self.install1.uuid),
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -401,6 +422,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "error": {
                     "detail": f"Something went wrong while trying to link issue for component: {self.component2.uuid}. Sentry error ID: {capture_exception.return_value}"
                 },
+                "installationUuid": str(self.install2.uuid),
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,

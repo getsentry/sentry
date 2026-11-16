@@ -7,7 +7,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Frame} from 'sentry/types/event';
@@ -169,6 +169,36 @@ describe('StacktraceLink', () => {
       <StacktraceLink frame={frame} event={event} line="foo()" disableSetup />
     );
     await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  describe('without a project', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      ProjectsStore.loadInitialData([]);
+    });
+
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('does not request a stacktrace link', async () => {
+      const request = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/undefined/stacktrace-link/`,
+        body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+      });
+      const {container} = render(
+        <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
+      );
+
+      await act(() => jest.advanceTimersByTimeAsync(100));
+
+      expect(request).not.toHaveBeenCalled();
       expect(container).toBeEmptyDOMElement();
     });
   });

@@ -17,7 +17,7 @@ class IntegrationEndpointTest(TestCase):
     @patch("sentry_sdk.capture_exception")
     def test_handle_rest_framework_exception(
         self, mock_capture_exception: MagicMock, mock_stderror_write: MagicMock
-    ):
+    ) -> None:
         exc = APIException("There was a problem!")
         exc.status_code = 400  # not possible to set in init
         request = Request(HttpRequest())
@@ -35,7 +35,7 @@ class IntegrationEndpointTest(TestCase):
     @patch("sentry.integrations.api.bases.integration.capture_exception")
     def test_handle_exception_503(
         self, mock_capture_exception: MagicMock, mock_stderror_write: MagicMock
-    ):
+    ) -> None:
         try:
             raise ApiError("This is an error", code=503)
         except ApiError as exc:
@@ -56,7 +56,7 @@ class IntegrationEndpointTest(TestCase):
     @patch("sentry.api.base.capture_exception")
     def test_handle_exception_stdlib(
         self, mock_capture_exception: MagicMock, mock_stderror_write: MagicMock
-    ):
+    ) -> None:
         try:
             raise ValueError("This is an error")
         except ValueError as exc:

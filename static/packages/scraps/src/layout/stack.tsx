@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {createContext, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 

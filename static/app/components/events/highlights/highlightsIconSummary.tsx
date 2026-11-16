@@ -22,7 +22,6 @@ import {
   modalCss,
   ScreenshotModal,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
-import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/util';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
@@ -34,6 +33,8 @@ import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
+
+import {getRuntimeLabelAndTooltip} from './util';
 
 interface HighlightsIconSummaryProps {
   event: Event;
@@ -208,12 +209,28 @@ function ReleaseHighlight({
   }
 
   return (
-    <ReleaseHighlightItem key="release">
+    <Flex
+      align="center"
+      flexShrink={0}
+      gap="md"
+      minWidth="0"
+      maxWidth="240px"
+      minHeight="24px"
+      overflow="hidden"
+      key="release"
+    >
       <IconWrapper>
         <IconReleases size="sm" variant="muted" />
       </IconWrapper>
       <ReleaseIconDescription aria-label={t('Event release')}>
-        <ReleaseVersionWrapper>
+        <Container
+          as="span"
+          display="block"
+          width="100%"
+          minWidth="0"
+          maxWidth="100%"
+          overflow="hidden"
+        >
           <VersionHoverCard
             organization={organization}
             projectSlug={projectSlug}
@@ -222,9 +239,9 @@ function ReleaseHighlight({
           >
             <StyledVersion version={releaseTag.value} projectId={projectId} truncate />
           </VersionHoverCard>
-        </ReleaseVersionWrapper>
+        </Container>
       </ReleaseIconDescription>
-    </ReleaseHighlightItem>
+    </Flex>
   );
 }
 
@@ -266,28 +283,9 @@ const IconSubtitle = styled(Tooltip)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const ReleaseHighlightItem = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: ${p => p.theme.space.md};
-  min-height: 24px;
-  max-width: 240px;
-  min-width: 0;
-  overflow: hidden;
-`;
-
 const ReleaseIconDescription = styled(IconDescription)`
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
-`;
-
-const ReleaseVersionWrapper = styled('span')`
-  display: block;
-  min-width: 0;
-  max-width: 100%;
-  width: 100%;
   overflow: hidden;
 `;
 

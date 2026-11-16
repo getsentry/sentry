@@ -105,6 +105,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
             return {
               key: node.key,
               parent: node.parent,
+              // oxlint-disable-next-line react/todo
               children: this.tree(key),
               ...node.dataRef.current,
             };

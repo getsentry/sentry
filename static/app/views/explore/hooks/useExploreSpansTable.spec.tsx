@@ -4,13 +4,14 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useQueryParamsFields,
   useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+
+import {useExploreSpansTable} from './useExploreSpansTable';
+import {SAMPLING_MODE} from './useProgressiveQuery';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;

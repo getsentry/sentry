@@ -13,8 +13,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
-import {logItemIdToTimestamp} from 'sentry/views/explore/logs/pinning/logItemId';
-import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
@@ -22,6 +20,9 @@ import {
 } from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
+
+import {logItemIdToTimestamp} from './logItemId';
+import type {LogsPinning} from './useLogsPinning';
 
 interface PinnedLogsOptions {
   allRows: LogTableRowItem[];
@@ -56,7 +57,7 @@ interface PinnedLogResult {
 }
 
 const pinnedLogBatcher = createBatcher<PinnedLogResult, PinnedLogsQueryContext>(
-  async (client, {organizationSlug, baseQuery}, ids: string[]) => {
+  async (_client, {organizationSlug, baseQuery}, ids: string[]) => {
     const url = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
       path: {organizationIdOrSlug: organizationSlug},
     });
@@ -64,7 +65,6 @@ const pinnedLogBatcher = createBatcher<PinnedLogResult, PinnedLogsQueryContext>(
     const rowsById = new Map<string, PinnedLogResult | Error>();
     try {
       const {json} = await apiFetch<EventsLogsResult>({
-        client,
         queryKey: [
           url,
           {
@@ -77,8 +77,6 @@ const pinnedLogBatcher = createBatcher<PinnedLogResult, PinnedLogsQueryContext>(
           },
           {infinite: false},
         ],
-        signal: new AbortController().signal,
-        meta: undefined,
       });
       for (const row of json.data) {
         rowsById.set(row[OurLogKnownFieldKey.ID], {

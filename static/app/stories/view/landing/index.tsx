@@ -14,11 +14,11 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {Acronym} from './acronym';
 import {Colors, Icons, Typography} from './figures';
 
 const frontmatter = {

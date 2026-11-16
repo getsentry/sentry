@@ -1,4 +1,6 @@
 import uuid
+from collections.abc import Callable, Iterator
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -6,13 +8,13 @@ import sentry_sdk
 from django.test.utils import override_settings
 from sentry_sdk import Scope
 
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.receivers import create_default_projects
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.pytest.relay import adjust_settings_for_relay_tests
 from sentry.testutils.silo import no_silo_test
 from sentry.testutils.skips import requires_kafka
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
@@ -22,44 +24,44 @@ pytestmark = [requires_kafka, thread_leak_allowlist(reason="relay integration te
 
 
 @pytest.fixture
-def scope():
+def scope() -> Iterator[Scope]:
     with sentry_sdk.isolation_scope() as scope:
         create_default_projects()
         yield scope
 
 
 @pytest.fixture
-def post_event_with_sdk(settings, scope: Scope, relay_server, wait_for_ingest_consumer):
-    adjust_settings_for_relay_tests(settings)
-    settings.SENTRY_ENDPOINT = relay_server["url"]
-    settings.SENTRY_PROJECT = 1
-    internal_project_key = get_project_key()
-    assert internal_project_key is not None
+def post_event_with_sdk(
+    settings: Any, scope: Scope, relay_server: Any, wait_for_ingest_consumer: Callable[..., Any]
+) -> Iterator[Callable[..., Any]]:
+    with override_settings(SENTRY_ENDPOINT=relay_server["url"], SENTRY_PROJECT=1):
+        internal_project_key = get_project_key()
+        assert internal_project_key is not None
 
-    client = sentry_sdk.Client(
-        dsn=internal_project_key.dsn_private,
-    )
-
-    wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
-
-    def inner(*args, **kwargs):
-        kwargs.setdefault("scope", scope)
-        event_id = client.capture_event(*args, **kwargs)
-        assert event_id is not None
-        client.flush()
-
-        return wait_for_ingest_consumer(
-            lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
+        client = sentry_sdk.Client(
+            dsn=internal_project_key.dsn_private,
         )
 
-    yield inner
-    client.close()
+        wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
+
+        def inner(*args: Any, **kwargs: Any) -> Any:
+            kwargs.setdefault("scope", scope)
+            event_id = client.capture_event(*args, **kwargs)
+            assert event_id is not None
+            client.flush()
+
+            return wait_for_ingest_consumer(
+                lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
+            )
+
+        yield inner
+        client.close()
 
 
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_simple(settings, post_event_with_sdk) -> None:
+def test_simple(settings: Any, post_event_with_sdk: Callable[..., Any]) -> None:
     event = post_event_with_sdk({"message": "internal client test"})
 
     assert event
@@ -68,13 +70,10 @@ def test_simple(settings, post_event_with_sdk) -> None:
 
 
 @no_silo_test
-@override_settings(SENTRY_PROJECT=1)
+@override_settings(SENTRY_PROJECT=1, SENTRY_INGEST_CONSUMER_APM_SAMPLING=1.0)
 @django_db_all
-def test_recursion_breaker(settings, post_event_with_sdk) -> None:
+def test_recursion_breaker(post_event_with_sdk: Callable[..., Any]) -> None:
     # If this test terminates at all then we avoided recursion.
-    settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1.0
-    settings.SENTRY_PROJECT = 1
-
     event_id = uuid.uuid4().hex
     with mock.patch(
         "sentry.event_manager.EventManager.save", spec=Event, side_effect=ValueError("oh no!")
@@ -89,7 +88,7 @@ def test_recursion_breaker(settings, post_event_with_sdk) -> None:
 @no_silo_test
 @django_db_all
 @override_settings(SENTRY_PROJECT=1)
-def test_encoding(settings, post_event_with_sdk, scope: Scope) -> None:
+def test_encoding(settings: Any, post_event_with_sdk: Callable[..., Any], scope: Scope) -> None:
     class NotJSONSerializable:
         pass
 
@@ -104,7 +103,7 @@ def test_encoding(settings, post_event_with_sdk, scope: Scope) -> None:
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context(default_organization, scope: Scope) -> None:
+def test_bind_organization_context(default_organization: Organization, scope: Scope) -> None:
     bind_organization_context(default_organization)
 
     assert scope._tags["organization"] == default_organization.id
@@ -118,8 +117,10 @@ def test_bind_organization_context(default_organization, scope: Scope) -> None:
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context_with_callback(default_organization, scope: Scope) -> None:
-    def add_context(scope, organization, **kwargs):
+def test_bind_organization_context_with_callback(
+    default_organization: Organization, scope: Scope
+) -> None:
+    def add_context(scope: Any, organization: Organization, **kwargs: Any) -> None:
         scope.set_tag("organization.test", "1")
 
     with override_settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
@@ -131,8 +132,10 @@ def test_bind_organization_context_with_callback(default_organization, scope: Sc
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context_with_callback_error(default_organization, scope: Scope) -> None:
-    def add_context(scope, organization, **kwargs):
+def test_bind_organization_context_with_callback_error(
+    default_organization: Organization, scope: Scope
+) -> None:
+    def add_context(scope: Any, organization: Organization, **kwargs: Any) -> None:
         1 / 0
 
     with override_settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):

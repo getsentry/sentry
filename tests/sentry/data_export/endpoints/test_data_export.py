@@ -16,9 +16,12 @@ from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.endpoints.data_export import is_api_or_agent_request
 from sentry.data_export.models import ExportedData
 from sentry.data_export.writers import OutputMode
+from sentry.models.apikey import ApiKey
 from sentry.search.utils import parse_datetime_string
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from sentry.utils.snuba import MAX_FIELDS
 
@@ -109,6 +112,21 @@ class DataExportTest(APITestCase):
         # Without project permissions, the endpoint should 403
         with self.feature("organizations:discover-query"):
             self.get_error_response(self.org.slug, status_code=403, **modified_payload)
+
+    def test_api_key_cannot_export(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["event:read"])
+            self.client.logout()
+
+        response = self.client.post(
+            reverse(self.endpoint, args=[self.org.slug]),
+            self.make_payload("explore"),
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 401, response.content
+        assert not ExportedData.objects.exists()
 
     def test_new_export(self) -> None:
         """

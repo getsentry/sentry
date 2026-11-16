@@ -3,55 +3,87 @@ from __future__ import annotations
 import collections
 from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict, cast
 
 from sentry_sdk import traces
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 
 
 class DeviceResponseType(TypedDict, total=False):
-    name: str | None
-    brand: str | None
-    model: str | None
-    family: str | None
+    name: Annotated[str | None, ApiDescription("Name of the device")]
+    brand: Annotated[str | None, ApiDescription("Brand of the device")]
+    model: Annotated[str | None, ApiDescription("Model of the device")]
+    family: Annotated[str | None, ApiDescription("Family of the device")]
 
 
 class SDKResponseType(TypedDict, total=False):
-    name: str | None
-    version: str | None
+    name: Annotated[str | None, ApiDescription("Name of the SDK that recorded the replay")]
+    version: Annotated[str | None, ApiDescription("Version of the SDK that recorded the replay")]
 
 
 class OSResponseType(TypedDict, total=False):
-    name: str | None
-    version: str | None
+    name: Annotated[str | None, ApiDescription("Name of the operating system")]
+    version: Annotated[str | None, ApiDescription("Version of the operating system")]
 
 
 class BrowserResponseType(TypedDict, total=False):
-    name: str | None
-    version: str | None
+    name: Annotated[str | None, ApiDescription("Name of the browser")]
+    version: Annotated[str | None, ApiDescription("Version of the browser")]
 
 
 class UserGeoResponseType(TypedDict, total=False):
-    city: str | None
-    country_code: str | None
-    region: str | None
-    subdivision: str | None
+    city: Annotated[str | None, ApiDescription("City of the user")]
+    country_code: Annotated[str | None, ApiDescription("Country code of the user")]
+    region: Annotated[str | None, ApiDescription("Region of the user")]
+    subdivision: Annotated[
+        str | None, ApiDescription("Subdivision of the user's country, such as a state or province")
+    ]
 
 
 class UserResponseType(TypedDict, total=False):
-    id: str | None
-    username: str | None
-    email: str | None
-    ip: str | None
-    display_name: str | None
-    geo: UserGeoResponseType
+    id: Annotated[str | None, ApiDescription("ID of the user")]
+    username: Annotated[str | None, ApiDescription("Username of the user")]
+    email: Annotated[str | None, ApiDescription("Email address of the user")]
+    ip: Annotated[str | None, ApiDescription("IP address of the user")]
+    display_name: Annotated[
+        str | None,
+        ApiDescription(
+            "Name to display for the user: the username, email, ID or IP address, whichever is set first"
+        ),
+    ]
+    geo: Annotated[UserGeoResponseType, ApiDescription("Geographic location of the user")]
 
 
 class OTAUpdatesResponseType(TypedDict, total=False):
-    channel: str | None
-    runtime_version: str | None
-    update_id: str | None
+    channel: Annotated[str | None, ApiDescription("Channel of the over-the-air update")]
+    runtime_version: Annotated[
+        str | None, ApiDescription("Runtime version of the over-the-air update")
+    ]
+    update_id: Annotated[str | None, ApiDescription("ID of the over-the-air update")]
+
+
+# Keys are the click fields' query names; see CLICK_FIELD_MAP.
+ReplayClickResponse = TypedDict(
+    "ReplayClickResponse",
+    {
+        "click.alt": Annotated[str | None, ApiDescription("Alt text of the clicked element")],
+        "click.label": Annotated[str | None, ApiDescription("ARIA label of the clicked element")],
+        "click.classes": Annotated[
+            list[str] | None, ApiDescription("CSS classes of the clicked element")
+        ],
+        "click.component_name": Annotated[
+            str | None, ApiDescription("Name of the frontend component that was clicked")
+        ],
+        "click.id": Annotated[str | None, ApiDescription("ID of the clicked element")],
+        "click.role": Annotated[str | None, ApiDescription("Role of the clicked element")],
+        "click.tag": Annotated[str | None, ApiDescription("HTML tag of the clicked element")],
+        "click.testid": Annotated[str | None, ApiDescription("Test ID of the clicked element")],
+        "click.text": Annotated[str | None, ApiDescription("Text of the clicked element")],
+        "click.title": Annotated[str | None, ApiDescription("Title of the clicked element")],
+    },
+)
 
 
 @sentry_schema_serializer(
@@ -61,40 +93,47 @@ class OTAUpdatesResponseType(TypedDict, total=False):
     }
 )
 class ReplayDetailsResponse(TypedDict, total=False):
-    id: str
-    project_id: str
-    trace_ids: list[str]
-    error_ids: list[str]
-    environment: str | None
-    tags: dict[str, list[str]] | list
-    user: UserResponseType
-    sdk: SDKResponseType
-    os: OSResponseType
-    browser: BrowserResponseType
-    device: DeviceResponseType
-    ota_updates: OTAUpdatesResponseType
-    is_archived: bool | None
-    urls: list[str] | None
-    segment_names: list[str] | None
-    clicks: list[dict[str, Any]]
-    count_dead_clicks: int | None
-    count_rage_clicks: int | None
-    count_errors: int | None
-    duration: int | None
-    finished_at: str | None
-    started_at: str | None
-    activity: int | None
-    count_urls: int | None
-    replay_type: str
-    count_segments: int | None
-    platform: str | None
-    releases: list[str]
-    dist: str | None
+    id: Annotated[str, ApiDescription("Replay ID")]
+    project_id: Annotated[str, ApiDescription("ID of the project the replay belongs to")]
+    trace_ids: Annotated[list[str], ApiDescription("IDs of traces linked to the replay")]
+    error_ids: Annotated[list[str], ApiDescription("IDs of errors linked to the replay")]
+    environment: Annotated[str | None, ApiDescription("Environment of the replay")]
+    tags: Annotated[dict[str, list[str]] | list[str], ApiDescription("Replay tags")]
+    user: Annotated[UserResponseType, ApiDescription("User metadata")]
+    sdk: Annotated[SDKResponseType, ApiDescription("SDK metadata")]
+    os: Annotated[OSResponseType, ApiDescription("Operating system metadata")]
+    browser: Annotated[BrowserResponseType, ApiDescription("Browser metadata")]
+    device: Annotated[DeviceResponseType, ApiDescription("Device metadata")]
+    ota_updates: Annotated[OTAUpdatesResponseType, ApiDescription("Over-the-air update metadata")]
+    is_archived: Annotated[bool | None, ApiDescription("Whether the replay is archived")]
+    urls: Annotated[list[str] | None, ApiDescription("URLs visited during the replay")]
+    segment_names: Annotated[list[str] | None, ApiDescription("Names of the replay's segments")]
+    clicks: Annotated[
+        list[ReplayClickResponse],
+        ApiDescription("Clicks recorded during the replay, one object per click"),
+    ]
+    count_dead_clicks: Annotated[int | None, ApiDescription("Number of dead clicks")]
+    count_rage_clicks: Annotated[int | None, ApiDescription("Number of rage clicks")]
+    count_errors: Annotated[int | None, ApiDescription("Number of errors linked to the replay")]
+    duration: Annotated[int | None, ApiDescription("Replay duration in seconds")]
+    finished_at: Annotated[str | None, ApiDescription("When the replay finished (ISO 8601)")]
+    started_at: Annotated[str | None, ApiDescription("When the replay started (ISO 8601)")]
+    activity: Annotated[int | None, ApiDescription("Replay activity score")]
+    count_urls: Annotated[int | None, ApiDescription("Number of URLs visited during the replay")]
+    replay_type: Annotated[
+        str, ApiDescription("Recording mode of the replay, such as session or buffer")
+    ]
+    count_segments: Annotated[int | None, ApiDescription("Number of recording segments")]
+    platform: Annotated[str | None, ApiDescription("Platform of the replay")]
+    releases: Annotated[list[str], ApiDescription("Releases associated with the replay")]
+    dist: Annotated[str | None, ApiDescription("Distribution of the replay")]
     warning_ids: list[str] | None
     info_ids: list[str] | None
-    count_warnings: int | None
-    count_infos: int | None
-    has_viewed: bool
+    count_warnings: Annotated[
+        int | None, ApiDescription("Number of warning events linked to the replay")
+    ]
+    count_infos: Annotated[int | None, ApiDescription("Number of info events linked to the replay")]
+    has_viewed: Annotated[bool, ApiDescription("Whether the requesting user has viewed the replay")]
 
 
 @traces.trace
@@ -284,6 +323,7 @@ def _archived_row(replay_id: str, project_id: int) -> ReplayDetailsResponse:
         "dist": None,
         "platform": None,
         "releases": [],
+        "replay_type": "session",
         "clicks": [],
         "has_viewed": False,
     }
@@ -305,7 +345,7 @@ CLICK_FIELD_MAP = {
 
 def extract_click_fields(
     item: MutableMapping[str, Any],
-) -> list[dict[str, Any]]:
+) -> list[ReplayClickResponse]:
     """
     pops all of the click fields from the item and returns a list of the individual clicks as objects
     """
@@ -322,4 +362,4 @@ def extract_click_fields(
             click_dict[CLICK_FIELD_MAP[click_field]] = click_val
 
     list_of_dicts = [dict(zip(click_dict.keys(), row)) for row in zip_longest(*click_dict.values())]
-    return list_of_dicts
+    return cast(list[ReplayClickResponse], list_of_dicts)

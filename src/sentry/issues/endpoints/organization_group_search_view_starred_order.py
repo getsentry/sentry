@@ -5,22 +5,26 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import require_user
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "PUT": ["member:read", "member:write"],
+        "PUT": ["member:read", "member:write", "user_preference:write"],
     }
+
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 class GroupSearchViewStarredOrderSerializer(serializers.Serializer):
     view_ids = serializers.ListField(child=serializers.IntegerField(), required=True, min_length=0)
 
-    def validate_view_ids(self, view_ids):
+    def validate_view_ids(self, view_ids: list[int]) -> list[int]:
         if len(view_ids) != len(set(view_ids)):
             raise serializers.ValidationError("Single view cannot take up multiple positions")
 
@@ -31,6 +35,7 @@ class GroupSearchViewStarredOrderSerializer(serializers.Serializer):
 class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     permission_classes = (MemberPermission,)
 
     def put(self, request: Request, organization: Organization) -> Response:
@@ -50,7 +55,7 @@ class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
             with transaction.atomic(using=router.db_for_write(GroupSearchViewStarred)):
                 GroupSearchViewStarred.objects.reorder_starred_views(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=require_user(request).id,
                     new_view_positions=view_ids,
                 )
         except IntegrityError as e:

@@ -16,8 +16,6 @@ class RuleSaveTest(TestCase):
             project=self.project,
             condition_data=[{**condition, "name": "A new issue is created"}],
             action_data=[{**action, "name": "Send a notification via webhooks"}],
-            include_legacy_rule_id=False,
-            include_workflow_id=False,
         )
         rule.refresh_from_db()
         assert rule.data["conditions"] == [condition]

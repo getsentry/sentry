@@ -28,7 +28,7 @@ class RelocationUtilsTestCase(TestCase):
             want_org_slugs=["testing"],
             step=Relocation.Step.UPLOADING.value,
         )
-        self.uuid = self.relocation.uuid
+        self.uuid = str(self.relocation.uuid)
 
     def mock_message_builder(self, fake_message_builder: Mock) -> None:
         fake_message_builder.return_value.send_async.return_value = MagicMock()

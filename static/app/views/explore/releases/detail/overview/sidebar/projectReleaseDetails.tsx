@@ -75,7 +75,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
               {dateReleased ? (
                 <DateTime date={dateReleased} />
               ) : (
-                <ButtonContainer>
+                <Flex justify="end" align="center" height="1lh">
                   <Tooltip
                     title={t(
                       'Set release date to %s',
@@ -104,7 +104,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
                       {t('Finalize')}
                     </FinalizeButton>
                   </Tooltip>
-                </ButtonContainer>
+                </Flex>
               )}
             </DescriptionList.Details>
             <DescriptionList.Term>{t('Version')}</DescriptionList.Term>
@@ -178,13 +178,6 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
 const StyledTextOverflow = styled(TextOverflow)`
   line-height: inherit;
   text-align: right;
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  height: 1lh;
 `;
 
 const FinalizeButton = styled(Button)`

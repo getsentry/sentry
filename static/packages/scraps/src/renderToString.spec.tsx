@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {act, renderHook} from '@testing-library/react';
 

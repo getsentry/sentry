@@ -8,10 +8,6 @@ import type {
 import type {Location} from 'history';
 import moment, {type MomentInput} from 'moment-timezone';
 
-import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
-import {dataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
-import {getToolBox} from 'sentry/components/charts/components/toolBox';
-import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -25,6 +21,11 @@ import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {dataZoomInside} from './components/dataZoomInside';
+import {getToolBox} from './components/toolBox';
+import {CHART_ZOOM_MERGE_OPTIONS} from './chartZoomConfig';
+import {activateZoomAreaSelect} from './utils';
 
 const getDate = (date: MomentInput) =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;

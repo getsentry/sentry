@@ -2,6 +2,7 @@ import os
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from types import ModuleType
 
 from click import echo
 from django.conf import settings
@@ -45,7 +46,7 @@ def disable_default_project_key_creation() -> Iterator[None]:
         _default_project_key_creation_enabled.reset(token)
 
 
-def create_default_projects(**kwds):
+def create_default_projects(**kwds: object) -> None:
     if not (in_test_environment() or is_self_hosted() or settings.DEBUG):
         # No op in production SaaS environments.
         return
@@ -75,9 +76,11 @@ def create_default_projects(**kwds):
 
 
 @cell_silo_function
-def create_default_project(id, name, slug, verbosity=2, **kwargs):
+def create_default_project(
+    id: int, name: str, slug: str, verbosity: int = 2, **kwargs: object
+) -> Project | None:
     if Project.objects.filter(id=id).exists():
-        return
+        return None
 
     user = user_service.get_first_superuser()
 
@@ -128,7 +131,9 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     return project
 
 
-def create_keys_for_project(instance, created, app=None, **kwargs):
+def create_keys_for_project(
+    instance: Project, created: bool, app: ModuleType | None = None, **kwargs: object
+) -> None:
     if not _default_project_key_creation_enabled.get():
         return
 
@@ -146,7 +151,9 @@ def create_keys_for_project(instance, created, app=None, **kwargs):
     )
 
 
-def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
+def freeze_option_epoch_for_project(
+    instance: Project, created: bool, app: ModuleType | None = None, **kwargs: object
+) -> None:
     if app and app.__name__ != "sentry.models":
         return
 

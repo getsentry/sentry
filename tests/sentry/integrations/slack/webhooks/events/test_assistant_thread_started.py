@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.testutils.asserts import assert_halt_metric
@@ -24,12 +24,12 @@ ASSISTANT_THREAD_STARTED_EVENT = {
 
 
 class AssistantThreadStartedEventTest(BaseEventTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.link_identity(slack_user_id=ASSISTANT_THREAD["user_id"])
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.set_suggested_prompts")
-    def test_sends_suggested_prompts(self, mock_set_prompts):
+    def test_sends_suggested_prompts(self, mock_set_prompts: MagicMock) -> None:
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=ASSISTANT_THREAD_STARTED_EVENT)
 
@@ -42,7 +42,7 @@ class AssistantThreadStartedEventTest(BaseEventTest):
         assert kwargs["title"]
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.set_suggested_prompts")
-    def test_prompt_titles_and_messages(self, mock_set_prompts):
+    def test_prompt_titles_and_messages(self, mock_set_prompts: MagicMock) -> None:
         with self.feature(SEER_EXPLORER_FEATURES):
             self.post_webhook(event_data=ASSISTANT_THREAD_STARTED_EVENT)
 
@@ -55,7 +55,7 @@ class AssistantThreadStartedEventTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.integration.SlackIntegration.set_suggested_prompts")
-    def test_identity_not_linked(self, mock_set_prompts, mock_record):
+    def test_identity_not_linked(self, mock_set_prompts: MagicMock, mock_record: MagicMock) -> None:
         self.unlink_identity()
         resp = self.post_webhook(event_data=ASSISTANT_THREAD_STARTED_EVENT)
 
@@ -65,7 +65,9 @@ class AssistantThreadStartedEventTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.integration.SlackIntegration.set_suggested_prompts")
-    def test_feature_flag_disabled(self, mock_set_prompts, mock_record):
+    def test_feature_flag_disabled(
+        self, mock_set_prompts: MagicMock, mock_record: MagicMock
+    ) -> None:
         resp = self.post_webhook(event_data=ASSISTANT_THREAD_STARTED_EVENT)
 
         assert resp.status_code == 200
@@ -74,7 +76,7 @@ class AssistantThreadStartedEventTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.integration.SlackIntegration.set_suggested_prompts")
-    def test_no_integration(self, mock_set_prompts, mock_record):
+    def test_no_integration(self, mock_set_prompts: MagicMock, mock_record: MagicMock) -> None:
         with patch(
             "sentry.integrations.slack.requests.event.integration_service.get_organization_integrations",
             return_value=[],
@@ -88,7 +90,7 @@ class AssistantThreadStartedEventTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.integration.SlackIntegration.set_suggested_prompts")
-    def test_missing_channel_id(self, mock_set_prompts, mock_record):
+    def test_missing_channel_id(self, mock_set_prompts: MagicMock, mock_record: MagicMock) -> None:
         event_data = {
             "type": "assistant_thread_started",
             "assistant_thread": {
@@ -105,7 +107,7 @@ class AssistantThreadStartedEventTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.integration.SlackIntegration.set_suggested_prompts")
-    def test_missing_thread_ts(self, mock_set_prompts, mock_record):
+    def test_missing_thread_ts(self, mock_set_prompts: MagicMock, mock_record: MagicMock) -> None:
         event_data = {
             "type": "assistant_thread_started",
             "assistant_thread": {
@@ -124,7 +126,7 @@ class AssistantThreadStartedEventTest(BaseEventTest):
         "sentry.integrations.slack.integration.SlackIntegration.set_suggested_prompts",
         side_effect=Exception("API error"),
     )
-    def test_set_prompts_failure_does_not_raise(self, mock_set_prompts):
+    def test_set_prompts_failure_does_not_raise(self, mock_set_prompts: MagicMock) -> None:
         """If set_suggested_prompts fails, we still return 200."""
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=ASSISTANT_THREAD_STARTED_EVENT)

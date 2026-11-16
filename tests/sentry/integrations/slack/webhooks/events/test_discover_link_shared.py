@@ -1,6 +1,7 @@
 import re
+from collections.abc import Iterator
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qsl
 
 import orjson
@@ -34,7 +35,7 @@ LINK_SHARED_EVENT_NO_CHANNEL_NAME: dict[str, Any] = {
 
 class DiscoverLinkSharedEvent(BaseEventTest):
     @pytest.fixture(autouse=True)
-    def mock_chat_postEphemeral(self):
+    def mock_chat_postEphemeral(self) -> Iterator[None]:
         with patch(
             "slack_sdk.web.client.WebClient.chat_postEphemeral",
             return_value=SlackResponse(
@@ -50,7 +51,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_chat_unfurl(self):
+    def mock_chat_unfurl(self) -> Iterator[None]:
         with patch(
             "slack_sdk.web.client.WebClient.chat_unfurl",
             return_value=SlackResponse(
@@ -87,7 +88,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
             )
         },
     )
-    def share_discover_links(self, mock_match_link, mock_):
+    def share_discover_links(self, mock_match_link: MagicMock, mock_: MagicMock) -> dict[str, Any]:
         responses.add(responses.POST, "https://slack.com/api/chat.postEphemeral", json={"ok": True})
         responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
 
@@ -118,7 +119,9 @@ class DiscoverLinkSharedEvent(BaseEventTest):
             )
         },
     )
-    def share_discover_links_sdk(self, mock_match_link, mock_):
+    def share_discover_links_sdk(
+        self, mock_match_link: MagicMock, mock_: MagicMock
+    ) -> dict[str, Any]:
         resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
 
@@ -145,7 +148,9 @@ class DiscoverLinkSharedEvent(BaseEventTest):
             )
         },
     )
-    def share_discover_links_ephermeral_sdk(self, mock_match_link, mock_):
+    def share_discover_links_ephermeral_sdk(
+        self, mock_match_link: MagicMock, mock_: MagicMock
+    ) -> dict[str, Any]:
         resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
 

@@ -1,6 +1,11 @@
+from itertools import product
+from unittest.mock import patch
+
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.api.serializers.models.exploresavedquery import QueryResponseType
 from sentry.explore import utils
 from sentry.explore.endpoints.explore_saved_queries import (
     PREBUILT_SAVED_QUERIES,
@@ -14,8 +19,13 @@ from sentry.explore.models import (
     ExploreSavedQueryStarred,
 )
 from sentry.explore.types import SavedQueryRef, SavedQueryType
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class ExploreSavedQueriesTest(APITestCase):
@@ -96,11 +106,56 @@ class ExploreSavedQueriesTest(APITestCase):
         # User saved query
         assert response.data[4]["name"] == "Test query"
         assert sorted(response.data[4]["projects"]) == sorted(self.project_ids)
-        assert response.data[4]["range"] == "24h"
+        assert "range" not in response.data[4]
+        assert response.data[4]["statsPeriod"] == "24h"
         assert response.data[4]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
         assert "createdBy" in response.data[4]
         assert response.data[4]["createdBy"]["username"] == self.user.username
         assert not response.data[4]["expired"]
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_shared_queries_without_personal_state(self) -> None:
+        sync_prebuilt_queries(self.org)
+        sync_prebuilt_queries_starred(self.org, self.user)
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with (
+            self.feature(self.features),
+            patch(
+                "sentry.explore.endpoints.explore_saved_queries.sentry_sdk.capture_exception"
+            ) as capture_exception,
+        ):
+            mine = self.client.get(
+                self.url, {"exclude": "shared"}, HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+            starred = self.client.get(
+                self.url, {"starred": "1"}, HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+            shared = self.client.get(
+                self.url,
+                {"sortBy": ["myqueries", "starred", "recentlyViewed"]},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert mine.status_code == 200, mine.content
+        assert mine.data == []
+        assert starred.status_code == 200, starred.content
+        assert starred.data == []
+        assert shared.status_code == 200, shared.content
+        assert "Test query" in {query["name"] for query in shared.data}
+        assert not any(query["starred"] for query in shared.data)
+        assert not any(query.get("lastVisited") for query in shared.data)
+        capture_exception.assert_not_called()
 
     def test_get_name_filter(self) -> None:
         with self.feature(self.features):
@@ -384,6 +439,74 @@ class ExploreSavedQueriesTest(APITestCase):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_get_saved_query_with_formula(self) -> None:
+        query = {
+            "range": "24h",
+            "query": [{"fields": ["formula.apdex(span.duration,300)"], "mode": "samples"}],
+        }
+
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Formula query",
+            query=query,
+        )
+        self.features["organizations:explore-saved-formulas"] = True
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"formula": "formula.apdex"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Formula query"
+
+    def test_search_querystring_with_formula(self) -> None:
+        query = {
+            "range": "24h",
+            "query": [
+                {"query": ["field:foo formula.apdex(span.duration,300):>0.7"], "mode": "samples"}
+            ],
+        }
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Formula query",
+            query=query,
+        )
+
+        self.features["organizations:explore-saved-formulas"] = True
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"formula": "formula.apdex"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Formula query"
+
+    def test_get_saved_query_with_formula_dont_get_similar(self) -> None:
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Formula query",
+            query={
+                "range": "24h",
+                "query": [{"fields": ["formula.apdex(span.duration, 300)"], "mode": "samples"}],
+            },
+        )
+
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="non formula query",
+            query={
+                "range": "24h",
+                "query": [{"query": ["field:formula.apdex(span.duration,300)"], "mode": "samples"}],
+            },
+        )
+
+        self.features["organizations:explore-saved-formulas"] = True
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"formula": "formula.apdex"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Formula query"
 
     def test_get_hides_queries_when_no_project_access(self) -> None:
         # Disable Open Membership so project-level access actually applies.
@@ -870,7 +993,8 @@ class ExploreSavedQueriesTest(APITestCase):
             )
         assert response.status_code == 201, response.content
         data = response.data
-        assert data["range"] == "24h"
+        assert "range" not in data
+        assert data["statsPeriod"] == "24h"
         assert data["environment"] == ["dev"]
         assert data["query"] == [
             {
@@ -882,6 +1006,148 @@ class ExploreSavedQueriesTest(APITestCase):
         ]
         assert data["projects"] == self.project_ids
         assert data["dataset"] == "spans"
+        model = ExploreSavedQuery.objects.get(id=data["id"])
+        assert model.created_by_id == self.user.id
+        assert model.created_by_service_account_id is None
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    def test_post_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org,
+            scope_list=["org:read", "project:read"],
+            project_ids=self.project_ids,
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+        with self.feature({**self.features, "organizations:service-accounts": True}):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "service account query",
+                    "projects": self.project_ids,
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                },
+                format="json",
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 201, response.content
+        model = ExploreSavedQuery.objects.get(id=response.data["id"])
+        assert model.created_by_id is None
+        assert model.created_by_service_account_id == service_account.id
+        assert model.created_by_org_auth_token_id is None
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_post_starred_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with (
+            self.feature(self.features),
+            patch(
+                "sentry.explore.endpoints.explore_saved_queries.sentry_sdk.capture_exception"
+            ) as capture_exception,
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Service account query",
+                    "projects": self.project_ids,
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                    "range": "24h",
+                    "starred": True,
+                },
+                format="json",
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert response.status_code == 201, response.content
+        query = ExploreSavedQuery.objects.get(id=response.data["id"])
+        assert query.created_by_id is None
+        assert not ExploreSavedQueryStarred.objects.filter(explore_saved_query=query).exists()
+        capture_exception.assert_not_called()
+
+    def test_post_with_range(self) -> None:
+        """Older clients send `range`. It is stored and returned as `statsPeriod`."""
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with range",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "interval": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "24h"
+        assert response.data["interval"] == "1h"
+
+    def test_post_with_stats_period(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with stats period",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "statsPeriod": "7d",
+                    "interval": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "7d"
+        assert response.data["interval"] == "1h"
+        saved_query = ExploreSavedQuery.objects.get(name="query with stats period")
+        assert saved_query.query["statsPeriod"] == "7d"
+        assert "range" not in saved_query.query
+
+    def test_post_stats_period_overrides_range(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with both periods",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "statsPeriod": "7d",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "7d"
 
     def test_post_all_projects(self) -> None:
         with self.feature(self.features):
@@ -1144,6 +1410,148 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data["query"][0]["visualize"] == [
             {"yAxes": ["count(span.duration)"]},
         ]
+
+    def test_save_transformations(self) -> None:
+        queries: list[tuple[str, QueryResponseType]] = [
+            ("spans", {"mode": "aggregate"}),
+            ("logs", {"mode": "aggregate"}),
+            (
+                "metrics",
+                {
+                    "mode": "aggregate",
+                    "metric": {"name": "request.duration", "type": "distribution"},
+                },
+            ),
+        ]
+        for (dataset, query), transformations, visualization_field in product(
+            queries,
+            [
+                [],
+                ["smooth( ema , 7 , 0.25 )", "fill( linear )"],
+            ],
+            ["visualize", "aggregateField"],
+        ):
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [
+                            {
+                                **query,
+                                visualization_field: [
+                                    {"yAxes": ["count()"], "transformations": transformations}
+                                ],
+                            }
+                        ],
+                    },
+                )
+
+            assert response.status_code == 201, response.content
+            assert response.data["dataset"] == dataset
+            expected = [{"yAxes": ["count()"], "transformations": transformations}]
+            assert response.data["query"][0][visualization_field] == expected
+            saved_query = ExploreSavedQuery.objects.get(
+                id=response.data["id"], organization=self.org
+            )
+            assert saved_query.query["query"][0][visualization_field] == expected
+
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": False}
+            ):
+                response = self.client.get(self.url, data={"query": "name:Transformed"})
+
+            assert response.status_code == 200, response.content
+            saved_queries = {query["id"]: query for query in response.data}
+            assert saved_queries[str(saved_query.id)]["query"][0][visualization_field] == expected
+
+    def test_save_transformations_requires_feature(self) -> None:
+        for visualization_field, transformations in product(
+            ["visualize", "aggregateField"], [[], ["fill(locf)"]]
+        ):
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": False}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "query": [
+                            {"mode": "aggregate"},
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"]},
+                                    {"yAxes": ["count()"], "transformations": transformations},
+                                ],
+                            },
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert response.data == {"detail": "You do not have access to query transformations."}
+            assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
+
+    def test_save_invalid_transformation_function(self) -> None:
+        for visualization_field in ["visualize", "aggregateField"]:
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Invalid transformations",
+                        "projects": self.project_ids,
+                        "query": [
+                            {"mode": "aggregate"},
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"]},
+                                    {"yAxes": ["count()"], "transformations": ["unknown()"]},
+                                ],
+                            },
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert response.data == {"detail": "unknown is not a valid transformation function"}
+            assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
+
+    def test_save_invalid_transformations(self) -> None:
+        invalid_transformations: list[object] = [None, "fill(zero)", [None], [{}]]
+        for visualization_field, transformations in product(
+            ["visualize", "aggregateField"], invalid_transformations
+        ):
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "query": [
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"], "transformations": transformations}
+                                ],
+                            }
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert "transformations" in response.data["query"][visualization_field]
+            assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
 
     def test_save_aggregate_field_and_orderby(self) -> None:
         with self.feature(self.features):
@@ -1921,3 +2329,102 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         data = response.data
         assert data["query"][0].get("metric") is None
+
+
+@with_feature(["organizations:granular-permission-scopes", "organizations:visibility-explore-view"])
+class ExploreSavedQueryScopeTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+        self.saved_query = self.create_explore_saved_query(
+            organization=self.org,
+            projects=[self.project],
+            created_by_id=self.user.id,
+            name="Test query",
+        )
+        self.url = reverse("sentry-api-0-explore-saved-queries", args=[self.org.slug])
+        self.details_url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.saved_query.id]
+        )
+        self.query_data = {
+            "projects": [self.project.id],
+            "query": [{"fields": ["span.op"], "mode": "samples"}],
+        }
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_read_scope_can_read(self) -> None:
+        self._use_token(["saved_query:read"])
+        assert self.client.get(self.url).status_code == 200
+        assert self.client.get(self.details_url).status_code == 200
+
+    def test_read_scope_cannot_create(self) -> None:
+        self._use_token(["saved_query:read"])
+        response = self.client.post(self.url, {"name": "Created", **self.query_data}, format="json")
+        assert response.status_code == 403
+        assert not ExploreSavedQuery.objects.filter(name="Created").exists()
+
+    def test_read_scope_cannot_update(self) -> None:
+        self._use_token(["saved_query:read"])
+        response = self.client.put(
+            self.details_url, {"name": "Renamed", **self.query_data}, format="json"
+        )
+        assert response.status_code == 403
+        self.saved_query.refresh_from_db()
+        assert self.saved_query.name == "Test query"
+
+    def test_read_scope_cannot_delete(self) -> None:
+        self._use_token(["saved_query:read"])
+        assert self.client.delete(self.details_url).status_code == 403
+        assert ExploreSavedQuery.objects.filter(id=self.saved_query.id).exists()
+
+    def test_write_scope_can_create_update_and_delete(self) -> None:
+        self._use_token(["saved_query:write"])
+        response = self.client.post(self.url, {"name": "Created", **self.query_data}, format="json")
+        assert response.status_code == 201, response.content
+
+        response = self.client.put(
+            self.details_url, {"name": "Renamed", **self.query_data}, format="json"
+        )
+        assert response.status_code == 200, response.content
+        self.saved_query.refresh_from_db()
+        assert self.saved_query.name == "Renamed"
+
+        assert self.client.delete(self.details_url).status_code == 204
+        assert not ExploreSavedQuery.objects.filter(id=self.saved_query.id).exists()
+
+    def test_write_scope_cannot_read(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.get(self.details_url).status_code == 403
+
+    def test_read_and_write_scopes_can_read_and_write(self) -> None:
+        self._use_token(["saved_query:read", "saved_query:write"])
+        assert self.client.get(self.details_url).status_code == 200
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.details_url).status_code == 200
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_not_accepted(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.delete(self.details_url).status_code == 403
+        assert ExploreSavedQuery.objects.filter(id=self.saved_query.id).exists()
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    @with_feature({"organizations:granular-permission-scopes": False})
+    def test_org_read_accepted_without_granular_scopes(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200

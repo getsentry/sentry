@@ -9,7 +9,6 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 interface BreadcrumbMenuLinkItem {
   key: string;
   label: string;
-  externalHref?: string;
   to?: LinkProps['to'];
 }
 

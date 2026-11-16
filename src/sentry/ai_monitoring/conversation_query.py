@@ -23,6 +23,7 @@ For `gen_ai.tool.name:search OR conversation.totalCost:>10`, its named nodes are
 Compiler replaces complete `filter` nodes by source position and keeps Boolean syntax.
 """
 
+import re
 from collections.abc import Iterator
 from math import isfinite
 
@@ -33,7 +34,23 @@ from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
 from sentry.api.event_search import AggregateFilter, event_search_grammar
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.utils import InvalidQuery, parse_duration
+
+# Resolver config for compiled conversation queries. elapsed_if backs the time span alias.
+CONVERSATION_RESOLVER_CONFIG = SearchResolverConfig(
+    auto_fields=True,
+    disable_aggregate_extrapolation=True,
+    fields_acl=FieldsACL(functions={"elapsed_if"}),
+)
+
+# Matches a query that is exactly one positive conversation ID filter. Keeping this
+# predicate in WHERE lets Snuba use its indexed ai_conversation_id column.
+_CONVERSATION_ID_LOOKUP_RE = re.compile(r'^gen_ai\.conversation\.id:(?:"[^"]+"|(?![!<>=\[\]])\S+)$')
+
+
+def is_conversation_id_lookup(query: str) -> bool:
+    return bool(_CONVERSATION_ID_LOOKUP_RE.match(query.strip()))
 
 
 def _nodes(node: Node, names: set[str], depth: int = 0) -> Iterator[Node]:
@@ -68,7 +85,7 @@ def _compile_alias_filter(condition: Node, key: Node, resolver: SearchResolver) 
     """Replace a table alias with the EAP expression that calculates it.
 
     For example, `conversation.totalCost:>10` becomes
-    `sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):>10`.
+    ``sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.total_tokens):>10``.
     """
     expression, alias = AI_CONVERSATIONS_FIELDS[key.text.strip('"')]
     query = condition.text.replace(key.text, expression, 1)
@@ -141,6 +158,10 @@ def compile_conversation_query(query: str, resolver: SearchResolver) -> str:
     For example, `gen_ai.tool.name:search OR conversation.errors:>0` can match either
     any search span or the conversation's error total.
     """
+    conversation_scope = "has:gen_ai.conversation.id has:gen_ai.operation.type"
+    if is_conversation_id_lookup(query):
+        return f"{conversation_scope} AND ({query.strip()})"
+
     try:
         conditions = list(_nodes(event_search_grammar.parse(query), {"filter", "free_text"}))
     except (ParseError, RecursionError) as error:
@@ -158,5 +179,4 @@ def compile_conversation_query(query: str, resolver: SearchResolver) -> str:
     parts.append(query[offset:])
     group_query = "".join(parts).strip()
 
-    conversation_scope = "has:gen_ai.conversation.id has:gen_ai.operation.type"
     return f"{conversation_scope} AND ({group_query})" if group_query else conversation_scope

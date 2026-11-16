@@ -21,6 +21,16 @@ class ExternalTeamDetailsTest(APITestCase):
         )
         assert not ExternalActor.objects.filter(id=str(self.external_team.id)).exists()
 
+    def test_invalid_external_team_id(self) -> None:
+        for external_team_id in ("abc", "99999999999999999999"):
+            self.get_error_response(
+                self.organization.slug,
+                self.team.slug,
+                external_team_id,
+                method="delete",
+                status_code=404,
+            )
+
     def test_basic_update(self) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             data = {"externalName": "@getsentry/growth"}
@@ -47,7 +57,6 @@ class ExternalTeamDetailsTest(APITestCase):
         self.external_team.refresh_from_db()
         assert self.external_team.team_id == self.team.id
 
-    @with_feature(["organizations:team-roles", "organizations:integrations-codeowners"])
     def _assert_other_team_rejected(self, method: str, status_code: int) -> None:
         other_team = self.create_team(organization=self.organization)
         other_external_team = self.create_external_team(other_team, external_name="@org/other")
@@ -82,9 +91,11 @@ class ExternalTeamDetailsTest(APITestCase):
             externalName="@org/changed",
         )
 
+    @with_feature(["organizations:team-roles", "organizations:integrations-codeowners"])
     def test_update_another_teams_external_team(self) -> None:
         self._assert_other_team_rejected("put", status_code=403)
 
+    @with_feature(["organizations:team-roles", "organizations:integrations-codeowners"])
     def test_delete_another_teams_external_team(self) -> None:
         self._assert_other_team_rejected("delete", status_code=404)
 

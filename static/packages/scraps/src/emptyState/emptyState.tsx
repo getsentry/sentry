@@ -1,3 +1,5 @@
+import type * as React from 'react';
+
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text/heading';
 import {Text, type TextProps} from '@sentry/scraps/text/text';

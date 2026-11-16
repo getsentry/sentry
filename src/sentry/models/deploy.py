@@ -33,11 +33,11 @@ class Deploy(Model):
         db_table = "sentry_deploy"
 
     @staticmethod
-    def get_lock_key(deploy_id):
+    def get_lock_key(deploy_id: int) -> str:
         return "deploy-notify:%s" % deploy_id
 
     @classmethod
-    def notify_if_ready(cls, deploy_id, fetch_complete=False):
+    def notify_if_ready(cls, deploy_id: int, fetch_complete: bool = False) -> None:
         """
         create activity and send deploy notifications
         if they haven't been sent

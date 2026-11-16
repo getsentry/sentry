@@ -1,0 +1,132 @@
+---
+title: Toast
+description: Temporary notifications that provide feedback for user actions.
+category: feedback
+source: '@sentry/scraps/toast'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/toast/index.tsx
+  a11y:
+    WCAG 2.2.4: https://www.w3.org/TR/WCAG22/#interruptions
+    WAI-ARIA Alert: https://www.w3.org/WAI/ARIA/apg/patterns/alert/
+---
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
+
+import {IconRefresh} from '@sentry/icons/refresh';
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/toast');
+
+Use the namespaced `toast` API to show temporary notifications. The shared app provider renders the
+toaster, so callers only need to invoke a method.
+
+<Storybook.Demo>
+  <Flex gap="sm" wrap="wrap">
+    <Button onClick={() => toast.success('Changes saved')}>Success</Button>
+    <Button onClick={() => toast.error('Could not save changes')}>Error</Button>
+    <Button onClick={() => toast.loading('Uploading file...', {duration: 2000})}>
+      Loading
+    </Button>
+    <Button onClick={() => toast.message('This is a notification')}>Message</Button>
+    <Button
+      onClick={() => {
+        const words =
+          'This toast has a random message length to show how longer content wraps inside the fixed width layout.'.split(
+            ' '
+          );
+        const length = Math.floor(Math.random() * words.length) + 1;
+        toast.message(words.slice(0, length).join(' '));
+      }}
+    >
+      Random length
+    </Button>
+  </Flex>
+</Storybook.Demo>
+
+```tsx
+toast.success('Changes saved');
+toast.error('Could not save changes');
+toast.loading('Uploading file...', {duration: 2000});
+toast.message('This is a notification');
+```
+
+## Variants
+
+The API provides four variants:
+
+- `success` confirms a completed action.
+- `error` reports a failed action.
+- `loading` indicates work in progress.
+- `message` displays a neutral notification.
+
+## Options
+
+Pass a `ToastOptions` object as the second argument:
+
+```tsx
+toast.error('Could not save changes', {
+  duration: 10_000,
+});
+```
+
+- `duration` is in milliseconds. It defaults to `6_000`. Use `Infinity` for a persistent toast.
+- `id` updates an existing toast with the same id instead of adding another toast.
+- `onDismiss` runs when the toast is dismissed.
+
+## Actions
+
+Use `action` for a button next to the message. The toast closes after the action runs.
+
+<Storybook.Demo>
+  <Button
+    onClick={() =>
+      toast.success('Item deleted', {
+        action: {
+          label: 'Undo',
+          icon: <IconRefresh size="xs" />,
+          onClick: () => toast.message('Item restored'),
+        },
+      })
+    }
+  >
+    Show undo toast
+  </Button>
+</Storybook.Demo>
+
+```tsx
+toast.success('Item deleted', {
+  action: {
+    label: 'Undo',
+    icon: <IconRefresh size="xs" />,
+    onClick: () => toast.message('Item restored'),
+  },
+});
+```
+
+## Dismissing toasts
+
+Toasts dismiss automatically after their duration. Users can also click the `Dismiss` button or swipe
+a toast. Toasts of the same variant stack up to three at once; showing a different variant
+dismisses the previous variant's active toasts.
+
+```tsx
+toast.dismiss();
+```
+
+## Accessibility
+
+The toaster uses a polite live region to announce new notifications. Error toasts use the `alert`
+role. Other toasts use the `status` role.
+
+### Developer responsibilities
+
+- Write short, clear messages that make sense when read aloud.
+- Do not use only an icon or color to communicate the result.
+- Give users enough time to read the message and use its action. Use `duration: Infinity` when the
+  toast must stay visible.
+- Avoid sending many toasts at the same time. Group repeated notifications when possible.
+- Give each action a clear label and show feedback after the action runs.
+- Use persistent inline feedback for critical information that users must review.

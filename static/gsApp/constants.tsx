@@ -138,7 +138,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.SPAN_INDEXED]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED],
     canProductTrial: true,
-    freeEventsMultiple: 100_000,
     feature: 'spans-usage-tracking',
   },
   [DataCategoryExact.MONITOR_SEAT]: {
@@ -232,7 +231,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.INSTALLABLE_BUILD]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.INSTALLABLE_BUILD],
-    freeEventsMultiple: 1,
     shortenedUnitName: t('install'),
     adminOnlyProductTrialFeature: 'expose-category-installable-build',
   },

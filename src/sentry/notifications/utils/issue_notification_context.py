@@ -1,3 +1,4 @@
+from dataclasses import replace
 from functools import cached_property
 
 from sentry.incidents.grouptype import MetricIssueEvidenceData
@@ -12,9 +13,10 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import Detector, Workflow
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel
 
 
@@ -75,18 +77,29 @@ class IssueNotificationContext:
 
     @cached_property
     def group(self) -> Group:
-        return self._invocation.event_data.group
+        return self._invocation.event_data.require_group()
 
     @cached_property
     def trigger_status(self) -> TriggerStatus:
-        group_status = self._invocation.event_data.group.status
+        group_status = self._invocation.event_data.require_group().status
         if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
             return TriggerStatus.RESOLVED
         return TriggerStatus.ACTIVE
 
     @cached_property
     def notification_context(self) -> NotificationContext:
-        return NotificationContext.from_action_model(self._invocation.action)
+        context = NotificationContext.from_action_model(self._invocation.action)
+        workflow_id = self._invocation.workflow_id
+        if workflow_id == TEST_NOTIFICATION_ID:
+            return context
+
+        workflow_name = (
+            Workflow.objects.filter(id=workflow_id).values_list("name", flat=True).first()
+        )
+        if workflow_name is None:
+            return context
+
+        return replace(context, workflow_id=workflow_id, workflow_name=workflow_name)
 
     @cached_property
     def alert_context(self) -> AlertContext:

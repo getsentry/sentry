@@ -40,6 +40,7 @@ export function InnerIntentForm({
       await handleSubmit({stripe, elements});
     } catch (error) {
       onError?.(error instanceof Error ? error.message : t('An unknown error occurred.'));
+      // oxlint-disable-next-line react/todo
     } finally {
       submittingRef.current = false;
       setIsHandlingSubmit(false);

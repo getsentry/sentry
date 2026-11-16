@@ -1,8 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {loadPrismLanguage} from '@sentry/scraps/code';
+import {loadPrismLanguage} from '@sentry/scraps/codeBlock';
 
-import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
+import {renderRegexPattern} from './highlightedRegexPattern';
 
 jest.unmock('prismjs');
 

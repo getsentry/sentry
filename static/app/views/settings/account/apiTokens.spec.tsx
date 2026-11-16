@@ -8,7 +8,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import ApiTokens from 'sentry/views/settings/account/apiTokens';
+
+import ApiTokens from './apiTokens';
 
 jest.mock('sentry/utils/demoMode');
 

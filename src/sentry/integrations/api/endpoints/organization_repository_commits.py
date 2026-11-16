@@ -20,6 +20,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.commit import Commit
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 
 
@@ -71,7 +72,7 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
         ],
     )
     def get(
-        self, request: Request, organization, repo_id
+        self, request: Request, organization: Organization, repo_id: int | str
     ) -> Response[list[CommitSerializerResponse]]:
         """
         List a Repository's Commits

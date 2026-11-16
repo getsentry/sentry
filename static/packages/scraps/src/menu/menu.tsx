@@ -1,0 +1,845 @@
+import type * as React from 'react';
+import {createContext, useContext, useId, useState} from 'react';
+import {createPortal} from 'react-dom';
+import isPropValid from '@emotion/is-prop-valid';
+import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {autoUpdate, hide, offset, useFloating} from '@floating-ui/react-dom';
+import {FocusScope, getFocusableTreeWalker} from '@react-aria/focus';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {IconSearch} from '@sentry/icons/search';
+
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import type {ContainerProps} from '@sentry/scraps/layout/container';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
+import type {FormSize, Theme} from '@sentry/scraps/theme';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+
+/** Caps a requested menu height by the space available to its overlay. */
+export function calculateMenuMinHeight(
+  first: string | number | undefined,
+  second: string | number | undefined
+): string | undefined {
+  if (first === undefined) {
+    return typeof second === 'number' ? `${second}px` : second;
+  }
+  if (second === undefined) {
+    return typeof first === 'number' ? `${first}px` : first;
+  }
+  const firstHeight = typeof first === 'number' ? `${first}px` : first;
+  const secondHeight = typeof second === 'number' ? `${second}px` : second;
+  return `min(${firstHeight}, ${secondHeight})`;
+}
+
+/** Container for a menu header, with a divider below it. */
+export function MenuHeaderLayout(props: FlexProps) {
+  return <Stack borderBottom="muted" gap="0" {...props} />;
+}
+
+/** Text style for the menu's main heading. */
+export function MenuHeading({
+  children,
+  padding,
+}: {
+  children: React.ReactNode;
+  padding?: ContainerProps['padding'];
+}) {
+  const heading = (
+    <Text size="sm" density="fixed" bold tabular>
+      {children}
+    </Text>
+  );
+  return padding ? <Container padding={padding}>{heading}</Container> : heading;
+}
+
+/** Text style for a heading within a menu section. */
+export function MenuSectionLabel({
+  children,
+  padding,
+  size = 'sm',
+  ...props
+}: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
+  children: React.ReactNode;
+  padding?: ContainerProps['padding'];
+  size?: React.ComponentProps<typeof Text>['size'];
+}) {
+  // TODO: Use the transparent menu heading color when Text exposes a variant for it.
+  return (
+    <Container padding={padding}>
+      <Text as="span" size={size} density="fixed" bold tabular {...props}>
+        {children}
+      </Text>
+    </Container>
+  );
+}
+
+/** Layout for a menu section heading and an optional action beside it. */
+export function MenuSectionHeader({
+  children,
+  trailingAction,
+  ...props
+}: FlexProps & {trailingAction?: React.ReactNode}) {
+  return (
+    <Flex
+      data-section-header
+      justify="between"
+      align="center"
+      minHeight="1.5em"
+      padding="2xs lg"
+      {...props}
+    >
+      {children}
+      {trailingAction}
+    </Flex>
+  );
+}
+
+/** Divider between menu sections. */
+export function MenuSectionSeparator() {
+  return <Separator orientation="horizontal" border="muted" />;
+}
+
+/** List item wrapper for a menu section. */
+export function MenuSectionGroup(props: ContainerProps<'li'>) {
+  return <Container as="li" display="block" {...props} />;
+}
+
+/** List wrapper for the items within a menu section. */
+export function MenuSectionList(props: FlexProps<'ul'>) {
+  return <Stack as="ul" role="presentation" margin="0" padding="0" {...props} />;
+}
+
+/** Container for menu footer actions, with a divider above it. */
+export function MenuFooterLayout(props: FlexProps) {
+  return <Flex borderTop="muted" align="center" padding="md lg" {...props} />;
+}
+
+type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input> & {
+  padding?: ContainerProps['padding'];
+};
+
+/** Shared search field with a leading icon for menu controls. */
+export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
+  return (
+    <Container padding={padding}>
+      <InputGroup>
+        <InputGroup.LeadingItems disablePointerEvents>
+          <Flex paddingLeft="2xs" align="center" justify="center">
+            <IconSearch size="xs" variant="muted" />
+          </Flex>
+        </InputGroup.LeadingItems>
+        <InputGroup.Input size="xs" type="search" {...props} />
+      </InputGroup>
+    </Container>
+  );
+}
+
+const ReserveLeadingSlotContext = createContext(false);
+
+/**
+ * When `reserve` is true, items without leading items render an empty leading
+ * slot, so their labels line up with items that have an icon. Menus should set
+ * it whenever any of their items renders leading items.
+ */
+export function ReserveLeadingSlot({
+  reserve,
+  children,
+}: {
+  children: React.ReactNode;
+  reserve: boolean;
+}) {
+  return (
+    <ReserveLeadingSlotContext value={reserve}>{children}</ReserveLeadingSlotContext>
+  );
+}
+
+/** Whether the surrounding menu reserves a leading slot for every item. */
+export function useReserveLeadingSlot() {
+  return useContext(ReserveLeadingSlotContext);
+}
+
+/**
+ * Menu item priority. Determines the text color.
+ */
+type Priority = 'primary' | 'danger' | 'default';
+
+// Padding order: top, right, bottom, left.
+// The trailing action is a single icon button that sits in the same right-hand
+// column as a submenu chevron. `TRAILING_ACTION_INSET` places it from the item's
+// right edge, and `TRAILING_ACTION_SPACE` keeps the label clear of it.
+const TRAILING_ACTION_INSET = 'lg';
+const TRAILING_ACTION_SPACE = '3xl';
+
+/** Space token between the items of a dropdown menu section. */
+export const SECTION_ITEM_SPACE = '2xs';
+
+const ITEM_PADDING_BY_SIZE = {
+  xs: 'xs md xs lg',
+  sm: 'sm md sm lg',
+  md: 'xs sm xs md',
+} as const;
+
+// Item size follows the form scale, where `sm` controls still use `md` text.
+const LABEL_TEXT_SIZE_BY_SIZE = {
+  xs: 'sm',
+  sm: 'md',
+  md: 'md',
+} as const;
+
+/** Resolves an item's text color from its priority and disabled state. */
+function getTextColor({
+  theme,
+  priority,
+  disabled,
+}: {
+  disabled: boolean;
+  priority: Priority;
+  theme: Theme;
+}) {
+  if (disabled) {
+    return theme.tokens.content.secondary;
+  }
+  switch (priority) {
+    case 'primary':
+      return theme.tokens.content.accent;
+    case 'danger':
+      return theme.tokens.content.danger;
+    case 'default':
+    default:
+      return theme.tokens.content.primary;
+  }
+}
+
+const StyledInnerWrap = styled(Flex, {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' &&
+    (isPropValid(prop) ||
+      ['padding', 'paddingLeft', 'paddingRight', 'align', 'alignSelf'].includes(prop)) &&
+    !['disabled', 'hasTrailingAction', 'priority'].includes(prop),
+})<{
+  disabled: boolean;
+  hasTrailingAction: boolean;
+  priority: Priority;
+  size?: FormSize;
+}>`
+  gap: ${p => p.theme.space.xs};
+  position: relative;
+  border-radius: ${p => p.theme.radius.md};
+  box-sizing: border-box;
+  background: ${p => p.theme.tokens.interactive.transparent.neutral.background.rest};
+
+  font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
+
+  &,
+  &:hover,
+  &:focus,
+  &:focus-visible {
+    color: ${getTextColor};
+    box-shadow: none;
+    outline: none;
+  }
+  ${p => p.disabled && 'cursor: default;'}
+
+  ${p =>
+    !p.disabled &&
+    css`
+      &[data-focused='true'] {
+        ${!p.hasTrailingAction && 'z-index: 1;'}
+        background:
+          linear-gradient(
+            ${p.theme.tokens.interactive.transparent.neutral.background.hover},
+            ${p.theme.tokens.interactive.transparent.neutral.background.hover}
+          ),
+          ${p.theme.tokens.background.overlay};
+      }
+
+      &[data-pressed='true'],
+      &:active:not([data-pressed='false']),
+      &[aria-expanded='true']:not([data-pressed='false']),
+      &[aria-selected='true']:not([data-pressed='false']) {
+        ${!p.hasTrailingAction && 'z-index: 1;'}
+        background:
+          linear-gradient(
+            ${p.theme.tokens.interactive.transparent.neutral.background.active},
+            ${p.theme.tokens.interactive.transparent.neutral.background.active}
+          ),
+          ${p.theme.tokens.background.overlay};
+      }
+    `}
+`;
+
+const StyledContentWrap = styled('div')`
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+`;
+
+const StyledLeadingItems = styled('div')<{
+  disabled: boolean;
+  hasDetails?: boolean;
+  size?: FormSize;
+}>`
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  min-width: ${p => p.theme.space['2xl']};
+  justify-content: center;
+  flex-shrink: 0;
+  /* Match the label's first line when details appear below it. */
+  min-height: ${p => (p.hasDetails ? p.theme.font.lineHeight.fixed : '24px')};
+  align-self: ${p => (p.hasDetails ? 'flex-start' : 'center')};
+  align-items: center;
+  margin-top: ${p => (p.hasDetails ? p.theme.space.xs : '0')};
+
+  ${p => p.disabled && 'opacity: 0.5;'}
+`;
+
+const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  line-height: 1.4;
+  margin-bottom: 0;
+
+  ${p =>
+    p.priority !== 'default' &&
+    css`
+      color: ${getTextColor(p)};
+    `}
+`;
+
+/**
+ * A renderable item. Either a React node, or a function that accepts properties
+ * of the item, and returns a React node. The function version is useful for
+ * lazily rendering supplementary content like training items and tooltips.
+ */
+type ExtraContent =
+  | React.ReactNode
+  | ((state: {
+      disabled: boolean;
+      isFocused: boolean;
+      isSelected: boolean;
+    }) => React.ReactNode);
+
+/**
+ * An icon-only button rendered beside, rather than inside, the focusable menu
+ * item. The item reserves space for exactly one button, so the shape is limited
+ * to what that button needs.
+ */
+export interface MenuItemTrailingAction {
+  icon: React.ReactNode;
+  /** Accessible name for the button, also shown as its tooltip. */
+  label: string;
+  onAction: () => void;
+  /** Shows a loading indicator in place of the icon while the action runs. */
+  busy?: boolean;
+}
+
+export type ListItemProps = {
+  /**
+   * Optional descriptive text. Like 'label', should preferably be a string or
+   * have appropriate aria-labels.
+   */
+  details?: ExtraContent;
+  /**
+   * Whether the item is disabled (if true, the item will be grayed out and
+   * non-interactive).
+   */
+  disabled?: boolean;
+  /**
+   * Item label. Should preferably be a string. If not, make sure that
+   * there are appropriate aria-labels.
+   */
+  label?: React.ReactNode;
+  /**
+   * Items to be added to the left of the label
+   */
+  leadingItems?: ExtraContent;
+  /**
+   * Accented text color.
+   */
+  priority?: Priority;
+  /**
+   * Whether to show the details in an overlay when the item is hovered / focused.
+   */
+  showDetailsInOverlay?: boolean;
+  /**
+   * Determines the item's font sizes and internal paddings.
+   */
+  size?: FormSize;
+  /**
+   * Optional tooltip that appears when the use hovers over the item. This is
+   * not very visible - if possible, add additional text via the `details`
+   * prop instead.
+   */
+  tooltip?: ExtraContent;
+  /**
+   * Additional props to be passed into <Tooltip />.
+   */
+  tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
+  /**
+   * Items to be added to the right of the label.
+   */
+  trailingItems?: ExtraContent;
+};
+
+interface OtherProps<T extends React.ElementType> {
+  as?: T;
+  detailsProps?: Partial<React.ComponentProps<typeof StyledDetails>>;
+  innerWrapProps?: Partial<React.ComponentProps<typeof StyledInnerWrap>>;
+  isFocused?: boolean;
+  isPressed?: boolean;
+  isSelected?: boolean;
+  labelProps?: {as?: 'div' | 'p'; id?: string};
+  onDetailsHoverChange?: (isHovered: boolean, event: React.PointerEvent) => void;
+  trailingAction?: MenuItemTrailingAction;
+  /** Ref to the trailing action's button. */
+  trailingActionRef?: React.Ref<HTMLButtonElement>;
+  /** Props for the wrapper around the trailing action. */
+  trailingActionWrapperProps?: React.ComponentPropsWithRef<'div'>;
+}
+
+interface MenuListItemProps<T extends React.ElementType = 'li'>
+  extends ListItemProps, OtherProps<T> {
+  ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
+}
+
+/** Renders the shared visual shell for menu and select items. */
+export function MenuListItem<T extends React.ElementType = 'li'>({
+  label,
+  details,
+  as,
+  priority = 'default',
+  size,
+  disabled = false,
+  leadingItems = false,
+  trailingItems = false,
+  trailingAction,
+  isFocused = false,
+  isSelected = false,
+  isPressed,
+  innerWrapProps = {},
+  labelProps = {},
+  detailsProps = {},
+  showDetailsInOverlay = false,
+  onDetailsHoverChange,
+  tooltip,
+  tooltipOptions,
+  ref,
+  trailingActionRef,
+  trailingActionWrapperProps,
+  ...props
+}: MenuListItemProps<T>) {
+  const [itemElement, setItemElement] = useState<HTMLElement | null>(null);
+  const [returnFocusTarget, setReturnFocusTarget] = useState<HTMLElement | null>(null);
+  const theme = useTheme();
+  const labelId = useId();
+  const detailId = useId();
+  const hasInlineDetails = Boolean(details && !showDetailsInOverlay);
+  const reserveLeadingSlot = useReserveLeadingSlot();
+  const hasLeadingSlot = Boolean(leadingItems) || reserveLeadingSlot;
+  const [detailsElement, setDetailsElement] = useState<HTMLElement | null>(null);
+  const [isDetailsHovered, setIsDetailsHovered] = useState(false);
+  const [hasFocusInDetails, setHasFocusInDetails] = useState(false);
+  const isDetailsActive = isDetailsHovered || hasFocusInDetails;
+  const showOverlayDetails =
+    showDetailsInOverlay && Boolean(details) && (isFocused || isDetailsActive);
+
+  const detailsContain = (target: EventTarget | null) =>
+    target instanceof Node && Boolean(detailsElement?.contains(target));
+
+  const itemProps = mergeProps(
+    {'aria-describedby': details ? detailId : undefined},
+    props,
+    {
+      onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+        if (
+          e.key === 'ArrowRight' &&
+          e.target === e.currentTarget &&
+          focusMenuItemDetails(e.currentTarget)
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      onFocus: (e: React.FocusEvent<HTMLElement>) => {
+        if (detailsContain(e.target)) {
+          e.stopPropagation();
+          if (
+            !detailsContain(e.relatedTarget) &&
+            e.relatedTarget instanceof HTMLElement
+          ) {
+            setReturnFocusTarget(e.relatedTarget);
+          }
+          setHasFocusInDetails(true);
+        }
+      },
+      onBlur: (e: React.FocusEvent<HTMLElement>) => {
+        if (detailsContain(e.target)) {
+          e.stopPropagation();
+        }
+        setHasFocusInDetails(detailsContain(e.relatedTarget));
+      },
+    }
+  );
+
+  const returnFocus = () => {
+    const target = returnFocusTarget?.isConnected ? returnFocusTarget : itemElement;
+    setReturnFocusTarget(null);
+    target?.focus();
+  };
+
+  return (
+    <MenuItemWrap
+      hasTrailingAction={Boolean(trailingAction)}
+      isFocused={isFocused || isDetailsActive}
+      aria-disabled={disabled}
+      aria-labelledby={labelId}
+      as={as ?? 'li'}
+      ref={
+        mergeRefs(ref, (element: HTMLElement | null) =>
+          setItemElement(element)
+        ) as React.RefCallback<HTMLElement>
+      }
+      data-menu-item-details-id={showDetailsInOverlay ? detailId : undefined}
+      {...itemProps}
+    >
+      <Tooltip
+        skipWrapper
+        title={
+          typeof tooltip === 'function'
+            ? tooltip({disabled, isFocused, isSelected})
+            : tooltip
+        }
+        delay={500}
+        {...tooltipOptions}
+      >
+        <StyledInnerWrap
+          data-menu-item-content
+          padding={ITEM_PADDING_BY_SIZE[size ?? 'md']}
+          // The leading slot is 2xl wide and centers its content, so a 16px icon
+          // gets 4px of space on each side. A `md` inset keeps leading items where
+          // they sat before the slot existed, at every size.
+          paddingLeft={hasLeadingSlot ? 'md' : undefined}
+          paddingRight={trailingAction ? TRAILING_ACTION_SPACE : undefined}
+          data-focused={isFocused || isDetailsActive}
+          data-pressed={isPressed}
+          hasTrailingAction={Boolean(trailingAction)}
+          disabled={disabled}
+          priority={priority}
+          size={size}
+          {...innerWrapProps}
+        >
+          {hasLeadingSlot && (
+            <StyledLeadingItems
+              disabled={disabled}
+              hasDetails={hasInlineDetails}
+              size={size}
+            >
+              {typeof leadingItems === 'function'
+                ? leadingItems({disabled, isFocused, isSelected})
+                : leadingItems}
+            </StyledLeadingItems>
+          )}
+          <StyledContentWrap>
+            {/* Size the label box to match leading and trailing items, so labels that
+                already render at that height do not get extra space. */}
+            <Stack
+              padding={hasInlineDetails ? 'xs 0' : undefined}
+              minHeight={hasInlineDetails ? undefined : '24px'}
+              justify="center"
+              align="start"
+              gap="2xs"
+              flex="1 0 0"
+              minWidth="0"
+            >
+              <Text
+                as="div"
+                size={LABEL_TEXT_SIZE_BY_SIZE[size ?? 'md']}
+                density="fixed"
+                variant={
+                  disabled ? 'muted' : priority === 'default' ? undefined : priority
+                }
+                bold={false}
+                tabular
+                ellipsis
+                trim={typeof label === 'string' || typeof label === 'number'}
+                id={labelId}
+                data-test-id="menu-list-item-label"
+                {...labelProps}
+              >
+                {label}
+              </Text>
+              {!showDetailsInOverlay && details && (
+                <StyledDetails
+                  id={detailId}
+                  disabled={disabled}
+                  priority={priority}
+                  {...detailsProps}
+                >
+                  {typeof details === 'function'
+                    ? details({disabled, isFocused, isSelected})
+                    : details}
+                </StyledDetails>
+              )}
+            </Stack>
+            {trailingItems && (
+              <TrailingItems disabled={disabled}>
+                {typeof trailingItems === 'function'
+                  ? trailingItems({disabled, isFocused, isSelected})
+                  : trailingItems}
+              </TrailingItems>
+            )}
+          </StyledContentWrap>
+        </StyledInnerWrap>
+      </Tooltip>
+      {trailingAction && (
+        <Flex
+          position="absolute"
+          right={theme.space[TRAILING_ACTION_INSET]}
+          top="0"
+          height="100%"
+          align="center"
+          {...trailingActionWrapperProps}
+        >
+          <Button
+            ref={trailingActionRef}
+            size="zero"
+            variant="transparent"
+            icon={trailingAction.icon}
+            aria-label={trailingAction.label}
+            tooltipProps={{title: trailingAction.label}}
+            busy={trailingAction.busy}
+            onClick={trailingAction.onAction}
+          />
+        </Flex>
+      )}
+      {showOverlayDetails && (
+        <DetailsOverlay
+          size={size}
+          id={detailId}
+          itemElement={itemElement}
+          labelId={labelId}
+          ref={setDetailsElement}
+          hasFocusWithin={hasFocusInDetails}
+          onReturnFocus={returnFocus}
+          onPointerEnter={e => {
+            setIsDetailsHovered(true);
+            onDetailsHoverChange?.(true, e);
+          }}
+          onPointerLeave={e => {
+            setIsDetailsHovered(false);
+            onDetailsHoverChange?.(false, e);
+          }}
+        >
+          {typeof details === 'function'
+            ? details({disabled, isFocused, isSelected})
+            : details}
+        </DetailsOverlay>
+      )}
+    </MenuItemWrap>
+  );
+}
+
+const DETAILS_MIDDLEWARE = [
+  offset({crossAxis: -4, mainAxis: 8}),
+  flipOverlay(),
+  shiftOverlay(),
+  hide(),
+];
+
+/** Moves focus into a menu item's overlay details, returning whether it could. */
+export function focusMenuItemDetails(item: Element | null): boolean {
+  const detailsId = item?.getAttribute('data-menu-item-details-id');
+  const detailsElement = detailsId ? document.getElementById(detailsId) : null;
+  const firstFocusable = detailsElement
+    ? getFocusableTreeWalker(detailsElement, {tabbable: true}).nextNode()
+    : null;
+
+  if (!(firstFocusable instanceof HTMLElement)) {
+    return false;
+  }
+
+  firstFocusable.focus();
+  return true;
+}
+
+function getTabbableElements(root: HTMLElement): HTMLElement[] {
+  const walker = getFocusableTreeWalker(root, {tabbable: true});
+  const elements: HTMLElement[] = [];
+  let node = walker.nextNode();
+  while (node) {
+    if (node instanceof HTMLElement) {
+      elements.push(node);
+    }
+    node = walker.nextNode();
+  }
+  return elements;
+}
+
+interface DetailsOverlayProps {
+  children: React.ReactNode;
+  hasFocusWithin: boolean;
+  id: string;
+  itemElement: HTMLElement | null;
+  labelId: string;
+  onPointerEnter: (event: React.PointerEvent) => void;
+  onPointerLeave: (event: React.PointerEvent) => void;
+  onReturnFocus: () => void;
+  ref: (element: HTMLDivElement | null) => void;
+  size: MenuListItemProps['size'];
+}
+
+/** Shows item details beside the focused item when overlay details are enabled. */
+function DetailsOverlay({
+  children,
+  hasFocusWithin,
+  id,
+  itemElement,
+  labelId,
+  onPointerEnter,
+  onPointerLeave,
+  onReturnFocus,
+  ref,
+  size,
+}: DetailsOverlayProps) {
+  const theme = useTheme();
+  const {t} = useTranslation();
+  const [contentElement, setContentElement] = useState<HTMLDivElement | null>(null);
+  const [isInteractive, setIsInteractive] = useState(false);
+  const {
+    refs: {setFloating},
+    floatingStyles,
+    middlewareData,
+  } = useFloating({
+    elements: {reference: itemElement},
+    placement: 'right-start',
+    strategy: 'fixed',
+    middleware: DETAILS_MIDDLEWARE,
+    whileElementsMounted: autoUpdate,
+  });
+
+  const onContentElement = (element: HTMLDivElement | null) => {
+    setContentElement(element);
+    if (element) {
+      setIsInteractive(getTabbableElements(element).length > 0);
+    }
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      e.stopPropagation();
+      onReturnFocus();
+      return;
+    }
+
+    if (e.key === 'Tab' && contentElement) {
+      e.preventDefault();
+      e.stopPropagation();
+      const tabbables = getTabbableElements(contentElement);
+      const index = tabbables.indexOf(e.target as HTMLElement);
+      const next = e.shiftKey
+        ? tabbables[index <= 0 ? tabbables.length - 1 : index - 1]
+        : tabbables[(index + 1) % tabbables.length];
+      next?.focus();
+    }
+  };
+
+  if (!itemElement) {
+    return null;
+  }
+
+  return createPortal(
+    <StyledPositionWrapper
+      data-reference-hidden={middlewareData.hide?.referenceHidden}
+      ref={setFloating}
+      zIndex={theme.zIndex.tooltip}
+      style={floatingStyles}
+    >
+      <FocusScope>
+        <StyledOverlay
+          id={id}
+          ref={mergeRefs<HTMLDivElement>(ref, onContentElement)}
+          role={isInteractive ? 'dialog' : 'tooltip'}
+          aria-labelledby={
+            isInteractive
+              ? (itemElement.getAttribute('aria-labelledby') ?? labelId)
+              : undefined
+          }
+          placement="right-start"
+          size={size}
+          data-menu-item-details
+          onKeyDown={onKeyDown}
+          onPointerEnter={onPointerEnter}
+          onPointerLeave={onPointerLeave}
+        >
+          {children}
+          {isInteractive && !hasFocusWithin ? (
+            <VisuallyHidden>
+              {t('Press Right Arrow to interact with details.')}
+            </VisuallyHidden>
+          ) : null}
+        </StyledOverlay>
+      </FocusScope>
+    </StyledPositionWrapper>,
+    // Not inside the scrolling menu: https://bugs.webkit.org/show_bug.cgi?id=160953
+    itemElement.closest('[data-overlay-root]') ?? document.body
+  );
+}
+
+const StyledPositionWrapper = styled(PositionWrapper)`
+  &[data-reference-hidden='true'] {
+    opacity: 0;
+    pointer-events: none;
+  }
+`;
+
+const StyledOverlay = styled(Overlay)<{
+  size: MenuListItemProps['size'];
+}>`
+  padding: 4px;
+  font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
+  cursor: auto;
+  user-select: contain;
+  max-height: 80vh;
+  overflow: auto;
+`;
+
+const MenuItemWrap = styled('li')<{hasTrailingAction: boolean; isFocused: boolean}>`
+  position: ${p => (p.hasTrailingAction ? 'relative' : 'static')};
+  ${p => p.hasTrailingAction && p.isFocused && 'z-index: 1;'}
+  list-style-type: none;
+  margin: 0;
+  padding: 0 ${p => p.theme.space.xs};
+  cursor: pointer;
+  scroll-margin: ${p => p.theme.space.xs} 0;
+
+  &:focus {
+    outline: none;
+  }
+  &:focus-visible {
+    outline: none;
+  }
+`;
+
+const TrailingItems = styled('div')<{disabled: boolean}>`
+  display: flex;
+  align-items: center;
+  height: 24px;
+  gap: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.xs};
+
+  ${p => p.disabled && 'opacity: 0.5;'}
+`;

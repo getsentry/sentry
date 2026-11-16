@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getAccessibilityContextData,
-  type AccessibilityContext,
-} from 'sentry/components/events/contexts/knownContext/accessibility';
+
+import {getAccessibilityContextData, type AccessibilityContext} from './accessibility';
 
 const MOCK_ACCESSIBILITY_CONTEXT: AccessibilityContext = {
   accessible_navigation: false,

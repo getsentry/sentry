@@ -5,7 +5,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
@@ -63,7 +63,9 @@ function InsightsSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>{t('Insights')}</SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>
+        <SecondaryNavigation.HeaderTitle>{t('Insights')}</SecondaryNavigation.HeaderTitle>
+      </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="insights-main">
           <SecondaryNavigation.List>

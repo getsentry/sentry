@@ -18,4 +18,4 @@ export const EmbeddedSelectField = styled(Select)`
   padding: 0;
   font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
-`;
+` as typeof Select;

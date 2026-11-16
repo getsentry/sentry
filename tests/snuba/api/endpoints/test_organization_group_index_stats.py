@@ -1,6 +1,9 @@
 import uuid
 
+from rest_framework.response import Response
+
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -13,7 +16,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: object, **kwargs: object) -> Response:
         return super().get_response(self.project.organization.slug, **kwargs)
 
     def test_simple(self) -> None:
@@ -25,6 +28,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
+        assert group_a is not None
         self.store_event(
             data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-b"]},
             project_id=self.project.id,
@@ -33,6 +37,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"timestamp": before_now(seconds=3).isoformat(), "fingerprint": ["group-c"]},
             project_id=self.project.id,
         ).group
+        assert group_c is not None
         self.login_as(user=self.user)
         response = self.get_response(query="is:unresolved", groups=[group_a.id, group_c.id])
 
@@ -61,6 +66,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
+        assert group_a is not None
 
         self.login_as(user=self.user)
         response = self.get_response(query="is:unresolved", groups=[group_a.id])
@@ -133,6 +139,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             project_id=self.project.id,
         )
         error_group = error_event.group
+        assert error_group is not None
 
         self.login_as(user=self.user)
         response = self.get_response(
@@ -167,6 +174,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
+        assert group_a is not None
         self.store_event(
             data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-b"]},
             project_id=self.project.id,
@@ -175,6 +183,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"timestamp": before_now(seconds=3).isoformat(), "fingerprint": ["group-c"]},
             project_id=self.project.id,
         ).group
+        assert group_c is not None
         self.login_as(user=self.user)
         response = self.get_response(
             query=f"project:{self.project.slug}", groups=[group_a.id, group_c.id]
@@ -203,6 +212,8 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         group_a = event2.group
         group_c = event4.group
+        assert group_a is not None
+        assert group_c is not None
 
         self.login_as(user=self.user)
         response = self.get_response(
@@ -222,6 +233,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert group_a is not None
         self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
@@ -253,6 +265,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             )
 
             group = event.group
+            assert group is not None
             self.login_as(user=self.user)
 
             response = self.get_response(groups=[group.id])
@@ -267,7 +280,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 "could not find upsampled bucket in stats"
             )
 
-    def _store_platform_tag_collision_events(self):
+    def _store_platform_tag_collision_events(self) -> Group:
         for i, ts in enumerate(
             [before_now(seconds=10), before_now(seconds=8), before_now(seconds=6)]
         ):
@@ -280,6 +293,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 },
                 project_id=self.project.id,
             )
+        assert event.group is not None
         return event.group
 
     def test_platform_tag_collision_badge_resolved_correctly(self) -> None:

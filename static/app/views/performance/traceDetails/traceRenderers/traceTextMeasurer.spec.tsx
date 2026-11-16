@@ -1,6 +1,6 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {TraceTextMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceTextMeasurer';
+import {TraceTextMeasurer} from './traceTextMeasurer';
 
 const originalCreateElement = document.createElement;
 

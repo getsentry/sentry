@@ -3,6 +3,7 @@ import {IconBusiness} from '@sentry/icons/business';
 import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t, tct} from 'sentry/locale';
@@ -26,7 +27,7 @@ export function DisabledDiscardGroup({organization, features}: Props) {
           icon={<IconDelete />}
           title={t('Keep the noise down')}
           action={
-            <ButtonGroup>
+            <Grid gap="md" flow="column">
               <Button
                 size="sm"
                 variant="primary"
@@ -44,12 +45,12 @@ export function DisabledDiscardGroup({organization, features}: Props) {
                 organization={organization}
                 size="sm"
                 source="feature.discard_group"
-                href="https://blog.sentry.io/2018/01/03/delete-and-discard"
+                href="https://docs.sentry.io/pricing/quotas/manage-event-stream-guide/#delete--discard"
                 external
               >
                 {t('About Discard and Delete')}
               </LearnMoreButton>
-            </ButtonGroup>
+            </Grid>
           }
         >
           {plan === null
@@ -75,10 +76,4 @@ export function DisabledDiscardGroup({organization, features}: Props) {
 
 const StyledEmptyMessage = styled(EmptyMessage)`
   padding: 0;
-`;
-
-const ButtonGroup = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
 `;

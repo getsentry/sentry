@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.auth import password_validation
+from sentry.auth.principal import require_user
 from sentry.auth.twofactor import reset_2fa_rate_limits
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.security.utils import capture_security_activity
@@ -81,6 +82,7 @@ class UserPasswordEndpoint(UserEndpoint):
 
         result = serializer.validated_data
 
+        actor = require_user(request)
         user.set_password(result["passwordNew"])
         user.refresh_session_nonce(request._request)
         user.clear_lost_passwords()
@@ -89,7 +91,7 @@ class UserPasswordEndpoint(UserEndpoint):
         capture_security_activity(
             account=user,
             type="password-changed",
-            actor=request.user,
+            actor=actor,
             ip_address=request.META["REMOTE_ADDR"],
             send_email=True,
         )

@@ -18,6 +18,10 @@ describe('storyRoute', () => {
     ['app/components/core/patterns/render-to-html.mdx', 'patterns/render-to-html'],
     // core: components/core (no nesting in the slug)
     ['app/components/core/button/button.stories.tsx', 'core/button'],
+    // core: Scraps package docs keep the same flat core slug
+    ['packages/scraps/src/button/button.mdx', 'core/button'],
+    ['packages/scraps/src/button/linkButton.mdx', 'core/linkbutton'],
+    ['packages/scraps/src/slideOverPanel.mdx', 'core/slideoverpanel'],
     // product: nested dir segments are lowercased into the slug
     [
       'app/views/dashboards/widgetCard.stories.tsx',
@@ -34,6 +38,13 @@ describe('storyRoute', () => {
     ],
     // use* hooks are lowercased like any other name
     ['app/utils/useFoo.stories.tsx', 'product/utils/usefoo'],
+    // gsApp stories nest like product stories under their own category
+    [
+      'gsApp/components/upsellModal/upsellModal.stories.tsx',
+      'gsApp/components/upsellmodal/upsellmodal',
+    ],
+    // gsApp's components/core is not the design system
+    ['gsApp/components/core/foo.stories.tsx', 'gsApp/components/core/foo'],
   ];
 
   for (const [filesystemPath, expected] of cases) {
@@ -180,6 +191,31 @@ describe('syncStoriesPreviewComment', () => {
     assert.equal(calls.create[0].issue_number, 42);
   });
 
+  it('links a changed gsApp story', async () => {
+    const calls = await run({
+      files: [
+        {
+          filename: 'static/gsApp/components/upsellModal/upsellModal.stories.tsx',
+          status: 'modified',
+        },
+      ],
+    });
+    assert.equal(calls.create.length, 1);
+    assert.match(
+      calls.create[0].body!,
+      /stories\/gsApp\/components\/upsellmodal\/upsellmodal\//
+    );
+  });
+
+  it('does not link gsAdmin stories', async () => {
+    const calls = await run({
+      files: [
+        {filename: 'static/gsAdmin/components/foo.stories.tsx', status: 'modified'},
+      ],
+    });
+    assert.deepEqual(calls, {create: [], update: [], delete: []});
+  });
+
   it('escapes markdown brackets in story file labels', async () => {
     const calls = await run({
       files: [
@@ -207,18 +243,18 @@ describe('syncStoriesPreviewComment', () => {
 
   it('does not link a colocated story when only snapshot or test files changed', async () => {
     const files = [
-      'static/app/components/core/button/button.snapshots.tsx',
-      'static/app/components/core/button/button.snapshot.tsx',
-      'static/app/components/core/button/button.spec.tsx',
-      'static/app/components/core/button/button.test.tsx',
+      'static/packages/scraps/src/button/button.snapshots.tsx',
+      'static/packages/scraps/src/button/button.snapshot.tsx',
+      'static/packages/scraps/src/button/button.spec.tsx',
+      'static/packages/scraps/src/button/button.test.tsx',
     ].map(filename => ({filename, status: 'modified'}));
     const calls = await run({
       files,
       dirContents: {
-        'static/app/components/core/button': [
+        'static/packages/scraps/src/button': [
           {
             name: 'button.mdx',
-            path: 'static/app/components/core/button/button.mdx',
+            path: 'static/packages/scraps/src/button/button.mdx',
           },
         ],
       },
@@ -230,22 +266,95 @@ describe('syncStoriesPreviewComment', () => {
     const calls = await run({
       files: [
         {
-          filename: 'static/app/components/core/disclosure/index.tsx',
+          filename: 'static/packages/scraps/src/disclosure/index.tsx',
           status: 'modified',
         },
       ],
       dirContents: {
-        'static/app/components/core/disclosure': [
-          {name: 'index.tsx', path: 'static/app/components/core/disclosure/index.tsx'},
+        'static/packages/scraps/src/disclosure': [
+          {name: 'index.tsx', path: 'static/packages/scraps/src/disclosure/index.tsx'},
           {
             name: 'disclosure.mdx',
-            path: 'static/app/components/core/disclosure/disclosure.mdx',
+            path: 'static/packages/scraps/src/disclosure/disclosure.mdx',
           },
         ],
       },
     });
     assert.equal(calls.create.length, 1);
     assert.match(calls.create[0].body!, /stories\/core\/disclosure\//);
+  });
+
+  it('links a Scraps story when only its package component changed', async () => {
+    const calls = await run({
+      files: [
+        {
+          filename: 'static/packages/scraps/src/button/linkButton.tsx',
+          status: 'modified',
+        },
+      ],
+      dirContents: {
+        'static/packages/scraps/src/button': [
+          {name: 'button.mdx', path: 'static/packages/scraps/src/button/button.mdx'},
+          {
+            name: 'linkButton.tsx',
+            path: 'static/packages/scraps/src/button/linkButton.tsx',
+          },
+          {
+            name: 'linkButton.mdx',
+            path: 'static/packages/scraps/src/button/linkButton.mdx',
+          },
+        ],
+      },
+    });
+    assert.equal(calls.create.length, 1);
+    assert.match(
+      calls.create[0].body!,
+      /\[packages\/scraps\/src\/button\/linkButton\.mdx\]/
+    );
+    assert.match(calls.create[0].body!, /stories\/core\/linkbutton\//);
+  });
+
+  it('links a Scraps story for a top-level package component', async () => {
+    const calls = await run({
+      files: [
+        {filename: 'static/packages/scraps/src/slideOverPanel.tsx', status: 'modified'},
+      ],
+      dirContents: {
+        'static/packages/scraps/src': [
+          {
+            name: 'slideOverPanel.tsx',
+            path: 'static/packages/scraps/src/slideOverPanel.tsx',
+          },
+          {
+            name: 'slideOverPanel.mdx',
+            path: 'static/packages/scraps/src/slideOverPanel.mdx',
+          },
+        ],
+      },
+    });
+    assert.equal(calls.create.length, 1);
+    assert.match(calls.create[0].body!, /stories\/core\/slideoverpanel\//);
+  });
+
+  it('surfaces the app Badge story when a Scraps badge component changed', async () => {
+    const calls = await run({
+      files: [
+        {filename: 'static/packages/scraps/src/badge/badge.tsx', status: 'modified'},
+      ],
+    });
+    assert.equal(calls.create.length, 1);
+    assert.match(calls.create[0].body!, /app\/components\/core\/badge\/badge\.mdx/);
+    assert.match(calls.create[0].body!, /stories\/core\/badge\//);
+  });
+
+  it('does not link stories from other packages', async () => {
+    const calls = await run({
+      files: [
+        {filename: 'static/packages/icons/src/foo/foo.mdx', status: 'modified'},
+        {filename: 'static/packages/scraps/test/foo.tsx', status: 'modified'},
+      ],
+    });
+    assert.deepEqual(calls, {create: [], update: [], delete: []});
   });
 
   it('ignores an unrelated story in the changed component directory', async () => {

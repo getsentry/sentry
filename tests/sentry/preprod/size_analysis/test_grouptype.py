@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -12,14 +12,16 @@ from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisDetectorValidator,
     PreprodSizeAnalysisGroupType,
     SizeAnalysisDataPacket,
+    SizeAnalysisMetadata,
     SizeAnalysisValue,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.detector import process_detectors
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 
 @cell_silo_test
@@ -602,7 +604,9 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
             condition_result=DetectorPriorityLevel.HIGH,
         )
 
-    def _evaluate_with_metadata(self, measurement, metadata):
+    def _evaluate_with_metadata(
+        self, measurement: str, metadata: dict[str, Any]
+    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -615,7 +619,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
             packet={
                 "head_install_size_bytes": 5000000,
                 "head_download_size_bytes": 5000000,
-                "metadata": metadata,
+                "metadata": cast("SizeAnalysisMetadata", metadata),
             },
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
@@ -868,7 +872,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
             organization=self.project.organization,
         )
 
-    def _create_condition(self, condition_type, comparison):
+    def _create_condition(self, condition_type: Condition, comparison: int) -> None:
         self.create_data_condition(
             condition_group=self.condition_group,
             type=condition_type,
@@ -878,14 +882,14 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
 
     def _evaluate(
         self,
-        threshold_type,
-        measurement,
-        head_install,
-        head_download,
-        metadata=None,
-        base_install=None,
-        base_download=None,
-    ):
+        threshold_type: str,
+        measurement: str,
+        head_install: int,
+        head_download: int,
+        metadata: dict[str, Any] | None = None,
+        base_install: int | None = None,
+        base_download: int | None = None,
+    ) -> IssueOccurrence:
         detector = self.create_detector(
             name="test-detector",
             type=PreprodSizeAnalysisGroupType.slug,
@@ -902,7 +906,7 @@ class PreprodSizeAnalysisEvidenceTextTest(TestCase):
         if base_download is not None:
             packet_data["base_download_size_bytes"] = base_download
         if metadata is not None:
-            packet_data["metadata"] = metadata
+            packet_data["metadata"] = cast("SizeAnalysisMetadata", metadata)
 
         data_packet: SizeAnalysisDataPacket = DataPacket(
             source_id="test-source",

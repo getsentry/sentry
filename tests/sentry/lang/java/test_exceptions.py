@@ -1,10 +1,11 @@
 import re
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.lang.java.exceptions import Exceptions
 
 
-def build_event(exceptions_values):
+def build_event(exceptions_values: Sequence[Mapping[str, object]]) -> dict[str, object]:
     return {"exception": {"values": exceptions_values}}
 
 
@@ -145,7 +146,7 @@ def test_deobfuscate_value_replaces_longest_tokens_first() -> None:
 
 
 def test_deobfuscate_value_preserves_quotes_in_replacements() -> None:
-    exc = {"value": "Got 'o' and \"j4\" in message"}
+    exc = {"value": "Got class 'o' and type \"j4\" in message"}
     data = build_event([exc])
 
     excs = Exceptions(data)
@@ -159,7 +160,54 @@ def test_deobfuscate_value_preserves_quotes_in_replacements() -> None:
 
     assert "'org.example.ObfO'" in exc["value"]
     assert '"org.example.ObfJ4"' in exc["value"]
-    assert exc["raw_value"].startswith("Got '")
+    assert exc["raw_value"].startswith("Got class '")
+
+
+def test_quoted_single_segment_is_only_matched_when_introduced_as_class() -> None:
+    data = build_event(
+        [
+            # Quoted values that merely look like obfuscated class names.
+            {"value": "string/dialog_positive: requested 'en-IE', got 'en'"},
+            {"value": "Expected 'yes' or \"no\" but was 'ok'"},
+            # A word that only ends in a class keyword does not introduce a class.
+            {"value": "Unknown subtype 'en'"},
+            {"value": "Class 'ee' is not registered in the scope of 'b'"},
+            {"value": "Check if class with serial name 'o' exists"},
+        ]
+    )
+
+    excs = Exceptions(data)
+
+    assert excs.get_exception_class_names() == ["ee", "b", "o"]
+
+
+def test_deobfuscate_value_ignores_quoted_values_matching_class_names() -> None:
+    # R8 can obfuscate a class to `en`, which is also an ordinary locale code.
+    original = "string/dialog_positive: requested 'en-IE', got 'en'"
+    exc = {"value": original}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    classes = {"en": "com.example.ScreenKt$$ExternalSyntheticLambda0"}
+
+    excs.deobfuscate_and_save(classes, mapped_exceptions=[])
+
+    assert exc["value"] == original
+    assert "raw_value" not in exc
+
+
+def test_deobfuscate_value_only_replaces_quoted_name_introduced_as_class() -> None:
+    # The same word appears both as a class and as a plain value.
+    exc = {"value": "class 'en': requested 'en-IE', got 'en'"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    excs.deobfuscate_and_save({"en": "com.example.Screen"}, mapped_exceptions=[])
+
+    assert exc["value"] == "class 'com.example.Screen': requested 'en-IE', got 'en'"
+    assert exc["raw_value"] == "class 'en': requested 'en-IE', got 'en'"
 
 
 def test_cast_message_class_names_are_matched_when_bare() -> None:
@@ -318,7 +366,7 @@ def test_deobfuscate_is_noop_when_no_classes_mapping() -> None:
 
     # Empty mapping
     excs = Exceptions(build_event([{"value": original}]))
-    exc = excs.get_processable_exceptions_with_values()[0][0]
+    processable_exc = excs.get_processable_exceptions_with_values()[0][0]
     excs.deobfuscate_and_save({}, mapped_exceptions=[])
-    assert exc["value"] == original
-    assert "raw_value" not in exc
+    assert processable_exc["value"] == original
+    assert "raw_value" not in processable_exc

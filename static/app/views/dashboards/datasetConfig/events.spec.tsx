@@ -10,10 +10,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {
-  getCustomEventsFieldRenderer,
-  transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/events';
+
+import {getCustomEventsFieldRenderer, transformEventsResponseToTable} from './events';
 
 const theme = ThemeFixture();
 

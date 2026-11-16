@@ -6,8 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
-
+import {HighlightsIconSummary} from './highlightsIconSummary';
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
 jest.mock('sentry/components/events/contexts/contextIcon', () => ({
