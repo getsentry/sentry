@@ -2707,13 +2707,6 @@ describe('out of credits', () => {
   const organization = OrganizationFixture({
     features: ['seer-credit-checks', 'token-billed-seer-enabled'],
   });
-  const manualPrIterationCreditsOrganization = OrganizationFixture({
-    features: [
-      'seer-credit-checks',
-      'token-billed-seer-enabled',
-      'autofix-pr-iteration-manual',
-    ],
-  });
   const retryTooltip = 'Your organization does not have enough Seer credits for this.';
 
   function mockCreditCheck(operation: string, hasEnoughCredits: boolean) {
@@ -2922,6 +2915,38 @@ describe('out of credits', () => {
     });
   });
 
+  it.each([
+    ['RootCauseCard', RootCauseCard, rootCauseSection],
+    ['CodeChangesCard', CodeChangesCard, codeChangesSection],
+  ])(
+    '%s starts a new single run once the organization can afford it',
+    async (_name, Card, section) => {
+      mockCreditCheck('autofix_root_cause', true);
+      const startStep = jest.fn().mockResolvedValue({runId: 124, isSingleRun: true});
+      render(
+        <Card
+          autofix={{
+            ...mockAutofix,
+            startStep,
+            runState: {...stoppedRunState, feature_id: 'autofix_single_run'},
+          }}
+          groupId="1"
+          section={section}
+        />,
+        {organization}
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Re-run'})).toHaveAttribute(
+          'aria-disabled',
+          'false'
+        )
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+      expect(startStep).toHaveBeenCalledWith('root_cause');
+    }
+  );
+
   it('leaves the retry to the backend without seer-credit-checks', () => {
     const creditCheck = mockCreditCheck('autofix_code_changes', false);
     render(
@@ -2964,7 +2989,7 @@ describe('out of credits', () => {
             [[makePatch('org/repo', 'src/cart.py')]]
           )}
         />,
-        {organization: manualPrIterationCreditsOrganization}
+        {organization}
       );
 
       expect(

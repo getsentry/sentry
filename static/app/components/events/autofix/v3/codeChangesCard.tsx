@@ -13,8 +13,8 @@ import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullReque
 import {
   collectPatches,
   getAutofixArtifactFromSection,
+  getOutOfCreditsStep,
   isCodeChangesArtifact,
-  isOutOfCreditsSection,
   isPrIterationBlock,
   isPrIterationPaused,
   isSingleRunAutofix,
@@ -89,11 +89,14 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const {feedback, latestIterationIndex} = usePrIterationFeedback(section, autofix);
 
-  const isOutOfCredits = isOutOfCreditsSection(section);
-  const stoppedStep = isLatestStepPrIteration ? 'pr_iteration' : 'code_changes';
-  const outOfCreditsRetry = useOutOfCreditsRetry(stoppedStep, {
-    enabled: isOutOfCredits,
-  });
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
+  const stoppedStep = getOutOfCreditsStep(section);
+  const isOutOfCredits = defined(stoppedStep);
+  const outOfCreditsRetry = useOutOfCreditsRetry(
+    // A single run is retried with a new one, which starts at the root cause.
+    isSingleRun ? 'root_cause' : (stoppedStep ?? 'code_changes'),
+    {enabled: isOutOfCredits}
+  );
 
   // The blocks of the step that is running, or that stopped for credits.
   const currentStepBlocks = useMemo(() => {
@@ -120,7 +123,6 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   );
 
   const {copy} = useCopyToClipboard();
-  const isSingleRun = isSingleRunAutofix(autofix.runState);
   const singleRunRerun = useRerunSingleRun(autofix, {
     enabled: isSingleRun && section.status === 'error',
   });
@@ -326,6 +328,21 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       retry = resetPrompt(
         t('What additional context should Seer use?'),
         t('Add context that could unblock the change, e.g. the repo or files to edit.')
+      );
+    } else if (isSingleRun) {
+      // Single runs reject step restarts, so this starts a new one.
+      retry = (
+        <Flex>
+          <Button
+            variant="primary"
+            icon={<IconRefresh />}
+            disabled={singleRunRerun.disabled}
+            tooltipProps={{title: outOfCreditsRetry.tooltip}}
+            onClick={singleRunRerun.rerun}
+          >
+            {t('Re-run')}
+          </Button>
+        </Flex>
       );
     } else if (isResetAvailable) {
       // An iteration is retried with feedback, through the PR iteration form.

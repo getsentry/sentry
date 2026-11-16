@@ -607,6 +607,18 @@ describe('AutofixRef embed', () => {
       );
     });
 
+    it('does not check credits for a stopped step in a read-only conversation', async () => {
+      mockRun(makeStoppedRun('code_changes'));
+      const creditCheck = mockCreditCheck('autofix_code_changes', false);
+      render(<AutofixRefFor step="code_changes" />, {organization: creditsOrganization});
+      await expandAll(1);
+
+      expect(
+        screen.getByText(/Seer stopped before finishing the code changes/)
+      ).toBeInTheDocument();
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
+
     it('disables drafting the pull request again while out of credits', async () => {
       mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
       mockCreditCheck('autofix_open_pr', false);

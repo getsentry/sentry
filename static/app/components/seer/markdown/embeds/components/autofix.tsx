@@ -22,10 +22,8 @@ import {
   explorerAutofixApiOptions,
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
+  getOutOfCreditsStep,
   isCodeChangesArtifact,
-  isLastStepPrIteration,
-  isOutOfCreditsSection,
-  isPrIterationBlock,
   isPullRequestsArtifact,
   isPullRequestsSection,
   isCodeChangesSection,
@@ -311,12 +309,11 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
 
   // A step or PR that stopped for credits fails the same way until the
   // organization can afford it again, so its retry waits for the credit check.
-  const outOfCreditsSection =
-    section && isOutOfCreditsSection(section) ? section : undefined;
-  const stepRetry = useOutOfCreditsRetry(
-    outOfCreditsSection ? getStoppedStep(outOfCreditsSection, step) : step,
-    {enabled: defined(outOfCreditsSection)}
-  );
+  // A read-only conversation offers no retry to pay for.
+  const stoppedStep = section ? getOutOfCreditsStep(section) : null;
+  const stepRetry = useOutOfCreditsRetry(stoppedStep ?? step, {
+    enabled: defined(stoppedStep) && !!sendMessage,
+  });
   // Draft a pull request retries a create that failed for credits. The credit
   // check below holds it back like any other create; this only explains why.
   const prFailedForCredits = Object.values(runState?.repo_pr_states ?? {}).some(
@@ -355,8 +352,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const iterationOutOfCredits =
     step === 'pr_iteration' &&
     !!codeChangesSection &&
-    isOutOfCreditsSection(codeChangesSection) &&
-    isLastStepPrIteration(runState);
+    getOutOfCreditsStep(codeChangesSection) === 'pr_iteration';
 
   return (
     <AutofixBlock id={id} shortId={shortId} step={step}>
@@ -444,8 +440,9 @@ function AutofixRefBody({
     );
   }
 
-  if (isOutOfCreditsSection(section)) {
-    return <OutOfCreditsStepBody section={section} step={step} />;
+  const stoppedStep = getOutOfCreditsStep(section);
+  if (stoppedStep) {
+    return <OutOfCreditsStepBody section={section} stoppedStep={stoppedStep} />;
   }
 
   if (section.status === 'error') {
@@ -538,21 +535,6 @@ function getStoppedStepBlocks(section: AutofixSection): AutofixSection['blocks']
   return section.blocks.slice(Math.max(stepStart, 0));
 }
 
-/**
- * The step a section stopped in: a code_changes section can stop in a PR
- * iteration.
- */
-function getStoppedStep(
-  section: AutofixSection,
-  step: AutofixExplorerStep
-): AutofixExplorerStep {
-  if (!isCodeChangesSection(section)) {
-    return step;
-  }
-  const firstBlock = getStoppedStepBlocks(section)[0];
-  return firstBlock && isPrIterationBlock(firstBlock) ? 'pr_iteration' : 'code_changes';
-}
-
 function hasText(content: string | null | undefined): content is string {
   const trimmed = content?.trim();
   return !!trimmed && trimmed !== '.';
@@ -605,10 +587,10 @@ function StoppedStepText({blocks}: {blocks: AutofixSection['blocks']}) {
  */
 function OutOfCreditsStepBody({
   section,
-  step,
+  stoppedStep,
 }: {
   section: AutofixSection;
-  step: AutofixExplorerStep;
+  stoppedStep: AutofixExplorerStep;
 }) {
   const partialPatches = section.artifacts.findLast(isCodeChangesArtifact);
   const patchesByRepo = collectPatches(partialPatches ?? []);
@@ -617,9 +599,7 @@ function OutOfCreditsStepBody({
     <Stack gap="lg">
       <StoppedStepText blocks={getStoppedStepBlocks(section)} />
       {patchesByRepo.size > 0 && <CodeChangesBody patchesByRepo={patchesByRepo} />}
-      <Text variant="danger">
-        {OUT_OF_CREDITS_STEP_MESSAGE[getStoppedStep(section, step)]}
-      </Text>
+      <Text variant="danger">{OUT_OF_CREDITS_STEP_MESSAGE[stoppedStep]}</Text>
     </Stack>
   );
 }

@@ -21,6 +21,7 @@ import {
 import {
   collectPatches,
   getAutofixArtifactFromSection,
+  getOutOfCreditsStep,
   getSingleRunStop,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
@@ -116,8 +117,10 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
       }
     }
 
-    if (isOutOfCreditsSection(section)) {
-      return <Text variant="muted">{OUT_OF_CREDITS_STEP_MESSAGE.code_changes}</Text>;
+    // PR iterations fold into this section, so it can stop in one of them.
+    const outOfCreditsStep = getOutOfCreditsStep(section);
+    if (outOfCreditsStep) {
+      return <Text variant="muted">{OUT_OF_CREDITS_STEP_MESSAGE[outOfCreditsStep]}</Text>;
     }
 
     if (reposChanged === 0) {

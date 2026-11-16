@@ -892,6 +892,24 @@ describe('getOrderedAutofixSections', () => {
       expect(sections.map(s => s.status)).toEqual(['completed', 'error']);
     });
 
+    it('marks the section the run stopped in with its failure reason', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun(
+          [
+            makeBlock({message: {metadata: {step: 'single_run'}}}),
+            makeBlock({artifacts: [rootCause('H', 'C')]}),
+            makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py')]}),
+          ],
+          {status: 'error', failure_reason: 'out_of_credits'}
+        )
+      );
+
+      expect(sections.map(s => [s.step, s.failureReason])).toEqual([
+        ['root_cause', undefined],
+        ['code_changes', 'out_of_credits'],
+      ]);
+    });
+
     it('keeps code changes completed once a PR exists', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun(

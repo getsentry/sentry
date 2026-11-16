@@ -592,6 +592,13 @@ function getSingleRunSections(
       status: 'error',
     });
   }
+
+  // Why the run stopped, on the sections it stopped in.
+  for (const section of sections) {
+    if (section.status === 'error') {
+      section.failureReason = runState.failure_reason;
+    }
+  }
   return sections;
 }
 
@@ -705,6 +712,28 @@ export function isCodingAgentsSection(section: AutofixSection): boolean {
  */
 export function isOutOfCreditsSection(section: AutofixSection): boolean {
   return section.status === 'error' && section.failureReason === 'out_of_credits';
+}
+
+/**
+ * The step a section stopped in for credits, or null if it didn't. A
+ * code_changes section also holds every PR iteration, so the latest step
+ * marker says whether the code changes or an iteration on the PR stopped.
+ */
+export function getOutOfCreditsStep(section: AutofixSection): AutofixExplorerStep | null {
+  if (!isOutOfCreditsSection(section)) {
+    return null;
+  }
+  if (isRootCauseSection(section)) {
+    return 'root_cause';
+  }
+  if (isSolutionSection(section)) {
+    return 'solution';
+  }
+  if (!isCodeChangesSection(section)) {
+    return null;
+  }
+  const marker = section.blocks.findLast(block => defined(block.message.metadata?.step));
+  return marker && isPrIterationBlock(marker) ? 'pr_iteration' : 'code_changes';
 }
 
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {

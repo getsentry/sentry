@@ -238,6 +238,34 @@ describe('a step that stopped for credits', () => {
     expect(screen.getByText(new RegExp(message))).toBeInTheDocument();
     expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
   });
+
+  it('says a PR iteration stopped, not the code changes', () => {
+    function makeStepBlock(id: string, step: string): AutofixSection['blocks'][number] {
+      return {
+        id,
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {role: 'assistant', content: '', metadata: {step}},
+      };
+    }
+
+    render(
+      <CodeChangesPreview
+        section={{
+          ...makeStoppedSection('code_changes'),
+          blocks: [
+            makeStepBlock('block-1', 'code_changes'),
+            makeStepBlock('block-2', 'pr_iteration'),
+          ],
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText(
+        'Seer stopped before updating the pull request because your organization is out of credits.'
+      )
+    ).toBeInTheDocument();
+  });
 });
 
 describe('PullRequestsPreview', () => {
