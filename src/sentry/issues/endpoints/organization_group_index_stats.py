@@ -88,6 +88,9 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
         Return counts, first and last seen, and stats for the requested issues. Use it to
         fill in stats for an issue list fetched with `collapse=stats`. The `query` filters
         the `filtered` counts.
+
+        For an absolute date range, send `start` and `end` together: each one requires the
+        other.
         """
         stats_period = request.GET.get("groupStatsPeriod")
         start, end = get_date_range_from_stats_period(request.GET)
