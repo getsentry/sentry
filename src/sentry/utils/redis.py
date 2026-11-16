@@ -132,10 +132,10 @@ class RedisClusterManager:
                         startup_nodes=deepcopy(hosts_list),
                         decode_responses=decode_responses,
                         skip_full_coverage_check=True,
-                        max_connections=16,
                         max_connections_per_node=True,
                         readonly_mode=readonly_mode,
-                        **client_args,
+                        # A cluster's `client_args` can raise the per-node limit
+                        **{"max_connections": 16, **client_args},
                     )
                 )
                 if key_prefix is not None:
