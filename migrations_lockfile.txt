@@ -23,7 +23,7 @@ insights: 0001_squashed_0002_backfill_team_starred
 
 investigations: 0018_add_orchestration_run_notebook_fk
 
-monitors: 0027_checkin_config_not_null
+monitors: 0028_partial_timeout_index
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
