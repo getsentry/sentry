@@ -11,11 +11,24 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {makeStatsPathname} from './pathname';
 
 type Props = {
-  activeTab: 'stats' | 'issues' | 'health';
+  activeTab: 'stats' | 'seer' | 'issues' | 'health';
   organization: Organization;
 };
 
+/**
+ * Only billing members of orgs that pay for Seer by token usage see Seer cost.
+ */
+export function hasSeerCostTab(organization: Organization) {
+  return (
+    organization.features.includes('token-billed-seer-enabled') &&
+    organization.access.includes('org:billing')
+  );
+}
+
 export function StatsHeader({organization, activeTab}: Props) {
+  const showSeerTab = hasSeerCostTab(organization);
+  const showTeamInsightsTabs = organization.features.includes('team-insights');
+
   return (
     <Fragment>
       <SettingsPageHeader
@@ -24,41 +37,55 @@ export function StatsHeader({organization, activeTab}: Props) {
           'A view of the usage data that Sentry has received across your entire organization.'
         )}
       />
-      <Container borderBottom="primary" marginBottom="xl">
-        <Tabs onChange={noop} value={activeTab}>
-          {({TabList}) => (
-            <TabList>
-              <TabList.Item
-                key="stats"
-                to={makeStatsPathname({
-                  path: '/',
-                  organization,
-                })}
-              >
-                {t('Usage')}
-              </TabList.Item>
-              <TabList.Item
-                key="issues"
-                to={makeStatsPathname({
-                  path: '/issues/',
-                  organization,
-                })}
-              >
-                {t('Issues')}
-              </TabList.Item>
-              <TabList.Item
-                key="health"
-                to={makeStatsPathname({
-                  path: '/health/',
-                  organization,
-                })}
-              >
-                {t('Health')}
-              </TabList.Item>
-            </TabList>
-          )}
-        </Tabs>
-      </Container>
+      {(showSeerTab || showTeamInsightsTabs) && (
+        <Container borderBottom="primary" marginBottom="xl">
+          <Tabs onChange={noop} value={activeTab}>
+            {({TabList}) => (
+              <TabList>
+                <TabList.Item
+                  key="stats"
+                  to={makeStatsPathname({
+                    path: '/',
+                    organization,
+                  })}
+                >
+                  {t('Usage')}
+                </TabList.Item>
+                <TabList.Item
+                  key="seer"
+                  hidden={!showSeerTab}
+                  to={makeStatsPathname({
+                    path: '/seer/',
+                    organization,
+                  })}
+                >
+                  {t('Seer')}
+                </TabList.Item>
+                <TabList.Item
+                  key="issues"
+                  hidden={!showTeamInsightsTabs}
+                  to={makeStatsPathname({
+                    path: '/issues/',
+                    organization,
+                  })}
+                >
+                  {t('Issues')}
+                </TabList.Item>
+                <TabList.Item
+                  key="health"
+                  hidden={!showTeamInsightsTabs}
+                  to={makeStatsPathname({
+                    path: '/health/',
+                    organization,
+                  })}
+                >
+                  {t('Health')}
+                </TabList.Item>
+              </TabList>
+            )}
+          </Tabs>
+        </Container>
+      )}
     </Fragment>
   );
 }

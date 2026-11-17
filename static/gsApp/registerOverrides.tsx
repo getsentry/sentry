@@ -66,6 +66,7 @@ import {
   seerProjectSettingsRoutes,
 } from 'getsentry/overrides/seerSettingsRoutes';
 import {SpikeProtectionProjectSettings} from 'getsentry/overrides/spendVisibility/spikeProtectionProjectSettings';
+import {statsRoutes} from 'getsentry/overrides/statsRoutes';
 import {subscriptionSettingsRoutes} from 'getsentry/overrides/subscriptionSettingsRoutes';
 import {SuperuserAccessCategory} from 'getsentry/overrides/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/overrides/targetedOnboardingHeader';
@@ -116,6 +117,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    * Additional routes to be inserted into sentrys route tree
    */
   'routes:root': rootRoutes,
+  'routes:stats': statsRoutes,
   'routes:org-settings': seerSettingsRoutes,
   'routes:project-settings': seerProjectSettingsRoutes,
   'routes:legacy-organization-redirects': legacyOrganizationRedirectRoutes,

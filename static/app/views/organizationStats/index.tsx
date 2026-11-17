@@ -39,7 +39,6 @@ import {
 } from 'sentry/views/explore/queryParams/parsers';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {StatsHeader as HeaderTabs} from './header';
 import type {OrganizationStatsProps} from './types';
@@ -135,7 +134,7 @@ function getDataCategoryInfo(dataCategoryPlural: string | null): DataCategoryInf
   return info ?? DATA_CATEGORY_INFO.error;
 }
 
-function getDataDatetime(
+export function getDataDatetime(
   params: OrganizationStatsProps['selection']['datetime']
 ): DateTimeObject {
   const {
@@ -355,23 +354,13 @@ export function OrganizationStatsInner({
     handleChangeState: setStateOnUrl,
   };
 
-  const hasTeamInsights = organization.features.includes('team-insights');
   const showProfilingBanner = dataCategory === 'profiles';
 
   return (
     <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
       <NoProjectMessage organization={organization}>
         <PageFiltersContainer>
-          {hasTeamInsights ? (
-            <HeaderTabs organization={organization} activeTab="stats" />
-          ) : (
-            <SettingsPageHeader
-              title={t('Stats & Usage')}
-              subtitle={t(
-                'A view of the usage data that Sentry has received across your entire organization.'
-              )}
-            />
-          )}
+          <HeaderTabs organization={organization} activeTab="stats" />
           <div>
             <Layout.Main width="full">
               <OverrideStatsBanner organization={organization} />

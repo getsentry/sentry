@@ -1057,6 +1057,7 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/organizationStats')),
     },
+    routeHook('routes:stats'),
     {
       component: make(() => import('sentry/views/organizationStats/teamInsights')),
       children: [

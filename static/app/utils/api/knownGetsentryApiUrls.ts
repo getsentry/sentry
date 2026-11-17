@@ -53,6 +53,7 @@ export type KnownGetsentryApiUrls =
   | '/customers/$organizationIdOrSlug/invoices/$invoiceId/close/'
   | '/customers/$organizationIdOrSlug/invoices/$invoiceId/effective-at/'
   | '/customers/$organizationIdOrSlug/invoices/$invoiceId/retry-payment/'
+  | '/customers/$organizationIdOrSlug/llm-cost-stats/'
   | '/customers/$organizationIdOrSlug/members/'
   | '/customers/$organizationIdOrSlug/migrate-google-domain/'
   | '/customers/$organizationIdOrSlug/migrate-legacy-seer/'
