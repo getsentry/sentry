@@ -506,6 +506,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
+    "sentry.timeseries_annotations",
     "sentry.seer",
     "sentry.scm",
     "sentry.cadence",
