@@ -1,4 +1,5 @@
-import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
+import {useCallback, useEffect, useMemo, useRef, type ReactNode, type Ref} from 'react';
+import {css, Global, useTheme} from '@emotion/react';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -23,6 +24,7 @@ import {
 import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
 import {useConversationSpanSearch} from './hooks/useConversationSpanSearch';
+import {useTranscriptSearchHighlight} from './hooks/useTranscriptSearchHighlight';
 import {extractMessagesFromNodes} from './utils/conversationMessages';
 import {hasConversationTranscriptSearchFeature} from './utils/features';
 
@@ -99,21 +101,16 @@ function ConversationDetailPage() {
     onMatch: handleSelectSpan,
   });
 
-  // Spans the transcript can highlight. User messages and assistant turns without
-  // text have no selectable block.
-  const transcriptNodeIds = useMemo(
-    () =>
-      new Set(
-        messages.flatMap(message => [
-          ...(message.role === 'user' ||
-          (message.role === 'assistant' && message.content === '')
-            ? []
-            : [message.nodeId]),
-          ...(message.toolCalls ?? []).map(toolCall => toolCall.nodeId),
-        ])
-      ),
-    [messages]
-  );
+  const theme = useTheme();
+  const searchRootRef = useRef<HTMLDivElement>(null);
+  const isCurrentMatchShown = useTranscriptSearchHighlight({
+    rootRef: searchRootRef,
+    query: spanSearch.state.status === 'match' ? spanSearch.state.query : null,
+    currentSpanId:
+      spanSearch.state.status === 'match'
+        ? (spanSearch.state.spanIds[spanSearch.state.index] ?? null)
+        : null,
+  });
 
   const getSearchStatus = (): string | null => {
     const {state} = spanSearch;
@@ -133,8 +130,8 @@ function ConversationDetailPage() {
             ? t('Loading match…')
             : t('Match is beyond the loaded spans');
         }
-        if (queryState.tab === 'transcript' && !transcriptNodeIds.has(spanId!)) {
-          return t('No transcript block, showing details');
+        if (queryState.tab === 'transcript' && isCurrentMatchShown === false) {
+          return t("Match is in the span's details");
         }
         return null;
       }
@@ -195,6 +192,18 @@ function ConversationDetailPage() {
           )}
         </Flex>
         {hasConversationTranscriptSearchFeature(organization) && (
+          <Global
+            styles={css`
+              ::highlight(conversation-search-match) {
+                background-color: ${theme.colors.yellow100};
+              }
+              ::highlight(conversation-search-current) {
+                background-color: ${theme.colors.yellow300};
+              }
+            `}
+          />
+        )}
+        {hasConversationTranscriptSearchFeature(organization) && (
           <ConversationSearchInput
             onSubmit={spanSearch.submit}
             onClear={spanSearch.clear}
@@ -208,7 +217,7 @@ function ConversationDetailPage() {
             }
           />
         )}
-        <ConversationViewContainer>
+        <ConversationViewContainer ref={searchRootRef}>
           <ConversationViewContent
             conversation={conversation}
             activeTab={queryState.tab}
@@ -224,9 +233,16 @@ function ConversationDetailPage() {
   );
 }
 
-function ConversationViewContainer({children}: {children: ReactNode}) {
+function ConversationViewContainer({
+  children,
+  ref,
+}: {
+  children: ReactNode;
+  ref?: Ref<HTMLDivElement>;
+}) {
   return (
     <Container
+      ref={ref}
       flex={1}
       minHeight="0"
       overflow="hidden"
