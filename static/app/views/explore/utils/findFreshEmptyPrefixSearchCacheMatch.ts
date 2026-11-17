@@ -1,7 +1,7 @@
 import type {QueryClient} from '@tanstack/react-query';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {safeParseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {isApiQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 type PrefixSearchCacheKey = {
   optionsFingerprint: string;
@@ -52,15 +52,13 @@ export function findFreshEmptyPrefixSearchCacheMatch({
   return undefined;
 }
 
-function getPrefixSearchCacheKey(queryKey: unknown): PrefixSearchCacheKey | undefined {
-  if (!Array.isArray(queryKey) || queryKey.length < 2 || queryKey.length > 3) {
+function getPrefixSearchCacheKey(
+  queryKey: readonly unknown[]
+): PrefixSearchCacheKey | undefined {
+  if (!isApiQueryKey(queryKey) || queryKey.length !== 2 || queryKey[1].infinite) {
     return undefined;
   }
-
-  const parsed = safeParseQueryKey(queryKey);
-  if (!parsed || parsed.isInfinite) {
-    return undefined;
-  }
+  const parsed = queryKey[1];
 
   const query = getRecord(parsed.options.query);
   const substringMatch = query?.substringMatch;
@@ -72,7 +70,7 @@ function getPrefixSearchCacheKey(queryKey: unknown): PrefixSearchCacheKey | unde
   const {query: _ignoredQuery, ...optionsWithoutQuery} = parsed.options;
 
   return {
-    url: parsed.url,
+    url: parsed.fullUrl,
     substringMatch,
     queryFingerprint: JSON.stringify(queryWithoutSubstring),
     optionsFingerprint: JSON.stringify(optionsWithoutQuery),

@@ -22,6 +22,7 @@ import {
   type ConsolePlatform,
 } from 'sentry/constants/consolePlatforms';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
@@ -223,7 +224,10 @@ function ToggleConsolePlatformsModal({
       })
       .finally(() => {
         queryClient.invalidateQueries({
-          queryKey: [`/organizations/${organization.slug}/console-sdk-invites/`],
+          queryKey: apiOptions.as<unknown>()(
+            '/organizations/$organizationIdOrSlug/console-sdk-invites/',
+            {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+          ).queryKey,
         });
       });
   };

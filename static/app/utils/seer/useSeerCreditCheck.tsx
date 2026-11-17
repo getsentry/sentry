@@ -6,7 +6,6 @@ import type {Organization} from 'sentry/types/organization';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -83,11 +82,10 @@ export function seerCreditCheckApiOptions(
  * rechecked at once, for example after credits are added.
  */
 export function seerCreditChecksQueryKey(organization: Organization) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/seer/credit-check/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-  ];
+  return apiOptions.as<unknown>()(
+    '/organizations/$organizationIdOrSlug/seer/credit-check/',
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+  ).queryKey;
 }
 
 interface UseSeerCreditCheckOptions {

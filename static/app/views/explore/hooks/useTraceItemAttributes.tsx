@@ -75,10 +75,14 @@ function isProjectArray(
   return projects.length > 0 && typeof projects[0] === 'object';
 }
 
-function getAttributeScopeHash([url, options]: ApiQueryKey) {
+function getAttributeScopeHash(queryKey: ApiQueryKey) {
+  const {fullUrl, options} = queryKey[1];
   return hashKey([
-    url,
-    {...options, query: {...options?.query, substringMatch: undefined}},
+    fullUrl,
+    {
+      ...options,
+      query: {...options.query, substringMatch: undefined},
+    },
   ]);
 }
 

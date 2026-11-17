@@ -5,7 +5,6 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import type {ApiResponse} from './apiFetch';
 import {apiOptions, selectJsonWithHeaders} from './apiOptions';
-import {parseQueryKey} from './apiQueryKey';
 
 type Promisable<T> = T | Promise<T>;
 type QueryFunctionResult<T> = Promisable<ApiResponse<T>>;
@@ -17,17 +16,25 @@ describe('apiOptions', () => {
       {staleTime: 0, path: {organizationIdOrSlug: 'my-org', version: 'v 1.0.0'}}
     );
 
-    const {url} = parseQueryKey(options.queryKey);
-    expect(url).toBe('/organizations/my-org/releases/v%201.0.0/');
+    const {fullUrl, options: keyOptions} = options.queryKey[1];
+    expect(fullUrl).toBe('/organizations/my-org/releases/v%201.0.0/');
+    expect(keyOptions.path).toEqual({organizationIdOrSlug: 'my-org', version: 'v 1.0.0'});
   });
 
-  it('produces an empty options slot when there are no options', () => {
+  it('keeps the url template parts and path params in the key', () => {
     const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
       staleTime: 0,
       path: {tokenId: '123'},
     });
 
-    expect(options.queryKey).toEqual(['/api-tokens/123/', {}, {infinite: false}]);
+    expect(options.queryKey).toEqual([
+      '_api',
+      {
+        fullUrl: '/api-tokens/123/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {path: {tokenId: '123'}},
+      },
+    ]);
   });
 
   it('strips undefined top-level values from options in queryKey', () => {
@@ -38,7 +45,14 @@ describe('apiOptions', () => {
       method: undefined,
     });
 
-    expect(options.queryKey).toEqual(['/api-tokens/123/', {}, {infinite: false}]);
+    expect(options.queryKey).toEqual([
+      '_api',
+      {
+        fullUrl: '/api-tokens/123/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {path: {tokenId: '123'}},
+      },
+    ]);
   });
 
   it('strips undefined deep values from options in queryKey', () => {
@@ -49,7 +63,14 @@ describe('apiOptions', () => {
       method: undefined,
     });
 
-    expect(options.queryKey).toEqual(['/api-tokens/123/', {}, {infinite: false}]);
+    expect(options.queryKey).toEqual([
+      '_api',
+      {
+        fullUrl: '/api-tokens/123/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {path: {tokenId: '123'}},
+      },
+    ]);
   });
 
   it('keeps defined values when stripping undefined ones', () => {
@@ -61,9 +82,12 @@ describe('apiOptions', () => {
     });
 
     expect(options.queryKey).toEqual([
-      '/api-tokens/123/',
-      {query: {cursor: 'abc'}},
-      {infinite: false},
+      '_api',
+      {
+        fullUrl: '/api-tokens/123/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {path: {tokenId: '123'}, query: {cursor: 'abc'}},
+      },
     ]);
   });
 
@@ -73,8 +97,9 @@ describe('apiOptions', () => {
       path: {tokenId: 123},
     });
 
-    const {url} = parseQueryKey(options.queryKey);
-    expect(url).toBe('/api-tokens/123/');
+    const {fullUrl, options: keyOptions} = options.queryKey[1];
+    expect(fullUrl).toBe('/api-tokens/123/');
+    expect(keyOptions.path).toEqual({tokenId: '123'});
   });
 
   it('should not do accidental replacements', () => {
@@ -84,7 +109,7 @@ describe('apiOptions', () => {
       path: {id: '123', id1: '456'},
     });
 
-    expect(options.queryKey).toEqual(['/projects/456/123', {}, {infinite: false}]);
+    expect(options.queryKey[1].fullUrl).toBe('/projects/456/123');
   });
 
   it('should allow skipToken as path', () => {
@@ -97,15 +122,21 @@ describe('apiOptions', () => {
 
     expect(getOptions('123').queryFn).toEqual(expect.any(Function));
     expect(getOptions('123').queryKey).toEqual([
-      '/api-tokens/123/',
-      {},
-      {infinite: false},
+      '_api',
+      {
+        fullUrl: '/api-tokens/123/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {path: {tokenId: '123'}},
+      },
     ]);
     expect(getOptions(null).queryFn).toEqual(skipToken);
     expect(getOptions(null).queryKey).toEqual([
-      '/api-tokens/$tokenId/',
-      {},
-      {infinite: false},
+      '_api',
+      {
+        fullUrl: '/api-tokens/$tokenId/',
+        urlParts: ['api-tokens', '$tokenId'],
+        options: {},
+      },
     ]);
   });
 

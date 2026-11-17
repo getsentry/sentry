@@ -4,7 +4,6 @@ import {useMutation, type MutateOptions} from '@tanstack/react-query';
 import type {Actor} from 'sentry/types/core';
 import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
@@ -48,7 +47,7 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
       // as `GET /issues/` when query params are set. IE: it should expand inbox & owners
       // Then we could push new data into the cache instead of re-fetching it again
 
-      const listQueryKeyOptions = parseQueryKey(listApiOptions.queryKey).options ?? {};
+      const listQueryKeyOptions = listApiOptions.queryKey[1].options;
       const options = isSingleId
         ? {}
         : ids === 'all'

@@ -5,6 +5,8 @@ import {toast} from '@sentry/scraps/toast';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -32,11 +34,16 @@ export function useToggleDashboardFavorite() {
 
   // Table query key for dashboards pinned by favorites.
   const listFilter = {
-    queryKey: [dashboardsApiOptions(organization).queryKey[0]],
-    predicate: (query: Query) => {
-      const options = query.queryKey[1] as {query?: {pin?: string}} | undefined;
-      return options?.query?.pin === 'favorites';
-    },
+    queryKey: apiOptions.as<unknown>()(
+      '/organizations/$organizationIdOrSlug/dashboards/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        staleTime: 0,
+      }
+    ).queryKey,
+    predicate: (query: Query) =>
+      isApiQueryKey(query.queryKey) &&
+      query.queryKey[1].options.query?.pin === 'favorites',
   };
   // Query key for the "Starred Dashboards" sidebar.
   const starredQueryKey = getStarredDashboardsQueryKey(organization);
@@ -66,9 +73,9 @@ export function useToggleDashboardFavorite() {
         if (!response) {
           return;
         }
-        const options = key[1] as {query?: {sort?: string}} | undefined;
+        const sort = isApiQueryKey(key) ? key[1].options.query?.sort : undefined;
         const json =
-          options?.query?.sort === 'recentlyViewed' && hasUserLastVisited
+          sort === 'recentlyViewed' && hasUserLastVisited
             ? reorderFavoriteDashboards(response.json, dashboardId, shouldFavorite)
             : response.json.map(item =>
                 item.id === dashboardId ? {...item, isFavorited: shouldFavorite} : item

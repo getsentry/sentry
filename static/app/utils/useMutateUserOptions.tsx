@@ -6,6 +6,7 @@ import {toast} from '@sentry/scraps/toast';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
 
+import {apiOptions} from './api/apiOptions';
 import {getApiUrl} from './api/getApiUrl';
 import type {RequestError} from './requestError/requestError';
 import {fetchMutation} from './queryClient';
@@ -39,7 +40,10 @@ export function useMutateUserOptions() {
       // Pages that fetch the user, like account settings, would otherwise keep
       // showing the old preferences
       queryClient.invalidateQueries({
-        queryKey: [getApiUrl('/users/$userId/', {path: {userId: 'me'}})],
+        queryKey: apiOptions.as<unknown>()('/users/$userId/', {
+          path: {userId: 'me'},
+          staleTime: 0,
+        }).queryKey,
       });
     },
     onError: () => {

@@ -19,6 +19,19 @@ import type {
   SeerProjectReposResponse,
 } from './types';
 
+/**
+ * Matches the project's seer repos lists for every filter.
+ */
+function allSeerProjectReposQueryKey(organization: Organization, project: AvatarProject) {
+  return apiOptions.as<unknown>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      staleTime: 0,
+    }
+  ).queryKey;
+}
+
 export function isGitHubProvider(provider: string): boolean {
   // Provider strings arrive in two shapes depending on the source: the bare
   // form (`github`) from Seer/autofix repos and the prefixed form
@@ -111,13 +124,12 @@ export function getMutateSeerProjectRepoOptions({
     project,
     repoId,
   }).queryKey;
-  const [singleUrl] = singleQueryKey;
+  const singleUrl = singleQueryKey[1].fullUrl;
 
   const infiniteQueryKey = getSeerProjectReposInfiniteQueryOptions({
     organization,
     project,
   }).queryKey;
-  const [infiniteUrl] = infiniteQueryKey;
 
   return mutationOptions({
     mutationFn: (data: SeerProjectMutateRepoPayload) => {
@@ -129,7 +141,10 @@ export function getMutateSeerProjectRepoOptions({
     },
     onMutate: async (data: SeerProjectMutateRepoPayload) => {
       await queryClient.cancelQueries({queryKey: singleQueryKey});
-      await queryClient.cancelQueries({queryKey: [infiniteUrl], exact: false});
+      await queryClient.cancelQueries({
+        queryKey: allSeerProjectReposQueryKey(organization, project),
+        exact: false,
+      });
 
       const previousSingle = queryClient.getQueryData(singleQueryKey);
       const previousInfinite = queryClient.getQueryData(infiniteQueryKey);
@@ -159,7 +174,7 @@ export function getMutateSeerProjectRepoOptions({
       );
 
       queryClient.setQueriesData(
-        {queryKey: [infiniteUrl], exact: false},
+        {queryKey: allSeerProjectReposQueryKey(organization, project), exact: false},
         (prev: InfiniteData<ApiResponse<SeerProjectReposResponse[]>> | undefined) => {
           if (prev) {
             return {
@@ -176,17 +191,23 @@ export function getMutateSeerProjectRepoOptions({
         }
       );
 
-      return {previousSingle, previousInfinite, infiniteUrl};
+      return {previousSingle, previousInfinite};
     },
     onError: (_error, _data, context) => {
       queryClient.setQueryData(singleQueryKey, context?.previousSingle);
-      if (context?.infiniteUrl) {
-        queryClient.invalidateQueries({queryKey: [context.infiniteUrl], exact: false});
+      if (context) {
+        queryClient.invalidateQueries({
+          queryKey: allSeerProjectReposQueryKey(organization, project),
+          exact: false,
+        });
       }
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: singleQueryKey});
-      queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
+      queryClient.invalidateQueries({
+        queryKey: allSeerProjectReposQueryKey(organization, project),
+        exact: false,
+      });
     },
   });
 }
@@ -204,15 +225,14 @@ export function getDeleteSeerProjectRepoOptions({
     organization,
     project,
   }).queryKey;
-  const [infiniteUrl] = infiniteQueryKey;
 
   return mutationOptions({
     mutationFn: ({repoId}: {repoId: string}) => {
-      const [singleUrl] = getSeerProjectRepoQueryOptions({
+      const singleUrl = getSeerProjectRepoQueryOptions({
         organization,
         project,
         repoId,
-      }).queryKey;
+      }).queryKey[1].fullUrl;
 
       return fetchMutation({method: 'DELETE', url: singleUrl, data: {repoId}});
     },
@@ -224,7 +244,10 @@ export function getDeleteSeerProjectRepoOptions({
       }).queryKey;
 
       await queryClient.cancelQueries({queryKey: singleQueryKey});
-      await queryClient.cancelQueries({queryKey: [infiniteUrl], exact: false});
+      await queryClient.cancelQueries({
+        queryKey: allSeerProjectReposQueryKey(organization, project),
+        exact: false,
+      });
 
       const previousSingle = queryClient.getQueryData(singleQueryKey);
       const previousInfinite = queryClient.getQueryData(infiniteQueryKey);
@@ -232,7 +255,7 @@ export function getDeleteSeerProjectRepoOptions({
       queryClient.removeQueries({queryKey: singleQueryKey});
 
       queryClient.setQueriesData(
-        {queryKey: [infiniteUrl], exact: false},
+        {queryKey: allSeerProjectReposQueryKey(organization, project), exact: false},
         (prev: InfiniteData<ApiResponse<SeerProjectReposResponse[]>> | undefined) => {
           if (prev) {
             return {
@@ -249,21 +272,27 @@ export function getDeleteSeerProjectRepoOptions({
         }
       );
 
-      return {previousSingle, previousInfinite, singleQueryKey, infiniteUrl};
+      return {previousSingle, previousInfinite, singleQueryKey};
     },
     onError: (_error, _data, context) => {
       if (context?.singleQueryKey) {
         queryClient.setQueryData(context.singleQueryKey, context.previousSingle);
       }
-      if (context?.infiniteUrl) {
-        queryClient.invalidateQueries({queryKey: [context.infiniteUrl], exact: false});
+      if (context) {
+        queryClient.invalidateQueries({
+          queryKey: allSeerProjectReposQueryKey(organization, project),
+          exact: false,
+        });
       }
     },
     onSettled: (_data, _error, _variables, context) => {
       if (context?.singleQueryKey) {
         queryClient.invalidateQueries({queryKey: context.singleQueryKey});
       }
-      queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
+      queryClient.invalidateQueries({
+        queryKey: allSeerProjectReposQueryKey(organization, project),
+        exact: false,
+      });
     },
   });
 }
@@ -396,14 +425,17 @@ export function getMutateSeerProjectReposOptionsAddRepo({
     organization,
     project,
   }).queryKey;
-  const [infiniteUrl] = infiniteQueryKey;
+  const infiniteUrl = infiniteQueryKey[1].fullUrl;
 
   return mutationOptions({
     mutationFn: (data: {repos: SeerProjectRepoCreateInput[]}) => {
       return fetchMutation({method: 'POST', url: infiniteUrl, data});
     },
     onMutate: async (data: {repos: SeerProjectRepoCreateInput[]}) => {
-      await queryClient.cancelQueries({queryKey: [infiniteUrl], exact: false});
+      await queryClient.cancelQueries({
+        queryKey: allSeerProjectReposQueryKey(organization, project),
+        exact: false,
+      });
 
       const previousInfinite = queryClient.getQueryData(infiniteQueryKey);
       const repoLookup = getRepoLookupFromCache(queryClient, organization);
@@ -412,7 +444,7 @@ export function getMutateSeerProjectReposOptionsAddRepo({
       );
 
       queryClient.setQueriesData(
-        {queryKey: [infiniteUrl], exact: false},
+        {queryKey: allSeerProjectReposQueryKey(organization, project), exact: false},
         (prev: InfiniteData<ApiResponse<SeerProjectReposResponse[]>> | undefined) => {
           if (prev && prev.pages.length > 0) {
             const lastPageIndex = prev.pages.length - 1;
@@ -429,11 +461,14 @@ export function getMutateSeerProjectReposOptionsAddRepo({
         }
       );
 
-      return {previousInfinite, infiniteUrl};
+      return {previousInfinite};
     },
     onError: (_error, _data, context) => {
-      if (context?.infiniteUrl) {
-        queryClient.invalidateQueries({queryKey: [context.infiniteUrl], exact: false});
+      if (context) {
+        queryClient.invalidateQueries({
+          queryKey: allSeerProjectReposQueryKey(organization, project),
+          exact: false,
+        });
       }
     },
     onSettled: (_data, _error, variables, _context) => {
@@ -446,7 +481,10 @@ export function getMutateSeerProjectReposOptionsAddRepo({
           }).queryKey,
         });
       }
-      queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
+      queryClient.invalidateQueries({
+        queryKey: allSeerProjectReposQueryKey(organization, project),
+        exact: false,
+      });
     },
   });
 }

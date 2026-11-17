@@ -23,15 +23,15 @@ export function useRefetchOutdatedTimeseries() {
       return;
     }
 
-    const queryKeyPrefix = makeEventsTimeSeriesQueryKeyPrefix(organization.slug);
     const timeseriesFilters = {
-      queryKey: [...queryKeyPrefix, {query: {referrer: METRIC_TIMESERIES_REFERRER}}],
+      queryKey: makeEventsTimeSeriesQueryKeyPrefix(organization.slug, {
+        query: {referrer: METRIC_TIMESERIES_REFERRER},
+      }),
     };
     const triggerFilters = {
-      queryKey: [
-        ...queryKeyPrefix,
-        {query: {referrer: METRIC_TIMESERIES_REFERRER, sampling: SAMPLING_MODE.NORMAL}},
-      ],
+      queryKey: makeEventsTimeSeriesQueryKeyPrefix(organization.slug, {
+        query: {referrer: METRIC_TIMESERIES_REFERRER, sampling: SAMPLING_MODE.NORMAL},
+      }),
     };
 
     const fetchStartedAt = new WeakMap<Query, number>();

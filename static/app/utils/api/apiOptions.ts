@@ -5,7 +5,7 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 import {apiFetch, apiFetchInfinite} from './apiFetch';
 import type {ApiResponse} from './apiFetch';
-import type {QueryKeyEndpointOptions} from './apiQueryKey';
+import {createApiQueryKey, type QueryKeyEndpointOptions} from './apiQueryKey';
 import {getApiUrl} from './getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from './getApiUrl';
 import type {KnownGetsentryApiUrls} from './knownGetsentryApiUrls';
@@ -24,7 +24,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function stripUndefinedValues(obj: Record<string, unknown>): Record<string, unknown> {
+function stripUndefinedValues<T extends Record<string, unknown>>(obj: T): T {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value === undefined) {
@@ -39,7 +39,31 @@ function stripUndefinedValues(obj: Record<string, unknown>): Record<string, unkn
     }
     result[key] = value;
   }
-  return result;
+  // Only drops undefined values and the empty objects they leave behind
+  return result as T;
+}
+
+function getQueryKeyParams(
+  path: KnownApiUrls,
+  pathParams: Record<string, string | number> | SkipToken | undefined,
+  options: QueryKeyEndpointOptions
+) {
+  return {
+    fullUrl: getApiUrl(
+      path,
+      ...([{path: pathParams}] as OptionalPathParams<KnownApiUrls>)
+    ),
+    urlParts: path.split('/').filter(Boolean),
+    options: stripUndefinedValues({
+      ...options,
+      path:
+        pathParams && pathParams !== skipToken
+          ? Object.fromEntries(
+              Object.entries(pathParams).map(([key, value]) => [key, String(value)])
+            )
+          : undefined,
+    }),
+  };
 }
 
 export const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
@@ -62,11 +86,8 @@ function _apiOptions<
     ? [Options & {path?: never}]
     : [Options & PathParamOptions<TApiPath>]
 ) {
-  const url = getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<TApiPath>));
-  const strippedOptions = stripUndefinedValues(options);
-
   return queryOptions({
-    queryKey: [url, strippedOptions, {infinite: false}] as const,
+    queryKey: createApiQueryKey(getQueryKeyParams(path, pathParams, options)),
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
@@ -96,11 +117,11 @@ function _apiOptionsInfinite<
     ? [Options & {path?: never}]
     : [Options & PathParamOptions<TApiPath>]
 ) {
-  const url = getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<TApiPath>));
-  const strippedOptions = stripUndefinedValues(options);
-
   return infiniteQueryOptions({
-    queryKey: [url, strippedOptions, {infinite: true}] as const,
+    queryKey: createApiQueryKey({
+      ...getQueryKeyParams(path, pathParams, options),
+      infinite: true,
+    }),
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),

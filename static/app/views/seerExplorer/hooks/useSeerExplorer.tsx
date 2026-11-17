@@ -8,7 +8,6 @@ import {toast} from '@sentry/scraps/toast';
 import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -281,9 +280,9 @@ export const useSeerExplorer = () => {
       return markSessionProcessing(params.orgSlug, params.runId);
     },
     mutationFn: async params => {
-      const {url} = parseQueryKey(makeSeerExplorerQueryKey(params.orgSlug, params.runId));
+      const {fullUrl} = makeSeerExplorerQueryKey(params.orgSlug, params.runId)[1];
       return fetchMutation({
-        url,
+        url: fullUrl,
         method: 'POST',
         data: {
           query: params.query,

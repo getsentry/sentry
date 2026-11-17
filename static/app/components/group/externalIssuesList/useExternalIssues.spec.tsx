@@ -30,7 +30,7 @@ function useIssuesWithClient() {
 afterEach(() => MockApiClient.clearMockResponses());
 
 it('preserves metadata and cached responses when adding and deleting external issues', async () => {
-  MockApiClient.addMockResponse({url: options.queryKey[0], body: []});
+  MockApiClient.addMockResponse({url: options.queryKey[1].fullUrl, body: []});
   const {result} = renderHookWithProviders(useIssuesWithClient);
   await waitFor(() => expect(result.current.issues.isLoading).toBe(false));
   const previous = {json: [], headers: {Link: 'next-page'}, status: 200};
@@ -50,7 +50,7 @@ it('preserves metadata and cached responses when adding and deleting external is
 });
 
 it('does not create cache entries for external issue updates on a cache miss', async () => {
-  MockApiClient.addMockResponse({url: options.queryKey[0], body: []});
+  MockApiClient.addMockResponse({url: options.queryKey[1].fullUrl, body: []});
   const {result} = renderHookWithProviders(useIssuesWithClient);
   await waitFor(() => expect(result.current.issues.isLoading).toBe(false));
   act(() => {

@@ -22,7 +22,7 @@ interface PublicProps {
    * mindful of query params like `cursor` creating a new query key.
    *
    * This is not the same as ApiQueryKey. But you could use:
-   * `safeParseQueryKey(apiQueryKey)?.options`.
+   * `apiQueryKey[1].options`.
    */
   endpointOptions: undefined | QueryKeyEndpointOptions;
 

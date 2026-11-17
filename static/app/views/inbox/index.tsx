@@ -20,7 +20,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
@@ -121,7 +120,7 @@ function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
     <ListItemCheckboxProvider
       hits={items.length}
       knownIds={items.map(item => item.id)}
-      endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+      endpointOptions={queryOptions.queryKey[1].options}
     >
       <InboxListHeader filters={filters} setFilters={setFilters} />
       <Container flex={1} overflowY="auto" minHeight={0}>
