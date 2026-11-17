@@ -1,8 +1,6 @@
 import logging
 from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
-from dataclasses import replace
-from datetime import datetime, timedelta
 from typing import Annotated, Any, TypedDict
 
 from django.utils import timezone
@@ -18,10 +16,10 @@ from sentry.ai_monitoring.conversation_aggregates import (
 )
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
 from sentry.ai_monitoring.utils import (
-    MAX_RETENTION_DAYS,
     ConversationProject,
     get_conversation_url,
     get_time_range_error,
+    resolve_conversation_time_window,
     serialize_conversation_project,
 )
 from sentry.api.api_owners import ApiOwner
@@ -53,7 +51,6 @@ from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
 from sentry.utils import json, metrics
-from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +72,6 @@ MODEL_USAGE_COLUMNS = [
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_creation.input_tokens) as cache_write_tokens",
     "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.reasoning.output_tokens) as reasoning_tokens",
 ]
-
-_WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RETENTION_DAYS)]
 
 AI_CONVERSATION_ID_PARAM = OpenApiParameter(
     name="conversation_id",
@@ -409,6 +404,8 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         `statsPeriod` longer than 30 days, return a 400. A missing conversation returns an
         empty `spans` list.
         """
+        # The span search endpoint repeats this preamble, so its matches are on the pages
+        # this endpoint returns. Keep the two in step.
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -423,8 +420,12 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             if has_explicit_range:
                 resolved_params = snuba_params
             else:
-                resolved_params = self._resolve_time_window(
-                    snuba_params, request.GET.get("statsPeriod"), now, conversation_id
+                resolved_params = resolve_conversation_time_window(
+                    snuba_params,
+                    request.GET.get("statsPeriod"),
+                    now,
+                    conversation_id,
+                    Referrer.API_AI_CONVERSATION_DETAILS.value,
                 )
 
             def data_fn(offset: int, limit: int) -> AIConversationQueryResult:
@@ -464,41 +465,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 default_per_page=100,
                 max_per_page=1000,
             )
-
-    def _resolve_time_window(
-        self,
-        base_params: SnubaParams,
-        stats_period: str | None,
-        now: datetime,
-        conversation_id: str,
-    ) -> SnubaParams:
-        """Probe progressively older, non-overlapping windows for the conversation."""
-        candidates = self._build_widening_params(base_params, stats_period, now)
-        probe_end = now
-        for candidate in candidates:
-            assert candidate.start is not None
-            probe_params = replace(candidate, end=probe_end)
-            if self._conversation_exists(probe_params, conversation_id):
-                return candidate
-            probe_end = candidate.start
-        return candidates[-1]
-
-    def _build_widening_params(
-        self, base_params: SnubaParams, stats_period: str | None, now: datetime
-    ) -> list[SnubaParams]:
-        max_retention = timedelta(days=MAX_RETENTION_DAYS)
-        requested_delta: timedelta | None = (
-            parse_stats_period(stats_period) if stats_period else None
-        )
-
-        steps: list[timedelta] = []
-        if requested_delta and requested_delta < max_retention:
-            steps.append(requested_delta)
-        for step in _WIDENING_STEPS:
-            if not steps or step > steps[-1]:
-                steps.append(step)
-
-        return [replace(base_params, start=now - delta, end=now) for delta in steps]
 
     @traces.trace
     def _resolve_title(
@@ -776,18 +742,3 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         spans = results["spans"].get("data", [])
         _move_meta_columns(spans)
         return {"data": spans, "stats": stats}
-
-    @traces.trace
-    def _conversation_exists(self, snuba_params: SnubaParams, conversation_id: str) -> bool:
-        result = Spans.run_table_query(
-            params=snuba_params,
-            query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
-            selected_columns=["span_id"],
-            orderby=[],
-            offset=0,
-            limit=1,
-            referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
-            config=SearchResolverConfig(auto_fields=False),
-            sampling_mode="HIGHEST_ACCURACY",
-        )
-        return bool(result.get("data"))

@@ -11,6 +11,7 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import 
     PARENT_SPAN_ATTRIBUTES,
     OrganizationAIConversationDetailsEndpoint,
 )
+from sentry.ai_monitoring.utils import conversation_exists, resolve_conversation_time_window
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -49,12 +50,10 @@ def test_parent_fetch_groups_span_ids_by_trace() -> None:
 
 
 def test_conversation_probe_fetches_only_span_id() -> None:
-    endpoint = OrganizationAIConversationDetailsEndpoint()
-
     with patch.object(
         Spans, "run_table_query", return_value={"data": [{"span_id": "span-id"}]}
     ) as run_query:
-        exists = endpoint._conversation_exists(MagicMock(), "conversation-id")
+        exists = conversation_exists(MagicMock(), "conversation-id", "referrer")
 
     assert exists is True
     assert run_query.call_args.kwargs["selected_columns"] == ["span_id"]
@@ -65,18 +64,17 @@ def test_conversation_probe_fetches_only_span_id() -> None:
 
 
 def test_conversation_probes_use_disjoint_windows() -> None:
-    endpoint = OrganizationAIConversationDetailsEndpoint()
     now = before_now()
 
-    with patch.object(
-        endpoint, "_conversation_exists", side_effect=[False, False, True]
-    ) as conversation_exists:
-        resolved = endpoint._resolve_time_window(SnubaParams(), None, now, "conversation-id")
+    with patch(
+        "sentry.ai_monitoring.utils.conversation_exists", side_effect=[False, False, True]
+    ) as probe:
+        resolved = resolve_conversation_time_window(
+            SnubaParams(), None, now, "conversation-id", "referrer"
+        )
 
     assert resolved.start == now - timedelta(days=30)
-    assert [
-        (probe.args[0].start, probe.args[0].end) for probe in conversation_exists.mock_calls
-    ] == [
+    assert [(call.args[0].start, call.args[0].end) for call in probe.mock_calls] == [
         (now - timedelta(days=7), now),
         (now - timedelta(days=14), now - timedelta(days=7)),
         (now - timedelta(days=30), now - timedelta(days=14)),

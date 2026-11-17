@@ -1,10 +1,12 @@
 import re
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Annotated, Any, TypedDict
 from urllib.parse import quote, urlencode
 
 from rest_framework.request import Request
+from sentry_sdk import traces
 
 from sentry.ai_monitoring.message_normalizer import (
     FILTERED,
@@ -16,7 +18,10 @@ from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.relay.config.ai_model_costs import AIModelCost, AIModelMetadataConfig
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.dates import parse_stats_period
 
 MAX_RETENTION_DAYS = 30
@@ -75,6 +80,60 @@ def get_time_range_error(request: Request, snuba_params: SnubaParams, now: datet
         if snuba_params.end and snuba_params.end < cutoff:
             return f"end time cannot be older than {MAX_RETENTION_DAYS} days"
     return None
+
+
+_WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RETENTION_DAYS)]
+
+
+def resolve_conversation_time_window(
+    base_params: SnubaParams,
+    stats_period: str | None,
+    now: datetime,
+    conversation_id: str,
+    referrer: str,
+) -> SnubaParams:
+    """Probe progressively older, non-overlapping windows for the conversation."""
+    candidates = _build_widening_params(base_params, stats_period, now)
+    probe_end = now
+    for candidate in candidates:
+        assert candidate.start is not None
+        probe_params = replace(candidate, end=probe_end)
+        if conversation_exists(probe_params, conversation_id, referrer):
+            return candidate
+        probe_end = candidate.start
+    return candidates[-1]
+
+
+def _build_widening_params(
+    base_params: SnubaParams, stats_period: str | None, now: datetime
+) -> list[SnubaParams]:
+    max_retention = timedelta(days=MAX_RETENTION_DAYS)
+    requested_delta: timedelta | None = parse_stats_period(stats_period) if stats_period else None
+
+    steps: list[timedelta] = []
+    if requested_delta and requested_delta < max_retention:
+        steps.append(requested_delta)
+    for step in _WIDENING_STEPS:
+        if not steps or step > steps[-1]:
+            steps.append(step)
+
+    return [replace(base_params, start=now - delta, end=now) for delta in steps]
+
+
+@traces.trace
+def conversation_exists(snuba_params: SnubaParams, conversation_id: str, referrer: str) -> bool:
+    result = Spans.run_table_query(
+        params=snuba_params,
+        query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
+        selected_columns=["span_id"],
+        orderby=[],
+        offset=0,
+        limit=1,
+        referrer=referrer,
+        config=SearchResolverConfig(auto_fields=False),
+        sampling_mode="HIGHEST_ACCURACY",
+    )
+    return bool(result.get("data"))
 
 
 def timestamp_to_float(value: Any) -> float:

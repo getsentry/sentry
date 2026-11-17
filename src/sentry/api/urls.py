@@ -10,6 +10,9 @@ from sentry.agent_handoff.endpoints.organization_agent_handoff import (
 from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
+from sentry.ai_monitoring.endpoints.organization_ai_conversation_span_search import (
+    OrganizationAIConversationSpanSearchEndpoint,
+)
 from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     OrganizationAIConversationsEndpoint,
 )
@@ -1903,6 +1906,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/agents/conversations/(?P<conversation_id>[^/]+)/$",
         OrganizationAIConversationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-agent-conversation-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agents/conversations/(?P<conversation_id>[^/]+)/spans/search/$",
+        OrganizationAIConversationSpanSearchEndpoint.as_view(),
+        name="sentry-api-0-organization-agent-conversation-span-search",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/classifiers/$",
