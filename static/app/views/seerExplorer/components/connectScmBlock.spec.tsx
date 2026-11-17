@@ -27,10 +27,8 @@ describe('ConnectScmBlock', () => {
 
   function renderBlock({
     failureReason = 'no_scm_integration',
-    query = {},
   }: {
     failureReason?: string;
-    query?: Record<string, string>;
   } = {}) {
     const respondToUserInput = jest.fn();
     const pendingInput: PendingUserInput = {
@@ -43,10 +41,7 @@ describe('ConnectScmBlock', () => {
         pendingInput={pendingInput}
         respondToUserInput={respondToUserInput}
       />,
-      {
-        organization,
-        initialRouterConfig: {location: {pathname: '/mock-pathname/', query}},
-      }
+      {organization}
     );
     return respondToUserInput;
   }
@@ -267,14 +262,12 @@ describe('ConnectScmBlock', () => {
     expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'skip'});
   });
 
-  it('keeps the name field open from the URL and sends the corrected name', async () => {
+  it('sends the corrected name', async () => {
     mockRepoAccess('repo_not_in_sentry');
-    const respondToUserInput = renderBlock({
-      failureReason: 'repo_not_in_sentry',
-      query: {seerCorrectRepo: 'input-id'},
-    });
+    const respondToUserInput = renderBlock({failureReason: 'repo_not_in_sentry'});
 
-    const field = await screen.findByRole('textbox', {name: 'Repository name'});
+    await userEvent.click(await screen.findByRole('button', {name: 'Correct repo name'}));
+    const field = screen.getByRole('textbox', {name: 'Repository name'});
     expect(field).toHaveValue('acme/app');
     await userEvent.clear(field);
     await userEvent.type(field, 'acme/real');
@@ -284,20 +277,5 @@ describe('ConnectScmBlock', () => {
       decision: 'correct_repo',
       repo_name: 'acme/real',
     });
-  });
-
-  it('starts closed for a later request', async () => {
-    mockRepoAccess('repo_not_in_sentry');
-    renderBlock({
-      failureReason: 'repo_not_in_sentry',
-      query: {seerCorrectRepo: 'earlier-input-id'},
-    });
-
-    expect(
-      await screen.findByRole('button', {name: 'Correct repo name'})
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('textbox', {name: 'Repository name'})
-    ).not.toBeInTheDocument();
   });
 });

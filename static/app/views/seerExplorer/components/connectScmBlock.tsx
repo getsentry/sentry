@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
-import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -17,10 +16,6 @@ import type {
   PendingUserInput,
   RespondToUserInputOptions,
 } from 'sentry/views/seerExplorer/types';
-
-// Holds the id of the request whose name field is open, so a refresh keeps it open and a later
-// request starts closed.
-const CORRECT_REPO_QUERY_PARAM = 'seerCorrectRepo';
 
 // The fix usually lands a few seconds after the user makes it (a webhook, then a sync job), and
 // the slowest normal path (a sync retrying) takes about 6 minutes. After that, only coming back
@@ -150,7 +145,7 @@ interface ConnectScmBlockProps {
 /**
  * The prompt above the composer while a run waits on a repo it couldn't open. What it shows
  * comes from Sentry's answer to "can Seer open this repo now?", which it checks until the answer
- * is yes, and the URL. Until this pause's first answer, or if checking fails, it shows the run's
+ * is yes. Until this pause's first answer, or if checking fails, it shows the run's
  * error. The run resumes on one of its actions or on the user's next message.
  */
 export function ConnectScmBlock({
@@ -159,10 +154,9 @@ export function ConnectScmBlock({
 }: ConnectScmBlockProps) {
   const data = pendingInput.data as ConnectScmData;
   const organization = useOrganization();
-  const [correctingInputId, setCorrectingInputId] = useQueryState(
-    CORRECT_REPO_QUERY_PARAM,
-    parseAsString
-  );
+  // Whether the field to correct the repo name is open. A later request remounts the block, so
+  // it starts closed.
+  const [isCorrecting, setIsCorrecting] = useState(false);
   const [shownAt] = useState(() => Date.now());
   // The cache can hold an answer from an earlier pause for this repo, which this pause's failure
   // may contradict, so only answers from after this one opened count.
@@ -217,12 +211,12 @@ export function ConnectScmBlock({
                       ))}
               </Text>
             </Stack>
-            {correctingInputId === pendingInput.id ? (
+            {isCorrecting ? (
               <CorrectRepoForm
                 repoName={data.repo_name}
-                onCancel={() => setCorrectingInputId(null)}
+                onCancel={() => setIsCorrecting(false)}
                 onSubmit={repoName => {
-                  setCorrectingInputId(null);
+                  setIsCorrecting(false);
                   respondToUserInput(pendingInput.id, {
                     decision: 'correct_repo',
                     repo_name: repoName,
@@ -252,7 +246,7 @@ export function ConnectScmBlock({
                     {t('Continue')}
                   </Button>
                 )}
-                <Button size="sm" onClick={() => setCorrectingInputId(pendingInput.id)}>
+                <Button size="sm" onClick={() => setIsCorrecting(true)}>
                   {t('Correct repo name')}
                 </Button>
                 <Button

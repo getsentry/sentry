@@ -41,7 +41,6 @@ function Example({
   const [queryClient] = useState(
     () => new RepoAccessQueryClient({status, connectedAccounts})
   );
-  // Its own id per story, so "Correct repo name" opens the field in that story only.
   const pendingInput: PendingUserInput = {
     id: `story-${failureReason}-${status}`,
     input_type: 'connect_scm',
