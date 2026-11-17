@@ -126,16 +126,18 @@ function ConversationDetailPage() {
         return t('No results');
       case 'error':
         return t('Search failed');
-      case 'match':
-        if (!nodes.some(node => node.id === state.spanId)) {
+      case 'match': {
+        const spanId = state.spanIds[state.index];
+        if (!nodes.some(node => node.id === spanId)) {
           return isLoading || canAutoFetchNextPage || isFetchingNextPage
             ? t('Loading match…')
             : t('Match is beyond the loaded spans');
         }
-        if (queryState.tab === 'transcript' && !transcriptNodeIds.has(state.spanId)) {
-          return t('Match has no transcript block, showing its details');
+        if (queryState.tab === 'transcript' && !transcriptNodeIds.has(spanId!)) {
+          return t('No transcript block, showing details');
         }
         return null;
+      }
       default:
         return null;
     }
@@ -194,9 +196,16 @@ function ConversationDetailPage() {
         </Flex>
         {hasConversationTranscriptSearchFeature(organization) && (
           <ConversationSearchInput
-            onSearch={spanSearch.search}
+            onSubmit={spanSearch.submit}
             onClear={spanSearch.clear}
+            onNext={spanSearch.next}
+            onPrevious={spanSearch.previous}
             status={getSearchStatus()}
+            counter={
+              spanSearch.state.status === 'match'
+                ? `${spanSearch.state.index + 1}/${spanSearch.state.total}`
+                : null
+            }
           />
         )}
         <ConversationViewContainer>

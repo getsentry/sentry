@@ -468,7 +468,8 @@ export function getConversationQueryOptions(
 }
 
 interface ConversationSpanSearchResponse {
-  match: {spanId: string; startTimestamp: number; traceId: string} | null;
+  matches: Array<{spanId: string; startTimestamp: number; traceId: string}>;
+  total: number;
 }
 
 export function getConversationSpanSearchQueryOptions(

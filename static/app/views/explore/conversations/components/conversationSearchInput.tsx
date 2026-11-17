@@ -1,4 +1,5 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
 import {IconSearch} from '@sentry/icons/search';
 
@@ -11,14 +12,20 @@ import {t} from 'sentry/locale';
 const MAX_QUERY_LENGTH = 256;
 
 interface ConversationSearchInputProps {
+  counter: string | null;
   onClear: () => void;
-  onSearch: (query: string) => void;
+  onNext: () => void;
+  onPrevious: () => void;
+  onSubmit: (query: string, backwards: boolean) => void;
   status: string | null;
 }
 
 export function ConversationSearchInput({
+  counter,
   onClear,
-  onSearch,
+  onNext,
+  onPrevious,
+  onSubmit,
   status,
 }: ConversationSearchInputProps) {
   const [query, setQuery] = useState('');
@@ -44,16 +51,37 @@ export function ConversationSearchInput({
         onChange={e => setQuery(e.target.value)}
         onKeyDown={e => {
           if (e.key === 'Enter' && query.trim()) {
-            onSearch(query.trim());
+            onSubmit(query.trim(), e.shiftKey);
           }
         }}
       />
-      {status || query ? (
+      {status || counter || query ? (
         <InputGroup.TrailingItems>
           {status ? (
             <Text size="sm" variant="muted">
               {status}
             </Text>
+          ) : null}
+          {counter ? (
+            <Fragment>
+              <Text size="sm" variant="muted" tabular>
+                {counter}
+              </Text>
+              <Button
+                size="zero"
+                variant="transparent"
+                icon={<IconChevron size="xs" />}
+                aria-label={t('Previous match')}
+                onClick={onPrevious}
+              />
+              <Button
+                size="zero"
+                variant="transparent"
+                icon={<IconChevron size="xs" direction="down" />}
+                aria-label={t('Next match')}
+                onClick={onNext}
+              />
+            </Fragment>
           ) : null}
           {query ? (
             <Button

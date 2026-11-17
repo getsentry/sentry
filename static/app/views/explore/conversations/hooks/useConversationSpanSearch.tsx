@@ -12,7 +12,7 @@ import {
 type ConversationSpanSearchState =
   | {status: 'idle'}
   | {query: string; status: 'searching' | 'no-match' | 'error'}
-  | {query: string; spanId: string; status: 'match'};
+  | {index: number; query: string; spanIds: string[]; status: 'match'; total: number};
 
 interface UseConversationSpanSearchOptions {
   conversation: UseConversationsOptions;
@@ -28,6 +28,19 @@ export function useConversationSpanSearch({
   const queryClient = useQueryClient();
   const [state, setState] = useState<ConversationSpanSearchState>({status: 'idle'});
   const latestQueryRef = useRef<string | null>(null);
+
+  const step = useCallback(
+    (direction: 1 | -1) => {
+      if (state.status !== 'match') {
+        return;
+      }
+      const count = state.spanIds.length;
+      const index = (state.index + direction + count) % count;
+      setState({...state, index});
+      onMatch(state.spanIds[index]!);
+    },
+    [onMatch, state]
+  );
 
   const search = useCallback(
     async (query: string) => {
@@ -46,13 +59,14 @@ export function useConversationSpanSearch({
         if (latestQueryRef.current !== query) {
           return;
         }
-        const match = response.json.match;
-        if (!match) {
+        const {matches, total} = response.json;
+        if (matches.length === 0) {
           setState({status: 'no-match', query});
           return;
         }
-        setState({status: 'match', query, spanId: match.spanId});
-        onMatch(match.spanId);
+        const spanIds = matches.map(match => match.spanId);
+        setState({status: 'match', query, spanIds, total, index: 0});
+        onMatch(spanIds[0]!);
       } catch {
         if (latestQueryRef.current === query) {
           setState({status: 'error', query});
@@ -62,10 +76,27 @@ export function useConversationSpanSearch({
     [conversation, onMatch, organization, queryClient, selection]
   );
 
+  const submit = useCallback(
+    (query: string, backwards: boolean) => {
+      if (state.status === 'match' && state.query === query) {
+        step(backwards ? -1 : 1);
+        return;
+      }
+      search(query);
+    },
+    [search, state, step]
+  );
+
   const clear = useCallback(() => {
     latestQueryRef.current = null;
     setState({status: 'idle'});
   }, []);
 
-  return {state, search, clear};
+  return {
+    state,
+    submit,
+    clear,
+    next: () => step(1),
+    previous: () => step(-1),
+  };
 }
