@@ -14,6 +14,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {markScrubbedValue} from 'sentry/views/insights/pages/agents/components/scrubbedText';
+import {isEvaluationOperation} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {isExtractionOperation} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -156,7 +158,14 @@ interface UseConversationResult {
 /** Marks where PII scrubbing changed the span's values, see `markScrubbedValue`. */
 function markScrubbedSpan(apiSpan: ConversationApiSpan): ConversationApiSpan {
   const {meta} = apiSpan;
-  if (!meta) {
+  const operationName = apiSpan['gen_ai.operation.name'];
+  // Evaluations and extractions are parsed into their own views, which render
+  // their values as plain text.
+  if (
+    !meta ||
+    isEvaluationOperation(operationName) ||
+    isExtractionOperation(operationName)
+  ) {
     return apiSpan;
   }
   const marked: Record<string, unknown> = {...apiSpan};
@@ -442,7 +451,18 @@ function buildConversationQueryParams(
   return {project, ...datetimeParams};
 }
 
-export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
+export function buildConversationNodes(
+  allSpans: ConversationApiSpan[],
+  {
+    markScrubbed = false,
+  }: {
+    /**
+     * Marks where PII scrubbing changed the spans' values, see `markScrubbedValue`.
+     * Only for nodes that are rendered by components that show the marks.
+     */
+    markScrubbed?: boolean;
+  } = {}
+): {
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
 } {
@@ -455,7 +475,10 @@ export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
   const nodeMap = new Map<string, AITraceSpanNode>();
 
   const transformedNodes = genAiSpans.map(apiSpan => {
-    const node = createNodeFromApiSpan(markScrubbedSpan(apiSpan), nodeMap);
+    const node = createNodeFromApiSpan(
+      markScrubbed ? markScrubbedSpan(apiSpan) : apiSpan,
+      nodeMap
+    );
     nodeMap.set(node.id, node);
     traceMap.set(node.id, apiSpan.trace);
     return node;
@@ -539,7 +562,7 @@ export function useConversation(
   const stats = firstPage?.stats ?? null;
 
   const {nodes, nodeTraceMap} = useMemo(
-    () => buildConversationNodes(allSpans),
+    () => buildConversationNodes(allSpans, {markScrubbed: true}),
     [allSpans]
   );
 
