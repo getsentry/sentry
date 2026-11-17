@@ -80,6 +80,8 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
   const {
     enabled: canSaveQueryPriority,
     isReady: canSaveQuerySpeed,
+    loadFailed,
+    lockedToBalanced,
     speed,
   } = useExploreQuerySpeed();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
@@ -98,9 +100,14 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
         caseInsensitive: caseInsensitive ? '1' : undefined,
       }),
       // Replays have no Query Speed control. Spans and logs omit the field while
-      // the flag is off, while a saved priority is loading, or when that load
-      // failed. An update then keeps the stored priority.
-      ...(dataset !== 'replays' && canSaveQueryPriority && canSaveQuerySpeed
+      // the flag is off, while a saved priority is loading, when that load
+      // failed, or while extrapolation locks the control to Balanced. An update
+      // then keeps the stored priority.
+      ...(dataset !== 'replays' &&
+      canSaveQueryPriority &&
+      canSaveQuerySpeed &&
+      !loadFailed &&
+      !lockedToBalanced
         ? {queryPriority: speed}
         : {}),
     };
@@ -108,6 +115,8 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
     canSaveQueryPriority,
     canSaveQuerySpeed,
     caseInsensitive,
+    loadFailed,
+    lockedToBalanced,
     dataset,
     interval,
     pageFilters,

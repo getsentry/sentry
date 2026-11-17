@@ -1114,7 +1114,7 @@ describe('ExploreToolbar', () => {
     expect(router.location.query.queryPriority).toBe('normal');
   });
 
-  it('does not guess a speed when the saved query fails to load', async () => {
+  it('falls back to balanced when the saved query fails to load', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/saved/1/',
       statusCode: 500,
@@ -1135,16 +1135,105 @@ describe('ExploreToolbar', () => {
     expect(
       await screen.findByText(/Couldn't load the saved query speed/)
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Balanced Querying'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Fast Querying'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Balanced Querying'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Balanced Querying'}));
     await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
 
     expect(screen.getByRole('button', {name: 'Fast Querying'})).toBeInTheDocument();
     expect(router.location.query.queryPriority).toBe('faster');
+  });
+
+  it('locks query speed to balanced when extrapolation is off', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {extrapolate: '0', queryPriority: 'faster'},
+        },
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    const speedButton = within(speedSection).getByRole('button', {
+      name: 'Balanced Querying',
+    });
+    expect(speedButton).toBeDisabled();
+    expect(
+      within(speedSection).queryByRole('button', {name: 'Fast Querying'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.hover(speedButton);
+    expect(
+      await screen.findByText(
+        'Disabling extrapolation cannot be combined with query speed.'
+      )
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.queryPriority).toBeUndefined();
+    });
+  });
+
+  it('disables query speed on the traces tab', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {table: 'trace', queryPriority: 'faster'},
+        },
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    const speedButton = within(speedSection).getByRole('button', {
+      name: 'Balanced Querying',
+    });
+    expect(speedButton).toBeDisabled();
+    expect(
+      within(speedSection).queryByRole('button', {name: 'Fast Querying'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.hover(speedButton);
+    expect(
+      await screen.findByText('Query speed is not applicable to trace results.')
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.queryPriority).toBeUndefined();
+    });
+  });
+
+  it('disables query speed on the attribute breakdowns tab', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {table: 'attribute_breakdowns', queryPriority: 'faster'},
+        },
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    const speedButton = within(speedSection).getByRole('button', {
+      name: 'Balanced Querying',
+    });
+    expect(speedButton).toBeDisabled();
+    expect(
+      within(speedSection).queryByRole('button', {name: 'Fast Querying'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.hover(speedButton);
+    expect(
+      await screen.findByText('Query speed is not applicable to attribute breakdowns.')
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.queryPriority).toBeUndefined();
+    });
   });
 
   it('allows changing sort by in samples mode', async () => {

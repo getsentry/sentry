@@ -205,6 +205,36 @@ describe('useSpansSaveQuery', () => {
     expect(updateQueryMock.mock.calls[0]?.[1].data.queryPriority).toBeUndefined();
   });
 
+  it('omits query priority when extrapolation locks the control', async () => {
+    const updateQueryMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/`,
+      method: 'PUT',
+      body: {id: '123', name: 'Existing Query'},
+    });
+
+    const {result} = renderHookWithProviders(useSpansSaveQuery, {
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            id: '123',
+            title: 'Existing Query',
+            query: 'span.op:db',
+            mode: 'samples',
+            extrapolate: '0',
+            queryPriority: 'faster',
+          },
+        },
+      },
+    });
+
+    await result.current.updateQuery();
+
+    expect(updateQueryMock.mock.calls[0]?.[1].data.queryPriority).toBeUndefined();
+  });
+
   it('does not send query priority for a replay save', async () => {
     const saveQueryMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/`,
