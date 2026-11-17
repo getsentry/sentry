@@ -3010,7 +3010,7 @@ describe('out of credits', () => {
     }
   );
 
-  it('says PR iteration feedback is held for credits', () => {
+  it('says queued feedback is waiting when out of credits', () => {
     render(
       <CodeChangesCard
         autofix={{
@@ -3021,9 +3021,10 @@ describe('out of credits', () => {
             status: 'completed',
             updated_at: '2026-01-01T00:00:00Z',
             repo_pr_states: {'org/repo': makePR()},
+            pr_iteration_out_of_credits: true,
             queued_feedback: [
-              {text: 'Also log it', source: {type: 'user-ui'}, held_for_credits: true},
-              {text: 'And rename it', source: {type: 'user-ui'}, held_for_credits: true},
+              {text: 'Also log it', source: {type: 'user-ui'}},
+              {text: 'And rename it', source: {type: 'user-ui'}},
             ],
           },
         }}

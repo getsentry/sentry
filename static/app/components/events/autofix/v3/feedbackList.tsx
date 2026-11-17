@@ -19,9 +19,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
-  getPrIterationOutOfCreditsWarning,
   isOutOfCreditsSection,
   isPrIterationBlock,
+  isPrIterationOutOfCredits,
   isPrIterationPaused,
   type AutofixSection,
   type RawFeedback,
@@ -225,11 +225,11 @@ export function usePrIterationFeedback(
       autofix.runState?.status === 'awaiting_user_input' ||
       repoStates.some(repo => repo.pr_creation_status === 'creating');
 
-    const outOfCredits = getPrIterationOutOfCreditsWarning(autofix.runState);
+    const unfinishedAction =
+      autofix.runState?.pr_iteration_out_of_credits_unfinished_action;
     const heldForCreditsAction =
-      outOfCredits?.unfinished_action === 'push' ||
-      outOfCredits?.unfinished_action === 'branch_moved_retry'
-        ? outOfCredits.unfinished_action
+      unfinishedAction === 'push' || unfinishedAction === 'branch_moved_retry'
+        ? unfinishedAction
         : null;
 
     const currentStep = section.blocks[currentStepStart];
@@ -264,10 +264,7 @@ export function usePrIterationFeedback(
       ) {
         if (inProgress) {
           status = 'in_progress';
-        } else if (
-          heldForCreditsAction &&
-          Number(iterationIndex) === outOfCredits?.unfinished_iteration_index
-        ) {
+        } else if (heldForCreditsAction) {
           status = 'waiting_for_credits';
         } else if (section.status === 'error' || pushErrors.length > 0) {
           status = 'error';
@@ -295,6 +292,7 @@ export function usePrIterationFeedback(
 
   const queuedFeedback = useMemo<IterationFeedback[]>(() => {
     const paused = isPrIterationPaused(autofix.runState);
+    const heldForCredits = isPrIterationOutOfCredits(autofix.runState);
     return (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
       const parsed = parseFeedbackItem(raw);
       if (!parsed) {
@@ -303,7 +301,7 @@ export function usePrIterationFeedback(
 
       const status: FeedbackStatus = paused
         ? 'paused'
-        : raw.held_for_credits
+        : heldForCredits
           ? 'waiting_for_credits'
           : 'queued';
       return [
@@ -841,7 +839,7 @@ function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
         'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
       );
     case 'out_of_credits':
-      return t('This feedback stopped partway because credits ran out');
+      return t("This feedback couldn't finish because credits ran out");
     default:
       return t('Changes from this feedback could not be pushed');
   }

@@ -378,9 +378,9 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
         <StatusExample label="Waiting for credits — held for credits until Seer next iterates (warning clock + “Queued” label).">
           <CodeChangesCard
             groupId="1"
-            autofix={makeAutofix([
-              {...userUiFeedback('Make the button blue', user), held_for_credits: true},
-            ])}
+            autofix={makeAutofix([userUiFeedback('Make the button blue', user)], {
+              pr_iteration_out_of_credits: true,
+            })}
             section={makeSection('completed', [])}
           />
         </StatusExample>
@@ -547,13 +547,13 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                 groupId="1"
                 autofix={makeAutofix(
                   [
-                    {
-                      ...userUiFeedback('Also handle an expired session', user),
-                      held_for_credits: true,
-                    },
-                    {...checkSuiteFeedback(), held_for_credits: true},
+                    userUiFeedback('Also handle an expired session', user),
+                    checkSuiteFeedback(),
                   ],
-                  {repo_pr_states: {'org/repo': PULL_REQUEST}}
+                  {
+                    repo_pr_states: {'org/repo': PULL_REQUEST},
+                    pr_iteration_out_of_credits: true,
+                  }
                 )}
                 section={makeSection('completed', [
                   makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
@@ -566,13 +566,8 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                 groupId="1"
                 autofix={makeAutofix([], {
                   repo_pr_states: {'org/repo': PULL_REQUEST},
-                  warnings: [
-                    {
-                      warning_type: 'pr_iteration_out_of_credits',
-                      unfinished_action: 'push',
-                      unfinished_iteration_index: 1,
-                    },
-                  ],
+                  pr_iteration_out_of_credits: true,
+                  pr_iteration_out_of_credits_unfinished_action: 'push',
                 })}
                 section={makeSection('completed', [
                   makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
@@ -589,13 +584,8 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                 groupId="1"
                 autofix={makeAutofix([], {
                   repo_pr_states: {'org/repo': BRANCH_MOVED_PULL_REQUEST},
-                  warnings: [
-                    {
-                      warning_type: 'pr_iteration_out_of_credits',
-                      unfinished_action: 'branch_moved_retry',
-                      unfinished_iteration_index: 1,
-                    },
-                  ],
+                  pr_iteration_out_of_credits: true,
+                  pr_iteration_out_of_credits_unfinished_action: 'branch_moved_retry',
                 })}
                 section={makeSection('completed', [
                   makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),

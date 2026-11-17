@@ -1507,7 +1507,7 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
     expect(result.current.runState?.queued_feedback).toHaveLength(1);
   });
 
-  it('says refused feedback runs later and refetches it as held', async () => {
+  it('refetches the run when feedback is refused for credits', async () => {
     const errorSpy = jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: AUTOFIX_URL,
@@ -1531,9 +1531,8 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
         autofix: {
           ...baseState,
           status: 'completed',
-          queued_feedback: [
-            {text: 'make it blue', source: {type: 'user-ui'}, held_for_credits: true},
-          ],
+          pr_iteration_out_of_credits: true,
+          queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
         },
       },
     });
@@ -1548,7 +1547,7 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
       'Your organization is out of credits. Seer will pick up this feedback the next time it iterates on the pull request.'
     );
     await waitFor(() =>
-      expect(result.current.runState?.queued_feedback?.[0]?.held_for_credits).toBe(true)
+      expect(result.current.runState?.pr_iteration_out_of_credits).toBe(true)
     );
   });
 });

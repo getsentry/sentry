@@ -137,7 +137,7 @@ describe('PrIterationFeedbackForm', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it('clears the feedback when it is held for credits', async () => {
+  it('clears the feedback when out of credits', async () => {
     const autofix = makeAutofix({
       startStep: jest.fn().mockRejectedValue({
         status: 402,

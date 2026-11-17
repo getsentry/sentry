@@ -213,9 +213,6 @@ type RawFeedbackSource =
   | CheckSuiteFeedbackSource;
 export interface RawFeedback {
   text: string;
-  // Queued feedback only: a drain or submit refused it for credits.
-  // False while a turn is running.
-  held_for_credits?: boolean;
   source?: RawFeedbackSource;
   timestamp?: string;
   // Short display label derived from the source, serialized on `Feedback`.
@@ -235,48 +232,23 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
+  // Credits refused the run's next step, so its queued feedback waits. False while a turn
+  // runs or iteration is paused.
+  pr_iteration_out_of_credits?: boolean;
+  // What the latest PR iteration left unfinished.
+  pr_iteration_out_of_credits_unfinished_action?: PrIterationUnfinishedAction | null;
   pr_iteration_paused?: boolean;
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
   sentry_run_id?: string | null;
-  warnings?: Array<
-    | {
-        warning_type: string;
-        installation_id?: string;
-        repo_name?: string;
-      }
-    | PrIterationOutOfCreditsWarning
-  >;
+  warnings?: Array<{
+    warning_type: string;
+    installation_id?: string;
+    repo_name?: string;
+  }>;
 }
 
-/**
- * What the latest PR iteration left unfinished for credits:
- * - `agent_turn`: Seer stopped partway through the iteration.
- * - `push`: the iteration's changes weren't pushed.
- * - `branch_moved_retry`: the retry onto the PR's newer branch head didn't run.
- */
 type PrIterationUnfinishedAction = 'agent_turn' | 'push' | 'branch_moved_retry';
-
-export interface PrIterationOutOfCreditsWarning {
-  unfinished_action: PrIterationUnfinishedAction;
-  unfinished_iteration_index: number | null;
-  warning_type: 'pr_iteration_out_of_credits';
-}
-
-/**
- * What running out of credits left undone on the run's PR iteration, or null.
- */
-export function getPrIterationOutOfCreditsWarning(
-  runState: ExplorerAutofixState | null
-): PrIterationOutOfCreditsWarning | null {
-  return runState?.warnings?.find(isPrIterationOutOfCreditsWarning) ?? null;
-}
-
-function isPrIterationOutOfCreditsWarning(
-  warning: NonNullable<ExplorerAutofixState['warnings']>[number]
-): warning is PrIterationOutOfCreditsWarning {
-  return warning.warning_type === 'pr_iteration_out_of_credits';
-}
 
 /**
  * Response from the autofix endpoint.
@@ -786,6 +758,12 @@ export function getOutOfCreditsStep(section: AutofixSection): AutofixExplorerSte
 
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
   return runState?.pr_iteration_paused === true;
+}
+
+export function isPrIterationOutOfCredits(
+  runState: ExplorerAutofixState | null
+): boolean {
+  return runState?.pr_iteration_out_of_credits === true;
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {

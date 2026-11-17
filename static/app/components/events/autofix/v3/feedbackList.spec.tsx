@@ -11,7 +11,6 @@ import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {
   getOrderedAutofixSections,
   type ExplorerAutofixState,
-  type PrIterationOutOfCreditsWarning,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 
 import {FeedbackList, usePrIterationFeedback} from './feedbackList';
@@ -183,7 +182,7 @@ describe('FeedbackList', () => {
 
     await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
     expect(
-      await screen.findByText('This feedback stopped partway because credits ran out')
+      await screen.findByText("This feedback couldn't finish because credits ran out")
     ).toBeInTheDocument();
   });
 
@@ -210,7 +209,7 @@ describe('FeedbackList', () => {
 
     await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
     expect(
-      await screen.findByText('This feedback stopped partway because credits ran out')
+      await screen.findByText("This feedback couldn't finish because credits ran out")
     ).toBeInTheDocument();
   });
 
@@ -222,23 +221,12 @@ describe('FeedbackList', () => {
     });
   }
 
-  function outOfCreditsWarning(
-    unfinishedAction: PrIterationOutOfCreditsWarning['unfinished_action']
-  ): PrIterationOutOfCreditsWarning {
-    return {
-      warning_type: 'pr_iteration_out_of_credits',
-      unfinished_action: unfinishedAction,
-      unfinished_iteration_index: 0,
-    };
-  }
-
-  it('shows queued feedback held for credits as waiting', async () => {
+  it('shows queued feedback as waiting when out of credits', async () => {
     const state = ExplorerAutofixStateFixture({
       status: 'completed',
       blocks: iterationBlocks(),
-      queued_feedback: [
-        {text: 'Make the button blue', source: {type: 'user-ui'}, held_for_credits: true},
-      ],
+      pr_iteration_out_of_credits: true,
+      queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
     });
 
     render(<IterationFeedback state={state} />);
@@ -250,12 +238,13 @@ describe('FeedbackList', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows an iteration whose push is held for credits as waiting, not pushed', () => {
+  it('shows an unpushed iteration as waiting when out of credits', () => {
     // Sentry refused the push, so the repo has no push error for the frontend to see.
     const state = ExplorerAutofixStateFixture({
       status: 'completed',
       blocks: [...iterationBlocks(), completedBlock()],
-      warnings: [outOfCreditsWarning('push')],
+      pr_iteration_out_of_credits: true,
+      pr_iteration_out_of_credits_unfinished_action: 'push',
     });
 
     render(<IterationFeedback state={state} />);
@@ -264,7 +253,7 @@ describe('FeedbackList', () => {
     expect(screen.getByRole('img', {name: 'Waiting for credits'})).toBeInTheDocument();
   });
 
-  it('shows a branch-moved retry held for credits as waiting, not refused', () => {
+  it('shows a branch-moved retry as waiting when out of credits', () => {
     const state = ExplorerAutofixStateFixture({
       status: 'completed',
       blocks: [...iterationBlocks(), completedBlock()],
@@ -274,7 +263,8 @@ describe('FeedbackList', () => {
           pr_creation_error_code: 'branch_moved',
         }),
       },
-      warnings: [outOfCreditsWarning('branch_moved_retry')],
+      pr_iteration_out_of_credits: true,
+      pr_iteration_out_of_credits_unfinished_action: 'branch_moved_retry',
     });
 
     render(<IterationFeedback state={state} />);
@@ -283,14 +273,12 @@ describe('FeedbackList', () => {
     expect(screen.getByRole('img', {name: 'Waiting for credits'})).toBeInTheDocument();
   });
 
-  it('shows queued feedback as paused once iteration is paused', async () => {
+  it('shows queued feedback as paused when iteration is paused', async () => {
     const state = ExplorerAutofixStateFixture({
       status: 'completed',
       blocks: iterationBlocks(),
       pr_iteration_paused: true,
-      queued_feedback: [
-        {text: 'Make the button blue', source: {type: 'user-ui'}, held_for_credits: true},
-      ],
+      queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
     });
 
     render(<IterationFeedback state={state} />);

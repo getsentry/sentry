@@ -14,9 +14,9 @@ import {
   collectPatches,
   getAutofixArtifactFromSection,
   getOutOfCreditsStep,
-  getPrIterationOutOfCreditsWarning,
   isCodeChangesArtifact,
   isPrIterationBlock,
+  isPrIterationOutOfCredits,
   isPrIterationPaused,
   isSingleRunAutofix,
   type AutofixSection,
@@ -143,20 +143,13 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const isPaused = isPrIterationPaused(autofix.runState);
 
-  const outOfCredits = getPrIterationOutOfCreditsWarning(autofix.runState);
+  const unfinishedAction =
+    autofix.runState?.pr_iteration_out_of_credits_unfinished_action;
   let heldForCreditsMessage: string | null = null;
-  if (
-    outOfCredits?.unfinished_action === 'push' ||
-    outOfCredits?.unfinished_action === 'branch_moved_retry'
-  ) {
-    heldForCreditsMessage =
-      OUT_OF_CREDITS_PR_ITERATION_MESSAGE[outOfCredits.unfinished_action];
-  } else {
-    // A pause wins, so held feedback won't run.
-    const heldFeedbackCount = isPaused
-      ? 0
-      : (autofix.runState?.queued_feedback ?? []).filter(item => item.held_for_credits)
-          .length;
+  if (unfinishedAction === 'push' || unfinishedAction === 'branch_moved_retry') {
+    heldForCreditsMessage = OUT_OF_CREDITS_PR_ITERATION_MESSAGE[unfinishedAction];
+  } else if (isPrIterationOutOfCredits(autofix.runState)) {
+    const heldFeedbackCount = autofix.runState?.queued_feedback?.length ?? 0;
     if (heldFeedbackCount) {
       heldForCreditsMessage = OUT_OF_CREDITS_PR_ITERATION_MESSAGE.held(heldFeedbackCount);
     }
