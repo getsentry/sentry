@@ -1,4 +1,4 @@
-import {useState, type PointerEventHandler, type ReactNode} from 'react';
+import {Fragment, useState, type PointerEventHandler, type ReactNode} from 'react';
 import {css, ThemeProvider, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconSettings} from '@sentry/icons/settings';
@@ -17,7 +17,11 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {getHandoffPrompt} from './handoffPrompt';
-import {AgentHandoffFlow, type AgentHandoffContext, useAgentHandoff} from './useAgentHandoff';
+import {
+  AgentHandoffFlow,
+  type AgentHandoffContext,
+  useAgentHandoff,
+} from './useAgentHandoff';
 import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
 
 export function getHandoffPreviewUrl(flow: AgentHandoffFlow, sentryUrl: string): string {
@@ -118,7 +122,7 @@ interface HandoffPromptAlertsProps {
 
 export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsProps) {
   return (
-    <>
+    <Fragment>
       {!useIpPinning && (
         <Alert variant="warning">
           {t(
@@ -127,7 +131,7 @@ export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsPr
         </Alert>
       )}
       {error && <Alert variant="danger">{error.message}</Alert>}
-    </>
+    </Fragment>
   );
 }
 

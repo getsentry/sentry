@@ -56,14 +56,18 @@ export function AgentHandoffProductPrompt({
         {t('Paste this prompt into your coding agent')}
       </Text>
 
-      <HandoffPromptBox product={context?.product} onCopyPrompt={copyPrompt} onSelect={onSelect} />
+      <HandoffPromptBox
+        product={context?.product}
+        onCopyPrompt={copyPrompt}
+        onSelect={onSelect}
+      />
 
       <Flex align="center" gap="sm">
         <Button
           busy={handoff.isPending}
           disabled={copyDisabled}
           icon={<IconCopy />}
-          priority="primary"
+          variant="primary"
           size="sm"
           onClick={copyPrompt}
         >
@@ -91,21 +95,23 @@ export function AgentHandoffProductPrompt({
           {t('Your agent will:')}
         </Text>
         <List symbol="bullet">
-          {agentSteps.map(step => (
-            <ListItem key={step}>
-              <Text size="sm">{step}</Text>
-            </ListItem>
-          ))}
-          <ListItem>
-            <Text size="sm">
-              <ExternalLink href={previewUrl}>
-                <Flex as="span" align="center" gap="xs">
-                  {t('View all instructions')}
-                  <IconOpen size="xs" />
-                </Flex>
-              </ExternalLink>
-            </Text>
-          </ListItem>
+          {[
+            ...agentSteps.map(step => (
+              <ListItem key={step}>
+                <Text size="sm">{step}</Text>
+              </ListItem>
+            )),
+            <ListItem key="view-all-instructions">
+              <Text size="sm">
+                <ExternalLink href={previewUrl}>
+                  <Flex as="span" align="center" gap="xs">
+                    {t('View all instructions')}
+                    <IconOpen size="xs" />
+                  </Flex>
+                </ExternalLink>
+              </Text>
+            </ListItem>,
+          ]}
         </List>
       </Stack>
     </Stack>

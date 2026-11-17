@@ -34,7 +34,7 @@ interface ProjectSetupContext {
   runId: string;
 }
 
-export type AddFeatureProduct = 'tracing';
+type AddFeatureProduct = 'tracing';
 
 export interface AddFeatureContext {
   product: AddFeatureProduct;
@@ -116,12 +116,14 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       organizationSlug: organization.slug,
     };
 
-    const product =
-      'product' in options.context ? options.context.product : undefined;
+    const product = 'product' in options.context ? options.context.product : undefined;
 
     const cachedHandoff = handoff.current;
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
-      return {handoffId: cachedHandoff.handoffId, text: formatPrompt(cachedHandoff.code, product)};
+      return {
+        handoffId: cachedHandoff.handoffId,
+        text: formatPrompt(cachedHandoff.code, product),
+      };
     }
 
     try {
