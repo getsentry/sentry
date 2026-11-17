@@ -48,12 +48,15 @@ from sentry.roles import organization_roles
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.seer.signed_seer_api import _resolve_viewer_context
-from sentry.service_accounts.models import GRANTABLE_SCOPES
+from sentry.service_accounts.models import GRANTABLE_SCOPES, ServiceAccountToken
+from sentry.service_accounts.tokens import generate_token as generate_service_account_token
+from sentry.service_accounts.tokens import stored_token_fields
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, OurLogTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -343,6 +346,15 @@ class MatrixAuthentication(StrEnum):
     SCOPED_DOWN_AGENT_TOKEN = "scoped_down_agent_token"
     APPROVED_AGENT_TOKEN = "approved_agent_token"
     SERVICE_ACCOUNT_VIEWER_CONTEXT = "service_account_viewer_context"
+    SERVICE_ACCOUNT_TOKEN = "service_account_token"
+
+
+# The same service account, authenticated through each path. Both must give every row the
+# same outcome.
+SERVICE_ACCOUNT_AUTHENTICATIONS = (
+    MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
+    MatrixAuthentication.SERVICE_ACCOUNT_TOKEN,
+)
 
 
 @dataclass(frozen=True)
@@ -619,7 +631,7 @@ NON_PERSON_AUTHENTICATIONS = frozenset(
     {
         MatrixAuthentication.AGENT_TOKEN,
         MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-        MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
+        *SERVICE_ACCOUNT_AUTHENTICATIONS,
     }
 )
 # Org auth tokens can only be managed without a token (a session, or a viewer context,
@@ -702,7 +714,7 @@ PUBLIC_GET_AUTHENTICATIONS = (
     MatrixAuthentication.VIEWER_CONTEXT,
     MatrixAuthentication.AGENT_TOKEN,
     MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-    MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
+    *SERVICE_ACCOUNT_AUTHENTICATIONS,
 )
 PUBLIC_MUTATION_AUTHENTICATIONS = tuple(MatrixAuthentication)
 
@@ -2389,6 +2401,20 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             ),
             key=SECRET,
         )
+        self._service_account_token = generate_service_account_token(
+            self.org.slug, "https://test-region.sentry.io"
+        )
+        stored = stored_token_fields(self._service_account_token)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            ServiceAccountToken.objects.create(
+                service_account=service_account,
+                organization_id=self.org.id,
+                name="permission-matrix",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=sorted(SERVICE_ACCOUNT_SCOPES),
+                created_by=self.owner,
+            )
 
     def _assert_service_account_outcome(
         self,
@@ -2410,14 +2436,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             response.content,
         )
 
-    def _assert_service_account_user_global_get_denied(self, endpoint: PublicGetEndpoint) -> None:
+    def _assert_service_account_user_global_get_denied(
+        self, endpoint: PublicGetEndpoint, authentication: MatrixAuthentication
+    ) -> None:
         self._create_matrix_service_account()
         assert endpoint.silo_mode is not None
         with assume_test_silo_mode(endpoint.silo_mode):
             session_response = self.client.get(endpoint.path_template)
-            response = self._request(
-                endpoint.path_template, MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT
-            )
+            response = self._request(endpoint.path_template, authentication)
 
         assert session_response.status_code == 200, session_response.content
         assert response.status_code in {401, 403}, response.content
@@ -2465,6 +2491,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                 path, HTTP_X_VIEWER_CONTEXT=self._service_account_context
             )
             return service_account_response
+        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_TOKEN:
+            service_account_token_response: Response = client.get(
+                path, HTTP_AUTHORIZATION=f"Bearer {self._service_account_token}"
+            )
+            return service_account_token_response
         if authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
@@ -2499,6 +2530,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             )
         elif authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
             headers["HTTP_X_VIEWER_CONTEXT"] = self._service_account_context
+        elif authentication is MatrixAuthentication.SERVICE_ACCOUNT_TOKEN:
+            headers["HTTP_AUTHORIZATION"] = f"Bearer {self._service_account_token}"
         elif authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
@@ -2617,7 +2650,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             with self.feature(FLAG):
                 agent_bearer = self._mint_agent_token(requested_scopes=requested_scopes)
             agent_scopes = frozenset(agent_token.decode_agent_token(agent_bearer)["scopes"])
-        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
+        if authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
             self._create_matrix_service_account()
         if endpoint.endpoint_name == "SeerModelsEndpoint":
             cache.set(SEER_MODELS_CACHE_KEY, {"models": ["matrix-model"]})
@@ -2688,7 +2721,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                     MatrixAuthentication.USER_TOKEN,
                     user_token_scopes=agent_scopes,
                 )
-            elif authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
+            elif authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
                 authorization_oracle = self._request(
                     path,
                     MatrixAuthentication.USER_TOKEN,
@@ -2716,7 +2749,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                 response.content,
             )
             return
-        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
+        if authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
             self._assert_service_account_outcome(endpoint, authorization_oracle, response)
             return
 
@@ -2780,7 +2813,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                     requested_scopes=requested_scopes,
                 )
             agent_scopes = frozenset(agent_token.decode_agent_token(agent_bearer)["scopes"])
-        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
+        if authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
             self._create_matrix_service_account()
 
         silo_scope = (
@@ -2852,7 +2885,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                     MatrixAuthentication.USER_TOKEN,
                     user_token_scopes=agent_scopes,
                 )
-            elif authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
+            elif authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
                 authorization_oracle = self._rolled_back_mutation_request(
                     endpoint,
                     path,
@@ -2896,7 +2929,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                 response.content,
             )
             return
-        if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
+        if authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
             self._assert_service_account_outcome(endpoint, authorization_oracle, response)
             return
 
@@ -2949,10 +2982,13 @@ def _install_matrix_row_tests[E: (PublicGetEndpoint, PublicMutationEndpoint)](
     """Generate real unittest methods because pytest cannot parametrize APITestCase.
 
     Each endpoint gets one method that checks every credential as a subtest. A known
-    service-account gap gets its own strict-xfail method so fixing it still fails.
+    service-account gap gets a strict-xfail method per service-account credential so
+    fixing it on either path still fails.
     """
-    # The service-account cell enables a feature for the rest of its test, so it runs last.
-    assert MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT is authentications[-1]
+    # The service-account cells enable a feature for the rest of their test, so they run last.
+    assert (
+        authentications[-len(SERVICE_ACCOUNT_AUTHENTICATIONS) :] == SERVICE_ACCOUNT_AUTHENTICATIONS
+    )
 
     def install(name: str, test: Callable[[AgentTokenPublicGetMatrixTest], None]) -> None:
         test.__name__ = name
@@ -2970,20 +3006,23 @@ def _install_matrix_row_tests[E: (PublicGetEndpoint, PublicMutationEndpoint)](
 
         return test_matrix_row
 
-    def gap_test(endpoint: E) -> Callable[[AgentTokenPublicGetMatrixTest], None]:
+    def gap_test(
+        endpoint: E, authentication: MatrixAuthentication
+    ) -> Callable[[AgentTokenPublicGetMatrixTest], None]:
         def test_gap_cell(self: AgentTokenPublicGetMatrixTest) -> None:
-            assert_cell(self, endpoint, MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT)
+            assert_cell(self, endpoint, authentication)
 
         return _mark_service_account_gap(test_gap_cell, endpoint.test_id)
 
     for index, endpoint in enumerate(endpoints):
         name = f"{prefix}_{index:03d}_{endpoint.test_id}"
         if endpoint.test_id in SERVICE_ACCOUNT_KNOWN_GAPS:
-            install(name, row_test(endpoint, authentications[:-1]))
             install(
-                f"{name}_{MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT.value}",
-                gap_test(endpoint),
+                name,
+                row_test(endpoint, authentications[: -len(SERVICE_ACCOUNT_AUTHENTICATIONS)]),
             )
+            for authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
+                install(f"{name}_{authentication.value}", gap_test(endpoint, authentication))
         else:
             install(name, row_test(endpoint, authentications))
 
@@ -3056,17 +3095,19 @@ _install_user_global_boundary_matrix_tests()
 
 def _install_service_account_user_global_matrix_tests() -> None:
     for index, endpoint in enumerate(USER_GLOBAL_GET_ENDPOINTS):
+        for authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
 
-        def test_matrix_cell(
-            self: AgentTokenPublicGetMatrixTest,
-            endpoint: PublicGetEndpoint = endpoint,
-        ) -> None:
-            self._assert_service_account_user_global_get_denied(endpoint)
+            def test_matrix_cell(
+                self: AgentTokenPublicGetMatrixTest,
+                endpoint: PublicGetEndpoint = endpoint,
+                authentication: MatrixAuthentication = authentication,
+            ) -> None:
+                self._assert_service_account_user_global_get_denied(endpoint, authentication)
 
-        test_matrix_cell.__name__ = (
-            f"test_user_global_get_{index:03d}_{endpoint.test_id}_service_account_viewer_context"
-        )
-        setattr(AgentTokenPublicGetMatrixTest, test_matrix_cell.__name__, test_matrix_cell)
+            test_matrix_cell.__name__ = (
+                f"test_user_global_get_{index:03d}_{endpoint.test_id}_{authentication.value}"
+            )
+            setattr(AgentTokenPublicGetMatrixTest, test_matrix_cell.__name__, test_matrix_cell)
 
 
 _install_service_account_user_global_matrix_tests()
