@@ -22,6 +22,8 @@ from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 
 MAX_QUERY_LENGTH = 256
+# The conversation details endpoint's largest page.
+MAX_MATCHES = 1000
 
 GEN_AI_SPANS_FILTER = "(has:gen_ai.operation.type OR span.op:gen_ai.* OR span.name:gen_ai.*)"
 
@@ -33,7 +35,8 @@ class AIConversationSpanMatch(TypedDict):
 
 
 class AIConversationSpanSearchResponse(TypedDict):
-    match: AIConversationSpanMatch | None
+    matches: list[AIConversationSpanMatch]
+    total: int
 
 
 def _substring_pattern(query: str) -> str:
@@ -89,42 +92,61 @@ class OrganizationAIConversationSpanSearchEndpoint(OrganizationEventsEndpointBas
                     Referrer.API_AI_CONVERSATION_SPAN_SEARCH.value,
                 )
 
-            query_string = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
+            query_string = (
+                f"{build_escaped_term_filter('gen_ai.conversation.id', [conversation_id])} "
+                f"{GEN_AI_SPANS_FILTER}"
+            )
+            resolver = Spans.get_resolver(
+                resolved_params,
+                SearchResolverConfig(auto_fields=False, disable_aggregate_extrapolation=True),
+            )
+            extra_conditions = TraceItemFilter(
+                any_attribute_filter=AnyAttributeFilter(
+                    op=AnyAttributeFilter.OP_LIKE,
+                    value=AttributeValue(val_str=_substring_pattern(query)),
+                    ignore_case=True,
+                )
+            )
             results = Spans.run_bulk_table_queries(
                 [
                     TableQuery(
-                        name="match",
-                        query_string=f"{query_string} {GEN_AI_SPANS_FILTER}",
+                        name="matches",
+                        query_string=query_string,
                         selected_columns=["span_id", "trace", "precise.start_ts"],
                         orderby=["precise.start_ts", "span_id"],
+                        offset=0,
+                        limit=MAX_MATCHES,
+                        referrer=Referrer.API_AI_CONVERSATION_SPAN_SEARCH.value,
+                        sampling_mode="HIGHEST_ACCURACY",
+                        resolver=resolver,
+                        extra_conditions=extra_conditions,
+                    ),
+                    TableQuery(
+                        name="total",
+                        query_string=query_string,
+                        selected_columns=["count()"],
+                        orderby=None,
                         offset=0,
                         limit=1,
                         referrer=Referrer.API_AI_CONVERSATION_SPAN_SEARCH.value,
                         sampling_mode="HIGHEST_ACCURACY",
-                        resolver=Spans.get_resolver(
-                            resolved_params, SearchResolverConfig(auto_fields=False)
-                        ),
-                        extra_conditions=TraceItemFilter(
-                            any_attribute_filter=AnyAttributeFilter(
-                                op=AnyAttributeFilter.OP_LIKE,
-                                value=AttributeValue(val_str=_substring_pattern(query)),
-                                ignore_case=True,
-                            )
-                        ),
-                    )
+                        resolver=resolver,
+                        extra_conditions=extra_conditions,
+                    ),
                 ]
             )
 
-        rows = results["match"].get("data", [])
-        if not rows:
-            return Response({"match": None})
-        row = rows[0]
+        total_rows = results["total"].get("data", [])
         return Response(
             {
-                "match": {
-                    "traceId": row["trace"],
-                    "spanId": row["span_id"],
-                    "startTimestamp": row["precise.start_ts"],
-                }
+                "matches": [
+                    {
+                        "traceId": row["trace"],
+                        "spanId": row["span_id"],
+                        "startTimestamp": row["precise.start_ts"],
+                    }
+                    for row in results["matches"].get("data", [])
+                ],
+                "total": int(total_rows[0]["count()"]) if total_rows else 0,
             }
         )
