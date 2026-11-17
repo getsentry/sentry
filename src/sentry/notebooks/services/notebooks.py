@@ -257,6 +257,9 @@ def duplicate_notebook(*, notebook: Notebook, creator: CreatorReference) -> Note
                 content="" if block.content_execution_id else block.content,
                 prompt=block.prompt,
                 generated_content="" if block.content_execution_id else block.generated_content,
+                embed=deepcopy(block.embed),
+                embed_source=block.embed_source,
+                embed_summary=block.embed_summary,
                 config=deepcopy(block.config),
                 display=deepcopy(block.display),
             )

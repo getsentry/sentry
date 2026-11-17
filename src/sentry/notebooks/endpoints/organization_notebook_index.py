@@ -21,6 +21,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.access import ServiceAccountAccess
 from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
@@ -37,7 +38,7 @@ from sentry.notebooks.endpoints.serializers import (
     NotebookSerializerResponse,
 )
 from sentry.notebooks.endpoints.validators import NotebookCreateValidator
-from sentry.notebooks.models import Notebook, NotebookStatus
+from sentry.notebooks.models import Notebook, NotebookProject, NotebookStatus
 from sentry.notebooks.services.producer import filter_by_run_status, known_run_statuses
 from sentry.notebooks.services.producer_sources import ProducerSource
 from sentry.notebooks.telemetry import record_notebook_started
@@ -167,6 +168,12 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         notebooks: QuerySet[Notebook] = Notebook.objects.filter(
             organization=organization, status=requested_status
         ).filter(Q(source_key__isnull=True) | ~Exists(newer_lineage_revision))
+        if isinstance(request.access, ServiceAccountAccess) and not request.access.has_all_projects:
+            projects = NotebookProject.objects.filter(notebook_id=OuterRef("pk"))
+            notebooks = notebooks.filter(
+                Exists(projects),
+                ~Exists(projects.exclude(project_id__in=request.access.accessible_project_ids)),
+            )
         query = request.GET.get("query")
         if query:
             notebooks = notebooks.filter(title__icontains=query)

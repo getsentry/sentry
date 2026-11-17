@@ -18,6 +18,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class NotebookBlockKind(models.TextChoices):
     TEXT = "text", "Text"
     QUERY = "query", "Query"
+    EMBED = "embed", "Code Mode embed"
 
 
 @cell_silo_model
@@ -48,6 +49,11 @@ class NotebookBlock(DefaultFieldsModel):
     display: models.Field[dict[str, Any], dict[str, Any]] = models.JSONField(
         default=dict, db_default={}
     )
+
+    # The source is the executed query or evidence reference supplied with this widget.
+    embed = models.JSONField(null=True)
+    embed_source = models.TextField(null=True)
+    embed_summary = models.TextField(null=True)
 
     version = BoundedPositiveIntegerField(default=1, db_default=1)
     current_execution = FlexibleForeignKey(

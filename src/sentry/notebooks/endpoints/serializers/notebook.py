@@ -35,6 +35,7 @@ from sentry.notebooks.models import (
 )
 from sentry.notebooks.services.action_requests import STALE
 from sentry.notebooks.services.producer import orchestration_summaries
+from sentry.notebooks.services.workflow import block_revision
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.viewer_context import ActorType
@@ -154,6 +155,8 @@ class NotebookDetailsSerializerResponse(NotebookSerializerResponse):
     actionRequests has Seer's action requests that aren't superseded, plus stale ones while Seer
     re-checks them, newest report first, with that report's primary at the top.
     """
+
+    contentRevision: Annotated[str, ApiDescription("Revision of the ordered block contents")]
 
     template: Annotated[
         NotebookTemplateSerializerResponse | None,
@@ -354,6 +357,9 @@ class NotebookDetailsSerializer(NotebookSerializer):
             "projectIds": attrs["project_ids"],
             "parameters": [],
             "blocks": attrs["blocks"],
+            "contentRevision": block_revision(
+                (int(block["id"]), block["version"]) for block in attrs["blocks"]
+            ),
             "actionRequests": attrs["action_requests"],
             "titleGeneration": {"status": obj.title_generation_status},
         }
