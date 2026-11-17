@@ -27,7 +27,7 @@ const commitSchema = z.object({
     .looseObject({
       id: z.string(),
       message: z.string().nullable().optional(),
-      author: z.looseObject({name: z.string().optional()}).optional(),
+      author: z.looseObject({name: z.string().nullable().optional()}).optional(),
       repository: z.looseObject({
         name: z.string(),
       }),

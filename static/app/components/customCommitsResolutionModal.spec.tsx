@@ -58,6 +58,45 @@ describe('CustomCommitsResolutionModal', () => {
     );
   });
 
+  it('can select a commit whose author has no name', async () => {
+    const onSelected = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/commits/',
+      body: [CommitFixture({author: {email: 'unmapped@example.com', name: null} as any})],
+    });
+
+    const wrapper = styled((p: any) => p.children);
+    render(
+      <CustomCommitsResolutionModal
+        Header={p => <span>{p.children}</span>}
+        Body={wrapper()}
+        Footer={wrapper()}
+        orgSlug="org-slug"
+        projectSlug="project-slug"
+        onSelected={onSelected}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => null)}
+      />
+    );
+
+    await selectEvent.select(
+      screen.getByText('e.g. d86b832'),
+      '(improve) Add Links to Spike-Protection Email (#2408)'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    await waitFor(() => {
+      expect(onSelected).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inCommit: {
+            commit: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+            repository: 'example/repo-name',
+          },
+        })
+      );
+    });
+  });
+
   it('can filter commits via typeahead and select a filtered result', async () => {
     const onSelected = jest.fn();
     const filteredCommit = CommitFixture({
