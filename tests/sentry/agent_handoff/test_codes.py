@@ -8,6 +8,9 @@ from pydantic import ValidationError
 from sentry.agent_handoff.codes import (
     EXPIRED_HANDOFF_RETENTION,
     HANDOFF_LIFETIME,
+    AddFeatureContext,
+    AddFeatureHandoff,
+    AddFeatureProduct,
     GuidedNextStepsHandoff,
     HandoffExpired,
     HandoffFlow,
@@ -109,7 +112,7 @@ class AgentHandoffTest(TestCase):
         raw = client.get(_handoff_key(issued.code))
         assert raw is not None
         client.delete(_handoff_key(issued.code))
-        client.set(f"agent-handoff:v2:{hashlib.sha256_text(issued.code).hexdigest()}", raw)
+        client.set(f"agent-handoff:v3:{hashlib.sha256_text(issued.code).hexdigest()}", raw)
         assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
 
     def test_ip_mismatch_carries_handoff(self) -> None:
@@ -241,5 +244,24 @@ def test_create_project_flow_requires_run_context() -> None:
     with pytest.raises(ValidationError, match="context"):
         _StoredAgentHandoff.parse_raw(
             '{"flow":"create_project","user_id":1,"organization_id":2,'
+            '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h"}',
+        )
+
+
+def test_add_feature_flow_preserves_typed_context() -> None:
+    handoff = _StoredAgentHandoff.parse_raw(
+        '{"flow":"add_feature","user_id":1,"organization_id":2,'
+        '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h",'
+        '"context":{"product":"tracing","project_id":42}}',
+    ).__root__
+    assert isinstance(handoff, AddFeatureHandoff)
+    assert handoff.flow is HandoffFlow.ADD_FEATURE
+    assert handoff.context == AddFeatureContext(product=AddFeatureProduct.TRACING, project_id=42)
+
+
+def test_add_feature_flow_requires_context() -> None:
+    with pytest.raises(ValidationError, match="context"):
+        _StoredAgentHandoff.parse_raw(
+            '{"flow":"add_feature","user_id":1,"organization_id":2,'
             '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h"}',
         )

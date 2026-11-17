@@ -229,6 +229,52 @@ describe('Modals -> DataWidgetViewerModal', () => {
     });
   });
 
+  it('toggles Releases from the Layers menu', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            values: [
+              {timestamp: 1646100000000, value: 1},
+              {timestamp: 1646120000000, value: 1},
+            ],
+          }),
+        ],
+      },
+    });
+    const widget = WidgetFixture({
+      title: 'Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    });
+
+    await renderModal({initialData, widget});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Chart layers'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Releases'}));
+
+    expect(screen.getByRole('option', {name: 'Releases'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+  });
+
   describe('Errors Widgets', () => {
     describe('Area Chart Widget', () => {
       let mockQuery: WidgetQuery;

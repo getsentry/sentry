@@ -15,7 +15,7 @@ export type AgentSetupCopySource = 'prompt';
 
 interface AgentSetupCardProps {
   flow: AgentHandoffFlow;
-  onCopyCommand: (source: AgentSetupCopySource) => void;
+  onCopyCommand: (source: AgentSetupCopySource, handoffId: string) => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   run: AgenticProgressRun | undefined;
   feedbackSource?: string;
@@ -52,7 +52,7 @@ export function AgentSetupCard({
         context={run ? {runId: run.runId} : null}
         feedbackSource={feedbackSource}
         flow={flow}
-        onCopySuccess={() => onCopyCommand('prompt')}
+        onCopySuccess={handoffId => onCopyCommand('prompt', handoffId)}
         onSelect={() => onSelectSnippet('prompt')}
       />
     </Fragment>

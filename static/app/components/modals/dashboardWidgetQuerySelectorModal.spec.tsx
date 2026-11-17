@@ -32,7 +32,7 @@ function renderModal({
 describe('Modals -> AddDashboardWidgetModal', () => {
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'discover-query'],
+      features: ['discover-query'],
     },
     projects: [],
   });

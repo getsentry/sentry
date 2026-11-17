@@ -1,8 +1,10 @@
+from dataclasses import dataclass, replace
 from unittest.mock import patch
 
 import pytest
 
 from sentry.api.serializers import serialize
+from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.notebook import (
     NOTEBOOK,
     NotebookCompletedData,
@@ -12,6 +14,7 @@ from sentry.inbox.notebook import (
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.serializers import InboxItemEventSerializer, InboxItemSerializer
 from sentry.inbox.types import SYSTEM_ACTOR, InboxEventData
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notebooks.models import NotebookStatus
 from sentry.notifications.models.inboxitem import InboxItem
@@ -24,6 +27,56 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 from sentry.utils.registry import NoRegistrationExistsError
+
+
+@dataclass(frozen=True, kw_only=True)
+class LinkedMentionData(IssueMentionedData):
+    def get_url(self, subject_url: str) -> str:
+        return f"{subject_url}#comment-{self.comment_id}"
+
+
+@pytest.mark.parametrize(
+    "latest_data,expected_fragment",
+    [
+        ({"comment_id": 456}, "#comment-456"),
+        ({"comment_id": 456, "summary": "Old wording"}, "#comment-456"),
+        ({}, ""),
+    ],
+)
+@django_db_all
+def test_latest_event_url(
+    default_group: Group,
+    default_user: User,
+    latest_data: dict[str, int | str],
+    expected_fragment: str,
+) -> None:
+    item = Factories.create_inbox_item(
+        organization=default_group.organization,
+        user=default_user,
+        subject_id=str(default_group.id),
+    )
+    latest = Factories.create_inbox_item_event(
+        inbox_item=item, type="issue.user_mentioned", data=latest_data
+    )
+    previous = Factories.create_inbox_item_event(
+        inbox_item=item,
+        type="issue.user_mentioned",
+        data={"comment_id": 123},
+    )
+    previous.update(date_added=before_now(minutes=5))
+
+    with patch.dict(
+        inbox_item_event_type_registry.registrations,
+        {"issue.user_mentioned": replace(ISSUE_USER_MENTIONED, data_class=LinkedMentionData)},
+    ):
+        result = serialize(item, default_user, InboxItemSerializer())
+
+    assert result["latestEvent"]["id"] == str(latest.id)
+    organization = default_group.organization
+    expected_url = organization.absolute_url(
+        f"/organizations/{organization.slug}/inbox/issue/{default_group.id}/"
+    )
+    assert result["url"] == f"{expected_url}{expected_fragment}"
 
 
 class InboxItemSerializerTest(TestCase):
@@ -78,7 +131,9 @@ class InboxItemSerializerTest(TestCase):
 
     def test_notebook_url_without_inbox_item(self) -> None:
         notebook = self.create_notebook(organization=self.organization, title="Notebook")
-        expected = notebook.get_absolute_url()
+        expected = self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/inbox/notebook/{notebook.id}/"
+        )
 
         with self.assertNumQueries(0):
             assert (
@@ -111,7 +166,13 @@ class InboxItemSerializerTest(TestCase):
         assert results[0]["eventTypes"] == ["issue.user_assigned", "issue.user_mentioned"]
         assert results[0]["latestEvent"]["id"] == str(latest.id)
         assert results[0]["latestEvent"]["data"] == {"commentId": "123"}
+        assert results[0]["url"] == self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/inbox/issue/{first.id}/"
+        )
         assert results[1]["title"] == "Second issue"
+        assert results[1]["url"] == self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/inbox/issue/{second.id}/"
+        )
 
     def test_unregistered_event_type(self) -> None:
         item = self.create_inbox_item(subject_type="removed.type", subject_id="missing")
@@ -121,12 +182,15 @@ class InboxItemSerializerTest(TestCase):
             serialize(item, self.user, InboxItemSerializer())
 
     def test_unregistered_subject_type(self) -> None:
-        item = self.create_inbox_item(subject_type="removed.type", subject_id="missing")
+        item = self.create_inbox_item(subject_type="removed.type", subject_id=str(self.group.id))
         self.create_inbox_item_event(inbox_item=item)
 
         result = serialize(item, self.user, InboxItemSerializer())
 
         assert result["title"] is None
+        assert result["url"] == self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/inbox/issue/{self.group.id}/"
+        )
         assert result["subtitle"] == "Assigned to you"
 
     def test_deleted_subject(self) -> None:
@@ -144,8 +208,8 @@ class TestNotebookEvents:
         [
             (
                 "notebook.completed",
-                NotebookCompletedData(seer_run_id=123),
-                {"seerRunId": "123"},
+                NotebookCompletedData(seer_run_id=123, generation=1),
+                {"seerRunId": "123", "generation": 1},
             ),
             (
                 "notebook.user_mentioned",
@@ -184,7 +248,7 @@ class TestNotebookEvents:
         default_user: User,
         event_type: str,
         data: InboxEventData,
-        expected_data: dict[str, str | None],
+        expected_data: dict[str, str | int | None],
     ) -> None:
         notebook = Factories.create_notebook(organization=default_organization, title="Notebook")
         event_type_definition = inbox_item_event_type_registry.get(event_type)
@@ -246,6 +310,7 @@ class InboxItemEventSerializerTest(TestCase):
             data={
                 "comment_id": 123,
                 "seer_run_id": 456,
+                "activity_id": 321,
                 "external_id": 789,
                 "optional_id": None,
             },
@@ -256,6 +321,7 @@ class InboxItemEventSerializerTest(TestCase):
         assert result["data"] == {
             "commentId": "123",
             "seerRunId": "456",
+            "activityId": "321",
             "externalId": 789,
             "optionalId": None,
         }

@@ -229,6 +229,24 @@ class GitHubEnterpriseIntegration(
         return False
 
     def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        # The app was uninstalled on GitHub's side, so the installation token
+        # can't be minted anymore.
+        if (
+            isinstance(exc, ApiError)
+            and exc.code == 404
+            and exc.url
+            and exc.url.endswith("/access_tokens")
+        ):
+            return "installation_not_found"
+        # The configured host isn't a GitHub Enterprise API (e.g. a bare nginx
+        # rejecting the POST), so the token can never be minted.
+        if (
+            isinstance(exc, ApiError)
+            and exc.code == 405
+            and exc.url
+            and exc.url.endswith("/access_tokens")
+        ):
+            return "configuration_error"
         if isinstance(exc, ApiForbiddenError):
             if self.is_rate_limited_error(exc):
                 return "rate_limited"

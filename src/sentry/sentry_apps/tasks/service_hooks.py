@@ -1,10 +1,12 @@
 from time import time
 from typing import Any, cast
 
+from requests.exceptions import RequestException
 from taskbroker_client.retry import Retry
 
 from sentry import features, nodestore
 from sentry.api.serializers import serialize
+from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
 from sentry.models.group import Group
 from sentry.sentry_apps.models.servicehook import ServiceHook
@@ -67,8 +69,12 @@ def kick_off_service_hooks(event: GroupEvent, has_alert: bool) -> None:
 @instrumented_task(
     name="sentry.sentry_apps.tasks.service_hooks.process_service_hook",
     namespace=sentryapp_tasks,
-    retry=Retry(times=3, delay=60 * 5, on=(Exception,)),
+    # A hook URL that resolves to a blocked IP never succeeds, so don't retry it.
+    # Network failures from the customer's endpoint still retry, but aren't
+    # reported once retries run out since there's nothing for us to fix.
+    retry=Retry(times=3, delay=60 * 5, on=(Exception,), ignore=(RestrictedIPAddress,)),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=(RestrictedIPAddress, RequestException),
 )
 def process_service_hook(
     servicehook_id: int, project_id: int, group_id: int, event_id: str

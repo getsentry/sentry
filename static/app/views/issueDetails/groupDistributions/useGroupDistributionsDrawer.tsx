@@ -9,22 +9,22 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributionsDrawer';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 /**
  * Shared tags and feature flags distributions drawer used by issue details.
  */
 export function useGroupDistributionsDrawer({
+  getReturnPath,
   group,
   includeFeatureFlagsTab,
 }: {
+  getReturnPath: () => string;
   group: Group;
   includeFeatureFlagsTab: boolean;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
   const {openDrawer} = useDrawer();
-  const {baseUrl} = useGroupDetailsRoute();
 
   const openDistributionsDrawer = useCallback(() => {
     openDrawer(
@@ -42,7 +42,7 @@ export function useGroupDistributionsDrawer({
         onClose: () => {
           navigate(
             {
-              pathname: baseUrl,
+              pathname: getReturnPath(),
               query: {
                 ...location.query,
                 tagDrawerSort: undefined,
@@ -58,7 +58,7 @@ export function useGroupDistributionsDrawer({
         },
       }
     );
-  }, [location, navigate, openDrawer, group, baseUrl, includeFeatureFlagsTab]);
+  }, [location, navigate, openDrawer, group, getReturnPath, includeFeatureFlagsTab]);
 
   return {openDistributionsDrawer};
 }

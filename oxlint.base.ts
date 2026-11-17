@@ -74,7 +74,11 @@ export const restrictedImportPaths = [
   },
   {
     name: 'qs',
-    message: 'Please use query-string instead of qs',
+    message: "Use 'sentry/utils/url/qs' instead.",
+  },
+  {
+    name: 'query-string',
+    message: "Use 'sentry/utils/url/qs' instead.",
   },
   {
     name: 'moment',

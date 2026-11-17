@@ -16,7 +16,7 @@ MARKDOWN_JINJA_ENV = Environment(
 _MARKDOWN_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+.!|~>-])")
 
 
-def _escape_label(value: str) -> str:
+def escape_label(value: str) -> str:
     """Keep untrusted context on one line, outside Markdown instructions or HTML."""
     single_line = " ".join(value.split())
     printable = "".join(character for character in single_line if character.isprintable())
@@ -83,10 +83,10 @@ def render_agent_runbook(
 
     return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/runbook.md").render(
         {
-            "sentry_url": _escape_label(sentry_url),
-            "user_email": _escape_label(user_email),
-            "organization_name": _escape_label(organization_name),
-            "organization_slug": _escape_label(organization_slug),
+            "sentry_url": escape_label(sentry_url),
+            "user_email": escape_label(user_email),
+            "organization_name": escape_label(organization_name),
+            "organization_slug": escape_label(organization_slug),
             "unix_auth_status": unix_auth_status,
             "unix_installer": unix_installer,
             "unix_bootstrap": unix_bootstrap,

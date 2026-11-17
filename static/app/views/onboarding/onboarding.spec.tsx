@@ -544,6 +544,7 @@ describe('Onboarding', () => {
 
       expect(await screen.findByText('sntryh_****')).toBeInTheDocument();
       expect(screen.getByText('Recommended')).toBeInTheDocument();
+      expect(agenticRunRequestMock.mock.calls[0]?.[1]?.data.origin).toBe('onboarding');
       expect(
         screen.getByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();

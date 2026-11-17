@@ -8,7 +8,6 @@ import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import * as qs from 'query-string';
 import {useStore} from 'zustand';
 
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
@@ -47,6 +46,7 @@ import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRo
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

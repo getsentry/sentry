@@ -17,7 +17,10 @@ import {
   type ExplorerAutofixState,
 } from './useExplorerAutofix';
 
-type AutofixAction = AutofixNextStep['action'];
+/**
+ * A billable autofix action: a step, opening a PR, or iterating on one.
+ */
+export type AutofixAction = AutofixNextStep['action'];
 
 const AUTOFIX_CREDIT_OPERATIONS: Record<AutofixAction, SeerCreditOperation> = {
   root_cause: 'autofix_root_cause',
@@ -35,23 +38,32 @@ export function useAutofixCreditCheck(
   action: AutofixAction | null | undefined,
   {enabled = true}: {enabled?: boolean} = {}
 ) {
-  return useSeerCreditCheck(AUTOFIX_CREDIT_OPERATIONS[action ?? 'root_cause'], {
-    enabled: enabled && defined(action),
-  });
+  const creditCheck = useSeerCreditCheck(
+    AUTOFIX_CREDIT_OPERATIONS[action ?? 'root_cause'],
+    {enabled: enabled && defined(action)}
+  );
+
+  return {
+    ...creditCheck,
+    /**
+     * Whether a trigger for the action has to stay disabled for credits: until
+     * this mount's check answers, so it is never clickable before the answer
+     * arrives, and once the organization can't afford it. A cached answer from
+     * an earlier mount doesn't count, since credits can run out in between.
+     */
+    disabled: !creditCheck.hasCheckedSinceMount || !creditCheck.hasEnoughCredits,
+  };
 }
 
 /**
- * Whether an autofix trigger has to stay disabled for credits: until this
- * mount's check answers, so it is never clickable before the answer arrives,
- * and once the organization can't afford it. A cached answer from an earlier
- * mount doesn't count, since credits can run out in between.
+ * Whether an autofix trigger has to stay disabled for credits. See `disabled`
+ * on `useAutofixCreditCheck`.
  */
 export function useAutofixCreditsDisabled(
   action: AutofixAction | null | undefined,
   options?: {enabled?: boolean}
 ): boolean {
-  const {hasCheckedSinceMount, hasEnoughCredits} = useAutofixCreditCheck(action, options);
-  return !hasCheckedSinceMount || !hasEnoughCredits;
+  return useAutofixCreditCheck(action, options).disabled;
 }
 
 interface GetAutofixContinueActionOptions {
