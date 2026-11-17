@@ -840,6 +840,11 @@ class PluginActionConfig(TypedDict):
     target_type: NotRequired[None]
 
 
+# config_schema of the seer_investigation action handler
+class SeerInvestigationActionConfig(TypedDict):
+    pass
+
+
 # config_schema of the seer_workflow action handler
 class SeerWorkflowActionConfig(TypedDict):
     pass
@@ -1165,6 +1170,12 @@ class PagerdutyActionData(TypedDict):
 PluginActionData: TypeAlias = Any
 
 
+# data_schema of the seer_investigation action handler
+class SeerInvestigationActionData(TypedDict):
+    mode: NotRequired[Literal["metric", "prompted"]]
+    prompt: NotRequired[str]
+
+
 # data_schema of the seer_workflow action handler
 class SeerWorkflowActionData(TypedDict):
     pass
@@ -1231,6 +1242,7 @@ ActionConfig: TypeAlias = (
     | OpsgenieActionConfig
     | PagerdutyActionConfig
     | PluginActionConfig
+    | SeerInvestigationActionConfig
     | SeerWorkflowActionConfig
     | SentryAppActionConfig
     | SlackActionConfig
@@ -1252,6 +1264,7 @@ ActionConfigResponse: TypeAlias = (
     | OpsgenieActionConfigResponse
     | PagerdutyActionConfigResponse
     | PluginActionConfigResponse
+    | SeerInvestigationActionConfig
     | SeerWorkflowActionConfig
     | SentryAppActionConfigResponse
     | SlackActionConfigResponse
@@ -1273,6 +1286,7 @@ ActionData: TypeAlias = (
     | OpsgenieActionData
     | PagerdutyActionData
     | PluginActionData
+    | SeerInvestigationActionData
     | SeerWorkflowActionData
     | SentryAppActionData
     | SlackActionData
@@ -1294,6 +1308,7 @@ ActionDataResponse: TypeAlias = (
     | OpsgenieActionData
     | PagerdutyActionData
     | PluginActionData
+    | SeerInvestigationActionData
     | SeerWorkflowActionData
     | SentryAppActionData
     | SlackActionData
