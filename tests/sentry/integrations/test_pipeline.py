@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.http.response import HttpResponse
 from django.urls import reverse
+from rest_framework.exceptions import ValidationError
 
 from sentry.integrations.aws.client import AWS_NOT_CONFIGURED_MESSAGE, AWS_ROLE_ARN_MESSAGE
 from sentry.integrations.aws.integration import AwsIntegration, AwsIntegrationProvider
@@ -802,18 +803,44 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
 
 @control_silo_test
 class AwsApiPipelineTest(APITestCase):
-    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
     role_arn = "arn:aws:iam::123456789012:role/sentry-seer/SentrySeer"
+
+    @property
+    def endpoint(self) -> str:
+        return "sentry-api-0-organization-pipeline"
 
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        # `override_options` as a class decorator replaces the class with a function,
-        # which pytest then silently skips collecting.
         self.enterContext(
             self.options({"aws-seer.principal-arn": "arn:aws:iam::987654321098:role/SeerWorkload"})
         )
         self.enterContext(self.feature("organizations:integrations-aws"))
+
+    def _step(
+        self, *, status_code: int = 200, org_slug: str | None = None, **data: Any
+    ) -> dict[str, Any]:
+        response = self.get_response(
+            org_slug or self.organization.slug, "integration_pipeline", **data
+        )
+        assert response.status_code == status_code, response.content
+        return response.data
+
+    def _initialize(self, *, status_code: int = 200, org_slug: str | None = None) -> dict[str, Any]:
+        return self._step(
+            action="initialize", provider="aws", status_code=status_code, org_slug=org_slug
+        )
+
+    def _submit_role(self, **fields: Any) -> dict[str, Any]:
+        return self._step(roleArn=self.role_arn, region="us-east-1", **fields)
+
+    def _org_integration(self) -> OrganizationIntegration:
+        return OrganizationIntegration.objects.select_related("integration").get(
+            organization_id=self.organization.id,
+            integration__provider="aws",
+            integration__external_id=str(self.organization.id),
+        )
 
     def _verification_receipt(self, role_arn: str, result: dict[str, Any]) -> str:
         url = reverse(
@@ -834,22 +861,13 @@ class AwsApiPipelineTest(APITestCase):
         return response.data["verificationReceipt"]
 
     def test_unconfigured_cell_returns_actionable_error(self) -> None:
-        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
         with self.options({"aws-seer.principal-arn": ""}):
-            response = self.client.post(
-                url, data={"action": "initialize", "provider": "aws"}, format="json"
-            )
-        assert response.status_code == 404
-        assert response.data["detail"] == AWS_NOT_CONFIGURED_MESSAGE
+            assert self._initialize(status_code=404)["detail"] == AWS_NOT_CONFIGURED_MESSAGE
 
     def test_setup_external_id_is_stable_and_server_generated(self) -> None:
-        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
-        response = self.client.post(
-            url, data={"action": "initialize", "provider": "aws"}, format="json"
-        )
-        assert response.status_code == 200
-        assert response.data["step"] == "aws_role"
-        setup = response.data["data"]
+        step = self._initialize()
+        assert step["step"] == "aws_role"
+        setup = step["data"]
         external_id = setup["externalId"]
         assert external_id
         trust = setup["cloudFormationTemplate"]["Resources"]["SeerRole"]["Properties"][
@@ -857,47 +875,20 @@ class AwsApiPipelineTest(APITestCase):
         ]
         assert trust["Statement"][0]["Condition"]["StringEquals"]["sts:ExternalId"] == external_id
 
-        response = self.client.get(url)
-        assert response.status_code == 200
-        assert response.data["data"]["externalId"] == external_id
-
+        assert self._step(method="get")["data"]["externalId"] == external_id
         # Reinitialization discards the pipeline state, but not the deployed trust policy.
-        response = self.client.post(
-            url, data={"action": "initialize", "provider": "aws"}, format="json"
-        )
-        assert response.status_code == 200
-        assert response.data["data"]["externalId"] == external_id
+        assert self._initialize()["data"]["externalId"] == external_id
 
     def test_setup_external_id_is_organization_bound(self) -> None:
         other_org = self.create_organization(owner=self.user)
-        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
-        other_url = reverse(self.endpoint, args=[other_org.slug, "integration_pipeline"])
-        response = self.client.post(
-            url, data={"action": "initialize", "provider": "aws"}, format="json"
-        )
-        assert response.status_code == 200
-        other_response = self.client.post(
-            other_url, data={"action": "initialize", "provider": "aws"}, format="json"
-        )
-        assert other_response.status_code == 200
-        assert response.data["data"]["externalId"] != other_response.data["data"]["externalId"]
+        external_id = self._initialize()["data"]["externalId"]
+        assert self._initialize(org_slug=other_org.slug)["data"]["externalId"] != external_id
 
     def test_install_records_verification_from_cell_endpoint(self) -> None:
-        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
-        response = self.client.post(
-            url, data={"action": "initialize", "provider": "aws"}, format="json"
-        )
-        assert response.status_code == 200
-        external_id = response.data["data"]["externalId"]
-
-        # The role step binds the configuration without verifying; the control silo
-        # cannot reach the organization's Seer.
-        response = self.client.post(
-            url, data={"roleArn": self.role_arn, "region": "us-east-1"}, format="json"
-        )
-        assert response.status_code == 200
-        assert response.data["step"] == "aws_verification"
-        assert response.data["data"] == {
+        external_id = self._initialize()["data"]["externalId"]
+        step = self._submit_role()
+        assert step["step"] == "aws_verification"
+        assert step["data"] == {
             "roleArn": self.role_arn,
             "region": "us-east-1",
             "externalId": external_id,
@@ -909,46 +900,28 @@ class AwsApiPipelineTest(APITestCase):
             "arn:aws:iam::123456789012:role/sentry-seer/Other", connected
         )
         # Even an authentic receipt is not valid for a different role.
-        response = self.client.post(
-            url,
-            data={
-                "connectionStatus": "connected",
-                "roleArn": self.role_arn,
-                "verificationReceipt": other_receipt,
-                "region": "us-east-1",
-            },
-            format="json",
+        error = self._submit_role(
+            status_code=400, verificationReceipt=other_receipt, connectionStatus="connected"
         )
-        assert response.status_code == 400
-        assert "verify" in response.data["data"]["detail"]
+        assert "verify" in error["data"]["detail"]
 
         with freeze_time("2024-01-01T00:00:00Z"):
             expired = self._verification_receipt(self.role_arn, connected)
         for invalid in [expired, other_receipt + "invalid"]:
-            response = self.client.post(url, data={"verificationReceipt": invalid}, format="json")
-            assert response.status_code == 400
+            self._step(status_code=400, verificationReceipt=invalid)
         assert not Integration.objects.filter(provider="aws").exists()
 
         # The verification step records the outcome of the cell-silo verify-connection
         # endpoint; a customer-controlled external ID in the body is ignored.
-        response = self.client.post(
-            url,
-            data={
-                "connectionStatus": "connected",
-                "roleArn": self.role_arn,
-                "region": "us-east-1",
-                "externalId": "customer-controlled-value",
-                "verificationReceipt": self._verification_receipt(self.role_arn, connected),
-            },
-            format="json",
+        step = self._submit_role(
+            verificationReceipt=self._verification_receipt(self.role_arn, connected),
+            connectionStatus="connected",
+            externalId="customer-controlled-value",
         )
-        assert response.status_code == 200
-        assert response.data["status"] == "complete"
-        integration = Integration.objects.get(provider="aws", external_id=str(self.organization.id))
-        assert integration.metadata == {}
-        config = OrganizationIntegration.objects.get(
-            integration_id=integration.id, organization_id=self.organization.id
-        ).config
+        assert step["status"] == "complete"
+        org_integration = self._org_integration()
+        assert org_integration.integration.metadata == {}
+        config = org_integration.config
         assert config["last_verified_at"] is not None
         del config["last_verified_at"]
         assert config == {
@@ -960,83 +933,40 @@ class AwsApiPipelineTest(APITestCase):
         }
 
     def test_install_completes_with_failed_verification_recorded(self) -> None:
-        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
-        response = self.client.post(
-            url, data={"action": "initialize", "provider": "aws"}, format="json"
+        self._initialize()
+        self._submit_role()
+        failure = {"connection_status": "error", "error_detail": "Check the trust policy."}
+        step = self._submit_role(
+            verificationReceipt=self._verification_receipt(self.role_arn, failure),
+            connectionStatus="connected",
+            errorDetail=None,
         )
-        assert response.status_code == 200
-        response = self.client.post(
-            url, data={"roleArn": self.role_arn, "region": "us-east-1"}, format="json"
-        )
-        assert response.status_code == 200
-
-        response = self.client.post(
-            url,
-            data={
-                "verificationReceipt": self._verification_receipt(
-                    self.role_arn,
-                    {"connection_status": "error", "error_detail": "Check the trust policy."},
-                ),
-                "connectionStatus": "connected",
-                "errorDetail": None,
-                "roleArn": self.role_arn,
-                "region": "us-east-1",
-            },
-            format="json",
-        )
-        assert response.status_code == 200
-        assert response.data["status"] == "complete"
-        integration = Integration.objects.get(provider="aws", external_id=str(self.organization.id))
-        config = OrganizationIntegration.objects.get(
-            integration_id=integration.id, organization_id=self.organization.id
-        ).config
+        assert step["status"] == "complete"
+        config = self._org_integration().config
+        assert config["last_verified_at"] is not None
         assert config["connection_status"] == "error"
         assert config["error_detail"] == "Check the trust policy."
 
     def test_verification_step_requires_cell_receipt(self) -> None:
-        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
-        response = self.client.post(
-            url, data={"action": "initialize", "provider": "aws"}, format="json"
-        )
-        assert response.status_code == 200
-        response = self.client.post(
-            url, data={"roleArn": self.role_arn, "region": "us-east-1"}, format="json"
-        )
-        assert response.status_code == 200
-        response = self.client.post(
-            url,
-            data={
-                "connectionStatus": "connected",
-                "roleArn": self.role_arn,
-                "region": "us-east-1",
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-        assert list(response.data) == ["verificationReceipt"]
+        self._initialize()
+        self._submit_role()
+        error = self._submit_role(status_code=400, connectionStatus="connected")
+        assert list(error) == ["verificationReceipt"]
         assert not Integration.objects.filter(provider="aws").exists()
 
     def test_rejects_invalid_role_configuration(self) -> None:
-        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
-        response = self.client.post(
-            url, data={"action": "initialize", "provider": "aws"}, format="json"
-        )
-        assert response.status_code == 200
+        self._initialize()
         for data, field in [
             ({"roleArn": "arn:aws:iam::123456789012:root", "region": "us-east-1"}, "roleArn"),
             ({"roleArn": self.role_arn, "region": "us-east-1.example.com"}, "region"),
         ]:
             with self.subTest(data=data):
-                response = self.client.post(url, data=data, format="json")
-                assert response.status_code == 400
-                assert list(response.data) == [field]
-        response = self.client.post(
-            url, data={"roleArn": "not-an-arn", "region": "us-east-1"}, format="json"
-        )
-        assert response.data == {"roleArn": [AWS_ROLE_ARN_MESSAGE]}
+                assert list(self._step(status_code=400, **data)) == [field]
+        error = self._step(status_code=400, roleArn="not-an-arn", region="us-east-1")
+        assert error == {"roleArn": [AWS_ROLE_ARN_MESSAGE]}
         assert not Integration.objects.filter(provider="aws").exists()
 
-    def test_settings_preserve_external_id_and_mark_unverified(self) -> None:
+    def _install_connected(self) -> AwsIntegration:
         config = {
             "role_arn": self.role_arn,
             "region": "us-east-1",
@@ -1053,64 +983,61 @@ class AwsApiPipelineTest(APITestCase):
         )
         installation = integration.get_installation(organization_id=self.organization.id)
         assert isinstance(installation, AwsIntegration)
-        # Saving does not verify; it resets the recorded status until the settings UI
-        # re-verifies through the cell-silo endpoint.
+        return installation
+
+    def test_settings_preserve_external_id_and_mark_unverified(self) -> None:
+        installation = self._install_connected()
+        org_integration = self._org_integration()
+        external_id = org_integration.config["external_id"]
         installation.update_organization_config(
             {"region": "eu-west-1", "external_id": "customer-controlled-value"}
         )
-        org_integration = OrganizationIntegration.objects.get(
-            integration_id=integration.id, organization_id=self.organization.id
-        )
+        org_integration.refresh_from_db()
         assert org_integration.config == {
             "role_arn": self.role_arn,
             "region": "eu-west-1",
-            "external_id": config["external_id"],
+            "external_id": external_id,
             "connection_status": "unverified",
             "error_detail": None,
             "last_verified_at": None,
         }
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             installation.update_organization_config({"role_arn": "not-an-arn"})
         org_integration.refresh_from_db()
         assert org_integration.config["region"] == "eu-west-1"
 
     def test_settings_noop_does_not_reset_verification(self) -> None:
-        config = {
-            "role_arn": self.role_arn,
-            "region": "us-east-1",
-            "external_id": "11111111-1111-4111-8111-111111111111",
-            "connection_status": "connected",
-            "error_detail": None,
-            "last_verified_at": "2024-01-01T00:00:00+00:00",
-        }
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="aws",
-            external_id=str(self.organization.id),
-            oi_params={"config": config},
-        )
-        installation = integration.get_installation(organization_id=self.organization.id)
-        assert isinstance(installation, AwsIntegration)
+        installation = self._install_connected()
+        config = self._org_integration().config
         installation.update_organization_config({"region": "us-east-1"})
-        org_integration = OrganizationIntegration.objects.get(
-            integration_id=integration.id, organization_id=self.organization.id
-        )
-        assert org_integration.config == config
+        assert self._org_integration().config == config
 
     def test_install_requires_feature_flag(self) -> None:
-        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
         with self.feature({"organizations:integrations-aws": False}):
-            response = self.client.post(
-                url, data={"action": "initialize", "provider": "aws"}, format="json"
-            )
-        assert response.status_code == 404
-        assert response.data["detail"] == "This integration is not available for your organization."
+            error = self._initialize(status_code=404)
+        assert error["detail"] == "This integration is not available for your organization."
 
 
 @control_silo_test
 class AwsIntegrationProviderTest(IntegrationTestCase):
-    provider = AwsIntegrationProvider
+    @property
+    def provider(self) -> type[AwsIntegrationProvider]:
+        return AwsIntegrationProvider
+
+    def test_missing_verification_is_not_timestamped(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="aws", external_id=str(self.organization.id)
+        )
+        self.provider().post_install(integration, self.pipeline.organization, extra={"config": {}})
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+        assert oi.config == {
+            "connection_status": "error",
+            "error_detail": "Verification failed to run during setup.",
+            "last_verified_at": None,
+        }
 
     def test_build_requires_server_generated_external_id(self) -> None:
         provider = self.provider()

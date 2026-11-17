@@ -9,7 +9,9 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
+from sentry.integrations.aws.integration import AwsOrgMonitoringProvider
 from sentry.integrations.linear.client import LINEAR_TOKEN_URL
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
@@ -813,14 +815,23 @@ class TestAwsMonitoringProviderConnections(TestCase):
             "connection_status": "connected",
         }
 
-    def test_org_connection_serializes_role_configuration(self) -> None:
-        self.create_integration(
-            organization=self.organization,
+    def _install(
+        self,
+        *,
+        organization: Organization | None = None,
+        config: dict[str, str] | None = None,
+        status: int = ObjectStatus.ACTIVE,
+    ) -> Integration:
+        org = organization or self.organization
+        return self.create_integration(
+            organization=org,
             provider="aws",
-            external_id=str(self.organization.id),
-            oi_params={"config": self.config},
+            external_id=str(org.id),
+            oi_params={"config": self.config if config is None else config, "status": status},
         )
 
+    def test_org_connection_serializes_role_configuration(self) -> None:
+        self._install()
         result = get_monitoring_provider_connections(self.organization, None)
 
         assert len(result) == 1
@@ -841,12 +852,7 @@ class TestAwsMonitoringProviderConnections(TestCase):
         assert isinstance(response.connections[0], AwsAssumeRoleConnectionData)
 
     def test_org_connection_ignores_inactive_integration(self) -> None:
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="aws",
-            external_id=str(self.organization.id),
-            oi_params={"config": self.config},
-        )
+        integration = self._install()
         for status in [ObjectStatus.DISABLED, ObjectStatus.PENDING_DELETION]:
             with self.subTest(status=status):
                 with assume_test_silo_mode(SiloMode.CONTROL):
@@ -854,31 +860,16 @@ class TestAwsMonitoringProviderConnections(TestCase):
                 assert get_monitoring_provider_connections(self.organization, None) == []
 
     def test_org_connection_ignores_unconfigured_workload_identity(self) -> None:
-        self.create_integration(
-            organization=self.organization,
-            provider="aws",
-            external_id=str(self.organization.id),
-            oi_params={"config": self.config},
-        )
+        self._install()
         with self.options({"aws-seer.principal-arn": ""}):
             assert get_monitoring_provider_connections(self.organization, None) == []
 
     def test_org_connection_ignores_uninstalled_integration(self) -> None:
-        self.create_integration(
-            organization=self.organization,
-            provider="aws",
-            external_id=str(self.organization.id),
-            oi_params={"config": self.config, "status": ObjectStatus.PENDING_DELETION},
-        )
+        self._install(status=ObjectStatus.PENDING_DELETION)
         assert get_monitoring_provider_connections(self.organization, None) == []
 
     def test_org_connection_ignores_incomplete_configuration(self) -> None:
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="aws",
-            external_id=str(self.organization.id),
-            oi_params={"config": self.config},
-        )
+        integration = self._install()
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = OrganizationIntegration.objects.get(
                 integration_id=integration.id, organization_id=self.organization.id
@@ -892,39 +883,21 @@ class TestAwsMonitoringProviderConnections(TestCase):
                 assert get_monitoring_provider_connections(self.organization, None) == []
 
     def test_cross_org_isolation(self) -> None:
-        other_org = self.create_organization()
-        self.create_integration(
-            organization=other_org,
-            provider="aws",
-            external_id=str(other_org.id),
-            oi_params={"config": self.config},
-        )
+        self._install(organization=self.create_organization())
         assert get_monitoring_provider_connections(self.organization, None) == []
 
     def test_connection_requires_feature_flags(self) -> None:
-        self.create_integration(
-            organization=self.organization,
-            provider="aws",
-            external_id=str(self.organization.id),
-            oi_params={"config": self.config},
-        )
+        self._install()
         for flag in ["integrations-aws", "seer-infra-telemetry"]:
             with self.subTest(flag=flag), self.feature({f"organizations:{flag}": False}):
                 assert get_monitoring_provider_connections(self.organization, None) == []
 
     def test_is_verified_requires_recorded_connected_status(self) -> None:
-        from sentry.integrations.aws.integration import AwsOrgMonitoringProvider
-
         provider = AwsOrgMonitoringProvider()
         assert provider.is_verified(self.organization) is False
 
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="aws",
-            external_id=str(self.organization.id),
-            oi_params={
-                "config": {k: v for k, v in self.config.items() if k != "connection_status"}
-            },
+        integration = self._install(
+            config={k: v for k, v in self.config.items() if k != "connection_status"}
         )
         assert get_monitoring_provider_connections(self.organization, None) == []
         # No recorded verification status (e.g. settings were changed and not re-verified).

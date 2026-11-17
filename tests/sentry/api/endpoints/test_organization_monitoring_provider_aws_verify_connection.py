@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
@@ -28,26 +27,34 @@ _DENIED = {
 
 
 class OrganizationMonitoringProviderAwsVerifyConnectionTest(APITestCase):
-    endpoint = "sentry-api-0-organization-monitoring-provider-aws-verify-connection"
     method = "post"
+
+    @property
+    def endpoint(self) -> str:
+        return "sentry-api-0-organization-monitoring-provider-aws-verify-connection"
 
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.enterContext(self.feature("organizations:integrations-aws"))
         self.organization.update_option("aws-seer.external-id", _EXTERNAL_ID)
+        self.verify = self.enterContext(patch(_PATCH_VERIFY, return_value=_CONNECTED))
 
-    def _install(self, *, role_arn: str = _ROLE_ARN, region: str = "us-east-1") -> Integration:
-        return self.create_integration(
+    def _verify_role(self, *, status_code: int = 200, **overrides: str) -> dict[str, Any]:
+        data = {"role_arn": _ROLE_ARN, "region": "us-east-1", **overrides}
+        response = self.get_response(self.organization.slug, **data)
+        assert response.status_code == status_code, response.content
+        return response.data
+
+    def _install(self) -> None:
+        self.create_integration(
             organization=self.organization,
             provider="aws",
             external_id=str(self.organization.id),
-            name="AWS for Seer",
-            metadata={},
             oi_params={
                 "config": {
-                    "role_arn": role_arn,
-                    "region": region,
+                    "role_arn": _ROLE_ARN,
+                    "region": "us-east-1",
                     "external_id": _EXTERNAL_ID,
                     "connection_status": "unverified",
                     "error_detail": None,
@@ -64,13 +71,10 @@ class OrganizationMonitoringProviderAwsVerifyConnectionTest(APITestCase):
 
     def test_requires_feature_flag(self) -> None:
         with self.feature({"organizations:integrations-aws": False}):
-            response = self.get_response(
-                self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1"
-            )
-        assert response.status_code == 404
+            self._verify_role(status_code=404)
+        self.verify.assert_not_called()
 
-    @patch(_PATCH_VERIFY, return_value=_CONNECTED)
-    def test_requires_integration_management_scope(self, verify: MagicMock) -> None:
+    def test_requires_integration_management_scope(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.client.logout()
             read_token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
@@ -78,47 +82,32 @@ class OrganizationMonitoringProviderAwsVerifyConnectionTest(APITestCase):
                 user=self.user, scope_list=["org:integrations"]
             )
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {read_token.token}")
-        self.get_error_response(
-            self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1", status_code=403
-        )
-        verify.assert_not_called()
+        self._verify_role(status_code=403)
+        self.verify.assert_not_called()
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {manage_token.token}")
-        self.get_success_response(self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1")
+        self._verify_role()
 
-    @patch(_PATCH_VERIFY, return_value=_CONNECTED)
-    def test_verifies_in_the_cell_with_the_stored_external_id(self, verify: MagicMock) -> None:
-        response = self.get_success_response(
-            self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1"
-        )
-        assert response.data.pop("verificationReceipt")
-        assert response.data == {
+    def test_verifies_in_the_cell_with_the_stored_external_id(self) -> None:
+        result = self._verify_role()
+        assert result.pop("verificationReceipt")
+        assert result == {
             "connectionStatus": "connected",
             "errorDetail": None,
             "roleArn": _ROLE_ARN,
             "region": "us-east-1",
         }
-        verify.assert_called_once_with(_ROLE_ARN, _EXTERNAL_ID, "us-east-1")
+        self.verify.assert_called_once_with(_ROLE_ARN, _EXTERNAL_ID, "us-east-1")
 
-    @patch(_PATCH_VERIFY, return_value=_CONNECTED)
-    def test_ignores_external_id_from_request_body(self, verify: MagicMock) -> None:
-        self.get_success_response(
-            self.organization.slug,
-            role_arn=_ROLE_ARN,
-            region="us-east-1",
-            external_id="customer-controlled-value",
-        )
-        verify.assert_called_once_with(_ROLE_ARN, _EXTERNAL_ID, "us-east-1")
+    def test_ignores_external_id_from_request_body(self) -> None:
+        self._verify_role(external_id="customer-controlled-value")
+        self.verify.assert_called_once_with(_ROLE_ARN, _EXTERNAL_ID, "us-east-1")
 
-    @patch(_PATCH_VERIFY)
-    def test_requires_server_generated_external_id(self, verify: MagicMock) -> None:
+    def test_requires_server_generated_external_id(self) -> None:
         self.organization.delete_option("aws-seer.external-id")
-        response = self.get_response(self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1")
-        assert response.status_code == 404
-        assert "external ID" in response.data["detail"]
-        verify.assert_not_called()
+        assert "external ID" in self._verify_role(status_code=404)["detail"]
+        self.verify.assert_not_called()
 
-    @patch(_PATCH_VERIFY)
-    def test_rejects_invalid_role_configuration(self, verify: MagicMock) -> None:
+    def test_rejects_invalid_role_configuration(self) -> None:
         for data, field in [
             ({"role_arn": "not-an-arn", "region": "us-east-1"}, "roleArn"),
             ({"role_arn": _ROLE_ARN, "region": "us-east-1.example.com"}, "region"),
@@ -126,58 +115,46 @@ class OrganizationMonitoringProviderAwsVerifyConnectionTest(APITestCase):
             ({"role_arn": _ROLE_ARN}, "region"),
         ]:
             with self.subTest(data=data):
-                response = self.get_response(self.organization.slug, **data)
-                assert response.status_code == 400
+                response = self.get_error_response(self.organization.slug, status_code=400, **data)
                 assert field in response.data
-        verify.assert_not_called()
+        self.verify.assert_not_called()
 
-    @patch(_PATCH_VERIFY, side_effect=IntegrationError("Could not verify AWS telemetry access."))
-    def test_unavailable_seer_returns_502(self, verify: MagicMock) -> None:
+    def test_unavailable_seer_returns_502(self) -> None:
         self._install()
-        response = self.get_response(self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1")
-        assert response.status_code == 502
-        assert "Could not verify" in response.data["detail"]
+        self.verify.side_effect = IntegrationError("unavailable")
+        assert "Could not verify" in self._verify_role(status_code=502)["detail"]
         assert self._config()["connection_status"] == "unverified"
 
-    @patch(
-        _PATCH_VERIFY, side_effect=IntegrationConfigurationError("AWS for Seer is not configured.")
-    )
-    def test_unconfigured_cell_returns_404(self, verify: MagicMock) -> None:
-        response = self.get_response(self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1")
-        assert response.status_code == 404
-        assert "not configured" in response.data["detail"]
+    def test_unconfigured_cell_returns_404(self) -> None:
+        self.verify.side_effect = IntegrationConfigurationError("missing workload identity")
+        assert "not configured" in self._verify_role(status_code=404)["detail"]
 
-    @patch(_PATCH_VERIFY, return_value=_CONNECTED)
-    def test_records_result_on_the_installed_integration(self, verify: MagicMock) -> None:
+    def test_records_result_on_the_installed_integration(self) -> None:
         self._install()
-        self.get_success_response(self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1")
+        self._verify_role()
         config = self._config()
         assert config["connection_status"] == "connected"
         assert config["error_detail"] is None
         assert config["last_verified_at"] is not None
 
-    @patch(_PATCH_VERIFY, return_value=_DENIED)
-    def test_records_failed_result(self, verify: MagicMock) -> None:
+    def test_records_failed_result(self) -> None:
         self._install()
-        self.get_success_response(self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1")
+        self.verify.return_value = _DENIED
+        self._verify_role()
         config = self._config()
         assert config["connection_status"] == "error"
         assert config["error_detail"] == _DENIED["error_detail"]
+        assert config["last_verified_at"] is not None
 
-    @patch(_PATCH_VERIFY, return_value=_CONNECTED)
-    def test_does_not_record_stale_results(self, verify: MagicMock) -> None:
+    def test_does_not_record_stale_results(self) -> None:
         """A result for settings other than the stored ones must not update the status."""
         self._install()
-        for data in [
-            {"role_arn": _OTHER_ROLE_ARN, "region": "us-east-1"},
-            {"role_arn": _ROLE_ARN, "region": "eu-west-1"},
-        ]:
-            with self.subTest(data=data):
-                self.get_success_response(self.organization.slug, **data)
+        for role_arn, region in [(_OTHER_ROLE_ARN, "us-east-1"), (_ROLE_ARN, "eu-west-1")]:
+            with self.subTest(role_arn=role_arn, region=region):
+                self._verify_role(role_arn=role_arn, region=region)
                 assert self._config()["connection_status"] == "unverified"
 
-    @patch(_PATCH_VERIFY, return_value=_CONNECTED)
-    def test_concurrent_settings_save_is_not_overwritten(self, verify: MagicMock) -> None:
+    def test_concurrent_settings_save_is_not_overwritten(self) -> None:
         self._install()
         snapshot = integration_service.organization_context(
             organization_id=self.organization.id, provider="aws"
@@ -189,17 +166,11 @@ class OrganizationMonitoringProviderAwsVerifyConnectionTest(APITestCase):
         )
         # The cell saw the old settings, but control must compare against the live row.
         with patch.object(integration_service, "organization_context", return_value=snapshot):
-            self.get_success_response(
-                self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1"
-            )
+            self._verify_role()
         config = self._config()
         assert config["role_arn"] == _OTHER_ROLE_ARN
         assert config["connection_status"] == "unverified"
 
-    @patch(_PATCH_VERIFY, return_value=_CONNECTED)
-    def test_succeeds_without_an_installed_integration(self, verify: MagicMock) -> None:
+    def test_succeeds_without_an_installed_integration(self) -> None:
         """First-time setup verifies before the integration exists; the pipeline records it."""
-        response = self.get_success_response(
-            self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1"
-        )
-        assert response.data["connectionStatus"] == "connected"
+        assert self._verify_role()["connectionStatus"] == "connected"

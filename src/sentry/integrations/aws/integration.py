@@ -3,32 +3,36 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping, MutableMapping
-from typing import Any, TypedDict
+from typing import Any
 
 from django.core.signing import BadSignature
 from django.http.request import HttpRequest
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import NotFound
-from rest_framework.fields import CharField, ChoiceField
-from rest_framework.serializers import ValidationError
 
 from sentry import features
-from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.constants import ObjectStatus
 from sentry.integrations.aws.client import (
     AWS_MCP_REGIONS,
     AWS_NOT_CONFIGURED_MESSAGE,
-    AWS_ROLE_ARN_MESSAGE,
     AWS_STATUS_CONNECTED,
-    AWS_STATUS_ERROR,
     AWS_STATUS_UNVERIFIED,
+    AwsVerifyConnectionResult,
     build_cloudformation_template,
     get_mcp_url,
     get_sentry_principal_arn,
     parse_role_arn,
 )
-from sentry.integrations.aws.verification import VERIFICATION_MAX_AGE_SECONDS, verification_signer
+from sentry.integrations.aws.serializers import (
+    AwsRoleInput,
+    AwsRoleSerializer,
+    AwsVerificationInput,
+    AwsVerificationInputSerializer,
+)
+from sentry.integrations.aws.verification import (
+    VERIFICATION_MAX_AGE_SECONDS,
+    verification_fields,
+    verification_signer,
+)
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -85,23 +89,6 @@ def get_cell_principal_arn(organization_id: int) -> str:
     return principal_arn
 
 
-class AwsRoleInput(TypedDict):
-    role_arn: str
-    region: str
-
-
-class AwsRoleSerializer(CamelSnakeSerializer[AwsRoleInput]):
-    role_arn = CharField(required=True, max_length=2048)
-    region = ChoiceField(choices=[(region, region) for region in AWS_MCP_REGIONS], required=True)
-
-    def validate_role_arn(self, value: str) -> str:
-        try:
-            return parse_role_arn(value)
-        except IntegrationConfigurationError:
-            # Respond with a fixed message so no exception text reaches the client.
-            raise ValidationError(AWS_ROLE_ARN_MESSAGE) from None
-
-
 class AwsRoleApiStep:
     step_name = "aws_role"
 
@@ -140,24 +127,10 @@ class AwsRoleApiStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        external_id = pipeline.fetch_state("aws_external_id")
-        if not external_id:
+        if not pipeline.fetch_state("aws_external_id"):
             return PipelineStepResult.error("Restart setup to generate a Sentry external ID.")
         pipeline.bind_state("config", dict(validated_data))
         return PipelineStepResult.advance()
-
-
-class AwsVerification(TypedDict):
-    connection_status: str
-    error_detail: str | None
-
-
-class AwsVerificationInputSerializer(CamelSnakeSerializer["AwsVerificationInput"]):
-    verification_receipt = CharField(max_length=2048)
-
-
-class AwsVerificationInput(TypedDict):
-    verification_receipt: str
 
 
 class AwsVerificationApiStep:
@@ -192,7 +165,7 @@ class AwsVerificationApiStep:
             external_id=external_id,
         )
         try:
-            verification: AwsVerification = signer.unsign_object(
+            verification: AwsVerifyConnectionResult = signer.unsign_object(
                 validated_data["verification_receipt"], max_age=VERIFICATION_MAX_AGE_SECONDS
             )
         except BadSignature:
@@ -255,17 +228,13 @@ class AwsIntegration(IntegrationInstallation):
         external_id = config.get("external_id")
         if not external_id:
             raise IntegrationConfigurationError("AWS integration is not configured.")
+        current = {key: config.get(key) for key in ("role_arn", "region")}
         serializer = AwsRoleSerializer(
-            data={
-                "role_arn": data.get("role_arn", config.get("role_arn")),
-                "region": data.get("region", config.get("region")),
-            }
+            data={key: data.get(key, value) for key, value in current.items()}
         )
         serializer.is_valid(raise_exception=True)
         validated = serializer.validated_data
-        if validated["role_arn"] == config.get("role_arn") and validated["region"] == config.get(
-            "region"
-        ):
+        if validated == current:
             return
         # Saving does not verify: the settings UI re-verifies through the cell-silo
         # verify-connection endpoint, which records the new status.
@@ -330,25 +299,13 @@ class AwsIntegrationProvider(IntegrationProvider):
         org_integration = OrganizationIntegration.objects.get(
             organization_id=organization.id, integration_id=integration.id
         )
-        verification: AwsVerification | None = extra.get("verification")
-        last_verified_at = timezone.now().isoformat() if verification is not None else None
+        verification: AwsVerifyConnectionResult | None = extra.get("verification")
         if verification is None:
             logger.error(
                 "aws.post_install_missing_verification",
                 extra={"organization_id": organization.id, "integration_id": integration.id},
             )
-            verification = {
-                "connection_status": AWS_STATUS_ERROR,
-                "error_detail": "Verification failed to run during setup.",
-            }
-        org_integration.update(
-            config={
-                **extra["config"],
-                "connection_status": verification["connection_status"],
-                "error_detail": verification.get("error_detail"),
-                "last_verified_at": last_verified_at,
-            }
-        )
+        org_integration.update(config={**extra["config"], **verification_fields(verification)})
 
 
 @org_monitoring_provider_registry.register(IntegrationProviderSlug.AWS.value)
@@ -368,18 +325,12 @@ class AwsOrgMonitoringProvider(OrgMonitoringProvider):
     ) -> list[AwsAssumeRoleConnectionData] | None:
         if not features.has("organizations:integrations-aws", organization):
             return None
-        ctx = integration_service.organization_context(
+        active = integration_service.organization_context(
             organization_id=organization.id, provider=self.provider_key
-        )
-        integration = ctx.integration
-        org_integration = ctx.organization_integration
-        if (
-            integration is None
-            or org_integration is None
-            or integration.status != ObjectStatus.ACTIVE
-            or org_integration.status != ObjectStatus.ACTIVE
-        ):
+        ).active()
+        if active is None:
             return None
+        integration, org_integration = active
         config = org_integration.config
         if config.get("connection_status") != AWS_STATUS_CONNECTED:
             return None
