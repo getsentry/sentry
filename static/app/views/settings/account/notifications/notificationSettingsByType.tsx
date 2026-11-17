@@ -10,9 +10,9 @@ import {z} from 'zod';
 import {useStore} from 'zustand';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -156,7 +156,7 @@ function UnlinkedSlackAlerts({
 }
 
 /**
- * Label for the delivery method dropdown, e.g. "Email & Slack", or "None" when
+ * Label for the delivery method dropdown, e.g. "Email, Slack", or "None" when
  * nothing is selected.
  */
 function getProviderTriggerLabel(
@@ -170,7 +170,7 @@ function getProviderTriggerLabel(
   if (labels.length === 0) {
     return t('None');
   }
-  return labels.reduce((joined, label) => t('%s & %s', joined, label));
+  return labels.join(', ');
 }
 
 export function NotificationSettingsByType({notificationType}: Props) {
@@ -468,12 +468,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       <Fragment>
         <SentryDocumentTitle title={t('Inbox Notifications')} />
         <SettingsPageHeader title={title} />
-        <Stack gap="xs" marginBottom="xl">
-          <Heading as="h2" size="xl">
-            {t('Personal notifications')}
-          </Heading>
-          <Text variant="muted">{description}</Text>
-        </Stack>
+        {description && <TextBlock>{description}</TextBlock>}
         <FieldGroup>
           {INBOX_FIELDS.map(field => {
             // Toggles save the same always/never values as the other settings.
