@@ -9,14 +9,7 @@
       "crumbs": "Explore → Traces",
       "path": "/explore/traces/",
       "when": {
-        "all": [
-          {
-            "flag": "performance-view"
-          },
-          {
-            "flag": "visibility-explore-view"
-          }
-        ]
+        "flag": "visibility-explore-view"
       }
     },
     {
@@ -76,14 +69,7 @@
       "crumbs": "Explore → Saved Queries",
       "path": "/explore/saved-queries/",
       "when": {
-        "all": [
-          {
-            "flag": "visibility-explore-view"
-          },
-          {
-            "flag": "performance-view"
-          }
-        ]
+        "flag": "visibility-explore-view"
       }
     },
     {
@@ -93,9 +79,6 @@
         "all": [
           {
             "flag": "visibility-explore-view"
-          },
-          {
-            "flag": "performance-view"
           },
           {
             "flag": "explore-saved-formulas"
@@ -616,16 +599,9 @@
       "crumbs": "Settings → Organization → Projects → <project> → Processing → Performance",
       "path": "/settings/projects/{project_slug}/performance/",
       "when": {
-        "all": [
-          {
-            "flag": "performance-view"
-          },
-          {
-            "not": {
-              "deployment": "self_hosted_errors_only"
-            }
-          }
-        ]
+        "not": {
+          "deployment": "self_hosted_errors_only"
+        }
       }
     },
     {
@@ -746,14 +722,7 @@
       "crumbs": "Explore → Traces → Compare",
       "path": "/explore/traces/compare/",
       "when": {
-        "all": [
-          {
-            "flag": "performance-view"
-          },
-          {
-            "flag": "visibility-explore-view"
-          }
-        ]
+        "flag": "visibility-explore-view"
       },
       "sub_page": true
     },
@@ -788,9 +757,6 @@
         "all": [
           {
             "flag": "visibility-explore-view"
-          },
-          {
-            "flag": "performance-view"
           },
           {
             "flag": "explore-saved-formulas"
@@ -983,7 +949,6 @@
       "insights-to-dashboards-ui-rollout",
       "issue-inbox",
       "ourlogs-enabled",
-      "performance-view",
       "preprod-size-monitors-frontend",
       "profiling",
       "seer-night-shift-ui",
