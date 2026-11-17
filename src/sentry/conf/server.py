@@ -1071,11 +1071,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "cadence-tick": {
-        "task": "issues:sentry.cadence.tasks.cadence_tick",
+        "task": "cadence:sentry.cadence.tasks.cadence_tick",
         "schedule": timedelta(seconds=10),
     },
     "cadence-sweep": {
-        "task": "issues:sentry.cadence.tasks.cadence_sweep",
+        "task": "cadence:sentry.cadence.tasks.cadence_sweep",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-buffers": {

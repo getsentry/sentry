@@ -57,11 +57,11 @@ class _Cursor:
     id: int
 
 
-# Accept the cadence namespace before producers switch to it in a later deploy.
+# Keep issues aliases while old producers and queued tasks drain.
 @instrumented_task(
     name="sentry.cadence.tasks.cadence_tick",
-    namespace=issues_tasks,
-    alias_namespace=cadence_tasks,
+    namespace=cadence_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
@@ -84,8 +84,8 @@ def cadence_tick() -> None:
 
 @instrumented_task(
     name="sentry.cadence.tasks.cadence_sweep",
-    namespace=issues_tasks,
-    alias_namespace=cadence_tasks,
+    namespace=cadence_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
@@ -107,8 +107,8 @@ def cadence_sweep() -> None:
 
 @instrumented_task(
     name="sentry.cadence.tasks.cadence_sweep_worker",
-    namespace=issues_tasks,
-    alias_namespace=cadence_tasks,
+    namespace=cadence_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
