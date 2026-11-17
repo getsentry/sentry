@@ -82,6 +82,7 @@ from sentry.seer.entrypoints.slack.investigation import (
     SlackInvestigationCachePayload,
     SlackInvestigationEntrypoint,
     SlackInvestigationThreadState,
+    _get_investigation_lock,
     _get_investigation_thread,
 )
 from sentry.seer.entrypoints.slack.investigation_status import (
@@ -2163,6 +2164,29 @@ class SlackInvestigationEntrypointTest(TestCase):
             )
 
             self.mock_post_message.assert_not_called()
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_trigger_lock_contention_defers_announcement(self, mock_record: Mock) -> None:
+        self._set_cache(status_message_ts=None, started_sent=False)
+
+        with _get_investigation_lock(self.investigation.id).acquire():
+            self._get_entrypoint().on_trigger_investigation_success(
+                investigation=self.investigation
+            )
+
+        self.mock_post_message.assert_not_called()
+        assert not self._get_state().get("started_sent")
+        assert_halt_metric(mock_record, UnableToAcquireLock())
+
+        self._update([])
+        self._update([])
+
+        started_call, status_call = self.mock_post_message.call_args_list
+        assert started_call.kwargs["text"] == (
+            f"<@{self.slack_user_id}> started a Seer investigation for this alert."
+        )
+        assert status_call.kwargs["text"] == "Investigating FCP on organization login pages"
+        assert self._get_state()["started_sent"] is True
 
     def test_started_delivery_preserves_thread_state(self) -> None:
         self._set_cache(started_sent=False)

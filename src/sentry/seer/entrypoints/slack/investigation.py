@@ -147,19 +147,27 @@ class SlackInvestigationEntrypoint(
             message_ts=self.message_ts,
             data=data,
         )
-        with _get_investigation_lock(investigation.id).blocking_acquire(
-            initial_delay=0.1, timeout=10
-        ):
-            run = InvestigationOrchestrationRun.objects.select_related("investigation").get(
-                investigation_id=investigation.id,
-                investigation__organization_id=self.organization.id,
-            )
-            self._send_investigation_started(
-                run=run,
-                install=self.install,
-                thread=SlackThreadDetails(channel_id=self.channel_id, thread_ts=self.thread_ts),
-                slack_user_id=self.slack_user_id,
-            )
+        try:
+            with _get_investigation_lock(investigation.id).acquire():
+                run = InvestigationOrchestrationRun.objects.select_related("investigation").get(
+                    investigation_id=investigation.id,
+                    investigation__organization_id=self.organization.id,
+                )
+                self._send_investigation_started(
+                    run=run,
+                    install=self.install,
+                    thread=SlackThreadDetails(channel_id=self.channel_id, thread_ts=self.thread_ts),
+                    slack_user_id=self.slack_user_id,
+                )
+        except UnableToAcquireLock as e:
+            # The operator queues an update after this callback, so let that task send it instead.
+            with SlackEntrypointEventLifecycleMetric(
+                interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_STARTED,
+                integration_id=self.install.model.id,
+                organization_id=self.organization.id,
+            ).capture() as lifecycle:
+                lifecycle.add_extras({"investigation_id": investigation.id})
+                lifecycle.record_halt(halt_reason=e)
 
     def create_investigation_cache_payload(self) -> SlackInvestigationCachePayload:
         return SlackInvestigationCachePayload(
