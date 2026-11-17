@@ -1,8 +1,31 @@
 import {Fragment, type ReactNode} from 'react';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {unreachable} from 'sentry/utils/unreachable';
+
+import {AgentHandoffFlow, type AgentHandoffContext} from './useAgentHandoff';
 
 type WrapCode<T> = (code: string) => T;
+
+/**
+ * Pairs each flow with the context it carries. Useful for functions that
+ * need to discriminate on the flow and use the context together.
+ */
+export type HandoffPromptTarget<Flow extends AgentHandoffFlow = AgentHandoffFlow> = {
+  [F in Flow]: {context: AgentHandoffContext<F> | null; flow: F};
+}[Flow];
+
+function getPromptPurpose(target: HandoffPromptTarget): string {
+  switch (target.flow) {
+    case AgentHandoffFlow.ADD_FEATURE:
+      return target.context ? ` to set up ${target.context.product}` : '';
+    case AgentHandoffFlow.CREATE_PROJECT:
+    case AgentHandoffFlow.ONBOARDING:
+      return '';
+    default:
+      return unreachable(target);
+  }
+}
 
 /**
  * Builds the agent handoff prompt around its handoff code. `wrapCode` decides how the
@@ -11,26 +34,25 @@ type WrapCode<T> = (code: string) => T;
  * string produces a plain string prompt. The prompt is read by the agent, so it is
  * intentionally not translated.
  *
- * When `product` is provided, the prompt names the feature so the agent doesn't have
- * to infer it.
+ * The flow determines whether and how the prompt names the product.
  */
 export function getHandoffPrompt(
   code: string,
-  wrapCode: WrapCode<string>,
-  product?: string
+  target: HandoffPromptTarget,
+  wrapCode: WrapCode<string>
 ): string;
 export function getHandoffPrompt(
   code: string,
-  wrapCode: WrapCode<ReactNode>,
-  product?: string
+  target: HandoffPromptTarget,
+  wrapCode: WrapCode<ReactNode>
 ): ReactNode;
 export function getHandoffPrompt(
   code: string,
-  wrapCode: WrapCode<ReactNode>,
-  product?: string
+  target: HandoffPromptTarget,
+  wrapCode: WrapCode<ReactNode>
 ): ReactNode {
   const guideUrl = `${ConfigStore.get('urlPrefix').replace(/\/$/, '')}/agent-handoff.md`;
-  const purpose = product ? ` to set up ${product}` : '';
+  const purpose = getPromptPurpose(target);
   const start = `Read and follow ${guideUrl} verbatim${purpose}. Your handoff code is `;
   const end = '.';
   const wrappedCode = wrapCode(code);

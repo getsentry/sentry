@@ -1,5 +1,6 @@
 import {IconCopy} from '@sentry/icons/copy';
 import {IconOpen} from '@sentry/icons/open';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,16 +9,16 @@ import {Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {
   getHandoffPreviewUrl,
   HandoffAdvancedMenu,
   HandoffPromptAlerts,
   HandoffPromptBox,
-  useHandoffPromptCopy,
-  useSentryUrl,
 } from './handoffPromptParts';
 import {AgentHandoffFlow, type AgentHandoffContext} from './useAgentHandoff';
+import {useHandoffPromptCopy} from './useHandoffPromptCopy';
 
 interface AgentHandoffPromptProps<Flow extends AgentHandoffFlow> {
   context: AgentHandoffContext<Flow> | null;
@@ -35,7 +36,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   onCopySuccess,
   onSelect,
 }: AgentHandoffPromptProps<Flow>) {
-  const sentryUrl = useSentryUrl();
+  const sentryUrl = useStore(ConfigStore, state => state.links.sentryUrl);
   const previewUrl = getHandoffPreviewUrl(flow, sentryUrl);
 
   const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
@@ -44,6 +45,8 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   return (
     <Stack gap="md">
       <HandoffPromptBox
+        flow={flow}
+        context={context}
         onCopyPrompt={copyPrompt}
         onSelect={onSelect}
         topRightAction={

@@ -1,5 +1,6 @@
 import {IconCopy} from '@sentry/icons/copy';
 import {IconOpen} from '@sentry/icons/open';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -10,16 +11,16 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {
   getHandoffPreviewUrl,
   HandoffAdvancedMenu,
   HandoffPromptAlerts,
   HandoffPromptBox,
-  useHandoffPromptCopy,
-  useSentryUrl,
 } from './handoffPromptParts';
 import {AgentHandoffFlow, type AddFeatureContext} from './useAgentHandoff';
+import {useHandoffPromptCopy} from './useHandoffPromptCopy';
 
 interface AgentHandoffProductPromptProps {
   /**
@@ -40,7 +41,7 @@ export function AgentHandoffProductPrompt({
   onCopySuccess,
   onSelect,
 }: AgentHandoffProductPromptProps) {
-  const sentryUrl = useSentryUrl();
+  const sentryUrl = useStore(ConfigStore, state => state.links.sentryUrl);
   const previewUrl = getHandoffPreviewUrl(AgentHandoffFlow.ADD_FEATURE, sentryUrl);
 
   const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
@@ -57,7 +58,8 @@ export function AgentHandoffProductPrompt({
       </Text>
 
       <HandoffPromptBox
-        product={context?.product}
+        flow={AgentHandoffFlow.ADD_FEATURE}
+        context={context}
         onCopyPrompt={copyPrompt}
         onSelect={onSelect}
       />

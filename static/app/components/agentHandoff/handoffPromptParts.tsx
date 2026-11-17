@@ -2,7 +2,6 @@ import {Fragment, useState, type PointerEventHandler, type ReactNode} from 'reac
 import {css, ThemeProvider, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconSettings} from '@sentry/icons/settings';
-import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -11,61 +10,15 @@ import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {darkTheme} from '@sentry/scraps/theme';
-import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
 
-import {getHandoffPrompt} from './handoffPrompt';
-import {
-  AgentHandoffFlow,
-  type AgentHandoffContext,
-  useAgentHandoff,
-} from './useAgentHandoff';
+import {type HandoffPromptTarget, getHandoffPrompt} from './handoffPrompt';
+import {AgentHandoffFlow, type AgentHandoffContext} from './useAgentHandoff';
 import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
 
 export function getHandoffPreviewUrl(flow: AgentHandoffFlow, sentryUrl: string): string {
   return new URL(`/agent-handoff.md?preview=1&flow=${flow}`, sentryUrl).href;
-}
-
-export function useSentryUrl(): string {
-  return useStore(ConfigStore, state => state.links.sentryUrl);
-}
-
-interface UseHandoffPromptCopyOptions<Flow extends AgentHandoffFlow> {
-  context: AgentHandoffContext<Flow> | null;
-  flow: Flow;
-  onCopySuccess?: (handoffId: string) => void;
-}
-
-export function useHandoffPromptCopy<Flow extends AgentHandoffFlow>({
-  flow,
-  context,
-  onCopySuccess,
-}: UseHandoffPromptCopyOptions<Flow>) {
-  const [useIpPinning, setUseIpPinning] = useState(true);
-  const handoff = useAgentHandoff(flow, context);
-  const copyDisabled = !context || handoff.isPending;
-
-  function copyPrompt() {
-    if (handoff.isPending) {
-      return;
-    }
-    void handoff
-      .copyPrompt({disableIpPinning: !useIpPinning})
-      .then(handoffId => {
-        toast.success(t('Agent prompt copied to clipboard'));
-        onCopySuccess?.(handoffId);
-      })
-      .catch(() => null);
-  }
-
-  function toggleIpPinning() {
-    setUseIpPinning(enabled => !enabled);
-    handoff.reset();
-  }
-
-  return {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning};
 }
 
 interface HandoffAdvancedMenuProps {
@@ -135,19 +88,21 @@ export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsPr
   );
 }
 
-interface HandoffPromptBoxProps {
+interface HandoffPromptBoxProps<Flow extends AgentHandoffFlow> {
+  context: AgentHandoffContext<Flow> | null;
+  flow: Flow;
   onCopyPrompt: () => void;
   onSelect?: () => void;
-  product?: string;
   topRightAction?: ReactNode;
 }
 
-export function HandoffPromptBox({
-  product,
+export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
+  context,
+  flow,
   onCopyPrompt,
   onSelect,
   topRightAction,
-}: HandoffPromptBoxProps) {
+}: HandoffPromptBoxProps<Flow>) {
   const [isPromptSelected, setIsPromptSelected] = useState(false);
 
   const {
@@ -186,6 +141,7 @@ export function HandoffPromptBox({
             >
               {getHandoffPrompt(
                 'sntryh_****',
+                {flow, context} as unknown as HandoffPromptTarget,
                 maskedCode => (
                   <MaskedCode
                     data-selected={isPromptSelected || undefined}
@@ -195,8 +151,7 @@ export function HandoffPromptBox({
                   >
                     {maskedCode}
                   </MaskedCode>
-                ),
-                product
+                )
               )}
             </PromptText>
             {topRightAction && (

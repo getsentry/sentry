@@ -7,10 +7,17 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {getHandoffPrompt} from './handoffPrompt';
+import {type HandoffPromptTarget, getHandoffPrompt} from './handoffPrompt';
 
-function formatPrompt(code: string, product?: string) {
-  return getHandoffPrompt(code, handoffCode => `\`${handoffCode}\``, product);
+function formatPrompt<F extends AgentHandoffFlow>(
+  code: string,
+  target: HandoffPromptTarget<F>
+) {
+  return getHandoffPrompt(
+    code,
+    target as unknown as HandoffPromptTarget,
+    handoffCode => `\`${handoffCode}\``
+  );
 }
 
 export enum AgentHandoffFlow {
@@ -116,13 +123,13 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       organizationSlug: organization.slug,
     };
 
-    const product = 'product' in options.context ? options.context.product : undefined;
+    const target = {flow, context: options.context} as HandoffPromptTarget<Flow>;
 
     const cachedHandoff = handoff.current;
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
       return {
         handoffId: cachedHandoff.handoffId,
-        text: formatPrompt(cachedHandoff.code, product),
+        text: formatPrompt(cachedHandoff.code, target),
       };
     }
 
@@ -140,7 +147,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       });
       handoff.current = {...minted, ...promptContext};
 
-      return {handoffId: minted.handoffId, text: formatPrompt(minted.code, product)};
+      return {handoffId: minted.handoffId, text: formatPrompt(minted.code, target)};
     } catch {
       throw new Error(t('Unable to create your agent prompt. Try again.'));
     }
