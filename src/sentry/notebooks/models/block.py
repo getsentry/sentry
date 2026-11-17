@@ -49,6 +49,11 @@ class NotebookBlock(DefaultFieldsModel):
         default=dict, db_default={}
     )
 
+    # The source is the executed query or evidence reference supplied with this widget.
+    embed = models.JSONField(null=True)
+    embed_source = models.TextField(null=True)
+    embed_summary = models.TextField(null=True)
+
     version = BoundedPositiveIntegerField(default=1, db_default=1)
     current_execution = FlexibleForeignKey(
         "notebooks.NotebookBlockExecution",
