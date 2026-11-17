@@ -4,7 +4,12 @@ import {Buffer} from 'node:buffer';
 const transform = {
   /** @param {string} source */
   process(source) {
-    const url = `data:image/svg+xml;base64,${Buffer.from(source).toString('base64')}`;
+    // Page CSS cannot reach SVG images; pause inside them to preserve negative-delay frames.
+    const pausedSource = source.replace(
+      '</svg>',
+      '<style>*{animation-play-state:paused!important;transition:none!important}</style></svg>'
+    );
+    const url = `data:image/svg+xml;base64,${Buffer.from(pausedSource).toString('base64')}`;
     return {code: `module.exports = ${JSON.stringify(url)};`};
   },
 };
