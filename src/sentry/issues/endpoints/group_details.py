@@ -604,7 +604,6 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
                 user_id=acting_user_id(request.user),
             )
         )
-        if features.has("organizations:mcp-issue-view-attribution", group.project.organization):
-            cache.set(
-                cache_key_for_issue_view(group.id, "mcp"), client_family, ISSUE_VIEW_CACHE_KEY_TTL
-            )
+        cache.set(
+            cache_key_for_issue_view(group.id, "mcp"), client_family, ISSUE_VIEW_CACHE_KEY_TTL
+        )
