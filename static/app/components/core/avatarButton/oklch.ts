@@ -18,11 +18,25 @@ function encode(linear: number): number {
   return Math.round(Math.min(1, Math.max(0, c)) * 255);
 }
 
+/**
+ * Parses a `#rgb` or `#rrggbb` hex string into its 0-255 channels. The short
+ * form is expanded first, so `#fff` reads as white rather than `#000fff`.
+ */
+export function hexToRgb(hex: string): Rgb {
+  const digits = hex.replace(/^#/, '');
+  const full =
+    digits.length === 3
+      ? digits
+          .split('')
+          .map(d => d + d)
+          .join('')
+      : digits;
+  const n = parseInt(full, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
 export function hexToOklch(hex: string): Oklch {
-  const n = parseInt(hex.slice(1), 16);
-  const r = decode((n >> 16) & 255);
-  const g = decode((n >> 8) & 255);
-  const b = decode(n & 255);
+  const [r, g, b] = hexToRgb(hex).map(decode) as Rgb;
 
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);

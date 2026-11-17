@@ -1,3 +1,5 @@
+import {hexToRgb} from './oklch';
+
 // TS can't prove typed-array index access is defined; this centralizes the
 // single suppression so callers stay clean.
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -22,8 +24,7 @@ const MIN_SATURATION = 0.15;
  * keep the default styling instead of tinting the UI.
  */
 export function isNeutralColor(hex: string): boolean {
-  const n = parseInt(hex.slice(1), 16);
-  return saturationOf((n >> 16) & 255, (n >> 8) & 255, n & 255) < MIN_SATURATION;
+  return saturationOf(...hexToRgb(hex)) < MIN_SATURATION;
 }
 
 // A logo only gets tinted when colored pixels make up at least this share of

@@ -175,6 +175,12 @@ describe('isNeutralColor', () => {
     expect(isNeutralColor('#808080')).toBe(true);
   });
 
+  it('expands three-digit hex colors', () => {
+    expect(isNeutralColor('#fff')).toBe(true);
+    expect(isNeutralColor('#000')).toBe(true);
+    expect(isNeutralColor('#f00')).toBe(false);
+  });
+
   it('treats saturated colors as colored', () => {
     expect(isNeutralColor('#635bff')).toBe(false);
   });
