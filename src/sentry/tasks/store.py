@@ -44,12 +44,18 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
+from sentry.utils.kvstore.bigtable import bigtable_timeout
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
+
+# Nodestore operations during save stop retrying after 25s. An in-flight
+# attempt may overrun that by up to ~5s, keeping one operation within ~30s,
+# well within the 65s processing deadline of the save tasks.
+SAVE_EVENT_NODESTORE_TIMEOUT = 25.0
 
 
 class RetryProcessing(Exception):
@@ -645,15 +651,18 @@ def _do_save_event(
                 ):
                     raise HashDiscarded("Load shedding save_event")
 
-                # event.project.organization is populated after this statement.
-                EventManager(data).save(
-                    project=project,
-                    assume_normalized=True,
-                    start_time=start_time,
-                    cache_key=cache_key,
-                    attachments=attachments,
-                    unprocessed=unprocessed,
-                )
+                # Bound nodestore calls so a stuck write is retried, or fails,
+                # before the task's processing deadline is exceeded.
+                with bigtable_timeout(SAVE_EVENT_NODESTORE_TIMEOUT):
+                    # event.project.organization is populated after this statement.
+                    EventManager(data).save(
+                        project=project,
+                        assume_normalized=True,
+                        start_time=start_time,
+                        cache_key=cache_key,
+                        attachments=attachments,
+                        unprocessed=unprocessed,
+                    )
         except HashDiscarded:
             # Mark all the attachments as `rate_limited`, so they are being properly cleaned up in the `finally` block:
             for attachment in all_attachments:

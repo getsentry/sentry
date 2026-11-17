@@ -6,8 +6,10 @@ from collections.abc import Callable
 from unittest import mock
 
 import pytest
+from google.api_core import exceptions
+from google.rpc.status_pb2 import Status
 
-from sentry.utils.kvstore.bigtable import BigtableKVStorage
+from sentry.utils.kvstore.bigtable import BigtableError, BigtableKVStorage, bigtable_timeout
 
 
 def create_store(
@@ -106,3 +108,150 @@ def test_get_uses_5s_timeout_for_retry() -> None:
         retry_arg = kwargs["retry"]
         assert hasattr(retry_arg, "_timeout")
         assert retry_arg._timeout == 5.0
+
+
+def test_get_uses_tighter_context_timeout() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.read_row.return_value = None
+    with mock.patch.object(store, "_get_table", return_value=mock_table):
+        with bigtable_timeout(2.0):
+            store.get("some-key")
+        _, kwargs = mock_table.read_row.call_args
+        assert kwargs["retry"]._timeout == 2.0
+
+        with bigtable_timeout(30.0):
+            store.get("some-key")
+        _, kwargs = mock_table.read_row.call_args
+        assert kwargs["retry"]._timeout == 5.0
+
+
+def test_get_many_uses_context_timeout() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.read_rows.return_value = []
+    with mock.patch.object(store, "_get_table", return_value=mock_table):
+        with bigtable_timeout(7.0):
+            list(store.get_many(["some-key"]))
+
+    _, kwargs = mock_table.read_rows.call_args
+    assert kwargs["retry"]._timeout == 7.0
+
+
+def test_set_without_context_timeout_uses_defaults() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.direct_row.return_value.table = mock_table
+    mock_table.mutate_rows.return_value = [Status(code=0)]
+    with mock.patch.object(store, "_get_table", return_value=mock_table):
+        store.set("some-key", b"value")
+
+    mock_table.mutate_rows.assert_called_once_with([mock_table.direct_row.return_value])
+
+
+def test_set_uses_context_timeout() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.direct_row.return_value.table = mock_table
+    mock_table.mutate_rows.return_value = [Status(code=0)]
+    with mock.patch.object(store, "_get_table", return_value=mock_table):
+        with bigtable_timeout(20.0):
+            store.set("some-key", b"value")
+
+    _, kwargs = mock_table.mutate_rows.call_args
+    assert kwargs["retry"]._timeout == 20.0
+    assert kwargs["timeout"] == 20.0
+    mock_table.direct_row.return_value.clear.assert_called_once_with()
+
+
+def test_delete_attempt_timeout_is_at_least_one_second() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.direct_row.return_value.table = mock_table
+    mock_table.mutate_rows.return_value = [Status(code=0)]
+    with mock.patch.object(store, "_get_table", return_value=mock_table):
+        with bigtable_timeout(0.5):
+            store.delete("some-key")
+
+    _, kwargs = mock_table.mutate_rows.call_args
+    assert kwargs["retry"]._timeout == 0.5
+    assert kwargs["timeout"] == 1.0
+
+
+def test_set_raises_when_mutation_times_out() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.direct_row.return_value.table = mock_table
+    # The client reports a ``None`` status for rows that ran out of retry time.
+    mock_table.mutate_rows.return_value = [None]
+    with mock.patch.object(store, "_get_table", return_value=mock_table):
+        with bigtable_timeout(1.0), pytest.raises(BigtableError):
+            store.set("some-key", b"value")
+
+
+def test_delete_many_raises_when_mutation_times_out() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.mutate_rows.return_value = [Status(code=0), None]
+    with mock.patch.object(store, "_get_table", return_value=mock_table):
+        with bigtable_timeout(1.0), pytest.raises(BigtableError):
+            store.delete_many(["a", "b"])
+
+
+def test_nested_context_cannot_loosen_timeout() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.direct_row.return_value.table = mock_table
+    mock_table.mutate_rows.return_value = [Status(code=0)]
+    with mock.patch.object(store, "_get_table", return_value=mock_table):
+        with bigtable_timeout(10.0):
+            with bigtable_timeout(30.0):
+                store.set("some-key", b"value")
+            _, kwargs = mock_table.mutate_rows.call_args
+            assert kwargs["retry"]._timeout == 10.0
+
+            with bigtable_timeout(5.0):
+                store.set("some-key", b"value")
+            _, kwargs = mock_table.mutate_rows.call_args
+            assert kwargs["retry"]._timeout == 5.0
+
+            # Exiting the inner context restores the outer timeout.
+            store.set("some-key", b"value")
+            _, kwargs = mock_table.mutate_rows.call_args
+            assert kwargs["retry"]._timeout == 10.0
+
+
+def test_set_retry_shares_context_timeout() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.direct_row.return_value.table = mock_table
+    mock_table.mutate_rows.side_effect = [
+        exceptions.ServiceUnavailable("unavailable"),
+        [Status(code=0)],
+    ]
+    with (
+        mock.patch.object(store, "_get_table", return_value=mock_table),
+        mock.patch("sentry.utils.kvstore.bigtable.time.monotonic", side_effect=[100.0, 108.0]),
+    ):
+        store._BigtableKVStorage__table = mock_table  # type: ignore[attr-defined]
+        with bigtable_timeout(20.0):
+            store.set("some-key", b"value")
+
+    _, kwargs = mock_table.mutate_rows.call_args
+    assert kwargs["retry"]._timeout == 12.0
+
+
+def test_set_does_not_retry_when_context_timeout_is_spent() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.direct_row.return_value.table = mock_table
+    mock_table.mutate_rows.side_effect = exceptions.ServiceUnavailable("unavailable")
+    with (
+        mock.patch.object(store, "_get_table", return_value=mock_table),
+        mock.patch("sentry.utils.kvstore.bigtable.time.monotonic", side_effect=[100.0, 121.0]),
+    ):
+        store._BigtableKVStorage__table = mock_table  # type: ignore[attr-defined]
+        with bigtable_timeout(20.0), pytest.raises(exceptions.ServiceUnavailable):
+            store.set("some-key", b"value")
+
+    assert mock_table.mutate_rows.call_count == 1

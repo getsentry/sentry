@@ -1,7 +1,10 @@
+import contextlib
 import enum
 import logging
 import struct
-from collections.abc import Iterator, Mapping, Sequence
+import time
+from collections.abc import Generator, Iterator, Mapping, Sequence
+from contextvars import ContextVar
 from datetime import timedelta
 from threading import Lock
 from typing import Any
@@ -9,9 +12,10 @@ from typing import Any
 from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
-from google.cloud.bigtable.row import PartialRowData
+from google.cloud.bigtable.row import PartialRowData, Row
 from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.cloud.bigtable.row_set import RowSet
+from google.cloud.bigtable.table import DEFAULT_RETRY as DEFAULT_RETRY_MUTATE_ROWS
 from google.cloud.bigtable.table import Table
 from sentry_sdk import traces
 
@@ -21,9 +25,37 @@ from sentry.utils.kvstore.abstract import KVStorage
 
 logger = logging.getLogger(__name__)
 
+# Default timeout is 60 seconds, much too long for our ingestion pipeline
+DEFAULT_GET_TIMEOUT = 5.0
+
 
 class BigtableError(Exception):
     pass
+
+
+_bigtable_timeout: ContextVar[float | None] = ContextVar("bigtable_timeout", default=None)
+
+
+@contextlib.contextmanager
+def bigtable_timeout(timeout: float) -> Generator[None]:
+    """
+    Caps how long, in seconds, each Bigtable (nodestore) operation within this
+    context keeps retrying before raising ``BigtableError``.
+
+    For mutations, each attempt is also bounded to ``min(5, floor(timeout))``
+    seconds (see ``_mutate_rows``). An attempt in flight when ``timeout`` elapses is
+    not interrupted, so a mutation may take up to ~5s longer than ``timeout``.
+
+    This never loosens a tighter timeout, whether from an enclosing
+    ``bigtable_timeout`` or an operation's own default.
+    """
+    if (outer := _bigtable_timeout.get()) is not None:
+        timeout = min(timeout, outer)
+    token = _bigtable_timeout.set(timeout)
+    try:
+        yield
+    finally:
+        _bigtable_timeout.reset(token)
 
 
 class BigtableKVStorage(KVStorage[str, bytes]):
@@ -118,9 +150,11 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
     def get(self, key: str) -> bytes | None:
         with traces.start_span(name="bigtable.get", attributes={"sentry.op": "bigtable.get"}):
-            # Default timeout is 60 seconds, much too long for our ingestion pipeline
             # Modify retry based on https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout#configuring-retries
-            modified_retry = DEFAULT_RETRY_READ_ROWS.with_timeout(5.0)
+            timeout = DEFAULT_GET_TIMEOUT
+            if (context_timeout := _bigtable_timeout.get()) is not None:
+                timeout = min(timeout, context_timeout)
+            modified_retry = DEFAULT_RETRY_READ_ROWS.with_timeout(timeout)
             row = self._get_table().read_row(key, retry=modified_retry)
         if row is None:
             return None
@@ -137,7 +171,11 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         for key in keys:
             rows.add_row_key(key)
 
-        for row in self._get_table().read_rows(row_set=rows):
+        retry_read_rows = DEFAULT_RETRY_READ_ROWS
+        if (context_timeout := _bigtable_timeout.get()) is not None:
+            retry_read_rows = retry_read_rows.with_timeout(context_timeout)
+
+        for row in self._get_table().read_rows(row_set=rows, retry=retry_read_rows):
             value = self.__decode_row(row)
 
             # Even though Bigtable in't going to return empty rows, an empty
@@ -183,6 +221,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         return value
 
     def set(self, key: str, value: bytes, ttl: timedelta | None = None) -> None:
+        start = time.monotonic()
         try:
             return self._set(key, value, ttl)
         except (exceptions.InternalServerError, exceptions.ServiceUnavailable):
@@ -192,7 +231,15 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             # Retry once on InternalServerError or ServiceUnavailable
             # 500 Received RST_STREAM with error code 2
             # SENTRY-S6D
-            return self._set(key, value, ttl)
+            context_timeout = _bigtable_timeout.get()
+            if context_timeout is None:
+                return self._set(key, value, ttl)
+            # The retry shares the contextual timeout with the first attempt.
+            remaining = context_timeout - (time.monotonic() - start)
+            if remaining <= 0:
+                raise
+            with bigtable_timeout(remaining):
+                return self._set(key, value, ttl)
 
     def _set(self, key: str, value: bytes, ttl: timedelta | None = None) -> None:
         # XXX: There is a type mismatch here -- ``direct_row`` expects
@@ -262,7 +309,36 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
         row.set_cell(self.column_family, self.data_column, value, timestamp=ts)
 
-        status = row.commit()
+        self._commit(row)
+
+    def _mutate_rows(self, table: Table, rows: Sequence[Row]) -> list[Any]:
+        """
+        Calls ``table.mutate_rows``, applying any contextual timeout. Rows
+        whose mutations ran out of time have a ``None`` status.
+        """
+        context_timeout = _bigtable_timeout.get()
+        if context_timeout is None:
+            return list(table.mutate_rows(rows))
+
+        return list(
+            table.mutate_rows(
+                rows,
+                retry=DEFAULT_RETRY_MUTATE_ROWS.with_timeout(context_timeout),
+                # Without this, each attempt may wait up to the client default
+                # of 600s. The client wraps this in an ``ExponentialTimeout``
+                # whose defaults bound each attempt to min(5, floor(timeout))
+                # seconds, so keep it >= 1 to avoid a 0s attempt deadline.
+                timeout=max(context_timeout, 1.0),
+            )
+        )
+
+    def _commit(self, row: Row) -> None:
+        # Equivalent to ``row.commit()``, which doesn't accept a timeout.
+        [status] = self._mutate_rows(row.table, [row])
+        row.clear()
+
+        if status is None:
+            raise BigtableError("Timed out mutating row")
         if status.code != 0:
             raise BigtableError(status.code, status.message)
 
@@ -272,9 +348,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         row = self._get_table().direct_row(key)
         row.delete()
 
-        status = row.commit()
-        if status.code != 0:
-            raise BigtableError(status.code, status.message)
+        self._commit(row)
 
     def delete_many(self, keys: Sequence[str]) -> None:
         table = self._get_table()
@@ -288,8 +362,10 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             rows.append(row)
 
         errors = []
-        for status in table.mutate_rows(rows):
-            if status.code != 0:
+        for status in self._mutate_rows(table, rows):
+            if status is None:
+                errors.append(BigtableError("Timed out mutating row"))
+            elif status.code != 0:
                 errors.append(BigtableError(status.code, status.message))
 
         if errors:

@@ -41,6 +41,9 @@ class MockedBigtableKVStorage(BigtableKVStorage):
             # commits not implemented, changes are applied immediately
             return Status(code=0)
 
+        def clear(self) -> None:
+            pass
+
         @property
         def cells(self) -> dict[str, dict[str, list[MockedBigtableKVStorage.Cell]]]:
             return {"x": dict(self.table._rows.get(self.row_key) or ())}
