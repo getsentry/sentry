@@ -256,7 +256,7 @@ class RejectedMetricBreach:
 
 
 @dataclass(frozen=True)
-class _Route:
+class AutomationMatch:
     config_id: int
     binding_id: int | None = None
 
@@ -276,22 +276,26 @@ class SeerMetricAlertActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        SeerMetricAlertActionHandler.handle(invocation, SeerMetricAlertActionHandler.find_route)
+        SeerMetricAlertActionHandler.handle(
+            invocation, SeerMetricAlertActionHandler.find_automation
+        )
 
     @staticmethod
-    def find_route(group: Group, invocation: ActionInvocation) -> _Route | IgnoredMetricBreach:
+    def find_automation(
+        group: Group, invocation: ActionInvocation
+    ) -> AutomationMatch | IgnoredMetricBreach:
         binding = SeerWorkflowTriggerBinding.objects.get_or_none(
             workflow_config__organization_id=group.project.organization_id,
             trigger_action=invocation.action,
         )
         if binding is None:
             return IgnoredMetricBreach("missing_binding")
-        return _Route(config_id=binding.workflow_config_id, binding_id=binding.id)
+        return AutomationMatch(config_id=binding.workflow_config_id, binding_id=binding.id)
 
     @staticmethod
     def handle(
         invocation: ActionInvocation,
-        find_route: Callable[[Group, ActionInvocation], _Route | IgnoredMetricBreach],
+        find_automation: Callable[[Group, ActionInvocation], AutomationMatch | IgnoredMetricBreach],
     ) -> None:
         event = invocation.event_data.event
         if not isinstance(event, GroupEvent):
@@ -305,19 +309,19 @@ class SeerMetricAlertActionHandler(ActionHandler):
             "workflow_id": invocation.workflow_id,
             "action_id": invocation.action.id,
         }
-        route = find_route(group, invocation)
-        if isinstance(route, IgnoredMetricBreach):
-            _record_trigger_outcome("ignored", extra, reason=route.reason)
+        match = find_automation(group, invocation)
+        if isinstance(match, IgnoredMetricBreach):
+            _record_trigger_outcome("ignored", extra, reason=match.reason)
             return
 
-        extra.update(workflow_config_id=route.config_id, binding_id=route.binding_id)
+        extra.update(workflow_config_id=match.config_id, binding_id=match.binding_id)
         admission = SeerMetricAlertActionHandler.admit(
             group,
             event,
-            config_id=route.config_id,
+            config_id=match.config_id,
             action_id=invocation.action.id,
             workflow_id=invocation.workflow_id,
-            binding_id=route.binding_id,
+            binding_id=match.binding_id,
         )
         outcome: Literal["accepted", "rejected", "ignored"]
         reason: str | None = None
@@ -425,11 +429,15 @@ class SeerInvestigationActionHandler(SeerMetricAlertActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        SeerMetricAlertActionHandler.handle(invocation, SeerInvestigationActionHandler.find_route)
+        SeerMetricAlertActionHandler.handle(
+            invocation, SeerInvestigationActionHandler.find_automation
+        )
 
     @staticmethod
     @override
-    def find_route(group: Group, invocation: ActionInvocation) -> _Route | IgnoredMetricBreach:
+    def find_automation(
+        group: Group, invocation: ActionInvocation
+    ) -> AutomationMatch | IgnoredMetricBreach:
         config_id = (
             SeerWorkflowConfig.objects.filter(
                 organization_id=group.project.organization_id,
@@ -440,7 +448,7 @@ class SeerInvestigationActionHandler(SeerMetricAlertActionHandler):
         )
         if config_id is None:
             return IgnoredMetricBreach("configuration_unavailable")
-        return _Route(config_id=config_id)
+        return AutomationMatch(config_id=config_id)
 
 
 def _record_trigger_outcome(
