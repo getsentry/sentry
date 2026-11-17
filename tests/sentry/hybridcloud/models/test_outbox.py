@@ -386,9 +386,13 @@ class OutboxDrainTest(TransactionTestCase):
 
             assert mock_send.call_count == 1
 
-    def test_drain_shard_not_flush_all__upper_bound(self) -> None:
+    @patch("sentry.hybridcloud.models.outbox.process_cell_outbox.send")
+    def test_drain_shard_not_flush_all__upper_bound(self, mock_send: Mock) -> None:
+        # outbox2 is in the same shard but not in outbox1's coalesce group. A coalesce
+        # group has no upper bound, so outbox2 would be drained with outbox1 whenever
+        # its insert commits before the drain reads the group.
         outbox1 = Organization(id=1).outbox_for_update()
-        outbox2 = Organization(id=1).outbox_for_update()
+        outbox2 = OrganizationMember(id=1, organization_id=1, user_id=1).outbox_for_update()
 
         with outbox_context(flush=False):
             outbox1.save()
@@ -451,9 +455,12 @@ class OutboxDrainTest(TransactionTestCase):
 
         assert mock_process_cell_outbox.call_count == 2
 
-    def test_drain_shard_flush_all__upper_bound(self) -> None:
+    @patch("sentry.hybridcloud.models.outbox.process_cell_outbox.send")
+    def test_drain_shard_flush_all__upper_bound(self, mock_send: Mock) -> None:
+        # See test_drain_shard_not_flush_all__upper_bound: outbox2 needs its own
+        # coalesce group, so it is drained in a second iteration.
         outbox1 = Organization(id=1).outbox_for_update()
-        outbox2 = Organization(id=1).outbox_for_update()
+        outbox2 = OrganizationMember(id=1, organization_id=1, user_id=1).outbox_for_update()
 
         with outbox_context(flush=False):
             outbox1.save()
