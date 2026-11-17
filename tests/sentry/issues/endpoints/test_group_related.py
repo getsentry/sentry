@@ -468,6 +468,10 @@ class GroupRelatedEndpointTest(
         response = self.client.get(self.path, {"eventId": perf_event.event_id})
         assert response.status_code == 404
 
+        # The error event isn't in the performance issue
+        response = self.client.get(path, {"eventId": self.event.event_id})
+        assert response.status_code == 404
+
     @mock.patch(SEER_URLOPEN)
     def test_issue_without_events(self, mock_seer_request: mock.MagicMock) -> None:
         # Old issues whose events are past retention

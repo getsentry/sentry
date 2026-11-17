@@ -179,7 +179,8 @@ def _get_group_event(group: Group, event_id: str) -> GroupEvent | None:
         event = eventstore.backend.get_event_by_id(
             project_id=project_id, event_id=event_id, group_id=group.id
         )
-        if event is None:
+        # The lookup attaches an error event to group_id unchecked, so it can't show one is here
+        if event is None or event.get_event_type() == "error":
             return None
     return event if isinstance(event, GroupEvent) else event.for_group(group)
 
