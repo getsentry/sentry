@@ -21,6 +21,7 @@ import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits
 import {registerOverride} from 'sentry/overrideRegistry';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AutofixRef} from './autofix';
@@ -508,22 +509,26 @@ describe('AutofixRef embed', () => {
     });
     const retryTooltip = 'Your organization does not have enough Seer credits for this.';
 
-    function mockCreditCheck(operation: string, hasEnoughCredits: boolean) {
+    function mockCreditCheck(
+      operation: string,
+      hasEnoughCredits: boolean,
+      denialReason: SeerCreditDenialReason | null = null
+    ) {
       return MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/credit-check/`,
         match: [MockApiClient.matchQuery({operation})],
-        body: {hasEnoughCredits},
+        body: {hasEnoughCredits, denialReason},
       });
     }
 
     // While the check is in flight the button is natively disabled. Once it
     // settles it is only aria-disabled, so it stays focusable and its tooltip
     // can say why.
-    async function expectDisabledForCredits(button: HTMLElement) {
+    async function expectDisabledForCredits(button: HTMLElement, tooltip = retryTooltip) {
       await waitFor(() => expect(button).toBeEnabled());
       expect(button).toHaveAttribute('aria-disabled', 'true');
       await userEvent.hover(button);
-      expect(await screen.findByText(retryTooltip)).toBeInTheDocument();
+      expect(await screen.findByText(tooltip)).toBeInTheDocument();
     }
 
     function makeStoppedRun(step: AutofixExplorerStep): ExplorerAutofixState {
@@ -627,21 +632,30 @@ describe('AutofixRef embed', () => {
       expect(creditCheck).not.toHaveBeenCalled();
     });
 
-    it('disables drafting the pull request again while out of credits', async () => {
-      mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
-      mockCreditCheck('autofix_open_pr', false);
-      render(
-        <AutofixChatProvider sendMessage={jest.fn()}>
-          <AutofixRefFor step="code_changes" />
-        </AutofixChatProvider>,
-        {organization: creditsOrganization}
-      );
-      await expandAll(1);
+    it.each([
+      ['not_enough_credits', retryTooltip],
+      ['daily_cap_exceeded', 'Your organization hit its daily usage limit.'],
+    ] as const)(
+      'disables drafting the pull request again while denied for credits (%s)',
+      async (denialReason, tooltip) => {
+        mockRun(
+          withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'}))
+        );
+        mockCreditCheck('autofix_open_pr', false, denialReason);
+        render(
+          <AutofixChatProvider sendMessage={jest.fn()}>
+            <AutofixRefFor step="code_changes" />
+          </AutofixChatProvider>,
+          {organization: creditsOrganization}
+        );
+        await expandAll(1);
 
-      await expectDisabledForCredits(
-        screen.getByRole('button', {name: 'Draft a pull request'})
-      );
-    });
+        await expectDisabledForCredits(
+          screen.getByRole('button', {name: 'Draft a pull request'}),
+          tooltip
+        );
+      }
+    );
 
     it('drafts the pull request again once the organization can afford it', async () => {
       mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
