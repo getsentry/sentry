@@ -398,7 +398,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["pr_iteration_paused"] is False
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
-    def test_get_reports_pr_iteration_out_for_credits(
+    def test_get_reports_pr_iteration_out_of_credits(
         self, mock_get_explorer_state: MagicMock
     ) -> None:
         group = self.create_group()
