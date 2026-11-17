@@ -14,7 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.creator import get_creator_reference
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -26,7 +26,7 @@ from sentry.notebooks.endpoints.base import (
 )
 from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import Notebook, NotebookWorkflowRun
-from sentry.notebooks.services import NotebookConflictError, NotebookValidationError
+from sentry.notebooks.services import NotebookValidationError
 from sentry.notebooks.services.workflow import (
     content_revision,
     deliver_finalizer,
@@ -50,6 +50,14 @@ WORKFLOW_RUN_ID = OpenApiParameter(
 )
 
 
+def _validate_payload(
+    validator: type[StrictCamelSnakeValidator[None]], data: Any
+) -> dict[str, Any]:
+    serializer = validator(data=data)
+    serializer.is_valid(raise_exception=True)
+    return serializer.validated_data
+
+
 class OpenWorkflowNotebook(StrictCamelSnakeValidator[None]):
     notebook_id = serializers.IntegerField(
         min_value=1,
@@ -61,7 +69,6 @@ class OpenWorkflowNotebook(StrictCamelSnakeValidator[None]):
     )
     project_ids = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
-        required=False,
         default=list,
         help_text="Project IDs for a newly created notebook.",
     )
@@ -124,10 +131,7 @@ class SavedSummary(TypedDict):
 
 @extend_schema(
     tags=["Notebooks"],
-    parameters=[
-        GlobalParams.ORG_ID_OR_SLUG,
-        WORKFLOW_RUN_ID,
-    ],
+    parameters=[GlobalParams.ORG_ID_OR_SLUG, WORKFLOW_RUN_ID],
 )
 @cell_silo_endpoint
 class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
@@ -141,13 +145,13 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
         if not (is_agent_auth(request.auth) or is_service_account_auth(request.auth)):
             raise PermissionDenied
-        binding = (
-            NotebookWorkflowRun.objects.select_related("notebook", "writer_run")
-            .filter(organization=kwargs["organization"], run_id=kwargs["workflow_run_id"])
-            .first()
+        binding = NotebookWorkflowRun.objects.select_related("notebook", "writer_run").get_or_none(
+            organization=kwargs["organization"], run_id=kwargs["workflow_run_id"]
         )
         if binding:
             require_notebook_writer(request, binding.notebook)
+        elif request.method in ("PATCH", "PUT"):
+            raise ResourceDoesNotExist
         kwargs["binding"] = binding
         return args, kwargs
 
@@ -197,14 +201,12 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
         binding: NotebookWorkflowRun | None,
     ) -> Response:
         """Bind this run to an existing notebook or create its destination exactly once."""
-        validator = OpenWorkflowNotebook(data=request.data)
-        validator.is_valid(raise_exception=True)
-        values = validator.validated_data
+        values = _validate_payload(OpenWorkflowNotebook, request.data)
         destination = None
         if "notebook_id" in values:
-            destination = Notebook.objects.filter(
+            destination = Notebook.objects.get_or_none(
                 organization=organization, pk=values["notebook_id"], status="active"
-            ).first()
+            )
             if destination is None:
                 raise ResourceDoesNotExist
         require_notebook_writer(request, destination)
@@ -221,8 +223,6 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
             )
         except NotebookValidationError as error:
             raise serializers.ValidationError(error.errors) from error
-        except NotebookConflictError as error:
-            raise ConflictError(str(error)) from error
         require_notebook_writer(request, notebook)
         return Response({"notebookId": str(notebook.id), "version": notebook.version})
 
@@ -233,65 +233,27 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
             200: inline_sentry_response_serializer("SavedWorkflowNotebookSummary", SavedSummary)
         },
     )
-    def patch(
-        self,
-        request: Request,
-        organization: Organization,
-        workflow_run_id: UUID,
-        binding: NotebookWorkflowRun | None,
-    ) -> Response:
+    def patch(self, request: Request, binding: NotebookWorkflowRun, **kwargs: Any) -> Response:
         """Attach the finding to the exact block version used to generate it."""
-        if binding is None:
-            raise ResourceDoesNotExist
-        validator = SummaryWrite(data=request.data)
-        validator.is_valid(raise_exception=True)
-        try:
-            block = save_summary(binding.notebook, **validator.validated_data)
-        except NotebookConflictError as error:
-            raise ConflictError(str(error)) from error
+        block = save_summary(binding.notebook, **_validate_payload(SummaryWrite, request.data))
         return Response({"version": block.version, "summary": block.embed_summary})
 
     @extend_schema(
         operation_id="finalizeWorkflowNotebook", request=FinalizerWrite, responses={204: None}
     )
-    def put(
-        self,
-        request: Request,
-        organization: Organization,
-        workflow_run_id: UUID,
-        binding: NotebookWorkflowRun | None,
-    ) -> Response:
+    def put(self, request: Request, binding: NotebookWorkflowRun, **kwargs: Any) -> Response:
         """Deliver one finalizer's result for the completed content revision."""
-        if binding is None:
-            raise ResourceDoesNotExist
-        validator = FinalizerWrite(data=request.data)
-        validator.is_valid(raise_exception=True)
-        values = validator.validated_data
+        values = _validate_payload(FinalizerWrite, request.data)
         section = values["section"]
-        result = (MetadataWrite if section == "metadata" else StepsWrite)(data=values["result"])
-        result.is_valid(raise_exception=True)
-        try:
-            deliver_finalizer(binding, values["revision"], section, result.validated_data)
-        except NotebookConflictError as error:
-            raise ConflictError(str(error)) from error
+        validator = MetadataWrite if section == "metadata" else StepsWrite
+        result = _validate_payload(validator, values["result"])
+        deliver_finalizer(binding, values["revision"], section, result)
         return Response(status=204)
 
 
 class WriterRunWrite(StrictCamelSnakeValidator[None]):
-    seer_run_state_id = serializers.IntegerField(
-        min_value=1,
-        max_value=2**63 - 1,
-        help_text="Seer state ID of the Explorer child that wrote the notebook.",
-    )
-    user_id = serializers.IntegerField(
-        min_value=1,
-        allow_null=True,
-        help_text="Acting user for the writer, or null for a service account.",
-    )
-
-
-class LinkedWriter(TypedDict):
-    writerRunUuid: str
+    seer_run_state_id = serializers.IntegerField(min_value=1, max_value=2**63 - 1)
+    user_id = serializers.IntegerField(min_value=1, allow_null=True)
 
 
 @cell_silo_endpoint
@@ -303,31 +265,12 @@ class OrganizationNotebookWorkflowWriterEndpoint(OrganizationEndpoint):
     authentication_classes = (SeerRpcViewerContextAuthentication,)
     permission_classes = (SeerSystemViewerContextPermission,)
 
-    @extend_schema(
-        operation_id="linkWorkflowNotebookWriter",
-        tags=["Notebooks"],
-        request=WriterRunWrite,
-        parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
-            WORKFLOW_RUN_ID,
-        ],
-        responses={
-            200: inline_sentry_response_serializer("LinkedWorkflowNotebookWriter", LinkedWriter)
-        },
-    )
     def put(self, request: Request, organization: Organization, workflow_run_id: UUID) -> Response:
         """Attach the authenticated worker's Explorer run to an existing workflow notebook."""
-        validator = WriterRunWrite(data=request.data)
-        validator.is_valid(raise_exception=True)
         try:
             writer = link_writer_run(
-                organization,
-                workflow_run_id,
-                validator.validated_data["seer_run_state_id"],
-                validator.validated_data["user_id"],
+                organization, workflow_run_id, **_validate_payload(WriterRunWrite, request.data)
             )
         except NotebookWorkflowRun.DoesNotExist:
             raise ResourceDoesNotExist from None
-        except NotebookConflictError as error:
-            raise ConflictError(str(error)) from error
         return Response({"writerRunUuid": str(writer)})

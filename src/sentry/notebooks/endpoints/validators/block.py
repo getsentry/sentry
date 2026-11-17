@@ -310,18 +310,7 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
         notebook: Notebook = self.context["notebook"]
         values = dict(validated_data)
         if "workflow_run_id" in values:
-            return write_workflow_block(
-                notebook,
-                run_id=values["workflow_run_id"],
-                key=values["key"],
-                revision=values["revision"],
-                block_version=values.get("block_version"),
-                kind=values["kind"],
-                embed=values.get("embed"),
-                source=values.get("embed_source"),
-                content=values.get("content", ""),
-                user_id=self.context["user_id"],
-            )
+            return write_workflow_block(notebook, user_id=self.context["user_id"], **values)
         if "notebook_version" not in values:
             return write_api_producer_block(
                 notebook,

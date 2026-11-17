@@ -49,6 +49,15 @@ class NotebookWriterTest(APITestCase):
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
         return client
 
+    def viewer_client(self, actor: Actor, organization_id: int) -> APIClient:
+        client = APIClient()
+        client.credentials(
+            HTTP_X_VIEWER_CONTEXT=encode_viewer_context(
+                ViewerContext(actor=actor, organization_id=organization_id), key=SECRET
+            )
+        )
+        return client
+
     def service_account_client(self, project_ids: list[int] | None = None) -> tuple[APIClient, int]:
         """An account linked to `project_ids`, or to every project when it's None."""
         service_account = self.create_service_account(
@@ -57,16 +66,8 @@ class NotebookWriterTest(APITestCase):
             project_ids=project_ids or (),
             all_projects=project_ids is None,
         )
-        viewer_context = encode_viewer_context(
-            ViewerContext(
-                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
-                organization_id=self.organization.id,
-            ),
-            key=SECRET,
-        )
-        client = APIClient()
-        client.credentials(HTTP_X_VIEWER_CONTEXT=viewer_context)
-        return client, service_account.id
+        actor = Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id)
+        return self.viewer_client(actor, self.organization.id), service_account.id
 
     def org_token_client(self) -> APIClient:
         token = generate_token(self.organization.slug, "")
@@ -84,26 +85,19 @@ class NotebookWriterTest(APITestCase):
     def test_workflow_open_and_read_follow_the_service_accounts_projects(self) -> None:
         other = self.create_project(organization=self.organization)
         restricted, _ = self.service_account_client([self.project.id])
-        writer = self.agent_client()
         url = self.url("sentry-api-0-organization-notebook-workflow", workflow_run_id=uuid4())
         data = {"title": "Restricted report", "projectIds": [self.project.id, other.id]}
-        assert restricted.post(url, data, format="json").status_code == 403
-        opened = writer.post(url, data, format="json")
-        assert opened.status_code == 200, opened.data
+        assert restricted.post(url, data).status_code == 403
+        opened = self.agent_client().post(url, data)
         details = self.url(
             "sentry-api-0-organization-notebook-details", notebook_id=opened.data["notebookId"]
         )
         assert restricted.get(url).status_code == 403
         assert restricted.get(details).status_code == 403
-        assert restricted.post(url, {"title": "Retry"}, format="json").status_code == 403
-        visible = writer.post(
-            self.url("sentry-api-0-organization-notebook-workflow", workflow_run_id=uuid4()),
-            {"title": "Visible", "projectIds": [self.project.id]},
-            format="json",
-        )
+        assert restricted.post(url, {"title": "Retry"}).status_code == 403
+        self.create_notebook_project(self.notebook, self.project)
         listing = restricted.get(self.url("sentry-api-0-organization-notebooks"))
-        assert listing.status_code == 200
-        assert {item["id"] for item in listing.data} == {visible.data["notebookId"]}
+        assert [item["id"] for item in listing.data] == [str(self.notebook.id)]
         self.login_as(self.user)
         assert self.client.get(url).status_code == 403
 
@@ -114,33 +108,22 @@ class NotebookWriterTest(APITestCase):
             "sentry-api-0-organization-notebook-workflow-writer", workflow_run_id=run_id
         )
         agent = self.agent_client()
-        opened = agent.post(url, {"title": "Draft"}, format="json")
-        assert opened.status_code == 200
+        assert agent.post(url, {"title": "Draft"}).status_code == 200
         body = {"seerRunStateId": 9234, "userId": self.user.id}
-        assert agent.put(writer_url, body, format="json").status_code in (401, 403)
         service_account, _ = self.service_account_client()
-        assert service_account.put(writer_url, body, format="json").status_code in (401, 403)
-        system = APIClient()
-
-        def authenticate(org_id: int) -> None:
-            system.credentials(
-                HTTP_X_VIEWER_CONTEXT=encode_viewer_context(
-                    ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=org_id),
-                    key=SECRET,
-                )
-            )
-
-        authenticate(self.create_organization().id)
-        assert system.put(writer_url, body, format="json").status_code == 403
-        authenticate(self.organization.id)
-        receipt = system.put(writer_url, body, format="json")
+        for client in (agent, service_account):
+            assert client.put(writer_url, body).status_code in (401, 403)
+        actor = Actor(type=ActorType.SYSTEM)
+        other_org = self.viewer_client(actor, self.create_organization().id)
+        assert other_org.put(writer_url, body).status_code == 403
+        system = self.viewer_client(actor, self.organization.id)
+        receipt = system.put(writer_url, body)
         assert receipt.status_code == 200, receipt.data
-        assert system.put(writer_url, body, format="json").data == receipt.data
-        assert agent.get(url).data["writerRunUuid"] == receipt.data["writerRunUuid"]
-        newer = system.put(writer_url, {**body, "seerRunStateId": 9235}, format="json")
-        assert newer.status_code == 200
-        assert newer.data != receipt.data
-        assert system.put(writer_url, body, format="json").status_code == 409
+        assert system.put(writer_url, body).data == receipt.data
+        newer = system.put(writer_url, {**body, "seerRunStateId": 9235})
+        assert newer.data["writerRunUuid"] != receipt.data["writerRunUuid"]
+        assert agent.get(url).data["writerRunUuid"] == newer.data["writerRunUuid"]
+        assert system.put(writer_url, body).status_code == 409
 
     def sentry_app_client(self) -> APIClient:
         integration = self.create_internal_integration(

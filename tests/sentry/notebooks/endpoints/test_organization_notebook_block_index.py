@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from django.test import override_settings
 from django.urls import reverse
@@ -243,40 +243,33 @@ class NotebookProducerBlockTest(APITestCase):
             format="json",
         )
 
-    def workflow_url(self) -> str:
+    def workflow_url(self, run_id: UUID | None = None) -> str:
         return reverse(
             "sentry-api-0-organization-notebook-workflow",
-            kwargs={"organization_id_or_slug": self.organization.slug, "workflow_run_id": uuid4()},
+            args=[self.organization.slug, run_id or uuid4()],
         )
+
+    def bind_workflow(self, run_id: UUID) -> str:
+        url = self.workflow_url(run_id)
+        opened = self.client.post(url, {"title": "Draft", "notebookId": self.notebook.id})
+        assert opened.data["notebookId"] == str(self.notebook.id)
+        return url
 
     def test_workflow_destinations(self) -> None:
         url = self.workflow_url()
         body = {"title": "Investigation", "projectIds": [self.project.id]}
-        first = self.client.post(url, body, format="json")
+        first = self.client.post(url, body)
         assert first.status_code == 200, first.data
-        assert self.client.post(url, body, format="json").data == first.data
-        second = self.client.post(self.workflow_url(), body, format="json")
+        assert self.client.post(url, body).data == first.data
+        second = self.client.post(self.workflow_url(), body)
         assert second.data["notebookId"] != first.data["notebookId"]
-        reopened = self.client.post(
-            self.workflow_url(), {**body, "notebookId": first.data["notebookId"]}, format="json"
-        )
-        assert reopened.data == first.data
-        assert (
-            self.client.post(
-                url, {**body, "notebookId": second.data["notebookId"]}, format="json"
-            ).status_code
-            == 409
-        )
+        destination = {**body, "notebookId": second.data["notebookId"]}
+        assert self.client.post(self.workflow_url(), destination).data == second.data
+        assert self.client.post(url, destination).status_code == 409
 
-    def test_workflow_embed_lifecycle_and_independent_finalizers(self) -> None:
+    def test_workflow_embed_replays_and_rejects_stale_writes(self) -> None:
         run_id = uuid4()
-        url = reverse(
-            "sentry-api-0-organization-notebook-workflow", args=[self.organization.slug, run_id]
-        )
-        opened = self.client.post(
-            url, {"title": "Initial", "notebookId": self.notebook.id}, format="json"
-        )
-        assert opened.status_code == 200, opened.data
+        url = self.bind_workflow(run_id)
         block_body = {
             "workflowRunId": str(run_id),
             "key": "evidence",
@@ -285,76 +278,66 @@ class NotebookProducerBlockTest(APITestCase):
             "embed": {"name": "issue", "body": {"id": "123", "shortId": "TEST-123"}},
             "embedSource": "issue TEST-123",
         }
-        block = self.client.post(self.url, block_body, format="json")
+        block = self.client.post(self.url, block_body)
         assert block.status_code == 201, block.data
-        retry = self.client.post(self.url, block_body, format="json")
+        retry = self.client.post(self.url, block_body)
         assert retry.status_code == 200
-        assert retry.data["version"] == block.data["version"]
+        assert retry.data == block.data
         summary = {
             "blockId": block.data["id"],
             "version": block.data["version"],
             "finding": "The issue recurred.",
         }
-        caption = self.client.patch(url, summary, format="json")
-        assert caption.status_code == 200
+        caption = self.client.patch(url, summary)
         assert caption.data == {"version": 2, "summary": "The issue recurred.\nissue TEST-123"}
-        assert self.client.patch(url, summary, format="json").data == caption.data
+        assert self.client.patch(url, summary).data == caption.data
         details = reverse(
             "sentry-api-0-organization-notebook-details",
             args=[self.organization.slug, self.notebook.id],
         )
         saved = self.client.get(details).data["blocks"][0]
         assert saved["embed"] == block_body["embed"]
-        assert saved["embedSummary"] == "The issue recurred.\nissue TEST-123"
-        revision = self.client.get(url).data["revision"]
-        steps = {
-            "revision": revision,
-            "section": "nextSteps",
-            "result": {
-                "suggestions": [
-                    {"key": "inspect", "title": "Inspect issue", "rationale": "Confirm recurrence."}
-                ]
-            },
-        }
-        meta = {
-            "revision": revision,
-            "section": "metadata",
-            "result": {
-                "title": "Recurrence",
-                "summary": "One issue",
-                "description": "One recurring issue.",
-            },
-        }
-        assert self.client.put(url, steps, format="json").status_code == 204
-        assert self.client.put(url, meta, format="json").status_code == 204
-        assert self.client.put(url, steps, format="json").status_code == 204
-        assert self.client.get(details).data["title"] == "Recurrence"
+        assert saved["embedSource"] == block_body["embedSource"]
+        assert saved["embedSummary"] == caption.data["summary"]
         changed = {**block_body, "revision": 2, "embedSource": "updated issue reference"}
-        assert (
-            self.client.post(self.url, {**changed, "blockVersion": 1}, format="json").status_code
-            == 409
-        )
-        edited = self.client.post(
-            self.url,
-            {**changed, "blockVersion": saved["version"]},
-            format="json",
-        )
+        stale = self.client.post(self.url, {**changed, "blockVersion": 1})
+        assert stale.status_code == 409
+        assert stale.data["detail"] == "Read the block before changing its contents."
+        edited = self.client.post(self.url, {**changed, "blockVersion": saved["version"]})
         assert edited.status_code == 200
-        assert self.client.patch(url, summary, format="json").status_code == 409
-        deleted = self.client.delete(
-            reverse(
-                "sentry-api-0-organization-notebook-block-details",
-                args=[self.organization.slug, self.notebook.id, saved["id"]],
-            ),
-            {
-                "version": edited.data["version"],
-                "notebookVersion": self.client.get(details).data["version"],
-            },
-            format="json",
+        assert edited.data["embedSummary"] is None
+        assert self.client.patch(url, summary).status_code == 409
+        self.notebook.blocks.filter(pk=saved["id"]).update(deleted_at=timezone.now())
+        latest = edited.data["version"]
+        assert self.client.patch(url, {**summary, "version": latest}).status_code == 409
+        next_write = {**changed, "revision": 3, "blockVersion": latest}
+        assert self.client.post(self.url, next_write).status_code == 409
+
+    def test_workflow_finalizers_share_a_revision_and_save_once(self) -> None:
+        url = self.bind_workflow(uuid4())
+        self.create_notebook_block(notebook=self.notebook, content="Issue recurred")
+        revision = self.client.get(url).data["revision"]
+
+        def deliver(section: str, result: dict[str, Any]) -> None:
+            body = {"revision": revision, "section": section, "result": result}
+            response = self.client.put(url, body)
+            assert response.status_code == 204, response.data
+
+        steps = {
+            "suggestions": [{"key": "inspect", "title": "Inspect issue", "rationale": "Verify."}]
+        }
+        deliver("nextSteps", steps)
+        deliver(
+            "metadata",
+            {"title": "Recurrence", "summary": "One issue", "description": "It recurred."},
         )
-        assert deleted.status_code == 204, deleted.data
-        assert self.client.patch(url, summary, format="json").status_code == 409
-        assert self.client.get(details).data["blocks"] == []
+        self.notebook.refresh_from_db()
+        assert self.notebook.title == "Recurrence"
+        assert self.notebook.action_requests.get().key == "inspect"
+        version = self.notebook.version
+        deliver("nextSteps", steps)
+        self.notebook.refresh_from_db()
+        assert self.notebook.version == version
 
     def test_creates_then_updates_by_key(self) -> None:
         user_block = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
