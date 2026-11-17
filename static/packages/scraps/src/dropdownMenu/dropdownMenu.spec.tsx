@@ -1608,6 +1608,12 @@ describe('DropdownMenu', () => {
           );
         });
         expect(row).toBeInTheDocument();
+        // The virtualizer measures rows by data-index.
+        if (virtualizeThreshold === undefined) {
+          expect(row).toHaveAttribute('data-index');
+        } else {
+          expect(row).not.toHaveAttribute('data-index');
+        }
       }
     );
   });
