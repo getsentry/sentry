@@ -55,6 +55,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import (
     continue_single_run_from_pr_feedback,
+    get_run_billing_feature,
     require_autofix_run_for_group,
 )
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
@@ -650,7 +651,7 @@ def _drain_queued_autofix_feedback(
 ) -> None:
     """Pop this run's queued feedback and hand whatever survives to the agent."""
     group = (
-        Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
+        Group.objects.get_or_none(id=group_id, project__organization_id=organization_id)
         if group_id
         else None
     )
@@ -910,12 +911,14 @@ def _drain_queued_autofix_feedback(
                 iteration_id=iteration_id,
                 commit_author=commit_author,
                 referrer=referrer,
+                billing_feature=get_run_billing_feature(state),
             )
         else:
             trigger_autofix_agent(
                 group=group,
                 step=AutofixStep.PR_ITERATION,
                 referrer=referrer,
+                billing_feature=get_run_billing_feature(state),
                 run_id=run_id,
                 user_context=feedback_text(feedback_items),
                 feedback=feedback_items,
@@ -1356,7 +1359,7 @@ def _resolve_run_for_pr_comment(
     every cell holding an org on the installation. The stop command therefore
     stays silent and leaves the answer to the cell that owns the run.
     """
-    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
+    repo = Repository.objects.get_or_none(id=repo_id, organization_id=organization_id)
     if repo is None:
         logger.info(
             "autofix.pr_iteration.comment_trigger.missing_repo",
@@ -1950,7 +1953,7 @@ def _trigger_pr_iteration_from_review(
         "author_is_bot": author_is_bot,
     }
 
-    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
+    repo = Repository.objects.get_or_none(id=repo_id, organization_id=organization_id)
     if repo is None:
         logger.info("autofix.pr_iteration.review_trigger.missing_repo", extra=log_extra)
         return None

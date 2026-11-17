@@ -7,6 +7,7 @@ import pytest
 from django.test import override_settings
 from django.utils import timezone
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
     SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
     SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
 )
@@ -248,11 +249,52 @@ class SeerOperatorTest(TestCase):
         assert self.entrypoint.autofix_already_exists_states == [(1, True)]
         mock_trigger_autofix.assert_not_called()
 
-    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_run_state")
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state")
+    def test_slack_continuation_reads_billing_feature_from_requested_run(
+        self, mock_get_latest: MagicMock, mock_get_requested: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        mock_get_latest.return_value = SeerRunState(
+            run_id=2,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
+        )
+        mock_get_requested.return_value = SeerRunState(
+            run_id=1,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+        )
+
+        self.operator.trigger_autofix(
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.SOLUTION,
+            run_id=1,
+        )
+
+        mock_get_requested.assert_called_once_with(self.group, 1)
+        assert mock_trigger.call_args.kwargs["run_id"] == 1
+        assert mock_trigger.call_args.kwargs["billing_feature"] == (
+            SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
+        )
+
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state")
     @patch("sentry.seer.autofix.autofix_agent.trigger_push_changes")
     def test_slack_open_pr_passes_commit_author(
-        self, mock_push_changes: MagicMock, _mock_get_autofix_state: MagicMock
+        self, mock_push_changes: MagicMock, mock_get_autofix_state: MagicMock
     ) -> None:
+        mock_get_autofix_state.return_value = SeerRunState(
+            run_id=MOCK_RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
         def open_pr() -> None:
             self.operator.trigger_autofix(
                 group=self.group,
@@ -308,6 +350,7 @@ class SeerOperatorTest(TestCase):
         ]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_run_state")
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
     @patch(
         "sentry.seer.autofix.autofix_agent.trigger_autofix_agent",
@@ -317,8 +360,16 @@ class SeerOperatorTest(TestCase):
         self,
         _mock_trigger_autofix: MagicMock,
         _mock_get_autofix_state: MagicMock,
+        mock_get_requested_run: MagicMock,
         mock_record: MagicMock,
     ) -> None:
+        mock_get_requested_run.return_value = SeerRunState(
+            run_id=MOCK_RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
         self.operator.trigger_autofix(
             group=self.group,
             user=self.user,

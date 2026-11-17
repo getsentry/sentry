@@ -108,9 +108,11 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         # integrations and all linked issues.
 
         # NOTE(hybrid-cloud): Deletions require the ORM object, not API versions
-        org_integration: OrganizationIntegration | None = OrganizationIntegration.objects.filter(
-            integration_id=integration_id, organization_id=organization_context.organization.id
-        ).first()
+        org_integration: OrganizationIntegration | None = (
+            OrganizationIntegration.objects.get_or_none(
+                integration_id=integration_id, organization_id=organization_context.organization.id
+            )
+        )
         if not org_integration:
             raise Http404
         # A repeated DELETE must not uninstall again. Uninstall hooks that skip

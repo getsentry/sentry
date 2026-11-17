@@ -417,7 +417,7 @@ def archive_investigation_with_orchestration(
         run = (
             InvestigationOrchestrationRun.objects.select_for_update()
             .filter(investigation=locked_investigation)
-            .first()
+            .get_or_none()
         )
         if run is not None and user_id is None and service_account_id is None:
             raise PermissionDenied
@@ -495,7 +495,7 @@ def update_investigation_with_orchestration(
         run = (
             InvestigationOrchestrationRun.objects.select_for_update()
             .filter(investigation=locked_investigation)
-            .first()
+            .get_or_none()
         )
         if (
             run is not None
@@ -808,9 +808,9 @@ def accept_orchestration_command(
             raise NotebookSourceNotFound
 
         internal = command_type in INTERNAL_COMMAND_TYPES
-        existing = InvestigationOrchestrationCommand.objects.filter(
+        existing = InvestigationOrchestrationCommand.objects.get_or_none(
             orchestration_run=run, request_id=request_id
-        ).first()
+        )
         if existing is not None:
             if (
                 (not internal and existing.expected_workflow_version != expected_workflow_version)

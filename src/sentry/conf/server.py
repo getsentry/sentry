@@ -506,6 +506,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
+    "sentry.timeseries_annotations",
     "sentry.seer",
     "sentry.scm",
     "sentry.cadence",
@@ -2783,7 +2784,6 @@ SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
         "permissions": ["object.read"],
     },
 }
-SENTRY_VIEWER_CONTEXT_ENABLED = True
 SENTRY_ANALYTICS_BACKEND = "noop"
 SENTRY_ANALYTICS_OPTIONS: dict[str, Any] = {}
 SENTRY_MAIL_LIST_NAMESPACE = "localhost"

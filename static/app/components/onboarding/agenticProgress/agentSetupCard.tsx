@@ -6,7 +6,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AgentHandoffPrompt} from 'sentry/components/agentHandoff/agentHandoffPrompt';
-import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/types';
 import {t} from 'sentry/locale';
 
 import type {AgenticProgressRun} from './types';
