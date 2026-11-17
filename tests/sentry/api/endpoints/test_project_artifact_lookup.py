@@ -20,7 +20,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
@@ -549,7 +548,6 @@ class ArtifactLookupTest(APITestCase):
                 organization_id=self.organization.id,
                 debug_id=debug_id,
                 artifact_bundle=artifact_bundle,
-                source_file_type=SourceFileType.SOURCE_MAP.value,
                 date_added=date_added,
             )
 

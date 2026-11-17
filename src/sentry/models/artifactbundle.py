@@ -39,10 +39,6 @@ class SourceFileType(Enum):
     INDEXED_RAM_BUNDLE = 4
 
     @classmethod
-    def choices(cls) -> list[tuple[int, str]]:
-        return [(key.value, key.name) for key in cls]
-
-    @classmethod
     def from_lowercase_key(cls, lowercase_key: str | None) -> SourceFileType | None:
         if lowercase_key is None:
             return None
@@ -192,7 +188,6 @@ class DebugIdArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     debug_id = models.UUIDField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
-    source_file_type = models.IntegerField(choices=SourceFileType.choices(), null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -356,12 +351,6 @@ class ArtifactBundleArchive:
         file_path, info = self._entries_by_url[url]
         return self._zip_file.open(file_path), info.get("headers", {})
 
-    def get_file_by_debug_id(
-        self, debug_id: str, source_file_type: SourceFileType
-    ) -> tuple[IO[bytes], dict[str, Any]]:
-        file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
-        return self._zip_file.open(file_path), info.get("headers", {})
-
     def get_file(self, file_path: str) -> tuple[IO[bytes], dict[str, Any]]:
         files = self.manifest.get("files", {})
         file_info = files.get(file_path, {})
@@ -414,15 +403,6 @@ class ArtifactBundleArchive:
             return self._zip_file.getinfo(file_path)
         except KeyError:
             return None
-
-    def get_file_url_by_debug_id(
-        self, debug_id: str, source_file_type: SourceFileType
-    ) -> str | None:
-        entry = self._entries_by_debug_id.get((debug_id, source_file_type))
-        if entry is not None:
-            return entry[1]
-
-        return None
 
     def get_file_url_by_file_path(self, file_path: str) -> str | None:
         files = self.manifest.get("files", {})

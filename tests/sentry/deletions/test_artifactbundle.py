@@ -11,7 +11,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
@@ -34,7 +33,6 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         DebugIdArtifactBundle.objects.create(
             organization_id=org.id,
             debug_id="c29728de-4dbd-4c08-bd50-7509e1ee2535",
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             artifact_bundle=artifact_bundle,
         )
         ProjectArtifactBundle.objects.create(
@@ -79,7 +77,6 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
                     organization_id=org.id,
                     artifact_bundle=bundle,
                     debug_id=uuid4(),
-                    source_file_type=SourceFileType.MINIFIED_SOURCE.value,
                 )
                 for bundle in (artifact_bundle, other_bundle)
                 for _ in range(3)

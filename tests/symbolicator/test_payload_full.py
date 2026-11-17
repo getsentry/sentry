@@ -14,7 +14,6 @@ from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
@@ -335,13 +334,6 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             organization_id=self.organization.id,
             debug_id=debug_id,
             artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id,
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
         )
 
         # native debug files:

@@ -550,8 +550,9 @@ def get_project_bundle_ids_containing_debug_id(
     rows than the debug ID has. Each query here starts from the debug ID or from the bundles it
     found, whatever the table statistics say.
     """
-    # A bundle has a row for each of its files with the debug ID, and other organizations may
-    # have uploaded the same file. One more row than we use tells whether the debug ID has more.
+    # A bundle has one row for the debug ID, older bundles one for each of their files with it,
+    # and other organizations may have uploaded the same file. One more row than we use tells
+    # whether the debug ID has more.
     rows = list(
         DebugIdArtifactBundle.objects.filter(debug_id=debug_id).values_list(
             "artifact_bundle_id", flat=True

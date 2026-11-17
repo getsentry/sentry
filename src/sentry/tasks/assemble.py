@@ -657,10 +657,10 @@ class ArtifactBundlePostAssembler:
                         organization_id=self.organization.id,
                         debug_id=debug_id,
                         artifact_bundle=artifact_bundle,
-                        source_file_type=source_file_type.value,
                         date_added=date_snapshot,
                     )
-                    for debug_id, source_file_type in self.archive.get_all_debug_ids()
+                    # The table has no unique constraint, so `ignore_conflicts` does not dedupe.
+                    for debug_id in {debug_id for debug_id, _ in self.archive.get_all_debug_ids()}
                 ]
                 DebugIdArtifactBundle.objects.bulk_create(
                     debug_id_to_insert, batch_size=50, ignore_conflicts=True
