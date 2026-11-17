@@ -22,7 +22,6 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Stack, Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
-import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {t} from 'sentry/locale';
@@ -423,33 +422,31 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
       </NavigationTourElement>
 
       {!organization.features.includes('insights-to-dashboards-ui-rollout') && (
-        <Feature features={['performance-view']}>
-          <NavigationTourElement
-            id={NavigationTour.INSIGHTS}
-            title={null}
-            description={null}
-          >
-            {tourProps => (
-              <PrimaryNavigation.ListItem>
-                <PrimaryNavigation.Link
-                  to={`/${prefix}/insights/`}
-                  analyticsKey="insights"
-                  label={t('Insights')}
-                  {...mergeProps(
-                    makeNavigationItemProps(
-                      'insights',
-                      `/${prefix}/insights/`,
-                      `/${prefix}/insights`
-                    ),
-                    tourProps
-                  )}
-                >
-                  <IconGraph type="area" />
-                </PrimaryNavigation.Link>
-              </PrimaryNavigation.ListItem>
-            )}
-          </NavigationTourElement>
-        </Feature>
+        <NavigationTourElement
+          id={NavigationTour.INSIGHTS}
+          title={null}
+          description={null}
+        >
+          {tourProps => (
+            <PrimaryNavigation.ListItem>
+              <PrimaryNavigation.Link
+                to={`/${prefix}/insights/`}
+                analyticsKey="insights"
+                label={t('Insights')}
+                {...mergeProps(
+                  makeNavigationItemProps(
+                    'insights',
+                    `/${prefix}/insights/`,
+                    `/${prefix}/insights`
+                  ),
+                  tourProps
+                )}
+              >
+                <IconGraph type="area" />
+              </PrimaryNavigation.Link>
+            </PrimaryNavigation.ListItem>
+          )}
+        </NavigationTourElement>
       )}
 
       <PrimaryNavigation.ListItem>

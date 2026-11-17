@@ -21,7 +21,7 @@ from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import parse_search_query
-from sentry.models.dashboard import Dashboard, QueryPriorities
+from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardFieldLink,
@@ -38,6 +38,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
+from sentry.search.eap.constants import QueryPriorities
 from sentry.search.eap.trace_metrics.validator import extract_trace_metric_from_aggregate
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function

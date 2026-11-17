@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -33,7 +34,9 @@ function getDownloadUrl(
   project: Project,
   attachment: ProfileChunkAttachment
 ): string {
-  return `/api/0/projects/${organization.slug}/${project.slug}/profiling/chunks/${attachment.profilerId}/${attachment.chunkId}/attachments/${attachment.id}/?download=1`;
+  return resolveHostname(
+    `/api/0/projects/${organization.slug}/${project.slug}/profiling/chunks/${attachment.profilerId}/${attachment.chunkId}/attachments/${attachment.id}/?download=1`
+  );
 }
 
 /**

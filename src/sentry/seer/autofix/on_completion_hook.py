@@ -30,6 +30,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
@@ -306,7 +307,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         # The coding agent writes the fix once Seer names a root cause and a repo for it.
         # A stopped run (transient, ambiguous, not a code fix) never hands off.
-        agent_run = SeerAgentRun.objects.filter(run=seer_run, source=SINGLE_RUN_FEATURE_ID).first()
+        agent_run = SeerAgentRun.objects.get_or_none(run=seer_run, source=SINGLE_RUN_FEATURE_ID)
         ready_to_hand_off = (
             not paused
             and stop is None
@@ -906,6 +907,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 step=next_step,
                 referrer=referrer,
                 run_id=run_id,
+                billing_feature=get_run_billing_feature(state),
             )
         except SeerOutOfCreditsException:
             logger.info(

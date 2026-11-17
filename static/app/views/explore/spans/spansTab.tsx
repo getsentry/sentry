@@ -64,6 +64,7 @@ import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {Onboarding} from 'sentry/views/performance/onboarding';
+import {TracingEmptyState} from 'sentry/views/performance/tracingEmptyState';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -113,7 +114,11 @@ function SpansTabOnboardingInner({
       </PageFilterBar>
       <OnboardingContentSection>
         <ExploreQuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
-        <Onboarding project={project} organization={organization} />
+        {organization.features.includes('agent-handoff-empty-states-tracing') ? (
+          <TracingEmptyState project={project} organization={organization} />
+        ) : (
+          <Onboarding project={project} organization={organization} />
+        )}
       </OnboardingContentSection>
     </Layout.Body>
   );

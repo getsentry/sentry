@@ -19,6 +19,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
+import {isFromProjectCreation} from './gettingStartedLocationState';
+
 type Props = {
   platform: PlatformIntegration;
   projectSlug: Project['slug'];
@@ -107,9 +109,14 @@ export function PlatformDocHeader({
     platform.id,
   ]);
 
-  // Keep return navigation on the docs until deletion and the restore URL are ready.
+  // Only the entry that project creation pushed returns to creation on browser
+  // Back; any other visit, such as a shared link, keeps normal history. Hold
+  // that return on the docs until deletion and the restore URL are ready.
   const blocker = useBlocker(
-    ({historyAction}) => historyAction === 'POP' && !!recentCreatedProject
+    ({currentLocation, historyAction}) =>
+      historyAction === 'POP' &&
+      isFromProjectCreation(currentLocation.state) &&
+      !!recentCreatedProject
   );
   const handleBlockedBack = useEffectEvent(() => {
     void handleGoBack();

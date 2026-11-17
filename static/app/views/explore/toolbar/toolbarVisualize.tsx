@@ -450,6 +450,8 @@ function AggregateMultiSelect({
   return (
     <AggregateCompositeSelect
       fullWidth={defined(selectedFormula)}
+      menuTitle={t('Visualize')}
+      search
       menuHeaderTrailingItems={
         isDefaultSelection
           ? undefined

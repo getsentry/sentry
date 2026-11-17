@@ -2,6 +2,11 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+    SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
+    SEER_BILLING_FEATURE_UNSPECIFIED,
+)
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsResponse,
 )
@@ -104,6 +109,7 @@ class TestTriggerAutofixFeature(TestCase):
 
         # A rerun uses the existing mirror rather than creating another one.
         run_kwargs = client.continue_feature_run.call_args.kwargs
+        assert "billing_feature" not in run_kwargs
         assert run_kwargs["existing_agent_run"].run == fake_run
         assert run_kwargs["existing_agent_run"].source == LEGACY_FEATURE_ID
         assert "flush" not in run_kwargs
@@ -212,6 +218,7 @@ class TestTriggerAutofixFeature(TestCase):
         with (
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
             patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.logger.warning") as warn,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
             mock_client_cls.return_value.start_feature_run.return_value = fake_run
@@ -227,6 +234,8 @@ class TestTriggerAutofixFeature(TestCase):
             )
 
         assert run is fake_run
+        warn.assert_called_once()
+        assert warn.call_args.args == ("autofix_feature.dispatch.missing_billing_feature",)
         mock_quotas.backend.check_seer_quota.assert_called_once_with(
             org_id=self.organization.id,
             data_category=DataCategory.SEER_AUTOFIX,
@@ -238,6 +247,7 @@ class TestTriggerAutofixFeature(TestCase):
         )
         mock_client_cls.return_value.continue_feature_run.assert_not_called()
         start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert start_kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
         assert start_kwargs["title"] == (
             f"Autofix RCA — {self.group.qualified_short_id or self.group.id}"
         )
@@ -284,10 +294,13 @@ class TestTriggerAutofixFeature(TestCase):
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     allow_free_cohort=True,
+                    billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
                 ),
             )
 
         assert run is fake_run
+        start_kwargs = MockClient.return_value.start_feature_run.call_args.kwargs
+        assert start_kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
         mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
 
@@ -346,7 +359,10 @@ class TestTriggerAutofixFeature(TestCase):
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+        return_value=CheckSeerCreditsResponse(
+            has_enough_credits=False,
+            denial_reason=CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED,
+        ),
     )
     def test_raises_when_out_of_credits(self, mock_check_seer_credits: MagicMock) -> None:
         with (
@@ -355,7 +371,7 @@ class TestTriggerAutofixFeature(TestCase):
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
 
-            with pytest.raises(SeerOutOfCreditsException):
+            with pytest.raises(SeerOutOfCreditsException) as excinfo:
                 trigger_autofix_feature(
                     self.group,
                     AutofixFeatureArgs(
@@ -365,6 +381,8 @@ class TestTriggerAutofixFeature(TestCase):
                     ),
                 )
 
+        assert excinfo.value.denial_reason == "daily_cap_exceeded"
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "autofix_headless"
         MockClient.return_value.start_feature_run.assert_not_called()
         mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
@@ -378,6 +396,10 @@ class TestTriggerAutofixFeature(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         """Unlike quota, credits are checked for every step, not only new runs."""
+        fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=fake_run, source=FEATURE_ID, group=self.group, project=self.group.project
+        )
         with (
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
             patch("sentry.seer.autofix.feature.dispatch.quotas"),
@@ -394,6 +416,107 @@ class TestTriggerAutofixFeature(TestCase):
                 )
 
         MockClient.return_value.continue_feature_run.assert_not_called()
+
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    def test_starts_agentic_triage_run_under_its_billing_feature(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.quotas"),
+        ):
+            MockClient.return_value.start_feature_run.return_value = fake_run
+
+            run = trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
+                    billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+                ),
+            )
+
+        assert run is fake_run
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "autofix_agentic_triage"
+        start_kwargs = MockClient.return_value.start_feature_run.call_args.kwargs
+        assert start_kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
+
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    def test_continues_agentic_triage_run_under_its_billing_feature(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=fake_run,
+            source=FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
+
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.quotas"),
+        ):
+            MockClient.return_value.continue_feature_run.return_value = fake_run
+
+            run = trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                    step=AutofixStep.SOLUTION,
+                    existing_run_id=123,
+                    step_args=SolutionStepArgs(),
+                    billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+                ),
+            )
+
+        assert run is fake_run
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "autofix_agentic_triage"
+
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    def test_continues_run_without_billing_feature_as_unattributed(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=fake_run,
+            source=FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
+
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.quotas"),
+        ):
+            MockClient.return_value.continue_feature_run.return_value = fake_run
+
+            trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.SLACK,
+                    step=AutofixStep.SOLUTION,
+                    existing_run_id=123,
+                    step_args=SolutionStepArgs(),
+                ),
+            )
+
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "unattributed"
 
     def test_allows_async_dispatch(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
@@ -514,6 +637,10 @@ class TestTriggerAutofixFeature(TestCase):
 
     def test_code_changes_rejected_when_coding_disabled(self) -> None:
         self.organization.update_option("sentry:enable_seer_coding", False)
+        fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=fake_run, source=FEATURE_ID, group=self.group, project=self.group.project
+        )
 
         with pytest.raises(
             SeerPermissionError, match="Seer coding is not enabled for this organization"
@@ -736,7 +863,12 @@ class TestContinueSingleRun(TestCase):
         self.project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
         self.organization.update_option("sentry:enable_seer_coding", True)
 
-    def _reply(self, *, can_publish: bool = True) -> MagicMock:
+    def _reply(
+        self,
+        *,
+        can_publish: bool = True,
+        billing_feature: int = SEER_BILLING_FEATURE_UNSPECIFIED,
+    ) -> MagicMock:
         with patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls:
             mock_client_cls.return_value.continue_feature_run.return_value = self.seer_run
             continue_single_run(
@@ -746,6 +878,7 @@ class TestContinueSingleRun(TestCase):
                 user=self.user,
                 can_publish=can_publish,
                 referrer=AutofixReferrer.SEER_EXPLORER,
+                billing_feature=billing_feature,
             )
         return mock_client_cls
 
@@ -818,9 +951,22 @@ class TestContinueSingleRun(TestCase):
                 user=self.user,
                 can_publish=True,
                 referrer=AutofixReferrer.SEER_EXPLORER,
+                billing_feature=SEER_BILLING_FEATURE_UNSPECIFIED,
             )
 
         mock_client_cls.return_value.continue_feature_run.assert_not_called()
+
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    def test_checks_credits_under_the_run_billing_feature(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        self._reply(billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE)
+
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "autofix_agentic_triage"
 
 
 @django_db_all
@@ -856,6 +1002,7 @@ class TestContinueSingleRunFromPrFeedback(TestCase):
                 iteration_id=7,
                 commit_author=self.author,
                 referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+                billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
             )
         return mock_client_cls
 
@@ -878,4 +1025,9 @@ class TestContinueSingleRunFromPrFeedback(TestCase):
         with patch("sentry.seer.autofix.feature.dispatch.check_autofix_billing") as mock_billing:
             self._send()
 
-        assert mock_billing.call_args.args[1] == SeerOperation.AUTOFIX_PR_ITERATION
+        mock_billing.assert_called_once_with(
+            self.group.organization,
+            SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+            SeerOperation.AUTOFIX_PR_ITERATION,
+            is_new_run=False,
+        )

@@ -2050,6 +2050,13 @@ class TestUpdateSeerProjectSettings(TestCase):
             project=self.project1, key="sentry:seer_automation_handoff_target"
         ).exists()
 
+    def test_pr_iteration_is_stored_even_at_the_default(self) -> None:
+        """Clearing it would hand the project the org's default, which may differ."""
+        update_seer_project_settings([self.project1.id], {"pr_iteration": True})
+
+        stored = ProjectOption.objects.get(project=self.project1, key="sentry:seer_pr_iteration")
+        assert stored.value is True
+
     def test_agent_seer_clears_handoff_options(self) -> None:
         """Setting agent=seer should delete all handoff-related project options."""
         self.project1.update_option(

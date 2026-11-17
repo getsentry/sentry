@@ -61,8 +61,9 @@ const TagPill = styled('div')<{
   display: inline-flex;
   gap: ${p => p.theme.space.xs};
   align-items: center;
+  justify-content: center;
   border-radius: ${p => p.theme.radius.xs};
-  padding: 0 ${p => p.theme.space.md};
+  padding: 0 ${p => p.theme.space.xs};
   max-width: 100%;
 
   /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
@@ -118,6 +119,8 @@ const TagText = styled('div')`
   white-space: nowrap;
   text-overflow: ellipsis;
   min-width: 0;
+  text-box-edge: text text;
+  text-box-trim: trim-both;
 
   &:has(> *) {
     display: flex;
@@ -133,6 +136,5 @@ const IconWrapper = styled('span')`
 `;
 
 const DismissButton = styled(Button)`
-  margin-right: -${p => p.theme.space.xs};
   border: none;
 `;

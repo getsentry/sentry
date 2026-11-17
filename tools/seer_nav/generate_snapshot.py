@@ -50,7 +50,7 @@ def _entry_changes(old: set[str], new: set[str]) -> list[str]:
 
 def _write_snapshot(entries: Sequence[NavEntry], path: Path) -> None:
     payload = {"version": SNAPSHOT_VERSION, "entries": [e.to_dict() for e in entries]}
-    path.write_text(json.dumps(payload, indent=1, ensure_ascii=False) + "\n")
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
 
 
 def refresh_snapshot(entries: Sequence[NavEntry], path: Path = SNAPSHOT_PATH) -> list[str]:

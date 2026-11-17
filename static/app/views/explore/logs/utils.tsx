@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react';
 import type {InfiniteData, InfiniteQueryObserverResult} from '@tanstack/react-query';
 import type {Location} from 'history';
-import qs from 'query-string';
 
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -23,6 +22,7 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {getBodySearchTerms} from 'sentry/views/explore/bodySearchTerms';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {

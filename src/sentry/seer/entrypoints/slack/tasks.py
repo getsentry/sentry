@@ -4,6 +4,9 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 from slack_sdk.models.blocks import MarkdownBlock
 from taskbroker_client.retry import Retry
 
@@ -16,7 +19,7 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import SeerAgentOutOfCredits
-from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
+from sentry.seer.credits import SeerOperation, can_run_seer_operation
 from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
@@ -30,7 +33,6 @@ from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
     SlackAgentEntrypoint,
-    SlackThreadDetails,
 )
 from sentry.seer.entrypoints.slack.mention import (
     SlackMessageLink,
@@ -51,6 +53,7 @@ from sentry.seer.entrypoints.slack.metrics import (
     ProcessReactionFailureReason,
     ProcessReactionHaltReason,
 )
+from sentry.seer.entrypoints.slack.types import SlackThreadDetails
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
@@ -171,7 +174,7 @@ def process_mention_for_slack(
 
         # Check credits up front so an org without them gets an answer right away.
         if not can_run_seer_operation(
-            organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+            organization, SEER_BILLING_FEATURE_SEER_AGENT_SLACK, SeerOperation.AGENT_CHAT_MESSAGE
         ):
             lifecycle.record_halt(ProcessMentionHaltReason.OUT_OF_SEER_CREDITS)
             _send_out_of_credits_message(

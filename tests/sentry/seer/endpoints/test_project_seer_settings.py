@@ -18,6 +18,8 @@ from sentry.testutils.helpers.features import with_feature
 )
 class ProjectSeerSettingsEndpointBaseTest(APITestCase):
     __test__ = False
+    # PR iteration is opt-in under token-based billing, so it defaults off there.
+    pr_iteration_default = True
 
     endpoint = "sentry-api-0-project-seer-settings"
 
@@ -60,7 +62,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
             "autoCreatePr": None,
             "automationTuning": "off",
             "scannerAutomation": True,
-            "prIteration": True,
+            "prIteration": self.pr_iteration_default,
             "reposCount": 0,
         }
 
@@ -211,14 +213,13 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.data["prIteration"] is False
         assert self.project.get_option("sentry:seer_pr_iteration") is False
 
-        # Back to the default clears the row rather than storing it.
+        # Stored even when it matches the default, which depends on the org.
         response = self.client.put(self.url, data={"prIteration": True}, format="json")
 
         assert response.status_code == 200
         assert response.data["prIteration"] is True
-        assert not ProjectOption.objects.filter(
-            project=self.project, key="sentry:seer_pr_iteration"
-        ).exists()
+        stored = ProjectOption.objects.get(project=self.project, key="sentry:seer_pr_iteration")
+        assert stored.value is True
 
     def test_put_stopping_point(self, mock_is_seat_based: MagicMock) -> None:
         response = self.client.put(self.url, data={"stoppingPoint": "open_pr"}, format="json")
@@ -426,6 +427,7 @@ class ProjectSeerSettingsEndpointSeatBasedBillingTest(ProjectSeerSettingsEndpoin
 )
 class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpointBaseTest):
     __test__ = True
+    pr_iteration_default = False
 
     def test_get_repos_count_includes_repos_without_seer_config(self) -> None:
         self.create_project_repository(
@@ -478,6 +480,8 @@ class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpoi
 )
 class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
     __test__ = False
+    # PR iteration is opt-in under token-based billing, so it defaults off there.
+    pr_iteration_default = True
 
     endpoint = "sentry-api-0-organization-seer-project-settings"
 
@@ -518,7 +522,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
             "autoCreatePr": None,
             "automationTuning": "off",
             "scannerAutomation": True,
-            "prIteration": True,
+            "prIteration": self.pr_iteration_default,
             "reposCount": 0,
         }
 
@@ -1055,6 +1059,7 @@ class OrganizationSeerProjectSettingsEndpointTokenBasedBillingTest(
     OrganizationSeerProjectSettingsEndpointBaseTest
 ):
     __test__ = True
+    pr_iteration_default = False
 
     def test_get_repos_count_includes_repos_without_seer_config(self) -> None:
         self.create_project_repository(

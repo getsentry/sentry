@@ -91,6 +91,7 @@ class UserOrgContext(TypedDict):
 
 class AgentChatRequest(TypedDict):
     organization_id: int
+    billing_feature: NotRequired[int]
     query: str
     run_id: int | None
     insert_index: int | None
@@ -107,7 +108,6 @@ class AgentChatRequest(TypedDict):
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
     artifact_schema: NotRequired[dict[str, Any]]
-    custom_tools: NotRequired[list[dict[str, Any]]]
     on_completion_hook: NotRequired[dict[str, Any]]
     category_key: NotRequired[str]
     category_value: NotRequired[str]
@@ -152,6 +152,7 @@ class AgentRunOptions(TypedDict):
 
 class SeerFeatureRunRequest(TypedDict):
     feature_id: str
+    billing_feature: NotRequired[int]
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
     user_org_context: NotRequired[UserOrgContext]

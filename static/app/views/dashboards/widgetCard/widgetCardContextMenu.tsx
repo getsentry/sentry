@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import qs from 'query-string';
 
 import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -18,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -97,7 +97,7 @@ const createExploreUrl = (
       queryParams.aggregateField = JSON.parse(queryParams.aggregateField);
     } else if (Array.isArray(queryParams.aggregateField)) {
       queryParams.aggregateField = queryParams.aggregateField.map(item =>
-        item === null ? null : JSON.parse(item)
+        JSON.parse(item)
       );
     }
   }

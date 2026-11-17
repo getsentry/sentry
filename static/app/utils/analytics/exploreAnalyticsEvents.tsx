@@ -16,26 +16,28 @@ type TransformationAnalyticsContext = {
 
 type TransformationType = 'fill' | 'smooth';
 
+export type DroppedDataAnalyticsSource = 'explore' | 'discover' | 'dashboards';
+
+type DroppedDataAnalyticsContext = {
+  dataset: DiscoverDatasets;
+  organization: Organization;
+  source: DroppedDataAnalyticsSource;
+};
+
 export type ExploreAnalyticsEventParameters = {
-  'explore.dropped_data.ask_seer_clicked': {
-    dataset: DiscoverDatasets;
-    organization: Organization;
+  'explore.dropped_data.ask_seer_clicked': DroppedDataAnalyticsContext & {
     outcome: string;
     reason: string;
   };
-  'explore.dropped_data.drawer_opened': {
-    dataset: DiscoverDatasets;
-    organization: Organization;
+  'explore.dropped_data.drawer_opened': DroppedDataAnalyticsContext;
+  'explore.dropped_data.layer_toggled': DroppedDataAnalyticsContext & {
+    selected: boolean;
   };
-  'explore.dropped_data.legend_outcome_toggled': {
-    dataset: DiscoverDatasets;
-    organization: Organization;
+  'explore.dropped_data.legend_outcome_toggled': DroppedDataAnalyticsContext & {
     outcome: string;
     selected: boolean;
   };
-  'explore.dropped_data.scope_toggled': {
-    dataset: DiscoverDatasets;
-    organization: Organization;
+  'explore.dropped_data.scope_toggled': DroppedDataAnalyticsContext & {
     scope: 'unexpected' | 'all';
   };
   'explore.floating_trigger.clear_selection': {
@@ -103,6 +105,7 @@ type ExploreAnalyticsEventKey = keyof ExploreAnalyticsEventParameters;
 export const exploreAnalyticsEventMap = {
   'explore.dropped_data.ask_seer_clicked': 'Explore: Dropped Data Ask Seer Clicked',
   'explore.dropped_data.drawer_opened': 'Explore: Dropped Data Drawer Opened',
+  'explore.dropped_data.layer_toggled': 'Explore: Dropped Data Layer Toggled',
   'explore.dropped_data.legend_outcome_toggled':
     'Explore: Dropped Data Legend Outcome Toggled',
   'explore.dropped_data.scope_toggled': 'Explore: Dropped Data Scope Toggled',

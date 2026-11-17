@@ -6,13 +6,16 @@ from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
 
 from django.test import override_settings
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.notifications.platform.templates.seer import (
     AGENT_OUT_OF_CREDITS_BILLING_MESSAGE,
     AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE,
 )
-from sentry.seer.credits import SeerFeature, SeerOperation
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
     SlackSeerAgentFeedback,
@@ -451,7 +454,9 @@ class ProcessMentionSeerCreditsTest(TestCase):
         )
 
         mock_can_run.assert_called_once_with(
-            self.organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+            self.organization,
+            SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+            SeerOperation.AGENT_CHAT_MESSAGE,
         )
         mock_operator_cls.assert_not_called()
         self.mock_entrypoint.install.get_thread_history.assert_not_called()

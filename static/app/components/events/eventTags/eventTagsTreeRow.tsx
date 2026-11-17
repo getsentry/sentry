@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import qs from 'query-string';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -23,6 +22,7 @@ import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
