@@ -325,6 +325,22 @@ ENVIRONMENT_FIELDS = [
 ]
 
 
+BROWSER_NAME_FIELDS = [
+    "event.contexts.browser.name",
+    "log.attributes.browser.name.value",
+    "trace_metric.attributes.browser.name.value",
+    "span.attributes.browser.name.value",
+]
+
+
+BROWSER_VERSION_FIELDS = [
+    "event.contexts.browser.version",
+    "log.attributes.browser.version.value",
+    "trace_metric.attributes.browser.version.value",
+    "span.attributes.browser.version.value",
+]
+
+
 def release_rule_condition(values: list[str]) -> dict[str, object]:
     """The catch-all shape: the release field of every data type, combined with OR."""
     return {
@@ -582,6 +598,143 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
                 "value": "3.0.0",
             },
             id="release_version_comparison_on_spans",
+        ),
+        pytest.param(
+            "error",
+            [
+                {"type": "browser_name", "operator": "equals", "value": ["Chrome"]},
+                {"type": "browser_version", "operator": "lt", "value": ["110"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome"]},
+                    {
+                        "op": "release",
+                        "name": "event.contexts.browser.version",
+                        "comparator": "lt",
+                        "value": "110",
+                    },
+                ],
+            },
+            id="browser_on_errors_reads_the_browser_context",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "browser_name", "operator": "glob", "value": ["Chrome*"]}],
+            {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome*"]},
+            id="browser_name_trailing_wildcard",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "browser_name", "operator": "glob", "value": ["*Safari", "Firefox*"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": name, "value": ["*Safari", "Firefox*"]}
+                    for name in BROWSER_NAME_FIELDS
+                ],
+            },
+            id="catch_all_browser_name_leading_wildcard",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "browser_name", "operator": "glob", "value": ["Edge?Mobile"]}],
+            {"op": "glob", "name": "span.attributes.browser.name.value", "value": ["Edge?Mobile"]},
+            id="browser_name_single_character_wildcard",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "browser_name", "operator": "equals", "value": ["Chrome*"]}],
+            {"op": "glob", "name": "event.contexts.browser.name", "value": [r"Chrome\*"]},
+            id="browser_name_equals_reads_the_wildcard_literally",
+        ),
+        pytest.param(
+            "span",
+            [
+                {"type": "browser_name", "operator": "starts_with", "value": ["Chrome"]},
+                {"type": "browser_version", "operator": "gte", "value": ["120"]},
+                {"type": "browser_version", "operator": "lte", "value": ["122.0.6261"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "glob",
+                        "name": "span.attributes.browser.name.value",
+                        "value": ["Chrome*"],
+                    },
+                    {
+                        "op": "release",
+                        "name": "span.attributes.browser.version.value",
+                        "comparator": "gte",
+                        "value": "120",
+                    },
+                    {
+                        "op": "release",
+                        "name": "span.attributes.browser.version.value",
+                        "comparator": "lte",
+                        "value": "122.0.6261",
+                    },
+                ],
+            },
+            id="browser_version_range_on_spans",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "browser_version", "operator": "starts_with", "value": ["109."]}],
+            {"op": "glob", "name": "log.attributes.browser.version.value", "value": ["109.*"]},
+            id="browser_version_text_operator_on_logs",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "browser_name", "operator": "does_not_contain", "value": ["Mobile"]}],
+            {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "glob",
+                        "name": "trace_metric.attributes.browser.name.value",
+                        "value": ["*"],
+                    },
+                    {
+                        "op": "not",
+                        "inner": {
+                            "op": "glob",
+                            "name": "trace_metric.attributes.browser.name.value",
+                            "value": ["*Mobile*"],
+                        },
+                    },
+                ],
+            },
+            id="browser_name_negated_on_metrics",
+        ),
+        pytest.param(
+            "all",
+            [
+                {"type": "browser_name", "operator": "equals", "value": ["Safari"]},
+                {"type": "browser_version", "operator": "lt", "value": ["16"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "or",
+                        "inner": [
+                            {"op": "glob", "name": name, "value": ["Safari"]}
+                            for name in BROWSER_NAME_FIELDS
+                        ],
+                    },
+                    {
+                        "op": "or",
+                        "inner": [
+                            {"op": "release", "name": name, "comparator": "lt", "value": "16"}
+                            for name in BROWSER_VERSION_FIELDS
+                        ],
+                    },
+                ],
+            },
+            id="catch_all_browser",
         ),
         pytest.param(
             "error",

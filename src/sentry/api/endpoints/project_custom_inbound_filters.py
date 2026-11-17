@@ -58,6 +58,17 @@ _REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[DataType, str] = {
     DataType.METRIC: "organizations:tracemetrics-ingestion",
 }
 
+# Feature an organization needs before a filter can use a condition type, and the name the
+# error message gives the condition.
+_REQUIRED_FEATURE_BY_CONDITION_TYPE: Mapping[ConditionType, tuple[str, str]] = {
+    ConditionType.ENVIRONMENT: (
+        "organizations:inbound-filters-environment-condition",
+        "environment",
+    ),
+    ConditionType.BROWSER_NAME: ("organizations:inbound-filters-browser-condition", "browser"),
+    ConditionType.BROWSER_VERSION: ("organizations:inbound-filters-browser-condition", "browser"),
+}
+
 
 class CustomInboundFilterCondition(TypedDict):
     type: str
@@ -127,12 +138,20 @@ def _is_release_version(release: str) -> bool:
     return parsed.get("version_parsed") is not None
 
 
+def _is_browser_version(version: str) -> bool:
+    """
+    Whether Relay can compare the browser version, such as `120` or `120.0.6099.130`.
+    A browser version never names a package, so a value with one would match nothing.
+    """
+    return "@" not in version and _is_release_version(version)
+
+
 class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboundFilterCondition]):
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in ConditionType],
         help_text=(
             "The field the condition matches against. Every `dataType` accepts `release`, "
-            "`environment` and `ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
+            "`environment`, `ip_address`, `browser_name` and `browser_version`. In addition, `error` accepts `error_type`, `error_message` and "
             "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
             "`metric_name`. `span` and `all` accept no other types."
         ),
@@ -150,7 +169,8 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
             "match when the field is set and no value does. `cidr` matches `ip_address` against each value as an "
             "address or a CIDR range, and `not_cidr` matches when no value does. `gt`, `gte`, "
-            "`lt` and `lte` compare one value as a version and only apply to `release`."
+            "`lt` and `lte` compare one value as a version and only apply to `release` and "
+            "`browser_version`."
         ),
     )
     value = serializers.ListField(
@@ -161,7 +181,8 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "matches, so multiple values act as OR; a negated operator matches when none "
             "does. A version comparison takes one release "
             "with a version such as `1.2.0` or `myapp@1.2.0`. A comparison with a package "
-            "only applies to releases of that package."
+            "only applies to releases of that package. A `browser_version` comparison "
+            "takes a version without a package, such as `120` or `120.0.6099`."
         ),
     )
 
@@ -200,7 +221,12 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             )
         # Relay never matches a comparison against a release without a version, so the
         # condition would silently match nothing.
-        if not _is_release_version(attrs["value"][0]):
+        if ConditionType(attrs["type"]) is ConditionType.BROWSER_VERSION:
+            if not _is_browser_version(attrs["value"][0]):
+                raise serializers.ValidationError(
+                    {"value": f"{attrs['value'][0]} is not a version such as 120 or 120.0.6099."}
+                )
+        elif not _is_release_version(attrs["value"][0]):
             raise serializers.ValidationError(
                 {
                     "value": (
@@ -310,22 +336,22 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         if stored is not None and stored.legacy_filter:
             _validate_legacy_row_change(stored, data_type, conditions)
 
-        if "conditions" in attrs and any(
-            condition["type"] == ConditionType.ENVIRONMENT for condition in conditions
-        ):
-            organization = self.context["project"].organization
-            if not features.has(
-                "organizations:inbound-filters-environment-condition",
-                organization,
-                actor=self.context["request"].user,
-            ):
-                raise serializers.ValidationError(
-                    {
-                        "conditions": (
-                            "The environment condition is not enabled for this organization."
-                        )
-                    }
-                )
+        if "conditions" in attrs:
+            for condition_type in sorted({ConditionType(c["type"]) for c in conditions}):
+                required = _REQUIRED_FEATURE_BY_CONDITION_TYPE.get(condition_type)
+                if required is None:
+                    continue
+                feature, name = required
+                if not features.has(
+                    feature,
+                    self.context["project"].organization,
+                    actor=self.context["request"].user,
+                ):
+                    raise serializers.ValidationError(
+                        {
+                            "conditions": f"The {name} condition is not enabled for this organization."
+                        }
+                    )
 
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))

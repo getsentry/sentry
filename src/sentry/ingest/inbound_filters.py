@@ -734,6 +734,22 @@ _CONDITION_MATCHERS: Mapping[
     ConditionType.GEO_COUNTRY_CODE: {
         DataType.ERROR: _field_matcher("event.user.geo.country_code"),
     },
+    # Relay fills the browser from the user agent before filtering, unless the SDK sent
+    # one. Errors carry it in the browser context, the other data types in the
+    # `browser.name` and `browser.version` convention attributes, which Relay also
+    # backfills from the deprecated `sentry.browser.*` ones.
+    ConditionType.BROWSER_NAME: {
+        DataType.ERROR: _field_matcher("event.contexts.browser.name"),
+        DataType.LOG: _field_matcher("log.attributes.browser.name.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.browser.name.value"),
+        DataType.SPAN: _field_matcher("span.attributes.browser.name.value"),
+    },
+    ConditionType.BROWSER_VERSION: {
+        DataType.ERROR: _release_matcher("event.contexts.browser.version"),
+        DataType.LOG: _release_matcher("log.attributes.browser.version.value"),
+        DataType.METRIC: _release_matcher("trace_metric.attributes.browser.version.value"),
+        DataType.SPAN: _release_matcher("span.attributes.browser.version.value"),
+    },
 }
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
