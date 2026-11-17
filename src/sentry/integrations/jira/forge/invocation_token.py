@@ -13,9 +13,11 @@ import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
+from uuid import UUID
 
 import orjson
 from django.core.cache import cache
+from django.http import HttpRequest
 from jwt import ExpiredSignatureError, PyJWTError
 
 from sentry import options
@@ -25,6 +27,7 @@ from sentry.utils import jwt
 logger = logging.getLogger("sentry.integrations.jira.forge")
 
 FORGE_INVOCATION_TOKEN_ISSUER = "forge/invocation-token"
+JIRA_API_BASE_URL = "https://api.atlassian.com/ex/jira/"
 
 # Atlassian signs the FITs of every Forge app with one shared key set, published as a
 # JWKS. The key alone doesn't prove a token is for us; the audience check does.
@@ -38,6 +41,10 @@ _SIGNING_KEYS_MIN_REFRESH_SECONDS = 60
 
 class ForgeInvocationTokenError(Exception):
     pass
+
+
+class ForgeSigningKeysUnavailableError(ForgeInvocationTokenError):
+    """The token couldn't be checked, rather than being invalid."""
 
 
 @dataclass(frozen=True)
@@ -90,7 +97,7 @@ def _get_forge_signing_key(kid: str) -> str:
             keys = _fetch_forge_signing_keys()
         except Exception as e:
             logger.warning("jira.forge.signing_keys_fetch_failed", exc_info=True)
-            raise ForgeInvocationTokenError("Unable to fetch Forge signing keys") from e
+            raise ForgeSigningKeysUnavailableError("Unable to fetch Forge signing keys") from e
         cache.set(_SIGNING_KEYS_CACHE_KEY, keys, _SIGNING_KEYS_CACHE_SECONDS)
 
     key = keys.get(kid)
@@ -148,3 +155,41 @@ def verify_forge_invocation_token(token: str) -> ForgeInvocation:
         module_key=(app.get("module") or {}).get("key"),
         principal=claims.get("principal"),
     )
+
+
+def verify_forge_request(request: HttpRequest) -> ForgeInvocation:
+    """Verify the FIT in a request's `Authorization: Bearer` header."""
+    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise ForgeInvocationTokenError("Missing Forge invocation token")
+    return verify_forge_invocation_token(token)
+
+
+def jira_cloud_id(invocation: ForgeInvocation) -> str | None:
+    """The cloudId of the single Jira site a FIT was sent for, or None.
+
+    Backend invocations such as lifecycle events and scheduled triggers can have an
+    empty `context`, so the site comes from apiBaseUrl, which every FIT carries. A
+    `context.cloudId` that disagrees with it is rejected.
+    """
+    return _cloud_id(invocation.api_base_url, invocation.cloud_id)
+
+
+def jira_cloud_id_from_claims(claims: Mapping[str, Any]) -> str | None:
+    """`jira_cloud_id` for the claims of a FIT that was already verified elsewhere."""
+    api_base_url = (claims.get("app") or {}).get("apiBaseUrl")
+    if not isinstance(api_base_url, str):
+        return None
+    return _cloud_id(api_base_url, (claims.get("context") or {}).get("cloudId"))
+
+
+def _cloud_id(api_base_url: str, context_cloud_id: str | None) -> str | None:
+    try:
+        cloud_id = str(UUID(api_base_url.removeprefix(JIRA_API_BASE_URL)))
+    except ValueError:
+        return None
+    if api_base_url != f"{JIRA_API_BASE_URL}{cloud_id}":
+        return None
+    if context_cloud_id not in (None, cloud_id):
+        return None
+    return cloud_id

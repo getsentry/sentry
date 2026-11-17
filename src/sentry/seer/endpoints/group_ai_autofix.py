@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Collection
-from typing import Any
+from typing import Annotated, Any, Final, Literal, NotRequired, TypedDict
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.billing.v1.common.v1 import seer_billing_feature_pb2 as billing
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -24,6 +25,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.autofix_examples import AutofixExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import (
@@ -38,7 +40,7 @@ from sentry.issues.action_log import (
     action_context_scope,
 )
 from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
-from sentry.issues.action_log.types import GroupActorType
+from sentry.issues.action_log.types import ActionSource, GroupActorType
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
 from sentry.issues.formatting.autofix import format_autofix
 from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
@@ -83,17 +85,19 @@ from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
     has_project_connected_repos,
 )
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
 )
 from sentry.seer.endpoints.utils import (
     SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
     SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL,
-    SEER_OUT_OF_CREDITS_CODE,
     SEER_OUT_OF_QUOTA_CODE,
     SEER_PERMISSION_DENIED,
+    SeerPaymentRequiredCode,
     get_seer_run,
     resolve_seer_run,
+    seer_out_of_credits_response,
 )
 from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.types.activity import ActivityType
@@ -109,9 +113,13 @@ USER_CONTEXT_MAX_LENGTH = 10000
 
 # Marks the one 409 from this endpoint that a caller can recover from on its own:
 # the run named in the body is alive, so polling it is the whole remedy.
-RUN_IN_FLIGHT_CODE = "run_in_flight"
+RunInFlightCode = Literal["run_in_flight"]
+RUN_IN_FLIGHT_CODE: Final[RunInFlightCode] = "run_in_flight"
 
-AUTOFIX_SETUP_REQUIRED_DETAIL = {
+# The API schema documents these codes as an enum, so a new code has to be added here.
+AutofixSetupCode = Literal["scm_integration_required", "repos_not_linked"]
+
+AUTOFIX_SETUP_REQUIRED_DETAIL: dict[AutofixSetupCode, str] = {
     "scm_integration_required": (
         "Seer Autofix requires a supported SCM integration (GitHub or GitLab) "
         "to be installed for your organization before a new run can be started."
@@ -121,6 +129,53 @@ AUTOFIX_SETUP_REQUIRED_DETAIL = {
         "before a new run can be started."
     ),
 }
+
+
+class AutofixConflictResponse(TypedDict):
+    detail: Annotated[str, ApiDescription("Why the step can't run")]
+    code: NotRequired[
+        Annotated[
+            Literal[AutofixSetupCode, RunInFlightCode],
+            ApiDescription(
+                "Set when a client can act on the conflict. `scm_integration_required` and "
+                "`repos_not_linked` mean the organization or project must finish Seer setup "
+                "before a new run can start. `run_in_flight` means a step is already running "
+                "for the run in `run_id`, so poll it instead of retrying"
+            ),
+        ]
+    ]
+    run_id: NotRequired[
+        Annotated[int, ApiDescription("ID of the run in Seer. Set with `run_in_flight`")]
+    ]
+    sentry_run_id: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "ID of the run in Sentry. Set with `run_in_flight`, null for legacy runs"
+            ),
+        ]
+    ]
+
+
+class AutofixPaymentRequiredResponse(TypedDict):
+    detail: Annotated[str, ApiDescription("Why the organization can't run Seer")]
+    code: Annotated[
+        SeerPaymentRequiredCode,
+        ApiDescription(
+            "`seer_out_of_credits` when the organization does not have enough Seer credits, "
+            "`seer_out_of_quota` when it has no Seer budget"
+        ),
+    ]
+    denialReason: NotRequired[
+        Annotated[
+            SeerCreditDenialReason | None,
+            ApiDescription(
+                "Set with `seer_out_of_credits`. `not_enough_credits` when the organization's "
+                "credit balance doesn't cover the operation, `daily_cap_exceeded` when it would "
+                "pass the organization's daily spend cap, null when no reason is known"
+            ),
+        ]
+    ]
 
 
 class GroupAutofixPermission(GroupAiPermission):
@@ -200,7 +255,7 @@ def _record_user_context_length(request_data: Any) -> None:
     )
 
 
-def _check_autofix_setup(organization: Organization, project: Project) -> str | None:
+def _check_autofix_setup(organization: Organization, project: Project) -> AutofixSetupCode | None:
     """Return the setup code blocking a new autofix run, or None if it can start.
 
     Mirrors the frontend gate in AutofixContent: legacy usage-based Seer plans
@@ -330,8 +385,14 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             202: inline_sentry_response_serializer("AutofixPostResponse", AutofixPostResponse),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
+            402: inline_sentry_response_serializer(
+                "AutofixPaymentRequiredResponse", AutofixPaymentRequiredResponse
+            ),
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: inline_sentry_response_serializer(
+                "AutofixConflictResponse", AutofixConflictResponse
+            ),
         },
         examples=AutofixExamples.AUTOFIX_POST_RESPONSE,
     )
@@ -342,6 +403,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         | Response[AutofixHandoffResponse]
         | Response[None]
         | Response[DetailResponse]
+        | Response[AutofixConflictResponse]
+        | Response[AutofixPaymentRequiredResponse]
         | Response[ValidationErrorResponse]
         | Response[str]
     ):
@@ -459,13 +522,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         ),
                         user=acting_user(request.user),
                     )
-                except SeerOutOfCreditsException:
-                    return Response(
-                        {
-                            "detail": SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
-                            "code": SEER_OUT_OF_CREDITS_CODE,
-                        },
-                        status=status.HTTP_402_PAYMENT_REQUIRED,
+                except SeerOutOfCreditsException as e:
+                    return seer_out_of_credits_response(
+                        SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL, e.denial_reason
                     )
                 except SeerPermissionError:
                     return Response(status=status.HTTP_404_NOT_FOUND)
@@ -557,10 +616,18 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             status=status.HTTP_409_CONFLICT,
                         )
 
+                # The client can supply referrer. Resolve attribution from the request instead.
+                billing_feature: int | None = None
                 if is_autofix_kickoff:
+                    billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
                     actor = resolve_action_actor(request)
+                    source = resolve_action_source(request)
+                    if actor.actor_type == GroupActorType.SENTRY_APP:
+                        billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS
+                    elif source == ActionSource.WEB:
+                        billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_WEB
                     with action_context_scope(
-                        source=resolve_action_source(request),
+                        source=source,
                         actor=actor,
                     ):
                         Activity.objects.create_group_activity(
@@ -578,6 +645,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         group=group,
                         step=AutofixStep(step),
                         referrer=referrer,
+                        billing_feature=billing_feature,
                         stopping_point=(
                             AutofixStoppingPoint(stopping_point) if stopping_point else None
                         ),
@@ -598,17 +666,14 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         {"detail": "No budget for Seer Autofix.", "code": SEER_OUT_OF_QUOTA_CODE},
                         status=status.HTTP_402_PAYMENT_REQUIRED,
                     )
-                except SeerOutOfCreditsException:
-                    return Response(
-                        {
-                            "detail": (
-                                SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL
-                                if resolved_run_id is None
-                                else SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL
-                            ),
-                            "code": SEER_OUT_OF_CREDITS_CODE,
-                        },
-                        status=status.HTTP_402_PAYMENT_REQUIRED,
+                except SeerOutOfCreditsException as e:
+                    return seer_out_of_credits_response(
+                        (
+                            SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL
+                            if resolved_run_id is None
+                            else SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL
+                        ),
+                        e.denial_reason,
                     )
                 except SeerPermissionError as e:
                     if _is_unknown_run_id_error(e):

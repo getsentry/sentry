@@ -40,7 +40,6 @@ describe('useValidateSpansTab', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

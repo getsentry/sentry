@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import {localStorageWrapper as localStorage} from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -83,7 +83,7 @@ export function storeTraceViewPreferences(
   // Make sure we dont fire this during a render phase
   window.requestAnimationFrame(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(storedState));
+      localStorageWrapper.setItem(key, JSON.stringify(storedState));
     } catch (e) {
       Sentry.captureException(e);
     }
@@ -126,7 +126,7 @@ function isValidCompressedTimeline(state: StoredTracePreferences): boolean {
 }
 
 function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
-  const stored = localStorage.getItem(key);
+  const stored = localStorageWrapper.getItem(key);
 
   if (stored) {
     try {

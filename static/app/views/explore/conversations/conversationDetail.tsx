@@ -86,20 +86,23 @@ function ConversationDetailPage() {
     setQueryState({spanId: null, focusedTool: null});
   }, [setQueryState]);
 
-  const handleTabChange = (tab: ConversationViewTab) => {
-    if (tab !== queryState.tab) {
-      trackAnalytics('conversations.detail.tab-switch', {
-        organization,
-        fromTab: queryState.tab,
-        toTab: tab,
-      });
-    }
-    setQueryState({tab});
-  };
+  const handleTabChange = useCallback(
+    (tab: ConversationViewTab) => {
+      if (tab !== queryState.tab) {
+        trackAnalytics('conversations.detail.tab-switch', {
+          organization,
+          fromTab: queryState.tab,
+          toTab: tab,
+        });
+      }
+      setQueryState({tab});
+    },
+    [organization, queryState.tab, setQueryState]
+  );
 
   const handleViewTimeline = useCallback(() => {
-    setQueryState({tab: 'timeline'});
-  }, [setQueryState]);
+    handleTabChange('timeline');
+  }, [handleTabChange]);
 
   return (
     <ViewportConstrainedPage background="secondary">

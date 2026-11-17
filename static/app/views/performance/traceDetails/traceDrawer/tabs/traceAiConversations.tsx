@@ -1,6 +1,5 @@
 import {type Key, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -11,6 +10,7 @@ import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ConversationLeftPanel,

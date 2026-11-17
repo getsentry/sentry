@@ -5,9 +5,10 @@ from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid5
 
 from django.db import router, transaction
+from django.db.models import Max
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -24,10 +25,15 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookStatus,
 )
+from sentry.notebooks.services.notebooks import NotebookConflictError, NotebookValidationError
 from sentry.utils import json
 
 
 class Unset:
+    pass
+
+
+class NewerProducerRevision(serializers.ValidationError):
     pass
 
 
@@ -358,6 +364,97 @@ def upsert_block(
     return block
 
 
+# How far one API write can move a key's revision. Producers count up by one, so this
+# leaves room for skipped revisions while no single write can fence the key near I32_MAX.
+MAX_REVISION_STEP = 100
+
+# Request IDs for producer writes made through the notebook API.
+_API_EXECUTION_NAMESPACE = UUID("80e0d41c-f969-4a16-9b0d-dddfc844f713")
+
+
+def write_api_producer_block(
+    notebook: Notebook,
+    *,
+    key: str,
+    revision: int,
+    kind: str,
+    position: int | None,
+    title: str | Unset = UNSET,
+    content: str | Unset = UNSET,
+    prompt: str | Unset = UNSET,
+    config: dict[str, Any] | Unset = UNSET,
+    display: dict[str, Any] | None = None,
+) -> tuple[NotebookBlock, bool]:
+    """Write a complete producer block that a caller sent through the notebook API.
+
+    The bool is True when the key had no live block. `position` is an index among the
+    live blocks; a new block with no position goes last.
+    """
+    with notebook_writes(notebook) as writes:
+        # Deleted rows count, as they do for the newer-revision check.
+        stored = (
+            NotebookBlock.objects.filter(notebook=writes.notebook, producer_key=key)
+            .aggregate(newest=Max("producer_revision"))
+            .get("newest")
+        )
+        if revision > (stored or 0) + MAX_REVISION_STEP:
+            raise NotebookValidationError(
+                {"revision": f"Raise revision by at most {MAX_REVISION_STEP} per write."}
+            )
+        live = _live_block(writes.notebook, key)
+        if position is not None:
+            position = _make_room_at(writes.notebook, position, moving=live)
+        elif live is None:
+            last = (
+                NotebookBlock.objects.filter(notebook=writes.notebook, deleted_at__isnull=True)
+                .aggregate(last=Max("position"))
+                .get("last")
+            )
+            position = 0 if last is None else last + 1
+        try:
+            block = upsert_block(
+                writes,
+                key=key,
+                revision=revision,
+                kind=kind,
+                request_id=uuid5(
+                    _API_EXECUTION_NAMESPACE, f"{notebook.id}:{revision}:{key}:{kind}"
+                ),
+                complete=True,
+                position=UNSET if position is None else position,
+                title=title,
+                config=config,
+                display=display,
+                content=content,
+                prompt=prompt,
+                # A notebook with no projects takes blocks too, so its scope may be empty.
+                project_ids=list(
+                    NotebookProject.objects.filter(notebook=writes.notebook).values_list(
+                        "project_id", flat=True
+                    )
+                ),
+                input_snapshot={"source": deepcopy(writes.notebook.source)},
+            )
+        except NewerProducerRevision:
+            raise NotebookConflictError("The block has a newer revision.")
+    return block, live is None
+
+
+def _make_room_at(notebook: Notebook, index: int, *, moving: NotebookBlock | None) -> int:
+    """Renumber the other live blocks around a gap at `index`, clamped to their count."""
+    blocks = NotebookBlock.objects.select_for_update().filter(
+        notebook=notebook, deleted_at__isnull=True
+    )
+    if moving is not None:
+        blocks = blocks.exclude(id=moving.id)
+    others = list(blocks.order_by("position", "id"))
+    index = min(index, len(others))
+    for position, block in enumerate(others):
+        block.position = position if position < index else position + 1
+    NotebookBlock.objects.bulk_update(others, ["position"])
+    return index
+
+
 def append_block_content(
     writes: NotebookWrites, *, key: str, revision: int, text: str, reset: bool = False
 ) -> bool:
@@ -449,4 +546,4 @@ def _live_block(notebook: Notebook, key: str) -> NotebookBlock | None:
 
 def _check_revision(block: NotebookBlock, revision: int) -> None:
     if block.producer_revision is not None and block.producer_revision > revision:
-        raise serializers.ValidationError({"payload": "The block has a newer revision."})
+        raise NewerProducerRevision({"payload": "The block has a newer revision."})

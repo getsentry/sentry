@@ -1,3 +1,4 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -7,7 +8,6 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -259,9 +259,7 @@ describe('GroupEventAttachments', () => {
   });
 
   it('filters by date/query on issue details', () => {
-    ConfigStore.init();
-    const user = UserFixture();
-    act(() => ConfigStore.set('user', user));
+    ConfigStore.loadInitialData(ConfigFixture({user: UserFixture()}));
 
     render(<GroupEventAttachments project={project} group={group} />, {
       initialRouterConfig: {

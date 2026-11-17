@@ -155,7 +155,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
             label: t('Errors'),
             value: nonFeedbackErrors.length,
             to: errorsTab,
-            labelTooltip: nonFeedbackErrors.length ? (
+            valueTooltip: nonFeedbackErrors.length ? (
               <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
             ) : undefined,
             isLoading: statsLoading,

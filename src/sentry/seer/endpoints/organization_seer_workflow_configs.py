@@ -21,6 +21,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
@@ -399,6 +400,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
             201: inline_sentry_response_serializer(
                 "SeerWorkflowConfig", SeerWorkflowConfigResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
         },
     )
     def post(self, request: Request, organization: Organization) -> Response:
@@ -566,6 +568,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             200: inline_sentry_response_serializer(
                 "SeerWorkflowConfig", SeerWorkflowConfigResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
         },
     )
     def put(self, request: Request, organization: Organization, config_id: str) -> Response:

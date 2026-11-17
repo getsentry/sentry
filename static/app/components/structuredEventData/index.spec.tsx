@@ -11,18 +11,18 @@ import {StructuredEventData} from 'sentry/components/structuredEventData';
 describe('StructuredEventData', () => {
   describe('strings', () => {
     it('should render urls w/ an additional <a> link', async () => {
-      const URL = 'https://example.org/foo/bar/';
+      const url = 'https://example.org/foo/bar/';
       renderGlobalModal();
-      render(<StructuredEventData data={URL} />);
+      render(<StructuredEventData data={url} />);
 
-      expect(screen.getByText(URL)).toBeInTheDocument();
+      expect(screen.getByText(url)).toBeInTheDocument();
       const linkHint = screen.getByRole('link');
       await userEvent.click(linkHint);
       expect(screen.getByTestId('external-link-warning')).toBeInTheDocument();
     });
 
     it('should not render urls if meta is present', () => {
-      const URL = 'https://example.org/foo/bar/super/long...';
+      const url = 'https://example.org/foo/bar/super/long...';
       renderGlobalModal();
       const meta = {
         '': {
@@ -36,8 +36,8 @@ describe('StructuredEventData', () => {
           ],
         },
       };
-      render(<StructuredEventData data={URL} meta={meta} />);
-      expect(screen.getByText(URL)).toBeInTheDocument();
+      render(<StructuredEventData data={url} meta={meta} />);
+      expect(screen.getByText(url)).toBeInTheDocument();
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
 
