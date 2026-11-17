@@ -8,6 +8,8 @@ from django.utils import timezone
 from sentry.agent_handoff.claims import ClaimOutcome
 from sentry.agent_handoff.codes import (
     HANDOFF_LIFETIME,
+    AddFeatureContext,
+    AddFeatureProduct,
     HandoffFlow,
     ProjectSetupContext,
     _get_redis_client,
@@ -23,6 +25,7 @@ from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apisetupcode import ApiSetupCode
 from sentry.onboarding.agentic_progress.model import ProgressUpdate, Stage, StageStatus
 from sentry.onboarding.agentic_progress.service import get_onboarding_progress_service
+from sentry.projects.services.project.model import RpcProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import (
@@ -298,6 +301,52 @@ class AgentHandoffViewTest(TestCase):
         code = self.issue(disable_ip_pinning=True)
         assert self.claim(code, ip_address="192.0.2.2").status_code == 200
 
+    def issue_add_feature(self, project_id: int) -> str:
+        issued = issue_handoff(
+            flow=HandoffFlow.ADD_FEATURE,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            application_id=self.application.id,
+            scope_list=["org:read"],
+            ip_address="127.0.0.1",
+            context=AddFeatureContext(product=AddFeatureProduct.TRACING, project_id=project_id),
+        )
+        self.handoff_id = issued.handoff_id
+        return issued.code
+
+    def test_add_feature_claim_returns_guide(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.add_feature.get_accessible_project",
+            return_value=RpcProject(id=1, slug="my-app", organization_id=self.organization.id),
+        ):
+            response = self.claim(self.issue_add_feature(project_id=1))
+        assert response.status_code == 200
+        body = response.content.decode()
+        assert "SENTRY_SETUP_CODE=sntryc_" in body
+        assert "instrument.md" in body
+        assert "my\\-app" in body
+        assert not ApiSetupCode.objects.filter(user_id=self.user.id).count() > 1
+
+    def test_add_feature_deleted_project_prevents_claim(self) -> None:
+        code = self.issue_add_feature(project_id=999)
+        with patch(
+            "sentry.agent_handoff.flows.add_feature.get_accessible_project",
+            return_value=None,
+        ):
+            response = self.claim(code)
+        assert response.status_code == 410
+        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+
+    def test_add_feature_access_revoked_prevents_claim(self) -> None:
+        code = self.issue_add_feature(project_id=1)
+        with patch(
+            "sentry.agent_handoff.flows.add_feature.get_accessible_project",
+            return_value=None,
+        ):
+            response = self.claim(code)
+        assert response.status_code == 410
+        assert not ApiSetupCode.objects.filter(user_id=self.user.id).exists()
+
     def assert_claim_recorded(
         self, record: MagicMock, outcome: ClaimOutcome, *, attributed: bool = True
     ) -> None:
@@ -389,6 +438,15 @@ class AgentHandoffPreviewTest(TestCase):
 
         assert anonymous.status_code == authenticated.status_code == 200
         assert anonymous.content == authenticated.content
+
+    def test_add_feature_preview_renders_placeholder_project(self) -> None:
+        response = self.client.get("/agent-handoff.md", {"preview": "1", "flow": "add_feature"})
+        assert response.status_code == 200
+        body = response.content.decode()
+        assert "instrument.md" in body
+        assert "example\\-project" in body
+        assert not ApiSetupCode.objects.exists()
+        assert not ApiAuthorization.objects.exists()
 
     def test_unknown_preview_flow(self) -> None:
         response = self.client.get("/agent-handoff.md", {"preview": "1", "flow": "unknown"})
