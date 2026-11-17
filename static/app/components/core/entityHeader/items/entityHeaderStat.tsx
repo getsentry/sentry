@@ -25,20 +25,32 @@ type EntityHeaderStatValue = number | string | null;
  * likes; the type may not, so a link half stays a link when its count is zero
  * or empty.
  */
-type EntityHeaderStatPartBehavior = {
+type EntityHeaderStatPartBehavior = EntityHeaderStatPartTooltip &
+  (EntityHeaderStatTextBehavior | EntityHeaderStatLinkBehavior);
+
+type EntityHeaderStatPartTooltip = {
   /**
    * Takes structured content as readily as a string, so it can be built from
    * `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`. Keep it readable
    * without links: nothing inside a tooltip can be reached by keyboard.
    */
   tooltip?: React.ReactNode;
-} & (
-  | {type: 'text'}
-  | ({
-      type: 'link';
-      onClick?: () => void;
-    } & LinkDestination)
-);
+};
+
+type EntityHeaderStatTextBehavior = {type: 'text'};
+
+type EntityHeaderStatLinkBehavior = {
+  type: 'link';
+  onClick?: () => void;
+} & LinkDestination;
+
+/**
+ * A half as it is drawn. The colour is the component's to decide, not the
+ * caller's, and only a text half can carry one: a link is always accent, so
+ * its colour says it navigates.
+ */
+type EntityHeaderStatRenderPart = EntityHeaderStatPartTooltip &
+  ((EntityHeaderStatTextBehavior & {variant?: 'muted'}) | EntityHeaderStatLinkBehavior);
 
 /**
  * One half of a stat — its label or its value: what it shows, and how it
@@ -134,6 +146,13 @@ function getValuePart(
     : {type: 'text', content: value};
 }
 
+function muteText(
+  part: EntityHeaderStatPartBehavior,
+  muted: boolean
+): EntityHeaderStatRenderPart {
+  return part.type === 'text' && muted ? {...part, variant: 'muted'} : part;
+}
+
 function EmptyValue() {
   const {t} = useTranslation();
   // Translators: read by a screen reader in place of the dash shown for a stat that has nothing to show, e.g. no cost recorded
@@ -153,12 +172,10 @@ function StatPart({
   part,
   children,
   styles,
-  textVariant,
 }: {
   children: React.ReactNode;
-  part: EntityHeaderStatPartBehavior;
+  part: EntityHeaderStatRenderPart;
   styles: typeof LABEL_STYLES | typeof VALUE_STYLES;
-  textVariant?: 'muted';
 }) {
   if (part.type === 'link') {
     // Named by its own text. The other half is read in the same list item,
@@ -196,14 +213,14 @@ function StatPart({
 
   if (part.tooltip) {
     return (
-      <InfoText title={part.tooltip} variant={textVariant} {...styles}>
+      <InfoText title={part.tooltip} variant={part.variant} {...styles}>
         {children}
       </InfoText>
     );
   }
 
   return (
-    <Text variant={textVariant} {...styles}>
+    <Text variant={part.variant} {...styles}>
       {children}
     </Text>
   );
@@ -232,7 +249,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
         then "3".
       */}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        <StatPart part={label} styles={LABEL_STYLES} textVariant="muted">
+        <StatPart part={muteText(label, true)} styles={LABEL_STYLES}>
           {label.content}
         </StatPart>
         {/*
@@ -240,11 +257,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
           baseline do not move, and is muted so it does not read as a
           measurement — unless it links, where the colour says it navigates.
         */}
-        <StatPart
-          part={value}
-          styles={VALUE_STYLES}
-          textVariant={isEmpty ? 'muted' : undefined}
-        >
+        <StatPart part={muteText(value, isEmpty)} styles={VALUE_STYLES}>
           {isEmpty ? <EmptyValue /> : value.content}
         </StatPart>
       </Flex>
