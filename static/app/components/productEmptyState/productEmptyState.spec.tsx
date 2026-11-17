@@ -3,6 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Image} from '@sentry/scraps/image';
+
 import {ProductEmptyState} from './productEmptyState';
 
 describe('ProductEmptyState', () => {
@@ -16,7 +18,7 @@ describe('ProductEmptyState', () => {
   const baseProps = {
     title: 'Search and visualize logs at scale',
     benefits: ['View logs in context with errors', 'Query and filter by any attribute'],
-    media: <img src="/test.svg" alt="test" />,
+    media: <Image src="/test.svg" alt="test" />,
     agentSteps: ['Install the Sentry CLI', 'Configure logs', 'Verify logs arrive'],
     manualSetup: <div data-test-id="manual-content">Manual steps here</div>,
     product: 'tracing' as const,

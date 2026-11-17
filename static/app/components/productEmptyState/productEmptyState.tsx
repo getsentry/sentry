@@ -25,10 +25,10 @@ interface ProductEmptyStateProps {
    */
   benefits: string[];
   feedbackSource: string;
+  manualSetup: ReactNode;
   /**
    * The illustration or media shown to the right of the intro text on large screens.
    */
-  manualSetup: ReactNode;
   media: ReactNode;
   product: AddFeatureProduct;
   productName: string;
@@ -72,48 +72,49 @@ export function ProductEmptyState({
         </Container>
       </Flex>
 
-      <Container border="primary" radius="xl" overflow="hidden">
-        <Flex
-          align="center"
-          justify="between"
-          gap="md"
-          padding="lg 2xl"
-          background="secondary"
-          borderBottom="primary"
-          wrap="wrap"
-        >
-          <Flex align="center" gap="sm">
-            <Text bold>{tct('Set up [productName] for', {productName})}</Text>
-            <ProjectBadge project={project} avatarSize={16} />
-          </Flex>
-          <SegmentedControl<SetupMode>
-            value={mode}
-            onChange={setMode}
-            aria-label={t('Setup mode')}
+      <Stack gap="xl">
+        <Container border="primary" radius="xl" overflow="hidden">
+          <Flex
+            align="center"
+            justify="between"
+            gap="md"
+            padding="lg 2xl"
+            background="secondary"
+            borderBottom="primary"
+            wrap="wrap"
           >
-            <SegmentedControl.Item key="agent">
-              {t('Use my coding agent')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key="manual">
-              {t('Set up manually')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        </Flex>
-        <Container padding="2xl">
-          {mode === 'agent' ? (
-            <AgentHandoffProductPrompt
-              agentSteps={agentSteps}
-              context={context}
-              feedbackSource={feedbackSource}
-              onCopySuccess={onPromptCopied}
-            />
-          ) : (
-            manualSetup
-          )}
+            <Flex align="center" gap="sm">
+              <Text bold>{tct('Set up [productName] for', {productName})}</Text>
+              <ProjectBadge project={project} avatarSize={16} />
+            </Flex>
+            <SegmentedControl<SetupMode>
+              value={mode}
+              onChange={setMode}
+              aria-label={t('Setup mode')}
+            >
+              <SegmentedControl.Item key="agent">
+                {t('Use my coding agent')}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="manual">
+                {t('Set up manually')}
+              </SegmentedControl.Item>
+            </SegmentedControl>
+          </Flex>
+          <Container padding="2xl">
+            {mode === 'agent' ? (
+              <AgentHandoffProductPrompt
+                agentSteps={agentSteps}
+                context={context}
+                feedbackSource={feedbackSource}
+                onCopySuccess={onPromptCopied}
+              />
+            ) : (
+              manualSetup
+            )}
+          </Container>
         </Container>
-      </Container>
-
-      {footer && <Container marginTop="md">{footer}</Container>}
+        {footer}
+      </Stack>
     </Stack>
   );
 }

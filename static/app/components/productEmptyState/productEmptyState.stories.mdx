@@ -5,7 +5,9 @@ category: components
 source: sentry/components/productEmptyState/productEmptyState
 ---
 
+import {Image} from '@sentry/scraps/image';
 import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 import {ProductEmptyState} from './productEmptyState';
@@ -30,10 +32,9 @@ Shows the intro benefits section and the setup card with the "Use my coding agen
         'Set alerts on log patterns',
       ]}
       media={
-        <img
+        <Image
           src="/images/spot/logs-empty-state.svg"
           alt="Logs empty state illustration"
-          style={{width: '100%', height: 'auto'}}
         />
       }
       agentSteps={[
@@ -46,9 +47,11 @@ Shows the intro benefits section and the setup card with the "Use my coding agen
       project={project}
       feedbackSource="product-empty-state-story"
       manualSetup={
-        <div style={{padding: '16px', color: 'gray'}}>
-          Manual setup steps would render here via ManualSetupSteps.
-        </div>
+        <Container padding="xl">
+          <Text variant="muted">
+            Manual setup steps would render here via ManualSetupSteps.
+          </Text>
+        </Container>
       }
     />
   </Container>
@@ -68,10 +71,9 @@ Clicking "Set up manually" reveals the `manualSetup` slot instead of the agent p
         'Correlate traces with errors',
       ]}
       media={
-        <img
+        <Image
           src="/images/spot/traces-empty-state.svg"
           alt="Traces empty state illustration"
-          style={{width: '100%', height: 'auto'}}
         />
       }
       agentSteps={[
@@ -84,9 +86,11 @@ Clicking "Set up manually" reveals the `manualSetup` slot instead of the agent p
       project={project}
       feedbackSource="product-empty-state-story-manual"
       manualSetup={
-        <div style={{padding: '16px', color: 'gray'}}>
-          Manual setup steps would render here via ManualSetupSteps.
-        </div>
+        <Container padding="xl">
+          <Text variant="muted">
+            Manual setup steps would render here via ManualSetupSteps.
+          </Text>
+        </Container>
       }
     />
   </Container>
