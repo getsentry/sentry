@@ -51,11 +51,11 @@ from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.seer.workflows.workflow import SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
 from sentry.sentry_apps.services.app.service import app_service
+from sentry.service_accounts.models import ServiceAccountOwnerKind
 from sentry.service_accounts.outbox import (
     ServiceAccountCreatePayload,
     ServiceAccountGrantUpdatePayload,
     ServiceAccountOwner,
-    ServiceAccountOwnerKind,
     create_owned_service_account,
     update_service_account_grant,
 )

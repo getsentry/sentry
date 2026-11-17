@@ -14,20 +14,16 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from enum import StrEnum
 from typing import Protocol, TypedDict
 from uuid import uuid4
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc.service import RpcValidationException
+from sentry.service_accounts.models import ServiceAccountOwnerKind
 from sentry.service_accounts.services.service_account import service_account_service
 
 logger = logging.getLogger(__name__)
-
-
-class ServiceAccountOwnerKind(StrEnum):
-    SEER_WORKFLOW_CONFIG = "seer_workflow_config"
 
 
 class ServiceAccountCreatePayload(TypedDict):
@@ -117,6 +113,7 @@ def create_owned_service_account(
             all_projects=payload["all_projects"],
             created_by_id=payload["created_by_id"],
             idempotency_key=payload["idempotency_key"],
+            owner_kind=payload["owner_kind"],
         )
     except RpcValidationException:
         # Retrying can't fix a rejected grant, and raising would stall the org's shard.

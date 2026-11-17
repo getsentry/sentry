@@ -81,6 +81,9 @@ class ServiceAccountResponse(TypedDict):
     scopes: list[str]
     projectIds: list[str]
     allProjects: bool
+    # A `ServiceAccountOwnerKind` when an object such as a Seer automation manages the
+    # account. Null when an admin created it.
+    ownerKind: str | None
     dateCreated: datetime
 
 
@@ -118,6 +121,7 @@ class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
             "scopes": sorted(obj.scope_list),
             "projectIds": [str(project_id) for project_id in attrs["project_ids"]],
             "allProjects": obj.all_projects,
+            "ownerKind": obj.owner_kind,
             "dateCreated": obj.date_added,
         }
 

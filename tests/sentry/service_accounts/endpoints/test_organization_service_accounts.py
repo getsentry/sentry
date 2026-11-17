@@ -23,6 +23,7 @@ from sentry.service_accounts.endpoints.organization_service_accounts import (
 )
 from sentry.service_accounts.models import (
     ServiceAccount,
+    ServiceAccountOwnerKind,
     ServiceAccountProject,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
@@ -84,6 +85,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
                 "scopes": ["org:read", "project:read"],
                 "projectIds": [str(project.id) for project in sorted(projects, key=lambda p: p.id)],
                 "allProjects": False,
+                "ownerKind": None,
                 "dateCreated": first.date_added,
             },
         ]
@@ -155,6 +157,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             "scopes": ["event:read", "project:read"],
             "projectIds": [str(project.id)],
             "allProjects": False,
+            "ownerKind": None,
             "dateCreated": service_account.date_added,
         }
 
@@ -511,8 +514,21 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             "scopes": ["org:read", "project:read"],
             "projectIds": [str(self.projects[0].id)],
             "allProjects": False,
+            "ownerKind": None,
             "dateCreated": self.service_account.date_added,
         }
+
+    def test_get_owned_account_returns_owner_kind(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization,
+            name="Seer: nightly triage #1",
+            owner_kind=ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG,
+        )
+
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(self.organization.slug, service_account.id)
+
+        assert response.data["ownerKind"] == "seer_workflow_config"
 
     def test_get_missing(self) -> None:
         with self.feature(FEATURE_FLAG):
