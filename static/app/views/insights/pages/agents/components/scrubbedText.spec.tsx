@@ -179,10 +179,9 @@ describe('ScrubbedText', () => {
 
     await userEvent.hover(screen.getByText('[email]'));
 
-    expect(await screen.findByRole('link', {name: /Email addresses/})).toHaveAttribute(
-      'href',
-      `${projectSettings}advanced-data-scrubbing/0/`
-    );
+    expect(
+      await screen.findByRole('link', {name: 'data scrubbing rule'})
+    ).toHaveAttribute('href', `${projectSettings}advanced-data-scrubbing/0/`);
     expect(screen.getByRole('link', {name: 'project-slug'})).toHaveAttribute(
       'href',
       projectSettings
@@ -194,10 +193,21 @@ describe('ScrubbedText', () => {
 
     await userEvent.hover(screen.getByText('[email]'));
 
-    expect(await screen.findByRole('link', {name: /Email addresses/})).toHaveAttribute(
+    expect(
+      await screen.findByRole('link', {name: 'data scrubbing rule'})
+    ).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/security-and-privacy/advanced-data-scrubbing/0/`
     );
+  });
+
+  it('leaves out the description of the rule, which can get long', async () => {
+    renderWithRule('project:0');
+
+    await userEvent.hover(screen.getByText('[email]'));
+
+    expect(await screen.findByRole('link', {name: 'data scrubbing rule'})).toBeVisible();
+    expect(screen.queryByText(/Email addresses/)).not.toBeInTheDocument();
   });
 
   it('names how the value was scrubbed', async () => {
@@ -237,6 +247,7 @@ describe('splitScrubbedJson', () => {
           rem: [['@email:replace', 's']],
           chunks: [
             {type: 'redaction', text: '[email]', rule_id: '@email:replace', remark: 's'},
+            {type: 'text', text: '', rule_id: ''},
           ],
         },
       },

@@ -188,8 +188,8 @@ function parseRule(data: string): ScrubbingRule | undefined {
 
 function ScrubbedTooltip({rule}: {rule: ScrubbingRule}) {
   const organization = useOrganization({allowNull: true}) ?? undefined;
-  // The project's details hold its scrubbing rules, which the tooltip names and
-  // links to. Only fetched once the tooltip opens.
+  // The project's details hold its scrubbing rules, which the tooltip links to.
+  // Only fetched once the tooltip opens.
   const {data: project} = useDetailedProject(
     {orgSlug: organization?.slug ?? '', projectSlug: rule.projectSlug ?? ''},
     {enabled: !!organization && !!rule.projectSlug, notifyOnChangeProps: ['data']}
@@ -199,6 +199,9 @@ function ScrubbedTooltip({rule}: {rule: ScrubbingRule}) {
     rule_id: rule.ruleId,
     organization,
     project,
+    // A rule's description lists every attribute it applies to, which gets long
+    // for rules that cover the AI attributes.
+    hideRuleDescription: true,
   });
 }
 
@@ -266,6 +269,12 @@ function splitScrubbedString(value: string): ScrubbedJson {
   const rem = chunks
     .filter(chunk => chunk.type === 'redaction')
     .map(chunk => [chunk.rule_id, chunk.remark]);
+  // A lone chunk gets the tooltip of a fully redacted event value, which looks the
+  // rule up in the project of the page filters, not the span's. A second chunk
+  // keeps every redaction on the per-chunk tooltip.
+  if (chunks.length === 1) {
+    chunks.push({type: 'text', text: '', rule_id: ''});
+  }
   return {
     value: chunks.map(chunk => chunk.text).join(''),
     meta: rem.length > 0 ? {'': {rem, chunks}} : undefined,
