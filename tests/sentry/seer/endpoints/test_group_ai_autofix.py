@@ -356,7 +356,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["pr_iteration_pause_reason"] == "run_errored"
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
-    def test_get_reads_a_reasonless_marker_as_a_user_stop(
+    def test_get_reports_a_reasonless_marker_as_a_user_stop(
         self, mock_get_explorer_state: MagicMock
     ) -> None:
         """Markers written before the reason existed came from `@sentry` stop."""
@@ -424,7 +424,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["pr_iteration_out_of_credits_unfinished_action"] is None
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
-    def test_get_does_not_include_the_out_of_credits_state_when_paused(
+    def test_get_does_not_report_the_out_of_credits_state_when_paused(
         self, mock_get_explorer_state: MagicMock
     ) -> None:
         group = self.create_group()
