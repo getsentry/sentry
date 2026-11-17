@@ -2036,7 +2036,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         )
 
     def _set_cache(
-        self, *, status_message_ts: str | None = "1712345678.444444"
+        self, *, status_message_ts: str | None = "1712345678.444444", started_sent: bool = True
     ) -> SlackInvestigationCachePayload:
         cache_payload = SlackInvestigationCachePayload(
             organization_id=self.organization.id,
@@ -2057,7 +2057,10 @@ class SlackInvestigationEntrypointTest(TestCase):
             channel_id=self.channel_id,
             thread_ts=self.message_ts,
         ).update(
-            provider_data={"status_message_ts": status_message_ts} if status_message_ts else {}
+            provider_data={
+                "started_sent": started_sent,
+                **({"status_message_ts": status_message_ts} if status_message_ts else {}),
+            }
         )
         return cache_payload
 
@@ -2141,10 +2144,54 @@ class SlackInvestigationEntrypointTest(TestCase):
         entrypoint = self._get_entrypoint()
 
         entrypoint.on_trigger_investigation_success(investigation=self.investigation)
+        entrypoint.on_trigger_investigation_success(investigation=self.investigation)
 
         (started_call,) = self.mock_post_message.call_args_list
         assert started_call.kwargs["text"] != "Investigating FCP on organization login pages"
-        assert not self._investigation_threads().exists()
+        assert self._get_state() == {"started_sent": True}
+
+    def test_trigger_does_not_announce_terminal_run(self) -> None:
+        for status in (
+            InvestigationOrchestrationStatus.COMPLETED,
+            InvestigationOrchestrationStatus.FAILED,
+            InvestigationOrchestrationStatus.CANCELLED,
+        ):
+            self._set_status(status)
+
+            self._get_entrypoint().on_trigger_investigation_success(
+                investigation=self.investigation
+            )
+
+            self.mock_post_message.assert_not_called()
+
+    def test_started_delivery_preserves_thread_state(self) -> None:
+        self._set_cache(started_sent=False)
+
+        self._get_entrypoint().on_trigger_investigation_success(investigation=self.investigation)
+
+        assert self._get_state() == {"status_message_ts": self.status_ts, "started_sent": True}
+
+    def test_started_delivery_failure_can_be_retried(self) -> None:
+        self.mock_post_message.side_effect = TypedSlackApiError(
+            "error", _slack_response({"ok": False, "error": "invalid_blocks"})
+        )
+        entrypoint = self._get_entrypoint()
+
+        entrypoint.on_trigger_investigation_success(investigation=self.investigation)
+
+        assert not self._get_state().get("started_sent")
+        self.mock_post_message.side_effect = None
+        entrypoint.on_trigger_investigation_success(investigation=self.investigation)
+
+        assert self.mock_post_message.call_count == 2
+        assert self._get_state()["started_sent"] is True
+
+    def test_started_delivery_without_timestamp_remains_unsent(self) -> None:
+        self.mock_post_message.return_value = _slack_response({"ok": True})
+
+        self._get_entrypoint().on_trigger_investigation_success(investigation=self.investigation)
+
+        assert not self._get_state().get("started_sent")
 
     def test_updates_skip_disabled_organization_integration(self) -> None:
         self._set_cache()
@@ -2301,7 +2348,7 @@ class SlackInvestigationEntrypointTest(TestCase):
             }, status
 
     def test_run_awaiting_input_shows_waiting_card(self) -> None:
-        self._set_cache()
+        self._set_cache(started_sent=False)
         InvestigationOrchestrationRun.objects.filter(id=self.orchestration_run.id).update(
             phase=InvestigationOrchestrationPhase.INVESTIGATING,
             status=InvestigationOrchestrationStatus.AWAITING_INPUT,
@@ -2309,6 +2356,7 @@ class SlackInvestigationEntrypointTest(TestCase):
 
         self._update([_hypothesis()])
 
+        assert self._get_state()["started_sent"] is True
         assert self._task_card(self._updated_blocks()) == {
             "title": "Waiting for input",
             "status": "error",
@@ -2348,7 +2396,7 @@ class SlackInvestigationEntrypointTest(TestCase):
 
         self._update([_hypothesis()])
 
-        assert self._get_state() == {"status_message_ts": self.status_ts}
+        assert self._get_state() == {"status_message_ts": self.status_ts, "started_sent": True}
         assert_halt_metric(mock_record, IntegrationError())
         mock_record_sent.assert_not_called()
 
@@ -2602,9 +2650,11 @@ class SlackInvestigationEntrypointTest(TestCase):
             (
                 call.kwargs["channel"],
                 call.kwargs["thread_ts"],
-                "conclusion"
-                if call.kwargs["text"] == "Seer finished the investigation"
-                else "status",
+                {
+                    "Seer finished the investigation": "conclusion",
+                    "Sentry started a Seer investigation for this alert.": "started",
+                    f"<@{self.slack_user_id}> started a Seer investigation for this alert.": "started",
+                }.get(call.kwargs["text"], "status"),
             )
             for call in self.mock_post_message.call_args_list
         ]
@@ -2648,14 +2698,162 @@ class SlackInvestigationEntrypointTest(TestCase):
 
         assert self._posts() == [("CALERT0001", self.message_ts, "conclusion")]
 
-    def test_alert_threads_wait_for_completed_run(self) -> None:
+    def test_alert_threads_get_started_announcement_once(self) -> None:
         self._use_open_period()
         self._alert_thread("CALERT0001")
-        self._set_summary("The release added a slow font.")
+
+        self._update_alert_threads()
+        self._update_alert_threads()
+
+        assert self._posts() == [("CALERT0001", self.message_ts, "started")]
+        assert self._get_state("CALERT0001") == {"started_sent": True}
+
+    def test_started_announcements_reach_multiple_workspaces_without_click_cache(self) -> None:
+        self._use_open_period()
+        other = self._create_other_integration("TXXXXXXXXX4")
+        self._alert_thread("CALERT0001")
+        self._alert_thread("CALERT0002", integration_id=other.id)
 
         self._update_alert_threads()
 
-        self.mock_post_message.assert_not_called()
+        assert sorted(self._posts()) == [
+            ("CALERT0001", self.message_ts, "started"),
+            ("CALERT0002", self.message_ts, "started"),
+        ]
+        assert [call.kwargs["text"] for call in self.mock_post_message.call_args_list] == [
+            "Sentry started a Seer investigation for this alert.",
+            "Sentry started a Seer investigation for this alert.",
+        ]
+        assert self._get_state("CALERT0001") == {"started_sent": True}
+        assert self._get_state("CALERT0002") == {"started_sent": True}
+        self.mock_update.assert_not_called()
+
+    def test_click_then_update_shares_started_delivery_state(self) -> None:
+        self._use_open_period()
+        cache_payload = self._set_cache(status_message_ts=None, started_sent=False)
+        self._alert_thread(self.channel_id)
+        self._alert_thread("CALERT0002")
+
+        self._get_entrypoint().on_trigger_investigation_success(investigation=self.investigation)
+        self._update_alert_threads(cache_payload)
+        self._update_alert_threads(cache_payload)
+
+        assert self._posts() == [
+            (self.channel_id, self.message_ts, "started"),
+            ("CALERT0002", self.message_ts, "started"),
+            (self.channel_id, self.message_ts, "status"),
+        ]
+        assert self.mock_post_message.call_args_list[1].kwargs["text"] == (
+            "Sentry started a Seer investigation for this alert."
+        )
+        assert self._get_state()["started_sent"] is True
+        assert self._get_state()["status_message_ts"] == self.status_ts
+        assert self._get_state("CALERT0002") == {"started_sent": True}
+
+    def test_update_then_click_shares_started_delivery_state(self) -> None:
+        self._use_open_period()
+        cache_payload = self._set_cache(status_message_ts=None, started_sent=False)
+        self._alert_thread(self.channel_id)
+
+        self._update_alert_threads(cache_payload)
+        self._get_entrypoint().on_trigger_investigation_success(investigation=self.investigation)
+
+        assert self._posts() == [
+            (self.channel_id, self.message_ts, "started"),
+            (self.channel_id, self.message_ts, "status"),
+        ]
+        assert self.mock_post_message.call_args_list[0].kwargs["text"] == (
+            f"<@{self.slack_user_id}> started a Seer investigation for this alert."
+        )
+
+    def test_missing_started_marker_announces_clicked_thread_without_saved_alert(self) -> None:
+        cache_payload = self._set_cache()
+        self._investigation_threads().get().update(
+            provider_data={"status_message_ts": self.status_ts}
+        )
+
+        self._update_alert_threads(cache_payload)
+        self._update_alert_threads(cache_payload)
+
+        assert self._posts() == [(self.channel_id, self.message_ts, "started")]
+        assert self._get_state()["started_sent"] is True
+        assert self._get_state()["last_sent_state"]
+
+    def test_started_failure_does_not_block_other_threads_or_progress(self) -> None:
+        self._use_open_period()
+        cache_payload = self._set_cache(status_message_ts=None, started_sent=False)
+        other = self._create_other_integration("TXXXXXXXXX4")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=self.organization.id, integration_id=other.id
+            ).update(status=ObjectStatus.DISABLED)
+        self._alert_thread("CDISABLED1", integration_id=other.id)
+        self._alert_thread("CERROR0001")
+        self._alert_thread("CALERT0001")
+
+        def post_message(**kwargs: Any) -> SlackResponse:
+            if kwargs["channel"] in (self.channel_id, "CERROR0001") and "started" in kwargs["text"]:
+                raise TypedSlackApiError(
+                    "error", _slack_response({"ok": False, "error": "invalid_blocks"})
+                )
+            return _slack_response({"ok": True, "ts": self.status_ts})
+
+        self.mock_post_message.side_effect = post_message
+        self._update_alert_threads(cache_payload)
+
+        assert self._get_state()["status_message_ts"] == self.status_ts
+        assert not self._get_state().get("started_sent")
+        assert not self._get_state("CERROR0001").get("started_sent")
+        assert self._get_state("CALERT0001") == {"started_sent": True}
+        assert not self._investigation_threads().filter(target_id="CDISABLED1").exists()
+
+        self.mock_post_message.side_effect = None
+        self.mock_post_message.reset_mock()
+        self._update_alert_threads(cache_payload)
+        self._update_alert_threads(cache_payload)
+
+        assert self._posts() == [
+            (self.channel_id, self.message_ts, "started"),
+            ("CERROR0001", self.message_ts, "started"),
+        ]
+        assert self._get_state()["started_sent"] is True
+        assert self._get_state("CERROR0001")["started_sent"] is True
+
+    def test_late_threads_get_started_only_while_run_is_active(self) -> None:
+        self._use_open_period()
+        self._alert_thread("CALERT0001")
+        self._update_alert_threads()
+        self._alert_thread("CALERT0002")
+        self._update_alert_threads()
+        self._complete_with_conclusion()
+        self._alert_thread("CALERT0003")
+
+        self._update_alert_threads()
+
+        assert sorted(self._posts()) == [
+            ("CALERT0001", self.message_ts, "conclusion"),
+            ("CALERT0001", self.message_ts, "started"),
+            ("CALERT0002", self.message_ts, "conclusion"),
+            ("CALERT0002", self.message_ts, "started"),
+            ("CALERT0003", self.message_ts, "conclusion"),
+        ]
+        assert self._get_state("CALERT0001") == {"started_sent": True, "final_sent": True}
+        assert self._get_state("CALERT0003") == {"final_sent": True}
+
+    def test_stale_active_run_does_not_announce_terminal_run(self) -> None:
+        self._use_open_period()
+        self._alert_thread("CALERT0001")
+        self._set_summary(None)
+        for status in (
+            InvestigationOrchestrationStatus.COMPLETED,
+            InvestigationOrchestrationStatus.FAILED,
+            InvestigationOrchestrationStatus.CANCELLED,
+        ):
+            self._set_status(status)
+
+            self._update_alert_threads()
+
+            self.mock_post_message.assert_not_called()
 
     def test_clicked_thread_gets_conclusion_once(self) -> None:
         self._use_open_period()
@@ -2715,11 +2913,16 @@ class SlackInvestigationEntrypointTest(TestCase):
         self._alert_thread("CMSTEAMS01", provider_key=NotificationProviderKey.MSTEAMS)
         self._alert_thread("CISSUE0001", key_type=NotificationSource.ISSUE)
         self._alert_thread("CNOINTEGR1", has_integration=False)
+
+        self._update_alert_threads()
         self._complete_with_conclusion()
 
         self._update_alert_threads()
 
-        assert self._posts() == [("CALERT0001", self.message_ts, "conclusion")]
+        assert self._posts() == [
+            ("CALERT0001", self.message_ts, "started"),
+            ("CALERT0001", self.message_ts, "conclusion"),
+        ]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_alert_thread_failure_does_not_block_others(self, mock_record: Mock) -> None:
