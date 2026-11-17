@@ -4,23 +4,20 @@ import argparse
 import json
 import sys
 from collections import Counter
-from datetime import datetime
 from pathlib import Path
 
-from tools.api_guidelines.owners import UNOWNED, owner_for
+from tools.api_guidelines.entries import EXCEPTIONS_PATH, describe_entry, diff_entries
+from tools.api_guidelines.owners import UNOWNED
 from tools.api_guidelines.rules import BASELINED_RULES, ApiRule
-from tools.api_guidelines.scan import collect_findings
-from tools.flake8_plugin import ApiInputViolation
 
-OWNER_MAP_PATH = Path(".artifacts/api-endpoint-owners.json")
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# (team, path, finding): a finding with the team that owns it, worked out once in main()
-OwnedFinding = tuple[str, str, ApiInputViolation]
+# one entry of exceptions.json, i.e {"rule": "S026", "path": ..., "scope": ..., "key": ..., "count": 2, "owner": ...}
+Entry = dict[str, object]
 
 
 def rule_columns() -> list[str]:
-    """The rules to show as columns: the ones that report structured output, in ApiRule order
+    """The rules to show as columns: the ones kept in exceptions.json, in ApiRule order
     Returns rule codes like ["S025", "S026", "S027", "S028"]
     """
     columns: list[str] = []
@@ -30,8 +27,8 @@ def rule_columns() -> list[str]:
     return columns
 
 
-def rules_without_structured_output() -> list[str]:
-    """The API rules the report card can't count yet, since they report straight to flake8
+def rules_not_in_baseline() -> list[str]:
+    """The API rules the report card can't count, since exceptions.json has no baseline for them
     Returns rule codes like ["S021", "S022", "S023", "S034"]
     """
     rules: list[str] = []
@@ -41,46 +38,71 @@ def rules_without_structured_output() -> list[str]:
     return rules
 
 
-def find_owners(
-    findings: list[tuple[str, ApiInputViolation]], owner_map: dict[str, dict[str, str]]
-) -> list[OwnedFinding]:
-    """Finds the team of every finding, so the rest of the report card uses one answer
-    `findings` every (path, finding) pair from the scan
-    `owner_map` {path: {class name: owner}}, from `make api-owner-map`
-    Returns a (team, path, finding) triple per finding, in the scan's order
+def read_exceptions(path: Path) -> dict[str, object] | None:
+    """Reads an exceptions.json file
+    `path` the file to read, i.e api_exceptions/exceptions.json
+    Returns the file's {"version", "generated", "entries"} dict, or None when the file doesn't exist
     """
-    owned: list[OwnedFinding] = []
-    for path, finding in findings:
-        owned.append((owner_for(path, finding.scope, finding.caller, owner_map), path, finding))
-    return owned
+    if not path.exists():
+        return None
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert isinstance(data, dict)
+    return data
 
 
-def known_teams(owner_map: dict[str, dict[str, str]]) -> set[str]:
-    """Every team in the owner map, plus unowned
-    `owner_map` {path: {class name: owner}}, from `make api-owner-map`
+def file_entries(data: dict[str, object]) -> list[Entry]:
+    """The entries of a file read by read_exceptions"""
+    entries = data["entries"]
+    assert isinstance(entries, list)
+    return entries
+
+
+def entry_count(entry: Entry) -> int:
+    """How many findings an entry stands for"""
+    count = entry["count"]
+    assert isinstance(count, int)
+    return count
+
+
+def entry_owner(entry: Entry) -> str:
+    """The team that owns an entry"""
+    return str(entry["owner"])
+
+
+def total_findings(entries: list[Entry]) -> int:
+    """Adds up the count of every entry"""
+    total = 0
+    for entry in entries:
+        total += entry_count(entry)
+    return total
+
+
+def known_teams(entries: list[Entry]) -> set[str]:
+    """Every team that owns an entry, plus unowned
+    `entries` every entry in exceptions.json
     Returns the set of team names a --team can be
     """
     teams = {UNOWNED}
-    for owners in owner_map.values():
-        for team in owners.values():
-            teams.add(team)
+    for entry in entries:
+        teams.add(entry_owner(entry))
     return teams
 
 
-def count_by_team(owned: list[OwnedFinding]) -> tuple[dict[str, Counter[str]], dict[str, set[str]]]:
+def count_by_team(entries: list[Entry]) -> tuple[dict[str, Counter[str]], dict[str, set[str]]]:
     """Counts each team's findings per rule, and the files they're in
-    `owned` every finding with its team, from find_owners
+    `entries` every entry in exceptions.json
     Returns ({team: Counter of rule -> findings}, {team: set of file paths})
     """
     rules_per_team: dict[str, Counter[str]] = {}
     files_per_team: dict[str, set[str]] = {}
 
-    for team, path, finding in owned:
+    for entry in entries:
+        team = entry_owner(entry)
         if team not in rules_per_team:
             rules_per_team[team] = Counter()
             files_per_team[team] = set()
-        rules_per_team[team][str(finding.rule)] += 1
-        files_per_team[team].add(path)
+        rules_per_team[team][str(entry["rule"])] += entry_count(entry)
+        files_per_team[team].add(str(entry["path"]))
 
     return rules_per_team, files_per_team
 
@@ -104,14 +126,14 @@ def team_order(rules_per_team: dict[str, Counter[str]]) -> list[str]:
     return teams
 
 
-def format_table(owned: list[OwnedFinding], markdown: bool) -> list[str]:
+def format_table(entries: list[Entry], markdown: bool) -> list[str]:
     """The report card table, one row per team plus a total row
-    `owned` every finding with its team, from find_owners
+    `entries` every entry in exceptions.json
     `markdown` True for a markdown table (for docs and PR comments), False for plain text
     Returns the table's lines
     """
     columns = rule_columns()
-    rules_per_team, files_per_team = count_by_team(owned)
+    rules_per_team, files_per_team = count_by_team(entries)
 
     header = ["team", "total"] + columns + ["files"]
     rows: list[list[str]] = []
@@ -123,10 +145,10 @@ def format_table(owned: list[OwnedFinding], markdown: bool) -> list[str]:
         row.append(str(len(files_per_team.get(team, set()))))
         rows.append(row)
 
-    total_row = ["total", str(len(owned))]
+    total_row = ["total", str(total_findings(entries))]
     all_files = set()
-    for _team, path, _finding in owned:
-        all_files.add(path)
+    for entry in entries:
+        all_files.add(str(entry["path"]))
     for rule in columns:
         rule_total = 0
         for rules in rules_per_team.values():
@@ -164,79 +186,155 @@ def _text_row(row: list[str], width: int) -> str:
     return text
 
 
-def team_findings(owned: list[OwnedFinding], team: str) -> list[str]:
-    """One team's findings, one line each, sorted by file and line
-    `owned` every finding with its team, from find_owners
+def team_findings(entries: list[Entry], team: str) -> list[str]:
+    """One team's entries, one line each, in the file's order (path, scope, rule, key)
+    `entries` every entry in exceptions.json
     `team` the team to list, i.e "issues-feed" or "unowned"
-    Returns lines like "src/sentry/x.py:12  S026  query:id  in ExampleEndpoint.get"
+    Returns lines like "S026 src/sentry/x.py ExampleEndpoint.get query:id (x2)"
     """
-    mine: list[tuple[str, ApiInputViolation]] = []
-    for finding_team, path, finding in owned:
-        if finding_team == team:
-            mine.append((path, finding))
-
-    def position(pair: tuple[str, ApiInputViolation]) -> tuple[str, int]:
-        return (pair[0], pair[1].line)
-
-    mine.sort(key=position)
-
     lines: list[str] = []
-    for path, finding in mine:
-        lines.append(f"{path}:{finding.line}  {finding.rule}  {finding.key}  in {finding.scope}")
+    for entry in entries:
+        if entry_owner(entry) == team:
+            lines.append(f"{describe_entry(entry, with_owner=False)} (x{entry_count(entry)})")
     return lines
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Prints the API report card: every team's API rule findings, per rule
-    `argv` the CLI arguments. None means use the real ones (tests pass their own list)
-    Returns 0 when the report was printed, and 1 when the owner map is missing or --team is unknown
+def format_changes(
+    old_entries: list[Entry], new_entries: list[Entry], team: str | None
+) -> list[str]:
+    """The new, fixed and changed-count entries between an older exceptions.json and this one, per team
+    `old_entries` every entry in the older file
+    `new_entries` every entry in this file
+    `team` only show this team's changes, or None for every team
+    Returns the section's lines, starting with a summary line
     """
-    parser = argparse.ArgumentParser(description="Print every team's API rule findings.")
-    parser.add_argument("--owner-map", type=Path, default=_REPO_ROOT / OWNER_MAP_PATH)
-    parser.add_argument("--team", help="list this team's findings instead of the table")
-    parser.add_argument("--format", choices=["text", "markdown"], default="text")
+    added, removed, changed = diff_entries(old_entries, new_entries)
+
+    # a fixed entry belongs to the team that owned it in the older file
+    if team is not None:
+        kept_added = []
+        for entry in added:
+            if entry_owner(entry) == team:
+                kept_added.append(entry)
+        kept_removed = []
+        for entry in removed:
+            if entry_owner(entry) == team:
+                kept_removed.append(entry)
+        kept_changed = []
+        for old, new in changed:
+            if entry_owner(new) == team:
+                kept_changed.append((old, new))
+        added, removed, changed = kept_added, kept_removed, kept_changed
+
+    # {team: lines}
+    per_team: dict[str, list[str]] = {}
+    for entry in added:
+        line = f"  new      {describe_entry(entry, with_owner=False)} (x{entry_count(entry)})"
+        per_team.setdefault(entry_owner(entry), []).append(line)
+    for entry in removed:
+        line = f"  fixed    {describe_entry(entry, with_owner=False)} (x{entry_count(entry)})"
+        per_team.setdefault(entry_owner(entry), []).append(line)
+    for old, new in changed:
+        line = f"  changed  {describe_entry(new, with_owner=False)} (x{entry_count(old)} -> x{entry_count(new)})"
+        per_team.setdefault(entry_owner(new), []).append(line)
+
+    lines = [f"Changes: {len(added)} new, {len(removed)} fixed, {len(changed)} changed count"]
+    for owner in sorted(per_team):
+        lines.append(owner)
+        for line in per_team[owner]:
+            lines.append(line)
+    return lines
+
+
+def _display_path(path: Path) -> str:
+    """The path relative to the repo root when it's inside it, else as given"""
+    try:
+        return str(path.resolve().relative_to(_REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _missing(path: Path) -> int:
+    """Prints that an exceptions.json file is missing, and returns the exit code 1"""
+    print(f"{path} not found. Run `make api-baseline` first.", file=sys.stderr)
+    return 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Prints the API report card from exceptions.json: every team's findings, per rule
+    `argv` the CLI arguments. None means use the real ones (tests pass their own list)
+    Returns 0 when the report was printed, and 1 when a file is missing or --team is unknown
+    """
+    parser = argparse.ArgumentParser(
+        description="Print every team's API rule findings, read from exceptions.json."
+    )
+    parser.add_argument(
+        "--exceptions",
+        type=Path,
+        default=_REPO_ROOT / EXCEPTIONS_PATH,
+        help=f"the exceptions.json to read (default: {EXCEPTIONS_PATH})",
+    )
+    parser.add_argument("--team", help="list this team's entries instead of the table")
+    parser.add_argument(
+        "--format",
+        choices=["text", "markdown"],
+        default="text",
+        help="the table's format (table only, --team and --compare output are always text)",
+    )
+    parser.add_argument(
+        "--compare",
+        type=Path,
+        metavar="OLDER_JSON",
+        help="an older exceptions.json, to also show the new, fixed and changed-count entries since it",
+    )
     args = parser.parse_args(argv)
 
-    if not args.owner_map.exists():
-        print(
-            f"{args.owner_map} not found. Run `make api-owner-map` first (needs Redis: `devservices up`).",
-            file=sys.stderr,
-        )
-        return 1
+    data = read_exceptions(args.exceptions)
+    if data is None:
+        return _missing(args.exceptions)
+    entries = file_entries(data)
 
-    owner_map: dict[str, dict[str, str]] = json.loads(args.owner_map.read_text())
+    older = None
+    if args.compare is not None:
+        older = read_exceptions(args.compare)
+        if older is None:
+            return _missing(args.compare)
 
     # a misspelled team would otherwise print "0 findings", which looks like a clean team
-    teams = known_teams(owner_map)
+    # with --compare a team whose entries were all fixed is only in the older file
+    teams = known_teams(entries)
+    if older is not None:
+        teams |= known_teams(file_entries(older))
     if args.team and args.team not in teams:
         print(
-            f"Unknown team {args.team!r}. Teams in the owner map: {', '.join(sorted(teams))}",
+            f"Unknown team {args.team!r}. Teams in {_display_path(args.exceptions)}: {', '.join(sorted(teams))}",
             file=sys.stderr,
         )
         return 1
 
-    owned = find_owners(collect_findings(_REPO_ROOT), owner_map)
-
-    if args.team:
-        lines = team_findings(owned, args.team)
-        print(f"{len(lines)} findings owned by {args.team}")
-        for line in lines:
-            print(line)
-        return 0
-
-    # the owner map has no date inside it, so its file's modification time is when it was made
-    generated = datetime.fromtimestamp(args.owner_map.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
-    unowned = 0
-    for team, _path, _finding in owned:
-        if team == UNOWNED:
-            unowned += 1
-    print(f"API report card: {len(owned)} findings")
-    print(f"owner map generated {generated}, {unowned} findings unowned")
-    print(f"Not reporting structured output yet: {', '.join(rules_without_structured_output())}")
+    header = (
+        f"API report card: {_display_path(args.exceptions)}, generated {data.get('generated', 'unknown')}, "
+        f"{len(entries)} entries, {total_findings(entries)} findings"
+    )
+    if older is not None:
+        header += f", since {older.get('generated', 'unknown')}"
+    print(header)
+    print(f"Not in exceptions.json (no baseline): {', '.join(rules_not_in_baseline())}")
     print()
 
-    for line in format_table(owned, markdown=args.format == "markdown"):
-        print(line)
+    if args.team:
+        lines = team_findings(entries, args.team)
+        print(f"{len(lines)} entries owned by {args.team}")
+        for line in lines:
+            print(line)
+    else:
+        for line in format_table(entries, markdown=args.format == "markdown"):
+            print(line)
+
+    if older is not None:
+        print()
+        for line in format_changes(file_entries(older), entries, args.team):
+            print(line)
     return 0
 
 
