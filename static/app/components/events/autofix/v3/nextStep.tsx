@@ -134,7 +134,7 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
 
 function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
   const creditsDisabled = useAutofixCreditsDisabled('pr_iteration', {
-    runState: autofix.runState,
+    billingFeature: autofix.runState?.billing_feature,
   });
 
   return (
@@ -201,8 +201,8 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
   const creditsDisabled = useAutofixCreditsDisabled('solution', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: defined(artifact),
-    runState: autofix.runState,
   });
 
   if (!defined(artifact)) {
@@ -291,8 +291,8 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
   const creditsDisabled = useAutofixCreditsDisabled('code_changes', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: defined(artifact),
-    runState: autofix.runState,
   });
 
   if (!defined(artifact)) {
@@ -344,8 +344,8 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
     enabled: defined(artifact),
   });
   const creditsDisabled = useAutofixCreditsDisabled('create_pr', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: defined(artifact),
-    runState: autofix.runState,
   });
 
   if (!defined(artifact)) {

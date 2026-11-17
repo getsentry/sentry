@@ -103,8 +103,8 @@ export function SeerDrawerContent({
           runState: autofix.runState,
           sections,
         })}
+        billingFeature={autofix.runState?.billing_feature}
         reason="autofix-continue"
-        runState={autofix.runState}
       />
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
       {!isSingleRunAutofix(autofix.runState) &&

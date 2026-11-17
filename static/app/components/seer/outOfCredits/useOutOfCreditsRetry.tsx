@@ -1,17 +1,17 @@
 import {
   useAutofixCreditCheck,
   type AutofixAction,
-  type AutofixCreditCheckOptions,
 } from 'sentry/components/events/autofix/autofixCredits';
 
 import {OUT_OF_CREDITS_RETRY_TOOLTIP} from './messages';
 
-interface UseOutOfCreditsRetryOptions extends AutofixCreditCheckOptions {
+interface UseOutOfCreditsRetryOptions {
   /**
    * The retry is on screen for something that stopped for credits. Nothing is
    * checked otherwise.
    */
   enabled: boolean;
+  billingFeature?: number | null;
 }
 
 /**

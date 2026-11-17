@@ -96,8 +96,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     // A single run is retried with a new one, which starts at the root cause.
     isSingleRun ? 'root_cause' : (stoppedStep ?? 'code_changes'),
     {
+      billingFeature: isSingleRun ? undefined : autofix.runState?.billing_feature,
       enabled: isOutOfCredits,
-      runState: isSingleRun ? undefined : autofix.runState,
     }
   );
 
@@ -223,8 +223,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   // The form starts another PR iteration, the same billable step as the one at
   // the bottom of the drawer, so it is held on the same check.
   const prIterationCreditsDisabled = useAutofixCreditsDisabled('pr_iteration', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: shouldShowReset && showPrIterationForm,
-    runState: autofix.runState,
   });
 
   const rethinkInChat = useRethinkInChat({
