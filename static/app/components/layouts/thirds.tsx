@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -13,7 +14,22 @@ import {Tabs} from '@sentry/scraps/tabs';
  * Main container for a page.
  */
 export function Page(props: {children: React.ReactNode}) {
-  return <Stack as="main" flex="1" background="primary" {...props} />;
+  const theme = useTheme();
+  // Under viewport-fit=cover, landscape iOS reserves the notch area as a safe
+  // area inset. Header and Body already add an `lg` gutter at phone widths, so
+  // only pad by the remainder to avoid stacking both.
+  const safeAreaGutter = (side: 'left' | 'right') =>
+    `max(0px, calc(env(safe-area-inset-${side}) - ${theme.space.lg}))`;
+
+  return (
+    <Stack
+      as="main"
+      flex="1"
+      background="primary"
+      style={{paddingLeft: safeAreaGutter('left'), paddingRight: safeAreaGutter('right')}}
+      {...props}
+    />
+  );
 }
 
 /**

@@ -40,15 +40,19 @@ function MobileNavigationHeader(props: FlexProps<'header'>) {
       direction="row"
       align="center"
       height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT}px`}
-      paddingLeft="lg"
-      paddingRight="lg"
       width="100vw"
       borderBottom="primary"
       background="secondary"
       justify="between"
       position="sticky"
       overscrollBehavior="none"
-      style={{zIndex: theme.zIndex.sidebar}}
+      style={{
+        zIndex: theme.zIndex.sidebar,
+        // The header spans the full viewport width under viewport-fit=cover, so
+        // keep its buttons out of the iOS notch and rounded corners.
+        paddingLeft: `max(${theme.space.lg}, env(safe-area-inset-left))`,
+        paddingRight: `max(${theme.space.lg}, env(safe-area-inset-right))`,
+      }}
       {...props}
     />
   );
@@ -71,7 +75,7 @@ function MobilePrimaryNavigation() {
 
   return (
     <SizeProvider size="sm">
-      <PrimaryNavigation.Sidebar>
+      <PrimaryNavigation.Sidebar style={{paddingBottom: 'env(safe-area-inset-bottom)'}}>
         <PrimaryNavigation.SidebarHeader>
           {organization &&
             (isSettingsNavigation ? (
@@ -189,8 +193,12 @@ export function MobileNavigation() {
             left={0}
             bottom={0}
             width="100vw"
-            maxWidth="368px"
-            style={{zIndex: theme.zIndex.modal}}
+            maxWidth="calc(368px + env(safe-area-inset-left))"
+            background="primary"
+            style={{
+              zIndex: theme.zIndex.modal,
+              paddingLeft: 'env(safe-area-inset-left)',
+            }}
           >
             <MobilePrimaryNavigation />
           </Flex>,

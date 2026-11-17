@@ -191,6 +191,10 @@ const _SlideOverPanel = styled(motion.div, {
               right: 0;
               bottom: 0;
               left: auto;
+
+              /* Flush with the viewport edge, so clear the iOS notch and home indicator */
+              padding-right: env(safe-area-inset-right);
+              padding-bottom: env(safe-area-inset-bottom);
             `
           : css`
               position: relative;

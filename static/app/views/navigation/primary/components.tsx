@@ -46,9 +46,14 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 interface PrimaryNavigationSidebarProps {
   children: React.ReactNode;
   'data-test-id'?: string;
+  style?: React.CSSProperties;
 }
 
-function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebarProps) {
+function PrimaryNavigationSidebar({
+  children,
+  style,
+  ...props
+}: PrimaryNavigationSidebarProps) {
   const theme = useTheme();
 
   return (
@@ -60,7 +65,7 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
       borderRight="primary"
       background="primary"
       align="center"
-      style={{zIndex: theme.zIndex.sidebarPanel}}
+      style={{zIndex: theme.zIndex.sidebarPanel, ...style}}
       {...props}
     >
       {children}

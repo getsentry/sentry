@@ -180,6 +180,9 @@ function SecondarySidebarPanel({
             role="navigation"
             aria-label="Secondary Navigation"
             height="100%"
+            // The mobile panel reaches the bottom of the viewport, so keep the
+            // footer clear of the iOS home indicator.
+            style={isMobile ? {paddingBottom: 'env(safe-area-inset-bottom)'} : undefined}
           >
             {children}
           </Grid>
