@@ -24,7 +24,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.distribution import Distribution
 from sentry.models.file import File
@@ -304,13 +303,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             artifact_count=1,
         )
 
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id="00000000-00000000-00000000-00000000",
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
-        )
-
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -351,14 +343,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             file=File.objects.create(name="artifact-bundle.zip", type="dummy.file"),
             artifact_count=1,
         )
-
-        if with_debug_id:
-            DebugIdArtifactBundle.objects.create(
-                organization_id=self.organization.id,
-                debug_id="00000000-00000000-00000000-00000000",
-                artifact_bundle=artifact_bundle,
-                source_file_type=SourceFileType.SOURCE_MAP.value,
-            )
 
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -403,27 +387,18 @@ class SourceMapDebugEndpointTestCase(APITestCase):
 
         assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
-    def test_project_has_some_artifact_bundle_with_a_debug_id_does_not_read_debug_ids(
-        self,
-    ) -> None:
+    def test_debug_ids_do_not_read_debug_id_rows(self) -> None:
         self.create_project_artifact_bundle(self.project.id, with_debug_id=False)
-
-        event = self.store_event(
-            data=create_event(),
-            project_id=self.project.id,
-        )
 
         with CaptureQueriesContext(
             connections[router.db_for_read(DebugIdArtifactBundle)]
         ) as queries:
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                event.event_id,
+            resp = self.get_debug_id_response(
+                {"minified_source_found_by_debug_id": False, "sourcemap_found_by_debug_id": False}
             )
 
         assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
-        # The links' `has_debug_ids` answers it, without reading any debug-ID rows.
+        # The processed frames and the links' `has_debug_ids` answer it, without reading debug-ID rows.
         assert not [
             query["sql"]
             for query in queries.captured_queries
@@ -447,25 +422,37 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert len(resp.data["exceptions"]) == 2
 
-    def test_frame_debug_id_no_debug_id(self) -> None:
+    def get_debug_id_response(
+        self, frame_data: dict[str, Any], code_file: str = "/some/path/to/file.js"
+    ) -> Any:
+        frame: dict[str, Any] = {"abs_path": "/some/path/to/file.js"}
         event = self.store_event(
             data=create_event(
-                exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
+                exceptions=[create_exception_with_frames(raw_frames=[frame], frames=[frame])],
                 debug_meta_images=[
                     {
                         "type": "sourcemap",
-                        "code_file": "/some/path/to/file/that/doesnt/match.js",
-                        "debug_id": "8d65dbd3-bb6c-5632-9049-7751111284ed",
+                        "code_file": code_file,
+                        "debug_id": "a5764857-ae35-34dc-8f25-a9c9e73aa898",
                     }
                 ],
             ),
             project_id=self.project.id,
         )
+        # Normalization drops frame data that symbolication adds later, so set it afterwards.
+        event.data["exception"]["values"][0]["stacktrace"]["frames"][0]["data"] = frame_data
+        event.data.save()
 
-        resp = self.get_success_response(
+        return self.get_success_response(
             self.organization.slug,
             self.project.slug,
             event.event_id,
+        )
+
+    def test_frame_debug_id_no_debug_id(self) -> None:
+        resp = self.get_debug_id_response(
+            {"minified_source_found_by_debug_id": True, "sourcemap_found_by_debug_id": True},
+            code_file="/some/path/to/file/that/doesnt/match.js",
         )
 
         debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
@@ -473,26 +460,21 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert debug_id_process_result["debug_id"] is None
         assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
         assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
+        assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
-    def test_frame_debug_id_no_uploaded_source_no_uploaded_source_map(self) -> None:
-        event = self.store_event(
-            data=create_event(
-                exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
-                debug_meta_images=[
-                    {
-                        "type": "sourcemap",
-                        "code_file": "/some/path/to/file.js",
-                        "debug_id": "a5764857-ae35-34dc-8f25-a9c9e73aa898",
-                    }
-                ],
-            ),
-            project_id=self.project.id,
-        )
+    def test_frame_debug_id_without_lookup_results(self) -> None:
+        resp = self.get_debug_id_response({"symbolicated": False})
 
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
+        debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
+
+        assert debug_id_process_result["debug_id"] == "a5764857-ae35-34dc-8f25-a9c9e73aa898"
+        assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
+        assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
+        assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+
+    def test_frame_debug_id_no_source_file_no_source_map(self) -> None:
+        resp = self.get_debug_id_response(
+            {"minified_source_found_by_debug_id": False, "sourcemap_found_by_debug_id": False}
         )
 
         debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
@@ -500,45 +482,11 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert debug_id_process_result["debug_id"] == "a5764857-ae35-34dc-8f25-a9c9e73aa898"
         assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
         assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
+        assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
-    def test_frame_debug_id_uploaded_source_no_uploaded_source_map(self) -> None:
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            file=File.objects.create(name="artifact-bundle.zip", type="test.file"),
-            artifact_count=1,
-        )
-
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id="a5764857-ae35-34dc-8f25-a9c9e73aa898",
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
-        )
-
-        ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            artifact_bundle=artifact_bundle,
-        )
-
-        event = self.store_event(
-            data=create_event(
-                exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
-                debug_meta_images=[
-                    {
-                        "type": "sourcemap",
-                        "code_file": "/some/path/to/file.js",
-                        "debug_id": "a5764857-ae35-34dc-8f25-a9c9e73aa898",
-                    }
-                ],
-            ),
-            project_id=self.project.id,
-        )
-
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
+    def test_frame_debug_id_source_file_no_source_map(self) -> None:
+        resp = self.get_debug_id_response(
+            {"minified_source_found_by_debug_id": True, "sourcemap_found_by_debug_id": False}
         )
 
         debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
@@ -546,45 +494,11 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert debug_id_process_result["debug_id"] == "a5764857-ae35-34dc-8f25-a9c9e73aa898"
         assert debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
         assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
+        assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
-    def test_frame_debug_id_no_uploaded_source_uploaded_source_map(self) -> None:
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            file=File.objects.create(name="artifact-bundle.zip", type="test.file"),
-            artifact_count=1,
-        )
-
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id="a5764857-ae35-34dc-8f25-a9c9e73aa898",
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
-        )
-
-        ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            artifact_bundle=artifact_bundle,
-        )
-
-        event = self.store_event(
-            data=create_event(
-                exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
-                debug_meta_images=[
-                    {
-                        "type": "sourcemap",
-                        "code_file": "/some/path/to/file.js",
-                        "debug_id": "a5764857-ae35-34dc-8f25-a9c9e73aa898",
-                    }
-                ],
-            ),
-            project_id=self.project.id,
-        )
-
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
+    def test_frame_debug_id_no_source_file_source_map(self) -> None:
+        resp = self.get_debug_id_response(
+            {"minified_source_found_by_debug_id": False, "sourcemap_found_by_debug_id": True}
         )
 
         debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
@@ -592,52 +506,11 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert debug_id_process_result["debug_id"] == "a5764857-ae35-34dc-8f25-a9c9e73aa898"
         assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
         assert debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
+        assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
-    def test_frame_debug_id_uploaded_source_uploaded_source_map(self) -> None:
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            file=File.objects.create(name="artifact-bundle.zip", type="test.file"),
-            artifact_count=1,
-        )
-
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id="a5764857-ae35-34dc-8f25-a9c9e73aa898",
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE.value,
-        )
-
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id="a5764857-ae35-34dc-8f25-a9c9e73aa898",
-            artifact_bundle=artifact_bundle,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
-        )
-
-        ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            artifact_bundle=artifact_bundle,
-        )
-
-        event = self.store_event(
-            data=create_event(
-                exceptions=[create_exception_with_frame({"abs_path": "/some/path/to/file.js"})],
-                debug_meta_images=[
-                    {
-                        "type": "sourcemap",
-                        "code_file": "/some/path/to/file.js",
-                        "debug_id": "a5764857-ae35-34dc-8f25-a9c9e73aa898",
-                    }
-                ],
-            ),
-            project_id=self.project.id,
-        )
-
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
+    def test_frame_debug_id_source_file_source_map(self) -> None:
+        resp = self.get_debug_id_response(
+            {"minified_source_found_by_debug_id": True, "sourcemap_found_by_debug_id": True}
         )
 
         debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
@@ -645,6 +518,20 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert debug_id_process_result["debug_id"] == "a5764857-ae35-34dc-8f25-a9c9e73aa898"
         assert debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
         assert debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
+        assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+
+    def test_frame_debug_id_not_found_with_project_debug_id_artifact(self) -> None:
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=True)
+
+        resp = self.get_debug_id_response(
+            {"minified_source_found_by_debug_id": False, "sourcemap_found_by_debug_id": False}
+        )
+
+        debug_id_process_result = resp.data["exceptions"][0]["frames"][0]["debug_id_process"]
+
+        assert not debug_id_process_result["uploaded_source_file_with_correct_debug_id"]
+        assert not debug_id_process_result["uploaded_source_map_with_correct_debug_id"]
+        assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
 
     def test_frame_release_process_release_file_matching_source_file_names(self) -> None:
         event = self.store_event(
