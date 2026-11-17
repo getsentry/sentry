@@ -298,7 +298,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             existing_extras = (
                 PreprodArtifactMobileAppInfo.objects.filter(preprod_artifact=head_artifact)
                 .values_list("extras", flat=True)
-                .first()
+                .get_or_none()
             ) or {}
             extras_update: PreprodArtifactMobileAppInfoExtras = {
                 "build_number_raw": data["build_number_raw"]
