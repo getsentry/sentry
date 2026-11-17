@@ -1,28 +1,18 @@
 #!/usr/bin/env python
 
-import os
-import sys
-from importlib.util import find_spec
-from pathlib import Path
-
-WORKSPACE = Path(__file__).resolve().parents[3]
-GETSENTRY_SETTINGS = WORKSPACE / "getsentry" / "getsentry" / "settings.py"
-
-# Where getsentry is installed (as on a box), its devserver is the one running, and it keeps
-# its own database, so load its settings the way the `getsentry` command does.
-if find_spec("getsentry") is not None and GETSENTRY_SETTINGS.exists():
-    os.environ["SENTRY_CONF"] = str(GETSENTRY_SETTINGS)
-
 from sentry.runner import configure
 
 configure()
 
 import argparse
+import os
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from pathlib import Path
+from typing import Self
 
 from django.db.models import Max, Min
 
@@ -71,6 +61,30 @@ SEED_TOKEN_SCOPES = (
     "team:write",
 )
 RUN_WAIT = timedelta(seconds=90)
+DEFAULT_SEER_PATH = Path(__file__).resolve().parents[2].parent / "seer"
+
+
+@dataclass(frozen=True)
+class SeededBreach:
+    """What Seer's `evals.investigation.seeds.local` prints: the monitor it made and its breach."""
+
+    detector_id: int
+    open_period_start: datetime
+
+    @classmethod
+    def parse(cls, stdout: str) -> Self:
+        last_line = stdout.strip().splitlines()[-1] if stdout.strip() else ""
+        try:
+            payload = json.loads(last_line)
+            return cls(
+                detector_id=int(payload["detectorId"]),
+                open_period_start=datetime.fromisoformat(payload["openPeriodStart"]),
+            )
+        except (ValueError, KeyError, TypeError) as error:
+            sys.exit(
+                f"> Unexpected output from Seer's seed ({error!r}). It should end with "
+                f'{{"detectorId": ..., "openPeriodStart": ...}}, but printed:\n{stdout}'
+            )
 
 
 @dataclass(frozen=True)
@@ -87,10 +101,15 @@ class MetricBreachTrigger:
             sys.exit("> organizations:seer-automations is not enabled for this organization.")
 
         workflow = self._automation()
-        source = self._seed()["children"][self.scenario]["data"]["source"]
-        monitor = Detector.objects.get(
-            id=int(source["detectorId"]), project__organization_id=self.organization.id
-        )
+        breach = self._seed()
+        monitor = Detector.objects.filter(
+            id=breach.detector_id, project__organization_id=self.organization.id
+        ).first()
+        if monitor is None:
+            sys.exit(
+                f"> Seer seeded monitor {breach.detector_id}, but this script can't see it. "
+                "Is SENTRY_CONF pointing at the devserver's database?"
+            )
         self._write(f"> Seeded monitor {monitor.id} ({monitor.name}) in {monitor.project.slug}.")
         with workflow.update_config() as update:
             update.set_enabled(True)
@@ -98,7 +117,7 @@ class MetricBreachTrigger:
 
         subscription = self._subscription(monitor)
         # Sentry opens the issue when the monitor is evaluated, so the seed puts its breach at now.
-        evaluated_at = datetime.fromisoformat(source["openPeriod"]["start"])
+        evaluated_at = breach.open_period_start
         value = self._monitor_value(monitor, subscription, evaluated_at)
         self._write(
             f"> Evaluating the monitor with {subscription.snuba_query.aggregate} = {value}..."
@@ -118,7 +137,7 @@ class MetricBreachTrigger:
         self._drain_outbox()
         self._report(workflow, monitor)
 
-    def _seed(self) -> dict[str, Any]:
+    def _seed(self) -> SeededBreach:
         team = Team.objects.filter(organization=self.organization).first()
         if team is None:
             sys.exit("> The organization needs a team for the seeded project.")
@@ -145,17 +164,7 @@ class MetricBreachTrigger:
                 ],
                 cwd=self.seer_path,
                 env={
-                    **{
-                        key: value
-                        for key, value in os.environ.items()
-                        if key
-                        not in (
-                            "VIRTUAL_ENV",
-                            "PYTHONPATH",
-                            "SENTRY_CONF",
-                            "DJANGO_SETTINGS_MODULE",
-                        )
-                    },
+                    **os.environ,
                     "EVALS_SENTRY_WRITE_TOKEN": token.token,
                     "EVALS_SENTRY_READ_TOKEN": token.token,
                 },
@@ -166,7 +175,7 @@ class MetricBreachTrigger:
             token.delete()
         if seeded.returncode != 0:
             sys.exit("> The Seer seed failed.")
-        return json.loads(seeded.stdout.splitlines()[-1])
+        return SeededBreach.parse(seeded.stdout)
 
     def _monitor_value(
         self, monitor: Detector, subscription: QuerySubscription, end: datetime
@@ -310,7 +319,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seer-path",
         type=Path,
-        default=WORKSPACE / "seer",
+        default=DEFAULT_SEER_PATH,
         help="Seer checkout to seed from (default: next to this repository)",
     )
     args = parser.parse_args()
