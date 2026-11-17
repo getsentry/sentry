@@ -11,6 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Redaction} from 'sentry/components/events/meta/annotatedText/redaction';
 import {getTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import type {ChunkType} from 'sentry/types/group';
+import {getAttributeSearchDeprecationAliases} from 'sentry/utils/fields/getAttributeSearchSecondaryAliases';
 import {isRecord} from 'sentry/utils/object/isRecord';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -25,17 +26,20 @@ import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
  * can be marked. The endpoints return scrubbing meta for other string attributes
  * too, like `user.email`, but marking those would show the marks as stray
  * characters wherever they are rendered as plain text.
+ *
+ * Older spans hold these attributes under the names they had before, like
+ * `gen_ai.tool.input`, which the conventions list.
  */
-const ANNOTATION_AWARE_ATTRIBUTES = new Set([
-  'gen_ai.input.messages',
-  'gen_ai.output.messages',
-  'gen_ai.request.messages',
-  'gen_ai.response.object',
-  'gen_ai.response.text',
-  'gen_ai.system_instructions',
-  'gen_ai.tool.call.arguments',
-  'gen_ai.tool.call.result',
-]);
+const ANNOTATION_AWARE_ATTRIBUTES = new Set(
+  [
+    'gen_ai.input.messages',
+    'gen_ai.output.messages',
+    'gen_ai.response.object',
+    'gen_ai.system_instructions',
+    'gen_ai.tool.call.arguments',
+    'gen_ai.tool.call.result',
+  ].flatMap(attribute => [attribute, ...getAttributeSearchDeprecationAliases(attribute)])
+);
 
 interface ScrubbingRule {
   remark: string;
