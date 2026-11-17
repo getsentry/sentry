@@ -19,6 +19,7 @@ from sentry.seer.autofix.pr_iteration.out_of_credits import (
     take_out_of_credits,
 )
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.testutils.cases import TestCase
 
 RUN_ID = 67890
@@ -32,9 +33,16 @@ class OutOfCreditsMarkerTest(TestCase):
             organization=self.organization, seer_run_state_id=RUN_ID, user_id=self.user.id
         )
 
-    def _mark(self, stranded_action: StrandedAction | None = None) -> bool:
+    def _mark(
+        self,
+        stranded_action: StrandedAction | None = None,
+        denial_reason: SeerCreditDenialReason | None = None,
+    ) -> bool:
         return mark_out_of_credits(
-            run_id=RUN_ID, organization_id=self.organization.id, stranded_action=stranded_action
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            stranded_action=stranded_action,
+            denial_reason=denial_reason,
         )
 
     def _take(self) -> OutOfCreditsMarker | None:
@@ -47,6 +55,14 @@ class OutOfCreditsMarkerTest(TestCase):
         assert get_out_of_credits(
             run_id=RUN_ID, organization_id=self.organization.id
         ) == OutOfCreditsMarker(stranded_action=StrandedAction.PUSH)
+
+    def test_mark_replaces_the_denial_reason(self) -> None:
+        self._mark(denial_reason="daily_cap_exceeded")
+        self._mark()
+
+        assert get_out_of_credits(
+            run_id=RUN_ID, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=None, denial_reason=None)
 
     def test_take_returns_the_marker_once(self) -> None:
         assert self._take() is None
