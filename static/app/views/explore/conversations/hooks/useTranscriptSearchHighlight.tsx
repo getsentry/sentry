@@ -15,14 +15,18 @@ function findRanges(root: HTMLElement, query: string, currentSpanId: string | nu
   const current: Range[] = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    // Only transcript blocks, not the span details beside them.
+    const owner = node.parentElement?.closest('[data-node-id]');
+    if (!owner) {
+      continue;
+    }
     const text = node.nodeValue ?? '';
     for (const match of text.matchAll(pattern)) {
       const range = document.createRange();
       range.setStart(node, match.index);
       range.setEnd(node, match.index + match[0].length);
       all.push(range);
-      const owner = node.parentElement?.closest('[data-node-id]');
-      if (currentSpanId && owner?.getAttribute('data-node-id') === currentSpanId) {
+      if (currentSpanId && owner.getAttribute('data-node-id') === currentSpanId) {
         current.push(range);
       }
     }
@@ -59,7 +63,7 @@ function clearHighlights() {
 }
 
 /**
- * Marks every occurrence of the query, like browser find, and reveals the selected
+ * Marks every occurrence of the query in the transcript, like browser find, and reveals the selected
  * match's own: opens collapsed blocks holding them and scrolls to the first.
  * Returns whether the selected match's rows contain the query.
  */
