@@ -225,7 +225,7 @@ describe('FeedbackList', () => {
     const state = ExplorerAutofixStateFixture({
       status: 'completed',
       blocks: iterationBlocks(),
-      pr_iteration_out_of_credits: true,
+      pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
       queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
     });
 
@@ -243,8 +243,7 @@ describe('FeedbackList', () => {
     const state = ExplorerAutofixStateFixture({
       status: 'completed',
       blocks: [...iterationBlocks(), completedBlock()],
-      pr_iteration_out_of_credits: true,
-      pr_iteration_out_of_credits_unfinished_action: 'push',
+      pr_iteration_out_of_credits: {unfinished_action: 'push', denial_reason: null},
     });
 
     render(<IterationFeedback state={state} />);
@@ -263,8 +262,10 @@ describe('FeedbackList', () => {
           pr_creation_error_code: 'branch_moved',
         }),
       },
-      pr_iteration_out_of_credits: true,
-      pr_iteration_out_of_credits_unfinished_action: 'branch_moved_retry',
+      pr_iteration_out_of_credits: {
+        unfinished_action: 'branch_moved_retry',
+        denial_reason: null,
+      },
     });
 
     render(<IterationFeedback state={state} />);

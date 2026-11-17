@@ -1531,7 +1531,7 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
         autofix: {
           ...baseState,
           status: 'completed',
-          pr_iteration_out_of_credits: true,
+          pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
           queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
         },
       },
@@ -1547,7 +1547,7 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
       'Your organization is out of credits. Seer will pick up this feedback the next time it iterates on the pull request.'
     );
     await waitFor(() =>
-      expect(result.current.runState?.pr_iteration_out_of_credits).toBe(true)
+      expect(result.current.runState?.pr_iteration_out_of_credits).toBeTruthy()
     );
   });
 });

@@ -225,9 +225,8 @@ export function usePrIterationFeedback(
       autofix.runState?.status === 'awaiting_user_input' ||
       repoStates.some(repo => repo.pr_creation_status === 'creating');
 
-    const unfinishedAction = isPrIterationOutOfCredits(autofix.runState)
-      ? autofix.runState?.pr_iteration_out_of_credits_unfinished_action
-      : null;
+    const unfinishedAction =
+      autofix.runState?.pr_iteration_out_of_credits?.unfinished_action;
     const heldForCreditsAction =
       unfinishedAction === 'push' || unfinishedAction === 'branch_moved_retry'
         ? unfinishedAction

@@ -379,7 +379,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
           <CodeChangesCard
             groupId="1"
             autofix={makeAutofix([userUiFeedback('Make the button blue', user)], {
-              pr_iteration_out_of_credits: true,
+              pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
             })}
             section={makeSection('completed', [])}
           />

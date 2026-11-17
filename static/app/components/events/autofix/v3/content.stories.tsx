@@ -220,8 +220,7 @@ const STOPPED_RUN: Partial<ExplorerAutofixState> = {
   status: 'error',
   failure_reason: 'out_of_credits',
   repo_pr_states: OPEN_PR,
-  pr_iteration_out_of_credits: true,
-  pr_iteration_out_of_credits_unfinished_action: 'agent_turn',
+  pr_iteration_out_of_credits: {unfinished_action: 'agent_turn', denial_reason: null},
 };
 
 const QUEUED_FEEDBACK = [
@@ -396,7 +395,7 @@ export default Storybook.story('SeerDrawerContent', story => {
       runState={makeRun(PR_ITERATION_BLOCKS, {
         repo_pr_states: OPEN_PR,
         queued_feedback: QUEUED_FEEDBACK,
-        pr_iteration_out_of_credits: true,
+        pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
       })}
     />
   ));
@@ -423,8 +422,7 @@ export default Storybook.story('SeerDrawerContent', story => {
       description="Sentry refused to push the latest iteration for credits. The iteration shows as waiting instead of pushed, and the next iteration pushes it."
       runState={makeRun(PR_ITERATION_BLOCKS, {
         repo_pr_states: OPEN_PR,
-        pr_iteration_out_of_credits: true,
-        pr_iteration_out_of_credits_unfinished_action: 'push',
+        pr_iteration_out_of_credits: {unfinished_action: 'push', denial_reason: null},
       })}
     />
   ));
@@ -441,8 +439,7 @@ export default Storybook.story('SeerDrawerContent', story => {
             pr_creation_error: "Your organization doesn't have enough Seer credits.",
           },
         },
-        pr_iteration_out_of_credits: true,
-        pr_iteration_out_of_credits_unfinished_action: 'push',
+        pr_iteration_out_of_credits: {unfinished_action: 'push', denial_reason: null},
       })}
     />
   ));
@@ -460,8 +457,10 @@ export default Storybook.story('SeerDrawerContent', story => {
               "The pull request's branch has commits newer than the code Seer edited, so pushing would have to force-push over them.",
           },
         },
-        pr_iteration_out_of_credits: true,
-        pr_iteration_out_of_credits_unfinished_action: 'branch_moved_retry',
+        pr_iteration_out_of_credits: {
+          unfinished_action: 'branch_moved_retry',
+          denial_reason: null,
+        },
       })}
     />
   ));
@@ -487,7 +486,7 @@ export default Storybook.story('SeerDrawerContent', story => {
       runState={makeRun(PR_ITERATION_BLOCKS, {
         repo_pr_states: OPEN_PR,
         queued_feedback: QUEUED_FEEDBACK,
-        pr_iteration_out_of_credits: true,
+        pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
       })}
       hasEnoughCredits
     />

@@ -16,7 +16,6 @@ import {
   getOutOfCreditsStep,
   isCodeChangesArtifact,
   isPrIterationBlock,
-  isPrIterationOutOfCredits,
   isPrIterationPaused,
   isSingleRunAutofix,
   type AutofixSection,
@@ -143,13 +142,12 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const isPaused = isPrIterationPaused(autofix.runState);
 
-  const unfinishedAction = isPrIterationOutOfCredits(autofix.runState)
-    ? autofix.runState?.pr_iteration_out_of_credits_unfinished_action
-    : null;
+  const outOfCredits = autofix.runState?.pr_iteration_out_of_credits;
+  const unfinishedAction = outOfCredits?.unfinished_action;
   let heldForCreditsMessage: string | null = null;
   if (unfinishedAction === 'push' || unfinishedAction === 'branch_moved_retry') {
     heldForCreditsMessage = OUT_OF_CREDITS_PR_ITERATION_MESSAGE[unfinishedAction];
-  } else if (isPrIterationOutOfCredits(autofix.runState)) {
+  } else if (outOfCredits) {
     const heldFeedbackCount = autofix.runState?.queued_feedback?.length ?? 0;
     if (heldFeedbackCount) {
       heldForCreditsMessage = OUT_OF_CREDITS_PR_ITERATION_MESSAGE.held(heldFeedbackCount);

@@ -232,11 +232,9 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
-  // Credits refused the run's next step, so its queued feedback waits. False while a turn
+  // Credits refused the run's next step, so its queued feedback waits. Null while a turn
   // runs or iteration is paused.
-  pr_iteration_out_of_credits?: boolean;
-  // What the latest PR iteration left unfinished.
-  pr_iteration_out_of_credits_unfinished_action?: PrIterationUnfinishedAction | null;
+  pr_iteration_out_of_credits?: PrIterationOutOfCredits | null;
   pr_iteration_paused?: boolean;
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
@@ -248,7 +246,11 @@ export interface ExplorerAutofixState {
   }>;
 }
 
-type PrIterationUnfinishedAction = 'agent_turn' | 'push' | 'branch_moved_retry';
+interface PrIterationOutOfCredits {
+  denial_reason: SeerCreditDenialReason | null;
+  // What the latest PR iteration left unfinished.
+  unfinished_action: 'agent_turn' | 'push' | 'branch_moved_retry' | null;
+}
 
 /**
  * Response from the autofix endpoint.
@@ -763,7 +765,7 @@ export function isPrIterationPaused(runState: ExplorerAutofixState | null): bool
 export function isPrIterationOutOfCredits(
   runState: ExplorerAutofixState | null
 ): boolean {
-  return runState?.pr_iteration_out_of_credits === true;
+  return defined(runState?.pr_iteration_out_of_credits);
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
