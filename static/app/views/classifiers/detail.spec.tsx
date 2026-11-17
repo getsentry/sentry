@@ -58,12 +58,16 @@ describe('ClassifierDetail', () => {
   const timeSeriesUrl = `/organizations/${organization.slug}/events-timeseries/`;
   const eventsUrl = `/organizations/${organization.slug}/events/`;
   const conversationsUrl = `/organizations/${organization.slug}/agents/conversations/`;
+  const prebuiltUrl = `/organizations/${organization.slug}/classifiers/prebuilt/`;
 
-  function renderDetail(org: Organization = organization) {
+  function renderDetail(
+    org: Organization = organization,
+    query: Record<string, string> = {}
+  ) {
     return render(<ClassifierDetail />, {
       organization: org,
       initialRouterConfig: {
-        location: {pathname: `/organizations/${org.slug}/seer/classifiers/10/`},
+        location: {pathname: `/organizations/${org.slug}/seer/classifiers/10/`, query},
         route: '/organizations/:orgId/seer/classifiers/:classifierId/',
       },
     });
@@ -74,6 +78,7 @@ describe('ClassifierDetail', () => {
     ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'frontend'})]);
     MockApiClient.addMockResponse({url: timeSeriesUrl, body: {timeSeries: []}});
     MockApiClient.addMockResponse({url: eventsUrl, body: {data: []}});
+    MockApiClient.addMockResponse({url: prebuiltUrl, body: []});
   });
 
   it('renders the classifier name and dataset', async () => {
@@ -83,19 +88,142 @@ describe('ClassifierDetail', () => {
         id: '10',
         name: 'Stuck in a loop',
         dataset: 'conversation',
+        filterQuery: '(gen_ai.agent.name:planner) AND (conversation.messages:>10)',
       }),
     });
 
     renderDetail();
 
-    expect(
-      await screen.findByRole('heading', {name: 'Stuck in a loop', level: 2})
-    ).toBeInTheDocument();
-    expect(screen.getByText('Dataset:')).toBeInTheDocument();
-    expect(screen.getAllByText('Conversations')).toHaveLength(2);
+    expect(await screen.findByText('Stuck in a loop')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', {name: 'Details'})).toBeInTheDocument();
+    expect(screen.getByText('Dataset')).toBeInTheDocument();
+    expect(screen.getByText('Conversations')).toBeInTheDocument();
+    expect(screen.getByText('Result attribute')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Filters'})).toBeInTheDocument();
+    expect(screen.getByText('gen_ai.agent.name')).toBeInTheDocument();
+    expect(screen.getByText('conversation.messages')).toBeInTheDocument();
+    expect(screen.queryByText('AND')).not.toBeInTheDocument();
     expect(
       await screen.findByRole('heading', {name: 'No results found'})
     ).toBeInTheDocument();
+  });
+
+  it('groups filters joined by OR', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({
+        id: '10',
+        filterQuery: '(gen_ai.agent.name:seer_chat OR gen_ai.function_id:seer_chat)',
+      }),
+    });
+
+    renderDetail();
+
+    expect(await screen.findByText('gen_ai.agent.name')).toBeInTheDocument();
+    expect(screen.getByText('gen_ai.function_id')).toBeInTheDocument();
+    expect(screen.getByText('Any of')).toBeInTheDocument();
+  });
+
+  it('shows the environment and agent selectors apart from the search', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({
+        id: '10',
+        filterQuery:
+          '(environment:["production"] (gen_ai.agent.name:["seer_chat"] OR gen_ai.function_id:["seer_chat"])) and (conversation.messages:>10)',
+      }),
+    });
+
+    renderDetail();
+
+    expect(await screen.findByText('Environment')).toBeInTheDocument();
+    expect(screen.getByText('production')).toBeInTheDocument();
+    expect(screen.getByText('Agent')).toBeInTheDocument();
+    expect(screen.getByText('seer_chat')).toBeInTheDocument();
+    expect(screen.getByText('conversation.messages')).toBeInTheDocument();
+    expect(screen.queryByText('gen_ai.agent.name')).not.toBeInTheDocument();
+  });
+
+  it('shows the prebuilt classifier as the type', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({
+        id: '10',
+        name: 'Frustration on checkout',
+        prebuiltClassifierKey: 'user_frustration',
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: prebuiltUrl,
+      body: [
+        {
+          key: 'user_frustration',
+          name: 'User frustration',
+          dataset: 'conversation',
+          description: '',
+          resultAttribute: 'user_frustration',
+        },
+      ],
+    });
+
+    renderDetail();
+
+    expect(await screen.findByText('User frustration')).toBeInTheDocument();
+    expect(screen.getByText('Type')).toBeInTheDocument();
+  });
+
+  it('shows the sidebar once the prebuilt classifier loads', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({
+        id: '10',
+        name: 'Checkout frustration',
+        prebuiltClassifierKey: 'user_frustration',
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: prebuiltUrl,
+      asyncDelay: 50,
+      body: [
+        {
+          key: 'user_frustration',
+          name: 'User frustration',
+          dataset: 'conversation',
+          description: '',
+          resultAttribute: 'user_frustration',
+        },
+      ],
+    });
+
+    renderDetail();
+
+    expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: 'Details'})).not.toBeInTheDocument();
+    expect(await screen.findByText('User frustration')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Details'})).toBeInTheDocument();
+  });
+
+  it('shows custom classifiers as custom', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', prebuiltClassifierKey: null}),
+    });
+
+    renderDetail();
+
+    expect(await screen.findByText('Custom')).toBeInTheDocument();
+  });
+
+  it('hides the filters when the classifier has no search query', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', filterQuery: ''}),
+    });
+
+    renderDetail();
+
+    expect(await screen.findByRole('heading', {name: 'Details'})).toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: 'Filters'})).not.toBeInTheDocument();
   });
 
   it('shows the number of classified conversations', async () => {
@@ -117,7 +245,7 @@ describe('ClassifierDetail', () => {
 
     renderDetail();
 
-    expect(await screen.findByText('1.2K')).toBeInTheDocument();
+    expect(await screen.findByText('1.2K conversations classified')).toBeInTheDocument();
     expect(countRequest).toHaveBeenCalledWith(
       eventsUrl,
       expect.objectContaining({
@@ -128,6 +256,90 @@ describe('ClassifierDetail', () => {
           statsPeriod: '24h',
         }),
       })
+    );
+  });
+
+  it('scopes the results to the selected environment and time range', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({
+        id: '10',
+        projectId: '1',
+        resultAttribute: 'user_frustration',
+      }),
+    });
+    const countRequest = MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {data: [{'count_unique(gen_ai.conversation.id)': 5}]},
+      match: [
+        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+      ],
+    });
+    const timeSeriesRequest = MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {timeSeries: []},
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'frontend', environments: ['production']}),
+    ]);
+
+    renderDetail(organization, {environment: 'production', statsPeriod: '7d'});
+
+    expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
+    await waitFor(() =>
+      expect(countRequest).toHaveBeenCalledWith(
+        eventsUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: ['production'],
+            statsPeriod: '7d',
+          }),
+        })
+      )
+    );
+    expect(timeSeriesRequest).toHaveBeenCalledWith(
+      timeSeriesUrl,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['production'],
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('hides the environment filter when the classifier query sets one', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({
+        id: '10',
+        projectId: '1',
+        resultAttribute: 'user_frustration',
+        filterQuery: 'environment:staging',
+      }),
+    });
+    const countRequest = MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {data: [{'count_unique(gen_ai.conversation.id)': 5}]},
+      match: [
+        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+      ],
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'frontend', environments: ['production']}),
+    ]);
+
+    renderDetail(organization, {environment: 'production'});
+
+    expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'production'})).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(countRequest).toHaveBeenCalledWith(
+        eventsUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({environment: []}),
+        })
+      )
     );
   });
 
@@ -478,11 +690,27 @@ describe('ClassifierDetail', () => {
     expect(screen.queryByText(DISABLED_MESSAGE)).not.toBeInTheDocument();
   });
 
-  it('disables the status toggle without project write access', async () => {
+  it('lets members with project access change the status', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: TelemetryClassifierFixture({id: '10', projectId: '1', status: 'enabled'}),
     });
+
+    renderDetail(
+      OrganizationFixture({features: ['classifiers-ui'], access: ['org:read']})
+    );
+
+    expect(await screen.findByRole('button', {name: 'Disable'})).toBeEnabled();
+  });
+
+  it('disables the status toggle without project access', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1', status: 'enabled'}),
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'frontend', access: []}),
+    ]);
 
     renderDetail(
       OrganizationFixture({features: ['classifiers-ui'], access: ['org:read']})

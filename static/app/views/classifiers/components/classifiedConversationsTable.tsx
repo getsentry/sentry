@@ -30,6 +30,8 @@ import {getResultAttributeKey} from 'sentry/views/classifiers/utils';
 import {ConversationCell} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 
+import {ResultAttributeName} from './resultAttributeName';
+
 type ColumnKey = 'conversation' | ClassifiedConversationSortKey;
 
 const DEFAULT_COLUMN_WIDTHS: Record<ColumnKey, number> = {
@@ -132,6 +134,16 @@ export function ClassifiedConversationsTable({
     [setSort, sort]
   );
 
+  const renderHeadCell = useCallback(
+    (column: GridColumnOrder<ColumnKey>) =>
+      column.key === 'result' ? (
+        <ResultAttributeName resultAttribute={classifier.resultAttribute} />
+      ) : (
+        column.name
+      ),
+    [classifier.resultAttribute]
+  );
+
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<ColumnKey>, row: ClassifiedConversation) => {
       switch (column.key) {
@@ -185,6 +197,7 @@ export function ClassifiedConversationsTable({
         bodyStyle={{marginBottom: 0}}
         grid={{
           getColumnSort,
+          renderHeadCell,
           renderBodyCell,
           onResizeColumn: handleResizeColumn,
           staticColumnWidths,
