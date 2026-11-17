@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AgentHandoffPrompt} from 'sentry/components/agentHandoff/agentHandoffPrompt';

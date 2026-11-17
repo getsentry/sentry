@@ -25,14 +25,12 @@ interface HandoffAdvancedMenuProps {
   disabled: boolean;
   onToggle: () => void;
   useIpPinning: boolean;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export function HandoffAdvancedMenu({
   disabled,
   useIpPinning,
   onToggle,
-  size = 'xs',
 }: HandoffAdvancedMenuProps) {
   return (
     <DropdownMenu
@@ -60,7 +58,7 @@ export function HandoffAdvancedMenu({
           aria-label={t('Advanced options')}
           icon={<IconSettings />}
           showChevron={false}
-          size={size}
+          size="xs"
           variant="transparent"
         >
           {t('Advanced')}

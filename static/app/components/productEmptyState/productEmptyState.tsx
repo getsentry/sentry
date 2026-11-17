@@ -1,9 +1,8 @@
 import {useState, type ReactNode} from 'react';
-import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {AgentHandoffProductPrompt} from 'sentry/components/agentHandoff/agentHandoffProductPrompt';
 import type {AddFeatureProduct} from 'sentry/components/agentHandoff/useAgentHandoff';
@@ -59,10 +58,12 @@ export function ProductEmptyState({
     <Stack gap="md" width="100%" maxWidth="960px" margin="0 auto">
       <Flex align="center" justify="between" gap="2xl" padding="3xl 2xl">
         <Stack gap="xl" flex={1}>
-          <Heading as="h2" size="2xl">{title}</Heading>
+          <Heading as="h2" size="2xl">
+            {title}
+          </Heading>
           <Stack as="ul" role="list" gap="sm" padding="0" margin="0">
             {benefits.map(benefit => (
-              <Benefit key={benefit} size="md">{benefit}</Benefit>
+              <Benefit key={benefit}>{benefit}</Benefit>
             ))}
           </Stack>
         </Stack>
@@ -76,8 +77,16 @@ export function ProductEmptyState({
         </Container>
       </Flex>
 
-      <SetupCard>
-        <SetupCardHeader>
+      <Container border="primary" radius="xl" overflow="hidden">
+        <Flex
+          align="center"
+          justify="between"
+          gap="md"
+          padding="lg 2xl"
+          background="secondary"
+          borderBottom="primary"
+          wrap="wrap"
+        >
           <Flex align="center" gap="sm">
             <Text bold>{tct('Set up [productName] for', {productName})}</Text>
             <ProjectBadge project={project} avatarSize={16} />
@@ -87,11 +96,15 @@ export function ProductEmptyState({
             onChange={setMode}
             aria-label={t('Setup mode')}
           >
-            <SegmentedControl.Item key="agent">{t('Use my coding agent')}</SegmentedControl.Item>
-            <SegmentedControl.Item key="manual">{t('Set up manually')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="agent">
+              {t('Use my coding agent')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="manual">
+              {t('Set up manually')}
+            </SegmentedControl.Item>
           </SegmentedControl>
-        </SetupCardHeader>
-        <SetupCardBody>
+        </Flex>
+        <Container padding="2xl">
           {mode === 'agent' ? (
             <AgentHandoffProductPrompt
               agentSteps={agentSteps}
@@ -102,31 +115,10 @@ export function ProductEmptyState({
           ) : (
             manualSetup
           )}
-        </SetupCardBody>
-      </SetupCard>
+        </Container>
+      </Container>
 
       {footer && <Container marginTop="md">{footer}</Container>}
     </Stack>
   );
 }
-
-const SetupCard = styled('div')`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.xl};
-  overflow: hidden;
-`;
-
-const SetupCardHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
-  background: ${p => p.theme.tokens.background.secondary};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  flex-wrap: wrap;
-`;
-
-const SetupCardBody = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-`;

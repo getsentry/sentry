@@ -10,7 +10,11 @@ import {Container} from '@sentry/scraps/layout';
 import * as Storybook from 'sentry/stories';
 import {ProductEmptyState} from './productEmptyState';
 
-export const project = {id: 'proj-story', slug: 'my-project', platform: 'javascript-nextjs'};
+export const project = {
+  id: 'proj-story',
+  slug: 'my-project',
+  platform: 'javascript-nextjs',
+};
 
 ## Default (agent tab)
 
@@ -25,7 +29,13 @@ Shows the intro benefits section and the setup card with the "Use my coding agen
         'Query and filter by any attribute',
         'Set alerts on log patterns',
       ]}
-      media={<img src="/images/spot/logs-empty-state.svg" alt="Logs empty state illustration" style={{width: '100%', height: 'auto'}} />}
+      media={
+        <img
+          src="/images/spot/logs-empty-state.svg"
+          alt="Logs empty state illustration"
+          style={{width: '100%', height: 'auto'}}
+        />
+      }
       agentSteps={[
         'Install the Sentry CLI (if not already installed)',
         'Configure log instrumentation in your project',
@@ -52,7 +62,13 @@ Clicking "Set up manually" reveals the `manualSetup` slot instead of the agent p
         'Find slow spans with flame charts',
         'Correlate traces with errors',
       ]}
-      media={<img src="/images/spot/traces-empty-state.svg" alt="Traces empty state illustration" style={{width: '100%', height: 'auto'}} />}
+      media={
+        <img
+          src="/images/spot/traces-empty-state.svg"
+          alt="Traces empty state illustration"
+          style={{width: '100%', height: 'auto'}}
+        />
+      }
       agentSteps={[
         'Install the Sentry SDK with tracing support',
         'Configure the tracing sample rate',
@@ -62,7 +78,11 @@ Clicking "Set up manually" reveals the `manualSetup` slot instead of the agent p
       productName="Tracing"
       project={project}
       feedbackSource="product-empty-state-story-manual"
-      manualSetup={<div style={{padding: '16px', color: 'gray'}}>Manual setup steps would render here via ManualSetupSteps.</div>}
+      manualSetup={
+        <div style={{padding: '16px', color: 'gray'}}>
+          Manual setup steps would render here via ManualSetupSteps.
+        </div>
+      }
     />
   </Container>
 </Storybook.Demo>

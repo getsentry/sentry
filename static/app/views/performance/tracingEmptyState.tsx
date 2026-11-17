@@ -213,7 +213,7 @@ export function TracingEmptyState({organization, project}: Props) {
           trackAnalytics('onboarding.ai_prompt_copied', {
             organization,
             platform: project.platform ?? 'unknown',
-            product: 'tracing',
+            product: 'traces',
             source: 'prompt',
           });
         }}

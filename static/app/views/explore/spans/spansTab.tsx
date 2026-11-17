@@ -114,7 +114,7 @@ function SpansTabOnboardingInner({
       </PageFilterBar>
       <OnboardingContentSection>
         <ExploreQuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
-        {true || organization.features.includes('agent-handoff-empty-states-tracing') ? (
+        {organization.features.includes('agent-handoff-empty-states-tracing') ? (
           <TracingEmptyState project={project} organization={organization} />
         ) : (
           <Onboarding project={project} organization={organization} />

@@ -56,7 +56,9 @@ describe('ProductEmptyState', () => {
     });
     const onPromptCopied = jest.fn();
 
-    render(<ProductEmptyState {...baseProps} onPromptCopied={onPromptCopied} />, {organization});
+    render(<ProductEmptyState {...baseProps} onPromptCopied={onPromptCopied} />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
 
