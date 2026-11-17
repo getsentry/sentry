@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import ClassVar, Literal, Self, cast
+from typing import ClassVar, NewType, Self
 
 from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
@@ -53,40 +53,8 @@ class InvalidScopeError(ValidationError):
     pass
 
 
-# Keep in sync with GRANTABLE_SCOPES. Callers must still authorize the grant.
-GrantableScope = Literal[
-    "org:read",
-    "org:write",
-    "org:admin",
-    "org:integrations",
-    "org:ci",
-    "org:tokens",
-    "member:invite",
-    "member:read",
-    "member:write",
-    "member:admin",
-    "team:read",
-    "team:write",
-    "team:admin",
-    "project:read",
-    "project:write",
-    "project:admin",
-    "project:releases",
-    "project:distribution",
-    "event:read",
-    "event:write",
-    "event:admin",
-    "alerts:read",
-    "alerts:write",
-    "dashboard:read",
-    "dashboard:write",
-    "saved_query:read",
-    "saved_query:write",
-    "seer:read",
-    "seer:write",
-    "user_preference:read",
-    "user_preference:write",
-]
+# Scope-name eligibility only; callers must still authorize the grant.
+GrantableScope = NewType("GrantableScope", str)
 
 
 def validate_grantable_scopes(value: Iterable[str]) -> None:
@@ -96,9 +64,9 @@ def validate_grantable_scopes(value: Iterable[str]) -> None:
 
 
 def parse_grantable_scopes(scopes: Iterable[str]) -> list[GrantableScope]:
-    values = list(scopes)
-    validate_grantable_scopes(values)
-    return cast("list[GrantableScope]", values)
+    scopes = list(scopes)
+    validate_grantable_scopes(scopes)
+    return [GrantableScope(scope) for scope in scopes]
 
 
 def service_account_outboxes(
