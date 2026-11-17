@@ -829,7 +829,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         original = self.select_monitors(self.monitor_ids)
         backing = original.backing_workflow
         assert backing is not None
-        backing.update(status=ObjectStatus.PENDING_DELETION)
+        backing.update(name="Latency breaches", enabled=True, status=ObjectStatus.PENDING_DELETION)
         assert self.project_ids() == set()
 
         replaced = self.select_monitors(self.monitor_ids[:1])
@@ -838,6 +838,8 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert replaced.backing_workflow_id != backing.id
         assert replaced.backing_workflow is not None
         assert replaced.backing_workflow.status == ObjectStatus.ACTIVE
+        assert replaced.backing_workflow.name == "Latency breaches"
+        assert replaced.backing_workflow.enabled is True
         assert replaced.version == original.version + 1
         assert self.project_ids() == {self.monitors[0].project_id}
         assert investigation_actions(replaced).count() == 1

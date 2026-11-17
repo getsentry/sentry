@@ -125,6 +125,7 @@ class AutomationTrigger[Inputs: BaseModel](Protocol):
     inputs_type: type[Inputs]
     settings_type: type[BaseModel]
     scoped_by: Literal["projects", "monitors"]
+    requires_prompt: bool = False
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
         """Return the active projects in the config's scope."""
@@ -161,10 +162,8 @@ class AutomationConfiguration[Inputs: BaseModel]:
     def validate_settings(self, extras: SeerWorkflowConfigExtras) -> tuple[BaseModel, BaseModel]:
         """Return the parsed trigger and action settings."""
         try:
-            return (
-                self.trigger.settings_type.parse_obj(extras.trigger_settings or {}),
-                InvestigationSettings.parse_obj(extras.action_settings or {}),
-            )
+            trigger_settings = self.trigger.settings_type.parse_obj(extras.trigger_settings or {})
+            action_settings = InvestigationSettings.parse_obj(extras.action_settings or {})
         except ValidationError as e:
             raise WorkflowUpdateError(
                 "; ".join(
@@ -172,6 +171,13 @@ class AutomationConfiguration[Inputs: BaseModel]:
                     for error in e.errors()
                 )
             ) from e
+        if (
+            self.trigger.requires_prompt
+            and extras.action_settings is not None
+            and action_settings.mode != "prompted"
+        ):
+            raise WorkflowUpdateError("Scheduled investigations require a prompt")
+        return trigger_settings, action_settings
 
 
 @dataclass
@@ -222,7 +228,9 @@ class ConfigUpdate:
             workflow.update(**fields)
             self.mark_related_changed()
         if extras.action_settings is not None:
-            action = investigation_actions(self.config).get()
+            action = investigation_actions(self.config).first()
+            if action is None:
+                raise WorkflowUpdateError("The automation has no investigation action")
             data = InvestigationSettings.parse_obj(extras.action_settings).dict()
             if action.data != data:
                 action.update(data=data)

@@ -113,6 +113,7 @@ def read_extras(config: SeerWorkflowConfig) -> SeerWorkflowConfigExtras:
     if workflow is not None:
         extras.name = workflow.name
         extras.created_by = workflow.created_by_id
-        action = investigation_actions(config).get()
-        extras.action_settings = InvestigationSettings.parse_obj(action.data).dict()
+        action = investigation_actions(config).first()
+        if action is not None:
+            extras.action_settings = InvestigationSettings.parse_obj(action.data).dict()
     return extras

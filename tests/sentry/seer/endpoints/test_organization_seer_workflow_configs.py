@@ -51,7 +51,7 @@ from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 from sentry.utils import json
-from sentry.workflow_engine.models import Detector, Workflow
+from sentry.workflow_engine.models import DataConditionGroupAction, Detector, Workflow
 
 GRANT = SeerServiceAccountGrant(scopes=["event:read"])
 
@@ -401,6 +401,19 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, config.id)
 
         assert response.data["createdBy"] == str(self.user.id)
+
+    def test_update_without_investigation_action(self) -> None:
+        config = self.create_config()
+        DataConditionGroupAction.objects.filter(action__in=investigation_actions(config)).delete()
+
+        self.get_success_response(self.organization.slug, config.id, method="put", name="Renamed")
+        self.get_error_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            actionSettings={"mode": "prompted", "prompt": "Investigate slow API requests"},
+            status_code=400,
+        )
 
     @freeze_time("2024-03-09 12:00:00")
     def test_returns_next_run_of_scheduled_config(self) -> None:
@@ -1237,6 +1250,12 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.organization.slug,
             strategy="agentic_triage_v2",
             actionSettings={"mode": "prompted", "prompt": "   "},
+            status_code=400,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            actionSettings={"mode": "metric"},
             status_code=400,
         )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()

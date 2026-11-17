@@ -147,6 +147,7 @@ class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
     inputs_type = ScheduledRunInputs
     settings_type = ScheduleSettings
     scoped_by: Literal["projects", "monitors"] = "projects"
+    requires_prompt = True
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
         projects = Project.objects.filter(
@@ -317,14 +318,12 @@ def _record_scheduled_run(
             from sentry.seer.workflows.breached_metrics import SeerInvestigationActionHandler
 
             inputs = ScheduledRunInputs(scheduled_for=scheduled_for)
+            action = investigation_actions(config).first()
+            settings = InvestigationSettings.parse_obj(action.data) if action else None
+            if settings is None or settings.mode != "prompted":
+                return ScheduledRunOutcome("ignored", reason="configuration_unavailable")
 
             def snapshot() -> WorkflowRunSnapshot:
-                action = investigation_actions(config).get()
-                settings = InvestigationSettings.parse_obj(action.data)
-                if settings.mode != "prompted":
-                    raise WorkflowUpdateError(
-                        "Scheduled investigations require prompted action settings"
-                    )
                 return WorkflowRunSnapshot(
                     config_version=config.version,
                     strategy=SeerWorkflowStrategy(config.strategy),

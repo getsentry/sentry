@@ -573,8 +573,17 @@ def _get_or_create_backing_workflow(
     )
     if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
         return workflow, False
+    extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
+    enabled = True
+    if workflow is not None:
+        extras.name = workflow.name
+        extras.created_by = workflow.created_by_id
+        action = investigation_actions(config).first()
+        if action is not None:
+            extras.action_settings = InvestigationSettings.parse_obj(action.data).dict()
+        enabled = workflow.enabled
     config.backing_workflow = workflow = create_backing_workflow(
-        config, extras=SeerWorkflowConfigExtras.parse_obj(config.extras), enabled=config.enabled
+        config, extras=extras, enabled=enabled
     )
     return workflow, True
 
