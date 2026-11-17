@@ -341,14 +341,12 @@ class IntegrationConfigSerializer(IntegrationSerializer):
             return cast("IntegrationConfigSerializerResponse", {**base, "configOrganization": []})
 
         if self.params.get("action") == "create" and self.create_issue_config is not None:
-            return cast(
-                "IntegrationConfigSerializerResponse",
-                {
-                    **base,
-                    "configOrganization": [],
-                    "createIssueConfig": self.create_issue_config,
-                },
-            )
+            response: IntegrationConfigSerializerResponse = {
+                **base,
+                "configOrganization": [],
+                "createIssueConfig": self.create_issue_config,
+            }
+            return response
 
         try:
             installation = obj.get_installation(organization_id=self.organization_id)

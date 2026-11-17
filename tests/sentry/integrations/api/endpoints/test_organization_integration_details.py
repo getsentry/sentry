@@ -1,13 +1,11 @@
+from time import time
 from unittest.mock import MagicMock, patch
 
 import responses
-from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
-from sentry.exceptions import InvalidIdentity
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.models.integration import Integration
@@ -62,16 +60,6 @@ class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
         assert response.data["id"] == str(self.integration.id)
         assert response.data["configOrganization"]
         assert response.data["configData"] == {"sync_status_forward": {}}
-
-    def test_config_failure_returns_base_fields(self) -> None:
-        with patch.object(
-            GitlabIntegration, "get_organization_config", side_effect=ApiError("provider down")
-        ):
-            response = self.get_success_response(self.organization.slug, self.integration.id)
-
-        assert response.data["id"] == str(self.integration.id)
-        assert response.data["externalId"] == "gitlab:1"
-        assert "configOrganization" not in response.data
 
 
 @control_silo_test
@@ -431,33 +419,85 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         assert "/rest/api/2/issue/createmeta" in jira_request_urls[1]
         assert all("/rest/api/2/statuses/search" not in url for url in jira_request_urls)
 
-    def _get_create_with_error(self, error: Exception) -> Response:
-        installation = MagicMock(
-            spec=JiraIntegration,
-            wraps=self.integration.get_installation(self.organization.id),
+    @responses.activate
+    def test_create_issue_config_jira_unreachable_returns_detail(self) -> None:
+        responses.add(
+            responses.GET, "https://example.atlassian.net/rest/api/2/project/search", status=503
         )
-        installation.get_create_issue_config.side_effect = error
-        with patch.object(RpcIntegration, "get_installation", return_value=installation):
-            return self.get_error_response(
-                self.organization.slug,
-                self.integration.id,
-                qs_params={"action": "create"},
-                status_code=400,
-            )
 
-    def test_create_issue_config_integration_error_returns_detail(self) -> None:
-        response = self._get_create_with_error(
-            IntegrationError("Could not fetch project list from Jira.")
+        response = self.get_error_response(
+            self.organization.slug,
+            self.integration.id,
+            qs_params={"action": "create"},
+            status_code=400,
         )
-        assert response.data == {"detail": "Could not fetch project list from Jira."}
 
-    def test_create_issue_config_identity_error_returns_generic_detail(self) -> None:
-        for error in (
-            IdentityNotValid(),
-            InvalidIdentity(),
-            Identity.DoesNotExist(),
-            ApiError("raw provider body"),
-        ):
-            response = self._get_create_with_error(error)
-            assert "raw provider body" not in response.data["detail"]
-            assert response.data["detail"].startswith("Couldn't load the issue form")
+        assert response.data["detail"].startswith("Could not fetch project list from Jira.")
+
+    def test_create_issue_config_unsupported_integration(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="opsgenie:1",
+            provider="opsgenie",
+            name="Opsgenie",
+            metadata={"base_url": "https://api.opsgenie.com/", "domain_name": "test-app"},
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            integration.id,
+            qs_params={"action": "create"},
+            status_code=400,
+        )
+
+        assert response.data == {"detail": "This integration doesn't support creating issues."}
+
+
+@control_silo_test
+class AzureDevOpsBrokenAuthGetTest(APITestCase):
+    endpoint = "sentry-api-0-organization-integration-details"
+    projects_url = "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts_external_id",
+            name="fabrikam-fiber-inc",
+            metadata={"domain_name": "https://fabrikam-fiber-inc.visualstudio.com/"},
+        )
+        self.identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="vsts"),
+            user=self.user,
+            external_id="vsts",
+            data={"access_token": "123456789", "expires": time() + 1234567},
+        )
+        self.integration.add_organization(self.organization, self.user, self.identity.id)
+
+    def assert_create_returns_generic_error(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            self.integration.id,
+            qs_params={"action": "create"},
+            status_code=400,
+        )
+        assert response.data["detail"].startswith("Couldn't load the issue form")
+
+    @responses.activate
+    def test_create_issue_config_unauthorized(self) -> None:
+        responses.add(responses.GET, self.projects_url, status=401, json={})
+        self.assert_create_returns_generic_error()
+
+    def test_create_issue_config_missing_identity(self) -> None:
+        self.identity.delete()
+        self.assert_create_returns_generic_error()
+
+    def test_settings_with_missing_identity_returns_base_fields(self) -> None:
+        self.identity.delete()
+
+        response = self.get_success_response(self.organization.slug, self.integration.id)
+
+        assert response.data["id"] == str(self.integration.id)
+        assert response.data["externalId"] == "vsts_external_id"
+        assert "configOrganization" not in response.data

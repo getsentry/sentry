@@ -74,6 +74,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
                 "OrganizationIntegrationResponse", OrganizationIntegrationResponse
             ),
             400: RESPONSE_BAD_REQUEST,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=IntegrationExamples.GET_INTEGRATION,
     )
@@ -97,36 +98,36 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
                 integration_id=org_integration.integration_id
             )
             if integration is None:
-                raise Http404
+                return Response({"detail": "Integration not found."}, status=404)
+            installation = integration.get_installation(organization_id=organization.id)
+            if not isinstance(installation, IssueBasicIntegration):
+                return Response(
+                    {"detail": "This integration doesn't support creating issues."}, status=400
+                )
+            installation.organization = organization
             try:
-                installation = integration.get_installation(organization_id=organization.id)
-            except NotImplementedError:
-                installation = None
-            if isinstance(installation, IssueBasicIntegration):
-                installation.organization = organization
-                try:
-                    create_issue_config = installation.get_create_issue_config(
-                        None, request.user, params=request.GET
-                    )
-                except IntegrationError as e:
-                    return Response({"detail": str(e)}, status=400)
-                except (ApiError, IdentityNotValid, InvalidIdentity, Identity.DoesNotExist) as e:
-                    # ApiError text is the raw provider response, so don't show it.
-                    logger.info(
-                        "organization_integration.create_issue_config_failed",
-                        extra={
-                            "integration_id": integration.id,
-                            "integration_provider": integration.provider,
-                            "error_type": type(e).__name__,
-                        },
-                    )
-                    return Response(
-                        {
-                            "detail": "Couldn't load the issue form from this integration. "
-                            "Check that it's still connected, then try again."
-                        },
-                        status=400,
-                    )
+                create_issue_config = installation.get_create_issue_config(
+                    None, request.user, params=request.GET
+                )
+            except IntegrationError as e:
+                return Response({"detail": str(e)}, status=400)
+            except (ApiError, IdentityNotValid, InvalidIdentity, Identity.DoesNotExist) as e:
+                # ApiError text is the raw provider response, so don't show it.
+                logger.info(
+                    "organization_integration.create_issue_config_failed",
+                    extra={
+                        "integration_id": integration.id,
+                        "integration_provider": integration.provider,
+                        "error_type": type(e).__name__,
+                    },
+                )
+                return Response(
+                    {
+                        "detail": "Couldn't load the issue form from this integration. "
+                        "Check that it's still connected, then try again."
+                    },
+                    status=400,
+                )
 
         return self.respond(
             serialize(
