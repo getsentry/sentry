@@ -1172,8 +1172,7 @@ PluginActionData: TypeAlias = Any
 
 # data_schema of the seer_investigation action handler
 class SeerInvestigationActionData(TypedDict):
-    mode: NotRequired[Literal["metric", "prompted"]]
-    prompt: NotRequired[str]
+    pass
 
 
 # data_schema of the seer_workflow action handler

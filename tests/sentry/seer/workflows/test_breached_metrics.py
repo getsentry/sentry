@@ -526,7 +526,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
 
     def test_investigation_action_routes_through_backing_workflow(self) -> None:
         self.action.seer_workflow_binding.delete()
-        self.action.update(type=Action.Type.SEER_INVESTIGATION, data={"mode": "metric"})
+        self.action.update(type=Action.Type.SEER_INVESTIGATION)
 
         self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
 
@@ -539,7 +539,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
 
     def test_investigation_action_shared_with_another_workflow_is_ignored(self) -> None:
         self.action.seer_workflow_binding.delete()
-        self.action.update(type=Action.Type.SEER_INVESTIGATION, data={"mode": "metric"})
+        self.action.update(type=Action.Type.SEER_INVESTIGATION)
         other_conditions = self.create_data_condition_group(organization=self.organization)
         self.create_workflow_data_condition_group(
             workflow=self.create_workflow(organization=self.organization),

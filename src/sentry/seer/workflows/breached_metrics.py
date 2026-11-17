@@ -31,7 +31,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowTriggerBinding,
     WorkflowRunError,
 )
-from sentry.seer.workflows.action_settings import InvestigationSettings
 from sentry.seer.workflows.base import (
     AutomationAction,
     AutomationDefinition,
@@ -358,8 +357,6 @@ def _accept(
 
 @action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
 class SeerInvestigationActionHandler(SeerMetricAlertActionHandler):
-    data_schema = InvestigationSettings.json_schema()
-
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
