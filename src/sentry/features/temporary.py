@@ -38,6 +38,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Organization scoped features that are in development or in customer trials. #
     ###############################################################################
 
+    # Enable the agent handoff prompt in the traces empty state
+    manager.add("organizations:agent-handoff-empty-states-tracing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Kill switch for the agentic triage free cohort — enabling this flag shuts off agentic triage for all free cohort orgs
     manager.add("organizations:agentic-triage-free-cohort-killswitch", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-based issue detection for an organization
