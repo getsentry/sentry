@@ -330,8 +330,11 @@ jobs:
 
   # Only after every shard passed and uploaded its coverage, so the combined
   # coverage includes every test. A failing day keeps the previous coverage.
+  # files-changed and select-tests are skipped on schedule, and without a
+  # status function the implicit success() skips this job because of them.
   acceptance-coverage:
     if: >-
+      !cancelled() &&
       needs.acceptance.result == 'success' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     needs: acceptance

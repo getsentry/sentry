@@ -255,6 +255,19 @@ describe('SeerDrawerContent', () => {
     });
   });
 
+  it('hides Add Context without autofix-single-run', () => {
+    render(
+      <SeerDrawerContent
+        aiConfig={makeAiConfig()}
+        autofix={makeAutofix()}
+        group={GroupFixture()}
+      />
+    );
+
+    expect(screen.getByText('Have Seer...')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Add Context'})).not.toBeInTheDocument();
+  });
+
   it('starts with the context added through Add context', async () => {
     const startStep = jest.fn().mockResolvedValue({runId: 1, isSingleRun: false});
     render(
@@ -262,7 +275,8 @@ describe('SeerDrawerContent', () => {
         aiConfig={makeAiConfig()}
         autofix={makeAutofix({startStep})}
         group={GroupFixture()}
-      />
+      />,
+      {organization: OrganizationFixture({features: ['autofix-single-run']})}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Context'}));
@@ -340,7 +354,7 @@ describe('SeerDrawerContent', () => {
       expect(cta).toHaveTextContent('warning autofix-start');
       expect(screen.getAllByTestId('seer-out-of-credits-cta')).toHaveLength(1);
       expect(
-        screen.getByText('Let Seer find the root cause and fix it')
+        screen.getByText('Determine the root cause of your issue')
       ).toBeInTheDocument();
       const startButton = screen.getByRole('button', {name: 'Start Analysis'});
       expect(startButton).toBeDisabled();

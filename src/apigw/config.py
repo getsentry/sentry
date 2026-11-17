@@ -57,9 +57,20 @@ def load_config(app: App) -> None:
 
     app.config.AsyncPG.pool_size = int(os.environ.get("APIGW_DB_POOL_SIZE", 4))
 
-    app.config.endpoints.control = os.environ.get("APIGW_ENDPOINT_CONTROL", "http://localhost:8002")
+    control_endpoint_default = os.environ.get("APIGW_ENDPOINT_CONTROL", "http://localhost:8002")
+    app.config.endpoints.control = {None: control_endpoint_default}
+    for item in os.environ.get("APIGW_ENDPOINT_CONTROL_UPSTREAMS", "").split(","):
+        try:
+            name, target = item.strip().split(":", 1)
+            assert name
+            assert target
+        except Exception:
+            continue
+        app.config.endpoints.control[name] = target
+
     app.config.endpoints.control_resolve = bool(os.environ.get("APIGW_ENDPOINT_CONTROL_RESOLVE"))
     app.config.endpoints.use_cell_gw = bool(os.environ.get("APIGW_USE_CELL_GW_ENDPOINTS"))
+
     app.config.endpoints.protos = {}
     for item in os.environ.get("APIGW_ENDPOINT_PROTOS", "").split(","):
         try:
@@ -70,7 +81,7 @@ def load_config(app: App) -> None:
         app.config.endpoints.protos[target] = proto
 
     if app.config.endpoints.control_resolve:
-        app.config.Resolver.addrs = [app.config.endpoints.control]
+        app.config.Resolver.addrs = list(app.config.endpoints.control.values())
 
     if resolver_ttl := os.environ.get("APIGW_RESOLVER_TTL"):
         app.config.Resolver.interval = int(resolver_ttl)

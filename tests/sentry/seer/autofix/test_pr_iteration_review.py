@@ -16,6 +16,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.listeners.review import (
     handle_pull_request_review_for_autofix_iteration,
 )
+from sentry.seer.autofix.pr_iteration.nudge import NudgeKind
 from sentry.seer.models import SeerUnavailableError
 from sentry.seer.models.run import SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import _REVIEW_PAGE_SIZE, trigger_pr_iteration_from_review
@@ -861,7 +862,10 @@ class TriggerPrIterationFromReviewTest(TestCase):
             [self._review_comment(comment_id="1", body="fix this")]
         )
 
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with (
+            self.feature(TOKEN_BILLING_FEATURES),
+            patch(f"{TASK_PATH}.queue_not_requested_nudge") as mock_nudge,
+        ):
             self._run()
 
         self.mock_enqueue.assert_not_called()
@@ -870,6 +874,13 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_actions.create_pull_request_review_reaction.assert_not_called()
         # Nothing will run this review, so no iteration row waits for it.
         assert not SeerRunPrIteration.objects.filter(seer_run__seer_run_state_id=67890).exists()
+        mock_nudge.assert_called_once_with(
+            run_id=67890,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            pr_number=7,
+            kind=NudgeKind.REVIEW,
+        )
 
     def test_opt_in_with_pr_iteration_off_queues_only_the_comment_that_mentions_sentry(
         self,
@@ -882,9 +893,14 @@ class TriggerPrIterationFromReviewTest(TestCase):
             ]
         )
 
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with (
+            self.feature(TOKEN_BILLING_FEATURES),
+            patch(f"{TASK_PATH}.queue_not_requested_nudge") as mock_nudge,
+        ):
             self._run()
 
+        # The reviewer already knows how to ask, so no nudge.
+        mock_nudge.assert_not_called()
         # The summary body doesn't mention @sentry either, so only comment 1 is queued.
         self.mock_enqueue.assert_called_once()
         source = self.mock_enqueue.call_args.kwargs["feedback"].source
@@ -915,7 +931,20 @@ class TriggerPrIterationFromReviewTest(TestCase):
             [self._review_comment(comment_id="1", body="fix this")]
         )
 
-        self._run()
+        with patch(f"{TASK_PATH}.queue_not_requested_nudge") as mock_nudge:
+            self._run()
 
         assert self.mock_enqueue.call_count == 2
         self.mock_consume.assert_called_once()
+        mock_nudge.assert_not_called()
+
+    def test_no_nudge_for_a_bot_review_without_the_flag(self) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        with patch(f"{TASK_PATH}.queue_not_requested_nudge") as mock_nudge:
+            self._run(author_username="coverage-bot[bot]", author_is_bot=True)
+
+        mock_nudge.assert_not_called()

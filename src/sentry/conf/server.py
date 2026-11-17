@@ -719,6 +719,10 @@ VISUALSTUDIO_SCOPES = ["vso.work_write", "vso.project", "vso.code", "vso.release
 LINEAR_CLIENT_ID = ""
 LINEAR_CLIENT_SECRET = ""
 
+# Supabase integration (OAuth app credentials)
+SUPABASE_FOR_SEER_CLIENT_ID = ""
+SUPABASE_FOR_SEER_CLIENT_SECRET = ""
+
 SOCIAL_AUTH_PIPELINE = (
     "social_auth.backends.pipeline.user.get_username",
     "social_auth.backends.pipeline.social.social_auth_user",
@@ -2669,6 +2673,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.grafana.integration.GrafanaIntegrationProvider",
     "sentry.integrations.linear.integration.LinearIntegrationProvider",
+    "sentry.integrations.supabase.integration.SupabaseIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
     "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
@@ -2784,7 +2789,6 @@ SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
         "permissions": ["object.read"],
     },
 }
-SENTRY_VIEWER_CONTEXT_ENABLED = True
 SENTRY_ANALYTICS_BACKEND = "noop"
 SENTRY_ANALYTICS_OPTIONS: dict[str, Any] = {}
 SENTRY_MAIL_LIST_NAMESPACE = "localhost"

@@ -149,7 +149,7 @@ def handle_seer_investigation_start(
         log_unavailable(InvestigationUnavailableReason.INTEGRATION_NOT_INSTALLED)
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
 
-    organization = Organization.objects.filter(id=organization_id).first()
+    organization = Organization.objects.get_or_none(id=organization_id)
     if organization is None:
         log_unavailable(InvestigationUnavailableReason.ORGANIZATION_NOT_FOUND)
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)

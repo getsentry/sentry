@@ -312,7 +312,7 @@ def determine_eligible_recipients(
         # We're adding the current assignee to the list of suggested assignees because
         # a new issue could have multiple codeowners and one of them got auto-assigned.
         group_assignee = (
-            GroupAssignee.objects.filter(group_id=event.group_id).first()
+            GroupAssignee.objects.get_or_none(group_id=event.group_id)
             if event.group_id is not None
             else None
         )

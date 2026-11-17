@@ -52,45 +52,49 @@ export function AgentHandoffProductPrompt({
     });
 
   return (
-    <Stack gap="md">
-      <Text size="sm" variant="secondary">
-        {t('Paste this prompt into your coding agent')}
-      </Text>
+    <Stack gap="xl">
+      <Stack gap="md">
+        <Text size="sm" variant="secondary">
+          {t('Paste this prompt into your coding agent')}
+        </Text>
 
-      <HandoffPromptBox
-        flow={AgentHandoffFlow.ADD_FEATURE}
-        context={context}
-        onCopyPrompt={copyPrompt}
-        onSelect={onSelect}
-      />
-
-      <Flex align="center" gap="sm">
-        <Button
-          busy={handoff.isPending}
-          disabled={copyDisabled}
-          icon={<IconCopy />}
-          variant="primary"
-          size="sm"
-          onClick={copyPrompt}
-        >
-          {t('Copy prompt')}
-        </Button>
-
-        <FeedbackButton
-          size="sm"
-          feedbackOptions={{
-            tags: {'feedback.source': feedbackSource},
-          }}
+        <HandoffPromptBox
+          flow={AgentHandoffFlow.ADD_FEATURE}
+          context={context}
+          onCopyPrompt={copyPrompt}
+          onSelect={onSelect}
         />
 
-        <HandoffAdvancedMenu
-          disabled={copyDisabled}
-          useIpPinning={useIpPinning}
-          onToggle={toggleIpPinning}
-        />
-      </Flex>
+        <Flex align="center" gap="md">
+          <Button
+            busy={handoff.isPending}
+            disabled={copyDisabled}
+            icon={<IconCopy />}
+            variant="primary"
+            onClick={copyPrompt}
+          >
+            {t('Copy prompt')}
+          </Button>
 
-      <HandoffPromptAlerts useIpPinning={useIpPinning} error={handoff.error} />
+          <FeedbackButton
+            size="md"
+            variant="secondary"
+            feedbackOptions={{
+              tags: {'feedback.source': feedbackSource},
+            }}
+          />
+
+          <Flex flex={1} align="center" justify="end">
+            <HandoffAdvancedMenu
+              disabled={copyDisabled}
+              useIpPinning={useIpPinning}
+              onToggle={toggleIpPinning}
+            />
+          </Flex>
+        </Flex>
+
+        <HandoffPromptAlerts useIpPinning={useIpPinning} error={handoff.error} />
+      </Stack>
 
       <Stack gap="xs">
         <Text size="sm" variant="secondary">

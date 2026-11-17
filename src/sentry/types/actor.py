@@ -273,7 +273,7 @@ class Actor(RpcModel):
         from sentry.users.services.user.service import user_service
 
         if self.is_team:
-            team = Team.objects.filter(id=self.id).first()
+            team = Team.objects.get_or_none(id=self.id)
             if team:
                 return team
             raise Actor.InvalidActor(f"Cannot find a team with id={self.id}")

@@ -210,7 +210,7 @@ def upsert_block(
         if block.pk:
             block.version += 1
         block.save()
-        execution = NotebookBlockExecution.objects.filter(request_id=request_id).first()
+        execution = NotebookBlockExecution.objects.get_or_none(request_id=request_id)
         if execution is not None and execution.block_id != block.id:
             raise serializers.ValidationError(
                 {"requestId": "This execution request ID is already in use."}
