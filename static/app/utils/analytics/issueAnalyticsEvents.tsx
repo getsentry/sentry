@@ -263,6 +263,7 @@ export type IssueEventParameters = {
     area: string;
     copy_type: 'short_ids' | 'links';
     count: number;
+    trigger: 'button' | 'dropdown';
   };
   'issues_stream.issue_assigned': IssueStream & {
     area: string;
