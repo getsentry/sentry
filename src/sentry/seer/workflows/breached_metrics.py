@@ -31,13 +31,13 @@ from sentry.seer.models.workflow import (
     SeerWorkflowTriggerBinding,
     WorkflowRunError,
 )
+from sentry.seer.workflows.admission import RejectionReason
 from sentry.seer.workflows.base import (
     AutomationAction,
     AutomationDefinition,
     AutomationTrigger,
     ConfigUpdate,
     NoSettings,
-    RejectionReason,
     ScopeSelection,
     SelectedMonitors,
     WorkflowUpdateError,

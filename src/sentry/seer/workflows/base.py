@@ -4,25 +4,21 @@ import logging
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Annotated, Any, Literal, NewType, Protocol
+from typing import Any, Literal, NewType, Protocol
 
 from django.db import router, transaction
 from django.db.models import QuerySet
-from django.utils import timezone
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowFilters,
-    SeerWorkflowRun,
-    SeerWorkflowRunExtras,
     SeerWorkflowStrategy,
-    WorkflowRunError,
     WorkflowRunSnapshot,
 )
+from sentry.seer.workflows.admission import AdmittedRun, admit_run
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.service_accounts.models import (
     InvalidScopeError,
@@ -158,36 +154,6 @@ class AutomationAction[Inputs: BaseModel](Protocol):
         ...
 
 
-RejectionReason = Literal["quota_exceeded"]
-
-
-class AcceptedAdmission(BaseModel):
-    status: Literal["accepted"] = "accepted"
-    reason: None = None
-    decided_at: datetime
-
-
-class RejectedAdmission(BaseModel):
-    status: Literal["rejected"] = "rejected"
-    reason: RejectionReason
-    decided_at: datetime
-
-
-RunAdmission = Annotated[AcceptedAdmission | RejectedAdmission, Field(discriminator="status")]
-
-
-class AdmittedRunExtras(SeerWorkflowRunExtras):
-    admission: RunAdmission
-
-
-@dataclass(frozen=True)
-class AdmittedRun:
-    lifecycle: SeerWorkflowRunLifecycle
-    # False when the trigger key already had a run, which keeps its original decision.
-    created: bool
-    rejection: RejectionReason | None = None
-
-
 @dataclass(frozen=True)
 class AutomationDefinition[Inputs: BaseModel]:
     """An automation: a trigger paired with an action that accepts what it produces."""
@@ -221,47 +187,11 @@ class AutomationDefinition[Inputs: BaseModel]:
                 )
             ) from e
 
-    def has_quota_available(self, config: SeerWorkflowConfig) -> bool:
-        """Allow runs until automation quota enforcement is implemented."""
-        # TODO(telkins): Enforce automation quota before accepting a new run.
-        return True
-
     def admit_run(self, config: LockedConfig, *, trigger_key: str, inputs: Inputs) -> AdmittedRun:
-        """Record one admission decision per trigger key, leaving an accepted run queued.
-
-        Retries return the original run with its configuration, inputs and decision.
-        """
-        if not trigger_key or len(trigger_key) > 256:
-            raise ValueError("Trigger keys must contain between 1 and 256 characters")
-
-        runs = SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun))
-        existing = (
-            runs.filter(
-                organization_id=config.organization_id,
-                workflow_config_id=config.id,
-                trigger_key=trigger_key,
-            )
-            .order_by("-date_added", "-id")
-            .first()
-        )
-        if existing is not None:
-            lifecycle = SeerWorkflowRunLifecycle(
-                run_id=existing.id, organization_id=existing.organization_id
-            )
-            return AdmittedRun(
-                lifecycle=lifecycle,
-                created=False,
-                rejection=lifecycle.parse_extras(AdmittedRunExtras).admission.reason,
-            )
-
-        decided_at = timezone.now()
-        admission: AcceptedAdmission | RejectedAdmission = (
-            AcceptedAdmission(decided_at=decided_at)
-            if self.has_quota_available(config)
-            else RejectedAdmission(reason="quota_exceeded", decided_at=decided_at)
-        )
-        extras = AdmittedRunExtras(
-            snapshot=WorkflowRunSnapshot(
+        return admit_run(
+            config,
+            trigger_key=trigger_key,
+            build_snapshot=lambda: WorkflowRunSnapshot(
                 config_version=config.version,
                 strategy=SeerWorkflowStrategy(config.strategy),
                 filters=config.filters,
@@ -269,17 +199,7 @@ class AutomationDefinition[Inputs: BaseModel]:
                 output_policy=config.output_policy,
                 inputs=json.loads(inputs.json()),
             ),
-            admission=admission,
         )
-        lifecycle = SeerWorkflowRunLifecycle.create(config, trigger_key=trigger_key, extras=extras)
-        # TODO(telkins): Decide whether an automation that stays over quota should keep
-        # recording a rejected run for every trigger.
-        if admission.status == "rejected":
-            lifecycle.reject(
-                error=WorkflowRunError(code=admission.reason, message="Automation quota exceeded.")
-            )
-            return AdmittedRun(lifecycle=lifecycle, created=True, rejection=admission.reason)
-        return AdmittedRun(lifecycle=lifecycle, created=True)
 
     def trigger_run(self, config: LockedConfig, *, trigger_key: str, inputs: Inputs) -> AdmittedRun:
         """Admit a triggered run and, the first time it is accepted, dispatch the action."""

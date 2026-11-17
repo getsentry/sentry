@@ -33,8 +33,8 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
 )
+from sentry.seer.workflows.admission import AdmittedRunExtras
 from sentry.seer.workflows.base import (
-    AdmittedRunExtras,
     AllProjects,
     SeerServiceAccountGrant,
     SelectedMonitors,
@@ -529,7 +529,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
         assert not SeerWorkflowRun.objects.exists()
 
-    @mock.patch("sentry.seer.workflows.base.AutomationDefinition.has_quota_available")
+    @mock.patch("sentry.seer.workflows.admission.has_quota_available")
     def test_wfe_action_ignores_environment_mismatch_without_history(
         self, admission: mock.MagicMock
     ) -> None:
@@ -551,7 +551,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         event = self.breach_event(detector_id=self.detector.id)
         with (
             mock.patch(
-                "sentry.seer.workflows.base.AutomationDefinition.has_quota_available",
+                "sentry.seer.workflows.admission.has_quota_available",
                 return_value=False,
             ) as quota,
             mock.patch("sentry.seer.workflows.breached_metrics.metrics.incr") as incr,

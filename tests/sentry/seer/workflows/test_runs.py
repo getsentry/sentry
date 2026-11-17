@@ -19,7 +19,8 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
     WorkflowRunError,
 )
-from sentry.seer.workflows.base import AdmittedRun, SelectedProjects, lock_config
+from sentry.seer.workflows.admission import AdmittedRun
+from sentry.seer.workflows.base import SelectedProjects, lock_config
 from sentry.seer.workflows.definitions import get_definition
 from sentry.seer.workflows.runs import (
     InvalidWorkflowTransition,
