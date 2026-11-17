@@ -174,8 +174,8 @@ def _get_group_event(group: Group, event_id: str) -> GroupEvent | None:
         if event is None or event.group_id != group.id:
             return None
     else:
-        # One transaction or generic event can be in several issues. With group_id, the lookup
-        # finds the event only in this issue, and reads this issue's occurrence.
+        # A transaction event can be in several performance issues, one for each problem found in
+        # it. With group_id, the lookup finds the event's row in this issue, with its occurrence.
         event = eventstore.backend.get_event_by_id(
             project_id=project_id, event_id=event_id, group_id=group.id
         )
