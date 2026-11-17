@@ -83,7 +83,7 @@ class SavepointMetricsTest(TransactionTestCase):
         metrics.incr.side_effect = RuntimeError
         metrics.distribution.side_effect = RuntimeError
         tags = {"taskname": "sentry.tasks.example", "alias": "default"}
-        overflow = mock.call("db.transaction.savepoint_overflow", tags=tags)
+        overflow = mock.call("db.transaction.savepoint_overflow", tags=tags, sample_rate=1.0)
 
         with transaction.atomic(using="default"):
             _open_savepoints(64)
@@ -117,10 +117,10 @@ class SavepointMetricsTest(TransactionTestCase):
 
         assert metrics.incr.call_args_list == [overflow]
         assert metrics.distribution.call_args_list == [
-            mock.call("db.transaction.savepoints", 70, tags=tags),
-            mock.call("db.transaction.savepoints", 41, tags=tags),
-            mock.call("db.transaction.savepoints", 10, tags=tags),
-            mock.call("db.transaction.savepoints", 10, tags=tags),
+            mock.call("db.transaction.savepoints", 70, tags=tags, sample_rate=1.0),
+            mock.call("db.transaction.savepoints", 41, tags=tags, sample_rate=1.0),
+            mock.call("db.transaction.savepoints", 10, tags=tags, sample_rate=1.0),
+            mock.call("db.transaction.savepoints", 10, tags=tags, sample_rate=1.0),
         ]
 
 

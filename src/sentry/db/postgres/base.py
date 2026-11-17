@@ -154,7 +154,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
                 self.savepoints_peak = self.savepoints_alive
                 if self.savepoints_peak == FIRST_OVERFLOWING_SAVEPOINT:
                     tags = _savepoint_metric_tags(self.alias)
-                    metrics.incr("db.transaction.savepoint_overflow", tags=tags)
+                    metrics.incr("db.transaction.savepoint_overflow", tags=tags, sample_rate=1.0)
         except Exception:
             logger.exception("db.savepoint_metrics.failed")
 
@@ -187,7 +187,9 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         # Runs after the commit or rollback has happened; raising here would report a finished transaction as failed.
         try:
             tags = _savepoint_metric_tags(self.alias)
-            metrics.distribution("db.transaction.savepoints", savepoints_peak, tags=tags)
+            metrics.distribution(
+                "db.transaction.savepoints", savepoints_peak, tags=tags, sample_rate=1.0
+            )
         except Exception:
             logger.exception("db.savepoint_metrics.failed")
 
