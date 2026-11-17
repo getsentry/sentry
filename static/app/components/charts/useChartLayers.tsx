@@ -15,7 +15,7 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
 import type {ChartLayer, ChartLayersControlProps} from './chartLayersControl';
 
-export const RELEASES_LAYER = 'releases';
+const RELEASES_LAYER = 'releases';
 
 interface UseChartLayersParams {
   dataset: DiscoverDatasets;
