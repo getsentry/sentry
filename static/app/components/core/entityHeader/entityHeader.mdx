@@ -253,7 +253,7 @@ The example below is the Replay Details header. The title links to the replays l
 
 ## Loading
 
-Pass `isLoading` and every declared slot renders a skeleton instead: one per stat or metadata item, at the fixed height of the line it will hold. A stat is held as a single block, and the title's graphic and tags wait until it loads.
+Pass `isLoading` and every declared slot renders a skeleton instead: one per stat or metadata item (`null` metadata items included), at the fixed height of the line it will hold. A stat is held as a single block, and the title's graphic and tags wait until it loads.
 
 While `isLoading` is set, a declared `metadata` keeps its row even if every item is still `null`, so the page below does not jump when the facts land together. Once loading ends, a `metadata` whose items are all `null` leaves no row, the same as an omitted one. `subtitle` has nothing to declare, so its line appears when its text does.
 
@@ -455,7 +455,7 @@ title={{
 title={{...title, leadingGraphic: {type: 'platform', platform: 'javascript'}}}
 ```
 
-The graphic is decorative by default. Give it a `label` when it adds something the title does not, and it becomes a named image. `tooltip` requires a `label` and only appears on hover; without one, the `label` shows on hover instead.
+The graphic is decorative by default. Give it a `label` when it adds something the title does not, and it becomes a named image. Hovering a labelled graphic shows its `tooltip`, or the `label` if there is no `tooltip`. A `tooltip` needs a `label`, and it only appears on hover, so keep anything a user needs in the `label`.
 
 ### Tags
 
@@ -545,9 +545,9 @@ items: [
 ```
 
 > [!WARNING]
-> Don't switch a half between `text` and `link` based on its data. A half that became a link once its data arrived would swap a span for an anchor mid-load and move the row. A link stays a link when its count is zero or empty.
+> Don't switch a half between `text` and `link` based on its data. A half that became a link once its data arrived would gain a tab stop and a link role mid-load. A link stays a link when its count is zero or empty.
 
-Color is set by the header, not the caller: a text label is muted, a link half is accent, and stats take no `variant`.
+Color is set by the header, not the caller: a text label is muted, a text value uses the default color (muted when it's `null`), a link half is accent, and stats take no `variant`.
 
 Both halves can link, to the same place or to different ones. Two links to the same place add a second tab stop for nothing, so prefer one.
 
@@ -731,7 +731,7 @@ The metadata row is a list of properties. Each item has a `label` saying what it
 
 `type: 'link'` makes the value a link, with `to` or `externalHref` as on the title. Its name includes the key ("Release 8.42.0"), because the key is usually hidden. `tooltip` explains the value on hover or focus, with an underline. `mode: 'full'` draws the key beside the value; the default, `compact`, keeps it for screen readers only.
 
-Each header below varies one thing. The first shows leading items and how the key is drawn, the second compares a value with and without a `secondary` qualifier, and the third shows the kinds of value.
+Each header below varies one thing: the first shows how mode and a leadingGraphic combine, the second compares a value with and without a secondary qualifier, and the third shows the kinds of value.
 
 <Storybook.Demo resizable direction="column" align="stretch" gap="xl">
   <EntityHeader
@@ -1083,7 +1083,7 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 - **No data:** the dash is hidden from screen readers and "No data" is read instead.
 - **People:** read as text ("Viewed by: Alice Chen, Bob Diaz"). The avatars are decorative and can't be focused.
 - **Metadata:** every key is in the DOM, as hidden text or in a link's name, so a value is never announced unexplained: "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology.
-- **Color:** accent marks a link and an underline marks a tooltip.
+- **Color:** accent marks a link and an underline marks a tooltip. Links also show a focus ring on keyboard focus, so a keyboard user does not have to rely on color alone.
 - **Loading:** the header sets `aria-busy` while any slot is loading. This is a state, not an announcement.
 
 ### Developer responsibilities
