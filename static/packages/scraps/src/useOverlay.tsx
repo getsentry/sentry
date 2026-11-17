@@ -1,21 +1,15 @@
 import type * as React from 'react';
-import {useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {
   Boundary,
   DetectOverflowOptions,
-  Dimensions,
   FlipOptions,
   Middleware,
   Padding,
   Placement,
   Strategy,
 } from '@floating-ui/react-dom';
-import {
-  autoUpdate,
-  detectOverflow,
-  offset as offsetMiddleware,
-  useFloating,
-} from '@floating-ui/react-dom';
+import {detectOverflow, offset as offsetMiddleware} from '@floating-ui/react-dom';
 import {useButton as useButtonAria} from '@react-aria/button';
 import type {AriaOverlayProps, OverlayTriggerProps} from '@react-aria/overlays';
 import {
@@ -27,15 +21,13 @@ import type {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-state
 import {useOverlayTriggerState} from '@react-stately/overlays';
 
 import type {
-  OverlayAnchor,
   OverlayPlacement,
+  OverlayPositioning,
   ShiftOverlayOptions,
 } from '@sentry/scraps/overlayPositioning';
 import {
-  anchoredStyles,
   anchorOverlay,
   arrowOverlay,
-  overlayPlatform,
   placementMiddleware,
   shiftOverlay,
 } from '@sentry/scraps/overlayPositioning';
@@ -154,6 +146,7 @@ interface UseOverlayResult {
   overlayProps: ReturnType<typeof useOverlayTriggerAria>['overlayProps'] &
     ReturnType<typeof useOverlayAria>['overlayProps'] & {
       'data-overlay-root': '';
+      positioning: OverlayPositioning;
       ref: React.Dispatch<React.SetStateAction<HTMLDivElement | null>>;
       style: React.CSSProperties | undefined;
     };
@@ -163,7 +156,7 @@ interface UseOverlayResult {
     ref: React.Dispatch<React.SetStateAction<HTMLElement | null>>;
   };
   triggerRef: {current: HTMLElement | null};
-  update: ReturnType<typeof useFloating>['update'];
+  update: () => void;
 }
 
 export function useOverlay({
@@ -246,43 +239,68 @@ export function useOverlay({
     shouldApplyMinWidth,
   ]);
 
-  const {floatingStyles, middlewareData, placement, update} = useFloating({
-    elements: {reference: triggerElement, floating: overlayElement},
-    middleware,
-    placement: initialPlacement,
-    platform: overlayPlatform,
-    strategy,
-    // Using the `transform` attribute causes our borders to get blurry
-    // in chrome. See [0]. This just causes it to use `top` / `left`
-    // positions, which should be fine.
-    //
-    // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
-    transform: false,
-    // Overlays can stay mounted while closed. Follow the trigger, and the size
-    // of the overlay's content, only while open.
-    whileElementsMounted: openState.isOpen ? autoUpdate : undefined,
-  });
+  // `PositionWrapper` positions the overlay. It reports a flip back, so the
+  // owner only re-renders when the placement changes.
+  const [placement, setPlacement] = useState<Placement>(initialPlacement);
+  const updateRef = useRef<(() => void) | null>(null);
+  const update = useCallback(() => updateRef.current?.(), []);
+  const positioning = useMemo<OverlayPositioning>(
+    () => ({
+      reference: triggerElement,
+      floating: overlayElement,
+      middleware,
+      placement: initialPlacement,
+      strategy,
+      isOpen: openState.isOpen,
+      onPlacementChange: setPlacement,
+      updateRef,
+    }),
+    [
+      triggerElement,
+      overlayElement,
+      middleware,
+      initialPlacement,
+      strategy,
+      openState.isOpen,
+    ]
+  );
 
-  const overlayStyle = useMemo<React.CSSProperties>(() => {
-    const anchor: OverlayAnchor | undefined = middlewareData.anchor;
-    const maxSizeData: Dimensions | undefined = middlewareData.maxSize;
-    const referenceWidthData: Pick<Dimensions, 'width'> | undefined =
-      middlewareData.referenceWidth;
-    return {
-      ...anchoredStyles(floatingStyles, anchor),
-      ...(referenceWidthData && {minWidth: `${referenceWidthData.width}px`}),
-      ...(maxSizeData && {maxHeight: maxSizeData.height, maxWidth: maxSizeData.width}),
-    };
-  }, [floatingStyles, middlewareData]);
+  useEffect(() => {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      openState.isOpen &&
+      overlayElement?.isConnected &&
+      !updateRef.current
+    ) {
+      // eslint-disable-next-line no-console
+      console.error(
+        'useOverlay: render the overlay with <PositionWrapper {...overlayProps}>, or it is not positioned.'
+      );
+    }
+  }, [openState.isOpen, overlayElement]);
 
-  const arrowStyle = useMemo<React.CSSProperties>(() => {
-    const {x, y} = middlewareData.arrow ?? {};
-    return {
+  // The sizes change with the position, so the content reads them through
+  // custom properties that `PositionWrapper` sets. This style never changes.
+  const overlayStyle = useMemo<React.CSSProperties>(
+    () => ({
+      maxHeight: 'var(--overlay-max-height)',
+      maxWidth: 'var(--overlay-max-width)',
+      ...(shouldApplyMinWidth && {minWidth: 'var(--overlay-min-width)'}),
+    }),
+    [shouldApplyMinWidth]
+  );
+
+  // The arrow keeps its stylesheet position on the axis it does not follow
+  const isVertical = placement.startsWith('top') || placement.startsWith('bottom');
+  const arrowStyle = useMemo<React.CSSProperties>(
+    () => ({
       position: 'absolute',
-      ...(x !== undefined && {left: `${x}px`}),
-      ...(y !== undefined && {top: `${y}px`}),
-    };
-  }, [middlewareData.arrow]);
+      ...(isVertical
+        ? {left: 'var(--overlay-arrow-x)'}
+        : {top: 'var(--overlay-arrow-y)'}),
+    }),
+    [isVertical]
+  );
 
   // Get props for trigger button
   const {triggerProps, overlayProps: overlayTriggerAriaProps} = useOverlayTriggerAria(
@@ -366,6 +384,7 @@ export function useOverlay({
     overlayProps: {
       ref: setOverlayElement,
       style: overlayStyle,
+      positioning,
       'data-overlay-root': '',
       ...mergeProps(overlayTriggerAriaProps, overlayAriaProps),
     },

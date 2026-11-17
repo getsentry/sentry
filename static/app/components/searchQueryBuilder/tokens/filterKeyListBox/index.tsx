@@ -10,7 +10,7 @@ import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Overlay} from '@sentry/scraps/overlay';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -607,7 +607,9 @@ const SectionButton = styled(Button)`
   }
 `;
 
-const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
+const StyledPositionWrapper = styled(PositionWrapper, {
+  shouldForwardProp: prop => prop !== 'visible',
+})<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;

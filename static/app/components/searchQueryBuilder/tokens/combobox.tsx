@@ -27,7 +27,7 @@ import {matchesKeyboardEvent} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {focusMenuItemDetails} from '@sentry/scraps/menu';
-import {Overlay} from '@sentry/scraps/overlay';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
@@ -774,7 +774,9 @@ function getPopoverRoot(popover: HTMLElement | null) {
   return popover?.closest('[data-overlay-root]') ?? popover;
 }
 
-const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
+const StyledPositionWrapper = styled(PositionWrapper, {
+  shouldForwardProp: prop => prop !== 'visible',
+})<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;

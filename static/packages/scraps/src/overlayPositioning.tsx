@@ -71,6 +71,21 @@ export function flipOverlay(options: FlipOptions = {}): Middleware {
   return flip({fallbackStrategy: 'initialPlacement', ...options});
 }
 
+/**
+ * What `useOverlay()` passes to `PositionWrapper`, which positions the overlay.
+ * Only the wrapper re-renders on a new position, not the overlay's content.
+ */
+export interface OverlayPositioning {
+  floating: HTMLElement | null;
+  isOpen: boolean;
+  middleware: Middleware[];
+  onPlacementChange: (placement: Placement) => void;
+  placement: Placement;
+  reference: HTMLElement | null;
+  strategy: Strategy;
+  updateRef: {current: (() => void) | null};
+}
+
 export interface OverlayAnchor {
   bottom?: number;
   right?: number;

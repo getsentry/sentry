@@ -1,11 +1,15 @@
 import type * as React from 'react';
+import {useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
-import type {Placement} from '@floating-ui/react-dom';
+import type {Dimensions, Placement} from '@floating-ui/react-dom';
+import {autoUpdate, useFloating} from '@floating-ui/react-dom';
 import type {HTMLMotionProps, MotionProps, MotionStyle} from 'framer-motion';
 import {motion, useIsPresent} from 'framer-motion';
 
 import type {OverlayArrowProps} from '@sentry/scraps/overlayArrow';
 import {OverlayArrow} from '@sentry/scraps/overlayArrow';
+import type {OverlayAnchor, OverlayPositioning} from '@sentry/scraps/overlayPositioning';
+import {anchoredStyles, overlayPlatform} from '@sentry/scraps/overlayPositioning';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
 
 type OriginPoint = Partial<{x: number; y: number}>;
@@ -142,10 +146,14 @@ const OverlayInner = styled(motion.div)<{
 
 interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
+   * Positions the wrapper. `useOverlay()` returns it in `overlayProps`.
+   */
+  positioning?: OverlayPositioning;
+  ref?: React.Ref<HTMLDivElement>;
+  /**
    * Determines the zindex over the position wrapper
    */
-  zIndex: number;
-  ref?: React.Ref<HTMLDivElement>;
+  zIndex?: number;
 }
 
 /**
@@ -158,7 +166,73 @@ interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
  * `overlayProps` includes a onMouseEnter to allow the overlay to be hovered,
  * which we would not want while its fading away.
  */
-export function PositionWrapper({
+export function PositionWrapper({positioning, ...props}: PositionWrapperProps) {
+  return positioning ? (
+    <FloatingPositionWrapper {...props} positioning={positioning} />
+  ) : (
+    <MotionPositionWrapper {...props} />
+  );
+}
+
+/**
+ * Holds the overlay's position, so a new position re-renders only this
+ * element. Its `children` were created by the overlay's owner, so React skips
+ * them.
+ */
+function FloatingPositionWrapper({
+  positioning,
+  style,
+  ...props
+}: PositionWrapperProps & {positioning: OverlayPositioning}) {
+  const {floatingStyles, middlewareData, placement, update} = useFloating({
+    elements: {reference: positioning.reference, floating: positioning.floating},
+    middleware: positioning.middleware,
+    placement: positioning.placement,
+    platform: overlayPlatform,
+    strategy: positioning.strategy,
+    // Using the `transform` attribute causes our borders to get blurry
+    // in chrome. See [0]. This just causes it to use `top` / `left`
+    // positions, which should be fine.
+    //
+    // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+    transform: false,
+    // Overlays can stay mounted while closed. Follow the trigger, and the size
+    // of the overlay's content, only while open.
+    whileElementsMounted: positioning.isOpen ? autoUpdate : undefined,
+  });
+
+  const {updateRef, onPlacementChange} = positioning;
+  useLayoutEffect(() => {
+    updateRef.current = update;
+    return () => {
+      updateRef.current = null;
+    };
+  }, [updateRef, update]);
+  useLayoutEffect(() => {
+    onPlacementChange(placement);
+  }, [onPlacementChange, placement]);
+
+  const anchor: OverlayAnchor | undefined = middlewareData.anchor;
+  const maxSize: Dimensions | undefined = middlewareData.maxSize;
+  const referenceWidth: Pick<Dimensions, 'width'> | undefined =
+    middlewareData.referenceWidth;
+  const {x: arrowX, y: arrowY} = middlewareData.arrow ?? {};
+
+  // Before the first position, the values do not limit the overlay. Each
+  // wrapper sets them, so it never gets the values of an overlay that contains it.
+  const positionStyle = {
+    ...anchoredStyles(floatingStyles, anchor),
+    '--overlay-min-width': referenceWidth ? `${referenceWidth.width}px` : 'auto',
+    '--overlay-max-height': maxSize ? `${maxSize.height}px` : 'calc(infinity * 1px)',
+    '--overlay-max-width': maxSize ? `${maxSize.width}px` : 'calc(infinity * 1px)',
+    '--overlay-arrow-x': arrowX === undefined ? '50%' : `${arrowX}px`,
+    '--overlay-arrow-y': arrowY === undefined ? '50%' : `${arrowY}px`,
+  } as React.CSSProperties;
+
+  return <MotionPositionWrapper {...props} style={{...positionStyle, ...style}} />;
+}
+
+function MotionPositionWrapper({
   ref,
 
   // XXX: Some of framer motions props are incompatible with
@@ -178,7 +252,11 @@ export function PositionWrapper({
     <motion.div
       {...props}
       ref={ref}
-      style={{...style, zIndex, pointerEvents: isPresent ? 'auto' : 'none'}}
+      style={{
+        ...style,
+        ...(zIndex !== undefined && {zIndex}),
+        pointerEvents: isPresent ? 'auto' : 'none',
+      }}
     />
   );
 }

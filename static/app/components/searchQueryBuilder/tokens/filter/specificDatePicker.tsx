@@ -10,7 +10,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid} from '@sentry/scraps/layout';
-import {Overlay} from '@sentry/scraps/overlay';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 
 import {DatePicker} from 'sentry/components/calendar';
 import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
@@ -266,7 +266,9 @@ function TimeInput({ref, disabled, time, setTime}: TimeInputProps) {
   );
 }
 
-const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
+const StyledPositionWrapper = styled(PositionWrapper, {
+  shouldForwardProp: prop => prop !== 'visible',
+})<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;

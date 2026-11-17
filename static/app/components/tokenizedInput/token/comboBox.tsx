@@ -27,7 +27,7 @@ import {
 } from '@sentry/scraps/compactSelect';
 import {useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
-import {Overlay} from '@sentry/scraps/overlay';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
@@ -437,7 +437,9 @@ export function ComboBox({
   );
 }
 
-const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
+const StyledPositionWrapper = styled(PositionWrapper, {
+  shouldForwardProp: prop => prop !== 'visible',
+})<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;

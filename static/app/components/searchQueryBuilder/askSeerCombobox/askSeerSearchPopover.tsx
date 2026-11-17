@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {AriaPopoverProps} from '@react-aria/overlays';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
-import {Overlay} from '@sentry/scraps/overlay';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
@@ -62,7 +62,9 @@ const BackgroundColorWrapper = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
-const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
+const StyledPositionWrapper = styled(PositionWrapper, {
+  shouldForwardProp: prop => prop !== 'visible',
+})<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;

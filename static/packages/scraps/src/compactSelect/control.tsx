@@ -677,7 +677,7 @@ const StyledOverlay = styled(Overlay, {
 `;
 
 const StyledPositionWrapper = styled(PositionWrapper, {
-  shouldForwardProp: prop => isPropValid(prop),
+  shouldForwardProp: prop => prop === 'positioning' || isPropValid(prop),
 })<{visible?: boolean; zIndex?: number}>`
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
