@@ -47,7 +47,10 @@ import {
   useInvestigationAskSeer,
 } from 'sentry/views/investigations/investigationLLMContext';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
-import {getInvestigationSource} from 'sentry/views/investigations/source';
+import {
+  getInvestigationSource,
+  getOriginalPrompt,
+} from 'sentry/views/investigations/source';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {
   InvestigationActionRequest,
@@ -66,6 +69,7 @@ import {
 import {InvestigationBlockPlaceholder} from './blockPlaceholder';
 import {
   ACTIVITY_ELEMENT_ID,
+  STARTED_ACTIVITY_ELEMENT_ID,
   getInvestigationOutline,
   HYPOTHESES_ELEMENT_ID,
   InvestigationOutline,
@@ -307,7 +311,11 @@ export function InvestigationPageContent({
   const hasSummary = Boolean(investigation.summary && investigation.summaryDescription);
   // The "Investigation details" heading only appears below a summary.
   const showDetailsHeading = hasDetails && hasSummary;
-  const showActivity = isInvestigationRunDone(investigation);
+  const originalPrompt = getOriginalPrompt(investigation);
+  // A manual investigation's feed shows from the start, as it holds the prompt
+  // that the header links to.
+  const showActivity =
+    investigation.sourceType === 'manual' || isInvestigationRunDone(investigation);
   // Push the investigation into the LLM context tree for Seer Explorer. Its
   // hypotheses and blocks register their own nodes beneath it.
   useLLMContext(
@@ -393,6 +401,20 @@ export function InvestigationPageContent({
                   {source.monitorName ?? t('View issue')}
                 </Flex>
               </Link>
+            ) : originalPrompt ? (
+              <Button
+                size="sm"
+                variant="link"
+                onClick={() =>
+                  document
+                    .getElementById(STARTED_ACTIVITY_ELEMENT_ID)
+                    ?.scrollIntoView?.({block: 'center', behavior: 'smooth'})
+                }
+              >
+                <Text bold={false} variant="inherit">
+                  {t('Original prompt')}
+                </Text>
+              </Button>
             ) : (
               <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
             )}

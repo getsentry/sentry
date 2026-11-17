@@ -32,7 +32,11 @@ import {
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {isCommentEdited} from 'sentry/views/investigations/comments/utils';
 import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/block';
-import {getInvestigationSource} from 'sentry/views/investigations/source';
+import {STARTED_ACTIVITY_ELEMENT_ID} from 'sentry/views/investigations/detail/outline';
+import {
+  getInvestigationSource,
+  getOriginalPrompt,
+} from 'sentry/views/investigations/source';
 import type {
   InvestigationActionRequest,
   InvestigationComment,
@@ -72,11 +76,11 @@ export function InvestigationActivity({
   );
   const comments = data?.json ?? [];
   const hasOlder = parseLinkHeader(data?.headers.Link ?? null).next?.results === true;
-  const entries = getActivityEntries(
-    comments,
-    investigation.actionRequests ?? [],
-    hasOlder
-  );
+  // Applied actions are only kept within the loaded comments' range, so wait for them.
+  const entries =
+    data === undefined
+      ? []
+      : getActivityEntries(comments, investigation.actionRequests ?? [], hasOlder);
 
   return (
     <Stack ref={ref} as="section" id={id} gap="lg" paddingTop="2xl" borderTop="primary">
@@ -90,43 +94,41 @@ export function InvestigationActivity({
         <LoadingIndicator mini />
       ) : data === undefined ? (
         <LoadingError onRetry={refetch} />
-      ) : (
-        <ActivityList as="ol" aria-label={t('Activity')}>
-          {entries.map(entry =>
-            entry.type === 'comment' ? (
-              <CommentRow
-                key={`comment-${entry.comment.id}`}
-                comment={entry.comment}
-                investigationId={investigation.id}
-                readOnly={investigation.status === 'archived'}
-                blockTitle={
-                  entry.comment.blockId
-                    ? blockTitles.get(entry.comment.blockId)
-                    : undefined
-                }
-                onDeleted={() => composerRef?.current?.focus()}
-              />
-            ) : (
-              <AppliedActionRow
-                key={`action-${entry.actionRequest.id}`}
-                actionRequest={entry.actionRequest}
-                dateApplied={entry.date}
-              />
-            )
-          )}
-          {hasOlder ? (
-            <ActivityLineRow as="li">
-              <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
-                <ActivityProgressMarker state="activity" label={t('Older comments')} />
-              </Grid>
-              <Text variant="muted" density="comfortable">
-                {t('Showing the latest %s comments.', INVESTIGATION_COMMENTS_PAGE_SIZE)}
-              </Text>
-            </ActivityLineRow>
-          ) : null}
-          <StartedRow investigation={investigation} />
-        </ActivityList>
-      )}
+      ) : null}
+      {/* The started row comes from the investigation, so it shows while comments load or fail. */}
+      <ActivityList as="ol" aria-label={t('Activity')}>
+        {entries.map(entry =>
+          entry.type === 'comment' ? (
+            <CommentRow
+              key={`comment-${entry.comment.id}`}
+              comment={entry.comment}
+              investigationId={investigation.id}
+              readOnly={investigation.status === 'archived'}
+              blockTitle={
+                entry.comment.blockId ? blockTitles.get(entry.comment.blockId) : undefined
+              }
+              onDeleted={() => composerRef?.current?.focus()}
+            />
+          ) : (
+            <AppliedActionRow
+              key={`action-${entry.actionRequest.id}`}
+              actionRequest={entry.actionRequest}
+              dateApplied={entry.date}
+            />
+          )
+        )}
+        {hasOlder ? (
+          <ActivityLineRow as="li">
+            <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
+              <ActivityProgressMarker state="activity" label={t('Older comments')} />
+            </Grid>
+            <Text variant="muted" density="comfortable">
+              {t('Showing the latest %s comments.', INVESTIGATION_COMMENTS_PAGE_SIZE)}
+            </Text>
+          </ActivityLineRow>
+        ) : null}
+        <StartedRow investigation={investigation} />
+      </ActivityList>
     </Stack>
   );
 }
@@ -169,6 +171,7 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
   const currentUser = useUser();
   const {trigger, createdBy} = investigation;
   const source = getInvestigationSource(investigation);
+  const originalPrompt = getOriginalPrompt(investigation);
   const isOwnInvestigation = createdBy === currentUser.id;
   const {data: members} = useMembers({
     ids: createdBy ? [createdBy] : [],
@@ -230,7 +233,7 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
   }
 
   return (
-    <ActivityLineRow as="li">
+    <ActivityLineRow as="li" id={STARTED_ACTIVITY_ELEMENT_ID}>
       <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
         <ActivityProgressMarker state="activity" label={t('Started')} />
       </Grid>
@@ -257,6 +260,13 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
           <TimeSince date={investigation.dateCreated} />
         </StartedText>
       </Flex>
+      {originalPrompt ? (
+        <ActivityLineContent>
+          <Text variant="muted" density="comfortable" wordBreak="break-word">
+            {`\u201C${originalPrompt}\u201D`}
+          </Text>
+        </ActivityLineContent>
+      ) : null}
     </ActivityLineRow>
   );
 }

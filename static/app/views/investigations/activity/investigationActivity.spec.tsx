@@ -35,8 +35,12 @@ function renderPage() {
   return render(<InvestigationDetailView />, {organization, initialRouterConfig});
 }
 
-function findActivity() {
-  return screen.findByRole('list', {name: 'Activity'});
+async function findActivity() {
+  const activity = await screen.findByRole('list', {name: 'Activity'});
+  await waitFor(() =>
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+  );
+  return activity;
 }
 
 async function findEditor(name: string) {
@@ -185,6 +189,27 @@ describe('InvestigationActivity', () => {
     expect(
       within(activity).queryByRole('link', {name: 'an issue'})
     ).not.toBeInTheDocument();
+  });
+
+  it('quotes the original prompt under the start', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        source: {
+          type: 'manual',
+          ref: {},
+          revision: null,
+          prompt: 'Why is checkout slow?',
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const activity = await findActivity();
+    expect(within(activity).getByRole('listitem')).toHaveTextContent(
+      '\u201CWhy is checkout slow?\u201D'
+    );
   });
 
   it('merges applied action requests into the comments by date', async () => {

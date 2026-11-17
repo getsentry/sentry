@@ -20,6 +20,7 @@ import {
 export const SUMMARY_ELEMENT_ID = 'investigation-summary';
 export const HYPOTHESES_ELEMENT_ID = 'investigation-hypotheses';
 export const ACTIVITY_ELEMENT_ID = 'investigation-activity';
+export const STARTED_ACTIVITY_ELEMENT_ID = 'investigation-activity-started';
 
 /** Space kept between the top bar and the outline, and whatever it scrolls to. */
 const OFFSET_BELOW_TOP_BAR = 16;
