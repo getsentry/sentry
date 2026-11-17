@@ -320,6 +320,9 @@ jobs:
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '4'
+      # Checks API responses against the OpenAPI schema and reports the ones the baseline
+      # doesn't list, without failing tests. See src/sentry/testutils/pytest/openapi_responses.py.
+      SENTRY_OPENAPI_RESPONSE_CHECK: report
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -471,6 +474,16 @@ jobs:
           path: |
             .artifacts/resource-usage.jsonl
             .artifacts/resource-usage-summary.json
+          retention-days: 30
+
+      # `make api-response-baseline` records these in tests/apidocs/openapi-response-baseline.json
+      - name: Upload OpenAPI response check reports
+        if: ${{ !cancelled() && hashFiles('.artifacts/openapi-response-check/report-*.json') != '' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: openapi-response-check-${{ github.run_id }}-${{ matrix.instance }}
+          path: .artifacts/openapi-response-check/report-*.json
           retention-days: 30
 
       - name: Report failures

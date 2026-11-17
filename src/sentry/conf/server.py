@@ -1497,7 +1497,10 @@ def custom_parameter_sort(parameter: _OperationParameter) -> tuple[str, int]:
 
 
 if os.environ.get("OPENAPIGENERATE", False):
-    OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
+    # The test response check bundles the deprecated docs itself, so it passes its own path.
+    OLD_OPENAPI_JSON_PATH = os.environ.get(
+        "SENTRY_OPENAPI_DEPRECATED_JSON", "tests/apidocs/openapi-deprecated.json"
+    )
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
