@@ -302,6 +302,32 @@ describe('desktop navigation', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('keeps the All Projects submenu closed during the projects tour step', async () => {
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(
+        await screen.findByText('Quick settings-access for your important Projects')
+      ).toBeInTheDocument();
+      const viewAllProjects = screen.getByRole('menuitemradio', {
+        name: 'View All Projects',
+      });
+      expect(viewAllProjects).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.hover(viewAllProjects);
+      expect(screen.queryByPlaceholderText('Search')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+    });
+
     it('keeps keyboard focus in the tour while it opens the organization menu', async () => {
       MockApiClient.addMockResponse({
         url: '/assistant/',

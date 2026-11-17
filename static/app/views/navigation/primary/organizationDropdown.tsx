@@ -315,6 +315,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       maxWidth: ORGANIZATION_MENU_MAX_WIDTH,
                     },
                     hidden: projects.length === 0,
+                    // The submenu opens under the tour guide, and an outside
+                    // click on it closes the whole menu, ending the tour.
+                    disabled: isProjectTourActive,
                     children: [
                       {
                         key: 'my-projects',
