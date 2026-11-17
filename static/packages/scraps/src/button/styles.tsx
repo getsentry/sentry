@@ -16,14 +16,36 @@ export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<ButtonSize, SVGIconProps['size
   md: 'sm',
 };
 
-const elevation = {
-  md: '2px',
-  sm: '2px',
-  xs: '1px',
-  zero: '0px',
-} satisfies Record<ButtonSize, string>;
+interface ButtonStyleProps {
+  /**
+   * True when the button is disabled or aria-disabled.
+   */
+  disabled: boolean;
+  /**
+   * True when the button is disabled, aria-disabled, or busy. It keeps its
+   * color on focus and hover and gets no hover background.
+   */
+  inactive: boolean;
+  shapeVariant: 'rectangular' | 'square';
+  size: ButtonSize;
+  theme: Theme;
+}
 
-const hoverElevation = '1px';
+/**
+ * Every variant lists its complete styles. Variants share no style objects,
+ * so a nested rule such as `> span:last-child` or `&:hover` in one variant
+ * can never replace part of another's. Keep the rules in the same order in
+ * every variant: rules with equal specificity, such as `&:hover` and
+ * `&:active`, resolve by source order.
+ */
+const buttonVariants: Record<ButtonVariant, (p: ButtonStyleProps) => StrictCSSObject> = {
+  primary: p => getChonkyStyles(p, getChonkyTokens('primary', p.theme)),
+  secondary: p => getChonkyStyles(p, getChonkyTokens('secondary', p.theme)),
+  warning: p => getChonkyStyles(p, getChonkyTokens('warning', p.theme)),
+  danger: p => getChonkyStyles(p, getChonkyTokens('danger', p.theme)),
+  transparent: getTransparentStyles,
+  link: getLinkStyles,
+};
 
 export function DO_NOT_USE_getButtonStyles(
   p: Pick<CommonButtonProps, 'variant' | 'busy'> &
@@ -33,30 +55,80 @@ export function DO_NOT_USE_getButtonStyles(
       theme: Theme;
     }
 ): StrictCSSObject {
-  const variant = p.variant ?? 'secondary';
   // A button that is only aria-disabled stays focusable (so its tooltip can
   // open on focus) but must look and hover like a disabled one.
   const ariaDisabled = p['aria-disabled'];
-  const disabled = p.disabled || ariaDisabled === true || ariaDisabled === 'true';
+  const disabled = Boolean(
+    p.disabled || ariaDisabled === true || ariaDisabled === 'true'
+  );
 
-  const buttonSizes = {
-    ...p.theme.form,
-    zero: {
-      height: '24px',
-      minHeight: '24px',
-      fontSize: '0.75rem',
-      lineHeight: '1rem',
-    },
-  } as const;
+  return buttonVariants[p.variant ?? 'secondary']({
+    disabled,
+    inactive: disabled || Boolean(p.busy),
+    shapeVariant: p.shapeVariant,
+    size: p.size,
+    theme: p.theme,
+  });
+}
 
-  const buttonTheme = getButtonTheme(variant, p.theme);
-  const buttonElevation = elevation[p.size];
-  const borderless = variant === 'transparent' || variant === 'link';
-  const borderlessBackground = (background: string) =>
-    p.busy || disabled || variant === 'link' ? 'inherit' : background;
+interface ChonkyTokens {
+  chonk: string;
+  content: string;
+  /**
+   * Applied to `&::after` while the button has keyboard focus.
+   */
+  focus: StrictCSSObject;
+  surface: string;
+}
+
+function getChonkyTokens(
+  variant: 'primary' | 'secondary' | 'warning' | 'danger',
+  theme: Theme
+): ChonkyTokens {
+  const {embossed} = theme.tokens.interactive.chonky;
+
+  switch (variant) {
+    case 'primary':
+      return {
+        surface: embossed.accent.background,
+        chonk: embossed.accent.chonk,
+        content: embossed.accent.content,
+        focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.light}`},
+      };
+    case 'secondary':
+      return {
+        surface: embossed.neutral.background,
+        chonk: embossed.neutral.chonk,
+        content: embossed.neutral.content.primary,
+        focus: {
+          // Three layers: the chonk color masks the offset ring copy, then
+          // the ring is drawn at the lift offset and again at rest, so it
+          // closes around the surface and chonk as a single outline.
+          boxShadow: `0 var(--button-lift) 0 0 ${embossed.neutral.chonk}, 0 var(--button-lift) 0 2px ${theme.tokens.focus.default}, 0 0 0 2px ${theme.tokens.focus.default}`,
+        },
+      };
+    case 'warning':
+      return {
+        surface: embossed.warning.background,
+        chonk: embossed.warning.chonk,
+        content: embossed.warning.content,
+        focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.dark}`},
+      };
+    case 'danger':
+      return {
+        surface: embossed.danger.background,
+        chonk: embossed.danger.chonk,
+        content: embossed.danger.content,
+        focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.light}`},
+      };
+  }
+}
+
+function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSObject {
+  const size = getSizeTokens(p.size, p.theme);
 
   return {
-    '--button-lift': buttonElevation,
+    '--button-lift': size.lift,
 
     position: 'relative',
     display: 'inline-flex',
@@ -66,102 +138,166 @@ export function DO_NOT_USE_getButtonStyles(
 
     fontWeight: p.theme.font.weight.sans.medium,
 
-    opacity: disabled ? 0.6 : undefined,
+    opacity: p.disabled ? 0.6 : undefined,
 
     cursor: 'pointer',
     '&[disabled], &[aria-disabled="true"]': {
       cursor: 'not-allowed',
     },
 
-    padding:
-      variant === 'link' || p.shapeVariant === 'square'
-        ? '0'
-        : getButtonSizeTheme(p.size, p.theme).padding,
-    borderRadius: getButtonSizeTheme(p.size, p.theme).borderRadius,
+    padding: p.shapeVariant === 'square' ? '0' : size.padding,
+    borderRadius: size.borderRadius,
     border: 'none',
-    color: buttonTheme.color,
+    color: tokens.content,
 
     background: 'none',
 
-    height: variant === 'link' ? 'auto' : buttonSizes[p.size].height,
+    height: size.height,
     // Use min width as a progressive enhancement for square buttons.
     // We can't yet swap to width because I'm not entirely condifent that
     // that would not break existing buttons.
-    minWidth:
-      variant === 'link'
-        ? 'auto'
-        : p.shapeVariant === 'square'
-          ? buttonSizes[p.size].height
-          : undefined,
+    minWidth: p.shapeVariant === 'square' ? size.height : undefined,
 
-    minHeight: variant === 'link' ? 'auto' : buttonSizes[p.size].minHeight,
-    fontSize: buttonSizes[p.size].fontSize,
-    lineHeight: buttonSizes[p.size].lineHeight,
+    minHeight: size.minHeight,
+    fontSize: size.fontSize,
+    lineHeight: size.lineHeight,
 
-    // Borderless buttons are not chonky
-    '&::before': borderless
-      ? {display: 'none'}
-      : {
-          content: '""',
-          display: 'block',
-          position: 'absolute',
-          inset: '0',
-          height: `calc(100% - ${buttonElevation})`,
-          top: buttonElevation,
-          transform: `translateY(-${buttonElevation})`,
-          boxShadow: `0 ${buttonElevation} 0 0px ${buttonTheme.background}`,
-          background: buttonTheme.background,
-          borderRadius: 'inherit',
-        },
+    '&::before': {
+      content: '""',
+      display: 'block',
+      position: 'absolute',
+      inset: '0',
+      height: `calc(100% - ${size.lift})`,
+      top: size.lift,
+      transform: `translateY(-${size.lift})`,
+      boxShadow: `0 ${size.lift} 0 0px ${tokens.chonk}`,
+      background: tokens.chonk,
+      borderRadius: 'inherit',
+    },
 
-    '&::after': borderless
-      ? {display: 'none'}
-      : {
-          content: '""',
-          display: 'block',
-          position: 'absolute',
-          inset: '0',
-          background: buttonTheme.surface,
-          borderRadius: 'inherit',
-          border: `1px solid ${buttonTheme.background}`,
-          transform: 'translateY(calc(-1 * var(--button-lift)))',
-          transition: `transform ${p.theme.motion.snap.fast}`,
-        },
+    '&::after': {
+      content: '""',
+      display: 'block',
+      position: 'absolute',
+      inset: '0',
+      background: tokens.surface,
+      borderRadius: 'inherit',
+      border: `1px solid ${tokens.chonk}`,
+      transform: 'translateY(calc(-1 * var(--button-lift)))',
+      transition: `transform ${p.theme.motion.snap.fast}`,
+    },
 
-    '&:focus-visible': borderless
-      ? p.theme.focusRing()
-      : {
-          outline: 'none',
-          color: disabled || p.busy ? undefined : buttonTheme.color,
+    '&:focus-visible': {
+      outline: 'none',
+      color: p.inactive ? undefined : tokens.content,
 
-          '&::after': buttonTheme.focus
-            ? {border: `2px dotted ${buttonTheme.focus}`}
-            : {
-                // Three layers: the chonk color masks the offset ring copy, then
-                // the ring is drawn at the lift offset and again at rest, so it
-                // closes around the surface and chonk as a single outline.
-                boxShadow: `0 var(--button-lift) 0 0 ${buttonTheme.background}, 0 var(--button-lift) 0 2px ${p.theme.tokens.focus.default}, 0 0 0 2px ${p.theme.tokens.focus.default}`,
-              },
-        },
+      '&::after': tokens.focus,
+    },
 
     '&[aria-busy="true"] > span:last-child': {
       overflow: 'visible',
     },
 
-    '> span:last-child': getLabelStyles(variant, p.theme),
+    '> span:last-child': {
+      zIndex: 1,
+      position: 'relative',
 
-    '&:hover':
-      variant === 'link'
-        ? {'> span:last-child': {transform: 'translateY(0px)'}}
-        : variant === 'transparent'
-          ? {
-              '> span:last-child': {transform: 'translateY(0px)'},
-              backgroundColor: borderlessBackground(p.theme.colors.gray100),
-            }
-          : {
-              '--button-lift': `calc(${buttonElevation} + ${hoverElevation})`,
-              color: disabled || p.busy ? undefined : buttonTheme.color,
-            },
+      display: 'inherit',
+      alignItems: 'inherit',
+      justifyContent: 'inherit',
+      flex: '1',
+      gap: 'inherit',
+      overflow: 'hidden',
+
+      whiteSpace: 'nowrap',
+      transform: 'translateY(calc(-1 * var(--button-lift)))',
+      transition: `transform ${p.theme.motion.snap.fast}`,
+    },
+
+    '&:hover': {
+      '--button-lift': `calc(${size.lift} + 1px)`,
+      color: p.inactive ? undefined : tokens.content,
+    },
+
+    '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
+      '--button-lift': '0px',
+    },
+
+    '&[aria-expanded="true"], &[aria-checked="true"]': {
+      '&::after': {
+        transition: 'none',
+      },
+      '> span:last-child': {
+        transition: 'none',
+      },
+    },
+
+    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
+      '--button-lift': '0px',
+    },
+
+    '&[aria-busy="true"]': {
+      cursor: 'progress',
+    },
+  };
+}
+
+function getTransparentStyles(p: ButtonStyleProps): StrictCSSObject {
+  const size = getSizeTokens(p.size, p.theme);
+
+  return {
+    '--button-lift': size.lift,
+
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    whiteSpace: 'nowrap',
+
+    fontWeight: p.theme.font.weight.sans.medium,
+
+    opacity: p.disabled ? 0.6 : undefined,
+
+    cursor: 'pointer',
+    '&[disabled], &[aria-disabled="true"]': {
+      cursor: 'not-allowed',
+    },
+
+    padding: p.shapeVariant === 'square' ? '0' : size.padding,
+    borderRadius: size.borderRadius,
+    border: 'none',
+    color: p.theme.tokens.interactive.transparent.neutral.content.primary,
+
+    background: 'none',
+
+    height: size.height,
+    minWidth: p.shapeVariant === 'square' ? size.height : undefined,
+
+    minHeight: size.minHeight,
+    fontSize: size.fontSize,
+    lineHeight: size.lineHeight,
+
+    '&::before': {display: 'none'},
+
+    '&::after': {display: 'none'},
+
+    '&:focus-visible': p.theme.focusRing(),
+
+    '&[aria-busy="true"] > span:last-child': {
+      overflow: 'visible',
+    },
+
+    // No flex layout and no `overflow: hidden`. Call sites rely on this, for
+    // example to let an avatar stack overflow a `zero` button. The button
+    // layout snapshots pin it.
+    '> span:last-child': {
+      transform: 'translateY(0px)',
+    },
+
+    '&:hover': {
+      '> span:last-child': {transform: 'translateY(0px)'},
+      backgroundColor: p.inactive ? 'inherit' : p.theme.colors.gray100,
+    },
 
     '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
       '--button-lift': '0px',
@@ -184,120 +320,146 @@ export function DO_NOT_USE_getButtonStyles(
       cursor: 'progress',
     },
 
-    ...(borderless && {
-      transform: 'translateY(0px)',
+    transform: 'translateY(0px)',
 
-      '&:active': {
-        '> span:last-child': {
-          transform: 'translateY(0px)',
-        },
-
-        backgroundColor: borderlessBackground(p.theme.colors.gray200),
+    '&:active': {
+      '> span:last-child': {
+        transform: 'translateY(0px)',
       },
-    }),
+
+      backgroundColor: p.inactive ? 'inherit' : p.theme.colors.gray200,
+    },
   };
 }
 
-/**
- * Only the chonky variants lay out their label. The transparent and link
- * labels skip the flex layout and `overflow: hidden`, and call sites rely on
- * that, for example to let an avatar stack overflow a `zero` button. The
- * button layout snapshots pin these differences.
- */
-function getLabelStyles(variant: ButtonVariant, theme: Theme): StrictCSSObject {
-  switch (variant) {
-    case 'link':
-      return {color: 'inherit'};
-    case 'transparent':
-      return {transform: 'translateY(0px)'};
-    default:
-      return {
-        zIndex: 1,
-        position: 'relative',
+function getLinkStyles(p: ButtonStyleProps): StrictCSSObject {
+  const size = getSizeTokens(p.size, p.theme);
 
-        display: 'inherit',
-        alignItems: 'inherit',
-        justifyContent: 'inherit',
-        flex: '1',
-        gap: 'inherit',
-        overflow: 'hidden',
+  return {
+    '--button-lift': size.lift,
 
-        whiteSpace: 'nowrap',
-        transform: 'translateY(calc(-1 * var(--button-lift)))',
-        transition: `transform ${theme.motion.snap.fast}`,
-      };
-  }
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    whiteSpace: 'nowrap',
+
+    fontWeight: p.theme.font.weight.sans.medium,
+
+    opacity: p.disabled ? 0.6 : undefined,
+
+    cursor: 'pointer',
+    '&[disabled], &[aria-disabled="true"]': {
+      cursor: 'not-allowed',
+    },
+
+    padding: '0',
+    borderRadius: size.borderRadius,
+    border: 'none',
+    color: p.theme.tokens.interactive.link.accent.rest,
+
+    background: 'none',
+
+    height: 'auto',
+    minWidth: 'auto',
+
+    minHeight: 'auto',
+    fontSize: size.fontSize,
+    lineHeight: size.lineHeight,
+
+    '&::before': {display: 'none'},
+
+    '&::after': {display: 'none'},
+
+    '&:focus-visible': p.theme.focusRing(),
+
+    '&[aria-busy="true"] > span:last-child': {
+      overflow: 'visible',
+    },
+
+    // Like transparent, no flex layout and no `overflow: hidden`.
+    '> span:last-child': {
+      color: 'inherit',
+    },
+
+    '&:hover': {
+      '> span:last-child': {transform: 'translateY(0px)'},
+    },
+
+    '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
+      '--button-lift': '0px',
+    },
+
+    '&[aria-expanded="true"], &[aria-checked="true"]': {
+      '&::after': {
+        transition: 'none',
+      },
+      '> span:last-child': {
+        transition: 'none',
+      },
+    },
+
+    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
+      '--button-lift': '0px',
+    },
+
+    '&[aria-busy="true"]': {
+      cursor: 'progress',
+    },
+
+    transform: 'translateY(0px)',
+
+    '&:active': {
+      '> span:last-child': {
+        transform: 'translateY(0px)',
+      },
+
+      backgroundColor: 'inherit',
+    },
+  };
 }
 
-function getButtonTheme(variant: ButtonVariant, theme: Theme) {
-  switch (variant) {
-    case 'primary':
-      return {
-        surface: theme.tokens.interactive.chonky.embossed.accent.background,
-        background: theme.tokens.interactive.chonky.embossed.accent.chonk,
-        color: theme.tokens.interactive.chonky.embossed.accent.content,
-        focus: theme.tokens.focus.onVibrant.light,
-      };
-    case 'secondary':
-      return {
-        surface: theme.tokens.interactive.chonky.embossed.neutral.background,
-        background: theme.tokens.interactive.chonky.embossed.neutral.chonk,
-        color: theme.tokens.interactive.chonky.embossed.neutral.content.primary,
-      };
-    case 'warning':
-      return {
-        surface: theme.tokens.interactive.chonky.embossed.warning.background,
-        background: theme.tokens.interactive.chonky.embossed.warning.chonk,
-        color: theme.tokens.interactive.chonky.embossed.warning.content,
-        focus: theme.tokens.focus.onVibrant.dark,
-      };
-    case 'danger':
-      return {
-        surface: theme.tokens.interactive.chonky.embossed.danger.background,
-        background: theme.tokens.interactive.chonky.embossed.danger.chonk,
-        color: theme.tokens.interactive.chonky.embossed.danger.content,
-        focus: theme.tokens.focus.onVibrant.light,
-      };
-    case 'transparent':
-      return {
-        surface: theme.tokens.interactive.transparent.neutral.background.rest,
-        background: theme.tokens.interactive.transparent.neutral.background.rest,
-        color: theme.tokens.interactive.transparent.neutral.content.primary,
-      };
-    case 'link':
-      return {
-        surface: 'transparent',
-        background: 'transparent',
-        color: theme.tokens.interactive.link.accent.rest,
-      };
-    default:
-      return {};
-  }
-}
-
-function getButtonSizeTheme(size: ButtonSize, theme: Theme): StrictCSSObject {
+function getSizeTokens(size: ButtonSize, theme: Theme) {
   switch (size) {
     case 'md':
       return {
-        borderRadius: theme.radius.lg,
+        height: '36px',
+        minHeight: '36px',
+        fontSize: '0.875rem',
+        lineHeight: '1rem',
         padding: `${theme.space.md} ${theme.space.xl}`,
+        borderRadius: theme.radius.lg,
+        lift: '2px',
       };
     case 'sm':
       return {
-        borderRadius: theme.radius.md,
+        height: '32px',
+        minHeight: '32px',
+        fontSize: '0.875rem',
+        lineHeight: '1rem',
         padding: `${theme.space.md} ${theme.space.lg}`,
+        borderRadius: theme.radius.md,
+        lift: '2px',
       };
     case 'xs':
       return {
-        borderRadius: theme.radius.sm,
+        height: '28px',
+        minHeight: '28px',
+        fontSize: '0.75rem',
+        lineHeight: '1rem',
         padding: `${theme.space.sm} ${theme.space.md}`,
+        borderRadius: theme.radius.sm,
+        lift: '1px',
       };
     case 'zero':
       return {
-        borderRadius: theme.radius.xs,
+        height: '24px',
+        minHeight: '24px',
+        fontSize: '0.75rem',
+        lineHeight: '1rem',
         padding: `${theme.space.xs} ${theme.space.sm}`,
+        borderRadius: theme.radius.xs,
+        lift: '0px',
       };
-    default:
-      return {};
   }
 }
