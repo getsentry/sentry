@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Literal, NamedTuple, override
@@ -31,6 +31,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowTriggerBinding,
     WorkflowRunError,
 )
+from sentry.seer.workflows.action_settings import InvestigationSettings
 from sentry.seer.workflows.admission import RejectionReason
 from sentry.seer.workflows.base import (
     AutomationAction,
@@ -43,6 +44,7 @@ from sentry.seer.workflows.base import (
     WorkflowUpdateError,
     lock_config,
 )
+from sentry.seer.workflows.configuration import action_is_owned_by_workflow
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer_workflow_outputs.executions import finish_execution_if_outputs_done
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
@@ -77,7 +79,7 @@ class MetricBreachInputs(BaseModel):
     group_short_id: str | None = None
     project_id: int
     invocation_source: Literal["wfe"] = "wfe"
-    binding_id: int
+    binding_id: int | None = None
     workflow_id: int
     action_id: int
 
@@ -268,46 +270,7 @@ class SeerMetricAlertActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        event = invocation.event_data.event
-        if not isinstance(event, GroupEvent):
-            return
-        group = invocation.event_data.require_group()
-        extra: dict[str, object] = {
-            "organization_id": group.project.organization_id,
-            "group_id": group.id,
-            "event_id": event.event_id,
-            "detector_id": invocation.detector.id,
-            "workflow_id": invocation.workflow_id,
-            "action_id": invocation.action.id,
-        }
-        binding = SeerWorkflowTriggerBinding.objects.get_or_none(
-            workflow_config__organization_id=group.project.organization_id,
-            trigger_action=invocation.action,
-        )
-        if binding is None:
-            _record_trigger_outcome("ignored", extra, reason="missing_binding")
-            return
-
-        extra.update(workflow_config_id=binding.workflow_config_id, binding_id=binding.id)
-        admission = SeerMetricAlertActionHandler.accept(
-            group, event, binding=binding, workflow_id=invocation.workflow_id
-        )
-        outcome: Literal["accepted", "rejected", "ignored"]
-        reason: str | None = None
-        deduplicated = False
-        if isinstance(admission, AcceptedMetricBreach):
-            outcome = "accepted"
-            deduplicated = not admission.created
-            extra.update(run_id=admission.run.id, run_created=admission.created)
-        elif isinstance(admission, RejectedMetricBreach):
-            outcome = "rejected"
-            reason = admission.reason
-            deduplicated = not admission.created
-            extra.update(run_id=admission.run.id, run_created=admission.created)
-        else:
-            outcome = "ignored"
-            reason = admission.reason
-        _record_trigger_outcome(outcome, extra, reason=reason, deduplicated=deduplicated)
+        _execute(invocation, _resolve_binding, missing_reason="missing_binding")
 
     @staticmethod
     def accept(
@@ -317,59 +280,168 @@ class SeerMetricAlertActionHandler(ActionHandler):
         binding: SeerWorkflowTriggerBinding,
         workflow_id: int,
     ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
-        """Check eligibility, then record one admission decision per issue and config."""
-        if not features.has("organizations:seer-automations", group.organization):
-            return IgnoredMetricBreach("feature_disabled")
-        if group.type != MetricIssue.type_id or not isinstance(event, GroupEvent):
-            return IgnoredMetricBreach("unsupported_trigger")
-        occurrence = event.occurrence
-        if (
-            event.group_id != group.id
-            or event.project_id != group.project_id
-            or occurrence is None
-            or occurrence.type != MetricIssue
-            or occurrence.project_id != group.project_id
-            or occurrence.event_id != event.event_id
-        ):
-            return IgnoredMetricBreach("invalid_source")
-        try:
-            inputs = MetricBreachInputs(
-                event_id=event.event_id,
-                occurrence_id=occurrence.id,
-                detector_id=occurrence.evidence_data.get("detector_id"),
-                evidence=dict(occurrence.evidence_data),
-                observed_at=occurrence.detection_time,
-                environment=event.get_tag("environment"),
-                group_id=group.id,
-                group_short_id=group.qualified_short_id,
-                project_id=group.project_id,
-                binding_id=binding.id,
-                workflow_id=workflow_id,
-                action_id=binding.trigger_action_id,
+        return _accept(
+            group,
+            event,
+            config_id=binding.workflow_config_id,
+            action_id=binding.trigger_action_id,
+            workflow_id=workflow_id,
+            binding_id=binding.id,
+        )
+
+
+def _accept(
+    group: Group,
+    event: GroupEvent,
+    *,
+    config_id: int,
+    action_id: int,
+    workflow_id: int,
+    binding_id: int | None = None,
+) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
+    """Check eligibility, then record one admission decision per issue and config."""
+    if not features.has("organizations:seer-automations", group.organization):
+        return IgnoredMetricBreach("feature_disabled")
+    if group.type != MetricIssue.type_id or not isinstance(event, GroupEvent):
+        return IgnoredMetricBreach("unsupported_trigger")
+    occurrence = event.occurrence
+    if (
+        event.group_id != group.id
+        or event.project_id != group.project_id
+        or occurrence is None
+        or occurrence.type != MetricIssue
+        or occurrence.project_id != group.project_id
+        or occurrence.event_id != event.event_id
+    ):
+        return IgnoredMetricBreach("invalid_source")
+    try:
+        inputs = MetricBreachInputs(
+            event_id=event.event_id,
+            occurrence_id=occurrence.id,
+            detector_id=occurrence.evidence_data.get("detector_id"),
+            evidence=dict(occurrence.evidence_data),
+            observed_at=occurrence.detection_time,
+            environment=event.get_tag("environment"),
+            group_id=group.id,
+            group_short_id=group.qualified_short_id,
+            project_id=group.project_id,
+            binding_id=binding_id,
+            workflow_id=workflow_id,
+            action_id=action_id,
+        )
+    except ValidationError:
+        return IgnoredMetricBreach("invalid_source")
+
+    try:
+        with lock_config(group.organization.id, config_id) as config:
+            if not config.enabled:
+                return IgnoredMetricBreach("config_disabled")
+            if binding_id is None and not action_is_owned_by_workflow(config, action_id):
+                return IgnoredMetricBreach("configuration_unavailable")
+            definition = _definition_for(config)
+            if definition is None or not isinstance(definition.trigger, MetricAlertTrigger):
+                return IgnoredMetricBreach("configuration_unavailable")
+            if not definition.covers(config, group.project_id, inputs.environment):
+                return IgnoredMetricBreach("out_of_scope")
+
+            run = definition.trigger_run(
+                config, trigger_key=f"issue_created:{group.id}", inputs=inputs
             )
-        except ValidationError:
-            return IgnoredMetricBreach("invalid_source")
-
-        try:
-            with lock_config(group.organization.id, binding.workflow_config_id) as config:
-                if not config.enabled:
-                    return IgnoredMetricBreach("config_disabled")
-                definition = _definition_for(config)
-                if definition is None or not isinstance(definition.trigger, MetricAlertTrigger):
-                    return IgnoredMetricBreach("configuration_unavailable")
-                if not definition.covers(config, group.project_id, inputs.environment):
-                    return IgnoredMetricBreach("out_of_scope")
-
-                run = definition.trigger_run(
-                    config, trigger_key=f"issue_created:{group.id}", inputs=inputs
+            if run.rejection is not None:
+                return RejectedMetricBreach(
+                    run=run.lifecycle.get_run(), reason=run.rejection, created=run.created
                 )
-                if run.rejection is not None:
-                    return RejectedMetricBreach(
-                        run=run.lifecycle.get_run(), reason=run.rejection, created=run.created
-                    )
-                return AcceptedMetricBreach(run=run.lifecycle.get_run(), created=run.created)
-        except SeerWorkflowConfig.DoesNotExist:
-            return IgnoredMetricBreach("configuration_unavailable")
+            return AcceptedMetricBreach(run=run.lifecycle.get_run(), created=run.created)
+    except SeerWorkflowConfig.DoesNotExist:
+        return IgnoredMetricBreach("configuration_unavailable")
+
+
+@action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
+class SeerInvestigationActionHandler(SeerMetricAlertActionHandler):
+    data_schema = InvestigationSettings.json_schema()
+
+    @staticmethod
+    @override
+    def execute(invocation: ActionInvocation) -> None:
+        _execute(invocation, _resolve_backing_workflow, missing_reason="configuration_unavailable")
+
+
+@dataclass(frozen=True)
+class _Route:
+    config_id: int
+    binding_id: int | None = None
+
+
+def _resolve_binding(group: Group, invocation: ActionInvocation) -> _Route | None:
+    binding = SeerWorkflowTriggerBinding.objects.get_or_none(
+        workflow_config__organization_id=group.project.organization_id,
+        trigger_action=invocation.action,
+    )
+    if binding is None:
+        return None
+    return _Route(config_id=binding.workflow_config_id, binding_id=binding.id)
+
+
+def _resolve_backing_workflow(group: Group, invocation: ActionInvocation) -> _Route | None:
+    config_id = (
+        SeerWorkflowConfig.objects.filter(
+            organization_id=group.project.organization_id,
+            backing_workflow_id=invocation.workflow_id,
+        )
+        .values_list("id", flat=True)
+        .first()
+    )
+    return _Route(config_id=config_id) if config_id is not None else None
+
+
+def _execute(
+    invocation: ActionInvocation,
+    resolve: Callable[[Group, ActionInvocation], _Route | None],
+    *,
+    missing_reason: str,
+) -> None:
+    event = invocation.event_data.event
+    if not isinstance(event, GroupEvent):
+        return
+    group = invocation.event_data.require_group()
+    extra: dict[str, object] = {
+        "organization_id": group.project.organization_id,
+        "group_id": group.id,
+        "event_id": event.event_id,
+        "detector_id": invocation.detector.id,
+        "workflow_id": invocation.workflow_id,
+        "action_id": invocation.action.id,
+    }
+    route = resolve(group, invocation)
+    if route is None:
+        _record_trigger_outcome("ignored", extra, reason=missing_reason)
+        return
+
+    extra.update(workflow_config_id=route.config_id, binding_id=route.binding_id)
+    admission = _accept(
+        group,
+        event,
+        config_id=route.config_id,
+        action_id=invocation.action.id,
+        workflow_id=invocation.workflow_id,
+        binding_id=route.binding_id,
+    )
+    outcome: Literal["accepted", "rejected", "ignored"]
+    reason: str | None = None
+    deduplicated = False
+    if isinstance(admission, AcceptedMetricBreach):
+        outcome = "accepted"
+        deduplicated = not admission.created
+        extra.update(run_id=admission.run.id, run_created=admission.created)
+    elif isinstance(admission, RejectedMetricBreach):
+        outcome = "rejected"
+        reason = admission.reason
+        deduplicated = not admission.created
+        extra.update(run_id=admission.run.id, run_created=admission.created)
+    else:
+        outcome = "ignored"
+        reason = admission.reason
+    _record_trigger_outcome(outcome, extra, reason=reason, deduplicated=deduplicated)
 
 
 def _record_trigger_outcome(

@@ -1,11 +1,18 @@
 from unittest import mock
 
+import pytest
+from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import ErrorDetail
 
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
 from tests.sentry.workflow_engine.test_base import MockActionHandler, MockActionValidatorTranslator
+
+
+def test_investigation_settings_require_the_seer_configuration_api() -> None:
+    with pytest.raises(ValidationError, match="Seer automation settings"):
+        BaseActionValidator().validate_type(Action.Type.SEER_INVESTIGATION)
 
 
 @mock.patch(
