@@ -25,6 +25,7 @@ from sentry.testutils.cases import APITestCase, OurLogTestCase, ProfilesSnubaTes
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
+from tests.sentry.search.events.builder.test_discover import reject_column_resolution
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -600,6 +601,19 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             },
         )
         assert response.status_code == 400, response.content
+
+    def test_aggregate_invalid_expression(self) -> None:
+        with reject_column_resolution("count() as invalid_alias"):
+            response = self.do_request(
+                data={
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                    "interval": "1h",
+                    "yAxis": "count() as invalid_alias",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == 'Invalid field "count() as invalid_alias": invalid alias'
 
     def test_throughput_meta(self) -> None:
         project = self.create_project()
