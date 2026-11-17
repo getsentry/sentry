@@ -16,7 +16,7 @@ import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
-import type {Node, Orientation} from '@react-types/shared';
+import type {Key, Node, Orientation} from '@react-types/shared';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -24,11 +24,11 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
+import {TabsContext} from './context';
 import type {TabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
 import type {TabProps} from './tab';
-import {TabsContext} from './tabs';
 import {tabsShouldForwardProp} from './utils';
 
 const StyledTabListWrap = styled('ul', {
@@ -235,7 +235,9 @@ function useOverflowTabs({
 
   // Tabs with the `hidden` prop render with display: none; never surface them
   // in the overflow menu.
-  const hiddenKeys = new Set(tabItems.filter(item => item.hidden).map(item => item.key));
+  const hiddenKeys = new Set<string | number>(
+    tabItems.filter(item => item.hidden).map(item => item.key)
+  );
   return overflowTabs.filter(key => !hiddenKeys.has(key));
 }
 
@@ -268,8 +270,9 @@ function OverflowMenu({overflowMenuItems, disabled}: OverflowMenuProps) {
   );
 }
 
-interface TabListProps {
+export interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
+  className?: string;
   outerWrapStyles?: CSSProperties;
   variant?: TabProps['variant'];
 }
@@ -279,7 +282,12 @@ interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabList
   variant?: TabProps['variant'];
 }
 
-function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
+function BaseTabList({
+  className,
+  outerWrapStyles,
+  variant = 'flat',
+  ...props
+}: BaseTabListProps) {
   const outerWrapRef = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
@@ -298,7 +306,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
-    onSelectionChange: onChange,
+    onSelectionChange: (key: Key) => onChange?.(String(key)),
     isDisabled: disabled,
     keyboardActivation,
     ...otherRootProps,
@@ -358,7 +366,12 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   }, [state, overflowTabs]);
 
   return (
-    <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
+    <Container
+      position="relative"
+      className={className}
+      style={outerWrapStyles}
+      ref={outerWrapRef}
+    >
       <TabListWrap
         {...tabListProps}
         orientation={orientation}

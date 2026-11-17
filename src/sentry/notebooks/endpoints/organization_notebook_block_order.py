@@ -10,12 +10,18 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookEndpoint,
-    require_authenticated_user,
+    require_notebook_writer,
     service_error,
 )
 from sentry.notebooks.endpoints.serializers import (
@@ -31,15 +37,18 @@ from sentry.notebooks.services import reorder_blocks
 @cell_silo_endpoint
 class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"PUT": ApiPublishStatus.PRIVATE}
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
+    idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="Reorder Investigation Blocks",
+        operation_id="updateOrganizationNotebookBlocksOrder",
+        summary="Reorder Notebook Blocks",
+        tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=BlockOrderValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
+                "NotebookDetailsResponse", NotebookDetailsSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,
@@ -50,26 +59,33 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
         examples=[
             OpenApiExample(
                 "Example request",
-                value={"investigationVersion": 3, "blockIds": [2, 1]},
+                value={"notebookVersion": 3, "blockIds": [2, 1]},
                 request_only=True,
             )
-        ],
+        ]
+        + NotebookExamples.NOTEBOOK_DETAILS,
     )
-    def put(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
+    def put(
+        self, request: Request, organization: Organization, notebook: Notebook
+    ) -> (
+        Response[NotebookDetailsSerializerResponse]
+        | Response[ValidationErrorResponse]
+        | Response[DetailResponse]
+    ):
         """
         Set the order of all active blocks. Supply every active block ID exactly once and the
-        current notebook version. Returns the updated notebook with ordered blocks. Requires an
-        authenticated user. Requires the organizations:investigations feature and open
+        current notebook version. Returns the updated notebook with ordered blocks. Requires a
+        user or service account. Requires the organizations:investigations feature and open
         organization membership.
         """
-        require_authenticated_user(request)
+        require_notebook_writer(request, notebook)
         validator = BlockOrderValidator(data=request.data)
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
         try:
             updated = reorder_blocks(
                 notebook=notebook,
-                expected_version=validator.validated_data["investigation_version"],
+                expected_version=validator.validated_data["notebook_version"],
                 block_ids=validator.validated_data["block_ids"],
             )
         except Exception as error:
@@ -78,10 +94,9 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
                 return response
             raise
 
-        return Response(
-            serialize(
-                updated,
-                request.user,
-                NotebookDetailsSerializer(access=request.access),
-            )
+        body: NotebookDetailsSerializerResponse = serialize(
+            updated,
+            request.user,
+            NotebookDetailsSerializer(access=request.access),
         )
+        return Response(body)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 
 from pydantic import BaseModel, ValidationError
 
@@ -84,6 +85,53 @@ def enqueue_autofix_feedback(
         feedback_id=feedback.feedback_id,
         referrer=referrer.value,
         actor_user_id=actor_user_id,
+        **feedback.source.log_fields(run_state),
+    )
+
+
+def requeue_autofix_feedback(run_id: int, items: Sequence[QueuedAutofixFeedback]) -> None:
+    """Put popped items back at the front of the run's queue, in their original order."""
+    if not items:
+        return
+
+    redis = redis_clusters.get(_REDIS_CLUSTER)
+    key = _feedback_queue_key(run_id)
+    with redis.pipeline() as pipe:
+        pipe.lpush(key, *(item.json() for item in reversed(items)))
+        pipe.expire(key, _QUEUE_TTL_SECONDS)
+        pipe.execute()
+
+
+def record_skipped_autofix_feedback(
+    *,
+    log_ctx: PrIterationLogContext,
+    feedback: Feedback,
+    reason: str,
+    referrer: AutofixReferrer,
+    run_state: SeerRunState,
+) -> None:
+    """Say why a feedback item was never queued.
+
+    The counterpart of ``enqueue_autofix_feedback``'s ``queued`` line, for
+    feedback the project gate turned away before it reached the queue.
+    """
+    metrics.incr(
+        "autofix.pr_iteration.step",
+        tags={
+            "checkpoint": "skipped",
+            "reason": reason,
+            "referrer": referrer.value,
+            "feedback_kind": feedback_kind([feedback]),
+        },
+        sample_rate=1.0,
+    )
+    log_ctx.info(
+        "autofix.pr_iteration.feedback.queue",
+        outcome="skipped",
+        reason=reason,
+        feedback_source=feedback.source.type,
+        feedback_id=feedback.feedback_id,
+        referrer=referrer.value,
         **feedback.source.log_fields(run_state),
     )
 

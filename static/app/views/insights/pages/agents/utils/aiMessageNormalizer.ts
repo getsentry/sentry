@@ -340,10 +340,15 @@ function collapseParts(parts: unknown[]): unknown {
     return buckets.toolCalls;
   }
   if (buckets.toolResponses.length > 0) {
-    return buckets.toolResponses.map(response => response.result).join('\n');
+    return buckets.toolResponses.map(getToolResponseValue).join('\n');
   }
 
   return undefined;
+}
+
+function getToolResponseValue(part: UnknownRecord): unknown {
+  // OTel names this field `response`; older Sentry SDKs send `result`.
+  return 'response' in part ? part.response : part.result;
 }
 
 function bucketParts(parts: unknown[]): PartBuckets {

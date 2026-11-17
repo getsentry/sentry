@@ -124,7 +124,6 @@ export function ProjectCharts({
   })();
 
   const displayModes = ((): Array<SelectValue<string>> => {
-    const hasPerformance = organization.features.includes('performance-view');
     const noPerformanceTooltip = t(
       'This view is only available with Performance Monitoring.'
     );
@@ -149,37 +148,27 @@ export function ProjectCharts({
         value: DisplayModes.APDEX,
         label: t('Apdex'),
         disabled:
-          otherActiveDisplayModes.includes(DisplayModes.APDEX) ||
-          !hasPerformance ||
-          !hasTransactions,
-        tooltip:
-          hasPerformance && hasTransactions
-            ? getTermHelp(organization, PerformanceTerm.APDEX)
-            : noPerformanceTooltip,
+          otherActiveDisplayModes.includes(DisplayModes.APDEX) || !hasTransactions,
+        tooltip: hasTransactions
+          ? getTermHelp(organization, PerformanceTerm.APDEX)
+          : noPerformanceTooltip,
       },
       {
         value: DisplayModes.FAILURE_RATE,
         label: t('Failure Rate'),
         disabled:
-          otherActiveDisplayModes.includes(DisplayModes.FAILURE_RATE) ||
-          !hasPerformance ||
-          !hasTransactions,
-        tooltip:
-          hasPerformance && hasTransactions
-            ? getTermHelp(organization, PerformanceTerm.FAILURE_RATE)
-            : noPerformanceTooltip,
+          otherActiveDisplayModes.includes(DisplayModes.FAILURE_RATE) || !hasTransactions,
+        tooltip: hasTransactions
+          ? getTermHelp(organization, PerformanceTerm.FAILURE_RATE)
+          : noPerformanceTooltip,
       },
       {
         value: DisplayModes.TPM,
         label: t('Transactions Per Minute'),
-        disabled:
-          otherActiveDisplayModes.includes(DisplayModes.TPM) ||
-          !hasPerformance ||
-          !hasTransactions,
-        tooltip:
-          hasPerformance && hasTransactions
-            ? getTermHelp(organization, PerformanceTerm.TPM)
-            : noPerformanceTooltip,
+        disabled: otherActiveDisplayModes.includes(DisplayModes.TPM) || !hasTransactions,
+        tooltip: hasTransactions
+          ? getTermHelp(organization, PerformanceTerm.TPM)
+          : noPerformanceTooltip,
       },
       {
         value: DisplayModes.ERRORS,
@@ -196,10 +185,8 @@ export function ProjectCharts({
         value: DisplayModes.TRANSACTIONS,
         label: t('Number of Transactions'),
         disabled:
-          otherActiveDisplayModes.includes(DisplayModes.TRANSACTIONS) ||
-          !hasPerformance ||
-          !hasTransactions,
-        tooltip: hasPerformance && hasTransactions ? undefined : noPerformanceTooltip,
+          otherActiveDisplayModes.includes(DisplayModes.TRANSACTIONS) || !hasTransactions,
+        tooltip: hasTransactions ? undefined : noPerformanceTooltip,
       },
     ];
 

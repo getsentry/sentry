@@ -18,6 +18,8 @@ const productionEntryPoints = [
   'chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when the autofixRef embed consumes it (#122099)
   'components/seer/autofixChatContext.tsx',
+  // TODO: Remove when the tracing empty state renders it
+  'components/agentHandoff/agentHandoffProductPrompt.tsx',
   // TODO: Remove when the Seer credit gates consume it (#129563, #129565)
   'utils/seer/useSeerCreditCheck.tsx',
   // TODO: Remove when the Seer credit gates render it (#129563, #129565)
@@ -61,6 +63,9 @@ const config: KnipConfig = {
   compilers: {mdx: true},
   // Test package exports are development entry points, not production code.
   ignoreWorkspaces: ['tests/js!', 'tests/js/getsentry-test!'],
+  // @sentry/api is generated from the API spec at build time, so its sources
+  // and entry points only exist after `pnpm --filter @sentry/api run build`.
+  ignore: ['static/packages/api/**'],
   workspaces: {
     '.': {
       // The root runs app tests, but Jest is declared in the test package.
@@ -73,8 +78,6 @@ const config: KnipConfig = {
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'zrender', // used in echarts
-        // Referenced by its node_modules path in tests/js/createJestConfig.ts.
-        'reflux',
       ],
     },
     'static/app': {

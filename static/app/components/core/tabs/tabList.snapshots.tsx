@@ -1,4 +1,4 @@
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 const TABS = [
   {key: 'details', label: 'Details'},
@@ -22,11 +22,13 @@ describe('TabList', () => {
         () => (
           <Wrapper>
             <Tabs size={size} defaultValue="activity">
-              <TabList variant={variant}>
-                {TABS.map(tab => (
-                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-                ))}
-              </TabList>
+              {({TabList}) => (
+                <TabList variant={variant}>
+                  {TABS.map(tab => (
+                    <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                  ))}
+                </TabList>
+              )}
             </Tabs>
           </Wrapper>
         ),
@@ -43,11 +45,13 @@ describe('TabList', () => {
       () => (
         <Wrapper>
           <Tabs orientation="vertical" defaultValue="activity">
-            <TabList variant={variant}>
-              {TABS.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-              ))}
-            </TabList>
+            {({TabList}) => (
+              <TabList variant={variant}>
+                {TABS.map(tab => (
+                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                ))}
+              </TabList>
+            )}
           </Tabs>
         </Wrapper>
       ),
@@ -62,11 +66,13 @@ describe('TabList', () => {
     () => (
       <Wrapper>
         <Tabs disabled defaultValue="activity">
-          <TabList>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-            ))}
-          </TabList>
+          {({TabList}) => (
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+          )}
         </Tabs>
       </Wrapper>
     ),
@@ -80,13 +86,15 @@ describe('TabList', () => {
     () => (
       <Wrapper>
         <Tabs defaultValue="details">
-          <TabList>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key} disabled={tab.key === 'user-feedback'}>
-                {tab.label}
-              </TabList.Item>
-            ))}
-          </TabList>
+          {({TabList}) => (
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key} disabled={tab.key === 'user-feedback'}>
+                  {tab.label}
+                </TabList.Item>
+              ))}
+            </TabList>
+          )}
         </Tabs>
       </Wrapper>
     ),

@@ -7,7 +7,6 @@ import {Container, Grid} from '@sentry/scraps/layout';
 
 import {restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
-import {Feature} from 'sentry/components/acl/feature';
 import {useSessionsRequest} from 'sentry/components/charts/useSessionsRequest';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {DateTime} from 'sentry/components/dateTime';
@@ -267,8 +266,7 @@ function ReleaseOverview() {
   };
 
   const {start, end, period, utc} = getPageDateTime();
-  const hasDiscover = organization.features.includes('discover-basic');
-  const hasPerformance = organization.features.includes('performance-view');
+
   const {environments} = selection;
   const {selectedSort, sortOptions} = getTransactionsListSort(location);
   const releaseEventView = getReleaseEventView(project.id, selectedSort);
@@ -372,51 +370,47 @@ function ReleaseOverview() {
               )}
             </Container>
           </Grid>
-          {(hasDiscover || hasPerformance || hasHealthData) && (
-            <DemoTourElement
-              id={DemoTourStep.RELEASES_CHART}
-              title={t('Release-specific trends')}
-              description={t(
-                'Track key metrics like crash free session rate, failure rate and more.'
-              )}
-              position="top-end"
-            >
-              {tourProps => (
-                <div {...tourProps}>
-                  <ReleaseComparisonChart
-                    release={release}
-                    releaseSessions={thisRelease}
-                    allSessions={allReleases}
-                    loading={loading}
-                    reloading={reloading}
-                    errored={errored}
-                    project={project}
-                    api={api}
-                    hasHealthData={hasHealthData}
-                  />
-                </div>
-              )}
-            </DemoTourElement>
-          )}
+          <DemoTourElement
+            id={DemoTourStep.RELEASES_CHART}
+            title={t('Release-specific trends')}
+            description={t(
+              'Track key metrics like crash free session rate, failure rate and more.'
+            )}
+            position="top-end"
+          >
+            {tourProps => (
+              <div {...tourProps}>
+                <ReleaseComparisonChart
+                  release={release}
+                  releaseSessions={thisRelease}
+                  allSessions={allReleases}
+                  loading={loading}
+                  reloading={reloading}
+                  errored={errored}
+                  project={project}
+                  api={api}
+                  hasHealthData={hasHealthData}
+                />
+              </div>
+            )}
+          </DemoTourElement>
           <ReleaseIssues
             version={version}
             releaseBounds={releaseBounds}
             queryFilterDescription={t('In this release')}
             withChart
           />
-          <Feature features="performance-view">
-            <TransactionsList
-              location={location}
-              organization={organization}
-              eventView={releaseEventView}
-              trendView={releaseTrendView}
-              selected={selectedSort}
-              options={sortOptions}
-              handleDropdownChange={handleTransactionsListSortChange}
-              titles={titles}
-              generateLink={generateLink}
-            />
-          </Feature>
+          <TransactionsList
+            location={location}
+            organization={organization}
+            eventView={releaseEventView}
+            trendView={releaseTrendView}
+            selected={selectedSort}
+            options={sortOptions}
+            handleDropdownChange={handleTransactionsListSortChange}
+            titles={titles}
+            generateLink={generateLink}
+          />
         </Layout.Main>
         <DemoTourElement
           id={DemoTourStep.RELEASES_STATS}

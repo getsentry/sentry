@@ -199,7 +199,7 @@ def refresh_monitoring_provider_integration_token(
     integrations = integration_service.get_integrations(
         integration_ids=[integration_id],
         organization_id=organization_id,
-        providers=[IntegrationProviderSlug.LINEAR.value],
+        providers=[IntegrationProviderSlug.LINEAR.value, IntegrationProviderSlug.SUPABASE.value],
         status=ObjectStatus.ACTIVE,
         org_integration_status=ObjectStatus.ACTIVE,
     )

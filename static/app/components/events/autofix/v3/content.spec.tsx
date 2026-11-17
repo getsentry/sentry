@@ -89,7 +89,7 @@ describe('SeerDrawerContent', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
 
-    expect(startStep).toHaveBeenCalledWith('root_cause');
+    expect(startStep).toHaveBeenCalledWith('root_cause', {userContext: ''});
   });
 
   describe('single runs', () => {
@@ -113,6 +113,21 @@ describe('SeerDrawerContent', () => {
         },
       ],
     };
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
+      });
+    });
 
     it('shows no next step', () => {
       render(
@@ -180,6 +195,50 @@ describe('SeerDrawerContent', () => {
       mockChatRunId = null;
     });
 
+    it('hands the root cause off to a coding agent', async () => {
+      const triggerCodingAgentHandoff = jest.fn();
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState: singleRun, triggerCodingAgentHandoff})}
+          group={GroupFixture()}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Send to Copilot'})
+      );
+
+      expect(triggerCodingAgentHandoff).toHaveBeenCalledWith(
+        776,
+        expect.objectContaining({id: '1'})
+      );
+    });
+
+    it('offers no hand-off before the root cause is written', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              ...singleRun,
+              status: 'processing',
+              blocks: singleRun.blocks.map(block => ({...block, artifacts: []})),
+            },
+          })}
+          group={GroupFixture()}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'More code fix options'})
+      ).not.toBeInTheDocument();
+    });
+
     it('hides the root cause reset', () => {
       render(
         <SeerDrawerContent
@@ -193,6 +252,42 @@ describe('SeerDrawerContent', () => {
       expect(
         screen.queryByRole('button', {name: 'Chat with Seer about this step'})
       ).not.toBeInTheDocument();
+    });
+  });
+
+  it('hides Add Context without autofix-single-run', () => {
+    render(
+      <SeerDrawerContent
+        aiConfig={makeAiConfig()}
+        autofix={makeAutofix()}
+        group={GroupFixture()}
+      />
+    );
+
+    expect(screen.getByText('Have Seer...')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Add Context'})).not.toBeInTheDocument();
+  });
+
+  it('starts with the context added through Add context', async () => {
+    const startStep = jest.fn().mockResolvedValue({runId: 1, isSingleRun: false});
+    render(
+      <SeerDrawerContent
+        aiConfig={makeAiConfig()}
+        autofix={makeAutofix({startStep})}
+        group={GroupFixture()}
+      />,
+      {organization: OrganizationFixture({features: ['autofix-single-run']})}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Context'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Context for Seer'}),
+      'Started after the Celery upgrade'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
+
+    expect(startStep).toHaveBeenCalledWith('root_cause', {
+      userContext: 'Started after the Celery upgrade',
     });
   });
 

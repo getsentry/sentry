@@ -9,7 +9,11 @@ from urllib3.response import HTTPResponse
 
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.endpoints.group_related import ALL_TYPES_UNAVAILABLE_DETAIL
+from sentry.issues.endpoints.group_related import (
+    ALL_TYPES_UNAVAILABLE_DETAIL,
+    EVENT_NOT_FOUND_DETAIL,
+)
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.related.contributing import (
     NOT_A_METRIC_ISSUE_DETAIL,
     UNSUPPORTED_DATASET_DETAIL,
@@ -25,8 +29,8 @@ from sentry.issues.related.similar_stacktrace import (
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupopenperiod import get_latest_open_period
-from sentry.services.eventstore.models import Event
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.services.eventstore.models import GroupEvent
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.snuba import QueryExecutionError
@@ -93,7 +97,9 @@ def seer_response(*matches: tuple[str, float]) -> HTTPResponse:
     return HTTPResponse(orjson.dumps({"responses": responses}), status=200)
 
 
-class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
+class GroupRelatedEndpointTest(
+    APITestCase, SnubaTestCase, PerformanceIssueTestCase, SearchIssueTestMixin
+):
     def setUp(self) -> None:
         super().setUp()
         # Seer requests carry a ViewerContext signed with this secret; without it they fail.
@@ -105,25 +111,25 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin)
         self.group = self.event.group
         self.path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/related/"
 
-    def store_metric_issue(self, snuba_query: dict[str, Any]) -> tuple[Event, Group]:
+    def store_metric_issue(self, snuba_query: dict[str, Any]) -> tuple[IssueOccurrence, Group]:
         """
-        A metric issue that opened five minutes ago. Its event records the detector's query in the
-        evidence data, where detectors put it; the lookup reads nothing else from there.
+        A metric issue that opened five minutes ago, stored the way a detector's occurrence is:
+        through the occurrence consumer, as a generic event that is in no other issue. The
+        occurrence records the detector's query in the evidence data, where detectors put it; the
+        lookup reads nothing else from there.
         """
-        event, _occurrence, group_info = self.store_search_issue(
+        detection_time = before_now(minutes=5)
+        occurrence, group_info = self.process_occurrence(
+            # Detectors set the event's timestamp to the detection time
+            event_data={"timestamp": detection_time.isoformat()},
             project_id=self.project.id,
-            user_id=self.user.id,
-            fingerprints=[uuid4().hex],
-            insert_time=before_now(minutes=5),
-            override_occurrence_data={
-                # The event loads its occurrence by project, and the builder defaults to project 1
-                "project_id": self.project.id,
-                "type": MetricIssue.type_id,
-                "evidence_data": {"data_sources": [{"query_obj": {"snuba_query": snuba_query}}]},
-            },
+            fingerprint=[uuid4().hex],
+            type=MetricIssue.type_id,
+            detection_time=detection_time.timestamp(),
+            evidence_data={"data_sources": [{"query_obj": {"snuba_query": snuba_query}}]},
         )
         assert group_info is not None
-        return event, group_info.group
+        return occurrence, group_info.group
 
     @mock.patch(SEER_URLOPEN)
     def test_similar_issues(self, mock_seer_request: mock.MagicMock) -> None:
@@ -347,6 +353,126 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin)
         mock_seer_request.assert_not_called()
 
     @mock.patch(SEER_URLOPEN)
+    def test_uses_passed_event(self, mock_seer_request: mock.MagicMock) -> None:
+        # self.event is in TRACE_ID; the issue's latest event, in another trace
+        latest_event = self.store_event(
+            data={**ERROR_EVENT_DATA, "contexts": trace_contexts(uuid4().hex)},
+            project_id=self.project.id,
+        )
+        assert latest_event.group_id == self.group.id
+        trace_event = self.store_event(
+            data={
+                "message": "Dogs",
+                "contexts": trace_contexts(),
+                "timestamp": before_now(minutes=2).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        mock_seer_request.return_value = seer_response()
+
+        response = self.client.get(self.path, {"eventId": self.event.event_id})
+
+        assert response.status_code == 200
+        assert response.data["meta"] == {
+            "types": [
+                {"type": "similar_stacktrace", "status": "ok", "eventId": self.event.event_id},
+                {
+                    "type": "same_trace",
+                    "status": "ok",
+                    "eventId": self.event.event_id,
+                    "traceId": TRACE_ID,
+                },
+                {
+                    "type": "contributing",
+                    "status": "not_applicable",
+                    "detail": NOT_A_METRIC_ISSUE_DETAIL,
+                },
+            ]
+        }
+        assert [item["issue"]["id"] for item in response.data["data"]] == [
+            str(trace_event.group_id)
+        ]
+        seer_request = orjson.loads(mock_seer_request.call_args.kwargs["body"])
+        assert seer_request["event_id"] == self.event.event_id
+
+    @mock.patch(SEER_URLOPEN)
+    def test_passed_event_not_in_issue(self, mock_seer_request: mock.MagicMock) -> None:
+        # An exception: the event lookup trusts a passed group ID for error events only
+        other_event = self.store_event(
+            data={**ERROR_EVENT_DATA, "fingerprint": ["another-issue"]}, project_id=self.project.id
+        )
+        assert other_event.get_event_type() == "error"
+        assert other_event.group_id != self.group.id
+
+        for event_id in [other_event.event_id, uuid4().hex]:
+            response = self.client.get(self.path, {"eventId": event_id})
+            assert response.status_code == 404
+            assert response.data == {"detail": EVENT_NOT_FOUND_DETAIL}
+
+        mock_seer_request.assert_not_called()
+
+    def test_passed_event_of_metric_issue(self) -> None:
+        metric_occurrence, metric_issue = self.store_metric_issue(detector_query())
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{metric_issue.id}/related/"
+
+        response = self.client.get(
+            path, {"type": "contributing", "eventId": metric_occurrence.event_id}
+        )
+
+        # contributing reads the detector's query from the event's occurrence
+        assert response.status_code == 200
+        [meta] = response.data["meta"]["types"]
+        assert meta["status"] == "ok"
+        assert meta["eventId"] == metric_occurrence.event_id
+
+        # The event isn't in the error issue
+        response = self.client.get(self.path, {"eventId": metric_occurrence.event_id})
+        assert response.status_code == 404
+
+    def test_passed_event_of_performance_issue(self) -> None:
+        trace_id = "c" * 32
+        # A transaction event, which can be in several performance issues
+        perf_event = self.create_performance_issue(contexts=trace_contexts(trace_id))
+        assert isinstance(perf_event, GroupEvent)
+        # Stored in the past: the trace search ends now
+        trace_error = self.store_event(
+            data={
+                "message": "Server error",
+                "contexts": trace_contexts(trace_id),
+                "timestamp": before_now(minutes=2).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        path = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{perf_event.group.id}/related/"
+        )
+
+        response = self.client.get(path, {"type": "same_trace", "eventId": perf_event.event_id})
+
+        assert response.status_code == 200
+        assert [item["issue"]["id"] for item in response.data["data"]] == [
+            str(trace_error.group_id)
+        ]
+        assert response.data["meta"] == {
+            "types": [
+                {
+                    "type": "same_trace",
+                    "status": "ok",
+                    "eventId": perf_event.event_id,
+                    "traceId": trace_id,
+                }
+            ]
+        }
+
+        # The event isn't in the error issue
+        response = self.client.get(self.path, {"eventId": perf_event.event_id})
+        assert response.status_code == 404
+
+        # The error event isn't in the performance issue
+        response = self.client.get(path, {"eventId": self.event.event_id})
+        assert response.status_code == 404
+
+    @mock.patch(SEER_URLOPEN)
     def test_issue_without_events(self, mock_seer_request: mock.MagicMock) -> None:
         # Old issues whose events are past retention
         group = self.create_group(project=self.project)
@@ -479,7 +605,7 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin)
         }
 
     def test_contributing(self) -> None:
-        metric_event, metric_issue = self.store_metric_issue(
+        metric_occurrence, metric_issue = self.store_metric_issue(
             detector_query(environment="production", event_types=["error"])
         )
         checkout_error = {
@@ -551,7 +677,7 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin)
                     {
                         "type": "contributing",
                         "status": "ok",
-                        "eventId": metric_event.event_id,
+                        "eventId": metric_occurrence.event_id,
                         # One detector interval (60s) and a minute before the metric issue opened,
                         # at the start of that minute. No end: the metric issue is still open.
                         "start": (open_period.date_started - timedelta(minutes=2))
@@ -563,10 +689,10 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin)
         }
 
     def test_contributing_for_unsupported_detectors(self) -> None:
-        spans_event, spans_issue = self.store_metric_issue(
+        spans_occurrence, spans_issue = self.store_metric_issue(
             detector_query(dataset="events_analytics_platform", event_types=["trace_item_span"])
         )
-        boolean_event, boolean_issue = self.store_metric_issue(
+        boolean_occurrence, boolean_issue = self.store_metric_issue(
             detector_query(query="transaction:/checkout OR transaction:/cart")
         )
 
@@ -582,7 +708,7 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin)
                     "type": "contributing",
                     "status": "not_applicable",
                     "detail": UNSUPPORTED_DATASET_DETAIL,
-                    "eventId": spans_event.event_id,
+                    "eventId": spans_occurrence.event_id,
                 }
             ]
         }
@@ -600,7 +726,7 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin)
                     "type": "contributing",
                     "status": "not_applicable",
                     "detail": UNSUPPORTED_QUERY_DETAIL,
-                    "eventId": boolean_event.event_id,
+                    "eventId": boolean_occurrence.event_id,
                 }
             ]
         }
@@ -639,5 +765,9 @@ class GroupRelatedEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin)
         response = self.client.get(self.path, {"limit": "101"})
         assert response.status_code == 400
         assert "limit" in response.data["detail"]
+
+        response = self.client.get(self.path, {"eventId": "nope"})
+        assert response.status_code == 400
+        assert "eventId" in response.data["detail"]
 
         mock_seer_request.assert_not_called()
