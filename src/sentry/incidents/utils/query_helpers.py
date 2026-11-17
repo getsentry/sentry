@@ -18,7 +18,9 @@ from sentry.utils import snuba_rpc
 logger = logging.getLogger(__name__)
 
 
-def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = False) -> float | None:
+def normalize_snuba_query_result(
+    value: object, *, none_defaults_to_zero: bool = False
+) -> float | None:
     """
     Normalize a Snuba/EAP aggregate to float | None.
 
@@ -152,4 +154,4 @@ def run_query_for_window(
         logger.exception("Failed to run metric detector query", extra=logger_extra)
         return None
 
-    return coerce_aggregation_value(value)
+    return normalize_snuba_query_result(value)

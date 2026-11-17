@@ -11,7 +11,7 @@ from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.query_helpers import (
-    coerce_aggregation_value,
+    normalize_snuba_query_result,
     run_query_for_window,
 )
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
@@ -169,7 +169,7 @@ class SubscriptionProcessor:
         if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
             return self._get_crash_free_rate(raw_data)
 
-        current_value = coerce_aggregation_value(
+        current_value = normalize_snuba_query_result(
             list(raw_data.values())[0], none_defaults_to_zero=True
         )
         if current_value is None:
