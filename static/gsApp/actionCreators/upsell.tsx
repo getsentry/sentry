@@ -5,6 +5,7 @@ import {toast} from '@sentry/scraps/toast';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import {TrialRequestedStore} from 'getsentry/stores/trialRequestedStore';
@@ -52,16 +53,18 @@ export function sendTrialRequest({
 
 export function sendSeerTopUpRequest({
   organization,
+  denialReason,
   ...rest
 }: {
   api: Client;
   organization: Organization;
+  denialReason?: SeerCreditDenialReason | null;
   handleSuccess?: () => void;
 }) {
   const endpoint = `/organizations/${organization.slug}/seer-top-up-request/`;
   return sendBasicRequest({
     endpoint,
-    data: {},
+    data: {denialReason},
     successMessage: t('Admins emailed.'),
     ...rest,
   });
