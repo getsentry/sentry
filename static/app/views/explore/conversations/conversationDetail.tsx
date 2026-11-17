@@ -103,7 +103,7 @@ function ConversationDetailPage() {
 
   const theme = useTheme();
   const searchRootRef = useRef<HTMLDivElement>(null);
-  const isCurrentMatchShown = useTranscriptSearchHighlight({
+  useTranscriptSearchHighlight({
     rootRef: searchRootRef,
     query: spanSearch.state.status === 'match' ? spanSearch.state.query : null,
     currentSpanId:
@@ -129,9 +129,6 @@ function ConversationDetailPage() {
           return isLoading || canAutoFetchNextPage || isFetchingNextPage
             ? t('Loading match…')
             : t('Match is beyond the loaded spans');
-        }
-        if (queryState.tab === 'transcript' && isCurrentMatchShown === false) {
-          return t("Match is in the span's details");
         }
         return null;
       }

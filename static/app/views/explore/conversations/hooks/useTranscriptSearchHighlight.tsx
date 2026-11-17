@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState, type RefObject} from 'react';
+import {useEffect, useRef, type RefObject} from 'react';
 
 const MATCH_HIGHLIGHT = 'conversation-search-match';
 const CURRENT_HIGHLIGHT = 'conversation-search-current';
@@ -63,23 +63,21 @@ function clearHighlights() {
 }
 
 /**
- * Marks every occurrence of the query in the transcript, like browser find, and reveals the selected
- * match's own: opens collapsed blocks holding them and scrolls to the first.
- * Returns whether the selected match's rows contain the query.
+ * Marks every occurrence of the query in the transcript, like browser find, and
+ * reveals the selected match's own: opens collapsed blocks holding them and scrolls
+ * to the first.
  */
 export function useTranscriptSearchHighlight({
   rootRef,
   query,
   currentSpanId,
 }: UseTranscriptSearchHighlightOptions) {
-  const [isCurrentShown, setIsCurrentShown] = useState<boolean | null>(null);
   const revealedRef = useRef<string | null>(null);
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root || !query || !supportsHighlights()) {
       clearHighlights();
-      setIsCurrentShown(null);
       return;
     }
 
@@ -89,7 +87,6 @@ export function useTranscriptSearchHighlight({
       const {all, current} = findRanges(root, query, currentSpanId);
       CSS.highlights.set(MATCH_HIGHLIGHT, new Highlight(...all));
       CSS.highlights.set(CURRENT_HIGHLIGHT, new Highlight(...current));
-      setIsCurrentShown(currentSpanId ? current.length > 0 : null);
 
       const revealKey = `${query}\u0000${currentSpanId}`;
       const first = current[0];
@@ -129,6 +126,4 @@ export function useTranscriptSearchHighlight({
       clearHighlights();
     };
   }, [rootRef, query, currentSpanId]);
-
-  return isCurrentShown;
 }
