@@ -3,17 +3,19 @@ import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {FieldGroup} from '@sentry/scraps/form';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
-import {Confirm} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
-import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
+
+import {LoaderScript} from './loaderScript';
 
 type Props = {
   data: ProjectKey;
@@ -56,7 +58,7 @@ export function KeyRow({
               </small>
             )}
           </Title>
-          <Controls>
+          <Grid align="center" gap="md" flow="column">
             <LinkButton to={editUrl} size="xs">
               {t('Configure')}
             </LinkButton>
@@ -83,7 +85,7 @@ export function KeyRow({
             >
               <Button size="xs" icon={<IconDelete />} aria-label={t('Delete')} />
             </Confirm>
-          </Controls>
+          </Grid>
         </Fragment>
       }
     >
@@ -127,13 +129,6 @@ const Title = styled('div')<{disabled: boolean}>`
   flex: 1;
   ${p => (p.disabled ? 'opacity: 0.5;' : '')};
   margin-right: ${p => p.theme.space.md};
-`;
-
-const Controls = styled('div')`
-  display: grid;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  grid-auto-flow: column;
 `;
 
 const DisabledContainer = styled('div')<{disabled: boolean}>`

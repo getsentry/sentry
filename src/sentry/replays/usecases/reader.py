@@ -4,7 +4,7 @@ import uuid
 import zlib
 from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db.models import Prefetch
@@ -32,6 +32,12 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import raw_snql_query
 
 # METADATA QUERY BEHAVIOR.
+
+
+class _SegmentRow(TypedDict):
+    segment_id: int
+    retention_days: int
+    timestamp: str
 
 
 @traces.trace
@@ -234,7 +240,7 @@ def _fetch_segments_from_snuba(
 def segment_row_to_storage_meta(
     project_id: int,
     replay_id: str,
-    row,
+    row: _SegmentRow,
 ) -> RecordingSegmentStorageMeta:
     return RecordingSegmentStorageMeta(
         project_id=project_id,

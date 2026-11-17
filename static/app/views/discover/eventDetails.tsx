@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 
@@ -10,8 +11,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -31,20 +32,18 @@ export default function EventDetails() {
     data: event,
     isPending,
     error,
-  } = useApiQuery<Event>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug!,
-            eventId: eventId!,
-          },
-        }
-      ),
-    ],
-    {staleTime: 2 * 60 * 1000} // 2 minutes in milliseonds
+  } = useQuery(
+    apiOptions.as<Event>()(
+      '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectSlug!,
+          eventId: eventId!,
+        },
+        staleTime: 2 * 60 * 1000,
+      }
+    )
   );
 
   useEffect(() => {
@@ -77,8 +76,8 @@ export default function EventDetails() {
   }, [event, organization, datetimeSelection, location, navigate]);
 
   if (error) {
-    const notFound = error.status === 404;
-    const permissionDenied = error.status === 403;
+    const notFound = error instanceof RequestError && error.status === 404;
+    const permissionDenied = error instanceof RequestError && error.status === 403;
 
     if (notFound) {
       return <NotFound />;

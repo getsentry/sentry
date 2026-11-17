@@ -1,20 +1,29 @@
 import * as Amplitude from '@amplitude/analytics-browser';
 import * as Sentry from '@sentry/react';
-import * as qs from 'query-string';
+import {createLoader, parseAsJson} from 'nuqs';
+import {z} from 'zod';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
+import {toArray} from 'sentry/utils/array/toArray';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+import {parseAsSingleScalar} from 'sentry/views/explore/queryParams/parsers';
 
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 
 const MARKETING_EVENT_SESSION_KEY = 'marketing_event_recorded';
 
-// fields should be string but need to validate
-type MarketingEventSchema = {
-  event_name: unknown;
-  event_label?: unknown;
-};
+const marketingEventSchema = z.object({
+  event_name: z.string().min(1),
+  event_label: z.string().optional(),
+});
+
+const parseAsMarketingEvents = parseAsJson(toArray);
+
+const loadAnalyticsQuery = createLoader({
+  frontend_events: parseAsSingleScalar,
+  referrer: parseAsSingleScalar,
+});
 
 /**
  * This function initializes the user for analytics (Amplitude)
@@ -22,10 +31,10 @@ type MarketingEventSchema = {
  * events to Google Analytics and storing the previous_referrer into local storage
  */
 export function analyticsInitUser(user: User) {
-  const {frontend_events, referrer} = qs.parse(window.location.search) || {};
+  const {frontend_events, referrer} = loadAnalyticsQuery(window.location.search);
   // store the referrer in sessionStorage so we know what it was when the user
   // navigates to another page
-  if (referrer && typeof referrer === 'string') {
+  if (referrer) {
     sessionStorageWrapper.setItem('previous_referrer', referrer);
   }
   // quit early if analytics is disabled
@@ -71,32 +80,25 @@ export function analyticsInitUser(user: User) {
   Amplitude.identify(identifyObj, {time: Date.now()});
 
   // the backend can send any arbitrary marketing events
-  if (frontend_events && typeof frontend_events === 'string') {
+  if (frontend_events) {
     // if we've already recorded this event for this session, we don't need to record it again
     // this helps prevent duplicate events from mulitiple refreshes
     if (sessionStorageWrapper.getItem(MARKETING_EVENT_SESSION_KEY) === frontend_events) {
       return;
     }
     try {
-      // events could either be an array or a single event
-      const eventData = JSON.parse(frontend_events) as
-        | MarketingEventSchema
-        | MarketingEventSchema[];
-      const events = Array.isArray(eventData) ? eventData : [eventData];
+      const events = parseAsMarketingEvents.parse(frontend_events);
+      if (events === null) {
+        throw new Error('Invalid frontend_events JSON');
+      }
       events.forEach(event => {
-        const {event_name, event_label} = event;
-        // check event name is truthy string
-        if (!event_name || typeof event_name !== 'string') {
+        const result = marketingEventSchema.safeParse(event);
+        if (!result.success) {
           // eslint-disable-next-line no-console
-          console.warn('Invalid event_name');
+          console.warn('Invalid frontend_events event', event);
           return;
         }
-        // check event label is either undefined or string
-        if (event_label !== undefined && typeof event_label !== 'string') {
-          // eslint-disable-next-line no-console
-          console.warn('Invalid event_labels');
-          return;
-        }
+        const {event_name, event_label} = result.data;
         trackMarketingEvent(event_name, {event_label});
       });
     } catch (err) {

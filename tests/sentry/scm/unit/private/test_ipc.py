@@ -41,6 +41,8 @@ from sentry.scm.types import (
     CheckSuiteEvent,
     CommentEvent,
     EventType,
+    EventTypeHint,
+    HybridCloudSilo,
     PullRequestEvent,
     PullRequestReviewEvent,
     SubscriptionEvent,
@@ -53,7 +55,7 @@ def test_exec_listener() -> None:
     """
     count = 0
 
-    def record_count(a, b, c):
+    def record_count(a: str, b: int, c: dict[str, str]) -> None:
         nonlocal count
         count += 1
 
@@ -65,10 +67,10 @@ def test_exec_listener_missing_listener() -> None:
     """
     Assert the developers listener was removed prior to channel drain.
     """
-    key = None
-    tags = None
+    key: str | None = None
+    tags: dict[str, str] | None = None
 
-    def record_count(k, a, t):
+    def record_count(k: str, a: int, t: dict[str, str]) -> None:
         nonlocal key, tags
         key = k
         tags = t
@@ -82,13 +84,13 @@ def test_exec_listener_failed() -> None:
     """
     Assert the developers listener failed.
     """
-    key = None
-    tags = None
+    key: str | None = None
+    tags: dict[str, str] | None = None
 
-    def listener(e):
+    def listener(e: int) -> None:
         raise Exception("whatever")
 
-    def record_count(k, a, t):
+    def record_count(k: str, a: int, t: dict[str, str]) -> None:
         nonlocal key, tags
         key = k
         tags = t
@@ -100,12 +102,12 @@ def test_exec_listener_failed() -> None:
 
 
 def test_run_check_run_listener() -> None:
-    event = None
+    event: CheckRunEvent | None = None
 
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("check_run")
-    def call_me_maybe(e):
+    def call_me_maybe(e: CheckRunEvent) -> None:
         nonlocal event
         event = e
 
@@ -138,7 +140,7 @@ def test_run_comment_listener() -> None:
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("comment")
-    def comment_handler(e):
+    def comment_handler(e: CommentEvent) -> None:
         nonlocal event
         event = e
 
@@ -176,12 +178,12 @@ def test_run_pull_request_listener() -> None:
     """
     Test that pull request events are properly deserialized and routed to PR listeners.
     """
-    event = None
+    event: PullRequestEvent | None = None
 
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("pull_request")
-    def pr_handler(e):
+    def pr_handler(e: PullRequestEvent) -> None:
         nonlocal event
         event = e
 
@@ -221,12 +223,12 @@ def test_run_pull_request_listener() -> None:
 
 
 def test_run_check_suite_listener() -> None:
-    event = None
+    event: CheckSuiteEvent | None = None
 
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("check_suite")
-    def call_me_maybe(e):
+    def call_me_maybe(e: CheckSuiteEvent) -> None:
         nonlocal event
         event = e
 
@@ -256,12 +258,12 @@ def test_run_check_suite_listener() -> None:
 
 
 def test_run_pull_request_review_listener() -> None:
-    event = None
+    event: PullRequestReviewEvent | None = None
 
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("pull_request_review")
-    def review_handler(e):
+    def review_handler(e: PullRequestReviewEvent) -> None:
         nonlocal event
         event = e
 
@@ -295,14 +297,14 @@ def test_run_listener_metrics_recorded() -> None:
     """
     Test that success metrics and timing metrics are properly recorded.
     """
-    distributions = None
-    metrics = []
-    timers = []
+    distributions: tuple[str, int, dict[str, str], str] | None = None
+    metrics: list[tuple[str, int, dict[str, str]]] = []
+    timers: list[tuple[str, float, dict[str, str]]] = []
 
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("check_run")
-    def handler(e):
+    def handler(e: CheckRunEvent) -> None:
         pass
 
     check_run_event = CheckRunEventParser(
@@ -312,14 +314,14 @@ def test_run_listener_metrics_recorded() -> None:
     )
     message = msgspec.json.encode(check_run_event).decode("utf-8")
 
-    def record_count(key, amount, tags):
+    def record_count(key: str, amount: int, tags: dict[str, str]) -> None:
         metrics.append((key, amount, tags))
 
-    def record_distribution(key, amount, tags, unit):
+    def record_distribution(key: str, amount: int, tags: dict[str, str], unit: str) -> None:
         nonlocal distributions
         distributions = (key, amount, tags, unit)
 
-    def record_timer(key, amount, tags):
+    def record_timer(key: str, amount: float, tags: dict[str, str]) -> None:
         timers.append((key, amount, tags))
 
     run_listener(
@@ -349,9 +351,9 @@ def test_run_listener_not_found() -> None:
     """
     Test that calling a non-existent listener doesn't raise an exception.
     """
-    metrics = []
+    metrics: list[tuple[str, int, dict[str, str]]] = []
 
-    def record_count(key, amount, tags):
+    def record_count(key: str, amount: int, tags: dict[str, str]) -> None:
         metrics.append((key, amount, tags))
 
     check_run_event = CheckRunEventParser(
@@ -383,15 +385,15 @@ def test_run_listener_exception_propagates() -> None:
     """
     Test that exceptions from listeners are properly propagated and metrics recorded.
     """
-    metrics = []
+    metrics: list[tuple[str, int, dict[str, str]]] = []
 
     scm = SourceCodeManagerEventStream()
 
     @scm.listen_for("check_run")
-    def failing_handler(e):
+    def failing_handler(e: CheckRunEvent) -> None:
         raise ValueError("Something went wrong")
 
-    def record_count(key, amount, tags):
+    def record_count(key: str, amount: int, tags: dict[str, str]) -> None:
         metrics.append((key, amount, tags))
 
     check_run_event = CheckRunEventParser(
@@ -420,9 +422,9 @@ def test_run_listener_exception_propagates() -> None:
 
 
 def test_run_listener_malformed_input() -> None:
-    metrics = []
+    metrics: list[tuple[str, int, dict[str, str]]] = []
 
-    def record_count(a, b, c):
+    def record_count(a: str, b: int, c: dict[str, str]) -> None:
         metrics.append((a, b, c))
 
     with pytest.raises(msgspec.MsgspecError):
@@ -896,9 +898,11 @@ def test_produce_to_listeners_check_run() -> None:
     """
     Test that produce_to_listeners correctly routes check run events to registered listeners.
     """
-    produced_messages = []
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
 
-    def mock_produce(message, event_type_hint, listener_name, silo):
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event: SubscriptionEvent = {
@@ -910,7 +914,7 @@ def test_produce_to_listeners_check_run() -> None:
         "type": "github",
     }
 
-    def mock_deserialize(event):
+    def mock_deserialize(event: SubscriptionEvent) -> EventType:
         return CheckRunEvent(
             action="completed",
             check_run={"external_id": "1", "html_url": "url"},
@@ -920,11 +924,11 @@ def test_produce_to_listeners_check_run() -> None:
     mock_stream = SourceCodeManagerEventStream()
 
     @mock_stream.listen_for("check_run")
-    def listener_one(e):
+    def listener_one(e: CheckRunEvent) -> None:
         pass
 
     @mock_stream.listen_for("check_run")
-    def listener_two(e):
+    def listener_two(e: CheckRunEvent) -> None:
         pass
 
     with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
@@ -941,9 +945,11 @@ def test_produce_to_listeners_comment() -> None:
     """
     Test that produce_to_listeners correctly routes comment events to registered listeners.
     """
-    produced_messages = []
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
 
-    def mock_produce(message, event_type_hint, listener_name, silo):
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event: SubscriptionEvent = {
@@ -955,7 +961,7 @@ def test_produce_to_listeners_comment() -> None:
         "type": "github",
     }
 
-    def mock_deserialize(event):
+    def mock_deserialize(event: SubscriptionEvent) -> EventType:
         return CommentEvent(
             action="created",
             comment_type="issue",
@@ -966,7 +972,7 @@ def test_produce_to_listeners_comment() -> None:
     mock_stream = SourceCodeManagerEventStream()
 
     @mock_stream.listen_for("comment")
-    def comment_listener(e):
+    def comment_listener(e: CommentEvent) -> None:
         pass
 
     with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
@@ -981,9 +987,11 @@ def test_produce_to_listeners_pull_request() -> None:
     """
     Test that produce_to_listeners correctly routes PR events to registered listeners.
     """
-    produced_messages = []
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
 
-    def mock_produce(message, event_type_hint, listener_name, silo):
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event: SubscriptionEvent = {
@@ -995,7 +1003,7 @@ def test_produce_to_listeners_pull_request() -> None:
         "type": "github",
     }
 
-    def mock_deserialize(event):
+    def mock_deserialize(event: SubscriptionEvent) -> EventType:
         return PullRequestEvent(
             action="opened",
             pull_request={
@@ -1015,7 +1023,7 @@ def test_produce_to_listeners_pull_request() -> None:
     mock_stream = SourceCodeManagerEventStream()
 
     @mock_stream.listen_for("pull_request")
-    def pr_listener(e):
+    def pr_listener(e: PullRequestEvent) -> None:
         pass
 
     with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
@@ -1027,9 +1035,11 @@ def test_produce_to_listeners_pull_request() -> None:
 
 
 def test_produce_to_listeners_check_suite() -> None:
-    produced_messages = []
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
 
-    def mock_produce(message, event_type_hint, listener_name, silo):
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event: SubscriptionEvent = {
@@ -1041,7 +1051,7 @@ def test_produce_to_listeners_check_suite() -> None:
         "type": "github",
     }
 
-    def mock_deserialize(event):
+    def mock_deserialize(event: SubscriptionEvent) -> EventType:
         return CheckSuiteEvent(
             action="completed",
             check_suite={
@@ -1057,7 +1067,7 @@ def test_produce_to_listeners_check_suite() -> None:
     mock_stream = SourceCodeManagerEventStream()
 
     @mock_stream.listen_for("check_suite")
-    def cs_listener(e):
+    def cs_listener(e: CheckSuiteEvent) -> None:
         pass
 
     with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
@@ -1069,9 +1079,11 @@ def test_produce_to_listeners_check_suite() -> None:
 
 
 def test_produce_to_listeners_pull_request_review() -> None:
-    produced_messages = []
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
 
-    def mock_produce(message, event_type_hint, listener_name, silo):
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event: SubscriptionEvent = {
@@ -1083,7 +1095,7 @@ def test_produce_to_listeners_pull_request_review() -> None:
         "type": "github",
     }
 
-    def mock_deserialize(event):
+    def mock_deserialize(event: SubscriptionEvent) -> EventType:
         return PullRequestReviewEvent(
             action="submitted",
             pull_request_review={"id": "1", "state": "approved", "pull_request_id": "42"},
@@ -1095,7 +1107,7 @@ def test_produce_to_listeners_pull_request_review() -> None:
     mock_stream = SourceCodeManagerEventStream()
 
     @mock_stream.listen_for("pull_request_review")
-    def review_listener(e):
+    def review_listener(e: PullRequestReviewEvent) -> None:
         pass
 
     with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", mock_deserialize):
@@ -1110,9 +1122,11 @@ def test_produce_to_listeners_returns_none_for_unsupported_events() -> None:
     """
     Test that produce_to_listeners returns None when deserialize_raw_event returns None.
     """
-    produced_messages = []
+    produced_messages: list[tuple[str, EventTypeHint, str, HybridCloudSilo]] = []
 
-    def mock_produce(message, event_type_hint, listener_name, silo):
+    def mock_produce(
+        message: str, event_type_hint: EventTypeHint, listener_name: str, silo: HybridCloudSilo
+    ) -> None:
         produced_messages.append((message, event_type_hint, listener_name, silo))
 
     subscription_event: SubscriptionEvent = {

@@ -1,9 +1,10 @@
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -12,8 +13,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -37,15 +37,14 @@ export function ProjectDetails() {
   // This admin view fetches project details without `collapse=organization`,
   // so the backend returns a full Organization rather than the minimal
   // {id, slug} shape used elsewhere.
-  const {data, isPending, isError} = useApiQuery<
-    Omit<Project, 'organization'> & {organization: Organization}
-  >(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+  const {data, isPending, isError} = useQuery(
+    apiOptions.as<Omit<Project, 'organization'> & {organization: Organization}>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/',
+      {
         path: {organizationIdOrSlug: orgId, projectIdOrSlug: projectId},
-      }),
-    ],
-    {staleTime: Infinity}
+        staleTime: Infinity,
+      }
+    )
   );
   const api = useApi();
   const location = useLocation();
@@ -58,9 +57,9 @@ export function ProjectDetails() {
       await api.requestPromise(endpoint, {
         method: 'DELETE',
       });
-      addSuccessMessage('User email has been removed.');
+      toast.success('User email has been removed.');
     } catch {
-      addErrorMessage('Failed to remove email.');
+      toast.error('Failed to remove email.');
     }
   };
 

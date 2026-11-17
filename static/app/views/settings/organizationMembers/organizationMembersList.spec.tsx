@@ -15,15 +15,16 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
+
+import OrganizationMembersList from './organizationMembersList';
 
 jest.mock('sentry/utils/analytics');
-jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/demoMode');
 
 const roles = [
@@ -85,6 +86,8 @@ describe('OrganizationMembersList', () => {
   });
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
+    jest.spyOn(toast, 'success').mockClear();
     ConfigStore.set('user', currentUser.user!);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -175,7 +178,7 @@ describe('OrganizationMembersList', () => {
     );
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
-    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
     expect(OrganizationsStore.getAll()).toEqual([organization]);
@@ -201,7 +204,7 @@ describe('OrganizationMembersList', () => {
     );
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
-    await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
     expect(OrganizationsStore.getAll()).toEqual([organization]);
@@ -221,7 +224,7 @@ describe('OrganizationMembersList', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
-    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
     await waitFor(() => {
@@ -251,7 +254,7 @@ describe('OrganizationMembersList', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
     await userEvent.click(screen.getByTestId('confirm-button'));
 
-    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
     await waitFor(() => {
@@ -275,7 +278,7 @@ describe('OrganizationMembersList', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
-    await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
     expect(OrganizationsStore.getAll()).toEqual([organization]);
@@ -355,6 +358,32 @@ describe('OrganizationMembersList', () => {
     await waitFor(() => {
       expect(router.location.query.query).toBe('member');
     });
+  });
+
+  it('pushes the search query and drops the cursor when searching', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+
+    const {router} = render(<OrganizationMembersList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/members/`,
+          query: {cursor: '0:100:0'},
+        },
+        route: '/settings/:orgId/members/',
+      },
+    });
+
+    await userEvent.type(
+      await screen.findByPlaceholderText('Search Members'),
+      'member{enter}'
+    );
+
+    await waitFor(() => expect(router.location.query).toEqual({query: 'member'}));
+    expect(router.historyAction).toBe('PUSH');
   });
 
   it('can filter members', async () => {

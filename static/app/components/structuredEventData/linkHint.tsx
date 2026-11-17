@@ -19,18 +19,24 @@ export function LinkHint({meta, value}: Props) {
   }
 
   return (
-    <ExternalLink
+    <StyledExternalLink
       onClick={e => {
         e.preventDefault();
         openNavigateToExternalLinkModal({linkText: value});
       }}
       role="link"
-      className="external-icon"
     >
       <StyledIconOpen size="xs" aria-label={t('Open link')} />
-    </ExternalLink>
+    </StyledExternalLink>
   );
 }
+
+const StyledExternalLink = styled(ExternalLink)`
+  margin: 0 ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.xs};
+  line-height: 1;
+  vertical-align: middle;
+`;
 
 const StyledIconOpen = styled(IconOpen)`
   position: relative;

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -12,10 +12,11 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {DetailsTimelineLegend} from 'sentry/views/detectors/components/uptime/detailsTimelineLegend';
-import {type UptimeSummary} from 'sentry/views/detectors/components/uptime/types';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
+
+import {DetailsTimelineLegend} from './detailsTimelineLegend';
+import {type UptimeSummary} from './types';
 
 interface UptimeDetailsSidebarProps {
   showMissedLegend: boolean;

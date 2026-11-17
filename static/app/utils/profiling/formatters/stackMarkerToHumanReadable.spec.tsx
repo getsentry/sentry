@@ -1,4 +1,4 @@
-import {stackMarkerToHumanReadable} from 'sentry/utils/profiling/formatters/stackMarkerToHumanReadable';
+import {stackMarkerToHumanReadable} from './stackMarkerToHumanReadable';
 
 describe('stackMarkerToHumanReadable', () => {
   it('gracefully handles unknown input', () => {

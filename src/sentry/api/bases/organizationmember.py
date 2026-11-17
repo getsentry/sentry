@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermissionMixin
+from sentry.auth.principal import has_user
 from sentry.db.models.fields.bounded import BoundedAutoField
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -18,6 +19,7 @@ from sentry.organizations.services.organization.model import (
     RpcUserOrganizationContext,
 )
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 from .organization import OrganizationEndpoint, OrganizationPermission
 
@@ -85,6 +87,8 @@ class _FilterKwargs(TypedDict):
 
 
 class OrganizationMemberEndpoint(OrganizationEndpoint):
+    requires_user = True
+
     def convert_args(
         self,
         request: Request,
@@ -96,7 +100,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         serializer = MemberSerializer(data={"id": member_id})
-        if request.user.is_authenticated and serializer.is_valid():
+        if has_user(request.user) and serializer.is_valid():
             result = serializer.validated_data
             try:
                 kwargs["member"] = self._get_member(
@@ -111,7 +115,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
 
     def _get_member(
         self,
-        request_user: User,
+        request_user: User | RpcUser,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,

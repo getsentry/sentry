@@ -3,7 +3,7 @@ from typing import Any
 import click
 from yaml import safe_dump
 
-from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
+from sentry.runner.commands.presenters.optionspresenter import ExpectedOptionType, OptionsPresenter
 
 
 class ConsolePresenter(OptionsPresenter):
@@ -33,7 +33,7 @@ class ConsolePresenter(OptionsPresenter):
         self.unset_options: list[str] = []
         self.not_writable_options: list[tuple[str, str]] = []
         self.unregistered_options: list[str] = []
-        self.invalid_type_options: list[tuple[str, type, type]] = []
+        self.invalid_type_options: list[tuple[str, type, ExpectedOptionType]] = []
 
     def flush(self) -> None:
         import logging
@@ -98,6 +98,6 @@ class ConsolePresenter(OptionsPresenter):
         self,
         key: str,
         got_type: type,
-        expected_type: type,
+        expected_type: ExpectedOptionType,
     ) -> None:
         self.invalid_type_options.append((key, got_type, expected_type))

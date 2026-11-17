@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from django.db import router, transaction
 from django.utils.decorators import method_decorator
@@ -38,6 +38,10 @@ from sentry.organizations.services.organization.model import (
 from sentry.web.decorators import set_referrer_policy
 
 
+class DataForwarderEnrollmentSerializer(serializers.Serializer):
+    project_ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
+
+
 class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
     scope_map = {
         "PUT": ["org:write"],
@@ -68,6 +72,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
 
     def convert_args(
@@ -75,20 +80,22 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         request: Request,
         organization_id_or_slug: int | str,
         data_forwarder_id: str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
+        organization = cast(Organization, kwargs["organization"])
+
         if request.method == "PUT" and not features.has(
-            "organizations:data-forwarding", kwargs["organization"]
+            "organizations:data-forwarding", organization
         ):
             raise PermissionDenied
 
         try:
             data_forwarder = DataForwarder.objects.get(
                 id=to_valid_int_id("data_forwarder_id", data_forwarder_id, raise_404=True),
-                organization=kwargs["organization"],
+                organization=organization,
             )
         except DataForwarder.DoesNotExist:
             raise ResourceDoesNotExist
@@ -138,7 +145,9 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         Returns:
             Tuple of (project_ids_to_enroll, project_ids_to_unenroll)
         """
-        project_ids_new: set[int] = set(request.data.get("project_ids", []))
+        serializer = DataForwarderEnrollmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project_ids_new: set[int] = set(serializer.validated_data["project_ids"])
         project_ids_current: set[int] = set(
             DataForwarderProject.objects.filter(
                 data_forwarder=data_forwarder, is_enabled=True

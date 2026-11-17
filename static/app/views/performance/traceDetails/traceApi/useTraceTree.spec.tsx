@@ -1,6 +1,7 @@
+import type {UseQueryResult} from '@tanstack/react-query';
+
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
   makeEAPSpan,
@@ -11,8 +12,10 @@ import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceSta
 
 import {useTraceTree} from './useTraceTree';
 
-const getMockedTraceResults = (status: string, data?: TraceTree.EAPTrace) =>
-  ({status, data}) as UseApiQueryResult<TraceTree.EAPTrace | undefined, any>;
+const getMockedTraceResults = (
+  status: UseQueryResult['status'],
+  data?: TraceTree.EAPTrace
+) => ({status, data});
 
 const contextWrapper = () => {
   return function ({children}: {children: React.ReactNode}) {

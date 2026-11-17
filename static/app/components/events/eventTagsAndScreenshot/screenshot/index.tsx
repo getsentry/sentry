@@ -4,13 +4,14 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Text} from '@sentry/scraps/text';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {
   imageMimeTypes,
@@ -24,7 +25,7 @@ import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {PanelProvider} from 'sentry/utils/panelProvider';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 
 type Props = {
   eventId: Event['id'];
@@ -71,7 +72,9 @@ export function Screenshot({
   const AttachmentComponent = webmMimeTypes.includes(screenshot.mimetype)
     ? VideoViewer
     : ImageViewer;
-  const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`;
+  const downloadUrl = resolveHostname(
+    `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`
+  );
 
   return (
     <Container width="100%" maxWidth={{zero: '100%', xl: '175px'}} height="100%">

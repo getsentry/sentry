@@ -22,8 +22,9 @@ import {getNoAlertWritePermissionTooltip} from 'sentry/views/automations/hooks/u
 import {canCreateDetachedAutomation} from 'sentry/views/automations/utils/permissions';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
-import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
+
+import {useDetectorFormProject} from './common/useDetectorFormProject';
 
 /**
  * Section that lets the user connect, disconnect, and create automations

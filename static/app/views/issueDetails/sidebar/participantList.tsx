@@ -5,14 +5,14 @@ import styled from '@emotion/styled';
 import {AvatarList, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
-import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface DropdownListProps {
   users: User[];

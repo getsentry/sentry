@@ -4,10 +4,6 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {
-  getPlatform,
-  getPlatformViewConfig,
-} from 'sentry/components/events/viewHierarchy/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -19,6 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
+import {getPlatform, getPlatformViewConfig} from './viewHierarchy/utils';
 import type {ViewHierarchyData} from './viewHierarchy';
 import {ViewHierarchy} from './viewHierarchy';
 

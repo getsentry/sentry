@@ -4,7 +4,7 @@ from sentry.exceptions import InvalidSearchQuery
 class InvalidIssueSearchQuery(InvalidSearchQuery):
     """Raised when an issue filter references non-existent issue IDs."""
 
-    def __init__(self, invalid_ids: list[str]):
+    def __init__(self, invalid_ids: list[str]) -> None:
         self.invalid_ids = invalid_ids
         super().__init__(f"Issue IDs do not exist: {invalid_ids}")
 

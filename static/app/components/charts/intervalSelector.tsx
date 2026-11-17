@@ -3,7 +3,6 @@ import {useState} from 'react';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {getInterval} from 'sentry/components/charts/utils';
 import {
   _timeRangeAutoCompleteFilter,
   makeItem,
@@ -12,6 +11,8 @@ import {t, tn} from 'sentry/locale';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {INTERVAL_DISPLAY_MODES} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+
+import {getInterval} from './utils';
 
 type IntervalUnits = 's' | 'm' | 'h' | 'd';
 

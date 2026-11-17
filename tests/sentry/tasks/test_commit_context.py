@@ -1,6 +1,8 @@
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -24,6 +26,7 @@ from sentry.integrations.source_code_management.metrics import CommitContextHalt
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.pullrequest import (
     CommentType,
@@ -103,6 +106,18 @@ class TestCommitContextIntegration(TestCase):
             },
             project_id=self.project.id,
         )
+
+    @property
+    def event_group(self) -> Group:
+        group = self.event.group
+        assert group is not None
+        return group
+
+    @property
+    def event_platform(self) -> str:
+        platform = self.event.platform
+        assert platform is not None
+        return platform
 
 
 class TestCommitContextAllFrames(TestCommitContextIntegration):
@@ -188,9 +203,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -222,9 +237,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -253,7 +268,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             IntegrationsSuccessfullyFetchedCommitContextAllFrames(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 event_id=self.event.event_id,
                 num_frames=1,
                 num_unique_commits=1,
@@ -269,7 +284,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_success_updating_group_owner(self, mock_get_commit_context, mock_record):
+    def test_success_updating_group_owner(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         Runs through process_commit_context twice to make sure we aren't creating duplicate
         GroupOwners for the same suggestion.
@@ -288,9 +305,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -319,9 +336,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -363,9 +380,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -402,7 +419,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_success_external_author_no_user(self, mock_get_commit_context: MagicMock, _) -> None:
+    def test_success_external_author_no_user(
+        self, mock_get_commit_context: MagicMock, _: Any
+    ) -> None:
         """
         Test that process_commit_context creates GroupOwner with user_id=None
         when commit author has no Sentry user mapping.
@@ -431,9 +450,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -478,9 +497,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -540,9 +559,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -565,7 +584,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             ],
             extra={
                 "event": self.event.event_id,
-                "group": self.event.group_id,
+                "group": self.event_group.id,
                 "organization": self.event.project.organization_id,
             },
         )
@@ -576,8 +595,11 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
     def test_failure_no_inapp_frames(
-        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
-    ):
+        self,
+        mock_get_commit_context: MagicMock,
+        mock_record: MagicMock,
+        mock_process_suspect_commits: MagicMock,
+    ) -> None:
         """
         A simple failure case where the event has no in app frames, so we bail out.
         """
@@ -617,9 +639,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event_with_no_inapp_frames)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -633,7 +655,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             IntegrationsFailedToFetchCommitContextAllFrames(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 event_id=self.event.event_id,
                 num_frames=0,
                 num_successfully_mapped_frames=0,
@@ -648,8 +670,12 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
     def test_failure_no_blames(
-        self, mock_get_commit_context, mock_record, mock_process_suspect_commits, mock_logger_info
-    ):
+        self,
+        mock_get_commit_context: MagicMock,
+        mock_record: MagicMock,
+        mock_process_suspect_commits: MagicMock,
+        mock_logger_info: MagicMock,
+    ) -> None:
         """
         A simple failure case where no blames are returned. We bail out.
         """
@@ -659,9 +685,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -674,7 +700,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             IntegrationsFailedToFetchCommitContextAllFrames(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 event_id=self.event.event_id,
                 num_frames=1,
                 num_successfully_mapped_frames=1,
@@ -686,7 +712,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             "process_commit_context_all_frames.find_commit_context_failed",
             extra={
                 "organization": self.organization.id,
-                "group": self.event.group_id,
+                "group": self.event_group.id,
                 "event": self.event.event_id,
                 "project_id": self.project.id,
                 "reason": "no_commits_found",
@@ -700,8 +726,11 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
     def test_time_threshold_filtering(
-        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
-    ):
+        self,
+        mock_get_commit_context: MagicMock,
+        mock_record: MagicMock,
+        mock_process_suspect_commits: MagicMock,
+    ) -> None:
         """
         A hacky way to run a parameterized test in TestCase.
         Tests the logic that filters commits by age relative to issue first_seen.
@@ -769,8 +798,8 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 group_first_seen = datetime.now(tz=datetime_timezone.utc) - timedelta(
                     days=group_first_seen_days_ago
                 )
-                self.event.group.first_seen = group_first_seen
-                self.event.group.save()
+                self.event_group.first_seen = group_first_seen
+                self.event_group.save()
 
                 # Build the mock return value
                 mock_blames = [blame_mapping[blame_name] for blame_name in blames_setup]
@@ -783,9 +812,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                     with self.options({"issues.suspect-commit-strategy": True}):
                         process_commit_context(
                             event_id=self.event.event_id,
-                            event_platform=self.event.platform,
+                            event_platform=self.event_platform,
                             event_frames=event_frames,
-                            group_id=self.event.group_id,
+                            group_id=self.event_group.id,
                             project_id=self.event.project_id,
                             sdk_name="sentry.python",
                         )
@@ -814,8 +843,11 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
     def test_release_date_used_as_cutoff(
-        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
-    ):
+        self,
+        mock_get_commit_context: MagicMock,
+        mock_record: MagicMock,
+        mock_process_suspect_commits: MagicMock,
+    ) -> None:
         """
         When a group has a first_release, the release date should be used
         as the upper bound for suspect commit filtering instead of group.first_seen.
@@ -864,17 +896,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         mock_get_commit_context.return_value = [blame_after_release, blame_before_release]
 
-        self.event.group.first_release = release
-        self.event.group.first_seen = now
-        self.event.group.save()
+        self.event_group.first_release = release
+        self.event_group.first_seen = now
+        self.event_group.save()
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -891,8 +923,11 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
     def test_no_release_falls_back_to_first_seen(
-        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
-    ):
+        self,
+        mock_get_commit_context: MagicMock,
+        mock_record: MagicMock,
+        mock_process_suspect_commits: MagicMock,
+    ) -> None:
         """
         When the group has no first_release, the behavior should fall back
         to using group.first_seen as the cutoff.
@@ -901,17 +936,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         mock_get_commit_context.return_value = [self.blame_recent]
 
-        self.event.group.first_release = None
-        self.event.group.first_seen = now
-        self.event.group.save()
+        self.event_group.first_release = None
+        self.event_group.first_seen = now
+        self.event_group.save()
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -925,8 +960,11 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
     def test_release_date_released_preferred_over_date_added(
-        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
-    ):
+        self,
+        mock_get_commit_context: MagicMock,
+        mock_record: MagicMock,
+        mock_process_suspect_commits: MagicMock,
+    ) -> None:
         """
         When a release has date_released set, it should be preferred over date_added.
         """
@@ -958,17 +996,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         mock_get_commit_context.return_value = [blame_between_dates]
 
-        self.event.group.first_release = release
-        self.event.group.first_seen = now
-        self.event.group.save()
+        self.event_group.first_release = release
+        self.event_group.first_seen = now
+        self.event_group.save()
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -982,8 +1020,8 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         side_effect=ApiError("File not found", code=404),
     )
     def test_no_retry_on_non_retryable_api_error(
-        self, mock_get_commit_context, mock_process_suspect_commits
-    ):
+        self, mock_get_commit_context: MagicMock, mock_process_suspect_commits: MagicMock
+    ) -> None:
         """
         A failure case where the integration hits a 404 error.
         This type of failure should immediately bail with no retries.
@@ -993,9 +1031,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -1011,10 +1049,10 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     )
     def test_failure_unknown(
         self,
-        mock_get_commit_context,
-        mock_process_suspect_commits,
-        mock_logger_warning,
-    ):
+        mock_get_commit_context: MagicMock,
+        mock_process_suspect_commits: MagicMock,
+        mock_logger_warning: MagicMock,
+    ) -> None:
         """
         A failure case where the integration returned an API error.
         The error should be recorded.
@@ -1024,9 +1062,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -1038,7 +1076,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
             extra={
                 "organization": self.organization.id,
-                "group": self.event.group_id,
+                "group": self.event_group.id,
                 "event": self.event.event_id,
                 "project_id": self.project.id,
                 "integration_id": self.integration.id,
@@ -1105,9 +1143,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=frames_with_dups,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -1124,7 +1162,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             ],
             extra={
                 "event": self.event.event_id,
-                "group": self.event.group_id,
+                "group": self.event_group.id,
                 "organization": self.organization.id,
             },
         )
@@ -1133,7 +1171,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             IntegrationsSuccessfullyFetchedCommitContextAllFrames(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 event_id=self.event.event_id,
                 # 1 was a duplicate, 2 filtered out because of missing properties
                 num_frames=2,
@@ -1200,7 +1238,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             oi.config = {"pr_comments": True}
             oi.save(update_fields=["config"])
 
-    def add_responses(self):
+    def add_responses(self) -> None:
         responses.add(
             responses.GET,
             self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
@@ -1219,9 +1257,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1241,9 +1279,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1251,8 +1289,11 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_no_pr_from_api(
-        self, get_jwt, mock_comment_workflow, mock_get_commit_context
-    ):
+        self,
+        get_jwt: Callable[..., str],
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """No comments on suspect commit with no pr returned from API response"""
         mock_get_commit_context.return_value = [self.blame]
         self.pull_request.delete()
@@ -1268,9 +1309,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1279,8 +1320,12 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     @patch("sentry_sdk.capture_exception")
     @responses.activate
     def test_gh_comment_api_error(
-        self, mock_capture_exception, get_jwt, mock_comment_workflow, mock_get_commit_context
-    ):
+        self,
+        mock_capture_exception: MagicMock,
+        get_jwt: Callable[..., str],
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """Captures exception if Github API call errors"""
         mock_get_commit_context.return_value = [self.blame]
         responses.add(
@@ -1294,9 +1339,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert mock_capture_exception.called
@@ -1305,8 +1350,11 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_commit_not_in_default_branch(
-        self, get_jwt, mock_comment_workflow, mock_get_commit_context
-    ):
+        self,
+        get_jwt: Callable[..., str],
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """No comments on commit not in default branch"""
         mock_get_commit_context.return_value = [self.blame]
         responses.add(
@@ -1320,9 +1368,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1330,8 +1378,11 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_no_pr_from_query(
-        self, get_jwt, mock_comment_workflow, mock_get_commit_context
-    ):
+        self,
+        get_jwt: Callable[..., str],
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """No comments on suspect commit with no pr row in table"""
         mock_get_commit_context.return_value = [self.blame]
         self.pull_request.delete()
@@ -1342,9 +1393,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1368,9 +1419,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1379,23 +1430,26 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_pr_info_level_issue(
-        self, get_jwt, mock_comment_workflow, mock_get_commit_context
-    ):
+        self,
+        get_jwt: Callable[..., str],
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """No comment on pr that's has info level issue"""
         mock_get_commit_context.return_value = [self.blame]
         self.pull_request.date_added = before_now(days=1)
         self.pull_request.save()
 
         self.add_responses()
-        self.event.group.update(level=logging.INFO)
+        self.event_group.update(level=logging.INFO)
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1411,7 +1465,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     ) -> None:
         """No comment on a pr that has a comment with the issue in the same pr list"""
         mock_get_commit_context.return_value = [self.blame]
-        self.pull_request_comment.group_ids.append(self.event.group_id)
+        self.pull_request_comment.group_ids.append(self.event_group.id)
         self.pull_request_comment.save()
 
         self.add_responses()
@@ -1420,9 +1474,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1431,8 +1485,11 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_create_queued(
-        self, get_jwt, mock_comment_workflow, mock_get_commit_context
-    ):
+        self,
+        get_jwt: Callable[..., str],
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """Task queued if no prior comment exists"""
         mock_get_commit_context.return_value = [self.blame]
         self.pull_request_comment.delete()
@@ -1443,9 +1500,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert mock_comment_workflow.called
@@ -1457,8 +1514,11 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_create_queued_existing_pr_commit(
-        self, get_jwt, mock_comment_workflow, mock_get_commit_context
-    ):
+        self,
+        get_jwt: Callable[..., str],
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """Task queued if no prior comment exists"""
         mock_get_commit_context.return_value = [self.blame]
         pr_commit = PullRequestCommit.objects.create(
@@ -1472,9 +1532,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert mock_comment_workflow.called
@@ -1500,9 +1560,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert mock_comment_workflow.called
@@ -1521,9 +1581,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1533,14 +1593,18 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_debounces(
-        self, get_jwt, mock_record, mock_comment_workflow, mock_get_commit_context
-    ):
+        self,
+        get_jwt: Callable[..., str],
+        mock_record: MagicMock,
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         mock_get_commit_context.return_value = [self.blame]
         self.add_responses()
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
 
         groupowner = GroupOwner.objects.create(
-            group_id=self.event.group_id,
+            group_id=self.event_group.id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             user_id=1,
             project_id=self.event.project_id,
@@ -1565,13 +1629,13 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
             )
             install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
             )
             assert mock_comment_workflow.call_count == 1
 
@@ -1586,14 +1650,18 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_gh_comment_multiple_comments(
-        self, get_jwt, mock_record, mock_comment_workflow, mock_get_commit_context
-    ):
+        self,
+        get_jwt: Callable[..., str],
+        mock_record: MagicMock,
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         self.add_responses()
 
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
 
         groupowner = GroupOwner.objects.create(
-            group_id=self.event.group_id,
+            group_id=self.event_group.id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             user_id=1,
             project_id=self.event.project_id,
@@ -1628,13 +1696,13 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
             )
             install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
             )
             assert mock_comment_workflow.call_count == 1
 

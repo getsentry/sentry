@@ -113,6 +113,7 @@ class TestProcessWorkflowActivity(TestCase):
         event_data = WorkflowEventData(
             event=self.activity,
             group=self.group,
+            organization=self.organization,
         )
 
         mock_evaluate.assert_called_once_with({self.workflow}, event_data, mock.ANY)
@@ -150,6 +151,7 @@ class TestProcessWorkflowActivity(TestCase):
         expected_event_data = WorkflowEventData(
             event=self.activity,
             group=self.group,
+            organization=self.organization,
         )
 
         process_workflow_activity(
@@ -191,7 +193,9 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with(
             {action_group},
-            WorkflowEventData(event=self.activity, group=self.group),
+            WorkflowEventData(
+                event=self.activity, group=self.group, organization=self.organization
+            ),
         )
 
     @mock.patch(
@@ -264,13 +268,8 @@ class TestProcessWorkflowActivity(TestCase):
         assert artifact["triggered_action_ids"] == [self.action.id]
         assert artifact["outcome"] == WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
 
-    @mock.patch(
-        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
-    )  # rollout code that is independently tested
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
-    def test__e2e__issue_plat_to_processed(
-        self, mock_incr: mock.MagicMock, mock_update_igop: mock.MagicMock
-    ) -> None:
+    def test__e2e__issue_plat_to_processed(self, mock_incr: mock.MagicMock) -> None:
         self.message = StatusChangeMessageData(
             id="test-id",
             fingerprint=["group-1"],
@@ -295,14 +294,10 @@ class TestProcessWorkflowActivity(TestCase):
             )
 
     @mock.patch("sentry.issues.status_change_consumer.get_group_from_fingerprint")
-    @mock.patch(
-        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
-    )  # rollout code that is independently tested
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
     def test__e2e__issue_plat_to_processed_activity_data_is_set(
         self,
         mock_incr: mock.MagicMock,
-        mock_update_igop: mock.MagicMock,
         mock_get_group_from_fingerprint: mock.MagicMock,
     ) -> None:
         mock_get_group_from_fingerprint.return_value = self.group

@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {KeyValueRow} from 'sentry/components/tables/keyValueTable';
+
 import {
   TreeBranchIcon,
   TreeKey,
@@ -8,8 +10,7 @@ import {
   TreeSpacer,
   TreeValue,
   TreeValueTrunk,
-} from 'sentry/components/keyValueTree/styles';
-import {KeyValueRow} from 'sentry/components/tables/keyValueTable';
+} from './styles';
 
 export interface KeyValueTreeRowProps {
   label: React.ReactNode;

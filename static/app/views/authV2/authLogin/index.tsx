@@ -17,7 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {AuthCritter} from 'sentry/views/authV2/authCritter';
-import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 
 import {AccountAuthentication} from './components/accountAuthentication';
 import {OrganizationSwitcher} from './components/organizationSwitcher';
@@ -182,7 +182,7 @@ export default function AuthLogin() {
     demoLogin.isLoading ||
     (nextUri && !focusedOrgAuth && !hasAuthOrganizationError)
   );
-  useBrandedAuthLoading(!isLoginRenderable);
+  useAuthPageLoading(!isLoginRenderable);
 
   useEffect(() => {
     if (!isLoginRenderable) {

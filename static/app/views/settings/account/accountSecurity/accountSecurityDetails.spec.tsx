@@ -12,8 +12,8 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import AccountSecurityDetails from 'sentry/views/settings/account/accountSecurity/accountSecurityDetails';
-import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
+import AccountSecurityDetails from './accountSecurityDetails';
+import AccountSecurityWrapper from './accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
 const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';

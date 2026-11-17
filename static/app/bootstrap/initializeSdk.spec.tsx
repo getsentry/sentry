@@ -7,6 +7,7 @@ import {
   initializeSdk,
   isEventWithFileUrl,
   isFilteredRequestErrorEvent,
+  isWalletProviderError,
 } from './initializeSdk';
 
 const ERROR_MAP: Record<number, string | undefined> = {
@@ -45,7 +46,7 @@ describe('initializeSdk', () => {
     );
   });
 
-  it('ignores the ECharts tooltip error thrown when a chart replaces its series (Chrome/V8)', () => {
+  it('drops unhandled rejections from crypto wallet extensions', () => {
     initializeSdk({
       ...window.__initialData,
       apmSampling: 1,
@@ -57,38 +58,49 @@ describe('initializeSdk', () => {
       },
     });
 
-    const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
-    const message =
-      "TypeError: Cannot read properties of undefined (reading 'getDataParams')";
+    const beforeSend = jest.mocked(Sentry.init).mock.lastCall?.[0]?.beforeSend;
+    const event = {
+      type: undefined,
+      exception: {
+        values: [
+          {
+            type: 'UnhandledRejection',
+            value: 'Object captured as promise rejection with keys: code, message',
+          },
+        ],
+      },
+    };
 
     expect(
-      ignoreErrors.some(pattern =>
-        typeof pattern === 'string' ? message.includes(pattern) : pattern.test(message)
-      )
-    ).toBe(true);
+      beforeSend?.(event, {
+        originalException: {
+          code: 4900,
+          message: 'The provider is disconnected from all chains.',
+        },
+      })
+    ).toBeNull();
+  });
+});
+
+describe('isWalletProviderError', () => {
+  it.each([
+    {code: 4001, message: 'User rejected the request.'},
+    {code: 4900, message: 'The provider is disconnected from all chains.'},
+    {code: -32603, message: 'Internal JSON-RPC error.'},
+    {code: -32000, message: 'execution reverted', data: '0x'},
+  ])('recognizes provider error $code', error => {
+    expect(isWalletProviderError(error)).toBe(true);
   });
 
-  it('ignores the ECharts tooltip error thrown when a chart replaces its series (Safari/WebKit)', () => {
-    initializeSdk({
-      ...window.__initialData,
-      apmSampling: 1,
-      sentryConfig: {
-        allowUrls: [],
-        dsn: '',
-        release: '',
-        tracePropagationTargets: [],
-      },
-    });
-
-    const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
-    const message =
-      "TypeError: undefined is not an object (evaluating 'a.getDataParams')";
-
-    expect(
-      ignoreErrors.some(pattern =>
-        typeof pattern === 'string' ? message.includes(pattern) : pattern.test(message)
-      )
-    ).toBe(true);
+  it.each([
+    ['Error instances', Object.assign(new Error('Disconnected'), {code: 4900})],
+    ['HTTP status codes', {code: 404, message: 'Not Found'}],
+    ['string codes', {code: 'ECONNRESET', message: 'socket hang up'}],
+    ['objects without a message', {code: 4001}],
+    ['strings', 'User rejected the request.'],
+    ['undefined', undefined],
+  ])('rejects %s', (_, error) => {
+    expect(isWalletProviderError(error)).toBe(false);
   });
 });
 

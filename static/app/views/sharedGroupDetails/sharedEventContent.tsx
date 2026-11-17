@@ -102,7 +102,7 @@ function SharedEventEntry({
       return (
         <Threads
           event={event}
-          group={group}
+          group={undefined}
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}

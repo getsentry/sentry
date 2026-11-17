@@ -10,7 +10,7 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {HighlightText, type SelectOptionWithKey} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DeviceName} from 'sentry/components/deviceName';
@@ -30,37 +30,6 @@ import {
   type CustomComboboxMenu,
   type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
-import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
-import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
-import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
-import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
-import {
-  escapeTagValueForSearch,
-  formatFilterValue,
-  getFilterValueType,
-  unescapeAsteriskSearchValue,
-  unescapeTagValue,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {
-  useValueComboboxContext,
-  useValueComboboxMenuContext,
-  ValueComboboxContext,
-  ValueComboboxMenuContext,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueComboboxContext';
-import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
-import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
-import {shouldUseDefaultNumericSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/numeric';
-import {SeverityValueIndicator} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/severityValueIndicator';
-import {isSeverityFilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/utils';
-import type {
-  SuggestionItem,
-  SuggestionSection,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
-import {
-  cleanFilterValue,
-  getValueSuggestions,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/utils';
 import {
   getDefaultFilterValue,
   resolveFilterKey,
@@ -93,6 +62,32 @@ import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {parseMultiSelectFilterValue} from './parsers/string/parser';
+import {getDefaultAbsoluteDateValue} from './valueSuggestions/date';
+import {shouldUseDefaultNumericSuggestions} from './valueSuggestions/numeric';
+import {SeverityValueIndicator} from './valueSuggestions/severity/severityValueIndicator';
+import {isSeverityFilterKey} from './valueSuggestions/severity/utils';
+import type {SuggestionItem, SuggestionSection} from './valueSuggestions/types';
+import {cleanFilterValue, getValueSuggestions} from './valueSuggestions/utils';
+import {renderRegexPattern} from './highlightedRegexPattern';
+import {RegexDelimiter} from './regexDelimiter';
+import {SpecificDatePicker} from './specificDatePicker';
+import {useFrozenSuggestionSectionItems} from './useFrozenSuggestionSectionItems';
+import {
+  escapeTagValueForSearch,
+  formatFilterValue,
+  getFilterValueType,
+  unescapeAsteriskSearchValue,
+  unescapeTagValue,
+} from './utils';
+import {
+  useValueComboboxContext,
+  useValueComboboxMenuContext,
+  ValueComboboxContext,
+  ValueComboboxMenuContext,
+} from './valueComboboxContext';
+import {ValueListBox} from './valueListBox';
 
 type SearchQueryValueBuilderProps = {
   editingCommittedValue: boolean;
@@ -588,7 +583,10 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
   const selected = selectedValueMap.get(value) ?? false;
 
   return (
-    <TrailingWrap
+    <Grid
+      align="center"
+      gap="md"
+      flow="column"
       onPointerUp={e => e.stopPropagation()}
       onMouseUp={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
@@ -621,7 +619,7 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
           tabIndex={-1}
         />
       </CheckWrap>
-    </TrailingWrap>
+    </Grid>
   );
 }
 
@@ -639,6 +637,7 @@ function ValueComboboxCustomMenu(
     onSelectAbsoluteDate,
     showDatePicker,
     token,
+    valueHint,
     wrapperRef,
   } = useValueComboboxMenuContext();
 
@@ -669,6 +668,7 @@ function ValueComboboxCustomMenu(
       isLoading={isFetching}
       canUseWildcard={canUseWildcard}
       token={token}
+      valueHint={valueHint}
     />
   );
 }
@@ -716,8 +716,10 @@ export function SearchQueryBuilderValueCombobox({
     searchSource,
     recentSearches,
     disallowWildcard,
+    keepOperatorOnValueSelect,
   } = useSearchQueryBuilderConfig();
-  const {wrapperRef: topLevelWrapperRef} = useSearchQueryBuilderLayout();
+  const {wrapperRef: topLevelWrapperRef, showAllFilterValues} =
+    useSearchQueryBuilderLayout();
   const keyName = getKeyName(token.key);
   const fieldDefinition = getFieldDefinition(keyName);
   const canSelectMultipleValues = tokenSupportsMultipleValues(
@@ -731,6 +733,7 @@ export function SearchQueryBuilderValueCombobox({
     disallowWildcard || isRegexValue
       ? false
       : keySupportsWildcard(fieldDefinition, valueType);
+  const valueHint = fieldDefinition?.valueHint?.(token.operator);
   // Multi-select renders committed values as chips, so the input starts empty
   // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
@@ -986,6 +989,7 @@ export function SearchQueryBuilderValueCombobox({
       onSelectAbsoluteDate: handleSelectAbsoluteDate,
       showDatePicker,
       token,
+      valueHint,
       wrapperRef: topLevelWrapperRef,
     }),
     [
@@ -994,6 +998,7 @@ export function SearchQueryBuilderValueCombobox({
       inputValue,
       isFetching,
       items,
+      valueHint,
       handleBackFromAbsoluteDate,
       handleSaveAbsoluteDate,
       handleSelectAbsoluteDate,
@@ -1114,6 +1119,35 @@ export function SearchQueryBuilderValueCombobox({
     ]
   );
 
+  const addTypedValue = useCallback(
+    (rawValue: string, op?: TermOperator) => {
+      const value = rawValue.trim();
+      if (!value) {
+        return;
+      }
+      // The raw input is left unescaped: prepareInputValueForSaving splits on
+      // unquoted commas and quotes any value containing spaces/special chars, so
+      // both pasted multi-values (`foo,bar`) and edited chips lifted in their
+      // unescaped form (`foo bar`) round-trip correctly without escaping here.
+      dispatch({
+        type: 'UPDATE_TOKEN_VALUE',
+        token,
+        value: prepareInputValueForSaving(
+          getFilterValueType(token, fieldDefinition),
+          insertMultiSelectValue(
+            committedValues.map(v => v.text),
+            value,
+            editingChip?.index
+          ).join(',')
+        ),
+        op,
+      });
+      setInputValue('');
+      setEditingChip(null);
+    },
+    [committedValues, dispatch, editingChip, fieldDefinition, token]
+  );
+
   const handleOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
       const value = option.value;
@@ -1137,6 +1171,7 @@ export function SearchQueryBuilderValueCombobox({
       // When selecting from dropdown with no existing value, switch from "contains" to "is"
       let newOp: TermOperator | undefined;
       if (
+        !keepOperatorOnValueSelect &&
         token.operator === TermOperator.CONTAINS &&
         token.value.type === Token.VALUE_TEXT &&
         !token.value.value
@@ -1144,41 +1179,34 @@ export function SearchQueryBuilderValueCombobox({
         newOp = token.negated ? TermOperator.NOT_EQUAL : TermOperator.DEFAULT;
       }
 
-      updateFilterValue(value, newOp, {escapeSearchValue: true});
+      // The typed text is offered as an option while typing. Selecting it should
+      // save the text as typed, like pressing Enter does, so a typed `*` stays a
+      // wildcard instead of being escaped like a suggested value.
+      if (canSelectMultipleValues && filterValue && value === filterValue) {
+        addTypedValue(inputValue, newOp);
+        if (!ctrlKeyPressed) {
+          onCommit();
+        }
+      } else {
+        updateFilterValue(value, newOp, {escapeSearchValue: true});
+      }
       trackAnalytics('search.value_autocompleted', {
         ...analyticsData,
         filter_value: value,
       });
     },
-    [analyticsData, token, updateFilterValue]
-  );
-
-  const addTypedValue = useCallback(
-    (rawValue: string) => {
-      const value = rawValue.trim();
-      if (!value) {
-        return;
-      }
-      // The raw input is left unescaped: prepareInputValueForSaving splits on
-      // unquoted commas and quotes any value containing spaces/special chars, so
-      // both pasted multi-values (`foo,bar`) and edited chips lifted in their
-      // unescaped form (`foo bar`) round-trip correctly without escaping here.
-      dispatch({
-        type: 'UPDATE_TOKEN_VALUE',
-        token,
-        value: prepareInputValueForSaving(
-          getFilterValueType(token, fieldDefinition),
-          insertMultiSelectValue(
-            committedValues.map(v => v.text),
-            value,
-            editingChip?.index
-          ).join(',')
-        ),
-      });
-      setInputValue('');
-      setEditingChip(null);
-    },
-    [committedValues, dispatch, editingChip, fieldDefinition, token]
+    [
+      addTypedValue,
+      analyticsData,
+      canSelectMultipleValues,
+      ctrlKeyPressed,
+      filterValue,
+      inputValue,
+      keepOperatorOnValueSelect,
+      onCommit,
+      token,
+      updateFilterValue,
+    ]
   );
 
   // Splitting on unquoted commas happens on input change (rather than on the
@@ -1406,6 +1434,7 @@ export function SearchQueryBuilderValueCombobox({
           type="button"
           aria-label={t('Edit value: %s', value)}
           onClick={() => editValue(index)}
+          wrapValues={showAllFilterValues}
         >
           {value}
         </ValueChipLabel>
@@ -1421,7 +1450,7 @@ export function SearchQueryBuilderValueCombobox({
   ));
 
   const valueInput = (
-    <ValueInputContainer key="value-input">
+    <ValueInputContainer key="value-input" wrapValues={showAllFilterValues}>
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={items}
@@ -1487,13 +1516,17 @@ export function SearchQueryBuilderValueCombobox({
         <RegexDelimiter key="regex-end" onMouseDown={focusInputFromDelimiter} />,
       ]
     : [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
-  const rowScrolls = canSelectMultipleValues || isRegexValue;
+  // A multi-value row scrolls sideways, unless every value is to stay in view,
+  // in which case the chips wrap onto new lines instead.
+  const rowWraps = canSelectMultipleValues && showAllFilterValues;
+  const rowScrolls = (canSelectMultipleValues || isRegexValue) && !rowWraps;
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
         <ValueEditingChips
           align="center"
+          wrap={rowWraps ? 'wrap' : 'nowrap'}
           gap={isRegexValue ? undefined : '2xs'}
           minWidth="0"
           height="100%"
@@ -1511,7 +1544,6 @@ export function SearchQueryBuilderValueCombobox({
 
 const ValueEditingChips = styled(Flex)`
   max-width: 100%;
-  flex-wrap: nowrap;
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
@@ -1522,15 +1554,18 @@ const ValueEditingChips = styled(Flex)`
 // in place (so it doesn't push later chips around), but grows to fill the
 // trailing space when it sits at the end of the row (the add-a-value state). The
 // base min-width keeps a mid-row insertion point visible and clickable even when
-// its input is momentarily empty (e.g. right after a comma split).
-const ValueInputContainer = styled('div')`
+// its input is momentarily empty (e.g. right after a comma split). In a wrapping
+// row the trailing input starts from its text width instead of zero, so once the
+// text no longer fits beside the last chip it moves to a new line rather than
+// scrolling inside a sliver.
+const ValueInputContainer = styled('div')<{wrapValues: boolean}>`
   display: flex;
   width: auto;
   min-width: ${p => p.theme.space.lg};
   flex: 0 0 auto;
 
   &:last-child {
-    flex: 1 1 0%;
+    flex: 1 1 ${p => (p.wrapValues ? 'auto' : '0%')};
   }
 `;
 
@@ -1542,6 +1577,7 @@ const ValueChip = styled('span')`
   background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   color: ${p => p.theme.tokens.content.accent};
   padding: 0 ${p => p.theme.space['2xs']};
+  max-width: 100%;
   white-space: nowrap;
 `;
 
@@ -1559,9 +1595,10 @@ const chipButton = (p: {theme: Theme}) => css`
   }
 `;
 
-const ValueChipLabel = styled('button')`
+const ValueChipLabel = styled('button')<{wrapValues: boolean}>`
   display: block;
-  max-width: 200px;
+  min-width: 0;
+  max-width: ${p => (p.wrapValues ? 'none' : '200px')};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1575,13 +1612,6 @@ const ValueChipRemove = styled('button')`
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   ${chipButton}
-`;
-
-const TrailingWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
 `;
 
 const ValueCount = styled('span')`

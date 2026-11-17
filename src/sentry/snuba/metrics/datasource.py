@@ -51,6 +51,8 @@ from sentry.snuba.metrics.utils import (
     UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistInIndexer,
+    MetricEntity,
+    MetricOperationType,
     MetricType,
     NotSupportedOverCompositeEntityException,
     Tag,
@@ -621,7 +623,7 @@ def get_series(
     )
     results: dict[str, dict[str, Any]] = {}
     meta = []
-    fields_in_entities = {}
+    fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]] = {}
 
     if not metrics_query.groupby:
         # When there is no groupBy columns specified, we don't want to go through running an

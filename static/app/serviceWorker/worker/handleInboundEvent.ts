@@ -1,5 +1,6 @@
 import type {EventMessage} from 'sentry/serviceWorker/types';
-import {handleAutofixStartStep} from 'sentry/serviceWorker/worker/handleAutofixStartStep';
+
+import {handleAutofixStartStep} from './handleAutofixStartStep';
 
 export function handleInboundEvent(
   sw: ServiceWorkerGlobalScope,

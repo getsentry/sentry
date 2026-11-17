@@ -1,17 +1,14 @@
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  NewQuery,
-  Organization,
-  OrganizationSummary,
-} from 'sentry/types/organization';
+import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseProject} from 'sentry/types/release';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -19,7 +16,6 @@ import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -28,15 +24,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-
-export const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
 
 export const UNPARAMETERIZED_TRANSACTION = '<< unparameterized >>'; // Represents 'other' transactions with high cardinality names that were dropped on the metrics dataset.
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
@@ -196,34 +183,8 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
   );
 }
 
-function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
-  return `${getPerformanceBaseUrl(organization.slug)}/trends/`;
-}
-
 export function getTransactionSearchQuery(location: Location, query = '') {
   return decodeScalar(location.query.query, query).trim();
-}
-
-export function trendsTargetRoute({
-  location,
-  organization,
-  initialConditions,
-  additionalQuery,
-}: {
-  location: Location;
-  organization: Organization;
-  additionalQuery?: Record<string, string>;
-  initialConditions?: MutableSearch;
-}) {
-  const newQuery = {
-    ...location.query,
-    ...additionalQuery,
-  };
-
-  const modifiedConditions = initialConditions ?? new MutableSearch([]);
-  newQuery.query = modifiedConditions.formatString();
-
-  return {pathname: getPerformanceTrendsUrl(organization), query: {...newQuery}};
 }
 
 export function removeTracingKeysFromSearch(currentFilter: MutableSearch) {
@@ -330,23 +291,19 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
   const stringProjectId = projectId?.toString();
   const project = projects.find(p => p.id === stringProjectId);
 
-  return useApiQuery<{enable_images: boolean}>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project?.slug!,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: 0,
-      enabled: Boolean(project),
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<{enable_images: boolean}>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project?.slug!,
+        },
+        staleTime: 0,
+      }
+    ),
+    enabled: Boolean(project),
+  });
 }
 
 export function getPerformanceBaseUrl(

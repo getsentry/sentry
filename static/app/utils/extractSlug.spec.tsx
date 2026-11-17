@@ -1,6 +1,6 @@
 import {setWindowLocation} from 'sentry-test/utils';
 
-import {extractSlug, getDevUiOrganizationSlug} from 'sentry/utils/extractSlug';
+import {extractSlug, getDevUiOrganizationSlug} from './extractSlug';
 
 describe('extractSlug', () => {
   it.each([

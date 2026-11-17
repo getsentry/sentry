@@ -4,7 +4,7 @@ import {
   getAlertText,
   getIntegrationNoun,
   getIntegrationSourceUrl,
-} from 'sentry/utils/integrationUtil';
+} from './integrationUtil';
 
 describe('getIntegrationSourceUrl()', () => {
   it('returns the correct url for Bitbucket', () => {

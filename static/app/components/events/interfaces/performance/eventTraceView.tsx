@@ -1,4 +1,3 @@
-import {eventHasSyntheticTrace} from 'sentry/components/events/interfaces/performance/utils';
 import {t} from 'sentry/locale';
 import {type Event} from 'sentry/types/event';
 import {type Group} from 'sentry/types/group';
@@ -8,6 +7,7 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {TracePreview, TracePreviewFullTraceButton} from './tracePreview';
+import {eventHasSyntheticTrace} from './utils';
 
 interface EventTraceViewProps {
   event: Event;

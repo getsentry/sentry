@@ -1,6 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -25,7 +26,7 @@ export function useUpdateWizardCache(hash: string) {
             )
           : t('Something went wrong! Please try again.');
 
-      addErrorMessage(errorMessage);
+      toast.error(errorMessage);
     },
   });
 }

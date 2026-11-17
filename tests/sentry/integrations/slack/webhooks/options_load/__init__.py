@@ -1,6 +1,8 @@
-from unittest.mock import patch
+from collections.abc import Mapping
+from unittest.mock import MagicMock, patch
 
 import orjson
+from rest_framework.response import Response
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
@@ -18,15 +20,17 @@ class BaseEventTest(APITestCase):
     )
     def post_webhook(
         self,
-        check_signing_secret_mock,
-        substring="",
-        type="block_suggestion",
-        data=None,
-        team_id="TXXXXXXX1",
-        slack_user=None,
-        original_message=None,
-        action_id="assign",
-    ):
+        check_signing_secret_mock: MagicMock,
+        substring: str = "",
+        type: str = "block_suggestion",
+        data: Mapping[str, object] | None = None,
+        team_id: str = "TXXXXXXX1",
+        slack_user: Mapping[str, object] | None = None,
+        original_message: Mapping[str, object] | None = None,
+        action_id: str = "assign",
+    ) -> Response:
+        payload: dict[str, object] = {}
+
         if slack_user is None:
             slack_user = {
                 "id": self.external_id,
@@ -37,8 +41,6 @@ class BaseEventTest(APITestCase):
 
         if original_message is None:
             original_message = {}
-
-        payload = {}
 
         if type == "block_suggestion":
             payload = {
@@ -67,4 +69,5 @@ class BaseEventTest(APITestCase):
         if data:
             payload.update(data)
 
-        return self.client.post("/extensions/slack/options-load/", payload)
+        response: Response = self.client.post("/extensions/slack/options-load/", payload)
+        return response

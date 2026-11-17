@@ -1,4 +1,4 @@
-import {Fragment, useState, type ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconBug} from '@sentry/icons/bug';
 import {IconChevron} from '@sentry/icons/chevron';
@@ -8,11 +8,13 @@ import {IconOpen} from '@sentry/icons/open';
 import {IconPullRequest} from '@sentry/icons/pullRequest';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {IconSeer} from '@sentry/icons/seer';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {Footer} from '@sentry/scraps/menu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -20,25 +22,29 @@ import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNex
 import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
-  collectPatches,
-  getAutofixArtifactFromSection,
+  explorerAutofixApiOptions,
   getOrderedAutofixSections,
-  isCodeChangesArtifact,
-  type AutofixSection,
+  isRootCauseSection,
+  isSingleRunAutofix,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {Placeholder} from 'sentry/components/placeholder';
+import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
+import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {isOutOfCreditsPRState, type RepoPRState} from 'sentry/views/seerExplorer/types';
+
 import {
+  hidesCodingAgentResultLink,
   PullRequestButtons,
   useIssuePreviewPullRequests,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewPullRequests';
-import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
+} from './issuePreviewPullRequests';
+import {hasCodeChanges, useIssuePreviewSeer} from './issuePreviewSeer';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
@@ -51,6 +57,10 @@ interface IssuePreviewSeerActionsProps {
 
 interface SeerActionButtonProps extends IssuePreviewSeerActionsProps {
   autofix: ExplorerAutofix;
+  /**
+   * Whether the org can't afford the step the button would start.
+   */
+  creditsDisabled?: boolean;
   suppressResultLink?: boolean;
   variant?: 'primary' | 'secondary';
 }
@@ -71,15 +81,15 @@ interface RunSeerActionButtonProps extends SeerActionAnalyticsProps {
   label: string;
   onContinueInSeer: () => void;
   codingAgentStep?: 'root_cause' | 'solution';
+  /**
+   * Disables the action, but not the coding agent menu: hand-offs aren't paid
+   * for in Seer credits.
+   */
+  creditsDisabled?: boolean;
   disabled?: boolean;
   tooltip?: string | null;
   variant?: 'primary' | 'secondary';
   waiting?: boolean;
-}
-
-function hasCodeChanges(section: AutofixSection): boolean {
-  const artifact = getAutofixArtifactFromSection(section);
-  return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []).size > 0;
 }
 
 function getSeerActionButtonProps({
@@ -111,6 +121,7 @@ function RunSeerActionButton({
   analyticsParams,
   autofix,
   codingAgentStep,
+  creditsDisabled,
   disabled,
   group,
   icon,
@@ -120,7 +131,21 @@ function RunSeerActionButton({
   waiting,
 }: RunSeerActionButtonProps) {
   const organization = useOrganization();
-  const [isStartingAction, setIsStartingAction] = useState(false);
+  const queryClient = useQueryClient();
+  const {mutate: startAction, isPending: isStartingAction} = useMutation({
+    mutationFn: async (variables: {
+      action: RunSeerActionButtonProps['action'];
+      groupId: string;
+      organizationSlug: string;
+    }) => {
+      await variables.action();
+    },
+    onSuccess: (_data, {groupId, organizationSlug}) =>
+      queryClient.invalidateQueries(
+        {queryKey: explorerAutofixApiOptions(organizationSlug, groupId).queryKey},
+        {cancelRefetch: false}
+      ),
+  });
   const runId = autofix.runState?.run_id;
   const isProcessing = autofix.isProcessing || isStartingAction;
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
@@ -133,18 +158,6 @@ function RunSeerActionButton({
       enabled: defined(codingAgentStep) && defined(runId),
       onHandoff: onContinueInSeer,
     });
-
-  const handleClick = async () => {
-    setIsStartingAction(true);
-    try {
-      await action();
-    } catch {
-      // Errors are handled in the caller and shown in the autofix panel
-      // oxlint-disable-next-line react/todo
-    } finally {
-      setIsStartingAction(false);
-    }
-  };
 
   const codingAgentOptions = (codingAgentIntegrations ?? []).map(integration => {
     const actionLabel =
@@ -176,8 +189,10 @@ function RunSeerActionButton({
       })}
       icon={icon}
       busy={isStartingAction || waiting}
-      disabled={disabled || isProcessing}
-      onClick={handleClick}
+      disabled={disabled || isProcessing || creditsDisabled}
+      onClick={() =>
+        startAction({action, groupId: group.id, organizationSlug: organization.slug})
+      }
       tooltipProps={tooltip ? {title: tooltip} : undefined}
       variant={variant}
     >
@@ -209,22 +224,73 @@ function RunSeerActionButton({
         position="bottom-end"
         shouldCloseOnBlur={false}
         menuFooter={
-          <DropdownMenuFooter>
+          <Footer>
             <MenuComponents.CTALinkButton
               icon={<IconAdd />}
               to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
             >
               {t('Add Integration')}
             </MenuComponents.CTALinkButton>
-          </DropdownMenuFooter>
+          </Footer>
         }
       />
     </ButtonBar>
   );
 }
 
+interface RetryPullRequestButtonProps extends Pick<
+  SeerActionButtonProps,
+  'autofix' | 'disabled' | 'group' | 'onContinueInSeer' | 'variant'
+> {
+  failedPullRequest: RepoPRState;
+  runId: number;
+}
+
+/**
+ * A PR that failed for credits fails the same way until the organization can
+ * afford it, so its retry stays on screen, disabled, rather than letting
+ * another action step in as the next one.
+ */
+function RetryPullRequestButton({
+  autofix,
+  disabled,
+  failedPullRequest,
+  group,
+  onContinueInSeer,
+  runId,
+  variant,
+}: RetryPullRequestButtonProps) {
+  const isOutOfCredits = isOutOfCreditsPRState(failedPullRequest);
+  const outOfCreditsRetry = useOutOfCreditsRetry('create_pr', {
+    enabled: isOutOfCredits,
+  });
+
+  return (
+    <RunSeerActionButton
+      action={() => autofix.createPR(runId, failedPullRequest.repo_name)}
+      analyticsAction="create_pr"
+      analyticsEventKey="issue_inbox.create_pr_clicked"
+      analyticsEventName="Issue Inbox: Create PR Setup Clicked"
+      analyticsParams={{is_retry: true}}
+      autofix={autofix}
+      disabled={disabled || outOfCreditsRetry.disabled}
+      group={group}
+      icon={<IconRefresh />}
+      label={t('Retry PR in %s', failedPullRequest.repo_name)}
+      onContinueInSeer={onContinueInSeer}
+      tooltip={
+        isOutOfCredits
+          ? (outOfCreditsRetry.tooltip ?? getOutOfCreditsPRMessage(failedPullRequest))
+          : failedPullRequest.pr_creation_error
+      }
+      variant={variant}
+    />
+  );
+}
+
 function SeerActionButton({
   autofix,
+  creditsDisabled,
   disabled,
   group,
   onContinueInSeer,
@@ -243,6 +309,7 @@ function SeerActionButton({
         analyticsEventKey="issue_inbox.start_fix_clicked"
         analyticsEventName="Issue Inbox: Start Fix Clicked"
         autofix={autofix}
+        creditsDisabled={creditsDisabled}
         disabled={disabled}
         group={group}
         icon={<IconBug data-test-id="autofix-root-cause-icon" />}
@@ -286,19 +353,13 @@ function SeerActionButton({
 
   if (failedPullRequest) {
     return (
-      <RunSeerActionButton
-        action={() => autofix.createPR(runState.run_id, failedPullRequest.repo_name)}
-        analyticsAction="create_pr"
-        analyticsEventKey="issue_inbox.create_pr_clicked"
-        analyticsEventName="Issue Inbox: Create PR Setup Clicked"
-        analyticsParams={{is_retry: true}}
+      <RetryPullRequestButton
         autofix={autofix}
         disabled={disabled}
+        failedPullRequest={failedPullRequest}
         group={group}
-        icon={<IconRefresh />}
-        label={t('Retry PR in %s', failedPullRequest.repo_name)}
         onContinueInSeer={onContinueInSeer}
-        tooltip={failedPullRequest.pr_creation_error}
+        runId={runState.run_id}
         variant={variant}
       />
     );
@@ -357,14 +418,19 @@ function SeerActionButton({
     );
   }
 
-  const nextStep = getAutofixNextStep({sections});
+  const nextStep = getAutofixNextStep({sections, runState: autofix.runState});
   if (autofix.isProcessing) {
     let icon = <IconBug data-test-id="autofix-root-cause-icon" />;
     let label = t('Find Root Cause');
+    const isSingleRunFixing =
+      isSingleRunAutofix(autofix.runState) &&
+      sections.some(
+        section => isRootCauseSection(section) && section.status === 'completed'
+      );
     if (nextStep?.action === 'solution') {
       icon = <IconList data-test-id="autofix-plan-icon" />;
       label = t('Make a Plan');
-    } else if (nextStep?.action === 'code_changes') {
+    } else if (nextStep?.action === 'code_changes' || isSingleRunFixing) {
       icon = <IconCode data-test-id="autofix-code-changes-icon" />;
       label = t('Write a Code Fix');
     }
@@ -419,6 +485,7 @@ function SeerActionButton({
           analyticsEventName="Issue Inbox: Create PR Clicked"
           analyticsParams={{is_retry: false}}
           autofix={autofix}
+          creditsDisabled={creditsDisabled}
           disabled={disabled}
           group={group}
           icon={<IconPullRequest data-test-id="autofix-pull-request-icon" />}
@@ -435,6 +502,7 @@ function SeerActionButton({
           analyticsEventKey="issue_inbox.code_fix_clicked"
           analyticsEventName="Issue Inbox: Write Code Fix Clicked"
           autofix={autofix}
+          creditsDisabled={creditsDisabled}
           disabled={disabled}
           group={group}
           codingAgentStep="solution"
@@ -452,6 +520,7 @@ function SeerActionButton({
           analyticsEventKey="issue_inbox.find_solution_clicked"
           analyticsEventName="Issue Inbox: Make a Plan Clicked"
           autofix={autofix}
+          creditsDisabled={creditsDisabled}
           disabled={disabled}
           group={group}
           codingAgentStep="root_cause"
@@ -469,6 +538,7 @@ function SeerActionButton({
           analyticsEventKey="issue_inbox.start_fix_clicked"
           analyticsEventName="Issue Inbox: Start Fix Clicked"
           autofix={autofix}
+          creditsDisabled={creditsDisabled}
           disabled={disabled}
           group={group}
           icon={<IconRefresh />}
@@ -486,7 +556,7 @@ export function IssuePreviewSeerActions({
   onContinueInSeer,
   onRetryCodeChanges,
 }: IssuePreviewSeerActionsProps) {
-  const {autofix} = useIssuePreviewSeer();
+  const {autofix, creditCheck} = useIssuePreviewSeer();
   const {pullRequests, isPending} = useIssuePreviewPullRequests(group);
 
   if (isPending) {
@@ -498,11 +568,12 @@ export function IssuePreviewSeerActions({
       <PullRequestButtons disabled={disabled} group={group} pullRequests={pullRequests} />
       <SeerActionButton
         autofix={autofix}
+        creditsDisabled={!creditCheck.hasEnoughCredits}
         disabled={disabled}
         group={group}
         onContinueInSeer={onContinueInSeer}
         onRetryCodeChanges={onRetryCodeChanges}
-        suppressResultLink={pullRequests.length > 1}
+        suppressResultLink={hidesCodingAgentResultLink(pullRequests)}
         variant={pullRequests.length > 0 ? 'secondary' : 'primary'}
       />
     </Fragment>

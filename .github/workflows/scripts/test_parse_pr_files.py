@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import json
 import sys
 from pathlib import Path
 from unittest import mock
@@ -77,4 +78,25 @@ class TestParsePrFiles:
         page2 = '[{"filename": "b.py", "status": "added"}]'
         out = _run(page1 + "\n" + page2)
         assert out["files"] == "a.py b.py"
+        assert out["previous-filenames"] == ""
+
+    def test_too_many_files_runs_full_suite(self):
+        """The API stops at 3000 files, so the list may be incomplete."""
+        pr_files = [{"filename": f"f{i}.py", "status": "modified"} for i in range(3000)]
+        out = _run(json.dumps(pr_files))
+        assert out["files"] == ""
+        assert out["previous-filenames"] == ""
+
+    def test_list_too_long_runs_full_suite(self):
+        long_dir = "a" * 200
+        pr_files = [
+            {
+                "filename": f"{long_dir}/new{i}.py",
+                "status": "renamed",
+                "previous_filename": f"{long_dir}/old{i}.py",
+            }
+            for i in range(200)
+        ]
+        out = _run(json.dumps(pr_files))
+        assert out["files"] == ""
         assert out["previous-filenames"] == ""

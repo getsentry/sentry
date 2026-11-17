@@ -1,3 +1,5 @@
+import {MemoryRouter} from 'react-router';
+
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 
@@ -62,5 +64,79 @@ describe('EntityHeader', () => {
   it.snapshot('title only', () => <EntityHeader title={props.title} />, {
     viewport: 900,
     tags: {slots: 'title', area: 'core'},
+  });
+
+  it.snapshot(
+    'linked and plain stats',
+    () => (
+      <MemoryRouter>
+        <EntityHeader
+          title={props.title}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/'},
+              {type: 'text', label: 'Errors', value: 3},
+            ],
+          }}
+        />
+      </MemoryRouter>
+    ),
+    {viewport: 900, tags: {area: 'core'}}
+  );
+
+  // An empty value keeps the value's typography, so it should sit on the same
+  // baseline and row height as the populated stats beside it.
+  it.snapshot(
+    'empty stats',
+    () => (
+      <MemoryRouter>
+        <EntityHeader
+          title={props.title}
+          stats={{
+            label: 'Build stats',
+            items: [
+              {type: 'text', label: 'Install Size', value: '12 MB'},
+              {type: 'text', label: 'Cost', value: null},
+              {type: 'link', label: 'Errors', value: null, to: '/replays/1/'},
+              {
+                type: 'text',
+                label: 'Download Size',
+                value: null,
+                valueTooltip: 'Not reported for this platform',
+              },
+            ],
+          }}
+        />
+      </MemoryRouter>
+    ),
+    {viewport: 900, tags: {state: 'empty', area: 'core'}}
+  );
+
+  describe.each([480, 900])('late metadata at %s', viewport => {
+    it.snapshot.each([true, false])(
+      'loading %s',
+      isLoading => (
+        <EntityHeader
+          title={props.title}
+          isLoading={isLoading}
+          metadata={{
+            label: 'Replay properties',
+            items: [
+              isLoading ? null : {label: 'Started at', type: 'text', value: '2h ago'},
+              isLoading ? null : {label: 'Browser', type: 'text', value: 'Chrome'},
+            ],
+          }}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 0}],
+          }}
+        />
+      ),
+      isLoading => ({
+        viewport,
+        tags: {state: isLoading ? 'loading' : 'loaded', area: 'core'},
+      })
+    );
   });
 });

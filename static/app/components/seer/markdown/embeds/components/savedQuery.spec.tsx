@@ -12,6 +12,7 @@ function savedQueryResponse(overrides: Record<string, unknown> = {}) {
     projects: [1],
     environment: ['prod'],
     range: '7d',
+    statsPeriod: '7d',
     interval: '1h',
     starred: true,
     position: null,

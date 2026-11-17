@@ -1,4 +1,8 @@
+from django.test import override_settings
+
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class OrganizationIntegrationRequestTest(APITestCase):
@@ -61,3 +65,27 @@ class OrganizationIntegrationRequestTest(APITestCase):
             providerType="first_party",
             status_code=403,
         )
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret-32-bytes-long")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_request_integration(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret-32-bytes-long",
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            providerSlug="github",
+            providerType="first_party",
+            status_code=403,
+            extra_headers={"HTTP_X_VIEWER_CONTEXT": viewer_context},
+        )
+
+        assert response.data["detail"]["code"] == "user-required"

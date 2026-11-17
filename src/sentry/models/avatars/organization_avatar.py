@@ -39,7 +39,7 @@ class OrganizationAvatar(AvatarBase, ReplicatedCellModel):
         app_label = "sentry"
         db_table = "sentry_organizationavatar"
 
-    def get_cache_key(self, size) -> str:
+    def get_cache_key(self, size: int) -> str:
         return f"org_avatar:{self.organization_id}:{size}"
 
     def handle_async_replication(self, shard_identifier: int) -> None:

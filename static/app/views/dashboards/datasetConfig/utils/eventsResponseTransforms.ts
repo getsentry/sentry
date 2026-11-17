@@ -1,37 +1,13 @@
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-} from 'sentry/types/organization';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
-import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
-import {
-  getTimeSeriesResultTypes,
-  getTimeSeriesResultUnits,
-  transformTimeSeriesResponseToSeries,
-} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
+import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 
 export const eventsResponseTransforms: Pick<
-  DatasetConfig<
-    | EventsStats
-    | MultiSeriesEventsStats
-    | GroupedMultiSeriesEventsStats
-    | EventsTimeSeriesResponse,
-    TableData | EventsTableData
-  >,
-  'transformTable' | 'transformSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
+  DatasetConfig<EventsTimeSeriesResponse, TableData | EventsTableData>,
+  'transformTable' | 'transformTimeSeries'
 > = {
   transformTable: transformEventsResponseToTable,
-  transformSeries: (data, widgetQuery) =>
-    isEventsTimeSeriesResponse(data)
-      ? transformTimeSeriesResponseToSeries(data, widgetQuery)
-      : transformEventsResponseToSeries(data, widgetQuery),
-  getSeriesResultType: data =>
-    isEventsTimeSeriesResponse(data) ? getTimeSeriesResultTypes(data) : {},
-  getSeriesResultUnit: data =>
-    isEventsTimeSeriesResponse(data) ? getTimeSeriesResultUnits(data) : {},
+  transformTimeSeries: transformTimeSeriesResponse,
 };

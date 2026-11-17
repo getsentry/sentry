@@ -1,5 +1,13 @@
+from typing import Any
+from unittest import mock
+
 from django.urls import reverse
 
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group
+from sentry.models.release import Release
+from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -12,13 +20,13 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         self.setup_data()
 
-    def setup_data(self):
+    def setup_data(self) -> None:
         self.one_min_ago = before_now(minutes=1).isoformat()
         self.two_min_ago = before_now(minutes=2).isoformat()
         self.three_min_ago = before_now(minutes=3).isoformat()
         self.four_min_ago = before_now(minutes=4).isoformat()
 
-        self.prev_event = self.store_event(
+        self.prev_event: Event | IssueOccurrence = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "timestamp": self.four_min_ago,
@@ -26,7 +34,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.cur_event = self.store_event(
+        self.cur_event: Event | IssueOccurrence = self.store_event(
             data={
                 "event_id": "b" * 32,
                 "timestamp": self.three_min_ago,
@@ -34,7 +42,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.next_event = self.store_event(
+        next_event = self.store_event(
             data={
                 "event_id": "c" * 32,
                 "timestamp": self.two_min_ago,
@@ -44,7 +52,9 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.cur_group = self.next_event.group
+        self.next_event: Event | IssueOccurrence = next_event
+        assert next_event.group is not None
+        self.cur_group: Group = next_event.group
 
         # Event in different group
         self.store_event(
@@ -179,9 +189,99 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert "group_id" in response.data
         assert "not a valid integer id" in str(response.data["group_id"])
 
+    def _cur_event_url(self) -> str:
+        return reverse(
+            "sentry-api-0-project-event-details",
+            kwargs={
+                "event_id": self.cur_event.event_id,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+        )
+
+    def test_collapse_adjacent_events(self) -> None:
+        with (
+            mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids") as legacy,
+            mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids_snql") as snql,
+        ):
+            response = self.client.get(
+                self._cur_event_url(), format="json", data={"collapse": ["adjacentEvents"]}
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.cur_event.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] is None
+        assert legacy.call_count == 0
+        assert snql.call_count == 0
+
+    def test_adjacent_events_computed_by_default(self) -> None:
+        with mock.patch.object(
+            SnubaEventStorage,
+            "get_adjacent_event_ids",
+            autospec=True,
+            side_effect=SnubaEventStorage.get_adjacent_event_ids,
+        ) as legacy:
+            response = self.client.get(self._cur_event_url(), format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["previousEventID"] == str(self.prev_event.event_id)
+        assert response.data["nextEventID"] == str(self.next_event.event_id)
+        assert legacy.call_count == 1
+
+    def test_collapse_stacktrace_only(self) -> None:
+        with mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids") as legacy:
+            response = self.client.get(
+                self._cur_event_url(), format="json", data={"collapse": ["stacktraceOnly"]}
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.cur_event.event_id)
+        assert "previousEventID" not in response.data
+        assert "nextEventID" not in response.data
+        assert "release" not in response.data
+        assert legacy.call_count == 0
+
+
+class ProjectEventDetailsReleaseTest(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_collapse_full_release_matches_default(self) -> None:
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="1.0"
+        )
+        release.add_project(self.project)
+        event = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "release": "1.0",
+            },
+            project_id=self.project.id,
+        )
+        url = reverse(
+            "sentry-api-0-project-event-details",
+            kwargs={
+                "event_id": event.event_id,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+        )
+
+        default = self.client.get(url, format="json")
+        collapsed = self.client.get(url, format="json", data={"collapse": ["fullRelease"]})
+
+        assert default.status_code == 200, default.content
+        assert collapsed.status_code == 200, collapsed.content
+        assert collapsed.data["release"] == default.data["release"]
+        assert default.data["release"]["version"] == "1.0"
+        assert "firstEvent" not in default.data["release"]
+
 
 class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTest):
-    def setup_data(self):
+    def setup_data(self) -> None:
         self.one_min_ago = before_now(minutes=1).isoformat()
         self.two_min_ago = before_now(minutes=2).isoformat()
         self.three_min_ago = before_now(minutes=3).isoformat()
@@ -249,6 +349,7 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
         assert response.status_code == 200, response.content
         assert response.data["id"] == self.cur_event.event_id
         assert response.data["occurrence"] is not None
+        assert isinstance(self.cur_event, IssueOccurrence)
         assert response.data["occurrence"]["id"] == self.cur_event.id
 
 
@@ -272,6 +373,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             ),
             project_id=project.id,
         )
+        assert self.prev_transaction_event.group is not None
         self.group = self.prev_transaction_event.group
 
         self.cur_transaction_event = self.create_performance_issue(
@@ -403,7 +505,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
             },
         )
 
-    def assert_event(self, data):
+    def assert_event(self, data: dict[str, Any]) -> None:
         assert data["event_id"] == self.event_id
         assert data["user"]["email"] == self.user.email
         assert data["datetime"] == self.min_ago
@@ -460,7 +562,7 @@ class ProjectEventDetailsTransactionTestScrubbed(APITestCase, SnubaTestCase):
             span["sentry_tags"]["user"] = "ip:127.0.0.1"
         self.event = self.store_event(data=data, project_id=self.project.id)
 
-    def url(self, event):
+    def url(self, event: Event) -> str:
         return reverse(
             "sentry-api-0-event-json",
             kwargs={

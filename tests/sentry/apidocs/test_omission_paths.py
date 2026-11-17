@@ -4,6 +4,7 @@ from typing import Any, TypedDict
 from unittest import mock
 
 import pytest
+from django.http import HttpRequest
 from django.urls import path as url_path
 from drf_spectacular.drainage import get_override
 from drf_spectacular.settings import spectacular_settings
@@ -348,14 +349,14 @@ def test_a_rule_reaches_only_the_operation_whose_serializer_declares_it() -> Non
         permission_classes = ()
 
         @extend_schema(parameters=[DeclaringParams])
-        def get(self, request):
+        def get(self, request: HttpRequest) -> None:
             pass
 
     class UnrelatedEndpoint(Endpoint):
         permission_classes = ()
 
         @extend_schema(parameters=[UnrelatedParams])
-        def get(self, request):
+        def get(self, request: HttpRequest) -> None:
             pass
 
     schema = _build(("declaring/", DeclaringEndpoint), ("unrelated/", UnrelatedEndpoint))
@@ -375,7 +376,7 @@ def test_a_rule_applies_when_the_operation_drops_one_of_the_serializers_fields()
         permission_classes = ()
 
         @extend_schema(parameters=[DroppedFieldParams, OpenApiParameter("other", exclude=True)])
-        def get(self, request):
+        def get(self, request: HttpRequest) -> None:
             pass
 
     schema = _build(("dropped/", DroppedFieldEndpoint))
@@ -406,7 +407,7 @@ def test_a_withheld_choice_leaves_the_parameter_enum_and_description() -> None:
         permission_classes = ()
 
         @extend_schema(parameters=[DescribedParams])
-        def get(self, request):
+        def get(self, request: HttpRequest) -> None:
             pass
 
     kind = _query(_build(("described/", DescribedEndpoint)), "described/")["kind"]
@@ -425,7 +426,7 @@ def test_withholding_the_default_requires_the_parameter_and_orders_it_first() ->
         permission_classes = ()
 
         @extend_schema(parameters=[DefaultedParams])
-        def get(self, request):
+        def get(self, request: HttpRequest) -> None:
             pass
 
     schema = _build(("defaulted/", DefaultedEndpoint))
@@ -444,7 +445,7 @@ def test_a_withheld_choice_leaves_a_request_body_component() -> None:
         permission_classes = ()
 
         @extend_schema(request=WithheldBody)
-        def post(self, request):
+        def post(self, request: HttpRequest) -> None:
             pass
 
     schema = _build(("body/", BodyEndpoint))
@@ -462,7 +463,7 @@ def test_a_rule_naming_nothing_fails_the_build() -> None:
         permission_classes = ()
 
         @extend_schema(parameters=[GhostParams])
-        def get(self, request):
+        def get(self, request: HttpRequest) -> None:
             pass
 
     with pytest.raises(SentryApiBuildError) as exc:
@@ -483,7 +484,7 @@ def test_a_parameter_given_explicitly_is_not_marked_required_by_the_serializer()
         @extend_schema(
             parameters=[OverriddenParams, OpenApiParameter("kind", str, description="Kind.")]
         )
-        def get(self, request):
+        def get(self, request: HttpRequest) -> None:
             pass
 
     kind = _query(_build(("overridden/", OverriddenEndpoint)), "overridden/")["kind"]

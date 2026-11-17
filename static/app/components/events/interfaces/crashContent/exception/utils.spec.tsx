@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
+import {renderLinksInText} from './utils';
 
 describe('Linkify()', () => {
   it('does not alter text that does not contain urls', () => {

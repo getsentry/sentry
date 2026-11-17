@@ -1,7 +1,6 @@
 import {lazy, Suspense, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -16,6 +15,8 @@ import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceSta
 import {useTraceEventView} from 'sentry/views/performance/traceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
 import {useTraceStateAnalytics} from 'sentry/views/performance/traceDetails/useTraceStateAnalytics';
+
+import {TRACE_WATERFALL_PREFERENCES_KEY} from './utils';
 
 const LazyIssuesTraceWaterfall = lazy(() =>
   import('sentry/views/performance/traceDetails/issuesTraceWaterfall').then(module => ({

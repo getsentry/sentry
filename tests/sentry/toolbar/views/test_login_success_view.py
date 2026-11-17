@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.test import override_settings
 from django.urls import reverse
 
@@ -32,7 +33,7 @@ class LoginSuccessViewTest(APITestCase):
         assert _has_nonce(res)
 
 
-def _has_nonce(response):
+def _has_nonce(response: HttpResponse) -> bool:
     content = response.content.decode("utf-8")
     # Middleware automatically injects the `nonce` attribute onto our <script>
     # tag; so if that attribute is there then we can assume the nonce header and

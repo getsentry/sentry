@@ -25,8 +25,7 @@
 
 import {mat3, vec2} from 'gl-matrix';
 
-import {clamp} from 'sentry/utils/profiling/colors/clamp';
-
+import {clamp} from './colors/clamp';
 import type {ColorChannels, LCH} from './flamegraph/flamegraphTheme';
 
 export class Rect {

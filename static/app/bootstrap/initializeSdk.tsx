@@ -5,7 +5,7 @@ import {
   useLocation,
   useNavigationType,
 } from 'react-router';
-import {type Event, type Log} from '@sentry/core';
+import {isPlainObject, type Event, type Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {NODE_ENV} from 'sentry/constants';
@@ -163,18 +163,6 @@ export function initializeSdk(config: Config) {
        */
       "NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
       "NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.",
-      /**
-       * ECharts re-shows the last tooltip a tick after every `setOption`,
-       * reusing the series indices it captured before the update. Under
-       * `notMerge: false` (see `chartZoomConfig`) the tooltip component
-       * survives an update that replaces the series, so those indices can
-       * outlive the series they point at and reading them throws.
-       *
-       * Transient and self-healing: the tooltip corrects itself as soon as
-       * the pointer moves.
-       */
-      /Cannot read properties of undefined \(reading 'getDataParams'\)/,
-      /undefined is not an object \(evaluating '[^']*\.getDataParams'\)/,
     ],
 
     beforeBreadcrumb(crumb) {
@@ -197,7 +185,11 @@ export function initializeSdk(config: Config) {
     },
 
     beforeSend(event, hint) {
-      if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
+      if (
+        isFilteredRequestErrorEvent(event) ||
+        isEventWithFileUrl(event) ||
+        isWalletProviderError(hint.originalException)
+      ) {
         return null;
       }
 
@@ -283,6 +275,32 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
 export function isEventWithFileUrl(event: Event): boolean {
   return !!event.request?.url?.startsWith('file://');
+}
+
+/**
+ * Crypto wallet browser extensions inject an EIP-1193 provider into every page
+ * and reject with plain `{code, message}` objects (e.g. 4001 user rejected,
+ * 4900 disconnected, -32603 internal JSON-RPC error). They carry no stack
+ * trace, so `thirdPartyErrorFilterIntegration` can't attribute them to the
+ * extension, and they surface as "Object captured as promise rejection with
+ * keys: code, message".
+ *
+ * Ref: https://eips.ethereum.org/EIPS/eip-1193#provider-errors
+ */
+export function isWalletProviderError(originalException: unknown): boolean {
+  if (!isPlainObject(originalException)) {
+    return false;
+  }
+
+  const {code, message} = originalException;
+  if (typeof code !== 'number' || typeof message !== 'string') {
+    return false;
+  }
+
+  const isProviderErrorCode = code >= 4000 && code <= 4999;
+  // JSON-RPC 2.0 reserves -32768 to -32000 for pre-defined errors
+  const isJsonRpcErrorCode = code >= -32768 && code <= -32000;
+  return isProviderErrorCode || isJsonRpcErrorCode;
 }
 
 /** Tag and set fingerprint for UndefinedResponseBodyError events */

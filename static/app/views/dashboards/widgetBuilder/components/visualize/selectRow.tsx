@@ -24,16 +24,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
-import {buildTraceItemColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceItemColumnOptions';
-import {
-  AggregateCompactSelect,
-  getAggregateValueKey,
-  getColumnOptions,
-  NONE,
-  parseAggregateFromValueKey,
-  PrimarySelectRow,
-  ColumnCompactSelect,
-} from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
@@ -52,6 +42,17 @@ import {
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
+
+import {buildTraceItemColumnOptions} from './traceItemColumnOptions';
+import {
+  AggregateCompactSelect,
+  getAggregateValueKey,
+  getColumnOptions,
+  NONE,
+  parseAggregateFromValueKey,
+  PrimarySelectRow,
+  ColumnCompactSelect,
+} from './utils';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,

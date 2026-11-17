@@ -422,3 +422,38 @@ class GetNotificationEmailsForSentryAppTest(TestCase):
             creator_label="nobody@example.com",
         )
         assert result == []
+
+
+@django_db_all(transaction=True)
+@all_silo_test
+def test_get_proxy_user_id_for_provider() -> None:
+    org = Factories.create_organization()
+    app = Factories.create_internal_integration(organization_id=org.id)
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        install = SentryAppInstallation.objects.get(sentry_app=app, organization_id=org.id)
+    Factories.create_sentry_app_installation_for_provider(
+        sentry_app_id=app.id, organization_id=org.id, provider="dummy_scim"
+    )
+
+    assert (
+        app_service.get_proxy_user_id_for_provider(organization_id=org.id, provider="dummy_scim")
+        == app.proxy_user_id
+    )
+    assert (
+        app_service.get_proxy_user_id_for_provider(organization_id=org.id, provider="okta_scim")
+        is None
+    )
+    other_org = Factories.create_organization()
+    assert (
+        app_service.get_proxy_user_id_for_provider(
+            organization_id=other_org.id, provider="dummy_scim"
+        )
+        is None
+    )
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        install.delete()
+    assert (
+        app_service.get_proxy_user_id_for_provider(organization_id=org.id, provider="dummy_scim")
+        is None
+    )

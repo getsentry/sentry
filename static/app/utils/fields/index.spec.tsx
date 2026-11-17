@@ -120,3 +120,52 @@ describe('getFieldDefinition attribute search metadata', () => {
     );
   });
 });
+
+describe('getFieldDefinition typed tag keys', () => {
+  it('finds a Sentry attribute registered by its typed key', () => {
+    expect(getFieldDefinition('tags[code.line.number,number]', 'log')?.desc).toContain(
+      'The line number'
+    );
+  });
+
+  it.each([
+    {key: 'tags[message,string]', type: 'log' as const},
+    {key: 'tags[payload_size,number]', type: 'log' as const},
+    {key: 'tags[message,string]', type: 'span' as const},
+  ])(
+    'does not apply a Sentry alias definition to $key, a user attribute that collides with it',
+    ({key, type}) => {
+      expect(getFieldDefinition(key, type)?.desc).toBeUndefined();
+    }
+  );
+
+  it('falls back to the convention of the same name and type', () => {
+    expect(getFieldDefinition('tags[app.in_foreground,boolean]', 'span')).toEqual(
+      expect.objectContaining({
+        desc: 'Whether the application is currently in the foreground.',
+        valueType: FieldValueType.BOOLEAN,
+      })
+    );
+  });
+
+  it('keeps the value type the key declares rather than the convention one', () => {
+    // `cache.item_age` is a duration convention, but a wrapped number is
+    // searched as a plain number.
+    expect(getFieldDefinition('tags[cache.item_age,number]', 'span')).toEqual(
+      expect.objectContaining({
+        desc: 'The age of the cache entry in seconds, measured at read time.',
+        valueType: FieldValueType.NUMBER,
+      })
+    );
+  });
+
+  it('ignores a convention whose type does not match the key', () => {
+    expect(
+      getFieldDefinition('tags[app.in_foreground,string]', 'span')?.desc
+    ).toBeUndefined();
+  });
+
+  it('only falls back to conventions for trace item datasets', () => {
+    expect(getFieldDefinition('tags[app.in_foreground,boolean]')).toBeNull();
+  });
+});

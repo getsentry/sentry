@@ -85,7 +85,7 @@ class ApiError(Exception):
         if response.status_code == 401:
             return ApiUnauthorized(response.text, url=url)
         elif response.status_code == 429:
-            return ApiRateLimitedError(response.text, url=url)
+            return ApiRateLimitedError.from_response(response, url=url)
         elif response.status_code == 409:
             return ApiConflictError(response.text, url=url)
         elif response.status_code == 400:
@@ -152,6 +152,29 @@ class ApiUnauthorized(ApiError):
 
 class ApiRateLimitedError(ApiError):
     code = 429
+
+    def __init__(
+        self,
+        text: str,
+        code: int | None = None,
+        url: str | None = None,
+        host: str | None = None,
+        path: str | None = None,
+        retry_after: int | None = None,
+    ) -> None:
+        super().__init__(text, code=code, url=url, host=host, path=path)
+        self.retry_after = retry_after
+
+    @classmethod
+    def from_response(cls, response: Response, url: str | None = None) -> ApiRateLimitedError:
+        retry_after: int | None = None
+        try:
+            retry_after = int(response.headers.get("Retry-After", ""))
+        except ValueError:
+            pass
+        if retry_after is not None and retry_after < 0:
+            retry_after = None
+        return cls(response.text, url=url, retry_after=retry_after)
 
 
 class ApiConflictError(ApiError):

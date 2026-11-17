@@ -28,14 +28,13 @@ def test_loading_definitions() -> None:
             {
                 "sellerie": None,  # oops
                 "processing-locks": None,
-                "post-process-locks": None,
             }
         )
 
 
 def test_check_redis_health() -> None:
     _, cluster, _ = redis.get_dynamic_cluster_from_options(
-        setting="tess", config={"cluster": "default"}
+        setting="tess", config={"cluster": "default"}, decode_responses=True
     )
     services = {"redis": Redis(cluster)}
 
@@ -66,14 +65,13 @@ def test_check_redis_health() -> None:
 )
 def test_record_consumer_health() -> None:
     unhealthy_services: MutableMapping[str, UnhealthyReasons] = {
-        "attachments-store": [],
         "processing-locks": [],
         "post-process-locks": [],
     }
     record_consumer_health(unhealthy_services)
     assert is_consumer_healthy() is True
 
-    unhealthy_services["attachments-store"] = Exception("Couldn't check attachments-store")
+    unhealthy_services["processing-locks"] = Exception("Couldn't check processing-locks")
     record_consumer_health(unhealthy_services)
     assert is_consumer_healthy() is False
 
@@ -82,6 +80,5 @@ def test_record_consumer_health() -> None:
             {
                 "sellerie": [],  # oops
                 "processing-locks": [],
-                "post-process-locks": [],
             }
         )

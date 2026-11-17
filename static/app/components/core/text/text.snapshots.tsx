@@ -1,7 +1,87 @@
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 describe('Text', () => {
+  it.snapshot('display and text flow', () => (
+    <Stack gap="lg" padding="md" width="360px">
+      <Container>
+        <Text>Before / </Text>
+        <Text>Inline span</Text>
+        <Text> / After</Text>
+      </Container>
+      <Container>
+        <Text>Before / </Text>
+        <Text as="div">Block div</Text>
+        <Text> / After</Text>
+      </Container>
+      <Container>
+        <Text>Before / </Text>
+        <Text as="p">Block paragraph</Text>
+        <Text> / After</Text>
+      </Container>
+      <Container>
+        <Text>Before / </Text>
+        <Text as="div" display="inline">
+          Inline div
+        </Text>
+        <Text> / After</Text>
+      </Container>
+      <Container>
+        <Text>Before / </Text>
+        <Text display="none">Hidden span</Text>
+        <Text> / After</Text>
+      </Container>
+      <Container width="200px">
+        <Text as="span" ellipsis>
+          Ellipsized span
+        </Text>
+        <Text> / After</Text>
+      </Container>
+    </Stack>
+  ));
+
+  it.snapshot.each([480, 800])(
+    'responsive display at %s',
+    () => (
+      <Stack containerType="inline-size" gap="lg" padding="md" width="100%">
+        <Container>
+          <Text>Before / </Text>
+          <Text display={{md: 'none'}}>Responsive span</Text>
+          <Text> / After</Text>
+        </Container>
+        <Container>
+          <Text>Before / </Text>
+          <Text as="div" display={{md: 'none'}}>
+            Responsive div
+          </Text>
+          <Text> / After</Text>
+        </Container>
+        <Container>
+          <Text>Before / </Text>
+          <Text as="p" display={{md: 'none'}}>
+            Responsive paragraph
+          </Text>
+          <Text> / After</Text>
+        </Container>
+        <Container>
+          <Text>Before / </Text>
+          <Text as="div" display={{zero: 'none', md: 'block'}}>
+            Visible from md
+          </Text>
+          <Text> / After</Text>
+        </Container>
+        <Container>
+          <Text>Before / </Text>
+          <Text align="center" display={{md: 'inline'}}>
+            Centered below md
+          </Text>
+          <Text> / After</Text>
+        </Container>
+      </Stack>
+    ),
+    viewport => ({viewport, tags: {area: 'core'}})
+  );
+
   it.snapshot.each(['xs', 'sm', 'md', 'lg', 'xl', '2xl'] as const)(
     'size-%s',
     size => (

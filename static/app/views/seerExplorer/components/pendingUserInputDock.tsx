@@ -4,10 +4,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AgentWriteApprovalBlock} from 'sentry/views/seerExplorer/components/agentWriteApprovalBlock';
-import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
-import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
-import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
 import type {PendingUserInputState} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {
   PendingUserInput,
@@ -15,6 +11,11 @@ import type {
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
+
+import {AgentWriteApprovalBlock} from './agentWriteApprovalBlock';
+import {AskUserQuestionBlock} from './askUserQuestionBlock';
+import {FileChangeApprovalBlock} from './fileChangeApprovalBlock';
+import {ReauthMonitoringProviderBlock} from './reauthMonitoringProviderBlock';
 
 /** Whether this organization can be asked to reconnect a monitoring provider. */
 export function isReauthEnabled(organization: Organization | null) {

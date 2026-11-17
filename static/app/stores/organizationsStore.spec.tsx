@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {OrganizationsStore} from './organizationsStore';
 
 describe('OrganizationsStore', () => {
   beforeEach(() => {
@@ -44,6 +44,27 @@ describe('OrganizationsStore', () => {
       organizations: [update],
       loaded: true,
     });
+  });
+
+  it('throws when updating an organization that is not loaded', () => {
+    OrganizationsStore.load([OrganizationFixture()]);
+
+    expect(() => OrganizationsStore.onUpdate({id: '999', slug: 'missing'})).toThrow(
+      'Cannot update an organization that is not in the OrganizationsStore'
+    );
+  });
+
+  it('removes an organization and notifies subscribers', () => {
+    const organization = OrganizationFixture();
+    OrganizationsStore.load([organization]);
+
+    const listener = jest.fn();
+    const unsubscribe = OrganizationsStore.subscribe(listener);
+    OrganizationsStore.onRemoveSuccess(organization.slug);
+
+    expect(OrganizationsStore.getAll()).toEqual([]);
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
   });
 
   it('adds an organization', () => {

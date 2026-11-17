@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.utils import timezone
 
@@ -172,7 +172,10 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
                 "timestamp",
             ],
             groupby=None,
-            filter_keys={"project_id": [project_id], "event_id": [event.event_id]},
+            filter_keys={
+                "project_id": [project_id],
+                "event_id": cast("Sequence[int]", [event.event_id]),
+            },
             referrer="test_utils.store_search_issue",
             tenant_ids={"referrer": "test_utils.store_search_issue", "organization_id": 1},
         )

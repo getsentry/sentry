@@ -1,6 +1,5 @@
 import {Container} from '@sentry/scraps/layout';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -11,15 +10,15 @@ import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import {Highlights} from 'sentry/views/performance/traceDetails/traceHeader/highlights';
-import {PlaceHolder} from 'sentry/views/performance/traceDetails/traceHeader/placeholder';
-import {Projects} from 'sentry/views/performance/traceDetails/traceHeader/projects';
-import {TraceHeaderComponents} from 'sentry/views/performance/traceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/traceDetails/useTraceContextSections';
 import type {TraceOverviewData} from 'sentry/views/performance/traceDetails/useTraceOverviewData';
 
+import {Highlights} from './highlights';
 import {Meta} from './meta';
+import {PlaceHolder} from './placeholder';
+import {Projects} from './projects';
+import {TraceHeaderComponents} from './styles';
 import {Title} from './title';
 import {TraceBreadcrumbs} from './traceBreadcrumbs';
 
@@ -95,15 +94,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           project={project}
           rootEventResults={props.rootEventResults}
         />
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            feedbackOptions={traceViewFeedbackOptions}
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
+        <TopBar.Slot name="feedback" feedbackOptions={traceViewFeedbackOptions} />
 
         <TraceHeaderComponents.HeaderGrid>
           <Container area="title" minWidth={0}>

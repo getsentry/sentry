@@ -91,6 +91,42 @@ describe('Project Ownership', () => {
     ).toBeInTheDocument();
   });
 
+  it('skips events without a url when suggesting a url rule', async () => {
+    const urlValue = {
+      key: 'url',
+      name: 'https://example.com/path',
+      value: 'https://example.com/path',
+      count: 2,
+      lastSeen: '2022-08-27T03:24:53Z',
+      firstSeen: '2022-08-27T03:24:53Z',
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/issues/${issueId}/tags/url/`,
+      body: {
+        key: 'url',
+        name: 'URL',
+        uniqueValues: 2,
+        totalValues: 3,
+        // The least common url is suggested, so the empty value would win
+        topValues: [urlValue, {...urlValue, name: '', value: '', count: 1}],
+      },
+    });
+
+    render(
+      <ProjectOwnershipModal
+        issueId={issueId}
+        organization={org}
+        project={project}
+        eventData={event}
+        onCancel={() => {}}
+      />
+    );
+
+    expect(
+      await screen.findByText(`url:*/path ${user.email}`, {exact: false})
+    ).toBeInTheDocument();
+  });
+
   it('can cancel', async () => {
     const onCancel = jest.fn();
     render(

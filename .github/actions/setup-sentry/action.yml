@@ -10,7 +10,7 @@ inputs:
   python-version:
     description: 'python version to install'
     required: false
-    default: '3.13.15'
+    default: '3.13.18'
   mode:
     description: 'Mode to bring up by new devservices'
     required: false
@@ -103,7 +103,7 @@ runs:
 
     - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
       with:
-        version: '0.12.10'
+        version: '0.13.7'
         # we just cache the venv-dir directly in action-setup-venv
         enable-cache: false
 
@@ -135,16 +135,13 @@ runs:
         echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-total=$((${MATRIX_INSTANCE_TOTAL:-}))" >> "$GITHUB_OUTPUT"
 
-    - name: Install python dependencies
+    # We need to install editable otherwise things like check migration will fail.
+    - name: Install sentry
       shell: bash --noprofile --norc -eo pipefail -ux {0}
-      env:
-        # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
-        # without needing to fork it. The path needed is the one where setup.py is located
-        WORKDIR: ${{ inputs.workdir }}
-      run: |
-        cd "$WORKDIR"
-        # We need to install editable otherwise things like check migration will fail.
-        python3 -m tools.fast_editable --path .
+      # This is necessary when other repositories (e.g. relay) want to take advantage of this workflow
+      # without needing to fork it. The path needed is the one where pyproject.toml is located
+      working-directory: ${{ inputs.workdir }}
+      run: uv pip install --no-deps -e .
 
     - name: Start new devservices
       if: ${{ inputs.skip-devservices != 'true' }}

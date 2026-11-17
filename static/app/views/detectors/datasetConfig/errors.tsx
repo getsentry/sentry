@@ -6,23 +6,23 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {EventsSearchBar} from 'sentry/views/detectors/datasetConfig/components/eventSearchBar';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
+
+import {EventsSearchBar} from './components/eventSearchBar';
 import {
   getDiscoverSeriesQueryOptions,
   transformEventsStatsComparisonSeries,
   transformEventsStatsToSeries,
-} from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
+} from './utils/discoverSeries';
 import {
   BASE_DYNAMIC_INTERVALS,
   BASE_INTERVALS,
   getStandardTimePeriodsForInterval,
-} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+} from './utils/timePeriods';
 import {
   translateAggregateTag,
   translateAggregateTagBack,
-} from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
-import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
-
+} from './utils/translateAggregateTag';
 import type {DetectorDatasetConfig} from './base';
 import {parseEventTypesFromQuery} from './eventTypes';
 

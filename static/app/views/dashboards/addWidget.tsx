@@ -6,10 +6,9 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
+import {DataSet} from './widgetBuilder/utils';
 import {DisplayType} from './types';
 import {WidgetWrapper} from './widgetWrapper';
 
@@ -49,44 +48,42 @@ export function AddWidget({onAddWidget}: Props) {
   ];
 
   return (
-    <Feature features="dashboards-edit">
-      <WidgetWrapper
-        key="add"
-        ref={setNodeRef}
-        displayType={DisplayType.BIG_NUMBER}
-        layoutId={ADD_WIDGET_BUTTON_DRAG_ID}
-        style={{originX: 0, originY: 0}}
-        animate={
-          transform
-            ? {
-                x: transform.x,
-                y: transform.y,
-                scaleX: transform?.scaleX && transform.scaleX <= 1 ? transform.scaleX : 1,
-                scaleY: transform?.scaleY && transform.scaleY <= 1 ? transform.scaleY : 1,
-              }
-            : initialStyles
-        }
-        transition={{
-          duration: 0.25,
-        }}
-      >
-        <InnerWrapper onClick={() => onAddWidget?.(defaultDataset)}>
-          <DropdownMenu
-            items={addWidgetDropdownItems}
-            data-test-id="widget-add"
-            position="auto-start"
-            trigger={triggerProps => (
-              <OverlayTrigger.IconButton
-                {...triggerProps}
-                aria-label={t('Add Widget')}
-                icon={<IconAdd size="lg" variant="muted" />}
-                variant="transparent"
-              />
-            )}
-          />
-        </InnerWrapper>
-      </WidgetWrapper>
-    </Feature>
+    <WidgetWrapper
+      key="add"
+      ref={setNodeRef}
+      displayType={DisplayType.BIG_NUMBER}
+      layoutId={ADD_WIDGET_BUTTON_DRAG_ID}
+      style={{originX: 0, originY: 0}}
+      animate={
+        transform
+          ? {
+              x: transform.x,
+              y: transform.y,
+              scaleX: transform?.scaleX && transform.scaleX <= 1 ? transform.scaleX : 1,
+              scaleY: transform?.scaleY && transform.scaleY <= 1 ? transform.scaleY : 1,
+            }
+          : initialStyles
+      }
+      transition={{
+        duration: 0.25,
+      }}
+    >
+      <InnerWrapper onClick={() => onAddWidget?.(defaultDataset)}>
+        <DropdownMenu
+          items={addWidgetDropdownItems}
+          data-test-id="widget-add"
+          position="auto-start"
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              aria-label={t('Add Widget')}
+              icon={<IconAdd size="lg" variant="muted" />}
+              variant="transparent"
+            />
+          )}
+        />
+      </InnerWrapper>
+    </WidgetWrapper>
   );
 }
 

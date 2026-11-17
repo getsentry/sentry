@@ -13,6 +13,7 @@ from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer import rules as rule_store
 from sentry.ingest.transaction_clusterer.datasource import redis, snuba
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
+from sentry.models.project import Project
 
 
 @cell_silo_endpoint
@@ -22,7 +23,7 @@ class ProjectTransactionNamesCluster(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """Run the transaction name clusterer and return its output.
 
         This endpoint is intended for internal evaluation of the clustering

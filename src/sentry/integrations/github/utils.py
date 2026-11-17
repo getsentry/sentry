@@ -3,12 +3,18 @@ from __future__ import annotations
 import calendar
 import datetime
 import time
+from collections.abc import Mapping
+from typing import Protocol
 from urllib.parse import parse_qs, urlparse
-
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.utils import jwt
+
+
+class HeaderResponse(Protocol):
+    @property
+    def headers(self) -> Mapping[str, str] | None: ...
+
 
 # Copilot acts as a bot but has no ``[bot]`` suffix or ``Bot`` user type.
 GITHUB_COPILOT_LOGIN = "Copilot"
@@ -45,14 +51,14 @@ def get_jwt(github_id: str | None = None, github_private_key: str | None = None)
     return jwt.encode(payload, github_private_key, algorithm="RS256")
 
 
-def get_next_link(response: Response) -> str | None:
+def get_next_link(response: HeaderResponse) -> str | None:
     """Github uses a `link` header to inform pagination.
     The relation parameter can be prev, next, first or last
 
     Read more here:
     https://docs.github.com/en/rest/guides/using-pagination-in-the-rest-api?apiVersion=2022-11-28#using-link-headers
     """
-    link_option: str | None = response.headers.get("link")
+    link_option = (response.headers or {}).get("link")
     if link_option is None:
         return None
 
@@ -69,7 +75,7 @@ def get_next_link(response: Response) -> str | None:
     return None
 
 
-def get_last_page_number(response: Response) -> int | None:
+def get_last_page_number(response: HeaderResponse) -> int | None:
     """Return the page number advertised by Github's `rel="last"` link.
 
     For offset-paginated endpoints Github includes a `rel="last"` relation in
@@ -81,7 +87,7 @@ def get_last_page_number(response: Response) -> int | None:
     advertise a last page (for example, cursor-based pagination), in which
     case the caller should fall back to following the `next` links serially.
     """
-    link_option: str | None = response.headers.get("link")
+    link_option = (response.headers or {}).get("link")
     if link_option is None:
         return None
 

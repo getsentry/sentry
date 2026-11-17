@@ -1,5 +1,6 @@
 import os.path
 import zipfile
+from collections.abc import Generator
 from io import BytesIO
 from unittest.mock import patch
 from uuid import uuid4
@@ -7,6 +8,7 @@ from uuid import uuid4
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from pytest_django.live_server_helper import LiveServer
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -17,6 +19,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.services import eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
@@ -78,11 +81,11 @@ REAL_RESOLVING_EVENT_DATA = {
 }
 
 
-def get_local_fixture_path(name):
+def get_local_fixture_path(name: str) -> str:
     return os.path.join(os.path.dirname(__file__), "fixtures", name)
 
 
-def load_fixture(name):
+def load_fixture(name: str) -> bytes:
     with open(get_local_fixture_path(name), "rb") as fp:
         return fp.read()
 
@@ -90,7 +93,7 @@ def load_fixture(name):
 @debug_files_test_both_backends
 class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
+    def initialize(self, live_server: LiveServer) -> Generator[None]:
         self.project.update_option("sentry:builtin_symbol_sources", [])
         self.min_ago = before_now(minutes=1).isoformat()
 
@@ -101,7 +104,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             # Run test case
             yield
 
-    def get_event(self, event_id):
+    def get_event(self, event_id: str) -> Event | GroupEvent | None:
         return eventstore.backend.get_event_by_id(self.project.id, event_id)
 
     def test_real_resolving(self) -> None:

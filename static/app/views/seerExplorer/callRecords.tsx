@@ -1,7 +1,8 @@
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import type {CallRecord} from 'sentry/views/seerExplorer/types';
+
+import type {CallRecord} from './types';
 
 /**
  * Presentation for the calls a Code Mode execute made.
@@ -36,6 +37,7 @@ export function callRecordLabel(record: CallRecord): string | null {
 const PROVIDER_SHORT_LABELS: Record<string, string> = {
   datadog: 'Datadog',
   gcp: 'GCP',
+  linear: 'Linear',
 };
 
 /**

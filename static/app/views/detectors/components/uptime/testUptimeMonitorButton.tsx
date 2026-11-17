@@ -1,19 +1,13 @@
 import {useMutation} from '@tanstack/react-query';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  type PreviewCheckPayload,
-  type PreviewCheckResult,
-  PreviewCheckStatus,
-  type UptimeAssertion,
-} from 'sentry/views/detectors/components/uptime/types';
 
 import {
   extractPreviewCheckError,
@@ -21,6 +15,12 @@ import {
   mapPreviewCheckResultToMessage,
 } from './formErrors';
 import {usePreviewCheckResult} from './previewCheckContext';
+import {
+  type PreviewCheckPayload,
+  type PreviewCheckResult,
+  PreviewCheckStatus,
+  type UptimeAssertion,
+} from './types';
 
 interface TestUptimeMonitorButtonProps {
   /**
@@ -69,10 +69,10 @@ export function TestUptimeMonitorButton({
     onSuccess: response => {
       previewCheckResult?.setPreviewCheckData(response);
       if (response.check_result?.status === PreviewCheckStatus.SUCCESS) {
-        addSuccessMessage(t('Uptime check passed successfully'));
+        toast.success(t('Uptime check passed successfully'));
       } else {
         const trailingMessage = mapPreviewCheckResultToMessage(response);
-        addErrorMessage(
+        toast.error(
           t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : '')
         );
       }
@@ -82,7 +82,7 @@ export function TestUptimeMonitorButton({
       previewCheckResult?.setPreviewCheckError(extractedError);
 
       const trailingMessage = mapPreviewCheckErrorToMessage(extractedError);
-      addErrorMessage(
+      toast.error(
         t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : '')
       );
     },
@@ -92,7 +92,7 @@ export function TestUptimeMonitorButton({
     const formData = getFormData();
 
     if (!formData.url) {
-      addErrorMessage(t('Please enter a URL to test'));
+      toast.error(t('Please enter a URL to test'));
       return;
     }
 

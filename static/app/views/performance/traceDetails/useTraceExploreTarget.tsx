@@ -8,12 +8,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
+
 import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
-} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
-import type {TraceWaterfallSource} from 'sentry/views/performance/traceDetails/traceWaterfall';
+} from './traceDrawer/details/utils';
+import {traceAnalytics} from './traceAnalytics';
+import type {TraceWaterfallSource} from './traceWaterfall';
 
 interface UseTraceExploreTargetProps {
   source: TraceWaterfallSource;

@@ -20,6 +20,7 @@ describe('UserBlock', () => {
   it('renders content', () => {
     render(<BlockComponent block={createBlock()} blockIndex={0} />);
     expect(screen.getByText('What is this error about?')).toBeInTheDocument();
+    expect(screen.queryByTestId('pr-feedback-notice')).not.toBeInTheDocument();
   });
 
   it('calls onClick when clicked', async () => {
@@ -43,5 +44,43 @@ describe('UserBlock', () => {
     expect(
       screen.queryByRole('button', {name: 'Copy to clipboard'})
     ).not.toBeInTheDocument();
+  });
+
+  it('renders PR feedback as a feedback list, not a user message', () => {
+    render(
+      <BlockComponent
+        block={createBlock({
+          message: {
+            role: 'user',
+            content: 'rename it',
+            metadata: {
+              step: 'pr_iteration',
+              iteration_index: '1',
+              feedback: JSON.stringify([
+                {
+                  text: 'rename it',
+                  timestamp: '2026-11-12T10:00:00Z',
+                  source: {
+                    type: 'github-pr-comment',
+                    comment: {
+                      id: 1,
+                      body: 'rename it',
+                      html_url: 'https://github.com/org/repo/pull/12#issuecomment-1',
+                      user: {login: 'octo'},
+                    },
+                  },
+                },
+              ]),
+            },
+          },
+        })}
+        blockIndex={0}
+      />
+    );
+
+    expect(screen.getByTestId('pr-feedback-notice')).toHaveTextContent('rename it');
+    expect(screen.getAllByText('rename it')).toHaveLength(1);
+    expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    expect(screen.queryByRole('time')).not.toBeInTheDocument();
   });
 });

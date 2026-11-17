@@ -19,7 +19,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
     @cached_property
-    def request(self):
+    def request(self) -> RequestFactory:
         return RequestFactory()
 
     _IP_ADDRESS = "35.232.149.196"
@@ -211,7 +211,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def after_link_issue(self, mock_get_jwt):
+    def after_link_issue(self, mock_get_jwt: MagicMock) -> None:
         responses.add(
             responses.POST,
             f"https://{self._IP_ADDRESS}/api/v3/installations/installation_id/access_tokens",

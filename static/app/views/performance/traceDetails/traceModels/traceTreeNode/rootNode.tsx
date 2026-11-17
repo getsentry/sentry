@@ -1,7 +1,6 @@
 import {uuid4} from '@sentry/core';
 
 import {t} from 'sentry/locale';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
 
@@ -31,12 +30,6 @@ export class RootNode extends BaseNode<null> {
 
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     _props: TraceRowProps<T>
-  ): React.ReactNode {
-    return null;
-  }
-
-  renderDetails<T extends BaseNode>(
-    _props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
     return null;
   }

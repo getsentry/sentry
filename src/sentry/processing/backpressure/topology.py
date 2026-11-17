@@ -8,7 +8,6 @@ In other words, which service (consumer) depends on which other services (queues
 
 
 class ProcessingServices(Enum):
-    AttachmentsStore = "attachments-store"
     ProcessingLocks = "processing-locks"
     PostProcessLocks = "post-process-locks"
 
@@ -23,9 +22,7 @@ CONSUMERS = {
     "profiles": [],
     # Transactions have been split into their own consumer here,
     # We should consider this for our other consumer types.
-    # For example, `ingest-events` does not depend on `attachments-store`.
     "ingest": [
-        ProcessingServices.AttachmentsStore.value,
         ProcessingServices.ProcessingLocks.value,
         ProcessingServices.PostProcessLocks.value,
     ],

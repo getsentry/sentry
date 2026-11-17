@@ -7,7 +7,8 @@ import {
   makeEAPSpan,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
-import {TraceIssueIcons} from 'sentry/views/performance/traceDetails/traceRow/traceIcons';
+
+import {TraceIssueIcons} from './traceIcons';
 
 const manager = {
   computeTraceIconPlacement: (

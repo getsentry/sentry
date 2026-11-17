@@ -21,11 +21,12 @@ import {
   useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
 import {useValidatedSpansTabColumns} from 'sentry/views/explore/spans/hooks/useValidatedSpansTabColumns';
-import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
-import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
-import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
-import {SpansTable} from 'sentry/views/explore/tables/spansTable';
-import {TracesTable} from 'sentry/views/explore/tables/tracesTable/tracesTable';
+
+import {TracesTable} from './tracesTable/tracesTable';
+import {AggregateColumnEditorModal} from './aggregateColumnEditorModal';
+import {AggregatesTable} from './aggregatesTable';
+import {ColumnEditorModal} from './columnEditorModal';
+import {SpansTable} from './spansTable';
 
 interface BaseExploreTablesProps {
   setTab: (tab: Mode | Tab, reason: 'click' | 'effect') => void;

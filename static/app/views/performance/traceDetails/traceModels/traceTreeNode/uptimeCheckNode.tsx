@@ -3,8 +3,6 @@ import type {Theme} from '@emotion/react';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {UptimeNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/uptime';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
 import {TraceUptimeCheckNodeRow} from 'sentry/views/performance/traceDetails/traceRow/traceUptimeCheckNode';
@@ -139,12 +137,6 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
     return <TraceUptimeCheckNodeRow {...props} node={this} />;
-  }
-
-  renderDetails<NodeType extends BaseNode>(
-    props: TraceTreeNodeDetailsProps<NodeType>
-  ): React.ReactNode {
-    return <UptimeNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

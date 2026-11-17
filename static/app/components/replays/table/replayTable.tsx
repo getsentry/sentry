@@ -3,19 +3,20 @@ import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
-import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHeader';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {RequestError, ERROR_MAP} from 'sentry/utils/requestError/requestError';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+
+import type {ReplayTableColumn} from './replayTableColumns';
+import {ReplayTableHeader} from './replayTableHeader';
 
 type SortProps =
   | {
@@ -55,7 +56,6 @@ export function ReplayTable({
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
   const organization = useOrganization();
-  const navigate = useNavigate();
 
   if (isPending) {
     return (
@@ -152,15 +152,7 @@ export function ReplayTable({
       ))}
       {pageLinks ? (
         <SimpleTable.FullWidthRow>
-          <StyledPagination
-            pageLinks={pageLinks}
-            onCursor={(cursor, path, searchQuery) => {
-              navigate({
-                pathname: path,
-                query: {...searchQuery, cursor},
-              });
-            }}
-          />
+          <StyledPagination {...getPaginationProps(pageLinks)} />
         </SimpleTable.FullWidthRow>
       ) : null}
     </StyledSimpleTable>

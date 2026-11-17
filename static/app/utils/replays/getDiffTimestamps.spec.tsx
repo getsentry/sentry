@@ -13,15 +13,15 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {
   getReplayDiffOffsetsFromEvent,
   getReplayDiffOffsetsFromFrame,
-} from 'sentry/utils/replays/getDiffTimestamps';
-import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
-import {ReplayReader} from 'sentry/utils/replays/replayReader';
+} from './getDiffTimestamps';
+import {hydrateBreadcrumbs} from './hydrateBreadcrumbs';
+import {ReplayReader} from './replayReader';
 import {
   IncrementalSource,
   isHydrationErrorFrame,
   type RawBreadcrumbFrame,
   type RawReplayError,
-} from 'sentry/utils/replays/types';
+} from './types';
 
 const START_DATE = new Date('2022-06-15T00:40:00.000Z');
 const INIT_DATE = new Date('2022-06-15T00:40:00.100Z');

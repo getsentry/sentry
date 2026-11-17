@@ -2,7 +2,7 @@ import {createRef} from 'react';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {IdentityIcon} from 'sentry/icons/identityIcon';
+import {IdentityIcon} from './identityIcon';
 
 describe('IdentityIcon', () => {
   it('forwards its ref to the icon container', () => {

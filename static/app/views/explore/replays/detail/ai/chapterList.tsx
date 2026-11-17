@@ -21,9 +21,10 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimeRanges} from 'sentry/views/explore/replays/detail/ai/utils';
 import {BreadcrumbRow} from 'sentry/views/explore/replays/detail/breadcrumbs/breadcrumbRow';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+
+import type {TimeRanges} from './utils';
 
 interface Props {
   timeRanges: TimeRanges;

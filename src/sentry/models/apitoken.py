@@ -23,6 +23,7 @@ from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.models import ApiTokenReplica
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
@@ -442,19 +443,30 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                         grant.delete()
                     raise InvalidGrantError(error_reason)
 
-                # Create token and delete grant atomically
-                with transaction.atomic(router.db_for_write(cls)):
-                    api_token = cls.objects.create(
-                        application=grant.application,
-                        user=grant.user,
-                        scope_list=grant.get_scopes(),
-                        scoping_organization_id=grant.organization_id,
-                    )
+                api_token: ApiToken | None = None
+                try:
+                    # Create token and delete grant atomically
+                    with outbox_context(transaction.atomic(router.db_for_write(cls))):
+                        api_token = cls.objects.create(
+                            application=grant.application,
+                            user=grant.user,
+                            scope_list=grant.get_scopes(),
+                            scoping_organization_id=grant.organization_id,
+                        )
 
-                    # Remove the ApiGrant from the database to prevent reuse of the same
-                    # authorization code (RFC 6749 §10.5: single-use requirement)
-                    with unguarded_write(using=router.db_for_write(ApiGrant)):
-                        grant.delete()
+                        # Remove the ApiGrant from the database to prevent reuse of the same
+                        # authorization code (RFC 6749 §10.5: single-use requirement)
+                        with unguarded_write(using=router.db_for_write(ApiGrant)):
+                            grant.delete()
+                except (OutboxDatabaseError, OutboxFlushError):
+                    # Raised by the post-commit flush; the token's outbox will replicate it later.
+                    if api_token is None:
+                        raise
+                    logger.warning(
+                        "api_token.from_grant.outbox-flush-failure",
+                        extra={"token_id": api_token.id, "application_id": grant.application_id},
+                        exc_info=True,
+                    )
 
                 return api_token
 
@@ -507,12 +519,24 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                 new_token = generate_token(token_type=self.token_type)
                 new_refresh_token = generate_token(token_type=self.token_type)
 
-                self.update(token=new_token, refresh_token=new_refresh_token, expires_at=expires_at)
+                try:
+                    self.update(
+                        token=new_token, refresh_token=new_refresh_token, expires_at=expires_at
+                    )
+                except (OutboxDatabaseError, OutboxFlushError):
+                    # Guard against replication fanout failures. The token has been
+                    # rotated, and its outbox has been committed alongside it,
+                    # guaranteeing that it will eventually be valid in all regions.
+                    logger.warning(
+                        "api_token.refresh.outbox-flush-failure",
+                        extra={"token_id": self.id, "application_id": self.application_id},
+                        exc_info=True,
+                    )
         except UnableToAcquireLock:
             raise TokenRefreshError("token refresh already in progress")
 
     def get_relocation_scope(self) -> RelocationScope:
-        if self.application_id is not None:
+        if getattr(self, "application_id", None) is not None:
             # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
             return RelocationScope.Global
 

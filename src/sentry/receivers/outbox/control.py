@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.INTEGRATION_UPDATE)
-def process_integration_updates(object_identifier: int, cell_name: str, **kwds: Any):
+def process_integration_updates(object_identifier: int, cell_name: str, **kwds: Any) -> None:
     if (
         integration := maybe_process_tombstone(Integration, object_identifier, cell_name=cell_name)
     ) is None:
@@ -42,12 +42,12 @@ def process_integration_updates(object_identifier: int, cell_name: str, **kwds: 
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.IDENTITY_UPDATE)
-def process_identity_updates(object_identifier: int, cell_name: str, **kwds: Any):
+def process_identity_updates(object_identifier: int, cell_name: str, **kwds: Any) -> None:
     maybe_process_tombstone(Identity, object_identifier, cell_name=cell_name)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
-def process_sentry_app_updates(object_identifier: int, cell_name: str, **kwds: Any):
+def process_sentry_app_updates(object_identifier: int, cell_name: str, **kwds: Any) -> None:
     if (
         sentry_app := maybe_process_tombstone(
             model=SentryApp, object_identifier=object_identifier, cell_name=cell_name
@@ -67,7 +67,7 @@ def process_sentry_app_deletes(
     cell_name: str,
     payload: Mapping[str, Any],
     **kwds: Any,
-):
+) -> None:
     action_service.update_action_status_for_sentry_app_via_sentry_app_id(
         cell_name=cell_name,
         status=ObjectStatus.DISABLED,
@@ -88,7 +88,7 @@ def process_sentry_app_installation_deletes(
     cell_name: str,
     payload: Mapping[str, Any],
     **kwds: Any,
-):
+) -> None:
     action_service.update_action_status_for_sentry_app_installation(
         cell_name=cell_name,
         status=ObjectStatus.DISABLED,
@@ -98,7 +98,7 @@ def process_sentry_app_installation_deletes(
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
-def process_api_application_updates(object_identifier: int, cell_name: str, **kwds: Any):
+def process_api_application_updates(object_identifier: int, cell_name: str, **kwds: Any) -> None:
     if (
         api_application := maybe_process_tombstone(
             ApiApplication, object_identifier, cell_name=cell_name
@@ -109,7 +109,7 @@ def process_api_application_updates(object_identifier: int, cell_name: str, **kw
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SERVICE_HOOK_UPDATE)
-def process_service_hook_updates(object_identifier: int, cell_name: str, **kwds: Any):
+def process_service_hook_updates(object_identifier: int, cell_name: str, **kwds: Any) -> None:
     try:
         installation = SentryAppInstallation.objects.select_related("sentry_app").get(
             id=object_identifier
@@ -141,7 +141,7 @@ def process_service_hook_updates(object_identifier: int, cell_name: str, **kwds:
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)
-def process_send_signal(payload: Mapping[str, Any], shard_identifier: int, **kwds: Any):
+def process_send_signal(payload: Mapping[str, Any], shard_identifier: int, **kwds: Any) -> None:
     organization_service.send_signal(
         organization_id=shard_identifier,
         args=payload["args"],
@@ -150,12 +150,12 @@ def process_send_signal(payload: Mapping[str, Any], shard_identifier: int, **kwd
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.RESET_IDP_FLAGS)
-def process_reset_idp_flags(shard_identifier: int, **kwds: Any):
+def process_reset_idp_flags(shard_identifier: int, **kwds: Any) -> None:
     organization_service.reset_idp_flags(organization_id=shard_identifier)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.MARK_INVALID_SSO)
-def process_mark_invalid_sso(object_identifier: int, shard_identifier: int, **kwds: Any):
+def process_mark_invalid_sso(object_identifier: int, shard_identifier: int, **kwds: Any) -> None:
     # since we've identified an identity which is no longer valid
     # lets preemptively mark it as such
     other_member = organization_service.check_membership_by_id(
@@ -171,7 +171,7 @@ def process_mark_invalid_sso(object_identifier: int, shard_identifier: int, **kw
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.ISSUE_COMMENT_UPDATE)
-def process_issue_email_reply(shard_identifier: int, payload: Any, **kwds):
+def process_issue_email_reply(shard_identifier: int, payload: Any, **kwds: Any) -> None:
     issue_service.upsert_issue_email_reply(
         organization_id=shard_identifier,
         group_id=payload["group_id"],

@@ -5,12 +5,13 @@ import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   type MetricDetectorFormData,
-} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
-import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+} from './metricFormFields';
 
 /**
  * Automatically generates a name for the metric detector form based on the values:
