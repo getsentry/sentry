@@ -17,6 +17,10 @@ jest.mock('@react-aria/menu', () => {
 });
 
 describe('DropdownMenu', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it.each(['default', 'custom'])(
     'identifies the menu popup on the %s trigger',
     async trigger => {
@@ -777,8 +781,6 @@ describe('DropdownMenu', () => {
       .setup({pointerEventsCheck: 0})
       .pointer({coords: {clientX: 100, clientY: 60}});
     await waitFor(() => expect(rootMenu).not.toHaveStyle({pointerEvents: 'none'}));
-
-    jest.restoreAllMocks();
   });
 
   it('keeps the menu open when the parent menu is clicked while blocked', async () => {
@@ -1082,8 +1084,6 @@ describe('DropdownMenu', () => {
     // JSDOM throws an error on navigation to random urls. Jest 30.4.1 may
     // forward the same error twice, so the exact call count is not meaningful.
     expect(errorSpy).toHaveBeenCalled();
-
-    errorSpy.mockRestore();
   });
 
   it('navigates to external link enter', async () => {
