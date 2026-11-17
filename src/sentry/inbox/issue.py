@@ -26,7 +26,9 @@ class IssueItemType(InboxItemType[Group]):
         return {str(group.id): group.title for group in groups}
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
-        return organization.absolute_url(f"/organizations/{organization.slug}/issues/{subject_id}/")
+        return organization.absolute_url(
+            f"/organizations/{organization.slug}/inbox/issue/{subject_id}/"
+        )
 
     def filter_recipients(self, *, subject: Group, user_ids: Sequence[int]) -> list[int]:
         return list(user_ids)

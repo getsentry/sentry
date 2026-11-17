@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import hashlib
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Sequence
-from dataclasses import asdict, dataclass
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import asdict, dataclass, fields
 from enum import StrEnum
 from functools import partial
 from random import random
-from typing import Literal
+from typing import Any, Literal, Self
 
 import orjson
 from django.db import router, transaction
@@ -83,7 +83,7 @@ class InboxItemType[SubjectT](ABC):
 
     @abstractmethod
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
-        """Subject URL, independent of inbox items or events."""
+        """Subject's inbox URL, independent of recorded inbox items or events."""
 
     @abstractmethod
     def filter_recipients(self, *, subject: SubjectT, user_ids: Sequence[int]) -> list[int]:
@@ -104,6 +104,19 @@ class InboxEventSummary(StrEnum):
 
 @dataclass(frozen=True, kw_only=True)
 class InboxEventData:
+    """
+    Event payload, stored as JSON on each recorded event.
+
+    Give any field added to an existing data class a default. Stored payloads won't have it, and
+    rebuilding them without a value fails, so their URLs fall back to the subject URL.
+    """
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> Self:
+        """Rebuild from a stored payload, ignoring keys that are no longer fields."""
+        names = {field.name for field in fields(cls) if field.init}
+        return cls(**{key: value for key, value in payload.items() if key in names})
+
     def get_url(self, subject_url: str) -> str:
         """
         URL for this event, built from the subject URL. Override to point at something on the
@@ -131,6 +144,15 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
         """URL for an event of this type."""
         subject_url = self.item_type.get_url(organization=organization, subject_id=subject_id)
         return data.get_url(subject_url)
+
+    def get_event_url(self, *, organization: Organization, event: InboxItemEvent) -> str:
+        """URL for a recorded event, or the subject URL if its payload lacks required fields."""
+        subject_id = event.inbox_item.subject_id
+        try:
+            data = self.data_class.from_payload(event.data)
+        except TypeError:
+            return self.item_type.get_url(organization=organization, subject_id=subject_id)
+        return self.get_url(organization=organization, subject_id=subject_id, data=data)
 
     def record(
         self,

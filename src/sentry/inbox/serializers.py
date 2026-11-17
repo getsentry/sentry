@@ -105,6 +105,7 @@ class InboxItemSerializer(Serializer[InboxItemResponse]):
                 latest_events, serialize(latest_events, user, InboxItemEventSerializer())
             )
         }
+        latest_by_item = {event.inbox_item_id: event for event in latest_events}
         # Get titles for each item based on the subject type
         # Since each `subject_type` can potentially have a different `get_titles` implementation,
         # we group items by `organization_id` and `subject_type`, get each `get_titles` from the registry,
@@ -113,17 +114,28 @@ class InboxItemSerializer(Serializer[InboxItemResponse]):
         for item in item_list:
             grouped_items[item.organization_id, item.subject_type].append(item)
         titles = {}
+        urls: dict[int, str] = {}
         for (_, subject_type), items in grouped_items.items():
             item_type = inbox_item_type_registry.registrations.get(subject_type)
-            if item_type is None:
-                continue
-            subject_titles = item_type.get_titles(
-                organization=items[0].organization,
-                subject_ids=[item.subject_id for item in items],
-            )
-            titles.update({item.id: subject_titles.get(item.subject_id) for item in items})
+            organization = items[0].organization
+            if item_type is not None:
+                subject_titles = item_type.get_titles(
+                    organization=organization,
+                    subject_ids=[item.subject_id for item in items],
+                )
+                titles.update({item.id: subject_titles.get(item.subject_id) for item in items})
+            for item in items:
+                event = latest_by_item[item.id]
+                urls[item.id] = inbox_item_event_type_registry.get(event.type).get_event_url(
+                    organization=organization, event=event
+                )
         return {
-            item: {"title": titles.get(item.id), "latest_event": latest[item.id], **stats[item.id]}
+            item: {
+                "title": titles.get(item.id),
+                "url": urls[item.id],
+                "latest_event": latest[item.id],
+                **stats[item.id],
+            }
             for item in item_list
         }
 
@@ -135,6 +147,7 @@ class InboxItemSerializer(Serializer[InboxItemResponse]):
             "subjectType": obj.subject_type,
             "subjectId": obj.subject_id,
             "title": attrs["title"],
+            "url": attrs["url"],
             "subtitle": attrs["latest_event"]["summary"],
             "eventTypes": attrs["event_types"],
             "eventCount": attrs["event_count"],
