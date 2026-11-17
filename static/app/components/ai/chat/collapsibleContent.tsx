@@ -21,6 +21,11 @@ interface CollapsibleContentProps {
   defaultOpen?: boolean;
   /** Fires on expand/collapse with the new open state. */
   onToggle?: (open: boolean) => void;
+  /**
+   * Show the leading caret. Turn it off for a title that shows its own open
+   * state. Defaults to shown.
+   */
+  showCaret?: boolean;
 }
 
 /**
@@ -34,6 +39,7 @@ export function CollapsibleContent({
   title,
   className,
   defaultOpen = false,
+  showCaret = true,
   onToggle,
 }: CollapsibleContentProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -58,7 +64,9 @@ export function CollapsibleContent({
         cursor="pointer"
         onClick={e => e.stopPropagation()}
       >
-        <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
+        {showCaret && (
+          <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
+        )}
         {typeof title === 'function' ? title(isOpen) : title}
       </Flex>
       {children}

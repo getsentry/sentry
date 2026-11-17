@@ -64,13 +64,44 @@ export interface ToolCall {
   name: string;
   nodeId: string;
   duration?: number;
+  kind?: 'tool';
 }
+
+/**
+ * An agent span nested under another agent. It renders in its parent's
+ * transcript as a single collapsed row and expands into its own transcript,
+ * `messages`. When a tool span sits between the two agents (the agent was
+ * called as a tool), the call replaces that tool call (`viaNodeId`) and its
+ * transcript ends with the tool's result.
+ */
+export interface SubAgentCall {
+  hasError: boolean;
+  kind: 'subagent';
+  /** The sub-agent's own LLM calls, not counting those of its sub-agents. */
+  llmCallCount: number;
+  messages: ConversationMessage[];
+  name: string;
+  nodeId: string;
+  /** One-line summary for the collapsed row: the sub-agent's first input. */
+  preview: string | null;
+  duration?: number;
+  viaNodeId?: string;
+}
+
+export type TurnCall = ToolCall | SubAgentCall;
 
 export interface ConversationMessage {
   content: string;
   id: string;
   nodeId: string;
-  role: 'user' | 'assistant' | 'embedding' | 'evaluation' | 'extraction' | 'memory';
+  role:
+    | 'user'
+    | 'assistant'
+    | 'embedding'
+    | 'evaluation'
+    | 'extraction'
+    | 'memory'
+    | 'subagent';
   timestamp: number;
   agentName?: string;
   duration?: number;
@@ -82,7 +113,9 @@ export interface ConversationMessage {
   memory?: Memory;
   modelName?: string;
   reasoning?: string;
-  toolCalls?: ToolCall[];
+  /** A sub-agent that wasn't called through one of the transcript's tool calls. */
+  subAgent?: SubAgentCall;
+  toolCalls?: TurnCall[];
   userEmail?: string;
 }
 
@@ -111,11 +144,28 @@ interface ConversationTurn {
  * 5. Insert embeddings spans as their own standalone messages, positioned by
  *    timestamp — unlike tool calls, embeddings don't need a nearby generation
  *    to show up, so they never enter the turn-building pipeline above.
+ *
+ * A conversation with agent spans runs that pipeline once per agent scope
+ * instead (see `buildAgentHierarchyMessages`).
  */
 export function extractMessagesFromNodes(
   nodes: AITraceSpanNode[]
 ): ConversationMessage[] {
   const enrichedNodes = enrichAgentMessages(nodes);
+  if (enrichedNodes.some(isAgentNode)) {
+    return buildAgentHierarchyMessages(enrichedNodes);
+  }
+  return buildScopeMessages(enrichedNodes, enrichedNodes);
+}
+
+/**
+ * Runs the turn pipeline over `nodes`. `allNodes` resolves parent links for the
+ * not-reported placeholders, which can reach outside `nodes`.
+ */
+function buildScopeMessages(
+  nodes: AITraceSpanNode[],
+  allNodes: AITraceSpanNode[]
+): ConversationMessage[] {
   const {
     generationSpans,
     toolSpans,
@@ -123,11 +173,11 @@ export function extractMessagesFromNodes(
     evaluationSpans,
     extractionSpans,
     memorySpans,
-  } = partitionSpansByType(enrichedNodes);
+  } = partitionSpansByType(nodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
   const displayTurns = turns.some(hasTurnContent)
     ? mergeEmptyTurns(turns)
-    : fillNotReportedTurns(turns, enrichedNodes);
+    : fillNotReportedTurns(turns, allNodes);
   const messages = [
     ...turnsToMessages(displayTurns),
     ...embeddingSpansToMessages(embeddingSpans),
@@ -287,6 +337,41 @@ export function enrichAgentMessages(nodes: AITraceSpanNode[]): AITraceSpanNode[]
   });
 }
 
+type SpanKind =
+  | 'evaluation'
+  | 'extraction'
+  | 'memory'
+  | 'embedding'
+  | 'generation'
+  | 'tool';
+
+// Evaluations, extractions, embeddings and memory operations are recognized by
+// gen_ai.operation.name first: until Relay sets a dedicated operation.type they
+// report "ai_client" like LLM calls (and memory spans may be nested under tool
+// calls), so matching by name keeps them out of the generation and tool kinds.
+function getSpanKind(node: AITraceSpanNode): SpanKind | null {
+  if (isEvaluationNode(node)) {
+    return 'evaluation';
+  }
+  if (isExtractionNode(node)) {
+    return 'extraction';
+  }
+  if (isMemoryNode(node)) {
+    return 'memory';
+  }
+  if (isEmbeddingsNode(node)) {
+    return 'embedding';
+  }
+  const opType = getGenAiOpType(node);
+  if (getIsAiGenerationSpan(opType)) {
+    return 'generation';
+  }
+  if (getIsExecuteToolSpan(opType)) {
+    return 'tool';
+  }
+  return null;
+}
+
 export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   embeddingSpans: AITraceSpanNode[];
   evaluationSpans: AITraceSpanNode[];
@@ -302,29 +387,18 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   const extractionSpans: AITraceSpanNode[] = [];
   const memorySpans: AITraceSpanNode[] = [];
 
+  const spansByKind: Record<SpanKind, AITraceSpanNode[]> = {
+    evaluation: evaluationSpans,
+    extraction: extractionSpans,
+    memory: memorySpans,
+    embedding: embeddingSpans,
+    generation: generationSpans,
+    tool: toolSpans,
+  };
   for (const node of nodes) {
-    const opType = getGenAiOpType(node);
-    // Evaluations, extractions, embeddings and memory operations are recognized by
-    // gen_ai.operation.name first: until Relay sets a dedicated operation.type
-    // they report "ai_client" like LLM calls (and memory spans may be nested
-    // under tool calls), so matching by name keeps them out of the generation
-    // and tool buckets.
-    if (isEvaluationNode(node)) {
-      evaluationSpans.push(node);
-      continue;
-    }
-    if (isExtractionNode(node)) {
-      extractionSpans.push(node);
-      continue;
-    }
-    if (isMemoryNode(node)) {
-      memorySpans.push(node);
-    } else if (isEmbeddingsNode(node)) {
-      embeddingSpans.push(node);
-    } else if (getIsAiGenerationSpan(opType)) {
-      generationSpans.push(node);
-    } else if (getIsExecuteToolSpan(opType)) {
-      toolSpans.push(node);
+    const kind = getSpanKind(node);
+    if (kind) {
+      spansByKind[kind].push(node);
     }
   }
 
@@ -553,24 +627,37 @@ function hasTurnContent(turn: ConversationTurn): boolean {
   return Boolean(turn.userContent || turn.assistantContent || turn.reasoning);
 }
 
-// Walks up to the nearest `invoke_agent` span, so a sub-agent's generations
-// form their own run, like the exchange its captured messages would show.
-function getNearestAgentId(
+interface SpanPlacement {
+  /** The nearest agent ancestor, or null when there is none. */
+  agent: AITraceSpanNode | null;
+  /** The first tool span between the span and `agent`, if any. */
+  viaTool: AITraceSpanNode | null;
+}
+
+// Walks up to the nearest `invoke_agent` span, noting the first tool span on
+// the way. Stops on cycles and on parents outside the conversation.
+function getSpanPlacement(
   node: AITraceSpanNode,
   nodesById: Map<string, AITraceSpanNode>
-): string | null {
+): SpanPlacement {
+  const visited = new Set<string>([node.id]);
+  let viaTool: AITraceSpanNode | null = null;
   let parentId = node.value?.parent_span_id;
-  while (parentId) {
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
     const parent = nodesById.get(parentId);
     if (!parent) {
-      return null;
+      break;
     }
-    if (getGenAiOpType(parent) === 'agent') {
-      return parent.id;
+    if (isAgentNode(parent)) {
+      return {agent: parent, viaTool};
+    }
+    if (!viaTool && getSpanKind(parent) === 'tool') {
+      viaTool = parent;
     }
     parentId = parent.value?.parent_span_id;
   }
-  return null;
+  return {agent: null, viaTool};
 }
 
 /**
@@ -592,7 +679,9 @@ function fillNotReportedTurns(
   nodes: AITraceSpanNode[]
 ): ConversationTurn[] {
   const nodesById = new Map(nodes.map(node => [node.id, node]));
-  const agentIds = turns.map(turn => getNearestAgentId(turn.generation, nodesById));
+  const agentIds = turns.map(
+    turn => getSpanPlacement(turn.generation, nodesById).agent?.id ?? null
+  );
   const firstIndexByAgent = new Map<string | null, number>();
   const lastIndexByAgent = new Map<string | null, number>();
   agentIds.forEach((agentId, index) => {
@@ -621,6 +710,255 @@ function fillNotReportedTurns(
       assistantContent: isRunEnd ? NOT_REPORTED : null,
       reasoning: reasoningTokens && reasoningTokens > 0 ? NOT_REPORTED : null,
     };
+  });
+}
+
+// The main flow: spans of top-level agents and spans without any agent.
+const MAIN_SCOPE = null;
+type ScopeId = string | null;
+
+/**
+ * Builds the transcript of a conversation with agent spans, one agent scope at
+ * a time:
+ *
+ * - Top-level agents (one per user message, typically) and spans without an
+ *   agent form the main flow and share one dedup scope, as before.
+ * - Each nested agent gets its own scope, built by the same pipeline, so
+ *   parallel sub-agents neither interleave nor take each other's tool calls.
+ *   It renders as a `SubAgentCall` in its parent's scope, replacing the tool
+ *   call that started it or, without one, at its own start time.
+ */
+function buildAgentHierarchyMessages(nodes: AITraceSpanNode[]): ConversationMessage[] {
+  const nodesById = new Map(nodes.map(node => [node.id, node]));
+  const placements = new Map(
+    nodes.map(node => [node.id, getSpanPlacement(node, nodesById)])
+  );
+
+  const getParentAgent = (node: AITraceSpanNode) =>
+    placements.get(node.id)?.agent ?? null;
+
+  // Nested agents get their own scope when they can be reached from a top-level
+  // agent. Agents whose parent chain loops back on itself can't, so they are
+  // treated as top-level rather than dropped.
+  const nestedAgents = nodes.filter(node => isAgentNode(node) && getParentAgent(node));
+  const nestedAgentIds = new Set(nestedAgents.map(agent => agent.id));
+  const childAgentsById = new Map<string, AITraceSpanNode[]>();
+  for (const agent of nestedAgents) {
+    pushToMap(childAgentsById, getParentAgent(agent)!.id, agent);
+  }
+  const reachable = new Set<string>();
+  const pending = nestedAgents.filter(
+    agent => !nestedAgentIds.has(getParentAgent(agent)!.id)
+  );
+  while (pending.length > 0) {
+    const agent = pending.pop()!;
+    if (!reachable.has(agent.id)) {
+      reachable.add(agent.id);
+      pending.push(...(childAgentsById.get(agent.id) ?? []));
+    }
+  }
+  const getScopeId = (agent: AITraceSpanNode | null): ScopeId =>
+    agent && reachable.has(agent.id) ? agent.id : MAIN_SCOPE;
+
+  const subAgentsByScope = new Map<ScopeId, AITraceSpanNode[]>();
+  for (const agent of nestedAgents) {
+    if (reachable.has(agent.id)) {
+      pushToMap(subAgentsByScope, getScopeId(getParentAgent(agent)), agent);
+    }
+  }
+
+  const nodesByScope = new Map<ScopeId, AITraceSpanNode[]>();
+  for (const node of nodes) {
+    if (!isAgentNode(node)) {
+      pushToMap(nodesByScope, getScopeId(getParentAgent(node)), node);
+    }
+  }
+
+  const buildScope = (scopeId: ScopeId): ConversationMessage[] => {
+    const subAgentCalls = (subAgentsByScope.get(scopeId) ?? []).map(agent =>
+      toSubAgentCall(
+        agent,
+        placements.get(agent.id)!.viaTool,
+        buildScope(agent.id),
+        (nodesByScope.get(agent.id) ?? []).filter(
+          node => getSpanKind(node) === 'generation'
+        ).length
+      )
+    );
+    return attachSubAgentCalls(
+      buildScopeMessages(nodesByScope.get(scopeId) ?? [], nodes),
+      subAgentCalls,
+      nodesById
+    );
+  };
+
+  return buildScope(MAIN_SCOPE);
+}
+
+function pushToMap<K, V>(map: Map<K, V[]>, key: K, value: V) {
+  const values = map.get(key);
+  if (values) {
+    values.push(value);
+  } else {
+    map.set(key, [value]);
+  }
+}
+
+function getNodeDuration(node: AITraceSpanNode): number | undefined {
+  const start = getNodeStartTimestamp(node);
+  const end = getNodeEndTimestamp(node);
+  return end > start ? end - start : undefined;
+}
+
+function getToolResult(tool: AITraceSpanNode): string | null {
+  return blankToNull(
+    getStringAttr(tool, 'gen_ai.tool.call.result') ||
+      getStringAttr(tool, 'gen_ai.tool.output') ||
+      null
+  );
+}
+
+// When the sub-agent ran as a tool, the tool's result is what it returned to
+// its parent, so the transcript ends with it.
+function toSubAgentCall(
+  agent: AITraceSpanNode,
+  viaTool: AITraceSpanNode | null,
+  messages: ConversationMessage[],
+  llmCallCount: number
+): SubAgentCall {
+  const name = resolveAgentName(agent.attributes ?? {}) || agent.description || 'agent';
+  const result = viaTool ? getToolResult(viaTool) : null;
+  return {
+    kind: 'subagent',
+    nodeId: agent.id,
+    name,
+    llmCallCount,
+    hasError: hasError(agent),
+    duration: getNodeDuration(agent),
+    preview:
+      messages.find(message => message.role === 'user')?.content ??
+      blankToNull(parseUserContent(agent)),
+    messages:
+      viaTool && result
+        ? [
+            ...messages,
+            {
+              id: `result-${viaTool.id}`,
+              role: 'assistant',
+              content: result,
+              nodeId: viaTool.id,
+              timestamp: getNodeEndTimestamp(viaTool),
+              agentName: name,
+            },
+          ]
+        : messages,
+    viaNodeId: viaTool?.id,
+  };
+}
+
+/**
+ * Places sub-agents in a scope's messages. A sub-agent called through a tool
+ * replaces that tool call in its turn. One without a tool call, or whose tool
+ * call isn't in the transcript, becomes a message at its start time.
+ */
+function attachSubAgentCalls(
+  messages: ConversationMessage[],
+  calls: SubAgentCall[],
+  nodesById: Map<string, AITraceSpanNode>
+): ConversationMessage[] {
+  if (calls.length === 0) {
+    return messages;
+  }
+
+  const startOf = (call: SubAgentCall) => {
+    const node = nodesById.get(call.nodeId);
+    return node ? getNodeStartTimestamp(node) : 0;
+  };
+  const callsByToolId = new Map<string, SubAgentCall[]>();
+  for (const call of calls.toSorted((a, b) => startOf(a) - startOf(b))) {
+    if (call.viaNodeId) {
+      pushToMap(callsByToolId, call.viaNodeId, call);
+    }
+  }
+
+  const toolIdsInTranscript = new Set(
+    messages.flatMap(message => message.toolCalls?.map(call => call.nodeId) ?? [])
+  );
+  const result = messages.map(message =>
+    message.toolCalls?.some(call => callsByToolId.has(call.nodeId))
+      ? {
+          ...message,
+          toolCalls: message.toolCalls.flatMap(
+            call => callsByToolId.get(call.nodeId) ?? [call]
+          ),
+        }
+      : message
+  );
+
+  for (const call of calls) {
+    if (!call.viaNodeId || !toolIdsInTranscript.has(call.viaNodeId)) {
+      result.push({
+        id: `subagent-${call.nodeId}`,
+        role: 'subagent',
+        content: '',
+        nodeId: call.nodeId,
+        timestamp: startOf(call),
+        duration: call.duration,
+        subAgent: call,
+      });
+    }
+  }
+
+  result.sort((a, b) => a.timestamp - b.timestamp);
+  return result;
+}
+
+/**
+ * Whether `nodeId` is one of the call's spans: the call itself or, for a
+ * sub-agent, the tool it replaced or any span in its transcript.
+ */
+export function callContainsNode(call: TurnCall, nodeId: string): boolean {
+  if (call.nodeId === nodeId) {
+    return true;
+  }
+  if (!isSubAgentCall(call)) {
+    return false;
+  }
+  if (call.viaNodeId === nodeId) {
+    return true;
+  }
+  return call.messages.some(message => messageContainsNode(message, nodeId));
+}
+
+export function isSubAgentCall(call: TurnCall): call is SubAgentCall {
+  return call.kind === 'subagent';
+}
+
+/** Whether `nodeId` is the message's span or one of its calls' spans. */
+function messageContainsNode(message: ConversationMessage, nodeId: string): boolean {
+  if (message.nodeId === nodeId) {
+    return true;
+  }
+  if (message.subAgent && callContainsNode(message.subAgent, nodeId)) {
+    return true;
+  }
+  return message.toolCalls?.some(call => callContainsNode(call, nodeId)) ?? false;
+}
+
+/** Whether any message, including those inside sub-agents, matches. */
+export function someMessageDeep(
+  messages: ConversationMessage[],
+  predicate: (message: ConversationMessage) => boolean
+): boolean {
+  return messages.some(message => {
+    if (predicate(message)) {
+      return true;
+    }
+    const subAgents = [
+      ...(message.subAgent ? [message.subAgent] : []),
+      ...(message.toolCalls ?? []).filter(isSubAgentCall),
+    ];
+    return subAgents.some(subAgent => someMessageDeep(subAgent.messages, predicate));
   });
 }
 
@@ -853,6 +1191,10 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
+function isAgentNode(node: AITraceSpanNode): boolean {
+  return getGenAiOpType(node) === 'agent';
+}
+
 function isEmbeddingsNode(node: AITraceSpanNode): boolean {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_NAME) === 'embeddings';
 }
@@ -896,6 +1238,20 @@ function extractionToMarkdown(extraction: Extraction | undefined): string[] {
   return lines;
 }
 
+function formatMarkdownDuration(duration: number | undefined): string {
+  return duration !== undefined && duration > 0
+    ? ` — ${getDuration(duration, 1, true)}`
+    : '';
+}
+
+function subAgentToMarkdown(call: SubAgentCall): string {
+  const lines = [`### Sub-agent: ${call.name}${formatMarkdownDuration(call.duration)}`];
+  if (call.messages.length > 0) {
+    lines.push(toBlockquote(messagesToMarkdown(call.messages)));
+  }
+  return lines.join('\n\n');
+}
+
 export function messagesToMarkdown(messages: ConversationMessage[]): string {
   const blocks: string[] = [];
 
@@ -921,17 +1277,23 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
         .filter(Boolean)
         .join(': ');
       lines.push(toBlockquote(summary));
+    } else if (message.subAgent) {
+      lines.push(subAgentToMarkdown(message.subAgent));
     } else {
       const sender = message.agentName || message.modelName || 'Assistant';
-      const durationStr =
-        message.duration !== undefined && message.duration > 0
-          ? ` — ${getDuration(message.duration, 1, true)}`
-          : '';
-      lines.push(`### ${sender}${durationStr}`);
+      lines.push(`### ${sender}${formatMarkdownDuration(message.duration)}`);
 
-      if (message.toolCalls && message.toolCalls.length > 0) {
-        const toolNames = message.toolCalls.map(tc => `\`${tc.name}\``).join(', ');
-        lines.push(`> Called tools: ${toolNames}`);
+      const calls = message.toolCalls ?? [];
+      const toolNames = calls
+        .filter(call => !isSubAgentCall(call))
+        .map(call => `\`${call.name}\``);
+      if (toolNames.length > 0) {
+        lines.push(`> Called tools: ${toolNames.join(', ')}`);
+      }
+      for (const call of calls) {
+        if (isSubAgentCall(call)) {
+          lines.push(toBlockquote(subAgentToMarkdown(call)));
+        }
       }
 
       if (message.reasoning) {
