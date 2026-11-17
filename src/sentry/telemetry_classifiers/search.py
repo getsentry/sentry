@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from functools import partial
+from functools import partial, reduce
+from operator import or_
 
 from django.db.models import Q, QuerySet
 from rest_framework.exceptions import ValidationError
 
-from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
+from sentry.api.event_search import (
+    SearchConfig,
+    SearchFilter,
+    SearchKey,
+    SearchValue,
+    default_config,
+)
 from sentry.api.event_search import parse_search_query as base_parse_search_query
-from sentry.db.models.query import in_iexact
 from sentry.exceptions import InvalidSearchQuery
 from sentry.telemetry_classifiers.models import TelemetryClassifier
 
@@ -62,18 +68,25 @@ def filter_classifiers_by_query(
 def _filter_text(
     queryset: QuerySet[TelemetryClassifier], search_filter: SearchFilter, column: str
 ) -> QuerySet[TelemetryClassifier]:
+    raw_value = search_filter.value.raw_value
+    terms = raw_value if isinstance(raw_value, list) else [raw_value]
+    condition = reduce(or_, (_match_term(column, str(term)) for term in terms))
     if search_filter.operator == "!=":
-        return queryset.exclude(**{f"{column}__iexact": search_filter.value.value})
-    if search_filter.operator == "IN":
-        return queryset.filter(in_iexact(column, search_filter.value.value))
+        return queryset.exclude(condition)
+    return queryset.filter(condition)
 
-    kind, value = search_filter.value.classify_and_format_wildcard()
+
+def _match_term(column: str, term: str) -> Q:
+    value = SearchValue(term)
+    kind, formatted = value.classify_and_format_wildcard()
     match kind:
         case "infix":
-            return queryset.filter(**{f"{column}__icontains": value})
+            return Q(**{f"{column}__icontains": formatted})
         case "prefix":
-            return queryset.filter(**{f"{column}__istartswith": value})
+            return Q(**{f"{column}__istartswith": formatted})
         case "suffix":
-            return queryset.filter(**{f"{column}__iendswith": value})
+            return Q(**{f"{column}__iendswith": formatted})
+        case _ if value.is_wildcard():
+            return Q(**{f"{column}__iregex": value.value})
         case _:
-            return queryset.filter(**{f"{column}__iexact": search_filter.value.value})
+            return Q(**{f"{column}__iexact": value.value})

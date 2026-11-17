@@ -108,6 +108,28 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
         assert [c["id"] for c in wildcard_response.data] == [str(wildcard.id), str(exact.id)]
         assert [c["id"] for c in negated_response.data] == [str(other.id), str(wildcard.id)]
 
+    def test_filters_by_name_with_wildcards(self) -> None:
+        frustration = self.create_telemetry_classifier(
+            name="User Frustration", result_attribute="a"
+        )
+        refusals = self.create_telemetry_classifier(name="Refusals", result_attribute="b")
+        sentiment = self.create_telemetry_classifier(name="Sentiment", result_attribute="c")
+
+        with self.feature(self.features):
+            negated_response = self.get_success_response(
+                self.organization.slug, query="!name:*frustr*"
+            )
+            list_response = self.get_success_response(
+                self.organization.slug, query="name:[*frustr*, refusals]"
+            )
+            middle_response = self.get_success_response(
+                self.organization.slug, query="name:sen*ent"
+            )
+
+        assert [c["id"] for c in negated_response.data] == [str(sentiment.id), str(refusals.id)]
+        assert [c["id"] for c in list_response.data] == [str(refusals.id), str(frustration.id)]
+        assert [c["id"] for c in middle_response.data] == [str(sentiment.id)]
+
     def test_filters_by_attribute(self) -> None:
         first = self.create_telemetry_classifier(result_attribute="user.frustrated")
         second = self.create_telemetry_classifier(result_attribute="refusal")
