@@ -562,13 +562,14 @@ def _push_iteration_changes(
             # Never overwrite commits on the PR that Seer didn't push.
             allow_force_push=False,
         )
-    except SeerOutOfCreditsException:
+    except SeerOutOfCreditsException as e:
         log_ctx.info("autofix.pr_iteration.push", outcome="failed", reason="out_of_credits")
         # Record the failed push, so the next drain can try it again.
         mark_out_of_credits(
             run_id=run_id,
             organization_id=group.organization.id,
             stranded_action=StrandedAction.PUSH,
+            denial_reason=e.denial_reason,
         )
         return PrIterationOutcome.SENTRY_OUT_OF_CREDITS
     except Exception as e:
@@ -683,13 +684,14 @@ def _retry_push_on_moved_branch(
                 billing_feature=get_run_billing_feature(state),
             ),
         )
-    except SeerOutOfCreditsException:
+    except SeerOutOfCreditsException as e:
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="out_of_credits")
         # Record the failed retry so the next drain can try it again.
         mark_out_of_credits(
             run_id=run_id,
             organization_id=group.organization.id,
             stranded_action=StrandedAction.BRANCH_MOVED_RETRY,
+            denial_reason=e.denial_reason,
         )
         return PrIterationOutcome.SENTRY_OUT_OF_CREDITS
     except Exception as e:

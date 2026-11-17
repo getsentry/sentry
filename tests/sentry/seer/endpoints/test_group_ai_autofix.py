@@ -424,11 +424,17 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["pr_iteration_out_of_credits"] is False
 
-        mark_out_of_credits(run_id=888, organization_id=self.organization.id)
+        mark_out_of_credits(
+            run_id=888, organization_id=self.organization.id, denial_reason="daily_cap_exceeded"
+        )
 
         response = self.client.get(self._get_url(group.id), format="json")
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["pr_iteration_out_of_credits"] is True
+        assert (
+            response.data["autofix"]["pr_iteration_out_of_credits_denial_reason"]
+            == "daily_cap_exceeded"
+        )
         # Nothing was left unfinished.
         assert response.data["autofix"]["pr_iteration_out_of_credits_unfinished_action"] is None
 
@@ -1909,7 +1915,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+        return_value=CheckSeerCreditsResponse(
+            has_enough_credits=False,
+            denial_reason=CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED,
+        ),
     )
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
@@ -1941,7 +1950,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert len(peek_queued_autofix_feedback(123)) == 1
         assert get_out_of_credits(
             run_id=123, organization_id=self.organization.id
-        ) == OutOfCreditsMarker(stranded_action=None)
+        ) == OutOfCreditsMarker(stranded_action=None, denial_reason="daily_cap_exceeded")
         (row,) = open_iterations(seer_run)
         assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
 

@@ -143,6 +143,7 @@ from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerUnavailableError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -994,6 +995,7 @@ def _drain_queued_autofix_feedback(
                 group_id=group.id,
                 state=state,
                 items=consumable_items,
+                denial_reason=error.denial_reason,
             )
         return
     except Exception as error:
@@ -1032,6 +1034,7 @@ def _hold_for_credits(
     group_id: int,
     state: SeerRunState,
     items: Sequence[QueuedAutofixFeedback],
+    denial_reason: SeerCreditDenialReason | None,
 ) -> None:
     """Put a batch refused for credits back, so the next trigger after a top-up runs it."""
     requeue_autofix_feedback(run_id, items)
@@ -1049,7 +1052,7 @@ def _hold_for_credits(
         organization_id=organization_id,
         reason=PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value,
     )
-    mark_out_of_credits(run_id=run_id, organization_id=organization_id)
+    mark_out_of_credits(run_id=run_id, organization_id=organization_id, denial_reason=denial_reason)
 
 
 def _stop_after_drain_failure(

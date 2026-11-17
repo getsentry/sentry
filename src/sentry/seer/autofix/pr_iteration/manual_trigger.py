@@ -132,7 +132,11 @@ def handle_ui_feedback(
 
     if not credits.has_enough_credits:
         # Hold the queue until a drain after a top-up, as a refused drain does.
-        mark_out_of_credits(run_id=run_id, organization_id=group.organization.id)
+        mark_out_of_credits(
+            run_id=run_id,
+            organization_id=group.organization.id,
+            denial_reason=get_denial_reason(credits),
+        )
         # Save the reason for the sweep, in case no top-up comes.
         record_pr_iteration_failure_reason(
             log_ctx=log_ctx,

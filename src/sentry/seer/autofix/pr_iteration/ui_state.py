@@ -69,5 +69,8 @@ def get_pr_iteration_state_fields(
         "pr_iteration_out_of_credits_unfinished_action": (
             out_of_credits.unfinished_action if out_of_credits is not None else None
         ),
+        "pr_iteration_out_of_credits_denial_reason": (
+            out_of_credits.denial_reason if out_of_credits is not None else None
+        ),
         "warnings": warnings,
     }
