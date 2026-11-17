@@ -2579,6 +2579,65 @@ describe('SeerExplorerContent', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('sends a reply to an Autofix single run even when a new chat is unaffordable', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockRestore();
+      mockCreditCheck(false);
+      const runId = 42;
+      const url = `/organizations/${creditsOrganization.slug}/seer/explorer-chat/${runId}/`;
+      MockApiClient.addMockResponse({
+        url,
+        body: {
+          feature_id: 'autofix_single_run',
+          session: {
+            blocks: [
+              {
+                id: 'analysis',
+                message: {role: 'assistant', content: 'Autofix found the root cause.'},
+                timestamp: '2024-01-01T00:01:00Z',
+              },
+            ],
+            run_id: runId,
+            status: 'completed',
+            updated_at: '2024-01-01T00:01:00Z',
+          },
+        },
+      });
+      const reply = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {run_id: runId},
+      });
+
+      function OpenRun() {
+        const dispatch = useSeerExplorerChatDispatch();
+        useEffect(() => {
+          dispatch({type: 'set run id', payload: runId});
+        }, [dispatch]);
+        return null;
+      }
+
+      render(
+        <SeerExplorerChatStateProvider>
+          <OpenRun />
+          {contentTree()}
+        </SeerExplorerChatStateProvider>,
+        {organization: creditsOrganization}
+      );
+
+      await screen.findByText('Autofix found the root cause.');
+      await userEvent.type(await getSeerExplorerInput(), 'Continue with the fix{Enter}');
+
+      expect(reply).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: expect.objectContaining({query: 'Continue with the fix'}),
+        })
+      );
+      expect(
+        screen.queryByTestId('seer-explorer-out-of-credits')
+      ).not.toBeInTheDocument();
+    });
+
     describe('an autofix card that cannot afford its next step', () => {
       const groupId = '1';
       const chatBlocks = [

@@ -36,13 +36,17 @@ interface SeerCreditCheckResponse {
 
 export function seerCreditCheckApiOptions(
   organization: Organization,
-  operation: SeerCreditOperation
+  operation: SeerCreditOperation,
+  billingFeature?: number
 ) {
   return apiOptions.as<SeerCreditCheckResponse>()(
     '/organizations/$organizationIdOrSlug/seer/credit-check/',
     {
       path: {organizationIdOrSlug: organization.slug},
-      query: {operation},
+      query:
+        billingFeature === undefined
+          ? {operation}
+          : {operation, billing_feature: billingFeature},
       staleTime: 0,
     }
   );
@@ -61,6 +65,8 @@ export function seerCreditChecksQueryKey(organization: Organization) {
 }
 
 interface UseSeerCreditCheckOptions {
+  /** The concrete billing feature saved on an existing run. */
+  billingFeature?: number;
   /**
    * Skip the check, for example while the trigger it gates is not on screen.
    */
@@ -81,7 +87,7 @@ interface UseSeerCreditCheckOptions {
  */
 export function useSeerCreditCheck(
   operation: SeerCreditOperation,
-  {enabled = true}: UseSeerCreditCheckOptions = {}
+  {billingFeature, enabled = true}: UseSeerCreditCheckOptions = {}
 ) {
   const organization = useOrganization();
   // Orgs without token-billed Seer have no wallet to check, so they make no
@@ -92,7 +98,7 @@ export function useSeerCreditCheck(
     organization.features.includes('token-billed-seer-enabled');
 
   const query = useQuery({
-    ...seerCreditCheckApiOptions(organization, operation),
+    ...seerCreditCheckApiOptions(organization, operation, billingFeature),
     enabled: isChecking,
     // Credits move outside this page: a run elsewhere spends them and a billing
     // member can turn on auto-reload from another tab. Recheck on every mount and window
