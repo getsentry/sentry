@@ -1,5 +1,4 @@
-import type {ReactNode} from 'react';
-import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconCopy} from '@sentry/icons/copy';
 import {IconOpen} from '@sentry/icons/open';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,6 +7,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 
 import {
@@ -22,30 +23,22 @@ import {AgentHandoffFlow, type AddFeatureContext} from './useAgentHandoff';
 
 interface AgentHandoffProductPromptProps {
   /**
-   * List of benefits the agent will deliver, shown as checkmark bullets.
-   * Keep to 3–5 short phrases. The last item should be omitted if you are relying
-   * on the "View all instructions" link to cover extra detail.
+   * Short phrases describing what the agent will do, shown as checkmark bullets above
+   * "View all instructions". Keep to 3–5 items.
    */
-  benefits: ReactNode[];
+  agentSteps: string[];
+  context: AddFeatureContext | null;
   feedbackSource: string;
-  context?: AddFeatureContext | null;
-  /** Receives the ID of the handoff whose prompt was copied, for analytics. */
   onCopySuccess?: (handoffId: string) => void;
+  onSelect?: () => void;
 }
 
-/**
- * Agent-tab content for product empty-state setup cards (see `ProductSetupCard`).
- *
- * Renders the dark prompt box, a primary "Copy prompt" button, the feedback and
- * advanced controls, and a "Your agent will:" benefit list. It is always wired to
- * `AgentHandoffFlow.ADD_FEATURE`; the `context` prop supplies the target product and
- * project.
- */
 export function AgentHandoffProductPrompt({
-  benefits,
-  context = null,
+  agentSteps,
+  context,
   feedbackSource,
   onCopySuccess,
+  onSelect,
 }: AgentHandoffProductPromptProps) {
   const sentryUrl = useSentryUrl();
   const previewUrl = getHandoffPreviewUrl(AgentHandoffFlow.ADD_FEATURE, sentryUrl);
@@ -53,18 +46,23 @@ export function AgentHandoffProductPrompt({
   const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
     useHandoffPromptCopy({
       flow: AgentHandoffFlow.ADD_FEATURE,
-      context: context ?? null,
+      context,
       onCopySuccess,
     });
 
   return (
     <Stack gap="md">
-      <HandoffPromptBox product={context?.product} onCopyPrompt={copyPrompt} />
+      <Text size="sm" variant="secondary">
+        {t('Paste this prompt into your coding agent')}
+      </Text>
 
-      <Flex align="center" gap="sm" wrap="wrap">
+      <HandoffPromptBox product={context?.product} onCopyPrompt={copyPrompt} onSelect={onSelect} />
+
+      <Flex align="center" gap="sm">
         <Button
           busy={handoff.isPending}
           disabled={copyDisabled}
+          icon={<IconCopy />}
           priority="primary"
           size="sm"
           onClick={copyPrompt}
@@ -88,31 +86,28 @@ export function AgentHandoffProductPrompt({
 
       <HandoffPromptAlerts useIpPinning={useIpPinning} error={handoff.error} />
 
-      <Stack as="ul" role="list" gap="xs" padding="0" margin="0">
-        <Text as="li" size="sm" variant="secondary">
+      <Stack gap="xs">
+        <Text size="sm" variant="secondary">
           {t('Your agent will:')}
         </Text>
-        {benefits.map((benefit, i) => (
-          <Benefit key={i}>{benefit}</Benefit>
-        ))}
-        <Text as="li" size="sm">
-          <ExternalLink href={previewUrl}>
-            <Flex as="span" align="center" gap="xs">
-              {t('View all instructions')}
-              <IconOpen size="xs" />
-            </Flex>
-          </ExternalLink>
-        </Text>
+        <List symbol="bullet">
+          {agentSteps.map(step => (
+            <ListItem key={step}>
+              <Text size="sm">{step}</Text>
+            </ListItem>
+          ))}
+          <ListItem>
+            <Text size="sm">
+              <ExternalLink href={previewUrl}>
+                <Flex as="span" align="center" gap="xs">
+                  {t('View all instructions')}
+                  <IconOpen size="xs" />
+                </Flex>
+              </ExternalLink>
+            </Text>
+          </ListItem>
+        </List>
       </Stack>
     </Stack>
-  );
-}
-
-function Benefit({children}: {children: ReactNode}) {
-  return (
-    <Flex as="li" align="center" gap="sm">
-      <IconCheckmark size="sm" variant="success" />
-      <Text size="sm">{children}</Text>
-    </Flex>
   );
 }

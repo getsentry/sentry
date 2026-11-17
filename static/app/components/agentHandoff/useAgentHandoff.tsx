@@ -34,8 +34,10 @@ interface ProjectSetupContext {
   runId: string;
 }
 
+export type AddFeatureProduct = 'tracing';
+
 export interface AddFeatureContext {
-  product: 'tracing';
+  product: AddFeatureProduct;
   projectId: string;
 }
 
@@ -88,16 +90,6 @@ function clipboardError() {
   );
 }
 
-function getProductForFlow<Flow extends AgentHandoffFlow>(
-  flow: Flow,
-  context: AgentHandoffContext<Flow>
-): string | undefined {
-  if (flow === AgentHandoffFlow.ADD_FEATURE) {
-    return (context as AddFeatureContext).product;
-  }
-  return undefined;
-}
-
 /**
  * Mints short-lived handoff codes and copies a prompt containing them without exposing
  * the code in the UI. Valid codes are cached until their context changes or they approach
@@ -124,13 +116,12 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       organizationSlug: organization.slug,
     };
 
+    const product =
+      'product' in options.context ? options.context.product : undefined;
+
     const cachedHandoff = handoff.current;
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
-      const product = getProductForFlow(flow, options.context);
-      return {
-        handoffId: cachedHandoff.handoffId,
-        text: formatPrompt(cachedHandoff.code, product),
-      };
+      return {handoffId: cachedHandoff.handoffId, text: formatPrompt(cachedHandoff.code, product)};
     }
 
     try {
@@ -147,7 +138,6 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       });
       handoff.current = {...minted, ...promptContext};
 
-      const product = getProductForFlow(flow, options.context);
       return {handoffId: minted.handoffId, text: formatPrompt(minted.code, product)};
     } catch {
       throw new Error(t('Unable to create your agent prompt. Try again.'));

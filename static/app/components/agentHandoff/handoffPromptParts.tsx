@@ -17,16 +17,8 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {getHandoffPrompt} from './handoffPrompt';
-import {
-  AgentHandoffFlow,
-  type AgentHandoffContext,
-  useAgentHandoff,
-} from './useAgentHandoff';
+import {AgentHandoffFlow, type AgentHandoffContext, useAgentHandoff} from './useAgentHandoff';
 import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
-
-// ---------------------------------------------------------------------------
-// Preview URL
-// ---------------------------------------------------------------------------
 
 export function getHandoffPreviewUrl(flow: AgentHandoffFlow, sentryUrl: string): string {
   return new URL(`/agent-handoff.md?preview=1&flow=${flow}`, sentryUrl).href;
@@ -35,10 +27,6 @@ export function getHandoffPreviewUrl(flow: AgentHandoffFlow, sentryUrl: string):
 export function useSentryUrl(): string {
   return useStore(ConfigStore, state => state.links.sentryUrl);
 }
-
-// ---------------------------------------------------------------------------
-// IP-pinning state + copy orchestration
-// ---------------------------------------------------------------------------
 
 interface UseHandoffPromptCopyOptions<Flow extends AgentHandoffFlow> {
   context: AgentHandoffContext<Flow> | null;
@@ -73,18 +61,8 @@ export function useHandoffPromptCopy<Flow extends AgentHandoffFlow>({
     handoff.reset();
   }
 
-  return {
-    copyPrompt,
-    copyDisabled,
-    handoff,
-    useIpPinning,
-    toggleIpPinning,
-  };
+  return {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning};
 }
-
-// ---------------------------------------------------------------------------
-// Advanced (IP-pinning) dropdown
-// ---------------------------------------------------------------------------
 
 interface HandoffAdvancedMenuProps {
   disabled: boolean;
@@ -117,7 +95,7 @@ export function HandoffAdvancedMenu({
       shouldApplyMinWidth={false}
       size="xs"
       usePortal
-      trigger={(triggerProps: any) => (
+      trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
           aria-label={t('Advanced options')}
@@ -132,10 +110,6 @@ export function HandoffAdvancedMenu({
     />
   );
 }
-
-// ---------------------------------------------------------------------------
-// Alerts (IP-pinning warning + mint error)
-// ---------------------------------------------------------------------------
 
 interface HandoffPromptAlertsProps {
   error: Error | null;
@@ -157,18 +131,10 @@ export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsPr
   );
 }
 
-// ---------------------------------------------------------------------------
-// Dark-theme masked prompt box
-// ---------------------------------------------------------------------------
-
 interface HandoffPromptBoxProps {
-  /** The copy action triggered by the icon button or native clipboard copy. */
   onCopyPrompt: () => void;
-  /** Called when the user clicks the prompt text (for selection analytics). */
   onSelect?: () => void;
-  /** When set, the preview text names the product ("to set up tracing"). */
   product?: string;
-  /** Optional action node placed in the top-right corner (e.g. an icon copy button). */
   topRightAction?: ReactNode;
 }
 
@@ -202,7 +168,7 @@ export function HandoffPromptBox({
         paddingRight={topRightAction ? '3xl' : 'xl'}
         position="relative"
       >
-        {(promptBoxProps: any) => (
+        {promptBoxProps => (
           <PromptBox {...promptBoxProps} onCopy={onCopy}>
             <PromptText
               ref={promptRef}
@@ -240,10 +206,6 @@ export function HandoffPromptBox({
     </ThemeProvider>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Styled primitives (private to this module)
-// ---------------------------------------------------------------------------
 
 const PromptBox = styled('div')`
   box-shadow: inset 0 1px 0
