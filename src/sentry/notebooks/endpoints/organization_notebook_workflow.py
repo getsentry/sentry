@@ -42,35 +42,67 @@ from sentry.service_accounts.endpoints.organization_service_account_viewer_conte
     SeerSystemViewerContextPermission,
 )
 
+WORKFLOW_RUN_ID = OpenApiParameter(
+    "workflow_run_id",
+    OpenApiTypes.UUID,
+    OpenApiParameter.PATH,
+    description="UUID of the parent workflow execution in Seer.",
+)
+
 
 class OpenWorkflowNotebook(StrictCamelSnakeValidator[None]):
-    notebook_id = serializers.IntegerField(min_value=1, required=False)
-    title = serializers.CharField(max_length=255)
+    notebook_id = serializers.IntegerField(
+        min_value=1,
+        required=False,
+        help_text="Existing notebook ID to open. Omit to create a notebook for this run.",
+    )
+    title = serializers.CharField(
+        max_length=255, help_text="Title to use when creating a notebook."
+    )
     project_ids = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), required=False, default=list
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        default=list,
+        help_text="Project IDs for a newly created notebook.",
     )
 
 
 class SummaryWrite(StrictCamelSnakeValidator[None]):
-    block_id = serializers.IntegerField(min_value=1)
-    version = serializers.IntegerField(min_value=1)
-    finding = serializers.RegexField(r"\A[^\r\n]+\Z", max_length=2000)
+    block_id = serializers.IntegerField(min_value=1, help_text="ID of the saved embed block.")
+    version = serializers.IntegerField(
+        min_value=1, help_text="Version of the block used to generate the finding."
+    )
+    finding = serializers.RegexField(
+        r"\A[^\r\n]+\Z", max_length=2000, help_text="One sentence describing what the widget shows."
+    )
 
 
 class MetadataWrite(StrictCamelSnakeValidator[None]):
-    title = serializers.CharField(max_length=255)
-    summary = serializers.CharField(max_length=255)
-    description = serializers.CharField(max_length=5000)
+    title = serializers.CharField(max_length=255, help_text="Generated notebook title.")
+    summary = serializers.CharField(max_length=255, help_text="Short summary of the notebook.")
+    description = serializers.CharField(
+        max_length=5000, help_text="Longer description of the findings."
+    )
 
 
 class StepsWrite(StrictCamelSnakeValidator[None]):
-    suggestions = serializers.ListField(child=serializers.DictField(), max_length=10)
+    suggestions = serializers.ListField(
+        child=serializers.DictField(),
+        max_length=10,
+        help_text="Suggested next steps with a key, title and rationale.",
+    )
 
 
 class FinalizerWrite(StrictCamelSnakeValidator[None]):
-    revision = serializers.RegexField("^[a-f0-9]{64}$")
-    section = serializers.ChoiceField(choices=["metadata", "nextSteps"])
-    result = serializers.DictField()
+    revision = serializers.RegexField(
+        "^[a-f0-9]{64}$", help_text="Content revision returned by the final notebook read."
+    )
+    section = serializers.ChoiceField(
+        choices=["metadata", "nextSteps"], help_text="Completed finalizer to deliver."
+    )
+    result = serializers.DictField(
+        help_text="Structured metadata or suggestions produced by this finalizer."
+    )
 
 
 class WorkflowNotebookContext(TypedDict):
@@ -94,7 +126,7 @@ class SavedSummary(TypedDict):
     tags=["Notebooks"],
     parameters=[
         GlobalParams.ORG_ID_OR_SLUG,
-        OpenApiParameter("workflow_run_id", OpenApiTypes.UUID, OpenApiParameter.PATH),
+        WORKFLOW_RUN_ID,
     ],
 )
 @cell_silo_endpoint
@@ -121,6 +153,7 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
 
     @extend_schema(
         operation_id="getWorkflowNotebookContext",
+        request=None,
         responses={
             200: inline_sentry_response_serializer(
                 "WorkflowNotebookContext", WorkflowNotebookContext
@@ -245,8 +278,16 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
 
 
 class WriterRunWrite(StrictCamelSnakeValidator[None]):
-    seer_run_state_id = serializers.IntegerField(min_value=1, max_value=2**63 - 1)
-    user_id = serializers.IntegerField(min_value=1, allow_null=True)
+    seer_run_state_id = serializers.IntegerField(
+        min_value=1,
+        max_value=2**63 - 1,
+        help_text="Seer state ID of the Explorer child that wrote the notebook.",
+    )
+    user_id = serializers.IntegerField(
+        min_value=1,
+        allow_null=True,
+        help_text="Acting user for the writer, or null for a service account.",
+    )
 
 
 class LinkedWriter(TypedDict):
@@ -264,16 +305,18 @@ class OrganizationNotebookWorkflowWriterEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="linkWorkflowNotebookWriter",
+        tags=["Notebooks"],
         request=WriterRunWrite,
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            OpenApiParameter("workflow_run_id", OpenApiTypes.UUID, OpenApiParameter.PATH),
+            WORKFLOW_RUN_ID,
         ],
         responses={
             200: inline_sentry_response_serializer("LinkedWorkflowNotebookWriter", LinkedWriter)
         },
     )
     def put(self, request: Request, organization: Organization, workflow_run_id: UUID) -> Response:
+        """Attach the authenticated worker's Explorer run to an existing workflow notebook."""
         validator = WriterRunWrite(data=request.data)
         validator.is_valid(raise_exception=True)
         try:
