@@ -47,7 +47,12 @@ const FILTERS = {
     types.length === 0 || types.includes(item.op),
 
   searchTerm: (item: SpanFrame, searchTerm: string) =>
-    JSON.stringify(item.description).toLowerCase().includes(searchTerm),
+    // `description` can be missing from the SDK payload, and
+    // `JSON.stringify(undefined)` returns `undefined` rather than a string.
+    !searchTerm ||
+    JSON.stringify(item.description ?? '')
+      .toLowerCase()
+      .includes(searchTerm),
 };
 
 export function useNetworkFilters({networkFrames}: Options): Return {

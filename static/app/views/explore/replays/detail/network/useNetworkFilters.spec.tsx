@@ -395,6 +395,38 @@ describe('getResourceTypes', () => {
   });
 });
 
+describe('searchTerm filter', () => {
+  it('should not throw when a frame has no description', () => {
+    // Regression test: SpanFrame.description can be absent from the SDK payload,
+    // and JSON.stringify(undefined) returns undefined, so toLowerCase() threw.
+    const frameWithNoDescription = {
+      ...ReplayResourceFrameFixture({
+        op: 'resource.img',
+        description: 'http://localhost:3000/img.png',
+        startTimestamp: new Date(1663131080.64),
+        endTimestamp: new Date(1663131080.65),
+      }),
+      description: undefined,
+    } as any;
+
+    const [hydratedFrame] = hydrateSpans(ReplayRecordFixture(), [frameWithNoDescription]);
+    const networkFrames = [hydratedFrame!, SPAN_7_FETCH_GET!];
+
+    const {result: emptySearch} = renderHook(useNetworkFilters, {
+      initialProps: {networkFrames},
+    });
+    expect(emptySearch.current.items).toHaveLength(2);
+
+    const {result: withSearch} = renderHook(useNetworkFilters, {
+      initialProps: {networkFrames},
+      initialRouterConfig: {
+        location: {pathname: '/', query: {f_n_search: 'pikachu'}},
+      },
+    });
+    expect(withSearch.current.items).toStrictEqual([SPAN_7_FETCH_GET]);
+  });
+});
+
 describe('getStatusTypes', () => {
   it('should not throw when a ResourceFrame has no data property', () => {
     // Regression test: ResourceFrame.data can be absent from the SDK payload,
