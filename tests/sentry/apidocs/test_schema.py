@@ -6,6 +6,8 @@ from django.test import RequestFactory
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 
+import sentry.apidocs.extensions  # noqa: F401
+from sentry.agent_handoff.endpoints.claim_agent_handoff import ClaimAgentHandoffEndpoint
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_events import OrganizationEventsEndpoint
 from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
@@ -89,6 +91,27 @@ def test_description() -> None:
 
     assert schema["paths"]["/foo"]["put"]["operationId"] != "Autoschema Description"
     assert schema["paths"]["/foo"]["put"]["description"] == "Autoschema Description"
+
+
+def test_claim_agent_handoff_schema() -> None:
+    path = "/api/0/agent-handoff/"
+    schema = generate_schema(path.removeprefix("/"), view=ClaimAgentHandoffEndpoint)
+    operation = schema["paths"][path]["post"]
+
+    assert operation["operationId"] == "claimAgentHandoff"
+    assert set(operation["requestBody"]["content"]) == {"application/json"}
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/AgentHandoffClaimResponse"
+    }
+    assert set(schema["components"]["schemas"]["AgentHandoffClaimResponse"]["properties"]) == {
+        "sentryUrl",
+        "userEmail",
+        "organizationName",
+        "organizationSlug",
+        "clientId",
+        "setupCode",
+        "flowInstructions",
+    }
 
 
 @pytest.mark.parametrize(

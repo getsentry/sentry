@@ -794,8 +794,8 @@ class TestGetMonitoringProviderConnections(TestCase):
 
 @override_settings(
     SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY,
-    SUPABASE_CLIENT_ID="sentry-app-id",
-    SUPABASE_CLIENT_SECRET="sentry-app-secret",
+    SUPABASE_FOR_SEER_CLIENT_ID="sentry-app-id",
+    SUPABASE_FOR_SEER_CLIENT_SECRET="sentry-app-secret",
 )
 @with_feature(["organizations:seer-infra-telemetry", "organizations:integrations-supabase"])
 class TestSupabaseMonitoringConnections(TestCase):

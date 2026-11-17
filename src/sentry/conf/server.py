@@ -506,6 +506,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
+    "sentry.timeseries_annotations",
     "sentry.seer",
     "sentry.scm",
     "sentry.cadence",
@@ -719,8 +720,8 @@ LINEAR_CLIENT_ID = ""
 LINEAR_CLIENT_SECRET = ""
 
 # Supabase integration (OAuth app credentials)
-SUPABASE_CLIENT_ID = ""
-SUPABASE_CLIENT_SECRET = ""
+SUPABASE_FOR_SEER_CLIENT_ID = ""
+SUPABASE_FOR_SEER_CLIENT_SECRET = ""
 
 SOCIAL_AUTH_PIPELINE = (
     "social_auth.backends.pipeline.user.get_username",
@@ -918,6 +919,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
     "sentry.inbox.event_retention",
+    "sentry.inbox.item_retention",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.bitbucket_server.tasks",
@@ -1200,10 +1202,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-cache-dynamic-sampling-feature-flags": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.cache_dynamic_sampling_feature_flags",
         "schedule": crontab("0", "*", "*", "*", "*"),
-    },
-    "telemetry-classifiers-conversations": {
-        "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_conversation_classifiers",
-        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "telemetry-classifiers-schedule": {
         "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_classifiers",
@@ -2791,7 +2789,6 @@ SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
         "permissions": ["object.read"],
     },
 }
-SENTRY_VIEWER_CONTEXT_ENABLED = True
 SENTRY_ANALYTICS_BACKEND = "noop"
 SENTRY_ANALYTICS_OPTIONS: dict[str, Any] = {}
 SENTRY_MAIL_LIST_NAMESPACE = "localhost"

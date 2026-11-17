@@ -160,6 +160,10 @@ export function DefaultText({children}: {children: string}) {
   return <Fragment>{children}</Fragment>;
 }
 
+export function DefaultAnnotation({children}: {children: string}) {
+  return <Fragment>{children}</Fragment>;
+}
+
 export function DefaultLineBreak() {
   return <br />;
 }

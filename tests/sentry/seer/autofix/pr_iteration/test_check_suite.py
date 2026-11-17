@@ -44,6 +44,7 @@ from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
 )
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerUnavailableError
+from sentry.seer.models.run import SeerRunPrIteration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
@@ -54,6 +55,12 @@ CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
 PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
 OWN_REPO_ID = 123
+
+# Both flags behind ``is_seer_token_based_billing_onboarding_enabled``.
+TOKEN_BILLING_FEATURES = {
+    "organizations:seer-token-based-billing-onboarding": True,
+    "organizations:token-billed-seer-enabled": True,
+}
 
 
 def own_repo_pr(pr_id: int) -> dict[str, Any]:
@@ -495,6 +502,74 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_external_head.assert_called_once()
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_not_queued_when_opt_in_and_the_project_has_pr_iteration_off(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        with self.feature(TOKEN_BILLING_FEATURES):
+            process_check_suite_event(self._event(raw))
+
+        mock_enqueue.assert_not_called()
+        mock_trigger_consume.assert_not_called()
+        # Nothing will run this suite, so no iteration row waits for it.
+        assert not SeerRunPrIteration.objects.filter(seer_run__seer_run_state_id=67890).exists()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_queued_when_opt_in_and_the_project_has_pr_iteration_on(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", True)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        with self.feature(TOKEN_BILLING_FEATURES):
+            process_check_suite_event(self._event(raw))
+
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_still_queued_without_the_flag_when_the_project_has_pr_iteration_off(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+    ) -> None:
+        # Without the flag the trigger and the drain hold it back, as before.
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        process_check_suite_event(self._event(raw))
+
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH)

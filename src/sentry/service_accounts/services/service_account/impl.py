@@ -45,9 +45,9 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
     def get_service_account(
         self, *, organization_id: int, service_account_id: int
     ) -> RpcServiceAccount | None:
-        service_account = ServiceAccount.objects.filter(
+        service_account = ServiceAccount.objects.get_or_none(
             id=service_account_id, organization_id=organization_id, is_active=True
-        ).first()
+        )
         if service_account is None:
             return None
         return _serialize_with_projects(service_account)
@@ -133,7 +133,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
             service_account = (
                 ServiceAccount.objects.select_for_update()
                 .filter(id=service_account_id, organization_id=organization_id, is_active=True)
-                .first()
+                .get_or_none()
             )
             if service_account is None:
                 return None
@@ -146,9 +146,9 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         )
 
     def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
-        service_account = ServiceAccount.objects.filter(
+        service_account = ServiceAccount.objects.get_or_none(
             id=service_account_id, organization_id=organization_id
-        ).first()
+        )
         if service_account is not None:
             service_account.deactivate()
 

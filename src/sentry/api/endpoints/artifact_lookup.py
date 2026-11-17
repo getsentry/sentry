@@ -104,7 +104,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                     organization_id=project.organization.id,
                 )
                 .select_related("file")
-                .first()
+                .get_or_none()
             )
             if (
                 file_m is not None

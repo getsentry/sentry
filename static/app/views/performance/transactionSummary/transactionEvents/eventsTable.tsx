@@ -363,7 +363,7 @@ export function EventsTable({
       ].join('&');
 
       const res: IssueAttachment[] = await api.requestPromise(
-        `/api/0/organizations/${organization.slug}/issues/${issueId}/attachments/?${queries}`
+        `/organizations/${organization.slug}/issues/${issueId}/attachments/?${queries}`
       );
 
       let newHasMinidumps = false;

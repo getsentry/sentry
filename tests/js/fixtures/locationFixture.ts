@@ -1,5 +1,6 @@
 import type {Location} from 'history';
-import qs from 'query-string';
+
+import * as qs from 'sentry/utils/url/qs';
 
 export function LocationFixture(params: Partial<Location> = {}): Location {
   const location: Location = {

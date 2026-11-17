@@ -40,6 +40,7 @@ def _address_validate(
 
 
 def _tick_taskworker_scheduler(runner: ScheduleRunner) -> float:
+    # The scheduler initiates this work on Sentry's behalf.
     with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))):
         return runner.tick()
 

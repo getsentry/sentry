@@ -1,11 +1,11 @@
 import Cookies from 'js-cookie';
-import qs from 'query-string';
 import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
 import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
 import {OrganizationsFixture} from 'sentry-fixture/organizations';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import * as qs from 'sentry/utils/url/qs';
 import AccountSecurity from 'sentry/views/settings/account/accountSecurity/';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 

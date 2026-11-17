@@ -89,7 +89,7 @@ class SupabaseOAuthApiStep:
         )
         params = urlencode(
             {
-                "client_id": settings.SUPABASE_CLIENT_ID,
+                "client_id": settings.SUPABASE_FOR_SEER_CLIENT_ID,
                 "response_type": "code",
                 "state": state,
                 "redirect_uri": absolute_uri(SUPABASE_REDIRECT_URL),
@@ -166,15 +166,12 @@ class SupabaseIntegration(IntegrationInstallation):
 
 class SupabaseIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.SUPABASE.value
+    name = "Supabase for Seer"
     metadata = metadata
     integration_cls = SupabaseIntegration
     features = frozenset([IntegrationFeatures.SEER_CONTEXT])
     requires_feature_flag = True
     allow_multiple = False
-
-    @property
-    def name(self) -> str:
-        return "Supabase"
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [SupabaseOAuthApiStep()]

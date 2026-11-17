@@ -86,6 +86,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-user-last-visited", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Serve the prebuilt Web Vitals dashboards from the trace metrics dataset instead of spans
     manager.add("organizations:dashboards-web-vitals-trace-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the unified visualize list (aggregates and equations side by side) for trace metrics widgets
+    manager.add("organizations:dashboards-trace-metrics-unified-visualize", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable data-fidelity annotations (dropped-data heatmap) on dashboard widget charts
     manager.add("organizations:dashboards-data-fidelity-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable low-confidence indicators on data browsing time series charts
@@ -119,6 +121,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:explore-incremental-timeseries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable interpolation and smoothing for Explore charts
     manager.add("organizations:explore-interpolation-and-smoothing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable anomaly detection for Explore charts
+    manager.add("organizations:explore-anomaly-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable plotting multiple aggregates on one chart in Explore
     manager.add("organizations:explore-multi-aggregate-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable returning the migrated discover queries in explore saved queries
@@ -223,8 +227,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:objectstore-debugfiles-exclusive-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Double-write newly created debug files to Objectstore.
     manager.add("organizations:objectstore-debugfiles-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
-    # Read debug files from Objectstore when an Objectstore copy is available.
-    manager.add("organizations:objectstore-debugfiles-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable large ownership rule file size limit
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
@@ -328,8 +330,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-chat-prompts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable sentry source code search tool
     manager.add("organizations:seer-agent-source-code-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable code mode tools (sentry_api_search/execute) in Seer Agent
-    manager.add("organizations:seer-explorer-code-mode-tools", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable LLM-generated suggestions in the Seer Agent chat empty state
     manager.add("organizations:seer-chat-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable action suggestions (create or edit items) alongside questions in Seer Agent chat suggestions
@@ -453,6 +453,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tag-key-sample-n", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Select the most frequent tag values before applying the query limit in Tag Details
     manager.add("organizations:tag-values-sort-before-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the timeseries annotations framework
+    manager.add("organizations:timeseries-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable dynamic grouping UI (top issues)
     manager.add("organizations:top-issues-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extraction metrics for transactions during ingestion.
@@ -522,6 +524,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-waterfall-version-message", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Conversation focused views in AI Insights
     manager.add("organizations:gen-ai-conversations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable searching within an AI conversation's transcript
+    manager.add("organizations:gen-ai-conversation-transcript-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Conduit demo endpoint and UI
     manager.add("organizations:conduit-demo", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 

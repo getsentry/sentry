@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -48,7 +49,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
@@ -68,18 +69,18 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
-        checkin1 = MonitorCheckIn.objects.create(
+        checkin1 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
-        checkin2 = MonitorCheckIn.objects.create(
+        checkin2 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
 
-        checkin3 = MonitorCheckIn.objects.create(
+        checkin3 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
@@ -136,7 +137,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         for i in range(7):
             # Missed check-ins in different environments share a timestamp.
             for seconds, monitor_environment in ((0, jungle), (0, desert), (20, volcano)):
-                MonitorCheckIn.objects.create(
+                self.create_monitor_checkin(
                     monitor_environment=monitor_environment,
                     date_added=base + timedelta(minutes=i, seconds=seconds),
                     status=CheckInStatus.OK,
@@ -162,8 +163,8 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
-        checkin = MonitorCheckIn.objects.create(
-            monitor_environment_id=monitor_environment.id,
+        checkin = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
             status=MonitorStatus.OK,
             date_added=timezone.now() - timedelta(hours=12),
         )
@@ -197,12 +198,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor, name="jungle")
         monitor_environment_2 = self._create_monitor_environment(monitor, name="volcano")
 
-        checkin1 = MonitorCheckIn.objects.create(
+        checkin1 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment_2,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -221,12 +222,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         other_monitor = self._create_monitor(slug="other-monitor")
         other_monitor_environment = self._create_monitor_environment(other_monitor)
 
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=other_monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -243,12 +244,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor, name="jungle")
         Environment.objects.create(name="volcano", organization_id=self.organization.id)
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -274,13 +275,13 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert error.group_id is not None
         group = Group.objects.get(id=error.group_id)
 
-        checkin1 = MonitorCheckIn.objects.create(
+        checkin1 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
             trace_id=trace_id,
         )
-        checkin2 = MonitorCheckIn.objects.create(
+        checkin2 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -313,7 +314,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
-            monitor_config=config,
+            checkin_config_id=get_checkin_config_id(config),
         )
         # Mutating the monitor config to test that the check-in config is used
         monitor.config = {

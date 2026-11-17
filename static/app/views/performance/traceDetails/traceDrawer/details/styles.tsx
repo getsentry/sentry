@@ -38,6 +38,7 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -532,7 +533,9 @@ function NodeActions(props: {
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`}
+            href={resolveHostname(
+              `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
+            )}
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -542,7 +545,9 @@ function NodeActions(props: {
       {user.isSuperuser && isEAPSpanNode(props.node) && params.traceSlug ? (
         <Tooltip title={t('Span JSON (Superuser Only)')} skipWrapper>
           <ActionLinkButton
-            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}&debug=true`}
+            href={resolveHostname(
+              `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}&debug=true`
+            )}
             size="zero"
             aria-label={t('Span JSON (Superuser Only)')}
             icon={<IconTerminal />}

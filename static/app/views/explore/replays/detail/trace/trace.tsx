@@ -149,8 +149,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
 
   const project = projects.find(p => p.id === replay.project_id);
   const hasPerformance = project?.firstTransactionEvent === true;
-  const performanceActive =
-    organization.features.includes('performance-view') && hasPerformance;
+  const performanceActive = hasPerformance;
 
   if (!firstTrace) {
     return <TracesNotFound performanceActive={performanceActive} />;

@@ -26,8 +26,6 @@ function defaultProps(overrides = {}) {
     onCopyLinkClick: jest.fn(),
     overrideBashModeEnabled: false,
     onOverrideBashModeToggle: jest.fn(),
-    showThinking: false,
-    onShowThinkingToggle: jest.fn(),
     isPipSupported: false,
     isPoppedOut: false,
     onTogglePictureInPicture: jest.fn(),
@@ -102,30 +100,6 @@ describe('SeerExplorerHeader', () => {
       await renderHeader();
 
       expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
-    });
-
-    it('renders the thinking toggle behind its flag', async () => {
-      await renderHeader({}, orgWith('seer-explorer-thinking-blocks'));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
-
-      expect(screen.getByRole('option', {name: /Show thinking/})).toBeInTheDocument();
-      expect(
-        screen.getByRole('option', {name: /Force bash mode on/})
-      ).toBeInTheDocument();
-    });
-
-    it('hides the thinking toggle when code mode tools is enabled', async () => {
-      await renderHeader(
-        {},
-        orgWith('seer-explorer-thinking-blocks', 'seer-explorer-code-mode-tools')
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
-
-      expect(
-        screen.queryByRole('option', {name: /Show thinking/})
-      ).not.toBeInTheDocument();
     });
 
     it('toggles force bash mode', async () => {

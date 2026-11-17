@@ -382,11 +382,11 @@ def _import(
             # `ControlImportChunkReplica` already exists, and only write it if it does not. There
             # can't be races here, since there is only one task running at a time, pushing
             # updates in a synchronous manner.
-            existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
+            existing_control_import_chunk_replica = ControlImportChunkReplica.objects.get_or_none(
                 import_uuid=UUID(flags.import_uuid),
                 model=model_name_str,
                 min_ordinal=result.min_ordinal,
-            ).first()
+            )
             if existing_control_import_chunk_replica is not None:
                 logger.info("import_by_model.control_replica_already_exists", extra=extra)
             else:

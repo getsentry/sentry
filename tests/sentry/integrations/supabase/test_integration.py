@@ -1,12 +1,15 @@
 import base64
 import hashlib
+from datetime import timedelta
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+import requests
 import responses
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from responses import matchers
 
 from sentry.constants import ObjectStatus
@@ -58,7 +61,9 @@ def mock_supabase(*, access_token: str = "supabase-token") -> None:
     )
 
 
-@override_settings(SUPABASE_CLIENT_ID="sentry-app-id", SUPABASE_CLIENT_SECRET="sentry-app-secret")
+@override_settings(
+    SUPABASE_FOR_SEER_CLIENT_ID="sentry-app-id", SUPABASE_FOR_SEER_CLIENT_SECRET="sentry-app-secret"
+)
 @control_silo_test
 class SupabaseIntegrationProviderTest(IntegrationTestCase):
     @property
@@ -77,6 +82,9 @@ class SupabaseIntegrationProviderTest(IntegrationTestCase):
         installation = integration.get_installation(organization_id=self.organization.id)
         assert isinstance(installation, SupabaseIntegration)
         return installation
+
+    def test_provider_name_marks_seer_only_integration(self) -> None:
+        assert self.provider().name == "Supabase for Seer"
 
     def test_build_integration_stores_organization_grant(self) -> None:
         provider = self.provider()
@@ -148,14 +156,72 @@ class SupabaseIntegrationProviderTest(IntegrationTestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_provider_failure_does_not_block_uninstall(self) -> None:
+    def test_provider_failure_does_not_block_uninstall_or_preserve_tokens(self) -> None:
         integration = self.create_supabase()
         responses.add(responses.POST, SUPABASE_REVOKE_URL, status=503)
         self.installation(integration).uninstall()
+        integration.refresh_from_db()
+        assert integration.status == ObjectStatus.DISABLED
+        assert integration.metadata == {"organization_slug": "org-slug"}
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_network_failure_does_not_block_uninstall_or_preserve_tokens(self) -> None:
+        integration = self.create_supabase()
+        responses.add(responses.POST, SUPABASE_REVOKE_URL, body=requests.ConnectionError())
+        self.installation(integration).uninstall()
+        integration.refresh_from_db()
+        assert integration.status == ObjectStatus.DISABLED
+        assert integration.metadata == {"organization_slug": "org-slug"}
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @override_settings(SUPABASE_FOR_SEER_CLIENT_SECRET="")
+    def test_uninstall_without_oauth_configuration_clears_tokens(self) -> None:
+        integration = self.create_supabase()
+        self.installation(integration).uninstall()
+        integration.refresh_from_db()
+        assert integration.status == ObjectStatus.DISABLED
+        assert integration.metadata == {"organization_slug": "org-slug"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_uninstall_without_refresh_token_clears_access_token(self) -> None:
+        integration = self.create_supabase()
+        integration.update(metadata={"organization_slug": "org-slug", "access_token": "token"})
+        self.installation(integration).uninstall()
+        integration.refresh_from_db()
+        assert integration.status == ObjectStatus.DISABLED
+        assert integration.metadata == {"organization_slug": "org-slug"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_failed_revocation_preserves_concurrent_reauthorization(self) -> None:
+        integration = self.create_supabase()
+        replacement_metadata = {
+            **METADATA,
+            "access_token": "replacement-token",
+            "refresh_token": "replacement-refresh-token",
+        }
+
+        def reauthorize(request: Any) -> tuple[int, dict[str, str], str]:
+            Integration.objects.filter(id=integration.id).update(
+                metadata=replacement_metadata,
+                date_updated=timezone.now() + timedelta(seconds=1),
+            )
+            return 503, {}, ""
+
+        responses.add_callback(responses.POST, SUPABASE_REVOKE_URL, callback=reauthorize)
+        self.installation(integration).uninstall()
+        integration.refresh_from_db()
+        assert integration.status == ObjectStatus.ACTIVE
+        assert integration.metadata == replacement_metadata
         assert len(responses.calls) == 1
 
 
-@override_settings(SUPABASE_CLIENT_ID="sentry-app-id", SUPABASE_CLIENT_SECRET="sentry-app-secret")
+@override_settings(
+    SUPABASE_FOR_SEER_CLIENT_ID="sentry-app-id", SUPABASE_FOR_SEER_CLIENT_SECRET="sentry-app-secret"
+)
 @control_silo_test
 @freeze_time("2025-01-01T00:00:00Z")
 class SupabaseApiPipelineTest(APITestCase):

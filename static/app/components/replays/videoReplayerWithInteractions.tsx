@@ -65,6 +65,7 @@ export class VideoReplayerWithInteractions {
     this.replayer = new Replayer(eventsWithSnapshots, {
       root,
       blockClass: 'sentry-block',
+      showWarning: false,
       mouseTail: {
         duration: 0.75 * 1000,
         lineCap: 'round',
