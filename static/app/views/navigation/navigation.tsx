@@ -16,6 +16,7 @@ import {IconMail} from '@sentry/icons/mail';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
+import {useQuery} from '@tanstack/react-query';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -32,6 +33,7 @@ import {getReturnPath} from 'sentry/utils/useReturnPath';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getClassifiersPath, useClassifiersEnabled} from 'sentry/views/classifiers/utils';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
+import {inboxUnreadCountApiOptions} from 'sentry/views/inbox/inboxApiOptions';
 import {
   getInvestigationsPath,
   useInvestigationsEnabled,
@@ -281,6 +283,7 @@ interface PrimaryNavigationItemsProps {
 
 export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
+  const {data: inboxUnreadCount} = useQuery(inboxUnreadCountApiOptions(organization));
   const investigationsEnabled = useInvestigationsEnabled();
   const automationsEnabled = useAutomationsEnabled();
   const classifiersEnabled = useClassifiersEnabled();
@@ -335,6 +338,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
             to={`/${prefix}/inbox/`}
             analyticsKey="inbox"
             label={t('Inbox')}
+            unreadCount={inboxUnreadCount?.count}
             {...makeNavigationItemProps('inbox', `/${prefix}/inbox/`)}
           >
             <IconMail />
