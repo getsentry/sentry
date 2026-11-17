@@ -1,11 +1,16 @@
 import contextlib
 import logging
+from collections.abc import Sequence
+from dataclasses import replace
 from typing import Any
 
 from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
-from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
+    make_supergroups_delete_by_group_ids_request,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_tasks
@@ -23,6 +28,26 @@ _MAX_RETRIES = 3
 _RETRY_DELAY_S = 30
 # make_seer_request raises HTTPError for retryable (5xx, 429) errors and ClientError for permanent 4xx errors.
 _RETRY_ON = (HTTPError,)
+
+
+@instrumented_task(
+    name="sentry.deletions.delete_seer_supergroup_embeddings",
+    namespace=deletion_tasks,
+    retry=Retry(times=_MAX_RETRIES, delay=_RETRY_DELAY_S, on=_RETRY_ON),
+    silo_mode=SiloMode.CELL,
+)
+def delete_seer_supergroup_embeddings(
+    organization_id: int, project_id: int, group_ids: Sequence[int]
+) -> None:
+    viewer_context = get_viewer_context() or ViewerContext(actor=Actor(type=ActorType.SYSTEM))
+    with viewer_context_scope(
+        replace(viewer_context, organization_id=organization_id, project_id=project_id)
+    ):
+        response = make_supergroups_delete_by_group_ids_request(
+            {"project_id": project_id, "group_ids": group_ids}
+        )
+    if response.status >= 400:
+        raise HTTPError(f"Seer embedding deletion returned status {response.status}")
 
 
 @instrumented_task(

@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from collections.abc import Sequence
 from dataclasses import replace
 from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
@@ -438,6 +439,11 @@ class SupergroupsGetByGroupIdsRequest(TypedDict):
     group_ids: list[int]
 
 
+class SupergroupsDeleteByGroupIdsRequest(TypedDict):
+    project_id: int
+    group_ids: Sequence[int]
+
+
 class SupergroupDetailData(TypedDict):
     id: int
     title: str
@@ -559,6 +565,16 @@ def make_supergroups_get_by_group_ids_request(
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
+    )
+
+
+def make_supergroups_delete_by_group_ids_request(
+    body: SupergroupsDeleteByGroupIdsRequest,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/delete-by-group-ids",
+        body=orjson.dumps(body),
     )
 
 
