@@ -45,6 +45,7 @@ import {
   issueAndEventToMarkdown,
   useActiveThreadId,
 } from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
+import type {IssueDetailsPageTab} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -67,7 +68,7 @@ interface ContentTab {
    */
   count: React.ReactNode;
   hidden: boolean;
-  key: Tab;
+  key: IssueDetailsPageTab;
   name: string;
   hasUnread?: boolean;
 }
