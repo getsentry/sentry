@@ -3,7 +3,7 @@ import {isNeutral, meanRgb, rgbToHex, rgbToOklch, saturationOf, type Rgb} from '
 const BUCKET_SIZE = 24;
 const TIE_THRESHOLD = 0.8;
 
-// A logo only gets a brand color when colored pixels make up at least this
+// A logo only gets a tint when colored pixels make up at least this
 // share of it (near-white background excluded). Below that the color is an
 // accent, such as a small icon next to a gray wordmark.
 const MIN_COLOR_COVERAGE = 0.25;
@@ -66,7 +66,7 @@ function mostCommonColor(pixels: Rgb[]): Rgb {
  * single color does: the logo is gray, its colored pixels are only a small
  * accent, or they spread over several unrelated hues (e.g. a four-color mark).
  */
-export function brandColor(pixels: Rgb[]): string | null {
+export function tintColor(pixels: Rgb[]): string | null {
   const colored = pixels.filter(pixel => !isNeutral(pixel));
   const content = pixels.filter(pixel => !isNearWhite(pixel)).length;
   if (colored.length === 0 || colored.length < content * MIN_COLOR_COVERAGE) {

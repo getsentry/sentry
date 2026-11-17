@@ -1,5 +1,5 @@
-import {brandColor} from './brandColor';
 import {meanRgb, rgbToHex, type Rgb} from './color';
+import {tintColor} from './tintColor';
 
 // Large enough that small logo marks keep their real colors instead of being
 // blended with their surroundings by the downscale.
@@ -79,8 +79,8 @@ export function imageLayout(data: Uint8ClampedArray): ImageLayout {
   return edge ? {style: 'fill', edge} : {style: 'padded'};
 }
 
-/** The image's layout, plus its brand color (null for neutral logos). */
-export type ImageAnalysis = ImageLayout & {brand: string | null};
+/** The image's layout, plus its tint (null for neutral logos). */
+export type ImageAnalysis = ImageLayout & {tint: string | null};
 
 function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
   try {
@@ -124,7 +124,7 @@ function analyzeImage(img: HTMLImageElement): ImageAnalysis | null {
     return null;
   }
 
-  return {brand: brandColor(pixels), ...imageLayout(data)};
+  return {tint: tintColor(pixels), ...imageLayout(data)};
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement | null> {

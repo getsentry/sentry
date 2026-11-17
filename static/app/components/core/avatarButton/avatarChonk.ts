@@ -19,7 +19,7 @@ const LIGHTER_STEP = 0.26;
 const MAX_LIGHTER_CHONK = 0.8;
 
 /**
- * The chonk for an avatar's brand color, built the way the theme builds the
+ * The chonk for an avatar's tint, built the way the theme builds the
  * chonks of the accent, danger and warning buttons (compare them in OKLCH): the
  * same hue, one fixed step darker in light mode, and a fixed deep shade in dark
  * mode. Chroma is lowered to what sRGB can show at that lightness, so dark
@@ -34,11 +34,11 @@ const MAX_LIGHTER_CHONK = 0.8;
  * to a lighter tint of the same hue instead, still clear of the avatar.
  */
 export function getAvatarChonk(
-  brand: string,
+  tint: string,
   themeType: Theme['type'],
   edge: string | null
 ): string {
-  const {l, c, h} = hexToOklch(brand);
+  const {l, c, h} = hexToOklch(tint);
   if (themeType === 'dark') {
     return oklchToHex({l: DARK_CHONK_L, c: Math.min(c, DARK_CHONK_MAX_C), h});
   }

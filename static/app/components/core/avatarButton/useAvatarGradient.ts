@@ -21,21 +21,21 @@ function capLightness(avatarColor: string, ceiling: string): string {
 }
 
 /**
- * A gradient in the avatar's brand color, each stop no lighter than the
+ * A gradient in the avatar's tint, each stop no lighter than the
  * matching stop of `defaultGradient`, so text that reads on the default
  * gradient still reads on this one. Returns `defaultGradient` while the avatar
- * has no brand color (an image avatar still being sampled, or a neutral logo).
+ * has no tint (an image avatar still being sampled, or a neutral logo).
  */
 export function useAvatarGradient(
   avatar: BaseAvatarProps | undefined,
   defaultGradient: Gradient
 ): Gradient {
-  const {brand} = useAvatarColors(avatar);
-  if (!brand) {
+  const {tint} = useAvatarColors(avatar);
+  if (!tint) {
     return defaultGradient;
   }
   return {
-    start: capLightness(brand, defaultGradient.start),
-    end: capLightness(brand, defaultGradient.end),
+    start: capLightness(tint, defaultGradient.start),
+    end: capLightness(tint, defaultGradient.end),
   };
 }

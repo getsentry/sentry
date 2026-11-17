@@ -31,7 +31,7 @@ function sampledQueryClient(logo?: Logo): QueryClient {
   const queryClient = new QueryClient({defaultOptions: {queries: {gcTime: Infinity}}});
   if (logo) {
     queryClient.setQueryData(['avatar-image-analysis', solidImage(logo.color)], {
-      brand: logo.brand,
+      tint: logo.tint,
       edge: logo.color,
       style: 'fill',
     });
@@ -50,21 +50,21 @@ function Frame({children, sampled}: {children: ReactNode; sampled?: Logo}) {
 }
 
 interface Logo {
-  brand: string | null;
   color: string;
   kind: string;
+  tint: string | null;
 }
 
 // Bright, where the gradient used to start near black.
-const BRIGHT_LOGO: Logo = {kind: 'bright', color: '#ffd744', brand: '#ffd744'};
+const BRIGHT_LOGO: Logo = {kind: 'bright', color: '#ffd744', tint: '#ffd744'};
 
 const LOGOS: Logo[] = [
   BRIGHT_LOGO,
-  {kind: 'saturated', color: '#e3442a', brand: '#e3442a'},
+  {kind: 'saturated', color: '#e3442a', tint: '#e3442a'},
   // Already darker than the default gradient.
-  {kind: 'dark', color: '#12424a', brand: '#12424a'},
+  {kind: 'dark', color: '#12424a', tint: '#12424a'},
   // No colored pixels, so the header keeps its default gradient.
-  {kind: 'neutral', color: '#000000', brand: null},
+  {kind: 'neutral', color: '#000000', tint: null},
 ];
 
 describe('NavigationMenuHeader', () => {

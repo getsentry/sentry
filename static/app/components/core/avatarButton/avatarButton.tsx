@@ -52,7 +52,7 @@ export function AvatarButton({
 
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
   const edge = colors.type === 'image' && colors.style === 'fill' ? colors.edge : null;
-  const chonk = colors.brand ? getAvatarChonk(colors.brand, theme.type, edge) : undefined;
+  const chonk = colors.tint ? getAvatarChonk(colors.tint, theme.type, edge) : undefined;
   // The avatar covers the button's own border, so redraw it in the frame color.
   // Without a tinted chonk that is the default button edge, not transparent.
   const borderColor = isSuggested

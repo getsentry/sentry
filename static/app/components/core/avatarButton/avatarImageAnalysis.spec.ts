@@ -6,7 +6,7 @@ import {
   SAMPLE_SIZE,
   toPageOriginIfSameHost,
 } from './avatarImageAnalysis';
-import {brandColor} from './brandColor';
+import {tintColor} from './tintColor';
 
 describe('resolveImageAvatarColors', () => {
   afterEach(() => {
@@ -31,7 +31,7 @@ describe('resolveImageAvatarColors', () => {
     expect(image.src).toBe('https://example.com/avatar/logo/');
     image.dispatchEvent(new Event('load'));
 
-    await expect(result).resolves.toEqual({brand: '#649632', style: 'padded'});
+    await expect(result).resolves.toEqual({tint: '#649632', style: 'padded'});
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -105,20 +105,20 @@ describe('imageLayout', () => {
   });
 });
 
-describe('brandColor', () => {
+describe('tintColor', () => {
   it('returns the dominant color of a uniform image', () => {
     const data = makePixelData(() => [0, 100, 200, 255]);
-    expect(brandColor(opaquePixels(data))).toBe('#0064c8');
+    expect(tintColor(opaquePixels(data))).toBe('#0064c8');
   });
 
   it('returns null for all-transparent data', () => {
     const data = makePixelData(() => [0, 0, 0, 0]);
-    expect(brandColor(opaquePixels(data))).toBeNull();
+    expect(tintColor(opaquePixels(data))).toBeNull();
   });
 
   it('returns null for a gray logo', () => {
     const data = makePixelData(() => [128, 128, 128, 255]);
-    expect(brandColor(opaquePixels(data))).toBeNull();
+    expect(tintColor(opaquePixels(data))).toBeNull();
   });
 
   it('ignores a small colored accent next to gray content', () => {
@@ -126,7 +126,7 @@ describe('brandColor', () => {
     const data = makePixelData((col, row) =>
       col < 4 && row < 4 ? [252, 109, 38, 255] : [100, 100, 100, 255]
     );
-    expect(brandColor(opaquePixels(data))).toBeNull();
+    expect(tintColor(opaquePixels(data))).toBeNull();
   });
 
   it('does not count a white plate against the logo color', () => {
@@ -134,10 +134,10 @@ describe('brandColor', () => {
     const data = makePixelData((col, row) =>
       col < 10 && row < 10 ? [118, 185, 0, 255] : [255, 255, 255, 255]
     );
-    expect(brandColor(opaquePixels(data))).toBe('#76b900');
+    expect(tintColor(opaquePixels(data))).toBe('#76b900');
   });
 
-  it('has no brand color when split across unrelated hues', () => {
+  it('has no tint when split across unrelated hues', () => {
     // Four equal quadrants in four different hues, like a multicolor mark.
     const quadrants: Array<[number, number, number, number]> = [
       [224, 30, 90, 255],
@@ -149,14 +149,14 @@ describe('brandColor', () => {
     const data = makePixelData(
       (col, row) => quadrants[(row < half ? 0 : 2) + (col < half ? 0 : 1)]!
     );
-    expect(brandColor(opaquePixels(data))).toBeNull();
+    expect(tintColor(opaquePixels(data))).toBeNull();
   });
 
   it('keeps the color of a logo with a single dominant hue', () => {
     const data = makePixelData((col, _row) =>
       col < SAMPLE_SIZE / 2 ? [99, 91, 255, 255] : [80, 70, 230, 255]
     );
-    expect(brandColor(opaquePixels(data))).not.toBeNull();
+    expect(tintColor(opaquePixels(data))).not.toBeNull();
   });
 
   it('compares hues perceptually, so lime highlights count as green', () => {
@@ -166,14 +166,14 @@ describe('brandColor', () => {
     const data = makePixelData((col, _row) =>
       col < 14 ? [0, 200, 0, 255] : col < 24 ? [160, 240, 0, 255] : [0, 0, 200, 255]
     );
-    expect(brandColor(opaquePixels(data))).toBe('#00c800');
+    expect(tintColor(opaquePixels(data))).toBe('#00c800');
   });
 
   it('prefers chromatic over grayscale when both exist', () => {
     const data = makePixelData((col, _row) =>
       col < SAMPLE_SIZE / 2 ? [128, 128, 128, 255] : [0, 0, 200, 255]
     );
-    const result = brandColor(opaquePixels(data));
+    const result = tintColor(opaquePixels(data));
     expect(result).not.toBeNull();
     const b = parseInt(result!.slice(5, 7), 16);
     expect(b).toBeGreaterThan(150);

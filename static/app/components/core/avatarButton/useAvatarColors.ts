@@ -6,13 +6,13 @@ import {useAvatar} from '@sentry/scraps/avatar';
 import type {ImageAnalysis} from './avatarImageAnalysis';
 import {resolveImageAvatarColors} from './avatarImageAnalysis';
 
-// `brand` is the color that represents the avatar, or null when it has none
-// (a neutral logo, or an image that hasn't been sampled yet) and the UI keeps
-// its default styling.
+// `tint` is the avatar's color that the button chonk and header gradient take
+// on, or null when the avatar has none (a neutral logo, or an image that hasn't
+// been sampled yet) and the UI keeps its default styling.
 export type AvatarColorsResult =
   | ({type: 'image'} & ImageAnalysis)
-  | {brand: string; type: 'letter'}
-  | {brand: null; type: 'none'};
+  | {tint: string; type: 'letter'}
+  | {tint: null; type: 'none'};
 
 export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
   const avatarDefinition = useAvatar({
@@ -39,16 +39,16 @@ export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
   });
 
   if (!avatar) {
-    return {type: 'none', brand: null};
+    return {type: 'none', tint: null};
   }
 
   if (avatarDefinition.type === 'letter') {
-    return {type: 'letter', brand: avatarDefinition.configuration.background};
+    return {type: 'letter', tint: avatarDefinition.configuration.background};
   }
 
   if (imageResult) {
     return {type: 'image', ...imageResult};
   }
 
-  return {type: 'none', brand: null};
+  return {type: 'none', tint: null};
 }
