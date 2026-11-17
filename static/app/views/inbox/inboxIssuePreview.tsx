@@ -1,10 +1,10 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 
 import {AnsiText} from 'sentry/components/ansiText';
@@ -81,29 +81,41 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
       <Stack flex={1} containerType="inline-size">
         <InboxIssuePreviewHeader group={group} project={project} event={event} />
         <Tabs value={tab} onChange={setTab}>
-          <Container padding="0 2xl" borderBottom="primary">
-            <TabList>
-              <TabList.Item key="overview">{t('Overview')}</TabList.Item>
-              <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
-            </TabList>
-          </Container>
-          <FullHeightTabPanels>
-            <TabPanels.Item key="overview">
-              <InboxIssueOverview group={group} project={project} event={event} />
-            </TabPanels.Item>
-            <TabPanels.Item key="telemetry">
-              <PageFiltersContainer
-                key={project.id}
-                skipLoadLastUsed
-                skipInitializeUrlParams
-                disablePersistence
-                forceProject={project}
-                shouldForceProject
-              >
-                <InboxIssueTelemetry group={group} project={project} event={event} />
-              </PageFiltersContainer>
-            </TabPanels.Item>
-          </FullHeightTabPanels>
+          {({TabList, TabPanels}) => (
+            <Fragment>
+              <Container padding="0 2xl" borderBottom="primary">
+                <TabList>
+                  <TabList.Item key="overview">{t('Overview')}</TabList.Item>
+                  <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
+                </TabList>
+              </Container>
+              <Stack flex="1" height="auto" paddingTop="0">
+                {layoutProps => (
+                  <TabPanels {...layoutProps}>
+                    <TabPanels.Item key="overview">
+                      <InboxIssueOverview group={group} project={project} event={event} />
+                    </TabPanels.Item>
+                    <TabPanels.Item key="telemetry">
+                      <PageFiltersContainer
+                        key={project.id}
+                        skipLoadLastUsed
+                        skipInitializeUrlParams
+                        disablePersistence
+                        forceProject={project}
+                        shouldForceProject
+                      >
+                        <InboxIssueTelemetry
+                          group={group}
+                          project={project}
+                          event={event}
+                        />
+                      </PageFiltersContainer>
+                    </TabPanels.Item>
+                  </TabPanels>
+                )}
+              </Stack>
+            </Fragment>
+          )}
         </Tabs>
       </Stack>
     </GroupDataContextProvider>
@@ -286,13 +298,4 @@ const IssueTitleLink = styled(Link)`
   &:hover {
     text-decoration: underline;
   }
-`;
-
-// Lets the selected panel fill the rest of the preview's height
-const FullHeightTabPanels = styled(TabPanels)`
-  flex: 1;
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  padding-top: 0;
 `;

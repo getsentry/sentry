@@ -9,7 +9,6 @@ import {IconPerforce} from '@sentry/icons/perforce';
 import {IconSentry} from '@sentry/icons/sentry';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {IconVsts} from '@sentry/icons/vsts';
-import qs from 'query-string';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
@@ -33,6 +32,7 @@ import type {Overrides} from 'sentry/types/overrides';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
 
 import {capitalize} from './string/capitalize';
+import * as qs from './url/qs';
 import {trackAnalytics} from './analytics';
 import {isActiveSuperuser} from './isActiveSuperuser';
 

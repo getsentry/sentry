@@ -1,6 +1,10 @@
 import logging
 from typing import Any, NotRequired, TypedDict
 
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
@@ -282,6 +286,7 @@ class SeerAutofixOperator[CachePayloadT]:
                             referrer=AutofixReferrer.SLACK,
                             run_id=None,
                             user=user,
+                            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
                         )
                         run_id = run.seer_run_state_id
                         Activity.objects.create_group_activity(
@@ -325,12 +330,10 @@ class SeerAutofixOperator[CachePayloadT]:
                 return
             except SeerOutOfCreditsException:
                 with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_OUT_OF_CREDITS,
                     entrypoint_key=self.entrypoint.key,
                 ).capture():
-                    self.entrypoint.on_trigger_autofix_error(
-                        error="Your organization does not have enough Seer credits"
-                    )
+                    self.entrypoint.on_trigger_autofix_out_of_credits(started=run_id is not None)
                 lifecycle.record_halt(halt_reason="not_enough_seer_credits")
                 return
             except Exception as e:
@@ -587,6 +590,8 @@ class SeerAgentOperator[CachePayloadT]:
                     category_key=category_key,
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
+                    # A failed run still owes the entrypoint a reply.
+                    hook_call_on_failure=True,
                     is_interactive=True,
                     enable_coding=enable_coding,
                     enable_bash_mode=enable_coding,
@@ -621,6 +626,11 @@ class SeerAgentOperator[CachePayloadT]:
                     run_id = client.start_run(
                         prompt=prompt,
                         on_page_context=on_page_context,
+                        billing_feature=(
+                            SEER_BILLING_FEATURE_SEER_AGENT_SLACK
+                            if self.entrypoint.key == SeerEntrypointKey.SLACK
+                            else None
+                        ),
                     ).seer_run_state_id
                     lifecycle.add_extra("continued", "false")
             except Exception as e:
@@ -1017,7 +1027,7 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 continue
 
             # TODO: Use a provider-agnostic payload type once there are more investigation entrypoints.
-            from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload
+            from sentry.seer.entrypoints.slack.investigation import SlackInvestigationCachePayload
 
             cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
                 entrypoint_key=str(entrypoint_key),
@@ -1192,7 +1202,7 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
     """Completion hook that queues a refresh of every entrypoint for a Seer Agent run.
 
-    Seer calls it when an invocation yields and when a PR push the agent queued finishes.
+    Seer calls it when an invocation yields or fails, and when a PR push the agent queued finishes.
     It only queues the work, so Seer gets a quick success; the task does the refresh and retries.
     """
 

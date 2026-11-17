@@ -161,14 +161,20 @@ export function NewWelcomeUI(props: StepProps) {
 
   const handleComplete = useWelcomeHandleComplete(props.onComplete);
 
-  const handleCopyCommand = (source: 'install_command' | 'prompt') => {
-    trackAnalytics('onboarding.scm_welcome_agent_command_copied', {organization, source});
+  const handleCopyCommand = (source: 'install_command' | 'prompt', handoffId: string) => {
+    trackAnalytics('onboarding.scm_welcome_agent_command_copied', {
+      organization,
+      source,
+      handoff_id: handoffId,
+      run_id: run?.runId,
+    });
   };
 
   const handleSelectSnippet = (source: 'install_command' | 'prompt') => {
     trackAnalytics('onboarding.scm_welcome_agent_snippet_selected', {
       organization,
       source,
+      run_id: run?.runId,
     });
   };
 

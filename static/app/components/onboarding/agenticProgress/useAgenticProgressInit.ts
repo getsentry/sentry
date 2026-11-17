@@ -13,6 +13,7 @@ export type UseAgenticProgressInitOptions = {
   enabled: boolean;
   /** The host retains session updates so retries and remounts reuse the run identity. */
   onSessionChange: (session: AgenticRunSession) => void;
+  origin: 'onboarding' | 'project_creation';
   session: AgenticRunSession | undefined;
   createOnboardingCode?: boolean;
 };
@@ -28,6 +29,7 @@ export function useAgenticProgressInit({
   createOnboardingCode: shouldCreateOnboardingCode = true,
   enabled,
   onSessionChange,
+  origin,
   session,
 }: UseAgenticProgressInitOptions) {
   const organization = useOrganization();
@@ -43,7 +45,7 @@ export function useAgenticProgressInit({
       url: getApiUrl('/organizations/$organizationIdOrSlug/onboarding/agent/runs/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      data: nextSession,
+      data: {...nextSession, origin},
     });
 
   // A conflicting onboarding code is replaced without changing the run's cache identity.

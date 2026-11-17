@@ -64,6 +64,7 @@ from sentry.seer.entrypoints.cache import (
     SeerOperatorInvestigationCache,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.registry import investigation_entrypoint_registry
 from sentry.seer.entrypoints.slack.cache import (
     SlackSeerAgentMessageCache,
     SlackSeerAgentReply,
@@ -75,12 +76,13 @@ from sentry.seer.entrypoints.slack.entrypoint import (
     SlackAgentEntrypoint,
     SlackAutofixCachePayload,
     SlackAutofixEntrypoint,
+    prepare_slack_thread_for_autofix_updates,
+)
+from sentry.seer.entrypoints.slack.investigation import (
     SlackInvestigationCachePayload,
     SlackInvestigationEntrypoint,
     SlackInvestigationThreadState,
-    SlackThreadDetails,
     _get_investigation_thread,
-    prepare_slack_thread_for_autofix_updates,
 )
 from sentry.seer.entrypoints.slack.investigation_status import (
     MAX_NEXT_STEP_RATIONALE_LENGTH,
@@ -94,6 +96,7 @@ from sentry.seer.entrypoints.slack.messaging import (
     send_thread_update,
     update_existing_message,
 )
+from sentry.seer.entrypoints.slack.types import SlackThreadDetails
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -181,6 +184,36 @@ class SlackAutofixEntrypointTest(TestCase):
             renderable=ANY,
             slack_user_id=self.slack_request.user_id,
         )
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    def test_on_trigger_autofix_out_of_credits(
+        self, mock_send_threaded_ephemeral_message: MagicMock
+    ) -> None:
+        ep = self._get_entrypoint()
+        ep.on_trigger_autofix_out_of_credits(started=False)
+        mock_send_threaded_ephemeral_message.assert_called_once_with(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            renderable=ANY,
+            slack_user_id=self.slack_request.user_id,
+        )
+        blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
+        assert AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE in blocks
+        assert "Contact Admin" in blocks
+
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    def test_on_trigger_autofix_out_of_credits_for_billing_member(
+        self, mock_send_threaded_ephemeral_message: MagicMock, _mock_get_scopes: MagicMock
+    ) -> None:
+        ep = self._get_entrypoint()
+        ep.on_trigger_autofix_out_of_credits(started=True)
+        blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
+        assert AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE in blocks
+        assert "Configure auto-reload" in blocks
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
     def test_on_trigger_autofix_success(self, mock_update_message: MagicMock) -> None:
@@ -2101,6 +2134,10 @@ class SlackInvestigationEntrypointTest(TestCase):
         return [section.text.text for section in sections]
 
     def test_trigger_success_leaves_status_message_to_updates(self) -> None:
+        assert (
+            investigation_entrypoint_registry.get(SeerEntrypointKey.SLACK)
+            is SlackInvestigationEntrypoint
+        )
         entrypoint = self._get_entrypoint()
 
         entrypoint.on_trigger_investigation_success(investigation=self.investigation)
@@ -2152,7 +2189,7 @@ class SlackInvestigationEntrypointTest(TestCase):
     @override_options(
         {"notifications.tracking.sources": [NotificationSource.SEER_INVESTIGATION_STATUS]}
     )
-    @patch("sentry.seer.entrypoints.slack.entrypoint.record_sent")
+    @patch("sentry.seer.entrypoints.slack.investigation.record_sent")
     def test_status_message_links_are_tracked(self, mock_record_sent: Mock) -> None:
         self._set_cache(status_message_ts=None)
         self._update([])
@@ -2299,7 +2336,7 @@ class SlackInvestigationEntrypointTest(TestCase):
 
             assert self._get_cache() is not None
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.record_sent")
+    @patch("sentry.seer.entrypoints.slack.investigation.record_sent")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_integration_error_on_update_is_swallowed(
         self, mock_record: Mock, mock_record_sent: Mock
@@ -2322,7 +2359,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         lock.blocking_acquire.side_effect = UnableToAcquireLock("locked")
 
         with (
-            patch("sentry.seer.entrypoints.slack.entrypoint.locks.get", return_value=lock),
+            patch("sentry.seer.entrypoints.slack.investigation.locks.get", return_value=lock),
             pytest.raises(UnableToAcquireLock),
         ):
             self._update([_hypothesis()])

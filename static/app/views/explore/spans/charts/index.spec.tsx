@@ -87,6 +87,10 @@ function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
 }
 
 describe('ExploreCharts', () => {
+  beforeEach(() => {
+    PageFiltersStore.reset();
+  });
+
   describe('range selection', () => {
     const timeseriesResult = timeseriesResultFixture({
       data: {
@@ -126,10 +130,6 @@ describe('ExploreCharts', () => {
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
-      PageFiltersStore.reset();
     });
 
     it.each<Record<string, string>>([
@@ -750,10 +750,6 @@ describe('ExploreCharts', () => {
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
-      PageFiltersStore.reset();
     });
 
     function renderCharts({

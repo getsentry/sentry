@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
@@ -32,6 +33,15 @@ SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL = (
 SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL = (
     "Your organization does not have enough credits left for you to message Seer."
 )
+
+
+def seer_out_of_credits_response(
+    detail: str, denial_reason: SeerCreditDenialReason | None
+) -> Response:
+    return Response(
+        {"detail": detail, "code": SEER_OUT_OF_CREDITS_CODE, "denialReason": denial_reason},
+        status=status.HTTP_402_PAYMENT_REQUIRED,
+    )
 
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):

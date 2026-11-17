@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import color from 'color';
 import type {LocationDescriptor} from 'history';
 import {useQueryState} from 'nuqs';
-import qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
 
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

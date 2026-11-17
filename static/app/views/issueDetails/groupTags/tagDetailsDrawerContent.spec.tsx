@@ -1,5 +1,4 @@
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
-import qs from 'query-string';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -15,6 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {TagValue, TagWithTopValues} from 'sentry/types/group';
+import * as qs from 'sentry/utils/url/qs';
 
 import {TagDetailsDrawerContent} from './tagDetailsDrawerContent';
 
