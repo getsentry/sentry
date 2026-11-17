@@ -76,7 +76,7 @@ export function InboxListHeader({filters, setFilters}: InboxListHeaderProps) {
     <Stack gap="md" padding="md xl" borderBottom="primary">
       <Flex align="center" justify="between" gap="md" minHeight={theme.form.sm.height}>
         <Flex align="center" gap="2xl" minWidth={0}>
-          <Flex align="center" gap="sm">
+          <Flex align="center" gap="xl">
             <Checkbox
               aria-label={t('Select all')}
               checked={isAllSelected}
@@ -88,7 +88,7 @@ export function InboxListHeader({filters, setFilters}: InboxListHeaderProps) {
               variant="transparent"
               icon={<IconSettings />}
               aria-label={t('Inbox notification settings')}
-              tooltipProps={{title: t('Go to Inbox notification settings')}}
+              tooltipProps={{title: t('Go to Inbox settings'), position: 'bottom'}}
               to="/settings/account/notifications/inbox/"
             />
           </Flex>
