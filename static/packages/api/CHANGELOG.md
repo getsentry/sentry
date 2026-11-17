@@ -1,3 +1,7 @@
+## 2.12.0
+
+- No documented changes.
+
 ## 2.11.0
 
 - No documented changes.
