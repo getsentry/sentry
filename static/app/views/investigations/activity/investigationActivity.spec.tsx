@@ -35,8 +35,12 @@ function renderPage() {
   return render(<InvestigationDetailView />, {organization, initialRouterConfig});
 }
 
-function findActivity() {
-  return screen.findByRole('list', {name: 'Activity'});
+async function findActivity() {
+  const activity = await screen.findByRole('list', {name: 'Activity'});
+  await waitFor(() =>
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+  );
+  return activity;
 }
 
 async function findEditor(name: string) {

@@ -260,7 +260,8 @@ describe('InvestigationFixtureApi', () => {
         {organization}
       );
 
-      const rows = await screen.findAllByRole('listitem');
+      await screen.findAllByText('Grace Hopper commented');
+      const rows = screen.getAllByRole('listitem');
       expect(rows[0]).toHaveTextContent('Grace Hopper commented');
       expect(rows[1]).toHaveTextContent('on Invoice generation duration');
       expect(screen.getByText('on a deleted block')).toBeInTheDocument();

@@ -290,6 +290,27 @@ describe('Investigation detail', () => {
     expect(created.scrollIntoView).toHaveBeenCalled();
   });
 
+  it('shows the original prompt when comments fail to load', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        source: {
+          type: 'manual',
+          ref: {},
+          revision: null,
+          prompt: 'Why did checkout latency increase?',
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({url: `${detailUrl}comments/`, statusCode: 500});
+
+    renderView();
+
+    const created = (await screen.findByText('Investigation started')).closest('li')!;
+    expect(created).toHaveTextContent('\u201CWhy did checkout latency increase?\u201D');
+    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
   it('renders the summary as one paragraph above the investigation details', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,

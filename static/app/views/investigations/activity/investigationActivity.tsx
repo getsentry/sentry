@@ -76,11 +76,11 @@ export function InvestigationActivity({
   );
   const comments = data?.json ?? [];
   const hasOlder = parseLinkHeader(data?.headers.Link ?? null).next?.results === true;
-  const entries = getActivityEntries(
-    comments,
-    investigation.actionRequests ?? [],
-    hasOlder
-  );
+  // Applied actions are only kept within the loaded comments' range, so wait for them.
+  const entries =
+    data === undefined
+      ? []
+      : getActivityEntries(comments, investigation.actionRequests ?? [], hasOlder);
 
   return (
     <Stack ref={ref} as="section" id={id} gap="lg" paddingTop="2xl" borderTop="primary">
@@ -94,43 +94,41 @@ export function InvestigationActivity({
         <LoadingIndicator mini />
       ) : data === undefined ? (
         <LoadingError onRetry={refetch} />
-      ) : (
-        <ActivityList as="ol" aria-label={t('Activity')}>
-          {entries.map(entry =>
-            entry.type === 'comment' ? (
-              <CommentRow
-                key={`comment-${entry.comment.id}`}
-                comment={entry.comment}
-                investigationId={investigation.id}
-                readOnly={investigation.status === 'archived'}
-                blockTitle={
-                  entry.comment.blockId
-                    ? blockTitles.get(entry.comment.blockId)
-                    : undefined
-                }
-                onDeleted={() => composerRef?.current?.focus()}
-              />
-            ) : (
-              <AppliedActionRow
-                key={`action-${entry.actionRequest.id}`}
-                actionRequest={entry.actionRequest}
-                dateApplied={entry.date}
-              />
-            )
-          )}
-          {hasOlder ? (
-            <ActivityLineRow as="li">
-              <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
-                <ActivityProgressMarker state="activity" label={t('Older comments')} />
-              </Grid>
-              <Text variant="muted" density="comfortable">
-                {t('Showing the latest %s comments.', INVESTIGATION_COMMENTS_PAGE_SIZE)}
-              </Text>
-            </ActivityLineRow>
-          ) : null}
-          <StartedRow investigation={investigation} />
-        </ActivityList>
-      )}
+      ) : null}
+      {/* The started row comes from the investigation, so it shows while comments load or fail. */}
+      <ActivityList as="ol" aria-label={t('Activity')}>
+        {entries.map(entry =>
+          entry.type === 'comment' ? (
+            <CommentRow
+              key={`comment-${entry.comment.id}`}
+              comment={entry.comment}
+              investigationId={investigation.id}
+              readOnly={investigation.status === 'archived'}
+              blockTitle={
+                entry.comment.blockId ? blockTitles.get(entry.comment.blockId) : undefined
+              }
+              onDeleted={() => composerRef?.current?.focus()}
+            />
+          ) : (
+            <AppliedActionRow
+              key={`action-${entry.actionRequest.id}`}
+              actionRequest={entry.actionRequest}
+              dateApplied={entry.date}
+            />
+          )
+        )}
+        {hasOlder ? (
+          <ActivityLineRow as="li">
+            <Grid column={1} row={1} flow="column" autoColumns="22px" gap="sm">
+              <ActivityProgressMarker state="activity" label={t('Older comments')} />
+            </Grid>
+            <Text variant="muted" density="comfortable">
+              {t('Showing the latest %s comments.', INVESTIGATION_COMMENTS_PAGE_SIZE)}
+            </Text>
+          </ActivityLineRow>
+        ) : null}
+        <StartedRow investigation={investigation} />
+      </ActivityList>
     </Stack>
   );
 }
