@@ -3586,6 +3586,12 @@ SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 # The Redis cluster to use for monitoring the service / consumer health.
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 
+# Other Redis clusters that the backpressure monitor also writes the health keys to.
+# Readers (consumers) read only `SENTRY_SERVICE_MONITORING_REDIS_CLUSTER`. While the monitor
+# writes to both the old and the new cluster, a deploy can move the readers from one cluster to
+# the other without a window where readers find no keys and pause.
+SENTRY_SERVICE_MONITORING_REDIS_SECONDARY_CLUSTERS: list[str] = []
+
 # This is a view of which abstract processing service is backed by which infrastructure.
 # Right now, the infrastructure can be `redis`.
 #
