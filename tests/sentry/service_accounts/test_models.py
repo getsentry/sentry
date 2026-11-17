@@ -1,5 +1,6 @@
 from contextlib import AbstractContextManager
 from datetime import timedelta
+from typing import get_args
 from unittest import mock
 
 import pytest
@@ -15,6 +16,8 @@ from sentry.hybridcloud.services.replica import cell_replica_service
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.service_accounts.models import (
+    GRANTABLE_SCOPES,
+    GrantableScope,
     InvalidScopeError,
     ServiceAccount,
     ServiceAccountProject,
@@ -42,6 +45,10 @@ def test_validate_grantable_scopes_accepts_api_scopes() -> None:
 def test_validate_grantable_scopes_rejects_non_grantable(scope: str) -> None:
     with pytest.raises(ValidationError):
         validate_grantable_scopes(["org:read", scope])
+
+
+def test_grantable_scope_type_matches_runtime_policy() -> None:
+    assert frozenset(get_args(GrantableScope)) == GRANTABLE_SCOPES
 
 
 @pytest.mark.parametrize("scopes", [["project:write", "org:read", "project:write"], []])
