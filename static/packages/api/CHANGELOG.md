@@ -1,3 +1,9 @@
+## 2.10.1
+
+### Internal Changes 🔧
+
+- (api) Note that matchOperation doesn't support path prefixes by @BYK with @sentry-junior in [#131275](https://github.com/getsentry/sentry/pull/131275)
+
 ## 2.10.0
 
 - No documented changes.
