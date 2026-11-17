@@ -37,9 +37,19 @@ interface RepoAccess {
   status: string;
 }
 
+/**
+ * Whether Seer can open the repo now. Seer never pauses for a name that matches more than one
+ * repo (it tells the agent instead), so the popup counts that as found and offers Continue.
+ */
+// TODO(joey): Handle `repo_ambiguous` properly, e.g. by saying the name matches more than one
+// repo and asking the user which one, instead of counting it as found.
+function isFound(status: string) {
+  return status === 'found' || status === 'repo_ambiguous';
+}
+
 /** Whether checking again can't help: Seer can open the repo, or Sentry can't say why not. */
 function isSettled(status: string) {
-  return status === 'found' || status === 'unknown';
+  return isFound(status) || status === 'unknown';
 }
 
 /**
@@ -52,8 +62,10 @@ function getProblem(
 ): {body: string; fix: {label: string; to: string}} | null {
   const integrationsPath = `/settings/${orgSlug}/integrations/?category=source%20code%20management`;
 
+  if (isFound(access.status)) {
+    return null;
+  }
   switch (access.status) {
-    case 'found':
     case 'unknown':
       return null;
     case 'no_scm_integration':
@@ -183,7 +195,7 @@ export function ConnectScmBlock({
     connectedAccounts: [],
   };
   const problem = getProblem(access, organization.slug);
-  const found = access.status === 'found';
+  const found = isFound(access.status);
 
   return (
     <Container padding="0 xl">

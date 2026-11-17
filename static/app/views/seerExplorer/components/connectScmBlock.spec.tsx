@@ -110,6 +110,18 @@ describe('ConnectScmBlock', () => {
     expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'});
   });
 
+  it('counts a name that matches more than one repo as found', async () => {
+    mockRepoAccess('repo_ambiguous');
+    const respondToUserInput = renderBlock();
+
+    expect(
+      await screen.findByText('Perfect, Seer can access acme/app')
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'});
+  });
+
   it('offers Continue when Sentry can not tell what is wrong', async () => {
     mockRepoAccess('unknown');
     renderBlock();
