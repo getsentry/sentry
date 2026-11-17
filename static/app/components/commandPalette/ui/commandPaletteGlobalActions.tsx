@@ -24,7 +24,6 @@ import {IconStar} from '@sentry/icons/star';
 import {IconSubscribed} from '@sentry/icons/subscribed';
 import {IconUser} from '@sentry/icons/user';
 import * as Sentry from '@sentry/react';
-import {useDebouncedValue} from '@tanstack/react-pacer';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import {useQueryState} from 'nuqs';
@@ -49,11 +48,7 @@ import {
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
-import {
-  DEFAULT_DEBOUNCE_DURATION,
-  DEPLOY_PREVIEW_CONFIG,
-  NODE_ENV,
-} from 'sentry/constants';
+import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
@@ -177,9 +172,7 @@ type ResolvedIdentifier =
 function ResolvedIdentifierCommandPaletteAction() {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {query: rawQuery} = useCommandPaletteState();
-  // Wait for typing to settle so a typed ID gets one lookup, not one per keystroke.
-  const [query] = useDebouncedValue(rawQuery, {wait: DEFAULT_DEBOUNCE_DURATION});
+  const {query} = useCommandPaletteState();
   const isEventId = EVENT_ID_PATTERN.test(query);
   const isShortId = SHORT_ID_PATTERN.test(query) && !isEventId;
 
