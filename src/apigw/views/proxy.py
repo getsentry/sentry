@@ -13,7 +13,6 @@ from ..proxy import (
     ProxyLatencyPipe,
     ProxyTimeoutPipe,
     proxy_cell_request,
-    proxy_control_integrations_request,
     proxy_control_request,
 )
 from ..utils import abort_with_json
@@ -288,7 +287,7 @@ proxy.route(
     methods=["get", "post", "put", "patch", "delete", "head", "options"],
 )
 async def proxy_control_integrations(**kwargs: Any) -> Any:
-    return await proxy_control_integrations_request(request)
+    return await proxy_control_request(request, "integrations")
 
 
 @proxy.route(
