@@ -674,6 +674,13 @@ function DropdownSubmenu({
     disableTrigger: isDisabled,
     // The submenu handles Escape itself, closing only this level.
     isKeyboardDismissDisabled: true,
+    // Only a click outside the whole menu closes it. The portal container sits
+    // in the root menu's position wrapper, next to the root menu and every
+    // submenu. A click inside it can land on the parent menu's panel while
+    // React Aria blocks pointer events on the parent menu as the pointer heads
+    // toward this submenu, and should not close the menu.
+    shouldCloseOnInteractOutside: target =>
+      !portalContainer?.parentElement?.contains(target),
     position: options.position ?? 'right-start',
     offset: -4,
     preventOverflowOptions: {

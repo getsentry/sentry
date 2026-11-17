@@ -747,6 +747,42 @@ describe('DropdownMenu', () => {
     jest.restoreAllMocks();
   });
 
+  it('keeps the menu open when the parent menu is clicked while blocked', async () => {
+    const onAction = jest.fn();
+    render(
+      <DropdownMenu
+        triggerLabel="Menu"
+        items={[
+          {
+            key: 'parent',
+            label: 'Parent',
+            submenu: true,
+            children: [{key: 'child', label: 'Child'}],
+          },
+          {key: 'sibling', label: 'Sibling', onAction},
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Parent'}));
+    expect(await screen.findByRole('menuitemradio', {name: 'Child'})).toBeInTheDocument();
+
+    // While the pointer heads toward the submenu, React Aria sets
+    // `pointer-events: none` on the parent menu, so a click aimed at a sibling
+    // lands on the panel behind the menu items.
+    // oxlint-disable-next-line testing-library/no-node-access
+    const parentPanel = screen.getAllByRole('menu')[0]!.parentElement!;
+    await userEvent.click(parentPanel, {pointerEventsCheck: 0});
+
+    expect(onAction).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(screen.getByRole('menuitemradio', {name: 'Child'})).toBeInTheDocument();
+  });
+
   it.each(['Escape', 'ArrowLeft'])(
     'closes nested submenus one level at a time with %s',
     async key => {
