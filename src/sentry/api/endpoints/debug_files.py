@@ -255,7 +255,7 @@ DSYM_FILE_FORMATS_PARAM = OpenApiParameter(
 )
 
 
-def code_id_queries(code_id: str) -> list[Q]:
+def code_id_queries(code_id: str) -> list[tuple[Q, str]]:
     """Returns a list of queries that, for a given code ID:
        1. compare it to the `code_id` field.
        2. compare it to the `wasm_legacy_code_id` field.
@@ -270,17 +270,22 @@ def code_id_queries(code_id: str) -> list[Q]:
     Clauses (2) and (3) are only relevant for WASM files. No non-WASM file has a
     `wasm_legacy_code_id`, and the "legacy" code ID is extremely unlikely to be a match for
     any file that never suffered from the WASM build ID bug.
+
+    The second component of every returned pair is a query name for metrics purposes.
     """
 
-    qs = [Q(code_id__exact=code_id), Q(wasm_legacy_code_id__exact=code_id)]
+    qs = [
+        (Q(code_id__exact=code_id), "default"),
+        (Q(wasm_legacy_code_id__exact=code_id), "stored_legacy"),
+    ]
 
     if legacy_id := wasm_legacy_code_id(code_id):
-        qs.append(Q(code_id__exact=legacy_id))
+        qs.append((Q(code_id__exact=legacy_id), "computed_legacy"))
 
     return qs
 
 
-def debug_id_queries(debug_id: str) -> list[Q]:
+def debug_id_queries(debug_id: str) -> list[tuple[Q, str]]:
     """Returns a list of queries that, for a given debug ID:
        1. compare it to the `debug_id` field.
        2. compare it to the `wasm_legacy_debug_id` field.
@@ -295,12 +300,17 @@ def debug_id_queries(debug_id: str) -> list[Q]:
     Clauses (2) and (3) are only relevant for WASM files. No non-WASM file has a
     `wasm_legacy_debug_id`, and the "legacy" debug ID is extremely unlikely to be a match for
     any file that never suffered from the WASM build ID bug.
+
+    The second component of every returned pair is a query name for metrics purposes.
     """
 
-    qs = [Q(debug_id__exact=debug_id), Q(wasm_legacy_debug_id__exact=debug_id)]
+    qs = [
+        (Q(debug_id__exact=debug_id), "default"),
+        (Q(wasm_legacy_debug_id__exact=debug_id), "stored_legacy"),
+    ]
 
     if legacy_id := wasm_legacy_debug_id(debug_id):
-        qs.append(Q(debug_id__exact=legacy_id))
+        qs.append((Q(debug_id__exact=legacy_id), "computed_legacy"))
 
     return qs
 
@@ -435,16 +445,26 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # Ideally debug- and code-id yield the same files, but especially on Windows it is possible
             # that the debug id does not perfectly match due to 'age' differences, but the code-id
             # will match.
-            debug_id_qs = ProjectDebugFile.objects.none().select_related("file")
+            debug_id_qs = (
+                ProjectDebugFile.objects.none()
+                .select_related("file")
+                .annotate(lookup_method=Value(None))
+            )
             if debug_id:
-                for debug_id_q in debug_id_queries(debug_id):
+                for debug_id_q, method in debug_id_queries(debug_id):
                     debug_id_qs = debug_id_qs.union(
-                        ProjectDebugFile.objects.filter(debug_id_q & q).select_related("file")
+                        ProjectDebugFile.objects.filter(debug_id_q & q)
+                        .select_related("file")
+                        .annotate(lookup_method=Value(method))
                     )
 
-            code_id_qs = ProjectDebugFile.objects.none().select_related("file")
+            code_id_qs = (
+                ProjectDebugFile.objects.none()
+                .select_related("file")
+                .annotate(lookup_method=Value(None))
+            )
             if code_id:
-                for code_id_q in code_id_queries(code_id):
+                for code_id_q, method in code_id_queries(code_id):
                     code_id_qs = code_id_qs.union(
                         ProjectDebugFile.objects.filter(
                             code_id_q
@@ -454,7 +474,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
                             # If we have no debug_id, debug_id_qs is the empty qs, so this always
                             # succeeds.
                             & ~Exists(debug_id_qs)
-                        ).select_related("file")
+                        )
+                        .select_related("file")
+                        .annotate(lookup_method=Value(method))
                     )
 
             queryset = debug_id_qs.union(code_id_qs)
