@@ -23,7 +23,11 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
 )
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER_SLUG
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
-from sentry.seer.autofix.pr_iteration.feedback import Feedback, feedback_allowed_by_project
+from sentry.seer.autofix.pr_iteration.feedback import (
+    NOT_REQUESTED,
+    Feedback,
+    feedback_allowed_by_project,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
@@ -282,6 +286,26 @@ def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
                 referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
                 run_state=agent_state,
             )
+            repo_name = source.event.repository.full_name
+            pr_state = agent_state.repo_pr_states.get(repo_name) if repo_name else None
+            if (
+                project_decision.reason == NOT_REQUESTED
+                and pr_state is not None
+                and pr_state.pr_number is not None
+            ):
+                # Lazy: nudge imports the SCM factory, which can't load while this listener registers.
+                from sentry.seer.autofix.pr_iteration.nudge import (
+                    NudgeKind,
+                    queue_not_requested_nudge,
+                )
+
+                queue_not_requested_nudge(
+                    run_id=agent_state.run_id,
+                    organization_id=organization_id,
+                    repository_id=autofix_run.repository.id,
+                    pr_number=pr_state.pr_number,
+                    kind=NudgeKind.CI,
+                )
             return None
 
         # Report failures here so they are searchable under the PR-iteration

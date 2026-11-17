@@ -179,6 +179,10 @@ def iteration_cap_reached(run_state: SeerRunState) -> bool:
     return total_iteration_cap_reached(run_state) or automated_streak_cap_reached(run_state)
 
 
+# ``feedback_allowed_by_project``'s reason for feedback nobody asked for.
+NOT_REQUESTED = "not_requested"
+
+
 def feedback_allowed_by_project(
     *, organization_id: int, group_id: int, feedback: Feedback
 ) -> Decision:
@@ -208,7 +212,7 @@ def feedback_allowed_by_project(
     if pr_iteration_enabled_for_group(group_id):
         return Decision(ok=True, reason="project_enabled")
 
-    return Decision(ok=False, reason="not_requested")
+    return Decision(ok=False, reason=NOT_REQUESTED)
 
 
 # TODO: Review the iteration caps below (``automated_streak_cap_reached`` and
