@@ -6,7 +6,7 @@ interface WelcomeAgentSetupProps {
   hasInitFailed: boolean;
   hasProgressFailed: boolean;
   isAgentConnected: boolean;
-  onCopyCommand: (source: AgentSetupCopySource) => void;
+  onCopyCommand: (source: AgentSetupCopySource, handoffId: string) => void;
   onRefresh: () => void;
   onRetry: () => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;

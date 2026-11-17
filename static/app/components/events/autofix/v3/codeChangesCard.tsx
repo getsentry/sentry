@@ -338,7 +338,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
             icon={<IconRefresh />}
             disabled={singleRunRerun.disabled}
             tooltipProps={{title: outOfCreditsRetry.tooltip}}
-            onClick={singleRunRerun.rerun}
+            onClick={() => singleRunRerun.rerun()}
           >
             {t('Re-run')}
           </Button>

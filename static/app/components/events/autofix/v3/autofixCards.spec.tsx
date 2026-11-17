@@ -2943,7 +2943,7 @@ describe('out of credits', () => {
         )
       );
       await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
-      expect(startStep).toHaveBeenCalledWith('root_cause');
+      expect(startStep).toHaveBeenCalledWith('root_cause', {userContext: undefined});
     }
   );
 

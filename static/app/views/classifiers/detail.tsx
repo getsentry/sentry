@@ -61,7 +61,7 @@ function ClassifierDetailContent({classifier}: {classifier: TelemetryClassifier}
           <ClassifierInstancesChart classifier={classifier} />
           <Stack gap="md">
             <Heading as="h3" size="md">
-              {t('Matched conversations')}
+              {t('Classification results')}
             </Heading>
             <ClassifiedConversationsTable classifier={classifier} />
           </Stack>
