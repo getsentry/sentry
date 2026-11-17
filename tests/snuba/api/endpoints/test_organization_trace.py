@@ -656,6 +656,7 @@ class OrganizationEventsTraceEndpointTest(
     def test_with_links_skips_malformed_links(self) -> None:
         root, _ = self._store_linked_trace(
             '[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b"},'
+            '{"trace_id":null,"span_id":null},"not-a-link",'
             '{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d"}]'
         )
         with self.feature(self.FEATURES):
@@ -668,11 +669,16 @@ class OrganizationEventsTraceEndpointTest(
 
     def test_links_attribute_stays_private(self) -> None:
         self._store_linked_trace("[]")
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={"timestamp": self.day_ago, "additional_attributes": ["sentry.links"]}
-            )
-        assert response.status_code == 400, response.content
+        for include_links in ("0", "1"):
+            with self.feature(self.FEATURES):
+                response = self.client_get(
+                    data={
+                        "timestamp": self.day_ago,
+                        "include_links": include_links,
+                        "additional_attributes": ["sentry.links"],
+                    }
+                )
+            assert response.status_code == 400, response.content
 
     def test_with_additional_attributes(self) -> None:
         self.load_trace()

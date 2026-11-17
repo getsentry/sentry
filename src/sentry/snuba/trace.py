@@ -31,6 +31,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from snuba_sdk import Column as SnubaColumn
 from snuba_sdk import Function
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import registry as grouptype_registry
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -319,9 +320,18 @@ def _parse_span_links(raw: str) -> list[TraceItemLink]:
 
     parsed = []
     for link in links:
+        if not (
+            isinstance(link, dict)
+            and isinstance(link.get("trace_id"), str)
+            and isinstance(link.get("span_id"), str)
+            and link["trace_id"]
+            and link["span_id"]
+        ):
+            metrics.incr("trace.span_links.malformed")
+            continue
         try:
             parsed.append(serialize_link(link))
-        except (AttributeError, KeyError, TypeError):
+        except (AttributeError, TypeError):
             metrics.incr("trace.span_links.malformed")
     return parsed
 
@@ -941,6 +951,10 @@ def query_trace_data(
     include_links: bool = False,
 ) -> list[SerializedTraceItem]:
     """Queries span/error data for a given trace"""
+    if additional_attributes and SPAN_LINKS_ATTRIBUTE in additional_attributes:
+        # The query below allows this private attribute for include_links, so reject it here.
+        raise InvalidSearchQuery(f"The field {SPAN_LINKS_ATTRIBUTE} is not allowed for this query")
+
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
     # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
     # parallelizing the queries here, but ideally this parallelization lives in the spans_rpc module instead
