@@ -99,13 +99,9 @@ export interface EntityHeaderStatProps {
   isLoading?: boolean;
 }
 
-const VALUE_STYLES = {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'} as const;
-
-const LABEL_STYLES = {
-  size: 'sm',
-  bold: true,
-  density: 'comfortable',
-  wrap: 'nowrap',
+const STAT_PART_STYLES = {
+  label: {size: 'sm', bold: true, density: 'comfortable', wrap: 'nowrap'},
+  value: {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'},
 } as const;
 
 const EMPTY_VALUE = '\u2014';
@@ -147,10 +143,10 @@ function getValuePart(
 }
 
 function muteText(
-  part: EntityHeaderStatPartBehavior,
+  behavior: EntityHeaderStatPartBehavior,
   muted: boolean
 ): EntityHeaderStatRenderPart {
-  return part.type === 'text' && muted ? {...part, variant: 'muted'} : part;
+  return behavior.type === 'text' && muted ? {...behavior, variant: 'muted'} : behavior;
 }
 
 function EmptyValue() {
@@ -170,28 +166,30 @@ function EmptyValue() {
 
 function StatPart({
   part,
+  behavior,
   children,
-  styles,
 }: {
+  behavior: EntityHeaderStatRenderPart;
   children: React.ReactNode;
-  part: EntityHeaderStatRenderPart;
-  styles: typeof LABEL_STYLES | typeof VALUE_STYLES;
+  part: 'label' | 'value';
 }) {
-  if (part.type === 'link') {
+  const styles = STAT_PART_STYLES[part];
+
+  if (behavior.type === 'link') {
     // Named by its own text. The other half is read in the same list item,
     // which is context enough for the link's purpose.
     return (
       <Text {...styles} variant="accent">
         {styleProps => {
           const link =
-            part.externalHref === undefined ? (
-              <Link to={part.to} onClick={part.onClick} {...styleProps}>
+            behavior.externalHref === undefined ? (
+              <Link to={behavior.to} onClick={behavior.onClick} {...styleProps}>
                 {children}
               </Link>
             ) : (
               <ExternalLink
-                href={part.externalHref}
-                onClick={part.onClick}
+                href={behavior.externalHref}
+                onClick={behavior.onClick}
                 {...styleProps}
               >
                 {children}
@@ -199,8 +197,8 @@ function StatPart({
             );
           // The tooltip attaches to the link rather than wrapping it in
           // InfoText, which would put a second tab stop inside the anchor.
-          return part.tooltip ? (
-            <Tooltip title={part.tooltip} skipWrapper showUnderline>
+          return behavior.tooltip ? (
+            <Tooltip title={behavior.tooltip} skipWrapper showUnderline>
               {link}
             </Tooltip>
           ) : (
@@ -211,16 +209,16 @@ function StatPart({
     );
   }
 
-  if (part.tooltip) {
+  if (behavior.tooltip) {
     return (
-      <InfoText title={part.tooltip} variant={part.variant} {...styles}>
+      <InfoText title={behavior.tooltip} variant={behavior.variant} {...styles}>
         {children}
       </InfoText>
     );
   }
 
   return (
-    <Text variant={part.variant} {...styles}>
+    <Text variant={behavior.variant} {...styles}>
       {children}
     </Text>
   );
@@ -249,7 +247,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
         then "3".
       */}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        <StatPart part={muteText(label, true)} styles={LABEL_STYLES}>
+        <StatPart part="label" behavior={muteText(label, true)}>
           {label.content}
         </StatPart>
         {/*
@@ -257,7 +255,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
           baseline do not move, and is muted so it does not read as a
           measurement — unless it links, where the colour says it navigates.
         */}
-        <StatPart part={muteText(value, isEmpty)} styles={VALUE_STYLES}>
+        <StatPart part="value" behavior={muteText(value, isEmpty)}>
           {isEmpty ? <EmptyValue /> : value.content}
         </StatPart>
       </Flex>
