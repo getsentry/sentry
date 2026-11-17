@@ -1,4 +1,4 @@
-import {type ReactNode, useEffect} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {createSerializer, parseAsInteger, parseAsString} from 'nuqs';
@@ -7,12 +7,16 @@ import {useShallow} from 'zustand/react/shallow';
 
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -23,11 +27,11 @@ import {
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -50,6 +54,9 @@ const TRACING_AGENT_STEPS = [
   t('Configure the tracing sample rate and SDK options'),
   t('Send a test request and verify traces appear in Sentry'),
 ];
+
+const PLATFORM_DOCS_URL = 'https://docs.sentry.io/platforms/';
+const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/trace-explorer/';
 
 const serializeTraceRedirect = createSerializer({
   table: parseAsString,
@@ -82,18 +89,125 @@ function doesNotSupportPerformance(project: Project): boolean {
   return project.platform ? withoutPerformanceSupport.has(project.platform) : false;
 }
 
+interface DocsFallbackProps {
+  children: string;
+  href: string;
+  onClick: () => void;
+}
+
+function DocsFallback({href, onClick, children}: DocsFallbackProps) {
+  return (
+    <Stack gap="md">
+      <Text>{children}</Text>
+      <div>
+        <LinkButton size="sm" href={href} external onClick={onClick}>
+          {t('Go to Documentation')}
+        </LinkButton>
+      </div>
+    </Stack>
+  );
+}
+
+interface TracingManualSetupProps {
+  currentPlatform: PlatformIntegration | undefined;
+  dsn: string | undefined;
+  noPerformanceSupport: boolean;
+  organization: Organization;
+  performanceDocs: OnboardingConfig | undefined;
+  project: Project;
+  projectKeyId: string | undefined;
+}
+
+function TracingManualSetup({
+  currentPlatform,
+  dsn,
+  noPerformanceSupport,
+  organization,
+  performanceDocs,
+  project,
+  projectKeyId,
+}: TracingManualSetupProps) {
+  const api = useApi();
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
+  const platformName = currentPlatform?.name ?? project.slug;
+  const platformId = currentPlatform?.id ?? project.platform ?? 'unknown';
+
+  if (noPerformanceSupport) {
+    return (
+      <DocsFallback
+        href={PLATFORM_DOCS_URL}
+        onClick={() => traceAnalytics.trackPlatformDocsViewed(organization, platformId)}
+      >
+        {tct(
+          'Fiddlesticks. Performance isn\u2019t available for your [platform] project yet but we\u2019re definitely still working on it. Stay tuned.',
+          {platform: platformName}
+        )}
+      </DocsFallback>
+    );
+  }
+
+  if (!currentPlatform || !performanceDocs || !dsn || !projectKeyId) {
+    return (
+      <DocsFallback
+        href={TRACE_EXPLORER_DOCS_URL}
+        onClick={() =>
+          traceAnalytics.trackPerformanceSetupDocsViewed(organization, platformId)
+        }
+      >
+        {tct('Read the docs to instrument tracing in your [platform] project', {
+          platform: platformName,
+        })}
+      </DocsFallback>
+    );
+  }
+
+  const docParams: DocsParams<any> = {
+    api,
+    projectKeyId,
+    dsn,
+    organization,
+    platformKey: project.platform || 'other',
+    project,
+    isLogsSelected: false,
+    isFeedbackSelected: false,
+    isMetricsSelected: false,
+    isPerformanceSelected: true,
+    isProfilingSelected: false,
+    isReplaySelected: false,
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
+    platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
+    feedbackOptions: {},
+    urlPrefix,
+    isSelfHosted,
+  };
+
+  const tracingSteps = [
+    ...performanceDocs.install(docParams),
+    ...performanceDocs.configure(docParams),
+    ...performanceDocs.verify(docParams),
+  ];
+
+  return (
+    <ManualSetupSteps
+      project={project}
+      steps={tracingSteps}
+      copyMarkdownSource="performance_onboarding"
+    />
+  );
+}
+
 type Props = {
   organization: Organization;
   project: Project;
 };
 
 export function TracingEmptyState({organization, project}: Props) {
-  const api = useApi();
-  const {isSelfHosted, urlPrefix} = useStore(
-    ConfigStore,
-    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
-  );
-
   const noPerformanceSupport = doesNotSupportPerformance(project);
 
   const firstIssue = useEventWaiter({
@@ -125,9 +239,6 @@ export function TracingEmptyState({organization, project}: Props) {
     productType: 'performance',
   });
 
-  const {isPending: isLoadingRegistry, data: registryData} =
-    useSourcePackageRegistries(organization);
-
   useEffect(() => {
     if (isLoading || !currentPlatform || !dsn || !projectKeyId) {
       return;
@@ -144,43 +255,6 @@ export function TracingEmptyState({organization, project}: Props) {
     return <LoadingIndicator />;
   }
 
-  const performanceDocs = docs?.performanceOnboarding;
-
-  let manualSetup: ReactNode;
-  if (!noPerformanceSupport && performanceDocs && dsn && projectKeyId) {
-    const docParams: DocsParams<any> = {
-      api,
-      projectKeyId,
-      dsn,
-      organization,
-      platformKey: project.platform || 'other',
-      project,
-      isLogsSelected: false,
-      isFeedbackSelected: false,
-      isMetricsSelected: false,
-      isPerformanceSelected: true,
-      isProfilingSelected: false,
-      isReplaySelected: false,
-      sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
-      platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
-      feedbackOptions: {},
-      urlPrefix,
-      isSelfHosted,
-    };
-    const tracingSteps = [
-      ...performanceDocs.install(docParams),
-      ...performanceDocs.configure(docParams),
-      ...performanceDocs.verify(docParams),
-    ];
-    manualSetup = (
-      <ManualSetupSteps
-        project={project}
-        steps={tracingSteps}
-        copyMarkdownSource="performance_onboarding"
-      />
-    );
-  }
-
   const footer = noPerformanceSupport ? undefined : (
     <Flex align="center" justify="between" gap="md">
       {received ? <EventReceivedIndicator /> : <EventWaitingIndicator />}
@@ -194,21 +268,33 @@ export function TracingEmptyState({organization, project}: Props) {
         title={t('Tracing in Sentry')}
         benefits={TRACING_BENEFITS}
         media={
-          <Image
-            src={emptyTraceImg}
-            alt={t(
-              'A winged insect flying above a tilted browser window with abstract interface elements'
-            )}
-            height="160px"
-            width="auto"
-          />
+          <Container pointerEvents="none">
+            <Image
+              src={emptyTraceImg}
+              alt={t(
+                'A winged insect flying above a tilted browser window with abstract interface elements'
+              )}
+              height="160px"
+              width="auto"
+            />
+          </Container>
         }
         agentSteps={TRACING_AGENT_STEPS}
         product="tracing"
         productName={t('Tracing')}
         project={project}
         feedbackSource="traces-onboarding"
-        manualSetup={manualSetup}
+        manualSetup={
+          <TracingManualSetup
+            currentPlatform={currentPlatform}
+            dsn={dsn}
+            noPerformanceSupport={noPerformanceSupport}
+            organization={organization}
+            performanceDocs={docs?.performanceOnboarding}
+            project={project}
+            projectKeyId={projectKeyId}
+          />
+        }
         onPromptCopied={_handoffId => {
           trackAnalytics('onboarding.ai_prompt_copied', {
             organization,

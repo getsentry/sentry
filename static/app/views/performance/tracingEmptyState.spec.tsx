@@ -61,6 +61,25 @@ describe('TracingEmptyState', () => {
     expect(await screen.findByText('Install Sentry')).toBeInTheDocument();
   });
 
+  it('shows a docs link on the manual tab for unsupported platforms', async () => {
+    const project = ProjectFixture({platform: 'elixir'});
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: project,
+    });
+
+    render(<TracingEmptyState organization={organization} project={project} />);
+
+    await screen.findByText('Tracing in Sentry');
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Set up manually'}));
+
+    const docsLink = await screen.findByRole('button', {name: 'Go to Documentation'});
+    expect(docsLink).toHaveAttribute('href', 'https://docs.sentry.io/platforms/');
+  });
+
   it('shows the waiting indicator while no trace has arrived', async () => {
     const project = ProjectFixture({platform: 'javascript-react'});
 

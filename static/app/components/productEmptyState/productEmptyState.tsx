@@ -28,13 +28,13 @@ interface ProductEmptyStateProps {
   /**
    * The illustration or media shown to the right of the intro text on large screens.
    */
+  manualSetup: ReactNode;
   media: ReactNode;
   product: AddFeatureProduct;
   productName: string;
   project: Project;
   title: string;
   footer?: ReactNode;
-  manualSetup?: ReactNode;
   onPromptCopied?: (handoffId: string) => void;
 }
 
@@ -67,12 +67,7 @@ export function ProductEmptyState({
             ))}
           </Stack>
         </Stack>
-        <Container
-          display={{zero: 'none', xl: 'block'}}
-          maxWidth="445px"
-          flexShrink={0}
-          pointerEvents="none"
-        >
+        <Container display={{zero: 'none', xl: 'block'}} maxWidth="445px" flexShrink={0}>
           {media}
         </Container>
       </Flex>

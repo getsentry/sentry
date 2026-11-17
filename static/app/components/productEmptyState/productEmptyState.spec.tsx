@@ -18,6 +18,7 @@ describe('ProductEmptyState', () => {
     benefits: ['View logs in context with errors', 'Query and filter by any attribute'],
     media: <img src="/test.svg" alt="test" />,
     agentSteps: ['Install the Sentry CLI', 'Configure logs', 'Verify logs arrive'],
+    manualSetup: <div data-test-id="manual-content">Manual steps here</div>,
     product: 'tracing' as const,
     productName: 'Tracing',
     project,
@@ -76,13 +77,7 @@ describe('ProductEmptyState', () => {
   });
 
   it('"Set up manually" shows the manual content', async () => {
-    render(
-      <ProductEmptyState
-        {...baseProps}
-        manualSetup={<div data-test-id="manual-content">Manual steps here</div>}
-      />,
-      {organization}
-    );
+    render(<ProductEmptyState {...baseProps} />, {organization});
 
     await userEvent.click(screen.getByRole('radio', {name: 'Set up manually'}));
 
