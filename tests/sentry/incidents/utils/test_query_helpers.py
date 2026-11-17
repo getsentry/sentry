@@ -3,7 +3,7 @@ from unittest import mock
 
 from django.utils import timezone
 
-from sentry.incidents.utils.process_update_helpers import (
+from sentry.incidents.utils.query_helpers import (
     coerce_aggregation_value,
     run_query_for_window,
 )
@@ -45,7 +45,7 @@ class RunQueryForWindowTest(TestCase):
             ],
         )
 
-        with mock.patch("sentry.incidents.utils.process_update_helpers.logger") as mock_logger:
+        with mock.patch("sentry.incidents.utils.query_helpers.logger") as mock_logger:
             result = run_query_for_window(
                 snuba_query=snuba_query,
                 subscription_id="test-sub-id",
