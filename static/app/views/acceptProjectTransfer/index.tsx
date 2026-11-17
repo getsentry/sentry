@@ -1,4 +1,5 @@
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -14,11 +15,13 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
+import {parseAsSingleScalar} from 'sentry/views/explore/queryParams/parsers';
 
 type TransferDetails = {
   organizations: Organization[];
@@ -134,6 +137,7 @@ function AcceptProjectTransferForm({
 
 function AcceptProjectTransfer() {
   const location = useLocation();
+  const [transferData] = useQueryState('data', parseAsSingleScalar);
 
   const {
     data: transferDetails,
@@ -141,11 +145,12 @@ function AcceptProjectTransfer() {
     isError,
     error,
     refetch,
-  } = useApiQuery<TransferDetails>(
-    [getApiUrl('/accept-transfer/'), {query: location.query, host: getRegionHost()}],
-    {
+  } = useQuery(
+    apiOptions.as<TransferDetails>()('/accept-transfer/', {
+      query: location.query,
+      host: getRegionHost(),
       staleTime: 0,
-    }
+    })
   );
 
   if (isPending) {
@@ -156,7 +161,7 @@ function AcceptProjectTransfer() {
     return (
       <LoadingError
         message={
-          typeof error?.responseJSON?.detail === 'string'
+          error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
             ? error.responseJSON.detail
             : undefined
         }
@@ -194,7 +199,7 @@ function AcceptProjectTransfer() {
         </Stack>
         <AcceptProjectTransferForm
           transferDetails={transferDetails}
-          transferData={location.query.data}
+          transferData={transferData ?? undefined}
           regionHost={getRegionHost()}
         />
       </Stack>

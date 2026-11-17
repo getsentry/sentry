@@ -12,6 +12,14 @@ export interface BoxZoomRange {
   yRange: [number, number];
 }
 
+/** The dragged box in pixels, relative to the chart's top-left corner. */
+export interface BoxZoomPixelBox {
+  height: number;
+  left: number;
+  top: number;
+  width: number;
+}
+
 interface Point {
   x: number;
   y: number;
@@ -26,10 +34,14 @@ interface RectangularBounds {
 
 interface UseChartBoxZoomProps {
   /**
+   * Called when a drag starts inside the plot area.
+   */
+  onSelectionStart?: () => void;
+  /**
    * Called on mouse-up with the selected x/y ranges of the dragged box, in the
    * data units of `xAxisIndex`/`yAxisIndex`. When omitted, drag-to-zoom is off.
    */
-  onZoom?: (range: BoxZoomRange) => void;
+  onZoom?: (range: BoxZoomRange, pixelBox: BoxZoomPixelBox) => void;
   /**
    * The X-axis index to read the selection from. For the Heat Map this is the
    * readable `time` axis (index 1), not the hidden category axis the cells sit on.
@@ -62,6 +74,7 @@ interface BoxZoomOptions {
  */
 export function useChartBoxZoom({
   onZoom,
+  onSelectionStart,
   xAxisIndex = 0,
   yAxisIndex = 0,
 }: UseChartBoxZoomProps): BoxZoomOptions {
@@ -79,6 +92,10 @@ export function useChartBoxZoom({
   const onZoomRef = useRef(onZoom);
   // oxlint-disable-next-line react/refs
   onZoomRef.current = onZoom;
+
+  const onSelectionStartRef = useRef(onSelectionStart);
+  // oxlint-disable-next-line react/refs
+  onSelectionStartRef.current = onSelectionStart;
 
   const axesIndecesRef = useRef({xAxisIndex, yAxisIndex});
   // oxlint-disable-next-line react/refs
@@ -181,6 +198,7 @@ export function useChartBoxZoom({
       // Hide an already-open tooltip. Note that `hideTip` is much cheaper than
       // `setOption`
       chartInstance.dispatchAction({type: 'hideTip'});
+      onSelectionStartRef.current?.();
 
       $overlay = createOverlay(overlayStyleRef.current);
       document.body.appendChild($overlay);
@@ -236,14 +254,9 @@ export function useChartBoxZoom({
       // Resolve the zoom up front. A too-small drag, or a conversion that fails
       // (non-finite / collapsed range), yields null — no zoom. The origin is
       // read fresh here so a mid-drag chart move doesn't skew it.
+      const origin = getChartOrigin(dom);
       const range = isDragAboveThreshold(start, end)
-        ? pixelBoxToDataRange(
-            chartInstance,
-            start,
-            end,
-            getChartOrigin(dom),
-            axesIndecesRef.current
-          )
+        ? pixelBoxToDataRange(chartInstance, start, end, origin, axesIndecesRef.current)
         : null;
 
       // Delay the tooltip restore only when a zoom actually applies (navigation
@@ -252,7 +265,12 @@ export function useChartBoxZoom({
       endDrag(range !== null);
 
       if (range) {
-        onZoomRef.current?.(range);
+        onZoomRef.current?.(range, {
+          left: Math.min(start.x, end.x) - origin.x,
+          top: Math.min(start.y, end.y) - origin.y,
+          width: Math.abs(end.x - start.x),
+          height: Math.abs(end.y - start.y),
+        });
       }
     }
 

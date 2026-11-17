@@ -24,11 +24,8 @@ describe('OrganizationDropdown', () => {
   });
 
   beforeEach(() => {
-    ConfigStore.set('user', UserFixture());
-  });
-
-  afterEach(() => {
     ProjectsStore.reset();
+    ConfigStore.set('user', UserFixture());
   });
 
   it('displays org info and links', async () => {
@@ -144,7 +141,7 @@ describe('OrganizationDropdown', () => {
     );
     await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
 
-    const search = await screen.findByRole('textbox', {name: 'Search'});
+    const search = await screen.findByRole('searchbox', {name: 'Search'});
     await waitFor(() => expect(search).toHaveFocus());
     expect(within(search.parentElement!).getByRole('img')).toBeInTheDocument();
     await userEvent.type(search, 'python');
@@ -283,11 +280,11 @@ describe('OrganizationDropdown', () => {
     const toggle = screen.getByRole('button', {name: 'Toggle organization menu'});
     await userEvent.click(toggle);
     await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
-    await screen.findByRole('textbox', {name: 'Search'});
+    await screen.findByRole('searchbox', {name: 'Search'});
     const getSubmenu = () =>
       within(
         screen
-          .getByRole('textbox', {name: 'Search'})
+          .getByRole('searchbox', {name: 'Search'})
           .closest<HTMLElement>('[data-overlay]')!
       );
     const getSubmenuOrder = () =>
@@ -308,7 +305,7 @@ describe('OrganizationDropdown', () => {
     await userEvent.keyboard('{Escape}');
     await userEvent.click(toggle);
     await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
-    await screen.findByRole('textbox', {name: 'Search'});
+    await screen.findByRole('searchbox', {name: 'Search'});
 
     expect(getSubmenuOrder()).toEqual(['project-b', 'project-a']);
   });
@@ -424,7 +421,7 @@ describe('OrganizationDropdown', () => {
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
     expect(viewAllProjects).toHaveFocus();
     await userEvent.keyboard('{ArrowRight}');
-    const search = await screen.findByRole('textbox', {name: 'Search'});
+    const search = await screen.findByRole('searchbox', {name: 'Search'});
     await waitFor(() => expect(search).toHaveFocus());
     await userEvent.keyboard('{ArrowDown}');
     const project = within(search.closest<HTMLElement>('[data-overlay]')!).getByRole(
@@ -433,7 +430,7 @@ describe('OrganizationDropdown', () => {
     );
     expect(project).toHaveFocus();
     await userEvent.keyboard('{ArrowLeft}');
-    expect(screen.queryByRole('textbox', {name: 'Search'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('searchbox', {name: 'Search'})).not.toBeInTheDocument();
     expect(viewAllProjects).toHaveFocus();
     expect(
       screen.getByRole('button', {name: 'Toggle organization menu'})

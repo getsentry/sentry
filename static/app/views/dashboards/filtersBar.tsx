@@ -228,7 +228,7 @@ export function FiltersBar({
   );
   const tagKeysInMultipleDatasets = getTagKeysInMultipleDatasets(visibleGlobalFilters);
 
-  const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
+  const [chartInterval, setChartInterval, intervalOptions] = useDashboardChartInterval();
   const {
     enabled: showQueryPriority,
     options: queryPriorityOptions,
@@ -465,8 +465,8 @@ export function FiltersBar({
           />
         )}
         <CompactSelect
-          value={interval}
-          onChange={option => setInterval(option.value)}
+          value={chartInterval}
+          onChange={option => setChartInterval(option.value)}
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} icon={<IconClock />} />
           )}

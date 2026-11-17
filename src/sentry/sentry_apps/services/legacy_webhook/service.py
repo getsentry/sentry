@@ -52,7 +52,7 @@ def get_triggering_rule_name(invocation: ActionInvocation) -> str:
 
 
 def build_legacy_webhook_payload(invocation: ActionInvocation) -> LegacyWebhookPayload:
-    group = invocation.event_data.group
+    group = invocation.event_data.require_group()
     event = invocation.event_data.event
     if not isinstance(event, GroupEvent):
         raise TypeError(f"Legacy webhook payload requires a GroupEvent, got {type(event).__name__}")

@@ -20,6 +20,7 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
+from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.incidents.grouptype import MetricIssue
@@ -71,7 +72,10 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.analytics import (
+    assert_last_analytics_event,
+    get_matching_analytics_events,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -595,6 +599,33 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.get_success_response(groupStatsPeriod="")
         response = self.get_response(groupStatsPeriod="48h")
         assert response.status_code == 400
+
+    def test_sessions_with_disabled_stats(self) -> None:
+        event = self.store_event(
+            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(groupStatsPeriod="", expand="sessions")
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group_id)
+        assert "sessionCount" not in response.data[0]
+
+    def test_sessions_with_disabled_stats_direct_hit(self) -> None:
+        event = self.store_event(
+            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            groupStatsPeriod="", expand="sessions", query=event.event_id
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group_id)
+        assert response.data[0]["matchingEventId"] == event.event_id
+        assert "sessionCount" not in response.data[0]
 
     def test_environment(self) -> None:
         self.store_event(
@@ -1141,6 +1172,39 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
         assert response.status_code == 200, response.content
+
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-secret")
+    @patch("sentry.analytics.record")
+    def test_search_analytics_is_api_token_differs_for_ui_vs_api(
+        self, mock_record: MagicMock
+    ) -> None:
+        organization = self.project.organization
+        url = reverse("sentry-api-0-organization-group-index", args=[organization.slug])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=self.user.id),
+                organization_id=organization.id,
+            ),
+            key="viewer-context-secret",
+        )
+
+        token_response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+        )
+        viewer_context_response = self.client.get(
+            url, format="json", HTTP_X_VIEWER_CONTEXT=viewer_context
+        )
+        self.login_as(user=self.user)
+        self.get_success_response()
+
+        assert token_response.status_code == 200, token_response.content
+        assert viewer_context_response.status_code == 200, viewer_context_response.content
+        assert [
+            event.is_api_token
+            for event in get_matching_analytics_events(mock_record, IssueSearchEndpointQueriedEvent)
+        ] == [True, True, False]
 
     @patch(
         "sentry.search.snuba.executors.PostgresSnubaQueryExecutor.query",

@@ -22,6 +22,10 @@ interface DropdownMenuContextValue {
    * entire menu system.
    */
   rootMenuState?: RootMenuTriggerState;
+  /**
+   * `virtualizeThreshold` of the parent menu, inherited by its submenus.
+   */
+  virtualizeThreshold?: number;
 }
 
 export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});

@@ -131,8 +131,8 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in ConditionType],
         help_text=(
-            "The field the condition matches against. Every `dataType` accepts `release` and "
-            "`ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
+            "The field the condition matches against. Every `dataType` accepts `release`, "
+            "`environment` and `ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
             "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
             "`metric_name`. `span` and `all` accept no other types."
         ),
@@ -148,7 +148,7 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "as a glob pattern. `equals`, `starts_with`, `contains` and `ends_with` match the "
             "field against each value case-insensitively, with every character read "
             "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
-            "match when no value does. `cidr` matches `ip_address` against each value as an "
+            "match when the field is set and no value does. `cidr` matches `ip_address` against each value as an "
             "address or a CIDR range, and `not_cidr` matches when no value does. `gt`, `gte`, "
             "`lt` and `lte` compare one value as a version and only apply to `release`."
         ),
@@ -310,6 +310,23 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         if stored is not None and stored.legacy_filter:
             _validate_legacy_row_change(stored, data_type, conditions)
 
+        if "conditions" in attrs and any(
+            condition["type"] == ConditionType.ENVIRONMENT for condition in conditions
+        ):
+            organization = self.context["project"].organization
+            if not features.has(
+                "organizations:inbound-filters-environment-condition",
+                organization,
+                actor=self.context["request"].user,
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "conditions": (
+                            "The environment condition is not enabled for this organization."
+                        )
+                    }
+                )
+
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:
@@ -450,7 +467,8 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
     idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="List a Project's Custom Inbound Filters",
+        operation_id="listProjectCustomInboundFilters",
+        summary="List a Project's Custom Inbound Filters",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -481,7 +499,8 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Custom Inbound Filter",
+        operation_id="createProjectCustomInboundFilter",
+        summary="Create a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -551,7 +570,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
     idempotent_methods = frozenset({"PUT"})
 
     @extend_schema(
-        operation_id="Retrieve a Custom Inbound Filter",
+        operation_id="getProjectCustomInboundFilter",
+        summary="Retrieve a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -577,7 +597,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         return Response(serialize_custom_inbound_filter(custom_filter))
 
     @extend_schema(
-        operation_id="Update a Custom Inbound Filter",
+        operation_id="updateProjectCustomInboundFilter",
+        summary="Update a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -666,7 +687,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         return Response(serialize_custom_inbound_filter(custom_filter))
 
     @extend_schema(
-        operation_id="Delete a Custom Inbound Filter",
+        operation_id="deleteProjectCustomInboundFilter",
+        summary="Delete a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

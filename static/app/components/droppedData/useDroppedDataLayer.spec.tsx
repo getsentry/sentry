@@ -5,10 +5,13 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import type {OutcomeRow} from './types';
 import {useDroppedDataLayer} from './useDroppedDataLayer';
+
+jest.mock('sentry/utils/analytics');
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
@@ -33,15 +36,15 @@ describe('useDroppedDataLayer', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('returns the band, filter note, and layer control when data was dropped', async () => {
     mockDroppedData();
 
     const {result} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
+      () =>
+        useDroppedDataLayer(
+          {dataset: DiscoverDatasets.SPANS, interval: '1h'},
+          {source: 'explore'}
+        ),
       {organization}
     );
 
@@ -54,36 +57,105 @@ describe('useDroppedDataLayer', () => {
     });
     expect(result.current.filterNote).toEqual({dataset: DiscoverDatasets.SPANS});
     expect(result.current.layerControl).toEqual({
-      dataset: DiscoverDatasets.SPANS,
-      hasDroppedData: true,
-      showDroppedData: true,
+      layers: [
+        {
+          value: 'dropped-data',
+          label: 'Dropped Spans',
+          selected: true,
+          disabled: false,
+          tooltip: undefined,
+        },
+      ],
       onChange: expect.any(Function),
     });
+  });
+
+  it('reports loading until the dropped data arrives', async () => {
+    mockDroppedData();
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useDroppedDataLayer(
+          {dataset: DiscoverDatasets.SPANS, interval: '1h'},
+          {source: 'explore'}
+        ),
+      {organization}
+    );
+
+    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.band).toBeDefined();
+  });
+
+  it('does not report loading when the band is hidden', () => {
+    mockDroppedData();
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useDroppedDataLayer(
+          {dataset: DiscoverDatasets.SPANS, interval: '1h'},
+          {source: 'explore', hidden: true}
+        ),
+      {organization}
+    );
+
+    expect(result.current.isLoading).toBe(false);
   });
 
   it('removes the band and filter note when the layer is turned off', async () => {
     mockDroppedData();
 
     const {result} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
+      () =>
+        useDroppedDataLayer(
+          {dataset: DiscoverDatasets.SPANS, interval: '1h'},
+          {source: 'explore'}
+        ),
       {organization}
     );
 
     await waitFor(() => expect(result.current.band).toBeDefined());
-    act(() => result.current.layerControl!.onChange(false));
+    act(() => result.current.layerControl!.onChange('dropped-data', false));
 
     expect(result.current.band).toBeUndefined();
     expect(result.current.filterNote).toBeUndefined();
-    expect(result.current.layerControl).toEqual(
-      expect.objectContaining({hasDroppedData: true, showDroppedData: false})
+    expect(result.current.layerControl!.layers).toEqual([
+      expect.objectContaining({selected: false, disabled: false}),
+    ]);
+  });
+
+  it('tracks layer toggles with the source', async () => {
+    mockDroppedData();
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useDroppedDataLayer(
+          {dataset: DiscoverDatasets.ERRORS, interval: '1h'},
+          {source: 'discover'}
+        ),
+      {organization}
     );
+
+    await waitFor(() => expect(result.current.layerControl).toBeDefined());
+    act(() => result.current.layerControl!.onChange('dropped-data', false));
+
+    expect(trackAnalytics).toHaveBeenCalledWith('explore.dropped_data.layer_toggled', {
+      organization,
+      dataset: DiscoverDatasets.ERRORS,
+      source: 'discover',
+      selected: false,
+    });
   });
 
   it('opens the drawer from the band', async () => {
     mockDroppedData();
 
     const {result, router} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
+      () =>
+        useDroppedDataLayer(
+          {dataset: DiscoverDatasets.SPANS, interval: '1h'},
+          {source: 'explore'}
+        ),
       {organization}
     );
 
@@ -100,15 +172,15 @@ describe('useDroppedDataLayer', () => {
       () =>
         useDroppedDataLayer(
           {dataset: DiscoverDatasets.SPANS, interval: '1h'},
-          {hidden: true}
+          {source: 'explore', hidden: true}
         ),
       {organization}
     );
 
     await waitFor(() => expect(result.current.layerControl).toBeDefined());
-    expect(result.current.layerControl).toEqual(
-      expect.objectContaining({hasDroppedData: true, showDroppedData: true})
-    );
+    expect(result.current.layerControl!.layers).toEqual([
+      expect.objectContaining({selected: true, disabled: false}),
+    ]);
     expect(result.current.band).toBeUndefined();
     expect(result.current.filterNote).toBeUndefined();
   });
@@ -117,14 +189,24 @@ describe('useDroppedDataLayer', () => {
     mockDroppedData([]);
 
     const {result} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
+      () =>
+        useDroppedDataLayer(
+          {dataset: DiscoverDatasets.SPANS, interval: '1h'},
+          {source: 'explore'}
+        ),
       {organization}
     );
 
     await waitFor(() => expect(result.current.layerControl).toBeDefined());
-    expect(result.current.layerControl).toEqual(
-      expect.objectContaining({hasDroppedData: false})
-    );
+    expect(result.current.layerControl!.layers).toEqual([
+      {
+        value: 'dropped-data',
+        label: 'Dropped Spans',
+        selected: false,
+        disabled: true,
+        tooltip: 'No significant dropped spans in this time range',
+      },
+    ]);
     expect(result.current.band).toBeUndefined();
     expect(result.current.filterNote).toBeUndefined();
   });
@@ -136,7 +218,7 @@ describe('useDroppedDataLayer', () => {
       () =>
         useDroppedDataLayer(
           {dataset: DiscoverDatasets.SPANS, interval: '1h'},
-          {enabled: false}
+          {source: 'explore', enabled: false}
         ),
       {organization}
     );
@@ -145,6 +227,7 @@ describe('useDroppedDataLayer', () => {
     expect(result.current).toEqual({
       band: undefined,
       filterNote: undefined,
+      isLoading: false,
       layerControl: undefined,
     });
   });
@@ -153,7 +236,11 @@ describe('useDroppedDataLayer', () => {
     const request = mockDroppedData();
 
     const {result} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.TRANSACTIONS, interval: '1h'}),
+      () =>
+        useDroppedDataLayer(
+          {dataset: DiscoverDatasets.TRANSACTIONS, interval: '1h'},
+          {source: 'explore'}
+        ),
       {organization}
     );
 
@@ -161,6 +248,7 @@ describe('useDroppedDataLayer', () => {
     expect(result.current).toEqual({
       band: undefined,
       filterNote: undefined,
+      isLoading: false,
       layerControl: undefined,
     });
   });

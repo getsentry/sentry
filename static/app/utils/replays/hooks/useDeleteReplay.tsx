@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/react';
 import {useMutation} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';

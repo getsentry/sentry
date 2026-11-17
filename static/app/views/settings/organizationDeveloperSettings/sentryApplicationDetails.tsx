@@ -8,6 +8,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -23,7 +24,6 @@ import {
   sentryAppTokensApiOptions,
 } from 'sentry/actionCreators/sentryApps';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
-import {Confirm} from 'sentry/components/confirm';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

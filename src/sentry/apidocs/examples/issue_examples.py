@@ -10,6 +10,14 @@ from sentry.api.serializers.models.group import (
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
 from sentry.apidocs.examples.release_examples import RELEASE
 from sentry.apidocs.formats import absolute_url, hex_id, numeric_id, slug
+from sentry.issues.related.types import (
+    ContributingMeta,
+    RelatedIssuesResponse,
+    RelationType,
+    RelationTypeStatus,
+    SameTraceMeta,
+    SimilarStacktraceMeta,
+)
 
 SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "annotations": [],
@@ -278,6 +286,86 @@ SHARED_ISSUE: SharedGroupSerializerResponse = {
     },
 }
 
+RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
+    "data": [
+        {
+            "issue": {
+                "annotations": [],
+                "assignedTo": None,
+                "count": "42",
+                "culprit": "orders.views in parse_quantity",
+                "firstSeen": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+                "hasSeen": False,
+                "id": numeric_id("2"),
+                "isBookmarked": False,
+                "isPublic": False,
+                "isSubscribed": False,
+                "isUnhandled": True,
+                "issueCategory": "error",
+                "issueType": "error",
+                "lastSeen": datetime.fromisoformat("2018-12-06T21:19:55Z"),
+                "level": "error",
+                "logger": None,
+                "metadata": {
+                    "type": "ValueError",
+                    "value": "invalid literal for int() with base 10: 'abc'",
+                    "filename": "orders/views.py",
+                    "function": "parse_quantity",
+                },
+                "numComments": 0,
+                "permalink": absolute_url(
+                    "https://sentry.io/organizations/the-interstellar-jurisdiction/issues/2/"
+                ),
+                "platform": "python",
+                "priority": "high",
+                "priorityLockedAt": None,
+                "project": {
+                    "id": numeric_id("2"),
+                    "name": "Pump Station",
+                    "slug": slug("pump-station"),
+                    "platform": "python",
+                },
+                "seerAutofixLastTriggered": None,
+                "seerExplorerAutofixLastTriggered": None,
+                "seerFixabilityScore": None,
+                "shareId": None,
+                "shortId": "PUMP-STATION-2",
+                "status": "unresolved",
+                "statusDetails": {},
+                "subscriptionDetails": None,
+                "substatus": "ongoing",
+                "title": "ValueError: invalid literal for int() with base 10: 'abc'",
+                "type": "error",
+                "userCount": 7,
+            },
+            "relations": [
+                {"type": RelationType.SIMILAR_STACKTRACE, "score": 0.9787},
+                {"type": RelationType.SAME_TRACE},
+            ],
+        }
+    ],
+    "meta": {
+        "types": [
+            SimilarStacktraceMeta(
+                type=RelationType.SIMILAR_STACKTRACE,
+                status=RelationTypeStatus.OK,
+                eventId="60fc17404bf4445c81675be939ef74d6",
+            ),
+            SameTraceMeta(
+                type=RelationType.SAME_TRACE,
+                status=RelationTypeStatus.OK,
+                eventId="60fc17404bf4445c81675be939ef74d6",
+                traceId="a7d67cf796774551a95be6543cacd459",
+            ),
+            ContributingMeta(
+                type=RelationType.CONTRIBUTING,
+                status=RelationTypeStatus.NOT_APPLICABLE,
+                detail="Only metric issues have contributing issues.",
+            ),
+        ],
+    },
+}
+
 
 class IssueExamples:
     ORGANIZATION_GROUP_INDEX_GET = [
@@ -308,6 +396,14 @@ class IssueExamples:
         OpenApiExample(
             "Return a shared issue",
             value=SHARED_ISSUE,
+            response_only=True,
+            status_codes=["200"],
+        )
+    ]
+    RELATED_ISSUES = [
+        OpenApiExample(
+            "Return issues related to an issue",
+            value=RELATED_ISSUES_RESPONSE,
             response_only=True,
             status_codes=["200"],
         )

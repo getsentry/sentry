@@ -7,6 +7,7 @@ from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.models import Workflow
 
 PAYLOAD = {
     "route": "/issues/:groupId/",
@@ -57,7 +58,7 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         assert payload == {
             **PAYLOAD,
             "projects": [{"slug": "frontend-web", "platform": "javascript-react"}],
-            "code_mode": False,
+            "code_mode": True,
             "actions_enabled": True,
             "can_create_alerts": True,
             "can_edit_node_type": None,
@@ -96,15 +97,6 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         self.get_success_response(self.organization.slug, **PAYLOAD)
 
         assert mock_run_oneshot.call_args.args[1]["can_create_alerts"] is False
-
-    @with_feature("organizations:seer-explorer-code-mode-tools")
-    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
-    def test_passes_code_mode_when_enabled(self, mock_run_oneshot: MagicMock) -> None:
-        mock_run_oneshot.return_value = {"suggestions": []}
-
-        self.get_success_response(self.organization.slug, **PAYLOAD)
-
-        assert mock_run_oneshot.call_args.args[1]["code_mode"] is True
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_returns_empty_suggestions_when_none_pass(self, mock_run_oneshot: MagicMock) -> None:
@@ -249,6 +241,19 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
                 mock_run_oneshot, "/monitors/alerts/:automationId/", automationId=str(workflow.id)
             )
             == "alert-detail"
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_no_alert_edit_access_for_hidden_workflow(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        workflow = self.create_workflow(organization=self.organization, type=Workflow.Type.INBOX)
+
+        assert (
+            self._can_edit_node_type(
+                mock_run_oneshot, "/monitors/alerts/:automationId/", automationId=str(workflow.id)
+            )
+            is None
         )
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")

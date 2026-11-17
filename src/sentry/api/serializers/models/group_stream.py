@@ -472,9 +472,11 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     ]
     sessionCount: NotRequired[
         Annotated[
-            int,
+            int | None,
             ApiDescription(
-                "Number of sessions in the issue's project over the query time range. Only included when requested with expand=sessions"
+                "Number of sessions in the issue's project over the query time range. "
+                "Null when session data is unavailable. Only included with expand=sessions "
+                "when a stats period is enabled and stats is not collapsed"
             ),
         ]
     ]
@@ -788,7 +790,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 else:
                     result["filtered"] = None
 
-            if self._expand("sessions"):
+            if self.stats_period and self._expand("sessions"):
                 result["sessionCount"] = attrs["sessionCount"]
 
         if self._expand("inbox"):

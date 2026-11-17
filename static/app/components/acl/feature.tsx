@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
+import {useStore} from 'zustand';
 
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {FeatureDisabledOverrides} from 'sentry/types/overrides';
 import type {Project} from 'sentry/types/project';
@@ -136,7 +136,7 @@ export function Feature({
 }: Props) {
   const contextOrganization = useOrganization();
   const organization = organizationProp ?? contextOrganization;
-  const config = useLegacyStore(ConfigStore);
+  const configFeatures = useStore(ConfigStore, state => state.features);
 
   const features = useMemo(
     () => (Array.isArray(featuresProp) ? featuresProp : [featuresProp]),
@@ -145,11 +145,11 @@ export function Feature({
 
   const allFeatures = useMemo<AllFeatures>(
     () => ({
-      configFeatures: config.features ? Array.from(config.features) : [],
+      configFeatures: configFeatures ? Array.from(configFeatures) : [],
       organization: organization.features,
       project: project?.features ?? [],
     }),
-    [config.features, organization.features, project?.features]
+    [configFeatures, organization.features, project?.features]
   );
 
   const hasFeatureEnabled = useMemo(() => {

@@ -26,6 +26,7 @@ import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
 import {ImpactChip} from './chips/impactChip';
 import {getIntegrationChip} from './chips/integrationChip';
+import {InvestigationChip} from './chips/investigationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
@@ -626,6 +627,17 @@ function getActivityItemContent({
         details,
       };
     }
+    case GroupActivityType.SEER_STOPPED:
+      return {
+        title: t('Seer stopped early'),
+        details: (
+          <Fragment>
+            {activity.data.reason}
+            {activity.data.suggestion &&
+              ` ${t('Suggestion: %s', activity.data.suggestion)}`}
+          </Fragment>
+        ),
+      };
     case GroupActivityType.TRIGGER_AUTOFIX:
       switch (activity.data.referrer) {
         case 'slack':
@@ -647,6 +659,17 @@ function getActivityItemContent({
         details: tct('as [impact]', {
           impact: <ImpactChip level={level} score={score} />,
         }),
+      };
+    }
+    case GroupActivityType.INVESTIGATION_LINKED: {
+      const {investigation} = activity.data;
+      return {
+        title: t('Mentioned in'),
+        details: investigation ? (
+          <InvestigationChip investigation={investigation} />
+        ) : (
+          t('a deleted investigation')
+        ),
       };
     }
   }

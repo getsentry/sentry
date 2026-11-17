@@ -34,6 +34,7 @@ export type BaseEventAnalyticsParams = {
   has_source_maps: boolean;
   has_trace: boolean;
   is_symbolicated: boolean;
+  num_breadcrumbs: number;
   num_commits: number;
   num_event_tags: number;
   num_in_app_stack_frames: number;

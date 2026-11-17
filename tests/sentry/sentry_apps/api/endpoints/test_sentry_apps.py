@@ -626,6 +626,20 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self.get_error_response(**data, status_code=400)
         assert response.data == {"webhookUrl": ["URL must start with http[s]://"]}
 
+    def test_webhook_url_too_long(self) -> None:
+        data = self.get_data(webhookUrl="https://example.com/" + "a" * 500)
+        response = self.get_error_response(**data, status_code=400)
+        assert response.data == {
+            "webhookUrl": ["Ensure this field has no more than 512 characters."]
+        }
+
+    def test_redirect_url_too_long(self) -> None:
+        data = self.get_data(redirectUrl="https://example.com/" + "a" * 200)
+        response = self.get_error_response(**data, status_code=400)
+        assert response.data == {
+            "redirectUrl": ["Ensure this field has no more than 200 characters."]
+        }
+
     def test_cannot_create_app_without_correct_permissions(self) -> None:
         data = self.get_data(scopes=("project:read",))
         response = self.get_error_response(**data, status_code=400)

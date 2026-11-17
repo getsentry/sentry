@@ -8,24 +8,32 @@ from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone as django_timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from sentry_sdk import capture_exception
 
 from sentry import analytics, audit_log, roles
 from sentry.analytics.events.user_removed import UserRemovedEvent
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.auth.principal import require_user
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
+from sentry.models.apitoken import is_api_token_auth
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -33,6 +41,7 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
 from sentry.security.utils import capture_security_activity
+from sentry.seer import agent_token
 from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.users.api.parsers.display_preference import (
     DEFAULT_ISSUE_EVENT_CHOICES,
@@ -42,7 +51,10 @@ from sentry.users.api.parsers.display_preference import (
     DisplayPreferencesData,
     write_display_preferences,
 )
-from sentry.users.api.serializers.user import DetailedSelfUserSerializer
+from sentry.users.api.serializers.user import (
+    DetailedSelfUserSerializer,
+    DetailedSelfUserSerializerResponse,
+)
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.services.user.model import RpcUser
@@ -268,27 +280,84 @@ class DeleteUserSerializer(serializers.Serializer[User]):
     hardDelete = serializers.BooleanField(required=False)
 
 
+class UserDetailsPermission(UserAndStaffPermission):
+    """Lets a user's personal or OAuth application token read that user's own details.
+
+    `GET /api/0/auth/` already returns the same body to any such token. Here,
+    `UserPermission` rejected every token, because the endpoint has no `scope_map` and no
+    scope fits: every Sentry scope describes an organization resource. As with
+    `UserDisplayPreferencesPermission`, a session needs no scope to read its own account,
+    so a token acting for the same user doesn't either. `has_object_permission` still
+    limits token callers to their own account.
+
+    Agent tokens and Sentry app tokens are still rejected, and writes and deletes keep
+    the session-only check.
+    """
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.method == "GET" and self._is_user_token(request):
+            # Mirrors DemoSafePermission, which this early return skips.
+            return not (is_demo_user(request.user) and not is_demo_mode_enabled())
+        return super().has_permission(request, view)
+
+    @staticmethod
+    def _is_user_token(request: Request) -> bool:
+        return (
+            isinstance(request.successful_authenticator, UserAuthTokenAuthentication)
+            and is_api_token_auth(request.auth)
+            and not agent_token.is_agent_auth(request.auth)
+            and not request.user.is_sentry_app
+        )
+
+
+@extend_schema(tags=["Users"])
 @control_silo_endpoint
 class UserDetailsEndpoint(UserEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.FOUNDATIONS
 
-    permission_classes = (UserAndStaffPermission,)
+    permission_classes = (UserDetailsPermission,)
 
-    def get(self, request: Request, user: User) -> Response:
+    @extend_schema(
+        operation_id="retrieveUserDetails",
+        summary="Retrieve a User's Details",
+        parameters=[
+            OpenApiParameter(
+                name="user_id",
+                location="path",
+                required=True,
+                type=str,
+                description="The ID of the user, or `me` for the authenticated user.",
+            )
+        ],
+        request=None,
+        responses={
+            200: DetailedSelfUserSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=UserExamples.GET_USER_DETAILS,
+    )
+    def get(self, request: Request, user: User) -> Response[DetailedSelfUserSerializerResponse]:
         """
-        Retrieve User Details
-        `````````````````````
+        Return the authenticated user's account details, including email addresses,
+        two-factor authenticators, SSO identities and preferences. Use `me` as the
+        `user_id`.
 
-        Return details for an account's details and options such as: full name, timezone, 24hr times, language,
-        stacktrace_order.
-
-        :auth: required
+        Any personal auth token or OAuth application token can call this endpoint for its
+        own user, and no scope is required. Tokens can't read other users: requesting
+        another user's ID returns 403. Org auth tokens and integration tokens have no user
+        and can't call it.
         """
-        return Response(serialize(user, request.user, DetailedSelfUserSerializer()))
+        body: DetailedSelfUserSerializerResponse = serialize(
+            user, request.user, DetailedSelfUserSerializer()
+        )
+        return Response(body)
 
     def put(self, request: Request, user: User) -> Response:
         """

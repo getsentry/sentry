@@ -1,30 +1,9 @@
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
-from sentry.investigations.endpoints.serializers.action_request import (
-    InvestigationActionRequestSerializerResponse,
+from sentry.notebooks.endpoints.serializers.notebook import (
+    NotebookOrchestrationSerializerResponse,
 )
-from sentry.investigations.endpoints.serializers.investigation import (
-    InvestigationOrchestrationSerializerResponse,
-)
-
-
-class InvestigationExecutionResponse(TypedDict):
-    """Execution accepted for asynchronous processing; poll its detail endpoint."""
-
-    id: str
-    status: str
-
-
-class InvestigationExecutionDetailsResponse(InvestigationExecutionResponse):
-    """Agent transcript and pending input are Seer-owned JSON payloads. Partial Markdown is available for text blocks while they run."""
-
-    blocks: list[dict[str, Any]]
-    transcriptTruncated: bool
-    pendingUserInput: dict[str, Any] | None
-    partialMarkdown: str | None
-    error: Any
-
 
 # The orchestration projection's nested shapes mirror the contract serializers in
 # `sentry.investigations.contracts`, which validate every projection Seer sends.
@@ -248,25 +227,8 @@ class InvestigationCommandResponse(TypedDict):
 class InvestigationCandidateResponse(TypedDict):
     status: str
     investigationId: NotRequired[str]
-    orchestration: NotRequired[InvestigationOrchestrationSerializerResponse]
+    orchestration: NotRequired[NotebookOrchestrationSerializerResponse]
 
 
 class InvestigationCandidatesResponse(TypedDict):
     items: list[InvestigationCandidateResponse]
-
-
-class InvestigationTitlePreviewResponse(TypedDict):
-    status: str | None
-    preview: str | None
-
-
-class InvestigationActionRequestApplyResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse
-
-
-class InvestigationActionRequestRecheckResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse
-
-
-class InvestigationActionRequestRetryFollowUpResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse

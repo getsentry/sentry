@@ -142,10 +142,6 @@ describe('TableView > CellActions', () => {
     });
   });
 
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
-
   it('updates sort order on equation fields', () => {
     const view = eventView.clone();
     render(<ExampleTableView tableData={rows} view={view} />, renderOptions);

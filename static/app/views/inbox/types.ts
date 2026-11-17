@@ -4,6 +4,10 @@ export const INBOX_SUBJECT_TYPES = ['issue', 'notebook'] as const;
 
 export type InboxSubjectType = (typeof INBOX_SUBJECT_TYPES)[number];
 
+export const INBOX_RECIPIENTS = ['team', 'user'] as const;
+
+export type InboxRecipient = (typeof INBOX_RECIPIENTS)[number];
+
 export const INBOX_EVENT_TYPES = [
   'issue.user_assigned',
   'issue.team_assigned',
@@ -11,7 +15,8 @@ export const INBOX_EVENT_TYPES = [
   'issue.team_mentioned',
   'issue.pr_ready_for_review',
   'notebook.completed',
-  'notebook.mentioned',
+  'notebook.user_mentioned',
+  'notebook.team_mentioned',
   'notebook.participant_added',
 ] as const;
 
@@ -36,8 +41,9 @@ interface InboxEventDataByType {
   'issue.user_assigned': InboxIssueAssignedData;
   'issue.user_mentioned': {commentId: string};
   'notebook.completed': {seerRunId: string};
-  'notebook.mentioned': {blockId: string | null; commentId: string};
   'notebook.participant_added': Record<string, never>;
+  'notebook.team_mentioned': {blockId: string | null; commentId: string};
+  'notebook.user_mentioned': {blockId: string | null; commentId: string};
 }
 
 type InboxSystemActor = {
@@ -90,5 +96,6 @@ export type InboxSubject = Pick<InboxItem, 'subjectId' | 'subjectType'>;
 
 export interface InboxFilters {
   eventType: InboxEventType[];
+  recipient: InboxRecipient[];
   subjectType: InboxSubjectType[];
 }

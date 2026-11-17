@@ -36,7 +36,7 @@ interface WeeklyReportProjectExclusionsProps {
   handleEditNotificationOption: (option: NotificationOptionsObject) => void;
   handleRemoveNotificationOption: (id: string) => void;
   notificationOptions: NotificationOptionsObject[];
-  organizations: OrganizationSummary[];
+  organizations: readonly OrganizationSummary[];
 }
 
 const PAGE_SIZE = 15;

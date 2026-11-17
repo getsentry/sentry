@@ -20,7 +20,9 @@ from sentry.integrations.source_code_management.status_check import (
     PullRequestStatusResult,
 )
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.milestones import reconcile_milestones
 from sentry.seer.models.run import SeerRun, SeerRunMilestoneType
@@ -32,6 +34,11 @@ _INTEGRATION_SERVICE = (
     "sentry.integrations.source_code_management.pull_request_status_batch."
     "integration_service.get_integration"
 )
+
+_TOKEN_BILLING_FEATURES = {
+    "organizations:seer-token-based-billing-onboarding": True,
+    "organizations:token-billed-seer-enabled": True,
+}
 
 _ClientT = TypeVar("_ClientT", bound=PullRequestStatusClient)
 
@@ -801,6 +808,71 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert len(repo_queries) == 1
         assert self._issue_project(resp)["hasReposConnected"] is True
         assert self._project_config_by_id(resp)[str(self.project.id)]["hasReposConnected"] is True
+
+    def _linked_repo(self, project: Project, provider: str = "integrations:github") -> Repository:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider=provider.removeprefix("integrations:"),
+            external_id=f"ext-{project.id}-{provider}",
+        )
+        repo = self.create_repo(
+            project,
+            provider=provider,
+            integration_id=integration.id,
+            external_id=f"repo-{project.id}-{provider}",
+        )
+        self.create_project_repository(project=project, repository=repo)
+        return repo
+
+    def test_token_billed_linked_repo_is_connected_without_seer_config(self) -> None:
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        self._linked_repo(self.project)
+
+        with self.feature(_TOKEN_BILLING_FEATURES):
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"expand": ["scmInfo", "projectConfig"]}
+            )
+
+        project = self._issue_project(resp)
+        assert project["hasReposConnected"] is True
+        assert project["hasNonGithubRepo"] is False
+        assert self._project_config_by_id(resp)[str(self.project.id)]["hasReposConnected"] is True
+
+    def test_token_billed_linked_non_github_repo_flags_has_non_github(self) -> None:
+        self._linked_repo(self.project, provider="integrations:gitlab")
+
+        with self.feature(_TOKEN_BILLING_FEATURES):
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"expand": "projectConfig"}
+            )
+
+        config = self._project_config_by_id(resp)[str(self.project.id)]
+        assert config["hasReposConnected"] is True
+        assert config["hasNonGithubRepo"] is True
+
+    def test_token_billed_repo_without_integration_is_not_connected(self) -> None:
+        repo = self.create_repo(self.project, provider="integrations:github", external_id="123")
+        self.create_project_repository(project=self.project, repository=repo)
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        with self.feature(_TOKEN_BILLING_FEATURES):
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"expand": "projectConfig"}
+            )
+
+        assert self._project_config_by_id(resp)[str(self.project.id)]["hasReposConnected"] is False
+
+    def test_linked_repo_without_seer_config_is_not_connected_without_token_billing(
+        self,
+    ) -> None:
+        self._linked_repo(self.project)
+
+        resp = self.get_success_response(
+            self.organization.slug, qs_params={"expand": "projectConfig"}
+        )
+
+        assert self._project_config_by_id(resp)[str(self.project.id)]["hasReposConnected"] is False
 
     @mock.patch(_INTEGRATION_SERVICE)
     def test_run_includes_pull_requests(self, mock_get_integration: MagicMock) -> None:

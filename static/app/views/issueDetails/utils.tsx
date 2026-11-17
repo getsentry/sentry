@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useQuery, type QueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryStates} from 'nuqs';
+import {useStore} from 'zustand';
 
 import {
   bulkUpdate,
@@ -16,7 +17,6 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -51,7 +51,7 @@ export async function markEventSeen(
 }
 
 export function useDefaultIssueEvent() {
-  const user = useLegacyStore(ConfigStore).user;
+  const user = useStore(ConfigStore, state => state.user);
   const options = user ? user.options : null;
   return options?.defaultIssueEvent ?? 'recommended';
 }

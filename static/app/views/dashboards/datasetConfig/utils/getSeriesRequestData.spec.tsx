@@ -381,7 +381,7 @@ describe('utils', () => {
       expect(params).toHaveProperty(['transformations[1]'], ['fill(zero)']);
     });
 
-    it('sends pipelines for equation y-axes', () => {
+    it('sends transformations for equation y-axes', () => {
       const widget = WidgetFixture({
         widgetType: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -410,7 +410,7 @@ describe('utils', () => {
       expect(params).toHaveProperty(['transformations[1]'], ['smooth(sma,3)']);
     });
 
-    it('drops repeated y-axes only when their pipelines also match', () => {
+    it('drops repeated y-axes only when their transformations also match', () => {
       const widget = WidgetFixture({
         widgetType: WidgetType.SPANS,
         displayType: DisplayType.LINE,

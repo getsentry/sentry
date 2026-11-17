@@ -541,3 +541,20 @@ class ProjectExamples:
             response_only=True,
         ),
     ]
+
+    RESOLVE_DSN = [
+        OpenApiExample(
+            "Resolve a DSN to its project",
+            value={
+                "organizationSlug": "the-interstellar-jurisdiction",
+                "projectSlug": "pump-station",
+                "projectId": "2",
+                "projectName": "Pump Station",
+                "projectPlatform": "python",
+                "keyLabel": "Default",
+                "keyId": "60120449",
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]

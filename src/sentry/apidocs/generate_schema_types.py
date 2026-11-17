@@ -36,10 +36,6 @@ OPEN_OBJECT = "The schema leaves this object open, so it can have any keys."
 OPEN_KEYS = "The schema allows keys that aren't listed here."
 UNCONSTRAINED = "The schema doesn't constrain this value."
 UNCONSTRAINED_ITEMS = "The schema doesn't constrain the items."
-MISPLACED_ADDITIONAL_PROPERTIES = (
-    "Leaves out `additionalProperties`: the schema puts it inside `properties`,\n"
-    "where it declares a property with that name instead of closing the object."
-)
 
 # Keywords that only constrain values, or that the types can't express, such as which
 # properties are required together. The API schema keeps them.
@@ -396,9 +392,6 @@ class _Writer:
         notes: list[str] = []
         fields: list[tuple[str, str, list[str]]] = []
         for prop, spec in schema.get("properties", {}).items():
-            if isinstance(spec, bool) and prop == "additionalProperties":
-                notes.append(MISPLACED_ADDITIONAL_PROPERTIES)
-                continue
             field_notes: list[str] = []
             expression = self._expression(spec, f"{hint}{_pascal(prop)}", context, field_notes)
             if prop not in required:
@@ -542,7 +535,7 @@ def _workflow_engine_roots() -> list[Root | Union]:
     data = []
     for action, schema in response_schemas.action_data_sources():
         data.append(name := f"{_pascal(action)}ActionData")
-        roots.append(Root(name, schema, f"data_schema of the {action} action handler"))
+        roots.append(Root(name, schema, f"data_schema of the {action} action handler", "both"))
     roots += [
         Union("ActionConfig", actions, "stored", "Any action's config"),
         Union(
@@ -552,6 +545,7 @@ def _workflow_engine_roots() -> list[Root | Union]:
             "Any action's config, as the API returns it",
         ),
         Union("ActionData", data, "stored", "Any action's data"),
+        Union("ActionDataResponse", data, "response", "Any action's data, as the API returns it"),
     ]
 
     detectors = []

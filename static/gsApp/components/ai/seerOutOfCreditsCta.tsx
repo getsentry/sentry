@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import {usePrompts} from 'sentry/actionCreators/prompts';
 import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import type {Organization} from 'sentry/types/organization';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -15,14 +16,21 @@ import {
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {trialPromptIsDismissed} from 'getsentry/utils/billing';
+import {openSeerAutoTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/autoTopUpModal';
 import {seerWalletAutoTopUpOptions} from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
 
 function getEscalation(
   organization: Organization,
-  subscription: Subscription | null
+  subscription: Subscription | null,
+  denialReason: SeerCreditDenialReason | null | undefined
 ): SeerOutOfCreditsEscalation {
   if (organization.access.includes('org:billing')) {
     return 'configure';
+  }
+  // "Contact Admin" asks the admins for more credits, which doesn't lift the
+  // daily usage limit, so members are only told to ask them about the limit.
+  if (denialReason === 'daily_cap_exceeded') {
+    return 'contact';
   }
   // Members of orgs that buy through an account team have nobody to send a
   // self-serve request to, same as the upgrade and trial CTAs.
@@ -34,12 +42,17 @@ function getEscalation(
 
 const TOP_UP_REQUESTED_PROMPT = 'seer_top_up_requested';
 
-export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps) {
+export function SeerOutOfCreditsCta({
+  reason,
+  denialReason,
+  size,
+  variant,
+}: SeerOutOfCreditsCtaProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const subscription = useSubscription();
   const [isRequestingCredits, setIsRequestingCredits] = useState(false);
-  const escalation = getEscalation(organization, subscription);
+  const escalation = getEscalation(organization, subscription, denialReason);
 
   const {
     isLoading: isPromptLoading,
@@ -54,9 +67,8 @@ export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps)
     options: {enabled: escalation === 'request'},
   });
 
-  // The copy changes when auto-reload is already on: the org has used up the
-  // top-ups it allows. Only billing members see that copy, and only they can
-  // read the setting.
+  // With auto-reload on, running out means the org hit its daily usage limit,
+  // which gets its own copy. Only billing members can read the setting.
   const {data: autoTopUp, isPending: isAutoTopUpPending} = useQuery({
     ...seerWalletAutoTopUpOptions(organization),
     enabled: escalation === 'configure',
@@ -88,12 +100,12 @@ export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps)
   return (
     <SeerOutOfCreditsNotice
       reason={reason}
+      denialReason={denialReason}
+      size={size}
       variant={variant}
       escalation={escalation}
       autoReloadEnabled={autoTopUp?.enabled}
-      // The Seer wallet card on the billing overview is where auto-reload is
-      // configured until there is an in-place modal.
-      configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
+      onConfigureAutoReload={() => openSeerAutoTopUpModal({organization})}
       onRequestCredits={handleRequestCredits}
       isRequestingCredits={isRequestingCredits}
       hasRequestedCredits={isPromptDismissed[TOP_UP_REQUESTED_PROMPT]}

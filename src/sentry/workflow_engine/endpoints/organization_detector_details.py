@@ -178,9 +178,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
                 enforce_scope(request, "alerts:write")
             raise PermissionDenied
 
-        detector_type = request.data.get("type") or detector.type
         validator = get_detector_validator(
-            request, detector.linked_project, detector_type, detector, partial=True
+            request, detector.linked_project, detector.type, detector, partial=True
         )
 
         if not validator.is_valid():

@@ -38,6 +38,7 @@ import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
@@ -183,9 +184,11 @@ export function SeerProjectTable() {
                 {t('Enable Autofix on a Project')}
               </Heading>
               <Text variant="muted" size="md">
-                {t(
-                  'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
-                )}
+                {isSeerTokenBasedBillingOnboardingEnabled(organization)
+                  ? t('Link a repository to a project so Seer can read your code.')
+                  : t(
+                      'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
+                    )}
               </Text>
               <Flex>
                 <AddProjectButton disabled={!canWrite} />

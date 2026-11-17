@@ -16,8 +16,36 @@ import {
   type MenuItemTrailingAction,
 } from '@sentry/scraps/menu';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
+import {
+  isAfterFirstInSection,
+  type VirtualRowProps,
+} from '@sentry/scraps/useVirtualCollection';
 
 import {DropdownMenuContext} from './context';
+
+/**
+ * Data attributes `DropdownMenuSection` spaces its items by: every item of a
+ * section gets `data-section-item`, and the first one also gets
+ * `data-first-in-section`. Marking the first item, rather than relying on
+ * `:first-child`, keeps the spacing right in a virtualized menu, where spacer
+ * elements sit between the rows.
+ */
+function getSectionItemAttributes(
+  node: Node<MenuItemProps>,
+  state: TreeState<MenuItemProps>
+) {
+  const section =
+    node.parentKey === null || node.parentKey === undefined
+      ? null
+      : state.collection.getItem(node.parentKey);
+  if (section?.type !== 'section') {
+    return {};
+  }
+  return {
+    'data-section-item': true,
+    'data-first-in-section': isAfterFirstInSection(node, section) ? undefined : true,
+  };
+}
 
 export type DropdownMenuSearchOptions = {placeholder?: string};
 
@@ -118,6 +146,12 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
   state: TreeState<MenuItemProps>;
   id?: string;
   /**
+   * Whether the item is in a virtualized menu. React Aria then sets
+   * `aria-posinset` and `aria-setsize`, so assistive technology knows the
+   * item's position in the full menu rather than among the mounted rows.
+   */
+  isVirtualized?: boolean;
+  /**
    * Ref to the inner focusable menu item.
    */
   menuItemRef?: React.Ref<HTMLElement>;
@@ -130,6 +164,12 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
    * Tag name for item wrapper
    */
   renderAs?: T;
+  /**
+   * Measurement props from a virtualized list, applied to the item's root
+   * element. The root is measured rather than a wrapper, since submenu
+   * wrappers use `display: contents` and have no height of their own.
+   */
+  rowProps?: VirtualRowProps;
   /**
    * Props from `useSubmenuTrigger`, set when this item opens a submenu.
    */
@@ -150,6 +190,8 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   ref,
   menuItemRef,
   submenuTriggerProps,
+  isVirtualized,
+  rowProps,
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
@@ -225,6 +267,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       },
       closeOnSelect: isLink ? false : resolvedCloseOnSelect,
       isDisabled,
+      isVirtualized,
     },
     state,
     innerWrapRef
@@ -265,7 +308,9 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
 
   return (
     <ListItem
-      ref={mergeRefs(ref, itemRef)}
+      ref={mergeRefs(ref, itemRef, rowProps?.ref)}
+      data-index={rowProps?.['data-index']}
+      {...getSectionItemAttributes(node, state)}
       as={renderAs}
       label={itemLabel}
       leadingItems={

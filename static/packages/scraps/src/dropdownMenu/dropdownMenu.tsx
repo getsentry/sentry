@@ -146,6 +146,7 @@ function DropdownMenu({
     triggerProps: overlayTriggerProps,
     overlayProps,
   } = useOverlay({
+    type: 'menu',
     isOpen: isOpenProp,
     onClose: parentRootMenuState?.close,
     offset,

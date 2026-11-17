@@ -95,6 +95,7 @@ class OrganizationAgenticOnboardingRunDetailsEndpointTest(APITestCase):
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
         )
+        assert token == "abcdefghij"
         self.service.update(
             token=token,
             user_id=self.user.id,

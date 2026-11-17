@@ -7,6 +7,7 @@ import {IconSettings} from '@sentry/icons/settings';
 import omit from 'lodash/omit';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
+import {useStore} from 'zustand';
 
 import {
   getOrganizationAvatarProps,
@@ -32,7 +33,6 @@ import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -69,7 +69,7 @@ interface OrganizationDropdownProps {
 
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
-  const config = useLegacyStore(ConfigStore);
+  const singleOrganization = useStore(ConfigStore, state => state.singleOrganization);
   const theme = useTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
@@ -83,7 +83,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const isProjectTourActive = settingsTour?.currentStepId === 'projects';
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
 
   const [activeOrgs, inactiveOrgs] = partition(
     organizations.filter(org => org.slug !== organization.slug),
@@ -268,7 +268,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     leadingItems: <IconBuilding />,
                     submenu: true,
                     hidden:
-                      config.singleOrganization ||
+                      singleOrganization ||
                       isDemoModeActive() ||
                       (activeOrgs.length === 0 && inactiveOrgs.length === 0),
                     children: [
@@ -419,7 +419,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               key: 'switch-organization',
               label: t('Switch Organization'),
               submenu: true,
-              hidden: config.singleOrganization || isDemoModeActive(),
+              hidden: singleOrganization || isDemoModeActive(),
               children: [
                 {
                   key: 'active-orgs',

@@ -13,6 +13,7 @@ from sentry.cadence.schedule import (
     cron,
     every,
     min_gap,
+    missed_between,
     next_time_after,
     reschedule_for_new_interval,
     schedule_of,
@@ -214,12 +215,15 @@ def interval_trigger(interval: timedelta) -> ScheduledTrigger:
     )
 
 
-def cron_trigger(expression: str, tz: str = "UTC") -> ScheduledTrigger:
+def cron_trigger(
+    expression: str, tz: str = "UTC", *, min_gap_seconds: int = 1800
+) -> ScheduledTrigger:
     return ScheduledTrigger(
         trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
         schedule_type=ScheduleType.CRON,
         cron_expression=expression,
         timezone=tz,
+        min_gap_seconds=min_gap_seconds,
     )
 
 
@@ -297,6 +301,80 @@ def test_advance_cron_skips_missed_runs() -> None:
 def test_reschedule_keeps_next_time_within_new_interval() -> None:
     current = NOW + timedelta(minutes=5)
     assert reschedule_for_new_interval(current, timedelta(minutes=30), NOW) == current
+
+
+@pytest.mark.parametrize("hours, expected", [(1, 0), (2, 1), (4, 3), (10000, 9999)])
+def test_missed_interval_count_is_exact(hours: int, expected: int) -> None:
+    assert missed_between(
+        interval_trigger(timedelta(hours=1)), NOW, NOW + timedelta(hours=hours)
+    ) == (expected, False)
+
+
+@pytest.mark.parametrize("hours, expected", [(1, 0), (2, 1), (4, 3)])
+def test_missed_cron_count_excludes_both_endpoints(hours: int, expected: int) -> None:
+    assert missed_between(cron_trigger("0 * * * *"), NOW, NOW + timedelta(hours=hours)) == (
+        expected,
+        False,
+    )
+
+
+@pytest.mark.parametrize("seconds", [0, 1])
+def test_missed_cron_count_avoids_iteration_within_the_minimum_gap(seconds: int) -> None:
+    trigger = cron_trigger("0 * * * *", min_gap_seconds=3600)
+
+    with patch("sentry.cadence.schedule.CronSim") as cron_sim:
+        assert missed_between(
+            trigger, NOW + timedelta(seconds=seconds), NOW + timedelta(hours=1)
+        ) == (0, False)
+
+    cron_sim.assert_not_called()
+
+
+def test_missed_cron_count_counts_just_beyond_the_minimum_gap() -> None:
+    trigger = cron_trigger("0 * * * *", min_gap_seconds=3600)
+
+    assert missed_between(trigger, NOW - timedelta(seconds=1), NOW + timedelta(hours=1)) == (
+        1,
+        False,
+    )
+
+
+def test_missed_cron_count_fast_path_uses_real_time_across_dst() -> None:
+    trigger = cron_trigger("0 9 * * *", tz="America/New_York", min_gap_seconds=23 * 3600)
+
+    with patch("sentry.cadence.schedule.CronSim") as cron_sim:
+        assert missed_between(
+            trigger,
+            datetime(2024, 3, 9, 14, 0, tzinfo=UTC),
+            datetime(2024, 3, 10, 13, 0, tzinfo=UTC),
+        ) == (0, False)
+
+    cron_sim.assert_not_called()
+
+
+def test_missed_cron_count_is_bounded_without_changing_the_next_time() -> None:
+    trigger = cron_trigger("0 * * * *")
+    with patch("sentry.cadence.schedule.MAX_MISSED_CRON_FIRINGS", 3):
+        assert missed_between(trigger, NOW, NOW + timedelta(hours=4)) == (3, False)
+        next_scheduled_for = advance(trigger, NOW, NOW + timedelta(hours=10))
+        assert next_scheduled_for == NOW + timedelta(hours=11)
+        assert missed_between(trigger, NOW, next_scheduled_for) == (3, True)
+
+
+def test_missed_cron_count_does_not_count_the_repeated_dst_hour_twice() -> None:
+    assert missed_between(
+        cron_trigger("30 1 * * *", tz="America/New_York"),
+        datetime(2024, 11, 2, 5, 30, tzinfo=UTC),
+        datetime(2024, 11, 5, 6, 30, tzinfo=UTC),
+    ) == (2, False)
+
+
+def test_missed_cron_count_includes_the_shifted_spring_dst_firing() -> None:
+    assert missed_between(
+        cron_trigger("30 2 * * *", tz="America/New_York"),
+        datetime(2024, 3, 9, 7, 30, tzinfo=UTC),
+        datetime(2024, 3, 12, 6, 30, tzinfo=UTC),
+    ) == (2, False)
 
 
 def test_reschedule_pulls_in_next_time_beyond_new_interval() -> None:

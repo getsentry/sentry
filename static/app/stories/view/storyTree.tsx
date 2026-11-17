@@ -11,6 +11,7 @@ import {
   COMPONENT_CATEGORY_CONFIG,
   COMPONENT_CATEGORY_ORDER,
   isComponentCategory,
+  isScrapsStoryFile,
   type ComponentCategory,
 } from 'sentry/stories/componentCategories';
 import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
@@ -221,7 +222,7 @@ export function useFlatStoryList(): StoryTreeNode[] {
             continue;
           }
 
-          for (const file of subcategoryFiles.sort()) {
+          for (const file of subcategoryFiles.sort(compareCoreFiles)) {
             result.push(createStoryLeaf(file, 'core'));
           }
         }
@@ -379,7 +380,20 @@ function isPrinciplesFile(file: string) {
 }
 
 function isCoreFile(file: string) {
-  return file.includes('components/core');
+  return isScrapsStoryFile(file) || file.includes('components/core');
+}
+
+/**
+ * Core docs live in both the app and the Scraps package, so sorting by the full
+ * path would list every app doc before every package doc. Sort by the path
+ * inside the component directory instead.
+ */
+function compareCoreFiles(a: string, b: string) {
+  const sortKey = (file: string) =>
+    file.replace(/^(app\/components\/core|packages\/scraps\/src)\//, '');
+  const keyA = sortKey(a);
+  const keyB = sortKey(b);
+  return keyA < keyB ? -1 : keyA > keyB ? 1 : 0;
 }
 
 function isPatternsFile(file: string) {
@@ -509,7 +523,7 @@ function buildComponentTree(
     const subgroupComponents = new Set(config.subgroups?.flatMap(sg => sg.components));
 
     // Add top-level files (those not in any subgroup), sorted alphabetically
-    for (const file of files.sort()) {
+    for (const file of files.sort(compareCoreFiles)) {
       const name = inferComponentName(file);
       if (!subgroupComponents.has(name.toLowerCase())) {
         folderNode.children[name] = createStoryLeaf(file, 'core');

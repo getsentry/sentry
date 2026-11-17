@@ -18,8 +18,10 @@ from sentry.ai_monitoring.conversation_aggregates import (
 )
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
 from sentry.ai_monitoring.utils import (
+    MAX_RETENTION_DAYS,
     ConversationProject,
     get_conversation_url,
+    get_time_range_error,
     serialize_conversation_project,
 )
 from sentry.api.api_owners import ApiOwner
@@ -58,7 +60,6 @@ logger = logging.getLogger(__name__)
 type SpanRow = dict[str, Any]
 type SpanKey = tuple[str, str]
 
-MAX_RETENTION_DAYS = 30
 MAX_PARENT_REPAIR_DEPTH = 5
 MAX_MODEL_USAGE_ROWS = 100
 
@@ -404,7 +405,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         `inputCost` includes cache-read and cache-write costs, and `outputCost` includes
         reasoning cost. These cost breakdowns are not added to `totalCost`.
         Stats are returned on the first page only. Without an explicit range, Sentry widens
-        the search across available retention. A missing conversation returns an empty `spans` list.
+        the search to the last 30 days. Ranges that reach further back, including a
+        `statsPeriod` longer than 30 days, return a 400. A missing conversation returns an
+        empty `spans` list.
         """
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -412,20 +415,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         now = timezone.now()
-        max_retention_cutoff = now - timedelta(days=MAX_RETENTION_DAYS)
+        if time_range_error := get_time_range_error(request, snuba_params, now):
+            return Response(DetailResponse(detail=time_range_error), status=400)
         has_explicit_range = request.GET.get("start") or request.GET.get("end")
-
-        if has_explicit_range:
-            if snuba_params.start and snuba_params.start < max_retention_cutoff:
-                error = DetailResponse(
-                    detail=f"start time cannot be older than {MAX_RETENTION_DAYS} days"
-                )
-                return Response(error, status=400)
-            if snuba_params.end and snuba_params.end < max_retention_cutoff:
-                error = DetailResponse(
-                    detail=f"end time cannot be older than {MAX_RETENTION_DAYS} days"
-                )
-                return Response(error, status=400)
 
         with handle_query_errors():
             if has_explicit_range:

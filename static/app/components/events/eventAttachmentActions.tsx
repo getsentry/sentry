@@ -3,12 +3,13 @@ import {IconDownload} from '@sentry/icons/download';
 import {IconShow} from '@sentry/icons/show';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Grid} from '@sentry/scraps/layout';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {Confirm} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
@@ -35,7 +36,9 @@ export function EventAttachmentActions({
 }: Props) {
   const organization = useOrganization();
   const {hasRole: hasAttachmentRole} = useRole({role: 'attachmentsRole'});
-  const url = `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/`;
+  const url = resolveHostname(
+    `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/`
+  );
   const hasPreview = hasInlineAttachmentRenderer(attachment);
   const isTooLarge = isAttachmentTooLargeForPreview(attachment);
   const canPreview = hasPreview && !isTooLarge;

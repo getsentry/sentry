@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -18,6 +19,7 @@ from sentry.api.authentication import (
     OrgAuthTokenAuthentication,
     RelayAuthentication,
     RpcSignatureAuthentication,
+    ServiceAccountTokenAuthentication,
     UserAuthTokenAuthentication,
     ViewerContextAuthentication,
     compare_service_signature,
@@ -37,12 +39,16 @@ from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.service_accounts.auth import is_service_account_auth
+from sentry.service_accounts.models import ServiceAccountToken
 from sentry.service_accounts.principal import ServiceAccountPrincipal
+from sentry.service_accounts.tokens import generate_token as generate_service_account_token
+from sentry.service_accounts.tokens import stored_token_fields
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
@@ -431,6 +437,119 @@ class TestOrgAuthTokenAuthentication(TestCase):
             self.auth.authenticate(request)
 
 
+@with_feature("organizations:service-accounts")
+class TestServiceAccountTokenAuthentication(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.auth = ServiceAccountTokenAuthentication()
+        self.service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read", "project:read", "event:read"]
+        )
+        self.token_str = generate_service_account_token(
+            self.organization.slug, "https://test-region.sentry.io"
+        )
+        stored = stored_token_fields(self.token_str)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.token = ServiceAccountToken.objects.create(
+                service_account=self.service_account,
+                organization_id=self.organization.id,
+                name="ci",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=["project:read", "event:read", "project:write"],
+                created_by=self.user,
+            )
+
+    def request(self, path: str = "/example", token_str: str | None = None) -> Request:
+        request = _drf_request(path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token_str or self.token_str}"
+        return request
+
+    def assert_fails_in_both_silos(self, request: Request) -> None:
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            with pytest.raises(AuthenticationFailed):
+                self.auth.authenticate(request)
+
+    def update_in_control(self, obj: Any, **fields: Any) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            for name, value in fields.items():
+                setattr(obj, name, value)
+            obj.save()
+
+    def assert_authenticates_as_account(self, scopes: list[str]) -> None:
+        result = self.auth.authenticate(self.request())
+
+        assert result is not None
+        user, auth = result
+        assert user == ServiceAccountPrincipal(
+            service_account_id=self.service_account.id,
+            organization_id=self.organization.id,
+            name=self.service_account.name,
+        )
+        assert acting_user_id(user) is None
+        assert is_service_account_auth(auth)
+        assert auth.entity_id == self.service_account.id
+        assert auth.organization_id == self.organization.id
+        assert auth.scopes == scopes
+
+    def test_authenticates_with_token_and_account_scopes(self) -> None:
+        self.assert_authenticates_as_account(["event:read", "project:read"])
+
+    def test_authenticates_in_control(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            self.assert_authenticates_as_account(["event:read", "project:read"])
+
+    def test_narrowing_the_account_narrows_the_token(self) -> None:
+        self.update_in_control(self.service_account, scope_list=["project:read"])
+
+        self.assert_authenticates_as_account(["project:read"])
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            self.assert_authenticates_as_account(["project:read"])
+
+    def test_accepts_only_service_account_tokens(self) -> None:
+        assert self.auth.accepts_auth([b"Bearer", self.token_str.encode()])
+        assert not self.auth.accepts_auth([b"Bearer", b"sntrys_abc123_xyz"])
+        assert not self.auth.accepts_auth([b"Bearer", b"not-a-prefixed-token"])
+        assert not self.auth.accepts_auth([b"Basic", self.token_str.encode()])
+        assert not UserAuthTokenAuthentication().accepts_auth([b"Bearer", self.token_str.encode()])
+
+    def test_unknown_token_fails(self) -> None:
+        other_token = generate_service_account_token(
+            self.organization.slug, "https://test-region.sentry.io"
+        )
+        self.assert_fails_in_both_silos(self.request(token_str=other_token))
+
+    def test_revoked_token_fails(self) -> None:
+        self.update_in_control(self.token, date_deactivated=datetime.now(UTC))
+        self.assert_fails_in_both_silos(self.request())
+
+    def test_expired_token_fails(self) -> None:
+        self.update_in_control(self.token, date_expires=datetime.now(UTC) - timedelta(minutes=1))
+        self.assert_fails_in_both_silos(self.request())
+
+    def test_deleted_account_fails(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            assert self.service_account.deactivate()
+        self.assert_fails_in_both_silos(self.request())
+
+    def test_without_feature_fails(self) -> None:
+        with with_feature({"organizations:service-accounts": False}):
+            self.assert_fails_in_both_silos(self.request())
+
+    def test_own_organization_url_authenticates(self) -> None:
+        for org in (self.organization.slug, str(self.organization.id)):
+            result = self.auth.authenticate(self.request(path=f"/api/0/organizations/{org}/"))
+            assert result is not None
+
+    def test_other_organization_url_fails(self) -> None:
+        other_org = self.create_organization()
+        self.assert_fails_in_both_silos(
+            self.request(path=f"/api/0/organizations/{other_org.slug}/")
+        )
+
+
 @control_silo_test
 class TestTokenAuthentication(TestCase):
     def setUp(self) -> None:
@@ -462,6 +581,14 @@ class TestTokenAuthentication(TestCase):
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
+
+    def test_skips_service_account_token(self) -> None:
+        token_str = generate_service_account_token("test-org", "https://test-region.sentry.io")
+        request = _drf_request()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token_str}"
+
+        assert not self.auth.accepts_auth([b"bearer", token_str.encode()])
+        assert self.auth.authenticate(request) is None
 
     def test_authenticate_bearer_scheme_case_insensitive(self) -> None:
         """
@@ -1316,7 +1443,7 @@ class TestViewerContextAuthentication(TestCase):
         assert ViewerContextAuthentication().authenticate(request) is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
-    def test_service_account_in_control_silo_returns_none(self) -> None:
+    def test_service_account_in_control_silo_without_feature_returns_none(self) -> None:
         service_account = self.create_service_account(organization=self.organization)
         context = ViewerContext(
             actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),

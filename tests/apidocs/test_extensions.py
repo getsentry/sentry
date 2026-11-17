@@ -36,7 +36,7 @@ def test_workflow_action_openapi_schema_documents_public_contract() -> None:
     assert "integrationId" in slack["required"]
 
     pagerduty_data = variants["pagerduty"]["properties"]["data"]
-    assert "additionalProperties" not in pagerduty_data
+    assert pagerduty_data["additionalProperties"] is False
     assert "additionalProperties" not in pagerduty_data["properties"]
 
 
@@ -55,7 +55,6 @@ def test_metric_detector_openapi_schema_documents_variants() -> None:
         86400,
         604800,
         2592000,
-        None,
     ]
 
     condition_schema = _metric_condition_schema()

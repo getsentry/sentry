@@ -2,6 +2,7 @@ import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
 
+import {resolveHostname} from './api/resolveHostname';
 import {downloadFromHref} from './downloadFromHref';
 
 type ErrorDetail = {
@@ -24,8 +25,10 @@ export async function downloadPreprodArtifact({
   regionUrl,
   onStaffPermissionError,
 }: DownloadPreprodArtifactOptions): Promise<void> {
-  const baseUrl = regionUrl || '';
-  const downloadUrl = `${baseUrl}/api/0/internal/${organizationSlug}/${projectSlug}/files/preprodartifacts/${artifactId}/`;
+  const downloadUrl = resolveHostname(
+    `/api/0/internal/${organizationSlug}/${projectSlug}/files/preprodartifacts/${artifactId}/`,
+    regionUrl
+  );
 
   try {
     const response = await fetch(downloadUrl, {

@@ -6,7 +6,7 @@
  */
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Container} from '@sentry/scraps/layout';
@@ -18,8 +18,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -32,12 +31,11 @@ import U2fEnrolledDetails from './components/u2fEnrolledDetails';
 import {useAccountSecurityContext} from './accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
-const getAuthenticatorQueryKey = (authId: string) =>
-  [
-    getApiUrl('/users/$userId/authenticators/$authId/', {
-      path: {userId: 'me', authId},
-    }),
-  ] as const;
+const authenticatorOptions = (authId: string) =>
+  apiOptions.as<Authenticator>()('/users/$userId/authenticators/$authId/', {
+    path: {userId: 'me', authId},
+    staleTime: 0,
+  });
 
 interface AuthenticatorDateProps {
   /**
@@ -69,9 +67,7 @@ export default function AccountSecurityDetails() {
     isPending: isAuthenticatorPending,
     isError,
     refetch,
-  } = useApiQuery<Authenticator>(getAuthenticatorQueryKey(authId), {
-    staleTime: 0,
-  });
+  } = useQuery(authenticatorOptions(authId));
 
   const {mutate: remove, isPending: isRemoveLoading} = useMutation({
     mutationFn: ({id, device}: {id: string; device?: AuthenticatorDevice}) => {
@@ -91,7 +87,7 @@ export default function AccountSecurityDetails() {
       toast.error(t('Error removing %s', deviceName));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
+      queryClient.invalidateQueries({queryKey: authenticatorOptions(authId).queryKey});
     },
   });
 
@@ -120,7 +116,7 @@ export default function AccountSecurityDetails() {
       toast.error(t('Error renaming the device'));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
+      queryClient.invalidateQueries({queryKey: authenticatorOptions(authId).queryKey});
     },
   });
 

@@ -3,13 +3,14 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, TypedDict, cast
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.access import Access
 from sentry.auth.principal import RequestPrincipal
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
@@ -21,14 +22,17 @@ from sentry.incidents.metric_issue_detector import (
     fetch_snuba_query,
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
-from sentry.investigations.contracts import (
+from sentry.investigations.contracts import StrictFloatField, StrictIntegerField
+from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.notebooks.contracts import (
     ActionPayloadSerializer,
     StrictCharField,
-    StrictFloatField,
-    StrictIntegerField,
+    StrictContractSerializer,
 )
-from sentry.investigations.models import InvestigationOrchestrationRun
-from sentry.investigations.services.action_kinds.base import (
+from sentry.notebooks.models import Notebook, NotebookActionRequest
+from sentry.notebooks.services.action_kinds.base import (
     ActionInvalid,
     ActionKind,
     ActionStale,
@@ -37,10 +41,6 @@ from sentry.investigations.services.action_kinds.base import (
     CannotApplyReason,
     SettingValue,
 )
-from sentry.models.environment import Environment
-from sentry.models.organization import Organization
-from sentry.notebooks.contracts import StrictContractSerializer
-from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.snuba.models import SnubaQuery
 from sentry.workflow_engine.endpoints.organization_detector_details import (
     check_metric_detector_allowed,
@@ -355,9 +355,9 @@ def _action_detector_id(action_request: NotebookActionRequest) -> int:
 
 
 class UpdateDetectorAppliedDetails(TypedDict):
-    detectorId: str
-    detectorName: str
-    fields: list[str]
+    detectorId: Annotated[str, ApiDescription("The ID of the monitor that was changed")]
+    detectorName: Annotated[str, ApiDescription("The name of the monitor that was changed")]
+    fields: Annotated[list[str], ApiDescription("The monitor settings that were changed")]
 
 
 def _error_messages(errors: Mapping[str, Any] | Sequence[Any] | str) -> list[str]:
@@ -395,15 +395,16 @@ def _validation_messages(
     return []
 
 
-class UpdateDetectorKind(ActionKind):
+class UpdateDetectorKind(ActionKind[UpdateDetectorAppliedDetails]):
     kind = UPDATE_DETECTOR_ACTION
     payload_serializer = UpdateDetectorActionSerializer
+    applied_details = UpdateDetectorAppliedDetails
 
     def cannot_apply_reasons(
         self,
         action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Notebook],
+        notebooks: dict[int, Notebook],
         access: Access,
         user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
@@ -415,7 +416,7 @@ class UpdateDetectorKind(ActionKind):
         }
         detector_ids_by_org: dict[int, set[int]] = defaultdict(set)
         for item in action_requests:
-            organization_id = investigations[item.notebook_id].organization_id
+            organization_id = notebooks[item.notebook_id].organization_id
             detector_ids_by_org[organization_id].add(_action_detector_id(item))
         detectors = {
             (organization_id, detector_id): detector
@@ -428,7 +429,7 @@ class UpdateDetectorKind(ActionKind):
         reasons: dict[int, CannotApplyReason | None] = {}
         for item in action_requests:
             detector_id = _action_detector_id(item)
-            investigation = investigations[item.notebook_id]
+            investigation = notebooks[item.notebook_id]
             source_id = source_detector_ids.get(item.notebook_id)
             key = (detector_id, source_id, investigation.organization_id)
             if key not in detector_reasons:
@@ -451,7 +452,7 @@ class UpdateDetectorKind(ActionKind):
     def _apply(self, context: ApplyContext, *, dry_run: bool) -> UpdateDetectorAppliedDetails:
         action = context.action_request.action_payload
         assert action is not None
-        detectors = _metric_detectors(context.investigation.organization_id)
+        detectors = _metric_detectors(context.notebook.organization_id)
         snuba_queries = SnubaQuery.objects.all()
         if not dry_run:
             # Lock the monitor until we save, so an edit between the stale check and the save

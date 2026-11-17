@@ -1038,6 +1038,24 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert len(response.data["spans"]) == 1
         assert response.data["spans"][0]["gen_ai.conversation.id"] == conversation_id
 
+    def test_rejects_stats_period_longer_than_30_days(self) -> None:
+        response = self.do_request(
+            uuid4().hex, {"project": [self.project.id], "statsPeriod": "90d"}
+        )
+        assert response.status_code == 400
+        assert response.data == {"detail": "statsPeriod cannot be longer than 30 days"}
+
+    def test_rejects_start_older_than_30_days(self) -> None:
+        now = before_now().replace(microsecond=0)
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(days=31)).isoformat(),
+            "end": now.isoformat(),
+        }
+        response = self.do_request(uuid4().hex, query)
+        assert response.status_code == 400
+        assert response.data == {"detail": "start time cannot be older than 30 days"}
+
     def test_tokens_on_multiple_span_types(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         trace_id = uuid4().hex
