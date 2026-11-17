@@ -11,6 +11,7 @@ import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
+import {ToolError} from 'sentry/components/ai/toolDetails/toolError';
 import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -25,7 +26,10 @@ import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/a
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import {ExtractionResultSummary} from 'sentry/views/insights/pages/agents/components/extractionContent';
-import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getToolError,
+  getTraceNodeAttribute,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getCodeModeInput,
   isCodeModeNode,
@@ -492,6 +496,7 @@ function OutputTab({
   );
   const toolOutput = getAIToolOutput(node, attributes);
   const hasToolOutput = toolOutput !== undefined;
+  const toolError = getToolError(node, attributes);
 
   // Reasoning is supplementary to the actual output, so clip it when there is
   // other content; when it is the only output, show it in full.
@@ -504,13 +509,15 @@ function OutputTab({
     !responseText &&
     !responseObject &&
     !toolCalls &&
-    !hasToolOutput
+    !hasToolOutput &&
+    !toolError
   ) {
     return <EmptySpanTab message={t('No output for this span')} />;
   }
 
   return (
     <Fragment>
+      {toolError ? <ToolError error={toolError} /> : null}
       {reasoningText ? (
         <Fragment>
           <TraceDrawerComponents.MultilineTextLabel>

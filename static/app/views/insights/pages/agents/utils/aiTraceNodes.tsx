@@ -248,6 +248,55 @@ export function hasError(node: AITraceSpanNode): boolean {
   return !!getStringAttr(node, 'status')?.includes('error');
 }
 
+export interface ToolError {
+  message: string | undefined;
+  type: string | undefined;
+}
+
+/**
+ * Resolves the error of a failed tool call, following the OTel GenAI
+ * conventions: the span status marks the failure, `error.type` classifies it
+ * and the span status message (`sentry.status.message`) carries the
+ * human-readable message. MCP tool results flagged with `isError` fall back to
+ * their result content.
+ */
+export function getToolError(
+  node: AITraceSpanNode,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+): ToolError | null {
+  if (!getIsExecuteToolNode(node)) {
+    return null;
+  }
+
+  const attributeObject = ensureAttributeObject(node, event, attributes) ?? {};
+  const getString = (key: string): string | undefined => {
+    const value = attributeObject[key];
+    return value === undefined || value === null || value === ''
+      ? undefined
+      : String(value);
+  };
+
+  const status = getString(SpanFields.SPAN_STATUS) ?? getString('status');
+  const errorType = getString('error.type');
+  const isMcpError = String(attributeObject['mcp.tool.result.is_error']) === 'true';
+  const failed = status
+    ? status.includes('error')
+    : hasError(node) || isMcpError || errorType !== undefined;
+
+  if (!failed) {
+    return null;
+  }
+
+  return {
+    type: errorType,
+    message:
+      getString(SpanFields.STATUS_MESSAGE) ??
+      getString('sentry.status.message') ??
+      (isMcpError ? getString('mcp.tool.result.content') : undefined),
+  };
+}
+
 export type ColorByOpType = Record<GenAiOperationType | 'default' | 'error', string>;
 
 /**
