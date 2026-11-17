@@ -105,9 +105,19 @@ class Finding:
         return (self.rule, self.path, self.scope, self.key)
 
 
+@functools.cache
+def documented_path(route: str) -> str:
+    """The path the schema build gives a URL route, so `(?:issues|groups)` becomes `issues`."""
+    # pytest loads this plugin before Django is configured, and the build's hooks need settings.
+    from sentry.apidocs.hooks import CustomEndpointEnumerator, _canonical_issue_path
+
+    return _canonical_issue_path(CustomEndpointEnumerator().get_path_from_regex(route))
+
+
 class SchemaIndex:
     def __init__(self, spec: dict[str, Any]) -> None:
-        prefix = urlsplit(spec["servers"][0]["url"]).path.rstrip("/")
+        self.prefix = prefix = urlsplit(spec["servers"][0]["url"]).path.rstrip("/")
+        self.operations: dict[str, dict[str, Operation]] = {}
         routes: list[tuple[int, int, re.Pattern[str], dict[str, Operation]]] = []
         for template, item in spec["paths"].items():
             ops = {
@@ -115,6 +125,7 @@ class SchemaIndex:
                 for method, op in item.items()
                 if method in HTTP_METHODS
             }
+            self.operations[template] = ops
             regex = re.compile(
                 "^" + re.sub(r"\\\{[^}]+\\\}", "[^/]+", re.escape(prefix + template)) + "$"
             )
@@ -129,6 +140,11 @@ class SchemaIndex:
             if regex.match(path):
                 return ops.get(method)
         return None
+
+    def find_route(self, method: str, route: str) -> Operation | None:
+        """Finds the operation of a request whose path is an alias of the documented one."""
+        path = documented_path(route).removeprefix(self.prefix)
+        return self.operations.get(path, {}).get(method)
 
 
 @functools.cache
@@ -197,14 +213,15 @@ class Checker:
     def _check(self, path: str, method: str, response: Any) -> None:
         operation = self.index.find(method, path)
         view_class = None
-        if operation is not None:
-            # the client resolves the URL lazily, and a response that never went through URL
-            # resolution has no resolver_match at all
-            try:
-                match = getattr(response, "resolver_match", None)
-                view_class = getattr(getattr(match, "func", None), "view_class", None)
-            except Resolver404:
-                pass
+        # the client resolves the URL lazily, and a response that never went through URL
+        # resolution has no resolver_match at all
+        try:
+            match: Any = getattr(response, "resolver_match", None)
+            view_class = getattr(getattr(match, "func", None), "view_class", None)
+            if operation is None and view_class is not None:
+                operation = self.index.find_route(method, match.route)
+        except Resolver404:
+            pass
         if operation is None or view_class is None:
             self.skipped += 1
             return

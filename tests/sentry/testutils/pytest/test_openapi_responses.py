@@ -5,6 +5,7 @@ from unittest import mock
 import orjson
 import pytest
 from django.http import HttpResponse
+from django.urls import resolve
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
@@ -16,6 +17,7 @@ from sentry.testutils.pytest.openapi_responses import (
 )
 
 ISSUE = "/organizations/{organization_id_or_slug}/issues/{issue_id}/"
+ISSUE_ROUTE = "^api/0/organizations/(?P<organization_id_or_slug>[^/]+)/issues/(?P<issue_id>[^/]+)/$"
 SPEC: dict[str, Any] = {
     "servers": [{"url": "https://{region}.sentry.io/api/0"}],
     "paths": {
@@ -55,9 +57,11 @@ class IssueEndpoint(Endpoint):
 SCOPE = (str(Path(__file__).relative_to(REPO_ROOT)), "IssueEndpoint.get")
 
 
-def response(status: int, body: object, view_class: type | None = IssueEndpoint) -> HttpResponse:
+def response(
+    status: int, body: object, view_class: type | None = IssueEndpoint, route: str = ISSUE_ROUTE
+) -> HttpResponse:
     resp = HttpResponse(orjson.dumps(body), status=status, content_type="application/json")
-    resp.resolver_match = mock.Mock(func=mock.Mock(view_class=view_class))  # type: ignore[attr-defined]
+    resp.resolver_match = mock.Mock(func=mock.Mock(view_class=view_class), route=route)  # type: ignore[attr-defined]
     return resp
 
 
@@ -80,6 +84,26 @@ def test_paths_and_methods_outside_the_schema_are_skipped() -> None:
     unresolved.resolver_match = None  # type: ignore[attr-defined]
     get(checker, "/api/0/organizations/acme/issues/1/", unresolved)
     assert (checker.checked, checker.skipped, checker.findings) == (0, 4, {})
+
+
+@pytest.mark.parametrize(
+    "path", ["/api/0/organizations/acme/groups/1/", "/api/0/groups/1/", "/api/0/issues/1/"]
+)
+def test_alias_paths_are_checked_against_the_documented_operation(path: str) -> None:
+    checker = Checker(SPEC, set())
+    get(checker, path, response(402, {}, route=resolve(path).route))
+
+    assert (checker.checked, checker.skipped) == (1, 0)
+    finding = checker.findings[("S036", *SCOPE, "status:402")]
+    assert finding.operation_id == "getIssue"
+
+
+def test_routes_the_schema_doesnt_document_are_still_skipped() -> None:
+    path = "/api/0/organizations/acme/issues/1/hashes/"
+    checker = Checker(SPEC, set())
+    get(checker, path, response(200, {}, route=resolve(path).route))
+
+    assert (checker.checked, checker.skipped, checker.findings) == (0, 1, {})
 
 
 def test_reports_undocumented_status_and_body_drift_keyed_by_endpoint_method() -> None:
