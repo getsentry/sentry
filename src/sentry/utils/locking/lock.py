@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from typing import ContextManager
 from uuid import uuid4
 
-from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking import LockHeld, UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 
 logger = logging.getLogger(__name__)
@@ -33,15 +33,15 @@ class Lock:
         If the lock is successfully acquired, this method returns a context
         manager that will automatically release the lock when exited. If the
         lock cannot be acquired, an ``UnableToAcquireLock`` error will be
-        raised.
+        raised. It is a ``LockHeld`` when another holder has the key, and a
+        plain ``UnableToAcquireLock`` when the backend failed.
         """
         token = uuid4().hex
         try:
             self.backend.acquire(self.key, self.duration, token)
         except Exception as error:
-            raise UnableToAcquireLock(
-                f"Unable to acquire {self!r} due to error: {error}"
-            ) from error
+            error_type = LockHeld if isinstance(error, LockHeld) else UnableToAcquireLock
+            raise error_type(f"Unable to acquire {self!r} due to error: {error}") from error
 
         self.token = token
 
@@ -55,31 +55,51 @@ class Lock:
         return releaser()
 
     def blocking_acquire(
-        self, initial_delay: float, timeout: float, exp_base: float = 1.6
+        self,
+        initial_delay: float,
+        timeout: float,
+        exp_base: float = 1.6,
+        max_delay: float | None = None,
+        retry_backend_errors: bool = True,
     ) -> ContextManager[None]:
         """
         Try to acquire the lock in a polling loop.
 
         :param initial_delay: A random retry delay will be picked between 0
-            and this value (in seconds). The range from which we pick doubles
-            in every iteration.
+            and this value (in seconds). The range from which we pick grows by
+            ``exp_base`` in every iteration.
         :param timeout: Time in seconds after which ``UnableToAcquireLock``
-            will be raised.
+            will be raised. The last attempt is made at the deadline.
+        :param max_delay: Upper bound in seconds for the range a delay is
+            picked from. Without it, a waiter can still be asleep for seconds
+            after the holder released.
+        :param retry_backend_errors: When false, only ``LockHeld`` is retried
+            and a backend failure is raised on its first attempt, so an outage
+            is not reported as contention after the whole timeout.
         """
-        stop = time.monotonic() + timeout
-        attempt = 0
-        while time.monotonic() < stop:
+        start = time.monotonic()
+        slept = 0.0
+        window = initial_delay
+        while True:
             try:
                 return self.acquire()
+            except LockHeld:
+                pass
             except UnableToAcquireLock:
-                delay = (exp_base**attempt) * random.random() * initial_delay
-                # Redundant check to prevent futile sleep in last iteration:
-                if time.monotonic() + delay > stop:
-                    break
+                if not retry_backend_errors:
+                    raise
 
-                time.sleep(delay)
-
-            attempt += 1
+            # freeze_time stops time.monotonic and not time.sleep. Counting the
+            # time slept still reaches the deadline under a frozen clock.
+            remaining = timeout - max(time.monotonic() - start, slept)
+            if remaining <= 0:
+                break
+            if max_delay is not None:
+                window = min(window, max_delay)
+            delay = min(window * random.random(), remaining)
+            time.sleep(delay)
+            slept += delay
+            window *= exp_base
 
         raise UnableToAcquireLock(f"Unable to acquire {self!r} because of timeout")
 

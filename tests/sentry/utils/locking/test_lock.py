@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from sentry.utils.locking import LockNotOwned, UnableToAcquireLock
+from sentry.utils.locking import LockHeld, LockNotOwned, UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.lock import Lock
 
@@ -117,11 +117,65 @@ class LockTestCase(unittest.TestCase):
             with pytest.raises(UnableToAcquireLock):
                 lock.blocking_acquire(initial_delay=0.1, timeout=1, exp_base=2)
 
-            # 0.0, 0.05, 0.15, 0.35, 0.75
-            assert len(mock_acquire.mock_calls) == 5
-            assert mock_sleep.mock_calls == [call(0.05), call(0.1), call(0.2), call(0.4)]
+            # 0.0, 0.05, 0.15, 0.35, 0.75, then the last attempt at 1.0
+            assert len(mock_acquire.mock_calls) == 6
+            assert mock_sleep.mock_calls == [
+                call(0.05),
+                call(0.1),
+                call(0.2),
+                call(0.4),
+                call(pytest.approx(0.25)),
+            ]
 
         with patch("sentry.utils.locking.lock.Lock.acquire", return_value="foo"):
             # Success case:
             result: object = lock.blocking_acquire(initial_delay=0, timeout=1)
             assert result == "foo"
+
+    def test_acquire_raises_lock_held_only_for_contention(self) -> None:
+        backend = mock.Mock(spec=LockBackend)
+        lock = Lock(backend, "lock", 60)
+
+        backend.acquire.side_effect = LockHeld("Could not set key")
+        with pytest.raises(LockHeld):
+            lock.acquire()
+
+        backend.acquire.side_effect = Exception("redis down")
+        with pytest.raises(UnableToAcquireLock) as raised:
+            lock.acquire()
+        assert not isinstance(raised.value, LockHeld)
+
+    @patch("sentry.utils.locking.lock.random.random", return_value=1.0)
+    @patch("sentry.utils.locking.lock.Lock.acquire", side_effect=LockHeld)
+    def test_blocking_acquire_caps_the_delay(
+        self, mock_acquire: MagicMock, mock_random: MagicMock
+    ) -> None:
+        lock = Lock(mock.Mock(spec=LockBackend), "lock", 60)
+
+        # The clock never moves, as under freeze_time. The time slept still
+        # reaches the deadline.
+        with (
+            patch("sentry.utils.locking.lock.time.monotonic", return_value=0.0),
+            patch("sentry.utils.locking.lock.time.sleep") as mock_sleep,
+            pytest.raises(UnableToAcquireLock),
+        ):
+            lock.blocking_acquire(initial_delay=0.25, timeout=1.5, exp_base=2, max_delay=0.5)
+
+        assert mock_sleep.mock_calls == [call(0.25), call(0.5), call(0.5), call(0.25)]
+        assert len(mock_acquire.mock_calls) == 5
+
+    @patch("sentry.utils.locking.lock.Lock.acquire", side_effect=UnableToAcquireLock)
+    def test_blocking_acquire_can_raise_backend_errors_without_retrying(
+        self, mock_acquire: MagicMock
+    ) -> None:
+        lock = Lock(mock.Mock(spec=LockBackend), "lock", 60)
+
+        with (
+            patch("sentry.utils.locking.lock.time.sleep") as mock_sleep,
+            pytest.raises(UnableToAcquireLock) as raised,
+        ):
+            lock.blocking_acquire(initial_delay=0.1, timeout=1, retry_backend_errors=False)
+
+        assert not isinstance(raised.value, LockHeld)
+        assert len(mock_acquire.mock_calls) == 1
+        mock_sleep.assert_not_called()

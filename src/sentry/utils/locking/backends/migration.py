@@ -4,7 +4,7 @@ from sentry import options
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
-from sentry.utils.locking import LockNotOwned
+from sentry.utils.locking import LockHeld, LockNotOwned
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.services import build_instance_from_options_of_type, resolve_callable
 
@@ -177,7 +177,7 @@ class MigrationLockBackend(LockBackend):
                 backend.release(key=key, token=token)
             except Exception:
                 pass
-            raise Exception(f"Could not set key: {key!r}")
+            raise LockHeld(f"Could not set key: {key!r}")
 
     def release(self, key: str, token: str | None = None) -> None:
         # Release on the backend that the selector picks now

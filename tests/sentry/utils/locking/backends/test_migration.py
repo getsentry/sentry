@@ -5,7 +5,7 @@ import pytest
 
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.locking import LockNotOwned
+from sentry.utils.locking import LockHeld, LockNotOwned
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.backends.migration import (
     MigrationLockBackend,
@@ -140,7 +140,7 @@ class TestMigrationLockBackend(TestCase):
 
         backend.backend_new.release = capture_release  # type: ignore[method-assign]
 
-        with pytest.raises(Exception, match="Could not set key"):
+        with pytest.raises(LockHeld, match="Could not set key"):
             backend.acquire("hello", 10, token="fence")
 
         assert released == ["fence"]

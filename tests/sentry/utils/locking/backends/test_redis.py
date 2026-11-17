@@ -12,7 +12,7 @@ from sentry_redis_tools.clients import RedisCluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.locking import LockNotOwned
+from sentry.utils.locking import LockHeld, LockNotOwned
 from sentry.utils.locking.backends.redis import BaseRedisLockBackend, RedisClusterLockBackend
 from sentry.utils.locking.lock import Lock
 from sentry.utils.redis import redis_clusters
@@ -54,7 +54,7 @@ class RedisBackendTestCaseBase:
 
         other_cluster = self.backend_class(self.cluster)
         other_cluster.acquire(key, duration)
-        with pytest.raises(Exception):
+        with pytest.raises(LockHeld):
             self.backend.acquire(key, duration)
 
     def test_release_fail_on_missing(self) -> None:
