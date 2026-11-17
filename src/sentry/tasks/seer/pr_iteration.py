@@ -55,6 +55,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import (
     continue_single_run_from_pr_feedback,
+    get_run_billing_feature,
     require_autofix_run_for_group,
 )
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
@@ -910,12 +911,14 @@ def _drain_queued_autofix_feedback(
                 iteration_id=iteration_id,
                 commit_author=commit_author,
                 referrer=referrer,
+                billing_feature=get_run_billing_feature(state),
             )
         else:
             trigger_autofix_agent(
                 group=group,
                 step=AutofixStep.PR_ITERATION,
                 referrer=referrer,
+                billing_feature=get_run_billing_feature(state),
                 run_id=run_id,
                 user_context=feedback_text(feedback_items),
                 feedback=feedback_items,
