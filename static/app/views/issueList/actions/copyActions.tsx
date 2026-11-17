@@ -17,6 +17,8 @@ type CopyType = 'short_ids' | 'links';
 
 const LAST_COPY_TYPE_KEY = 'issue-list-bulk-copy-type';
 
+const COPY_TYPES: CopyType[] = ['short_ids', 'links'];
+
 const COPY_OPTIONS: Record<CopyType, {buttonLabel: string; menuLabel: string}> = {
   short_ids: {buttonLabel: t('Copy IDs'), menuLabel: t('Copy Issue IDs')},
   links: {buttonLabel: t('Copy Links'), menuLabel: t('Copy Issue Links')},
@@ -74,13 +76,11 @@ export function CopyActions({
     });
   };
 
-  const menuItems: MenuItemProps[] = (Object.keys(COPY_OPTIONS) as CopyType[]).map(
-    copyType => ({
-      key: copyType,
-      label: COPY_OPTIONS[copyType].menuLabel,
-      onAction: () => handleCopy(copyType, 'dropdown'),
-    })
-  );
+  const menuItems: MenuItemProps[] = COPY_TYPES.map(copyType => ({
+    key: copyType,
+    label: COPY_OPTIONS[copyType].menuLabel,
+    onAction: () => handleCopy(copyType, 'dropdown'),
+  }));
 
   return (
     <ButtonBar>
