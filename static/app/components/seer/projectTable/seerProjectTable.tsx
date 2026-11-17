@@ -46,6 +46,7 @@ import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
+import {PR_ITERATION_OPTIONS} from 'sentry/utils/seer/prIteration';
 import {
   fetchProjectHasNonGithubRepo,
   prefetchAllSeerProjectRepos,
@@ -77,11 +78,6 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'fixes', width: '1fr'},
   {key: 'automation_steps', width: '1fr'},
   {key: 'pr_iteration', width: '1fr'},
-];
-
-const PR_ITERATION_OPTIONS = [
-  {value: true, label: t('On')},
-  {value: false, label: t('Off')},
 ];
 
 export function SeerProjectTable() {
