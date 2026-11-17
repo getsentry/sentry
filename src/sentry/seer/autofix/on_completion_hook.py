@@ -304,7 +304,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         # The coding agent writes the fix once Seer names a root cause and a repo for it.
         # A stopped run (transient, ambiguous, not a code fix) never hands off.
-        agent_run = SeerAgentRun.objects.filter(run=seer_run, source=SINGLE_RUN_FEATURE_ID).first()
+        agent_run = SeerAgentRun.objects.get_or_none(run=seer_run, source=SINGLE_RUN_FEATURE_ID)
         ready_to_hand_off = (
             not paused
             and stop is None
