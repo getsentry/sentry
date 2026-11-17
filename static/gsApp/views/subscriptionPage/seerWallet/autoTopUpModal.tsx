@@ -74,7 +74,7 @@ type PaymentRequiredResponse = {
  */
 type PendingPayment = {
   invoiceGuid: string;
-  settings: SeerWalletAutoTopUp;
+  settings: AutoTopUpSettings;
   detail?: string;
   verification?: PaymentVerification;
 };
@@ -491,7 +491,7 @@ function AutoTopUpForm({
 
 function getPendingPayment(
   error: unknown,
-  settings: SeerWalletAutoTopUp
+  settings: AutoTopUpSettings
 ): PendingPayment | null {
   if (!(error instanceof RequestError) || error.status !== 402) {
     return null;
