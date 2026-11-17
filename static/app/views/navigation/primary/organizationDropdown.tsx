@@ -155,7 +155,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       id="entry"
       position="bottom-start"
       title={t('Access Settings here')}
-      description={t('Yep. We "moved the cheese", but it\'s for the better...')}
+      description={t(
+        'Consider this a breaking change to your muscle memory. Worth the upgrade, we swear.'
+      )}
     >
       {tourProps => (
         <AvatarButton

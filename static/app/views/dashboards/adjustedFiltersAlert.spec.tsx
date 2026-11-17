@@ -8,7 +8,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {AdjustedFiltersAlert} from './adjustedFiltersAlert';
 
 describe('AdjustedFiltersAlert', () => {
-  afterEach(() => {
+  beforeEach(() => {
     PageFiltersStore.reset();
   });
 
