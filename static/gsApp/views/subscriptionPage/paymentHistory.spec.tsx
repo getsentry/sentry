@@ -188,6 +188,27 @@ describe('Subscription > PaymentHistory', () => {
     );
   });
 
+  it("labels usage-only receipts with the plan's budget term", async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+      features: ['token-billed-seer-enabled'],
+    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_team'});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [InvoiceFixture({receiptType: 'payg'})],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    const row = await screen.findByRole('row', {name: /^Jun 25, 2018/});
+    expect(within(row).getByText('Pay-as-you-go')).toBeInTheDocument();
+  });
+
   it('leaves out the receipt type without token-billed Seer', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',

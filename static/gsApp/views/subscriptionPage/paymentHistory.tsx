@@ -29,7 +29,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import type {InvoiceBase, ReceiptType} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
+import type {InvoiceBase, Plan, ReceiptType} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
@@ -79,8 +81,10 @@ function ReceiptStatusTag({payment}: {payment: InvoiceBase}) {
   );
 }
 
-function getReceiptTypeLabel(receiptType: ReceiptType) {
+function getReceiptTypeLabel(receiptType: ReceiptType, plan: Plan | undefined) {
   switch (receiptType) {
+    case 'payg':
+      return displayBudgetName(plan, {title: true});
     case 'seer_auto_reload':
       return t('Seer auto-reload');
     case 'credit_grant':
@@ -229,6 +233,7 @@ function ReceiptTable({
   const isSmallContainer = useResponsivePropValue({zero: true, xl: false});
   // Only token-billed Seer has auto-reloads and credit grants to tell apart.
   const showReceiptType = organization.features.includes('token-billed-seer-enabled');
+  const subscription = useSubscription();
 
   return (
     <SimpleTable
@@ -264,7 +269,9 @@ function ReceiptTable({
             {showReceiptType && (
               <SimpleTable.RowCell>
                 {payment.receiptType && (
-                  <Text>{getReceiptTypeLabel(payment.receiptType)}</Text>
+                  <Text>
+                    {getReceiptTypeLabel(payment.receiptType, subscription?.planDetails)}
+                  </Text>
                 )}
               </SimpleTable.RowCell>
             )}
