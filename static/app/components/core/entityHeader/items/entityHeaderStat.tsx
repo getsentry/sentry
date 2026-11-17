@@ -10,6 +10,7 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
+import type {EntityHeaderTextStyles} from './entityHeaderLink';
 import {EntityHeaderTextLink} from './entityHeaderLink';
 
 /**
@@ -102,7 +103,7 @@ export interface EntityHeaderStatProps {
 const STAT_PART_STYLES = {
   label: {size: 'sm', bold: true, density: 'comfortable', wrap: 'nowrap'},
   value: {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'},
-} as const;
+} as const satisfies Record<'label' | 'value', EntityHeaderTextStyles>;
 
 const EMPTY_VALUE = '\u2014';
 

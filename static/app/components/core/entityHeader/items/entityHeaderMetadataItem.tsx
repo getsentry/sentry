@@ -12,13 +12,14 @@ import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
+import type {EntityHeaderTextStyles} from './entityHeaderLink';
 import {EntityHeaderTextLink} from './entityHeaderLink';
 
 const TEXT_STYLES = {
   size: 'md',
   density: 'comfortable',
   wrap: 'nowrap',
-} as const;
+} as const satisfies EntityHeaderTextStyles;
 
 interface EntityHeaderMetadataItemBase {
   /**
