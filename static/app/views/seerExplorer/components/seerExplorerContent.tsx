@@ -45,7 +45,6 @@ import {
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTimeout} from 'sentry/utils/useTimeout';
@@ -203,18 +202,6 @@ export function SeerExplorerContent({
       });
   };
 
-  // Persisted so the toggle survives the drawer remounting (e.g. popping out
-  // into the picture-in-picture window, or reopening the drawer). Code mode
-  // always shows thinking — no preference or toggle can hide it.
-  const [showThinkingPreference, setShowThinking] = useLocalStorageState(
-    'seer-explorer-show-thinking',
-    false
-  );
-  const hasCodeModeTools = !!organization?.features.includes(
-    'seer-explorer-code-mode-tools'
-  );
-  const showThinking = hasCodeModeTools || showThinkingPreference;
-
   const composerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
@@ -281,14 +268,17 @@ export function SeerExplorerContent({
     }
   }, [requestError, setInputValue]);
 
-  const {chatPrompt} = useSeerExplorerChatState();
+  const {chatPrompt, pendingRestart} = useSeerExplorerChatState();
   const chatDispatch = useSeerExplorerChatDispatch();
 
   // Put back the question a failed reply answered, on every failure. The error only exists
   // for the run on screen, and this panel only exists while Explorer is showing.
   useEffect(() => {
     if (requestError?.chatPrompt) {
-      chatDispatch({type: 'restore chat prompt', payload: requestError.chatPrompt});
+      chatDispatch({
+        type: 'restore chat prompt',
+        payload: requestError.chatPrompt,
+      });
     }
   }, [requestError, chatDispatch]);
 
@@ -660,9 +650,7 @@ export function SeerExplorerContent({
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
       onBashMode: setOverrideBashModeEnabled,
-      onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
-        ? setOverrideCodeModeEnable
-        : undefined,
+      onCodeMode: setOverrideCodeModeEnable,
     },
     inputAnchorRef: composerRef,
   });
@@ -678,6 +666,7 @@ export function SeerExplorerContent({
     !isPolling &&
     !isSendBlocked &&
     !!inputValue.text.trim();
+  const restartInFlightRef = useRef(false);
   const handleSend = useCallback(() => {
     // Checked before `/investigate`, which starts a run of its own. The draft stays.
     if (isSendBlocked) {
@@ -699,6 +688,18 @@ export function SeerExplorerContent({
     if (!canSendMessage) {
       return;
     }
+    if (pendingRestart) {
+      if (!restartInFlightRef.current) {
+        restartInFlightRef.current = true;
+        pendingRestart
+          .onSubmit(text)
+          .then(clearInput, () => {})
+          .finally(() => {
+            restartInFlightRef.current = false;
+          });
+      }
+      return;
+    }
     sendMessage(text, blocks.length);
     clearInput();
     userScrolledUpRef.current = false;
@@ -706,6 +707,7 @@ export function SeerExplorerContent({
     canSendMessage,
     isSendBlocked,
     inputValue,
+    pendingRestart,
     startInvestigation,
     sendMessage,
     blocks.length,
@@ -797,15 +799,17 @@ export function SeerExplorerContent({
     },
   });
   useEffect(() => {
-    if (!chatPrompt) {
+    if (!chatPrompt && !pendingRestart) {
       return;
     }
     userScrolledUpRef.current = false;
     revealChatPrompt();
-  }, [chatPrompt, revealChatPrompt]);
+  }, [chatPrompt, pendingRestart, revealChatPrompt]);
 
   // Auto-scroll to bottom when blocks are added or the transcript resizes, unless scrolled up
-  const {height: transcriptHeight} = useDimensions({elementRef: scrollContainerRef});
+  const {height: transcriptHeight} = useDimensions({
+    elementRef: scrollContainerRef,
+  });
   useEffect(() => {
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
@@ -855,7 +859,10 @@ export function SeerExplorerContent({
   const prevIsTimedOutRef = useRef(false);
   useEffect(() => {
     if (isTimedOut && !prevIsTimedOutRef.current) {
-      trackAnalytics('seer.explorer.timed_out', {organization, run_id: runId});
+      trackAnalytics('seer.explorer.timed_out', {
+        organization,
+        run_id: runId,
+      });
     }
     prevIsTimedOutRef.current = isTimedOut;
   }, [isTimedOut, organization, runId]);
@@ -879,8 +886,6 @@ export function SeerExplorerContent({
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
       overrideBashModeEnabled={overrideBashModeEnabled}
       onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
-      showThinking={showThinking}
-      onShowThinkingToggle={() => setShowThinking(v => !v)}
       conversationsUrl={conversationsUrl}
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
@@ -907,7 +912,11 @@ export function SeerExplorerContent({
         containerType="inline-size"
       >
         {renderHeader ? (
-          renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
+          renderHeader({
+            children: headerContent,
+            isPoppedOut,
+            onClose: handleClose,
+          })
         ) : (
           <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
         )}
@@ -941,9 +950,9 @@ export function SeerExplorerContent({
                   isQuestionPending ||
                   showReauth
                 }
+                outOfCredits={isRunOutOfCredits}
                 pendingInput={pendingInput}
                 readOnly={readOnly}
-                showThinking={showThinking}
               />
               {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
             </Fragment>
@@ -991,7 +1000,16 @@ export function SeerExplorerContent({
           }
           inputValue={inputValue}
           canSendMessage={canSendMessage}
-          notice={outOfCreditsNotice}
+          notice={
+            outOfCreditsNotice ??
+            (pendingRestart ? (
+              <RestartNotice
+                onCancel={() =>
+                  chatDispatch({type: 'set pending restart', payload: null})
+                }
+              />
+            ) : null)
+          }
           toolbarItems={<SeerCreditUsageMeter hasEnoughCredits={hasEnoughCredits} />}
           interruptState={interruptState}
           onInputChange={handleInputChange}
@@ -1036,10 +1054,11 @@ interface SeerExplorerTranscriptProps {
   blocks: Block[];
   getPageReferrer: () => string;
   interactionPending: boolean;
+  /** The run stopped because the organization ran out of Seer credits. */
+  outOfCredits: boolean;
   pendingInput: PendingUserInput | null;
   readOnly: boolean;
   runId: SeerExplorerRunId | null;
-  showThinking: boolean;
 }
 
 /**
@@ -1051,16 +1070,16 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
   blocks,
   getPageReferrer,
   interactionPending,
+  outOfCredits,
   pendingInput,
   readOnly,
   runId,
-  showThinking,
 }: SeerExplorerTranscriptProps) {
   const segments = useMemo(() => groupTranscript(blocks), [blocks]);
   // Walk the conversation once here rather than once per tool block.
   const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
 
-  return segments.map(segment => {
+  return segments.map((segment, segmentIndex) => {
     if (segment.kind === 'user') {
       // For slide-in animation that runs on mount. Avoid running this twice on user
       // blocks when blocks are hydrated.
@@ -1083,9 +1102,11 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
         runId={runId ?? undefined}
         getPageReferrer={getPageReferrer}
         interactionPending={interactionPending}
+        // The run stopped at its end, so only the last response explains why.
+        outOfCredits={outOfCredits && segmentIndex === segments.length - 1}
         pendingInput={pendingInput}
         readOnly={readOnly}
-        showThinking={showThinking}
+        showThinking
       />
     );
   });
@@ -1097,3 +1118,29 @@ const BlocksContainer = styled(Stack)`
   overflow-x: hidden;
   overscroll-behavior: contain;
 `;
+
+function RestartNotice({onCancel}: {onCancel: () => void}) {
+  return (
+    <Flex
+      align="center"
+      gap="md"
+      padding="md lg"
+      radius="md"
+      border="accent"
+      background="secondary"
+      data-test-id="seer-explorer-restart-notice"
+    >
+      <Stack gap="2xs" flex="1">
+        <Text bold>{t('Starting over')}</Text>
+        <Text variant="muted" size="sm">
+          {t(
+            'Seer starts a fresh analysis with your message. This conversation stays in your chat history.'
+          )}
+        </Text>
+      </Stack>
+      <Button size="xs" onClick={onCancel}>
+        {t('Cancel')}
+      </Button>
+    </Flex>
+  );
+}

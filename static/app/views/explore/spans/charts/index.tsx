@@ -320,7 +320,6 @@ function Chart({
   const groupBys = useQueryParamsGroupBys();
   const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -337,7 +336,7 @@ function Chart({
   const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
   const droppedData = useDroppedDataLayer(
     {dataset, interval: chartInterval},
-    {enabled: !isHeatMap}
+    {source: 'explore', enabled: !isHeatMap}
   );
   const showTransformationControls =
     visualize.visible &&

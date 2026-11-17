@@ -84,6 +84,7 @@ describe('groupDetails', () => {
   };
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
@@ -232,7 +233,6 @@ describe('groupDetails', () => {
 
   afterEach(() => {
     GroupStore.reset();
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     jest.restoreAllMocks();

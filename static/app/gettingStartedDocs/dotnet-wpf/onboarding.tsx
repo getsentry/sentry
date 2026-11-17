@@ -55,7 +55,8 @@ public partial class App : Application
 
         // If you want to avoid the application from crashing:
         e.Handled = true;
-    }`;
+    }
+}`;
 
 const getPerformanceInstrumentationSnippet = () => `
 // Transaction can be started by providing, at minimum, the name and the operation
@@ -210,10 +211,6 @@ export const onboarding: OnboardingConfig = {
                 strong: <strong />,
               }
             ),
-            tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            }),
           ],
         },
       ],

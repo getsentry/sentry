@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 import secrets
+import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -31,9 +32,23 @@ compare_and_delete = redis.load_redis_script("utils/compare_and_delete.lua")
 
 
 class HandoffFlow(StrEnum):
+    ADD_FEATURE = "add_feature"
     CREATE_PROJECT = "create_project"
     GUIDED_NEXT_STEPS = "guided_next_steps"
     ONBOARDING = "onboarding"
+
+
+class AddFeatureProduct(StrEnum):
+    TRACING = "tracing"
+
+
+class AddFeatureContext(BaseModel):
+    product: AddFeatureProduct
+    project_id: StrictInt
+
+    class Config:
+        frozen = True
+        extra = Extra.forbid
 
 
 class ProjectSetupContext(BaseModel):
@@ -44,12 +59,13 @@ class ProjectSetupContext(BaseModel):
         extra = Extra.forbid
 
 
-HandoffContext = ProjectSetupContext | None
+HandoffContext = AddFeatureContext | ProjectSetupContext | None
 
 
 class _AgentHandoff(BaseModel):
     """Authorization context approved by the user for one agent handoff."""
 
+    handoff_id: StrictStr
     user_id: StrictInt
     organization_id: StrictInt
     application_id: StrictInt
@@ -61,6 +77,11 @@ class _AgentHandoff(BaseModel):
     class Config:
         frozen = True
         extra = Extra.forbid
+
+
+class AddFeatureHandoff(_AgentHandoff):
+    flow: Literal[HandoffFlow.ADD_FEATURE]
+    context: AddFeatureContext
 
 
 class GuidedNextStepsHandoff(_AgentHandoff):
@@ -78,7 +99,7 @@ class CreateProjectHandoff(_AgentHandoff):
     context: ProjectSetupContext
 
 
-AgentHandoff = CreateProjectHandoff | GuidedNextStepsHandoff | OnboardingHandoff
+AgentHandoff = AddFeatureHandoff | CreateProjectHandoff | GuidedNextStepsHandoff | OnboardingHandoff
 
 
 class _StoredAgentHandoff(BaseModel):
@@ -103,6 +124,7 @@ class HandoffIPMismatch(Exception):
 
 @dataclass(frozen=True)
 class IssuedAgentHandoff:
+    handoff_id: str
     code: str = field(repr=False)
     expires_at: datetime
 
@@ -115,7 +137,7 @@ def _get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 def _handoff_key(code: str) -> str:
     # Versioned because replicas on an older payload schema reject unknown fields. During a
     # rollout each version sees the other's codes as unavailable instead of failing to parse.
-    return f"agent-handoff:v2:{hashlib.sha256_text(code).hexdigest()}"
+    return f"agent-handoff:v4:{hashlib.sha256_text(code).hexdigest()}"
 
 
 def issue_handoff(
@@ -129,9 +151,11 @@ def issue_handoff(
     disable_ip_pinning: bool = False,
     context: HandoffContext = None,
 ) -> IssuedAgentHandoff:
+    handoff_id = uuid.uuid4().hex
     expires_at = timezone.now() + HANDOFF_LIFETIME
     handoff = _StoredAgentHandoff.parse_obj(
         {
+            "handoff_id": handoff_id,
             "flow": flow,
             "user_id": user_id,
             "organization_id": organization_id,
@@ -153,7 +177,7 @@ def issue_handoff(
     if not stored:
         raise RuntimeError("Unable to create an agent handoff")
 
-    return IssuedAgentHandoff(code=code, expires_at=expires_at)
+    return IssuedAgentHandoff(handoff_id=handoff_id, code=code, expires_at=expires_at)
 
 
 def consume_handoff(code: str, *, ip_address: str | None) -> AgentHandoff | None:

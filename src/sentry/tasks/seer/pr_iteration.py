@@ -75,6 +75,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     automated_iteration_allowed,
+    feedback_allowed_by_project,
     feedback_kind,
     feedback_text,
 )
@@ -105,6 +106,11 @@ from sentry.seer.autofix.pr_iteration.missing_permissions import (
     block_iteration_for_missing_permissions,
     post_missing_permissions_comment,
 )
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    get_out_of_credits,
+    mark_out_of_credits,
+    take_out_of_credits,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
     get_pause_reason,
@@ -123,6 +129,8 @@ from sentry.seer.autofix.pr_iteration.queue import (
     count_queued_autofix_feedback,
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
+    record_skipped_autofix_feedback,
+    requeue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
@@ -650,9 +658,11 @@ def _drain_queued_autofix_feedback(
         log_ctx.error("autofix.pr_iteration.consume_feedback.group_not_found", exc_info=False)
         return
 
-    if state.status in ("processing", "error"):
-        # An errored run should already be paused. A processing run's
-        # completion hook drains the queue when it finishes.
+    # An errored run should already be paused. A processing run's completion hook drains the
+    # queue when it finishes. A run that ran out of credits isn't paused, so it iterates again.
+    if state.status == "processing" or (
+        state.status == "error" and state.failure_reason != "out_of_credits"
+    ):
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -665,13 +675,38 @@ def _drain_queued_autofix_feedback(
         _record_drain_outcome(f"skipped_run_{state.status}", trigger_source)
         return
 
-    # Wait for the previous iteration to push. Its completion hook drains the queue.
     _, all_changes_pushed = state.has_code_changes()
     if is_single_run(state):
         all_changes_pushed = not any(
             pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()
         )
-    if not all_changes_pushed:
+
+    # A credit stop may have left the last iteration's push or branch-moved retry unfinished.
+    # Redo it here if necessary.
+    out_of_credits = get_out_of_credits(run_id=run_id, organization_id=organization_id)
+    stranded_action = out_of_credits.stranded_action if out_of_credits else None
+    if stranded_action is not None:
+        take_out_of_credits(run_id=run_id, organization_id=organization_id)
+    if stranded_action is not None and not all_changes_pushed:
+        from sentry.seer.autofix.pr_iteration.completion import redo_stranded_action
+
+        redo_stranded_action(log_ctx, group, run_id, state, stranded_action)
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="redo_stranded_action",
+            reason=stranded_action.value,
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            left_queued_count=count_queued_autofix_feedback(run_id),
+        )
+        _record_drain_outcome("redo_stranded_action", trigger_source)
+        # Leave the queued feedback for now: once the redo's push lands, its completion hook
+        # drains the queue and runs it.
+        return
+
+    # Wait for the previous iteration to push. Its completion hook drains the queue.
+    if not all_changes_pushed and state.status != "error":
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -742,6 +777,19 @@ def _drain_queued_autofix_feedback(
             seen_check_suite_keys.add(suite_key)
 
         consumable_items.append(item)
+
+    # Backstop for the project gate the producers apply before queueing: the
+    # setting can be turned off while feedback waits in the queue.
+    project_allowed_items: list[QueuedAutofixFeedback] = []
+    for item in consumable_items:
+        project_decision = feedback_allowed_by_project(
+            organization_id=organization_id, group_id=group.id, feedback=item.feedback
+        )
+        if project_decision.ok:
+            project_allowed_items.append(item)
+        else:
+            dropped.append(_dropped_feedback(item.feedback, project_decision.reason))
+    consumable_items = project_allowed_items
 
     # The same automated-iteration check `trigger_consume_pr_iteration_feedback`
     # applies before scheduling a consume. It has to run again here: the completion hook
@@ -833,6 +881,9 @@ def _drain_queued_autofix_feedback(
             feedback_bot_logins=bot_logins_for_feedback([item.source for item in feedback_items]),
         )
 
+    if out_of_credits is not None:
+        take_out_of_credits(run_id=run_id, organization_id=organization_id)
+
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
         metrics.incr(
@@ -892,8 +943,17 @@ def _drain_queued_autofix_feedback(
         else:
             drain_outcome = "skipped_no_pr"
         _record_drain_outcome(drain_outcome, trigger_source)
-        # The drain popped the queue, so this iteration will never run.
+        # This iteration never started, so drop its row.
         _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
+        if isinstance(error, SeerOutOfCreditsException):
+            _hold_for_credits(
+                log_ctx=log_ctx,
+                run_id=run_id,
+                organization_id=organization_id,
+                group_id=group.id,
+                state=state,
+                items=consumable_items,
+            )
         return
     except Exception as error:
         _stop_after_drain_failure(
@@ -921,6 +981,34 @@ def _drain_queued_autofix_feedback(
         trigger_source=trigger_source,
     )
     _record_drain_outcome("started", trigger_source)
+
+
+def _hold_for_credits(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_id: int,
+    organization_id: int,
+    group_id: int,
+    state: SeerRunState,
+    items: Sequence[QueuedAutofixFeedback],
+) -> None:
+    """Put a batch refused for credits back, so the next trigger after a top-up runs it."""
+    requeue_autofix_feedback(run_id, items)
+    try:
+        bootstrap_iteration(
+            logger=logger, run_state=state, organization_id=organization_id, group_id=group_id
+        )
+    except ValueError:
+        # A legacy run has no SeerRun row to reopen or mark.
+        return
+    # Save the reason for the sweep, in case no top-up comes.
+    record_pr_iteration_failure_reason(
+        log_ctx=log_ctx,
+        run_id=run_id,
+        organization_id=organization_id,
+        reason=PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value,
+    )
+    mark_out_of_credits(run_id=run_id, organization_id=organization_id)
 
 
 def _stop_after_drain_failure(
@@ -2001,12 +2089,41 @@ def _trigger_pr_iteration_from_review(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
+    # Judged per item: with the project's setting off, only the comments that
+    # mention @sentry are queued, not the rest of their review.
+    skipped: list[tuple[Feedback, str]] = []
+    allowed_items: list[Feedback] = []
+    for feedback_obj in feedback_items:
+        project_decision = feedback_allowed_by_project(
+            organization_id=organization_id, group_id=group_id, feedback=feedback_obj
+        )
+        if project_decision.ok:
+            allowed_items.append(feedback_obj)
+        else:
+            skipped.append((feedback_obj, project_decision.reason))
+    feedback_items = allowed_items
+
+    # Nothing left to queue opens no iteration row: nothing will run it.
     log_ctx = bootstrap_iteration(
         logger=logger,
         run_state=agent_state,
         organization_id=organization_id,
         group_id=group_id,
+        create=bool(feedback_items),
     )
+    for feedback_obj, reason in skipped:
+        record_skipped_autofix_feedback(
+            log_ctx=log_ctx,
+            feedback=feedback_obj,
+            reason=reason,
+            referrer=AutofixReferrer.GITHUB_PR_REVIEW,
+            run_state=agent_state,
+        )
+    if not feedback_items:
+        metrics.incr("autofix.pr_iteration.review_trigger.not_requested")
+        logger.info("autofix.pr_iteration.review_trigger.not_requested", extra=log_extra)
+        return None
+
     for feedback_obj in feedback_items:
         enqueue_autofix_feedback(
             log_ctx=log_ctx,

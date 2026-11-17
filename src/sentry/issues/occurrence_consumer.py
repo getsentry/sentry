@@ -24,7 +24,7 @@ from sentry.event_manager import GroupInfo
 from sentry.issues.grouptype import InvalidGroupTypeError, get_group_type_by_type_id
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
-from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
+from sentry.issues.json_schemas import validate_event_payload, validate_legacy_event_payload
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
@@ -265,7 +265,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     )
 
                 try:
-                    jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
+                    validate_event_payload(event_data)
                 except jsonschema.exceptions.ValidationError:
                     metrics.incr(
                         "occurrence_ingest.event_payload_invalid",
@@ -276,7 +276,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         "Error validating event payload, falling back to legacy validation"
                     )
                     try:
-                        jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+                        validate_legacy_event_payload(event_data)
                     except jsonschema.exceptions.ValidationError:
                         metrics.incr(
                             "occurrence_ingest.legacy_event_payload_invalid",

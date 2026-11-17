@@ -673,7 +673,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             self.investigation.refresh_from_db()
             validator = BlockUpdateValidator(
                 data={
-                    "investigationVersion": self.investigation.version,
+                    "notebookVersion": self.investigation.version,
                     "version": block.version,
                     "display": {**block.display, "queryCollapsed": False},
                 },
@@ -3662,6 +3662,7 @@ class InvestigationCompletedInboxTest(InvestigationOrchestrationEventTestBase):
         assert event.actor_id is None
         assert event.data == {
             "seer_run_id": self.seer_run_id,
+            "generation": 1,
         }
 
     def test_replay_and_reconciliation_do_not_duplicate_pruned_events(self) -> None:

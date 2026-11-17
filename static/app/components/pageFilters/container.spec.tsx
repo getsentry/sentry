@@ -30,6 +30,7 @@ describe('PageFiltersContainer', () => {
   });
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData(projects);
     OrganizationStore.onUpdate(organization);
@@ -45,7 +46,6 @@ describe('PageFiltersContainer', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    PageFiltersStore.reset();
   });
 
   it('does not update router if org in URL params is different than org in context/props', () => {

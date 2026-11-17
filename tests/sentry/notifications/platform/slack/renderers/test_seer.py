@@ -636,6 +636,23 @@ class SeerAgentWriteApprovalSlackRendererTest(TestCase):
 
 
 class SeerSlackRendererInvestigationTest(TestCase):
+    def test_render_investigation_started_without_user(self) -> None:
+        renderable, links = NotificationService.render_template(
+            data=SeerInvestigationStarted(
+                organization_id=1,
+                investigation_url="https://example.sentry.io/seer/investigations/1/",
+            ),
+            template=SeerInvestigationStartedTemplate(),
+            provider=SlackNotificationProvider,
+        )
+
+        text = "Sentry started a Seer investigation for this alert."
+        assert renderable["text"] == text
+        (message,) = renderable["blocks"]
+        assert isinstance(message, MarkdownBlock)
+        assert message.text == text
+        assert links == set()
+
     def test_render_investigation_started(self) -> None:
         renderable, _ = NotificationService.render_template(
             data=SeerInvestigationStarted(

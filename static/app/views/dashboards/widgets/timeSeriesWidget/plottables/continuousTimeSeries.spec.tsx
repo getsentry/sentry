@@ -175,6 +175,38 @@ describe('ContinuousTimeSeries', () => {
       });
       expect(new Dots(timeSeries).confidence).toBe('low');
     });
+
+    it('ignores low confidence in incomplete points', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {
+            timestamp: 1,
+            value: 1,
+            sampleRate: 0.5,
+            confidence: 'high',
+            incomplete: false,
+          },
+          {timestamp: 2, value: 2, sampleRate: 0.01, confidence: 'low', incomplete: true},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('high');
+    });
+
+    it('is low when every complete point is low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {
+            timestamp: 1,
+            value: 1,
+            sampleRate: 0.01,
+            confidence: 'low',
+            incomplete: false,
+          },
+          {timestamp: 2, value: 2, sampleRate: 1, confidence: 'high', incomplete: true},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('low');
+    });
   });
 
   describe('name', () => {

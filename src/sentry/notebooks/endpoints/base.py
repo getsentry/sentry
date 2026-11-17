@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.creator import get_creator_reference
+from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.auth.access import ServiceAccountAccess
 from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
@@ -34,7 +35,9 @@ class NotebookArchivedError(APIException):
     default_detail = "Archived investigations are read-only."
 
 
-def service_error(error: Exception) -> Response | None:
+def service_error(
+    error: Exception,
+) -> Response[ValidationErrorResponse] | Response[DetailResponse] | None:
     if isinstance(error, NotebookValidationError):
         return Response(error.errors, status=status.HTTP_400_BAD_REQUEST)
     if isinstance(error, NotebookConflictError):

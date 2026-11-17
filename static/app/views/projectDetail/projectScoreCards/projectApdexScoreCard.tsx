@@ -32,11 +32,7 @@ type Props = {
 const useApdex = (props: Props) => {
   const {organization, selection, isProjectStabilized, hasTransactions, query} = props;
 
-  const isEnabled = !!(
-    organization.features.includes('performance-view') &&
-    isProjectStabilized &&
-    hasTransactions
-  );
+  const isEnabled = !!(isProjectStabilized && hasTransactions);
   const {projects, environments, datetime} = selection;
   const {period} = datetime;
 
@@ -113,7 +109,7 @@ export function ProjectApdexScoreCard(props: Props) {
 
   const Title = <Widget.WidgetTitle title={cardTitle} />;
 
-  if (!hasTransactions || !organization.features.includes('performance-view')) {
+  if (!hasTransactions) {
     return (
       <Widget
         Title={Title}

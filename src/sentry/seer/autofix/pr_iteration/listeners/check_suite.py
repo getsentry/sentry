@@ -23,7 +23,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
 )
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER_SLUG
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
-from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, feedback_allowed_by_project
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
@@ -33,6 +33,7 @@ from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import (
     enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
+    record_skipped_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
@@ -258,14 +259,30 @@ def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
             return None
 
         feedback = Feedback(source=source)
+        project_decision = feedback_allowed_by_project(
+            organization_id=organization_id,
+            group_id=autofix_run.group_id,
+            feedback=feedback,
+        )
         # One identity for both decisions below, so the queue line and the trigger
-        # line of a single check suite are found by the same search.
+        # line of a single check suite are found by the same search. A suite the
+        # project gate turns away opens no iteration row: nothing will run it.
         log_ctx = bootstrap_iteration(
             logger=logger,
             run_state=agent_state,
             organization_id=organization_id,
             group_id=autofix_run.group_id,
+            create=project_decision.ok,
         )
+        if not project_decision.ok:
+            record_skipped_autofix_feedback(
+                log_ctx=log_ctx,
+                feedback=feedback,
+                reason=project_decision.reason,
+                referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
+                run_state=agent_state,
+            )
+            return None
 
         # Report failures here so they are searchable under the PR-iteration
         # identity, and swallow them so the task worker does not report the same

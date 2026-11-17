@@ -76,7 +76,7 @@ interface EntityHeaderTitleBase {
    */
   leadingGraphic?: EntityHeaderLeadingGraphic;
   /**
-   * Status chips rendered inline after the label.
+   * Status chips rendered inline after the value.
    * `null` entries are dropped so callers can inline conditionals.
    */
   tags?: Array<React.ReactElement<TagProps> | null>;
