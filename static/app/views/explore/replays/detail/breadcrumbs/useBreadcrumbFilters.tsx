@@ -1,6 +1,5 @@
 import type {RefObject} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
-import * as Sentry from '@sentry/react';
 
 import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -14,6 +13,7 @@ type Options = {
 };
 
 type Return = {
+  clearFilters: () => void;
   expandPathsRef: RefObject<Map<number, Set<string>>>;
   getBreadcrumbTypes: () => Array<{label: string; value: string}>;
   items: ReplayFrame[];
@@ -84,14 +84,6 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'app.background': 'app',
 };
 
-function typeToLabel(val: string): string {
-  if (TYPE_TO_LABEL[val]) {
-    return TYPE_TO_LABEL[val];
-  }
-  Sentry.captureException('Unknown breadcrumb filter type');
-  return 'Unknown';
-}
-
 const FILTERS = {
   type: (item: ReplayFrame, type: string[]) =>
     type.length === 0 || type.includes(getFrameOpOrCategory(item)),
@@ -111,7 +103,6 @@ export function useBreadcrumbFilters({frames}: Options): Return {
   // re-render when items are expanded/collapsed, though it may work in state as well.
   const expandPathsRef = useRef(new Map<number, Set<string>>());
 
-  const type = useMemo(() => decodeList(query.f_b_type), [query.f_b_type]);
   const searchTerm = decodeScalar(query.f_b_search, '').toLowerCase();
 
   // add custom breadcrumbs to filter
@@ -121,6 +112,13 @@ export function useBreadcrumbFilters({frames}: Options): Return {
       OPORCATEGORY_TO_TYPE[getFrameOpOrCategory(frame)] = 'custom';
     }
   });
+
+  // Ignore values that aren't a known type, such as hand-edited or generated
+  // links. Otherwise a bad value filters out every row.
+  const type = useMemo(
+    () => decodeList(query.f_b_type).filter(val => Object.hasOwn(TYPE_TO_LABEL, val)),
+    [query.f_b_type]
+  );
 
   const items = useMemo(() => {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
@@ -155,7 +153,7 @@ export function useBreadcrumbFilters({frames}: Options): Return {
         .sort()
         .map(value => ({
           value: value!,
-          label: typeToLabel(value!),
+          label: TYPE_TO_LABEL[value!] ?? value!,
         })),
     [frames, type]
   );
@@ -167,7 +165,13 @@ export function useBreadcrumbFilters({frames}: Options): Return {
     [setFilter]
   );
 
+  const clearFilters = useCallback(
+    () => setFilter({f_b_type: undefined, f_b_search: undefined}),
+    [setFilter]
+  );
+
   return {
+    clearFilters,
     expandPathsRef,
     getBreadcrumbTypes,
     items,
