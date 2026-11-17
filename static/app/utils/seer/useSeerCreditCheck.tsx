@@ -1,8 +1,13 @@
+import {SEARCH_HTTP__RESPONSE_STATUS_CODE} from '@sentry/conventions/attributes/search';
+import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -39,7 +44,7 @@ export function seerCreditCheckApiOptions(
   operation: SeerCreditOperation,
   billingFeature?: number
 ) {
-  return apiOptions.as<SeerCreditCheckResponse>()(
+  const options = apiOptions.as<SeerCreditCheckResponse>()(
     '/organizations/$organizationIdOrSlug/seer/credit-check/',
     {
       path: {organizationIdOrSlug: organization.slug},
@@ -50,6 +55,30 @@ export function seerCreditCheckApiOptions(
       staleTime: 0,
     }
   );
+
+  return {
+    ...options,
+    // The alert and action can use the same query. Report once per request.
+    queryFn: async ({queryKey}: {queryKey: ApiQueryKey}) => {
+      try {
+        return await apiFetch<SeerCreditCheckResponse>({queryKey});
+      } catch (error) {
+        const status = error instanceof RequestError ? error.status : undefined;
+        if (status === 400 || status === 429 || (status !== undefined && status >= 500)) {
+          Sentry.captureException(new Error('Seer credit check request failed'), {
+            fingerprint: ['seer-credit-check-request-failed'],
+            tags: {
+              feature: 'seer_credit_check',
+              operation,
+              billing_feature: billingFeature,
+              [SEARCH_HTTP__RESPONSE_STATUS_CODE]: status,
+            },
+          });
+        }
+        throw error;
+      }
+    },
+  };
 }
 
 /**
