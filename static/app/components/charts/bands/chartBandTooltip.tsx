@@ -27,9 +27,6 @@ interface ChartBandTooltipHeadingProps {
   value: React.ReactNode;
 }
 
-/**
- * The label and headline value that open a band's tooltip section.
- */
 export function ChartBandTooltipHeading({label, value}: ChartBandTooltipHeadingProps) {
   return (
     <Flex justify="between" gap="2xl" padding="lg xl">
@@ -47,10 +44,6 @@ interface ChartBandTooltipProps {
   timezone: string;
 }
 
-/**
- * The tooltip every band shows for a bucket: a section from each band that
- * has data in it, then the bucket's time range.
- */
 export function ChartBandTooltip({bucket, sections, timezone}: ChartBandTooltipProps) {
   return (
     <Fragment>

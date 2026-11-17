@@ -15,18 +15,11 @@ import {BAND_Y_AXIS, type BandBucket} from './bandShapes';
  * A strip of per-bucket markers drawn under a chart's plot.
  */
 export interface ChartBand {
-  /**
-   * The buckets the band draws, in the same order as its series data.
-   */
   buckets: BandBucket[];
   height: number;
   id: string;
   series: (offset: number) => CustomSeriesOption;
   onClick?: () => void;
-  /**
-   * The band's section of the shared tooltip for the bucket starting at
-   * `start`, or null when the band has no data there.
-   */
   tooltipSection?: (start: number) => React.ReactElement | null;
 }
 

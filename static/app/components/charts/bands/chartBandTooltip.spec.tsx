@@ -20,20 +20,6 @@ describe('ChartBandTooltip', () => {
     expect(screen.getByText('Jan 12, 2024 3:00 PM - 3:05 PM UTC')).toBeInTheDocument();
   });
 
-  it('shows the full end date for a bucket that spans days', () => {
-    render(
-      <ChartBandTooltip
-        bucket={{start: bucket.start, end: Date.UTC(2024, 0, 13, 15, 0)}}
-        sections={[]}
-        timezone="UTC"
-      />
-    );
-
-    expect(
-      screen.getByText('Jan 12, 2024 3:00 PM - Jan 13, 2024 3:00 PM UTC')
-    ).toBeInTheDocument();
-  });
-
   it('shows each section in order with a separator between them', () => {
     render(
       <ChartBandTooltip

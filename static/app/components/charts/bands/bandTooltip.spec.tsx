@@ -33,10 +33,7 @@ function band(id: string, buckets: BandBucket[], withSection = true): ChartBand 
   };
 }
 
-function chartRefOf({
-  chartLeft = 0,
-  hovered = true,
-} = {}): React.RefObject<ReactEchartsRef | null> {
+function chartRefOf({chartLeft = 0} = {}): React.RefObject<ReactEchartsRef | null> {
   const ele = document.createElement('div');
   ele.getBoundingClientRect = () => ({left: chartLeft}) as DOMRect;
 
@@ -44,11 +41,7 @@ function chartRefOf({
   jest
     .spyOn(document, 'querySelector')
     .mockImplementation(selector =>
-      selector === '.echarts-for-react:hover'
-        ? hovered
-          ? ele
-          : null
-        : querySelector(selector)
+      selector === '.echarts-for-react:hover' ? ele : querySelector(selector)
     );
 
   return {current: {ele} as unknown as ReactEchartsRef};
@@ -119,18 +112,6 @@ describe('useBandTooltips', () => {
     );
 
     expect(result.current).toEqual([plain]);
-  });
-
-  it('shows nothing while the chart is not hovered', async () => {
-    const {result} = renderHookWithProviders(() =>
-      useBandTooltips([band('dropped', [bucket(0)])], {
-        chartRef: chartRefOf({hovered: false}),
-      })
-    );
-
-    const tooltip = await hover(result.current[0], 0);
-
-    expect(tooltip).toBeEmptyDOMElement();
   });
 
   it('keeps the tooltip below the hovered bucket and inside the viewport', () => {

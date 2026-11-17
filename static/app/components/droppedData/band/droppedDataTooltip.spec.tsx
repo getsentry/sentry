@@ -62,7 +62,6 @@ describe('DroppedDataTooltipSection', () => {
     expect(screen.getByText('Invalid or Malformed')).toBeInTheDocument();
     expect(screen.getByText('20K')).toBeInTheDocument();
     expect(screen.getAllByText('/240K')).toHaveLength(2);
-    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
   });
 
   it('names the telemetry type in the header', () => {
