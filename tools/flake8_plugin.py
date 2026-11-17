@@ -204,8 +204,8 @@ S033_msg = (
 S035_msg = (
     "S035 .first() on a queryset with no .order_by(...) makes Django add ORDER BY pk, "
     "which can pick a slow query plan; use .get_or_none(...) for a single unique row, "
-    "or order by a column that matches the filter's index (ordering by id gives the "
-    "same plan)"
+    "or order by a column that matches the filter's index. Ordering by id does not "
+    "help; it sends the same query"
 )
 # Calls that return a QuerySet; seeing one in the chain means `.first()` is a
 # queryset's. Only chains visible in the expression are checked: `qs.first()` on a
