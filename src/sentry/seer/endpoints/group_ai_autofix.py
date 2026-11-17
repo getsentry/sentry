@@ -10,6 +10,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from sentry_protos.billing.v1.common.v1 import seer_billing_feature_pb2 as billing
 
 from sentry import features
@@ -96,6 +97,7 @@ from sentry.seer.endpoints.utils import (
     SEER_PERMISSION_DENIED,
     SeerPaymentRequiredCode,
     get_seer_run,
+    refuse_service_account_token,
     resolve_seer_run,
     seer_out_of_credits_response,
 )
@@ -184,6 +186,11 @@ class GroupAutofixPermission(GroupAiPermission):
         **GroupAiPermission.scope_map,
         "POST": ["event:write", "event:admin", "seer:write"],
     }
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.method == "POST":
+            refuse_service_account_token(request)
+        return super().has_permission(request, view)
 
 
 # Steps that still need explicit user approval (`event:write`) because they act outside

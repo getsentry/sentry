@@ -51,6 +51,7 @@ from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
 from sentry.seer.endpoints.utils import (
     SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL,
     ResolvedSeerRun,
+    refuse_service_account_token,
     resolve_seer_run,
     seer_out_of_credits_response,
 )
@@ -225,6 +226,8 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
             if not is_demo_mode_enabled() or request.method not in self.DEMO_ALLOWED_METHODS:
                 return False
             return True
+        if request.method == "POST":
+            refuse_service_account_token(request)
         return super().has_permission(request, view)
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
