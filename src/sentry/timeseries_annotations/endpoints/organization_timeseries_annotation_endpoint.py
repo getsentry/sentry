@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+from datetime import datetime
+
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -21,14 +24,14 @@ from sentry.timeseries_annotations.endpoints.serializers import TimeseriesAnnota
 from sentry.timeseries_annotations.models import (
     AnnotationScope,
     AnnotationType,
+    IntervalType,
     TimeseriesAnnotation,
 )
-from sentry.timeseries_annotations.utils import parse_enum_labels, window_overlap_query
 
 
 @extend_schema(tags=["Timeseries Annotations"])
 @cell_silo_endpoint
-class OrganizationTimeseriesAnnotationIndexEndpoint(OrganizationEndpoint):
+class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
 
@@ -52,15 +55,15 @@ class OrganizationTimeseriesAnnotationIndexEndpoint(OrganizationEndpoint):
         project_ids = [p.id for p in self.get_projects(request, organization)]
         queryset = (
             TimeseriesAnnotation.objects.filter(organization_id=organization.id)
-            .filter(window_overlap_query(start, end))
+            .filter(_window_overlap(start, end))
             .filter(Q(project_id__in=project_ids) | Q(project_id__isnull=True))
         )
 
-        scopes = parse_enum_labels(request.GET.getlist("scope"), AnnotationScope, "scope")
+        scopes = _parse_labels(request.GET.getlist("scope"), AnnotationScope, "scope")
         if scopes:
             queryset = queryset.filter(scope__in=scopes)
 
-        types = parse_enum_labels(
+        types = _parse_labels(
             request.GET.getlist("annotationType"), AnnotationType, "annotationType"
         )
         if types:
@@ -77,3 +80,30 @@ class OrganizationTimeseriesAnnotationIndexEndpoint(OrganizationEndpoint):
                 list(rows), request.user, TimeseriesAnnotationSerializer()
             ),
         )
+
+
+def _window_overlap(start: datetime, end: datetime) -> Q:
+    """
+    Annotations whose interval overlaps [start, end].
+
+    A point (null end) matches only when its start is inside the window. A range matches when it
+    starts at or before the window end and either ends at or after the window start or is still
+    open (null end).
+    """
+    point = Q(
+        interval_type=IntervalType.POINT, start_timestamp__gte=start, start_timestamp__lte=end
+    )
+    range_ = Q(interval_type=IntervalType.RANGE, start_timestamp__lte=end) & (
+        Q(end_timestamp__gte=start) | Q(end_timestamp__isnull=True)
+    )
+    return point | range_
+
+
+def _parse_labels(
+    labels: Iterable[str], enum_cls: type[AnnotationScope | AnnotationType], param: str
+) -> list[int]:
+    by_label = {label: value for value, label in enum_cls.as_choices()}
+    try:
+        return [by_label[label] for label in labels]
+    except KeyError:
+        raise ParseError(detail=f"Invalid {param}: must be one of {sorted(by_label)}")

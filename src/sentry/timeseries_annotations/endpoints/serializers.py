@@ -12,14 +12,13 @@ from sentry.timeseries_annotations.models import (
     IntervalType,
     TimeseriesAnnotation,
 )
-from sentry.timeseries_annotations.utils import enum_labels
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.viewer_context import ActorType
 
-_INTERVAL_LABELS = enum_labels(IntervalType)
-_SCOPE_LABELS = enum_labels(AnnotationScope)
-_TYPE_LABELS = enum_labels(AnnotationType)
+_INTERVAL_LABELS = dict(IntervalType.as_choices())
+_SCOPE_LABELS = dict(AnnotationScope.as_choices())
+_TYPE_LABELS = dict(AnnotationType.as_choices())
 
 
 @register(TimeseriesAnnotation)

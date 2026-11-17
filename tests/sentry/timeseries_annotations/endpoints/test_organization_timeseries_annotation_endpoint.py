@@ -2,27 +2,17 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.timeseries_annotations.models import (
     AnnotationScope,
     AnnotationType,
     IntervalType,
     TimeseriesAnnotation,
 )
+from tests.sentry.timeseries_annotations.endpoints import TimeseriesAnnotationEndpointTestBase
 
-FEATURE = "organizations:timeseries-annotations"
 
-
-@with_feature(FEATURE)
-class OrganizationTimeseriesAnnotationIndexTest(APITestCase):
-    endpoint = "sentry-api-0-organization-timeseries-annotations"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(self.user)
-
+class OrganizationTimeseriesAnnotationEndpointTest(TimeseriesAnnotationEndpointTestBase):
     def _annotation(self, **kwargs: object) -> TimeseriesAnnotation:
         values = dict(
             organization_id=self.organization.id,
@@ -35,7 +25,7 @@ class OrganizationTimeseriesAnnotationIndexTest(APITestCase):
         return TimeseriesAnnotation.objects.create(**values)
 
     def test_requires_feature(self) -> None:
-        with self.feature({FEATURE: False}):
+        with self.feature({"organizations:timeseries-annotations": False}):
             self.get_error_response(self.organization.slug, status_code=404)
 
     def test_lists_point_in_window(self) -> None:
