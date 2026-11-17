@@ -269,6 +269,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert isinstance(msg.alternatives[0][0], str)
         assert "my rule" in msg.alternatives[0][0]
         assert "notification_uuid" in msg.body
+        assert re.search(r"<h2\b[^>]*>\s*New issue\s*</h2>", msg.alternatives[0][0])
+        assert "Environment:" not in msg.body
         assert_any_analytics_event(
             mock_record,
             EmailNotificationSent(
@@ -357,6 +359,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert isinstance(msg.alternatives[0][0], str)
         assert "my rule" in msg.alternatives[0][0]
         assert f"&environment={environment.name}" in msg.body
+        assert re.search(r"<h2\b[^>]*>\s*New issue in production\s*</h2>", msg.alternatives[0][0])
+        assert "Environment: production" in msg.body.splitlines()
         assert "notification_uuid" in msg.body
 
     def test_simple_notification_generic(self) -> None:
@@ -1337,12 +1341,17 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
     def test_group_substatus_header(self) -> None:
         self.assert_group_substatus_header(GroupSubStatus.REGRESSED, "Regressed issue")
 
+    def test_new_error_header_with_enhanced_privacy(self) -> None:
+        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
+        self.assert_group_substatus_header(GroupSubStatus.NEW, "New issue")
+
     def test_escalating_group_substatus_header(self) -> None:
         self.assert_group_substatus_header(GroupSubStatus.ESCALATING, "Escalating issue")
 
     def assert_group_substatus_header(self, substatus: int, header: str) -> None:
         event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+            data={"message": "Hello world", "level": "error", "environment": "production"},
+            project_id=self.project.id,
         )
         # Header is based on the group substatus
         assert event.group is not None
@@ -1367,7 +1376,8 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         assert isinstance(msg, EmailMultiAlternatives)
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert isinstance(msg.alternatives[0][0], str)
-        assert header in msg.alternatives[0][0]
+        assert re.search(rf"<h2\b[^>]*>\s*{header}\s*</h2>", msg.alternatives[0][0])
+        assert "Environment:" not in msg.body
 
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
