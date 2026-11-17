@@ -234,11 +234,9 @@ export function EventDetailsContent({
           <MetricsSection event={event} />
         </Feature>
       </ErrorBoundary>
-      {issueTypeConfig.trace.enabled &&
-        event.contexts.trace?.trace_id &&
-        organization.features.includes('performance-view') && (
-          <EventTraceView group={group} event={event} organization={organization} />
-        )}
+      {issueTypeConfig.trace.enabled && event.contexts.trace?.trace_id && (
+        <EventTraceView group={group} event={event} organization={organization} />
+      )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />

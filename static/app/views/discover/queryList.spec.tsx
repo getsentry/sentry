@@ -133,7 +133,7 @@ describe('Discover > QueryList', () => {
 
   it('renders pre-built queries with dataset', async () => {
     organization = OrganizationFixture({
-      features: ['discover-basic', 'discover-query', 'performance-view'],
+      features: ['discover-basic', 'discover-query'],
     });
     const {router} = render(
       <QueryList
