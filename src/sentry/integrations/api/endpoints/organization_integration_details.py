@@ -90,7 +90,6 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         organization = organization_context.organization
         org_integration = self.get_organization_integration(organization.id, integration_id)
 
-        create_issue_config = None
         if request.GET.get("action") == "create":
             # Fetch the ticket form here rather than in the serializer, which swallows
             # errors, so TicketRuleModal can show why the provider failed.
@@ -129,13 +128,20 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
                     status=400,
                 )
 
-        return self.respond(
-            serialize(
+            # include_config=False skips the provider calls; the form was fetched above.
+            serialized = serialize(
                 org_integration,
                 request.user,
-                OrganizationIntegrationSerializer(
-                    params=request.GET, create_issue_config=create_issue_config
-                ),
+                OrganizationIntegrationSerializer(params=request.GET),
+                include_config=False,
+            )
+            return self.respond(
+                {**serialized, "configOrganization": [], "createIssueConfig": create_issue_config}
+            )
+
+        return self.respond(
+            serialize(
+                org_integration, request.user, OrganizationIntegrationSerializer(params=request.GET)
             )
         )
 

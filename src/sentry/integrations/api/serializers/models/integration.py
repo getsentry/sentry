@@ -314,14 +314,10 @@ class IntegrationConfigSerializerResponse(IntegrationSerializerResponse, total=F
 
 class IntegrationConfigSerializer(IntegrationSerializer):
     def __init__(
-        self,
-        organization_id: int | None = None,
-        params: Mapping[str, Any] | None = None,
-        create_issue_config: list[IntegrationIssueConfigField] | None = None,
+        self, organization_id: int | None = None, params: Mapping[str, Any] | None = None
     ) -> None:
         self.organization_id = organization_id
         self.params = params or {}
-        self.create_issue_config = create_issue_config
 
     def serialize(
         self,
@@ -339,14 +335,6 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
         if not self.organization_id:
             return cast("IntegrationConfigSerializerResponse", {**base, "configOrganization": []})
-
-        if self.params.get("action") == "create" and self.create_issue_config is not None:
-            response: IntegrationConfigSerializerResponse = {
-                **base,
-                "configOrganization": [],
-                "createIssueConfig": self.create_issue_config,
-            }
-            return response
 
         try:
             installation = obj.get_installation(organization_id=self.organization_id)
@@ -382,14 +370,8 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
-    def __init__(
-        self,
-        params: Mapping[str, Any] | None = None,
-        create_issue_config: list[IntegrationIssueConfigField] | None = None,
-    ) -> None:
+    def __init__(self, params: Mapping[str, Any] | None = None) -> None:
         self.params = params or {}
-        # Precomputed by the details endpoint so provider errors become a 400 there.
-        self.create_issue_config = create_issue_config
 
     def get_attrs(
         self,
@@ -436,11 +418,7 @@ class OrganizationIntegrationSerializer(Serializer):
         integration_config: Mapping[str, Any] | None = serialize(
             objects=integration,
             user=user,
-            serializer=IntegrationConfigSerializer(
-                obj.organization_id,
-                params=self.params,
-                create_issue_config=self.create_issue_config,
-            ),
+            serializer=IntegrationConfigSerializer(obj.organization_id, params=self.params),
             include_config=include_config,
             organization=organization,
         )
