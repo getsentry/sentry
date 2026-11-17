@@ -78,7 +78,7 @@ function isTargetedItem(item: InboxItem, target: InboxItemsTarget) {
  * Matches the cached inbox lists for every combination of filters.
  */
 function getInboxListsQueryKey(organization: Organization) {
-  return apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/inbox/', {
+  return apiOptions.queryKey('/organizations/$organizationIdOrSlug/inbox/', {
     path: {organizationIdOrSlug: organization.slug},
   });
 }
@@ -132,7 +132,7 @@ function applyReadState(item: InboxItem, isRead: boolean): InboxItem {
 }
 
 function getInboxCountQueryKey(organization: Organization) {
-  return apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/inbox/count/', {
+  return apiOptions.queryKey('/organizations/$organizationIdOrSlug/inbox/count/', {
     path: {organizationIdOrSlug: organization.slug},
   });
 }

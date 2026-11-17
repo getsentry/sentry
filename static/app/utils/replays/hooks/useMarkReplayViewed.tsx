@@ -29,7 +29,7 @@ export function useMarkReplayViewed() {
     },
     onSuccess(_data, {projectSlug, replayId}) {
       queryClient.refetchQueries({
-        queryKey: apiOptions.partialQueryKey(
+        queryKey: apiOptions.queryKey(
           '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/viewed-by/',
           {
             path: {

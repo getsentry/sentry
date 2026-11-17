@@ -327,7 +327,7 @@ export default function IntegrationDetailedView() {
           }).queryKey,
         });
         queryClient.invalidateQueries({
-          queryKey: apiOptions.partialQueryKey(
+          queryKey: apiOptions.queryKey(
             '/organizations/$organizationIdOrSlug/config/integrations/',
             {path: {organizationIdOrSlug: organization.slug}}
           ),

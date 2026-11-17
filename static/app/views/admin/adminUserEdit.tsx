@@ -285,7 +285,7 @@ function AdminUserEdit() {
     placeholderData: () => {
       const found = queryClient
         .getQueriesData<ApiResponse<User[]>>({
-          queryKey: apiOptions.partialQueryKey('/users/'),
+          queryKey: apiOptions.queryKey('/users/'),
         })
         .flatMap(([, data]) => data?.json ?? [])
         .find(candidate => candidate.id === id);

@@ -50,7 +50,7 @@ type PatternPathOptions<TPattern extends string> = TPattern extends `${infer TPr
     ? {path?: never}
     : {path: Record<ExtractPathParams<TPattern>, string | number>};
 
-type PartialQueryKeyOptions<TPattern extends string> = QueryKeyEndpointOptions &
+type QueryKeyOptions<TPattern extends string> = QueryKeyEndpointOptions &
   PatternPathOptions<TPattern> & {infinite?: true};
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -134,7 +134,7 @@ function _apiOptions<
   });
 }
 
-function _partialQueryKey(
+function _queryKey(
   url: string,
   {
     path,
@@ -263,7 +263,8 @@ export const apiOptions = {
       _apiOptionsInfinite<TManualData>(path, options as never),
 
   /**
-   * A partial query key for query filters like `invalidateQueries`.
+   * A query key for query filters like `invalidateQueries`. It can be partial, so it
+   * is not meant for `useQuery`.
    *
    * A url without `*` matches exactly that url, with any other options. A prefix
    * ending in `/*` matches that url and everything below it, and leaves path
@@ -271,18 +272,18 @@ export const apiOptions = {
    *
    * @example
    * ```ts
-   * apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/repos/', {
+   * apiOptions.queryKey('/organizations/$organizationIdOrSlug/repos/', {
    *   path: {organizationIdOrSlug: organization.slug},
    * });
-   * apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+   * apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/*', {
    *   path: {organizationIdOrSlug: organization.slug},
    * });
    * ```
    */
-  partialQueryKey: <TPattern extends KnownApiUrlPattern>(
+  queryKey: <TPattern extends KnownApiUrlPattern>(
     url: TPattern,
     ...[options]: PatternPathOptions<TPattern> extends {path: unknown}
-      ? [PartialQueryKeyOptions<TPattern>]
-      : [PartialQueryKeyOptions<TPattern>?]
-  ) => _partialQueryKey(url, options as never),
+      ? [QueryKeyOptions<TPattern>]
+      : [QueryKeyOptions<TPattern>?]
+  ) => _queryKey(url, options as never),
 };

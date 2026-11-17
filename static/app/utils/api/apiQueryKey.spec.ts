@@ -97,10 +97,10 @@ describe('apiQueryKey', () => {
     });
   });
 
-  describe('apiOptions.partialQueryKey', () => {
+  describe('apiOptions.queryKey', () => {
     it('matches exactly one url without a glob, with any other options', () => {
       const {matching} = seedCache();
-      const queryKey = apiOptions.partialQueryKey(
+      const queryKey = apiOptions.queryKey(
         '/organizations/$organizationIdOrSlug/issues/',
         {path: {organizationIdOrSlug: 'acme'}}
       );
@@ -118,7 +118,7 @@ describe('apiQueryKey', () => {
 
       expect(
         matching(
-          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+          apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/*', {
             path: {organizationIdOrSlug: 'acme'},
           })
         )
@@ -130,15 +130,14 @@ describe('apiQueryKey', () => {
 
       expect(
         matching(
-          apiOptions.partialQueryKey(
-            '/organizations/$organizationIdOrSlug/issues/$issueId/*',
-            {path: {organizationIdOrSlug: 'acme'}}
-          )
+          apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/$issueId/*', {
+            path: {organizationIdOrSlug: 'acme'},
+          })
         )
       ).toEqual(['acmeIssue']);
       expect(
         matching(
-          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+          apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/*', {
             path: {},
           })
         )
@@ -157,7 +156,7 @@ describe('apiQueryKey', () => {
 
       expect(
         matching(
-          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {
+          apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/', {
             path,
             infinite: true,
           })
@@ -165,7 +164,7 @@ describe('apiQueryKey', () => {
       ).toEqual(['acmeIssuesInfinite']);
       expect(
         matching(
-          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {
+          apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/', {
             path,
             query: {query: 'is:unresolved'},
           })
@@ -175,21 +174,18 @@ describe('apiQueryKey', () => {
 
     it('only accepts known urls and segment prefixes', () => {
       // @ts-expect-error an exact url needs every path param
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/');
+      apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/');
       // @ts-expect-error a prefix still needs a path object, use `path: {}` for any value
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*');
+      apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/*');
       // @ts-expect-error unknown url
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/isues/', {
+      apiOptions.queryKey('/organizations/$organizationIdOrSlug/isues/', {
         path: {organizationIdOrSlug: 'acme'},
       });
       // @ts-expect-error a glob has to follow a slash
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/iss*', {
+      apiOptions.queryKey('/organizations/$organizationIdOrSlug/iss*', {
         path: {},
       });
-      expect(apiOptions.partialQueryKey('/users/')).toEqual([
-        '_api',
-        {fullUrl: '/users/'},
-      ]);
+      expect(apiOptions.queryKey('/users/')).toEqual(['_api', {fullUrl: '/users/'}]);
     });
   });
 });

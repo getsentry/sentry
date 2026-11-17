@@ -602,7 +602,7 @@ function ConfigureIntegration() {
    */
   const onUpdateIntegration = () => {
     queryClient.removeQueries({
-      queryKey: apiOptions.partialQueryKey(
+      queryKey: apiOptions.queryKey(
         '/organizations/$organizationIdOrSlug/config/integrations/',
         {path: {organizationIdOrSlug: organization.slug}}
       ),

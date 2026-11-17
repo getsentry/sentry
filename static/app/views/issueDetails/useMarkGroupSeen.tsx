@@ -12,7 +12,7 @@ import {groupQueryKey} from './useGroup';
 export function useMarkGroupSeen() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const issuesQueryKey = apiOptions.partialQueryKey(
+  const issuesQueryKey = apiOptions.queryKey(
     '/organizations/$organizationIdOrSlug/issues/',
     {path: {organizationIdOrSlug: organization.slug}}
   );
@@ -38,13 +38,10 @@ export function useMarkGroupSeen() {
       // Inbox sections are infinite queries against the organization issues endpoint.
       queryClient.setQueriesData<InfiniteData<ApiResponse<Group[]>>>(
         {
-          queryKey: apiOptions.partialQueryKey(
-            '/organizations/$organizationIdOrSlug/issues/',
-            {
-              path: {organizationIdOrSlug: organization.slug},
-              infinite: true,
-            }
-          ),
+          queryKey: apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/', {
+            path: {organizationIdOrSlug: organization.slug},
+            infinite: true,
+          }),
         },
         previous =>
           previous

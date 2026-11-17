@@ -119,7 +119,7 @@ export function PrivateGamingSdkAccessModal({
       }
 
       queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey(
+        queryKey: apiOptions.queryKey(
           '/organizations/$organizationIdOrSlug/console-sdk-invites/',
           {path: {organizationIdOrSlug: organization.slug}}
         ),

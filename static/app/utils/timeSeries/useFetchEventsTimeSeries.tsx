@@ -102,10 +102,10 @@ export function makeEventsTimeSeriesQueryKeyPrefix(
   organizationSlug: string,
   options?: QueryKeyEndpointOptions
 ) {
-  return apiOptions.partialQueryKey(
-    '/organizations/$organizationIdOrSlug/events-timeseries/',
-    {path: {organizationIdOrSlug: organizationSlug}, ...options}
-  );
+  return apiOptions.queryKey('/organizations/$organizationIdOrSlug/events-timeseries/', {
+    path: {organizationIdOrSlug: organizationSlug},
+    ...options,
+  });
 }
 
 /**

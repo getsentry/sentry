@@ -37,13 +37,10 @@ export function useToggleDashboardFavorite() {
 
   // Table query key for dashboards pinned by favorites.
   const listFilter = {
-    queryKey: apiOptions.partialQueryKey(
-      '/organizations/$organizationIdOrSlug/dashboards/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {pin: 'favorites'},
-      }
-    ),
+    queryKey: apiOptions.queryKey('/organizations/$organizationIdOrSlug/dashboards/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {pin: 'favorites'},
+    }),
   };
   // Query key for the "Starred Dashboards" sidebar.
   const starredQueryKey = getStarredDashboardsQueryKey(organization);

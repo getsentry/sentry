@@ -23,7 +23,7 @@ import type {
  * Matches the project's seer repos lists for every filter.
  */
 function allSeerProjectReposQueryKey(organization: Organization, project: AvatarProject) {
-  return apiOptions.partialQueryKey(
+  return apiOptions.queryKey(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/',
     {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},

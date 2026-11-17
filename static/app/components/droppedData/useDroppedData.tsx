@@ -29,10 +29,9 @@ interface DroppedEventsResponse {
 }
 
 export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
-  return apiOptions.partialQueryKey(
-    '/organizations/$organizationIdOrSlug/events-dropped/',
-    {path: {organizationIdOrSlug: organizationSlug}}
-  );
+  return apiOptions.queryKey('/organizations/$organizationIdOrSlug/events-dropped/', {
+    path: {organizationIdOrSlug: organizationSlug},
+  });
 }
 
 export interface UseDroppedDataParams {

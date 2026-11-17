@@ -72,7 +72,7 @@ export function OverviewIssueAssignee({
       const path = {organizationIdOrSlug: organization.slug};
       queryClient.setQueriesData<ApiResponse<AutofixOverviewResponse>>(
         {
-          queryKey: apiOptions.partialQueryKey(
+          queryKey: apiOptions.queryKey(
             '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
             {path}
           ),
@@ -84,12 +84,9 @@ export function OverviewIssueAssignee({
           }
       );
       void queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey(
-          '/organizations/$organizationIdOrSlug/issues/',
-          {
-            path,
-          }
-        ),
+        queryKey: apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/', {
+          path,
+        }),
       });
     },
     [groupId, organization.slug, queryClient]

@@ -23,7 +23,7 @@ export function useReopenGamingSdkModal(
   useEffect(() => {
     if (reopenModal) {
       queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey('/users/$userId/user-identities/', {
+        queryKey: apiOptions.queryKey('/users/$userId/user-identities/', {
           path: {userId: 'me'},
         }),
       });

@@ -44,12 +44,9 @@ export const seerProjectSettingsSchema = z.object({
  * Matches the org's seer projects settings lists for every filter and page size.
  */
 export function allSeerProjectsSettingsQueryKey(organization: Organization) {
-  return apiOptions.partialQueryKey(
-    '/organizations/$organizationIdOrSlug/seer/projects/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-    }
-  );
+  return apiOptions.queryKey('/organizations/$organizationIdOrSlug/seer/projects/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 }
 
 export function getSeerProjectSettingsQueryOptions({
@@ -253,7 +250,7 @@ export function getMutateSeerProjectsSettingsOptions({
   }).queryKey;
   const infiniteUrl = infiniteQueryKey[1].fullUrl;
 
-  const singleProjectSettingsQueryKey = apiOptions.partialQueryKey(
+  const singleProjectSettingsQueryKey = apiOptions.queryKey(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/settings/*',
     {path: {organizationIdOrSlug: organization.slug}}
   );

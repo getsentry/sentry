@@ -116,7 +116,7 @@ export function useNextAction({
     try {
       await config.trigger(autofix, run.seerRunId);
       queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey(
+        queryKey: apiOptions.queryKey(
           '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
           {path: {organizationIdOrSlug: organization.slug}}
         ),
@@ -127,7 +127,7 @@ export function useNextAction({
         toast.error(typeof detail === 'string' ? detail : config.errorFallback);
       }
       queryClient.removeQueries({
-        queryKey: apiOptions.partialQueryKey(
+        queryKey: apiOptions.queryKey(
           '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
           {
             path: {organizationIdOrSlug: organization.slug, issueId: run.groupId},
