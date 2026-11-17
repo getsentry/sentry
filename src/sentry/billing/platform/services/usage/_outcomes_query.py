@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import TypedDict
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -69,7 +69,7 @@ class _OutcomeRow(TypedDict):
 def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
     org_id = request.organization_id
     start = _timestamp_to_datetime(request.start)
-    end = _inclusive_end_to_exclusive(request.end)
+    end = _timestamp_to_datetime(request.end)
     # Proto categories use different int values from Relay/ClickHouse
     # (e.g., proto ATTACHMENT=3 vs Relay ATTACHMENT=4). Convert before querying.
     categories = [proto_to_sentry_category(c) for c in request.categories]
@@ -113,8 +113,8 @@ def _build_query(
     total_outcomes: Sequence[int] | None = None,
     additional_groupby: Sequence[str] = (),
 ) -> Request:
-    # Half-open interval [start, end) — standard sentry.snuba.outcomes convention.
-    # Callers are responsible for adapting their API's interval semantics.
+    # Half-open interval [start, end): the same meaning GetUsageRequest.end has for
+    # every usage source, and the same as a contract's period end date.
     where = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("timestamp"), Op.GTE, start),
@@ -308,11 +308,6 @@ def _over_quota_condition() -> Function:
 
 def _timestamp_to_datetime(ts: Timestamp) -> datetime:
     return ts.ToDatetime(tzinfo=timezone.utc)
-
-
-def _inclusive_end_to_exclusive(ts: Timestamp) -> datetime:
-    """Convert the API's inclusive end day to Snuba's exclusive boundary."""
-    return _timestamp_to_datetime(ts) + timedelta(days=1)
 
 
 def _parse_day(value: str) -> Date:
