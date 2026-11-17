@@ -2171,6 +2171,17 @@ describe('conversationMessages utilities', () => {
       expect(enrichAgentMessages(nodes)).toBe(nodes);
     });
 
+    it.each([
+      ['[Filtered]', '[Filtered]'],
+      ['marked [Filtered]', MARKED_FILTERED],
+    ])('does not backfill from an agent whose output is %s', (_, filtered) => {
+      const {agent, gen1, tool, gen2} = createAgentTurn('agent-1');
+      agent.attributes[SpanFields.GEN_AI_OUTPUT_MESSAGES] = filtered;
+      const nodes = [agent, gen1, tool, gen2];
+
+      expect(enrichAgentMessages(nodes)).toBe(nodes);
+    });
+
     it('keeps generation spans as the source when a child has its own messages', () => {
       const {agent, gen1, tool, gen2} = createAgentTurn('agent-1');
       gen1.attributes[SpanFields.GEN_AI_OUTPUT_MESSAGES] = JSON.stringify([
