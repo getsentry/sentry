@@ -35,6 +35,7 @@ from sentry.testutils.helpers.analytics import (
 )
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.utils import json
 
 
 @control_silo_test
@@ -84,6 +85,14 @@ class AgentHandoffViewTest(TestCase):
             REMOTE_ADDR=ip_address,
         )
 
+    def claim_api(self, code: str, ip_address: str = "127.0.0.1") -> HttpResponse:
+        return self.client.post(
+            "/api/0/agent-handoff/",
+            {"handoff_code": code},
+            content_type="application/json",
+            REMOTE_ADDR=ip_address,
+        )
+
     @patch("sentry.analytics.record")
     def test_claim_mints_once_and_returns_the_private_guide(self, mock_record: MagicMock) -> None:
         code = self.issue()
@@ -121,6 +130,28 @@ class AgentHandoffViewTest(TestCase):
                 flow=HandoffFlow.ONBOARDING.value,
             ),
         )
+
+    def test_api_claim_returns_dynamic_content_as_json(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.onboarding.OnboardingFlow.render",
+            return_value="Follow the onboarding guide.",
+        ):
+            response = self.claim_api(self.issue())
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/json"
+        body = json.loads(response.content)
+        assert body == {
+            "sentryUrl": "http://testserver",
+            "userEmail": self.user.email,
+            "organizationName": self.organization.name,
+            "organizationSlug": self.organization.slug,
+            "clientId": self.application.client_id,
+            "setupCode": body["setupCode"],
+            "flowInstructions": "Follow the onboarding guide.",
+        }
+        assert body["setupCode"].startswith("sntryc_")
+        assert "no-store" in response["Cache-Control"]
 
     def test_claim_activates_existing_onboarding_run(self) -> None:
         progress = get_onboarding_progress_service()
@@ -264,6 +295,84 @@ class AgentHandoffViewTest(TestCase):
 
     def test_malformed_code_is_rejected(self) -> None:
         assert self.claim("invalid").status_code == 400
+
+    def test_api_claim_errors_return_json(self) -> None:
+        response = self.claim_api("invalid")
+
+        assert response.status_code == 400
+        assert response["Content-Type"] == "application/json"
+        assert json.loads(response.content) == {
+            "handoff_code": ["This value does not match the required pattern."]
+        }
+
+    def test_api_claim_rejects_non_object_json(self) -> None:
+        response = self.client.post(
+            "/api/0/agent-handoff/",
+            ["invalid"],
+            content_type="application/json",
+        )
+
+        assert response.status_code == 400
+        assert json.loads(response.content) == {
+            "non_field_errors": ["Invalid data. Expected a dictionary, but got list."]
+        }
+
+    def test_api_claim_accepts_json_charset(self) -> None:
+        response = self.client.post(
+            "/api/0/agent-handoff/",
+            json.dumps({"handoff_code": self.issue()}),
+            content_type="application/json; charset=utf-8",
+        )
+
+        assert response.status_code == 200
+
+    def test_api_claim_rejects_cross_origin_requests(self) -> None:
+        code = self.issue()
+
+        response = self.client.post(
+            "/api/0/agent-handoff/",
+            {"handoff_code": code},
+            content_type="application/json",
+            HTTP_ORIGIN="https://example.com",
+        )
+
+        assert response.status_code == 403
+        assert consume_handoff(code, ip_address="127.0.0.1") is not None
+
+    def test_api_claim_is_available_only_once(self) -> None:
+        code = self.issue()
+        assert self.claim_api(code).status_code == 200
+
+        response = self.claim_api(code)
+
+        assert response.status_code == 410
+        assert json.loads(response.content) == {"detail": "Handoff code unavailable."}
+
+    def test_api_claim_reports_ip_mismatch_as_json(self) -> None:
+        code = self.issue(ip_address="192.0.2.1")
+
+        response = self.claim_api(code, ip_address="192.0.2.2")
+
+        assert response.status_code == 403
+        assert json.loads(response.content) == {
+            "detail": "The handoff code was claimed from a different network."
+        }
+        assert consume_handoff(code, ip_address="192.0.2.1") is not None
+
+    def test_api_claim_rate_limit_preserves_the_code(self) -> None:
+        code = self.issue()
+        with patch(
+            "sentry.agent_handoff.endpoints.claim_agent_handoff.ratelimiter.is_limited",
+            return_value=True,
+        ):
+            response = self.claim_api(code)
+
+        assert response.status_code == 429
+        assert response["Retry-After"] == "60"
+        assert json.loads(response.content) == {
+            "detail": "Wait 60 seconds, then retry the same handoff code."
+        }
+        assert consume_handoff(code, ip_address="127.0.0.1") is not None
 
     def test_oversized_code_is_rejected(self) -> None:
         assert self.claim("sntryh_" + "a" * 2000).status_code == 400

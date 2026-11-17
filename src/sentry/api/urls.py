@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.agent_handoff.endpoints.claim_agent_handoff import ClaimAgentHandoffEndpoint
 from sentry.agent_handoff.endpoints.organization_agent_handoff import (
     OrganizationAgentHandoffEndpoint,
 )
@@ -3869,6 +3870,11 @@ INTERNAL_URLS = [
 ]
 
 urlpatterns = [
+    re_path(
+        r"^agent-handoff/$",
+        ClaimAgentHandoffEndpoint.as_view(),
+        name="sentry-api-0-agent-handoff-claim",
+    ),
     # Relay
     re_path(
         r"^relays/",

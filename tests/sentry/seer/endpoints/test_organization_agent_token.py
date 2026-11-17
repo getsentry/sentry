@@ -456,7 +456,7 @@ PUBLIC_GET_ENDPOINTS = _public_get_endpoints()
 
 
 def _public_mutation_endpoints() -> tuple[PublicMutationEndpoint, ...]:
-    """Return every canonical public non-GET operation and its declared scopes."""
+    """Return every authenticated public non-GET operation and its declared scopes."""
     enumerator = _CollectionSafeEndpointEnumerator()
     endpoints: dict[tuple[str, str], PublicMutationEndpoint] = {}
     discovered = _discover_endpoints(enumerator)
@@ -469,6 +469,7 @@ def _public_mutation_endpoints() -> tuple[PublicMutationEndpoint, ...]:
             or path.startswith("/api/0/{var}/")
             or status is None
             or not status.is_published
+            or not view.authentication_classes
         ):
             continue
 
