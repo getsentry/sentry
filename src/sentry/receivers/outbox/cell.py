@@ -256,6 +256,9 @@ def _service_account_owner(kind: ServiceAccountOwnerKind) -> ServiceAccountOwner
     match kind:
         case ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG:
             return SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
+        case ServiceAccountOwnerKind.USER:
+            # People create accounts in settings, never through this outbox.
+            raise ValueError("A user-created service account has no cell owner.")
         case _:
             assert_never(kind)
 
