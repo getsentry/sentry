@@ -7,9 +7,10 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, NotRequired, TypedDic
 from sentry_sdk import traces
 
 from sentry import options
+from sentry.api.endpoints.project_trace_item_details import TraceItemLink, serialize_link
 from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.uptime.subscriptions.regions import get_region_config
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ from sentry.models.project import Project
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.common_columns import COMMON_COLUMNS
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.eap.uptime_results.attributes import UPTIME_ATTRIBUTE_DEFINITIONS
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
@@ -152,6 +153,15 @@ class SerializedSpan(SerializedEvent):
             dict[str, str | int | float | bool],
             ApiDescription(
                 "Extra span attributes requested with additional_attributes, keyed by attribute name"
+            ),
+        ]
+    ]
+    links: NotRequired[
+        Annotated[
+            list[TraceItemLink],
+            ApiDescription(
+                "Links from the span to spans in other traces, such as the server render behind a "
+                "cached page. Only returned with include_links=1, and only for spans that have links"
             ),
         ]
     ]
@@ -293,6 +303,29 @@ def _serialize_rpc_issue(
         raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
 
 
+# Links are stored as a JSON string in this private attribute until EAP stores them natively.
+SPAN_LINKS_ATTRIBUTE = "sentry.links"
+
+
+def _parse_span_links(raw: str) -> list[TraceItemLink]:
+    """Parse the `sentry.links` JSON of one span, skipping links that can't be serialized."""
+    try:
+        links = json.loads(raw)
+    except json.JSONDecodeError:
+        links = None
+    if not isinstance(links, list):
+        metrics.incr("trace.span_links.malformed")
+        return []
+
+    parsed = []
+    for link in links:
+        try:
+            parsed.append(serialize_link(link))
+        except (AttributeError, KeyError, TypeError):
+            metrics.incr("trace.span_links.malformed")
+    return parsed
+
+
 def _serialize_rpc_event(
     event: dict[str, Any],
     group_cache: dict[int, Group],
@@ -348,7 +381,7 @@ def _serialize_rpc_event(
             additional_attributes=event["additional_attributes"],
         )
 
-    return SerializedSpan(
+    span = SerializedSpan(
         children=children,
         errors=errors,
         occurrences=occurrences,
@@ -384,6 +417,11 @@ def _serialize_rpc_event(
         event_type="span",
         additional_attributes=attribute_dict,
     )
+    # Only set when the query asked for links. EAP returns "" for spans without them.
+    if (raw_links := event.get(SPAN_LINKS_ATTRIBUTE)) and isinstance(raw_links, str):
+        if links := _parse_span_links(raw_links):
+            span["links"] = links
+    return span
 
 
 def _errors_query(
@@ -900,6 +938,7 @@ def query_trace_data(
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
     organization: Organization | None = None,
+    include_links: bool = False,
 ) -> list[SerializedTraceItem]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -933,8 +972,17 @@ def query_trace_data(
             trace_id=trace_id,
             params=snuba_params,
             referrer=referrer,
-            config=SearchResolverConfig(),
-            additional_attributes=all_additional_attributes,
+            config=(
+                # `sentry.links` is private, so callers can't request it as an additional attribute.
+                SearchResolverConfig(fields_acl=FieldsACL(attributes={SPAN_LINKS_ATTRIBUTE}))
+                if include_links
+                else SearchResolverConfig()
+            ),
+            additional_attributes=(
+                [*all_additional_attributes, SPAN_LINKS_ATTRIBUTE]
+                if include_links
+                else all_additional_attributes
+            ),
         )
         errors_future = query_thread_pool.submit(
             _run_errors_query,

@@ -55,6 +55,18 @@ INCLUDE_UPTIME_PARAM = OpenApiParameter(
     description="Set to `1` to include uptime check results in the trace. Defaults to `0`.",
 )
 
+INCLUDE_LINKS_PARAM = OpenApiParameter(
+    name="include_links",
+    location="query",
+    required=False,
+    type=str,
+    enum=["0", "1"],
+    description=(
+        "Set to `1` to include each span's links to spans in other traces, such as the server "
+        "render behind a cached page. Defaults to `0`."
+    ),
+)
+
 
 @extend_schema(tags=["Discover"])
 @cell_silo_endpoint
@@ -99,6 +111,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         include_uptime: bool = False,
         *,
         organization: Organization,
+        include_links: bool = False,
     ) -> list[SerializedTraceItem]:
         return query_trace_data(
             snuba_params,
@@ -108,6 +121,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
             additional_attributes,
             include_uptime,
             organization=organization,
+            include_links=include_links,
         )
 
     @extend_schema(
@@ -124,6 +138,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
             ERROR_ID_QUERY_PARAM,
             ADDITIONAL_ATTRIBUTES_PARAM,
             INCLUDE_UPTIME_PARAM,
+            INCLUDE_LINKS_PARAM,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -158,6 +173,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
 
         additional_attributes = request.GET.getlist("additional_attributes", [])
         include_uptime = request.GET.get("include_uptime", "0") == "1"
+        include_links = request.GET.get("include_links", "0") == "1"
 
         error_id = request.GET.get("errorId")
         if error_id is not None and not is_event_id(error_id):
@@ -176,6 +192,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
                     additional_attributes,
                     include_uptime,
                     organization=organization,
+                    include_links=include_links,
                 )
             return spans
 

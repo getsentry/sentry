@@ -587,6 +587,93 @@ class OrganizationEventsTraceEndpointTest(
         assert len(data) == 1
         assert data[0]["event_id"] == error.event_id
 
+    def _store_linked_trace(self, links: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        start, _ = self.get_start_end_from_day_ago(1000)
+        root = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "is_segment": True,
+                "description": "pageload /pricing",
+                "sentry_tags": {"links": links},
+            },
+            start_ts=start,
+        )
+        child = self.create_span(
+            {
+                "trace_id": self.trace_id,
+                "parent_span_id": root["span_id"],
+                "segment_id": root["segment_id"],
+                "is_segment": False,
+            },
+            start_ts=start,
+        )
+        self.store_spans([root, child])
+        return root, child
+
+    def _spans_by_id(self, items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        spans: dict[str, dict[str, Any]] = {}
+        stack = list(items)
+        while stack:
+            item = stack.pop()
+            if item.get("event_type") == "span":
+                spans[item["event_id"]] = item
+            stack.extend(item.get("children", []))
+        return spans
+
+    def test_with_links(self) -> None:
+        root, child = self._store_linked_trace(
+            '[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d",'
+            '"sampled":true,"attributes":{"sentry.link.type":"cache_origin"}}]'
+        )
+        with self.feature(self.FEATURES):
+            response = self.client_get(data={"timestamp": self.day_ago, "include_links": "1"})
+        assert response.status_code == 200, response.content
+
+        spans = self._spans_by_id(response.data)
+        assert spans[root["span_id"]]["links"] == [
+            {
+                "traceId": "d099bf9ad5a143cf8f83a98081d0ed3b",
+                "itemId": "8873a98879faf06d",
+                "sampled": True,
+                "attributes": [
+                    {"name": "sentry.link.type", "value": "cache_origin", "type": "str"}
+                ],
+            }
+        ]
+        assert "links" not in spans[child["span_id"]]
+        assert "sentry.links" not in spans[root["span_id"]]["additional_attributes"]
+
+    def test_links_are_opt_in(self) -> None:
+        root, _ = self._store_linked_trace(
+            '[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d"}]'
+        )
+        with self.feature(self.FEATURES):
+            response = self.client_get(data={"timestamp": self.day_ago})
+        assert response.status_code == 200, response.content
+
+        assert "links" not in self._spans_by_id(response.data)[root["span_id"]]
+
+    def test_with_links_skips_malformed_links(self) -> None:
+        root, _ = self._store_linked_trace(
+            '[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b"},'
+            '{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d"}]'
+        )
+        with self.feature(self.FEATURES):
+            response = self.client_get(data={"timestamp": self.day_ago, "include_links": "1"})
+        assert response.status_code == 200, response.content
+
+        assert self._spans_by_id(response.data)[root["span_id"]]["links"] == [
+            {"traceId": "d099bf9ad5a143cf8f83a98081d0ed3b", "itemId": "8873a98879faf06d"}
+        ]
+
+    def test_links_attribute_stays_private(self) -> None:
+        self._store_linked_trace("[]")
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago, "additional_attributes": ["sentry.links"]}
+            )
+        assert response.status_code == 400, response.content
+
     def test_with_additional_attributes(self) -> None:
         self.load_trace()
         with self.feature(self.FEATURES):
