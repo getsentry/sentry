@@ -358,19 +358,22 @@ jobs:
             "$PG_IMAGE" postgres \
               -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1 \
               -c fsync=off -c synchronous_commit=off -c full_page_writes=off
-          # docker run -d returns 0 even if postgres dies right after — bound the
-          # wait so a crashing postgres surfaces fast instead of hitting the job
-          # timeout silently.
-          for _ in $(seq 1 120); do
-            [ -S "/tmp/pg-sock/.s.PGSQL.5432" ] && break
-            sleep 0.5
+          # On an empty volume, the image's entrypoint runs initdb with a temporary
+          # server that listens only on the socket, then stops it and starts the
+          # real one. The socket alone can vanish a moment after it appears, so also
+          # wait for TCP, which only the real server listens on. docker run -d
+          # returns 0 even if postgres dies right after, so the wait is bounded.
+          for _ in $(seq 1 60); do
+            if [ -S "/tmp/pg-sock/.s.PGSQL.5432" ] &&
+              docker exec postgres-postgres-1 pg_isready --quiet --host 127.0.0.1 --port 5432; then
+              echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            sleep 1
           done
-          if [ ! -S "/tmp/pg-sock/.s.PGSQL.5432" ]; then
-            echo "::error::postgres unix socket did not appear after 60s"
-            docker logs postgres-postgres-1 2>&1 | tail -30 || true
-            exit 1
-          fi
-          echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+          echo "::error::postgres was not ready on its Unix socket after 60s"
+          docker logs postgres-postgres-1 2>&1 | tail -30 || true
+          exit 1
 
       - name: Download odiff binary
         run: |

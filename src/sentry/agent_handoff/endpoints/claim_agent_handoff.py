@@ -16,6 +16,7 @@ from sentry.agent_handoff.serializers import (
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.exceptions import SentryAPIException
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -29,6 +30,39 @@ from sentry.ratelimits import backend as ratelimiter
 from sentry.utils import metrics
 
 _CLAIM_WINDOW = 60
+
+
+class AgentHandoffCrossOriginError(SentryAPIException):
+    status_code = 403
+    code = "agent-handoff-cross-origin"
+    message = "Cross-origin handoff claims are not allowed."
+    auth_challenge = False
+
+
+class AgentHandoffIPMismatchError(SentryAPIException):
+    status_code = 403
+    code = "agent-handoff-ip-mismatch"
+    message = "The handoff code is pinned to a different IP address."
+    auth_challenge = False
+
+
+class AgentHandoffUnavailableError(SentryAPIException):
+    status_code = 410
+    code = "agent-handoff-unavailable"
+    message = "Handoff code unavailable."
+
+    @classmethod
+    def invalid_request(cls) -> "AgentHandoffUnavailableError":
+        error = cls()
+        error.status_code = 400
+        return error
+
+
+class AgentHandoffRateLimitedError(SentryAPIException):
+    status_code = 429
+    code = "agent-handoff-rate-limited"
+    message = "Wait 60 seconds, then retry the same handoff code."
+    wait = _CLAIM_WINDOW
 
 
 class AgentHandoffClaimRequestSerializer(serializers.Serializer):
@@ -73,32 +107,27 @@ class ClaimAgentHandoffEndpoint(Endpoint):
         The response also determines the next steps used to guide the user or agent.
         """
         if request.META.get("HTTP_ORIGIN"):
-            return Response({"detail": "Cross-origin handoff claims are not allowed."}, status=403)
+            raise AgentHandoffCrossOriginError
 
         if ratelimiter.is_limited(
             f"agent-handoff:claim:{request.META.get('REMOTE_ADDR', 'unknown')}",
             limit=10,
             window=_CLAIM_WINDOW,
         ):
-            return Response(
-                {"detail": "Wait 60 seconds, then retry the same handoff code."},
-                status=429,
-                headers={"Retry-After": str(_CLAIM_WINDOW)},
-            )
+            raise AgentHandoffRateLimitedError
 
         serializer = AgentHandoffClaimRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            raise AgentHandoffUnavailableError.invalid_request()
+
         code = serializer.validated_data["handoff_code"]
 
         try:
             claim = claim_handoff_context(code, ip_address=request.META.get("REMOTE_ADDR"))
         except HandoffIPMismatch:
             metrics.incr("agent_handoff.claim.ip_mismatch", sample_rate=1.0)
-            return Response(
-                {"detail": "The handoff code was claimed from a different network."},
-                status=403,
-            )
+            raise AgentHandoffIPMismatchError
         if claim is None:
-            return Response({"detail": "Handoff code unavailable."}, status=410)
+            raise AgentHandoffUnavailableError
 
         return Response(serialize(claim, request.user, serializer=AgentHandoffClaimSerializer()))

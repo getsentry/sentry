@@ -319,6 +319,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             slack_user_id=self.external_id,
         )
         assert self.investigation_state(investigation) == {
+            "started_sent": True,
             "status_message_ts": "1702424399.000100",
             "last_sent_state": ANY,
         }
@@ -390,6 +391,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             entrypoint_key="slack", investigation_id=investigation.id
         )
         assert cache_payload is not None
+        assert not self.investigation_state(investigation).get("started_sent")
 
     @with_feature(FEATURES)
     def test_slack_timeout_during_update_still_posts_status(self) -> None:
@@ -400,13 +402,16 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert response.status_code == 200
         (investigation,) = self.investigations()
         process_investigation_updates(investigation_id=investigation.id)
-        # The started message is skipped, but the update task still posts the status.
-        (status_call,) = self.mock_post_message.call_args_list
+        started_call, status_call = self.mock_post_message.call_args_list
+        assert started_call.kwargs["text"] == (
+            f"<@{self.external_id}> started a Seer investigation for this alert."
+        )
         assert status_call.kwargs["text"] == "Investigating Checkout errors"
         cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
             entrypoint_key="slack", investigation_id=investigation.id
         )
         assert cache_payload is not None
+        assert self.investigation_state(investigation)["started_sent"] is True
         assert self.investigation_state(investigation)["status_message_ts"] == "1702424399.000100"
 
     @with_feature(FEATURES)
@@ -421,9 +426,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             entrypoint_key="slack", investigation_id=investigation.id
         )
         assert cache_payload is not None
-        assert not NotificationThread.objects.filter(
-            object_type=NotificationThreadObjectType.INVESTIGATION, object_id=investigation.id
-        ).exists()
+        assert self.investigation_state(investigation) == {}
 
     @with_feature(FEATURES)
     @patch(

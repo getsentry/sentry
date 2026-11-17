@@ -10,7 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {AgentHandoffPrompt} from './agentHandoffPrompt';
-import {AgentHandoffFlow} from './useAgentHandoff';
+import {AgentHandoffFlow} from './types';
 
 describe('AgentHandoffPrompt', () => {
   const organization = OrganizationFixture();
