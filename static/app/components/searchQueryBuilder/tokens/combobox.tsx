@@ -610,18 +610,23 @@ export function SearchQueryBuilderCombobox<
 
   const autosizeInput = useAutosizeInput({value: inputValue, placeholder});
 
+  // Keep the merged ref stable between renders. A new callback on every render
+  // makes React detach (null) and re-attach the input on each commit, and the
+  // state-setting refs in here (floating-ui reference, overlay trigger) then
+  // schedule another synchronous render, which can cascade into
+  // "Maximum update depth exceeded" while typing.
+  const triggerRef = triggerProps.ref as React.Ref<HTMLInputElement>;
+  const mergedInputRef = useMemo(
+    () => mergeRefs(ref, inputRef, autosizeInput, triggerRef, setDescriptionReference),
+    [ref, autosizeInput, triggerRef, setDescriptionReference]
+  );
+
   const InputComponent = renderInputValue ? HighlightedInput : UnstyledInput;
   const input = (
     <InputComponent
       {...inputProps}
       size="md"
-      ref={mergeRefs(
-        ref,
-        inputRef,
-        autosizeInput,
-        triggerProps.ref as React.Ref<HTMLInputElement>,
-        setDescriptionReference
-      )}
+      ref={mergedInputRef}
       type="text"
       placeholder={placeholder}
       onClick={handleInputClick}
