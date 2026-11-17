@@ -302,7 +302,11 @@ class AgentHandoffViewTest(TestCase):
         assert response.status_code == 400
         assert response["Content-Type"] == "application/json"
         assert json.loads(response.content) == {
-            "handoff_code": ["This value does not match the required pattern."]
+            "detail": {
+                "code": "agent-handoff-unavailable",
+                "message": "Handoff code unavailable.",
+                "extra": {},
+            }
         }
 
     def test_api_claim_rejects_non_object_json(self) -> None:
@@ -314,7 +318,11 @@ class AgentHandoffViewTest(TestCase):
 
         assert response.status_code == 400
         assert json.loads(response.content) == {
-            "non_field_errors": ["Invalid data. Expected a dictionary, but got list."]
+            "detail": {
+                "code": "agent-handoff-unavailable",
+                "message": "Handoff code unavailable.",
+                "extra": {},
+            }
         }
 
     def test_api_claim_accepts_json_charset(self) -> None:
@@ -337,6 +345,13 @@ class AgentHandoffViewTest(TestCase):
         )
 
         assert response.status_code == 403
+        assert json.loads(response.content) == {
+            "detail": {
+                "code": "agent-handoff-cross-origin",
+                "message": "Cross-origin handoff claims are not allowed.",
+                "extra": {},
+            }
+        }
         assert consume_handoff(code, ip_address="127.0.0.1") is not None
 
     def test_api_claim_is_available_only_once(self) -> None:
@@ -346,7 +361,13 @@ class AgentHandoffViewTest(TestCase):
         response = self.claim_api(code)
 
         assert response.status_code == 410
-        assert json.loads(response.content) == {"detail": "Handoff code unavailable."}
+        assert json.loads(response.content) == {
+            "detail": {
+                "code": "agent-handoff-unavailable",
+                "message": "Handoff code unavailable.",
+                "extra": {},
+            }
+        }
 
     def test_api_claim_reports_ip_mismatch_as_json(self) -> None:
         code = self.issue(ip_address="192.0.2.1")
@@ -355,7 +376,11 @@ class AgentHandoffViewTest(TestCase):
 
         assert response.status_code == 403
         assert json.loads(response.content) == {
-            "detail": "The handoff code was claimed from a different network."
+            "detail": {
+                "code": "agent-handoff-ip-mismatch",
+                "message": "The handoff code is pinned to a different IP address.",
+                "extra": {},
+            }
         }
         assert consume_handoff(code, ip_address="192.0.2.1") is not None
 
@@ -370,7 +395,11 @@ class AgentHandoffViewTest(TestCase):
         assert response.status_code == 429
         assert response["Retry-After"] == "60"
         assert json.loads(response.content) == {
-            "detail": "Wait 60 seconds, then retry the same handoff code."
+            "detail": {
+                "code": "agent-handoff-rate-limited",
+                "message": "Wait 60 seconds, then retry the same handoff code.",
+                "extra": {},
+            }
         }
         assert consume_handoff(code, ip_address="127.0.0.1") is not None
 
