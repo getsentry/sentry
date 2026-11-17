@@ -56,6 +56,30 @@ class ProjectCommitListTest(APITestCase):
         response = self.get_success_response(project.organization.slug, project.slug)
         assert len(response.data) == 1
 
+    def test_commit_in_multiple_project_releases(self) -> None:
+        project = self.create_project(name="komal")
+        repo = Repository.objects.create(organization_id=project.organization_id, name=project.name)
+        commit = Commit.objects.create(
+            organization_id=project.organization_id, repository_id=repo.id, key="a" * 40
+        )
+        for version in ("1.1", "1.2"):
+            release = Release.objects.create(
+                organization_id=project.organization_id, version=version
+            )
+            ReleaseProject.objects.create(project=project, release=release)
+            ReleaseCommit.objects.create(
+                organization_id=project.organization_id,
+                release=release,
+                commit=commit,
+                order=0,
+                project_id=project.id,
+            )
+
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(project.organization.slug, project.slug)
+        assert [r["id"] for r in response.data] == [commit.key]
+
     def test_query_filter(self) -> None:
         project = self.create_project(name="komal")
         version = "1.1"

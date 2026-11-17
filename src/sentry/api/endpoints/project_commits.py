@@ -9,6 +9,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.commit import Commit
 from sentry.models.project import Project
+from sentry.models.releasecommit import ReleaseCommit
 
 
 @cell_silo_endpoint
@@ -36,9 +37,13 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
         """
         query = request.GET.get("query")
 
+        # Filter on a subquery instead of joining, so a commit in several of the
+        # project's releases is returned once.
         queryset = Commit.objects.filter(
             organization_id=project.organization_id,
-            releasecommit__release__releaseproject__project_id=project.id,
+            id__in=ReleaseCommit.objects.filter(
+                release__releaseproject__project_id=project.id
+            ).values("commit_id"),
         )
 
         if query:
