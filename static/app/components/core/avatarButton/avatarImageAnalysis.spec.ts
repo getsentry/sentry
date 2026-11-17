@@ -157,6 +157,16 @@ describe('dominantColor', () => {
     expect(isNeutralColor(dominantColor(data)!)).toBe(false);
   });
 
+  it('compares hues perceptually, so lime highlights count as green', () => {
+    // Green and lime sit 40° apart in HSV but only ~12° apart in OKLCH, where
+    // they look like one hue. A blue accent keeps green under half the pixels,
+    // so the logo only stays green if the lime counts as agreeing.
+    const data = makePixelData((col, _row) =>
+      col < 14 ? [0, 200, 0, 255] : col < 24 ? [160, 240, 0, 255] : [0, 0, 200, 255]
+    );
+    expect(dominantColor(data)).toBe('#00c800');
+  });
+
   it('prefers chromatic over grayscale when both exist', () => {
     const data = makePixelData((col, _row) =>
       col < SAMPLE_SIZE / 2 ? [128, 128, 128, 255] : [0, 0, 200, 255]

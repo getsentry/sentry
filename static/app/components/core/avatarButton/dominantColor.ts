@@ -1,4 +1,4 @@
-import {hexToRgb} from './oklch';
+import {hexToRgb, rgbToOklch} from './oklch';
 
 // TS can't prove typed-array index access is defined; this centralizes the
 // single suppression so callers stay clean.
@@ -34,25 +34,12 @@ const MIN_COLOR_COVERAGE = 0.25;
 
 // ...and when at least this share of its colored pixels sit within
 // HUE_TOLERANCE degrees of the dominant hue. Below that it's multicolor.
+// Hues are OKLCH, so the tolerance spans a similar visible shift everywhere
+// on the wheel (HSV spreads greens wide and squeezes orange into yellow).
 const MIN_HUE_AGREEMENT = 0.5;
 const HUE_TOLERANCE = 30;
 
 export type Rgb = [number, number, number];
-
-function hueOf([r, g, b]: Rgb): number {
-  const max = Math.max(r, g, b);
-  const delta = max - Math.min(r, g, b);
-  if (delta === 0) {
-    return 0;
-  }
-  const h =
-    max === r
-      ? ((g - b) / delta) % 6
-      : max === g
-        ? (b - r) / delta + 2
-        : (r - g) / delta + 4;
-  return (h * 60 + 360) % 360;
-}
 
 function isNearWhite([r, g, b]: Rgb): boolean {
   return Math.min(r, g, b) >= 230;
@@ -130,9 +117,9 @@ export function dominantColor(data: Uint8ClampedArray): string | null {
   const content = colored.length + gray.filter(pixel => !isNearWhite(pixel)).length;
   if (colored.length > 0 && colored.length >= content * MIN_COLOR_COVERAGE) {
     const dominant = mostCommonColor(colored);
-    const hue = hueOf(dominant);
+    const hue = rgbToOklch(dominant).h;
     const agreeing = colored.filter(
-      pixel => hueDistance(hueOf(pixel), hue) <= HUE_TOLERANCE
+      pixel => hueDistance(rgbToOklch(pixel).h, hue) <= HUE_TOLERANCE
     ).length;
     if (agreeing >= colored.length * MIN_HUE_AGREEMENT) {
       return toHex(dominant);

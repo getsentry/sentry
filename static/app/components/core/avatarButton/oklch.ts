@@ -36,7 +36,12 @@ export function hexToRgb(hex: string): Rgb {
 }
 
 export function hexToOklch(hex: string): Oklch {
-  const [r, g, b] = hexToRgb(hex).map(decode) as Rgb;
+  return rgbToOklch(hexToRgb(hex));
+}
+
+/** OKLCH for 0-255 sRGB channels. */
+export function rgbToOklch(rgb: Rgb): Oklch {
+  const [r, g, b] = rgb.map(decode) as Rgb;
 
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
