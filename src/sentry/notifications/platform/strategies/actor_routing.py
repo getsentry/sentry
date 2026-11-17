@@ -14,72 +14,28 @@ from sentry.notifications.platform.types import (
     NotificationTarget,
 )
 from sentry.notifications.services import notifications_service
-from sentry.notifications.types import (
-    INBOX_NOTIFICATION_SETTINGS,
-    GroupSubscriptionReason,
-    NotificationSettingEnum,
-)
+from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
 from sentry.notifications.utils.participants import ParticipantMap
 from sentry.types.actor import Actor, ActorType
 
 
-def _get_providers_by_recipient(
-    recipients: list[Actor],
-    *,
-    settings_key: NotificationSettingEnum,
-    organization_id: int | None,
-    project_ids: list[int] | None,
-) -> Mapping[int, Mapping[int, str]]:
-    providers_by_recipient = notifications_service.get_participants(
-        recipients=recipients,
-        type=settings_key,
-        project_ids=project_ids,
+def _get_member_actors(organization_id: int, user_ids: list[int]) -> list[Actor]:
+    member_user_ids = OrganizationMember.objects.filter(
         organization_id=organization_id,
-    )
-    if (
-        settings_key not in INBOX_NOTIFICATION_SETTINGS
-        or settings_key == NotificationSettingEnum.INBOX
-    ):
-        return providers_by_recipient
-
-    # An Inbox category such as mentions only turns its notifications on or off. The master `inbox`
-    # setting picks email and Slack for every category, and turns them all off when set to never.
-    enabled_recipient_ids = {
-        recipient_id for recipient_id, providers in providers_by_recipient.items() if providers
-    }
-    if not enabled_recipient_ids:
-        return {}
-
-    inbox_providers_by_recipient = notifications_service.get_participants(
-        recipients=[recipient for recipient in recipients if recipient.id in enabled_recipient_ids],
-        type=NotificationSettingEnum.INBOX,
-        project_ids=project_ids,
-        organization_id=organization_id,
-    )
-    return {
-        recipient_id: providers
-        for recipient_id, providers in inbox_providers_by_recipient.items()
-        if recipient_id in enabled_recipient_ids
-    }
+        user_id__in=user_ids,
+        user_id__isnull=False,
+    ).values_list("user_id", flat=True)
+    return [
+        actor
+        for user_id in member_user_ids
+        if (actor := Actor.from_id(user_id=user_id)) is not None
+    ]
 
 
-def _get_participant_map(
-    recipients: list[Actor],
-    *,
-    settings_key: NotificationSettingEnum,
-    organization_id: int | None,
-    project_ids: list[int] | None,
+def _build_participant_map(
+    recipients: list[Actor], providers_by_recipient: Mapping[int, Mapping[int, str]]
 ) -> ParticipantMap:
     participant_map = ParticipantMap()
-    if not recipients:
-        return participant_map
-
-    providers_by_recipient = _get_providers_by_recipient(
-        recipients,
-        settings_key=settings_key,
-        organization_id=organization_id,
-        project_ids=project_ids,
-    )
     for recipient in recipients:
         for provider in providers_by_recipient.get(recipient.id, {}):
             participant_map.add(
@@ -88,58 +44,85 @@ def _get_participant_map(
     return participant_map
 
 
+def _get_participant_map(
+    recipients: list[Actor], project: Project, settings_key: NotificationSettingEnum
+) -> ParticipantMap:
+    if not recipients:
+        return ParticipantMap()
+
+    providers_by_recipient = notifications_service.get_participants(
+        recipients=list(recipients),
+        type=settings_key,
+        project_ids=[project.id],
+        organization_id=project.organization_id,
+    )
+    return _build_participant_map(recipients, providers_by_recipient)
+
+
+def _get_inbox_participant_map(
+    recipients: list[Actor], settings_key: NotificationSettingEnum
+) -> ParticipantMap:
+    if not recipients:
+        return ParticipantMap()
+
+    # Inbox settings are user-level and apply to all of a user's organizations, so they're never
+    # scoped to a project or organization.
+    providers_by_recipient = notifications_service.get_participants(
+        recipients=recipients, type=settings_key, project_ids=None, organization_id=None
+    )
+    if settings_key != NotificationSettingEnum.INBOX:
+        # A category such as mentions only turns its notifications on or off. The master `inbox`
+        # setting picks email and Slack for every category, and turns them all off when set to never.
+        enabled_recipients = [
+            recipient for recipient in recipients if providers_by_recipient.get(recipient.id)
+        ]
+        if not enabled_recipients:
+            return ParticipantMap()
+        recipients = enabled_recipients
+        providers_by_recipient = notifications_service.get_participants(
+            recipients=recipients,
+            type=NotificationSettingEnum.INBOX,
+            project_ids=None,
+            organization_id=None,
+        )
+    return _build_participant_map(recipients, providers_by_recipient)
+
+
 @dataclass(frozen=True)
 class UserRoutingStrategy(NotificationStrategy):
-    """
-    Inbox settings are user-level and apply to all of a user's organizations, so they're never
-    scoped to a project or organization. The organization still picks which members to notify and
-    which Slack workspace to use: pass `organization_id`, or a `project` only to pick its
-    organization. Every other setting needs a `project` for its project overrides and project email
-    addresses.
-    """
-
+    project: Project
     user_ids: list[int]
     settings_key: NotificationSettingEnum
-    project: Project | None = None
-    organization_id: int | None = None
-
-    def __post_init__(self) -> None:
-        if self.project is not None:
-            return
-        if self.organization_id is None:
-            raise ValueError("UserRoutingStrategy needs a project or an organization_id")
-        if self.settings_key not in INBOX_NOTIFICATION_SETTINGS:
-            raise ValueError(
-                f"{self.settings_key.value} needs a project; only Inbox settings can use organization_id alone"
-            )
 
     def get_targets(self) -> list[NotificationTarget]:
-        organization_id = (
-            self.project.organization_id if self.project is not None else self.organization_id
-        )
-        assert organization_id is not None
-        is_inbox = self.settings_key in INBOX_NOTIFICATION_SETTINGS
-        settings_project = None if is_inbox else self.project
-
-        user_ids = OrganizationMember.objects.filter(
-            organization_id=organization_id,
-            user_id__in=self.user_ids,
-            user_id__isnull=False,
-        ).values_list("user_id", flat=True)
-        recipients = [
-            actor for user_id in user_ids if (actor := Actor.from_id(user_id=user_id)) is not None
-        ]
-
+        recipients = _get_member_actors(self.project.organization_id, self.user_ids)
         participant_map = _get_participant_map(
-            recipients,
-            settings_key=self.settings_key,
-            organization_id=None if is_inbox else organization_id,
-            project_ids=[settings_project.id] if settings_project is not None else None,
+            recipients=recipients, project=self.project, settings_key=self.settings_key
         )
         return get_targets_from_participant_map(
             participant_map,
-            organization_id=organization_id,
-            project=settings_project,
+            organization_id=self.project.organization_id,
+            project=self.project,
+        )
+
+
+@dataclass(frozen=True)
+class InboxUserRoutingStrategy(NotificationStrategy):
+    """
+    Routes Inbox notifications by a user's personal Inbox settings. The organization only picks
+    which members to notify and which Slack workspace to use; project-specific email addresses and
+    project or organization setting overrides are ignored.
+    """
+
+    organization_id: int
+    user_ids: list[int]
+    settings_key: NotificationSettingEnum
+
+    def get_targets(self) -> list[NotificationTarget]:
+        recipients = _get_member_actors(self.organization_id, self.user_ids)
+        participant_map = _get_inbox_participant_map(recipients, self.settings_key)
+        return get_targets_from_participant_map(
+            participant_map, organization_id=self.organization_id
         )
 
 
@@ -155,10 +138,7 @@ class TeamRoutingStrategy(NotificationStrategy):
         ]
         team_actors = [Actor.from_object(team) for team in teams]
         participant_map = _get_participant_map(
-            team_actors,
-            settings_key=self.settings_key,
-            organization_id=self.project.organization_id,
-            project_ids=[self.project.id],
+            recipients=team_actors, project=self.project, settings_key=self.settings_key
         )
 
         # Team email is represented by member fallback, not a shared destination.
