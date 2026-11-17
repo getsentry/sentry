@@ -27,7 +27,6 @@ from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
-from sentry.workflow_engine.generated_schema_types import MetricIssueDetectorConfig
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.data_packet import process_data_packet
@@ -144,11 +143,9 @@ class SubscriptionProcessor:
         Note: Only the current value is included in the subscription update, so this requires a
         snuba query in order to get the baseline value.
         """
-        detector_config: MetricIssueDetectorConfig = self.detector.config
         snuba_query = self.subscription.snuba_query
-
         baseline_window_end = subscription_update["timestamp"] - timedelta(
-            seconds=detector_config["comparison_delta"]
+            seconds=self.detector.config["comparison_delta"]
         )
         baseline_window_start = baseline_window_end - timedelta(seconds=snuba_query.time_window)
         baseline_value = run_query_for_window(
@@ -194,8 +191,8 @@ class SubscriptionProcessor:
         evaluation_value: float,
     ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
         timestamp = subscription_update["timestamp"]
-        detector_cfg: MetricIssueDetectorConfig = detector.config
-        if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
+
+        if detector.config["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
             anomaly_detection_packet = AnomalyDetectionUpdate(
                 entity=subscription_update.get("entity", ""),
                 subscription_id=self.snuba_subscription_id,
