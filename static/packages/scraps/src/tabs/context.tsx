@@ -11,6 +11,6 @@ interface TabContext {
 }
 
 export const TabsContext = createContext<TabContext>({
-  rootProps: {kind: 'selection', orientation: 'horizontal', size: 'md'},
+  rootProps: {orientation: 'horizontal', size: 'md'},
   setTabListState: () => {},
 });

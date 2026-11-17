@@ -62,6 +62,30 @@ function RoutedTabs({onChange}: {onChange: (key: string) => void}) {
 }
 
 describe('Tabs routing', () => {
+  it('keeps an empty destination as a link to the current page', async () => {
+    const onChange = jest.fn();
+    const {router} = render(
+      <LinkTabs value="details" onChange={onChange}>
+        {({TabList}) => (
+          <TabList>
+            <TabList.Item key="details" to="">
+              Details
+            </TabList.Item>
+          </TabList>
+        )}
+      </LinkTabs>,
+      {initialRouterConfig: {location: {pathname: '/tabs/details/'}}}
+    );
+
+    const tab = screen.getByRole('tab', {name: 'Details'});
+    expect(tab).toHaveAttribute('href', '/tabs/details/');
+    await userEvent.click(tab);
+
+    expect(router.location.pathname).toBe('/tabs/details/');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('details');
+  });
+
   it.each(['{Enter}', ' '])('navigates to the focused tab with %s', async key => {
     const onChange = jest.fn();
     const {router} = render(<RoutedTabs onChange={onChange} />, {
@@ -258,6 +282,23 @@ describe('Tabs overflow routing', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     window.ResizeObserver = originalResizeObserver;
+  });
+
+  it('uses the latest callback when an overflow link is activated', async () => {
+    containerWidth = 260;
+    const previousOnChange = jest.fn();
+    const onChange = jest.fn();
+    const {rerender} = render(<LinkedTabs onChange={previousOnChange} />, {
+      initialRouterConfig: {location: {pathname: '/tabs/details/'}},
+    });
+    rerender(<LinkedTabs onChange={onChange} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Attachments'}));
+
+    expect(previousOnChange).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('attachments');
   });
 
   it.each(['click', 'keyboard'])(

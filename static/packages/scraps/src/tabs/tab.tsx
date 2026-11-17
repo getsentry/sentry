@@ -218,7 +218,7 @@ export function Tab({
   tooltipProps,
 }: TabProps) {
   const {
-    rootProps: {kind, onChange},
+    rootProps: {onChange},
   } = useContext(TabsContext);
   const wrapperRef = useObjectRef(ref);
   const controlRef = useRef<HTMLElement>(null);
@@ -228,11 +228,11 @@ export function Tab({
     props: {to, hidden},
   } = item;
   const {tabProps, isSelected, isDisabled} = useTab(
-    {key, isDisabled: hidden, shouldSelectOnPressUp: kind === 'links'},
+    {key, isDisabled: hidden, shouldSelectOnPressUp: to !== undefined},
     state,
     controlRef
   );
-  const isLink = kind === 'links' && !isDisabled;
+  const isLink = to !== undefined && !isDisabled;
   const styleProps = {orientation, variant, selected: isSelected, size};
   const content = (
     <Fragment>

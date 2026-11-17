@@ -73,15 +73,10 @@ export type LinkTabsProps<T extends TabKey = TabKey> = Omit<
   onChange?: (key: NoInfer<T>) => void;
 };
 
-export type InternalTabsProps = BaseTabsProps & {children: ReactNode} & (
-    | ({kind: 'selection'} & SelectionProps<TabKey>)
-    | {
-        kind: 'links';
-        value: TabKey;
-        defaultValue?: never;
-        onChange?: (key: TabKey) => void;
-      }
-  );
+export type InternalTabsProps = Omit<TabsProps, 'children'> & {
+  children: ReactNode;
+  onSelectionChange?: (key: TabKey) => void;
+};
 
 function TabStateProvider({
   children,
@@ -127,9 +122,9 @@ function TabsRoot({
 }
 
 // Bind the key type without wrapping the collection items or changing their identity.
-function SelectionTabsRoot({children, ...props}: TabsProps) {
+function SelectionTabsRoot({children, onChange, ...props}: TabsProps) {
   return (
-    <TabsRoot kind="selection" {...props}>
+    <TabsRoot {...props} onSelectionChange={onChange}>
       {children(components)}
     </TabsRoot>
   );
@@ -137,7 +132,7 @@ function SelectionTabsRoot({children, ...props}: TabsProps) {
 
 function LinkTabsRoot({children, ...props}: LinkTabsProps) {
   return (
-    <TabsRoot kind="links" {...props}>
+    <TabsRoot {...props} keyboardActivation="manual">
       {children(components)}
     </TabsRoot>
   );

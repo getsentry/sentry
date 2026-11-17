@@ -296,11 +296,11 @@ function BaseTabList({
     value,
     defaultValue,
     onChange,
+    onSelectionChange,
     disabled,
     orientation,
     size,
     keyboardActivation = 'manual',
-    kind,
     ...otherRootProps
   } = rootProps;
 
@@ -308,10 +308,9 @@ function BaseTabList({
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
-    onSelectionChange:
-      kind === 'selection' ? (key: Key) => onChange?.(String(key)) : undefined,
+    onSelectionChange: (key: Key) => onSelectionChange?.(String(key)),
     isDisabled: disabled,
-    keyboardActivation: kind === 'links' ? 'manual' : keyboardActivation,
+    keyboardActivation,
     ...otherRootProps,
     ...props,
   };
@@ -352,12 +351,12 @@ function BaseTabList({
 
       return {
         key: String(key),
-        to: kind === 'links' ? itemProps.to : undefined,
+        to: itemProps.to,
         isSelected: state.selectedKey === key,
         onAction:
-          kind === 'links'
-            ? () => onChange?.(String(key))
-            : () => state.setSelectedKey(key),
+          itemProps.to === undefined
+            ? () => state.setSelectedKey(key)
+            : () => onChange?.(String(key)),
         label: (
           <Flex align="center" gap="md">
             {itemProps.children}
@@ -369,7 +368,7 @@ function BaseTabList({
         textValue: item.textValue,
       } satisfies MenuItemProps;
     });
-  }, [state, overflowTabs, kind, onChange]);
+  }, [state, overflowTabs, onChange]);
 
   return (
     <Container
