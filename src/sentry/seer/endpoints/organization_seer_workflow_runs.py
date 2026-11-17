@@ -5,9 +5,8 @@ from collections.abc import Mapping, Sequence, Set
 from datetime import datetime
 from typing import Literal, NamedTuple, TypedDict
 
-from django.db.models import Exists, F, OuterRef, Prefetch, Q, TextField
+from django.db.models import F, Prefetch, Q
 from django.db.models.fields.json import KeyTextTransform, KeyTransform
-from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema
 from pydantic import ValidationError
 from rest_framework import serializers
@@ -267,25 +266,29 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
         if not has_notebooks_access(organization, actor=request.user):
             output_links = output_links.none()
         else:
-            source_projects = Project.objects.filter(
-                organization=organization, status=ObjectStatus.ACTIVE
-            )
-            if accessible_project_ids is not None:
-                source_projects = source_projects.filter(id__in=accessible_project_ids)
-            # The original server-owned source survives edits to project selection and run links.
-            # Cast the project ID, never the saved JSON, so malformed snapshots cannot fail a page.
-            source_projects = source_projects.annotate(
-                source_project_id=Cast("id", TextField())
-            ).filter(
-                source_project_id=KeyTextTransform(
-                    "id", KeyTransform("project", KeyTransform("snapshot", OuterRef("source")))
+            source_project_ids = accessible_project_ids
+            if source_project_ids is None:
+                source_project_ids = set(
+                    Project.objects.filter(
+                        organization=organization, status=ObjectStatus.ACTIVE
+                    ).values_list("id", flat=True)
                 )
-            )
-            visible_notebooks = Notebook.objects.filter(organization=organization).filter(
-                ~Q(source_type=NotebookSourceType.METRIC_OPEN_PERIOD)
-                | (
-                    Q(source__type=NotebookSourceType.METRIC_OPEN_PERIOD)
-                    & Q(Exists(source_projects))
+            # Match integer and string snapshots without casting untrusted JSON.
+            visible_notebooks = (
+                Notebook.objects.filter(organization=organization)
+                .alias(
+                    source_project_id=KeyTextTransform(
+                        "id", KeyTransform("project", KeyTransform("snapshot", "source"))
+                    )
+                )
+                .filter(
+                    ~Q(source_type=NotebookSourceType.METRIC_OPEN_PERIOD)
+                    | Q(
+                        source__type=NotebookSourceType.METRIC_OPEN_PERIOD,
+                        source_project_id__in=[
+                            str(project_id) for project_id in source_project_ids
+                        ],
+                    )
                 )
             )
             output_links = output_links.filter(notebook__in=visible_notebooks)
