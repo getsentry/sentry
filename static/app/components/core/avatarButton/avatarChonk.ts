@@ -23,7 +23,7 @@ import {hexToOklch, oklchToHex} from './oklch';
 export function getAvatarChonk(
   dominant: string,
   themeType: Theme['type'],
-  edge?: string
+  edge?: string | null
 ): string | undefined {
   if (isNeutralColor(dominant)) {
     return undefined;

@@ -51,7 +51,7 @@ export function AvatarButton({
   });
 
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
-  const edge = colors.type === 'image' ? (colors.edge ?? undefined) : undefined;
+  const edge = colors.type === 'image' ? colors.edge : undefined;
   const chonk =
     colors.type === 'none'
       ? undefined
