@@ -188,10 +188,14 @@ describe('useAgentHandoff', () => {
     expect(mint).toHaveBeenCalledTimes(1);
     expect(mint).toHaveBeenCalledWith(
       url,
-      expect.objectContaining({data: {context: contextA, disableIpPinning: false, flow: 'add_feature'}})
+      expect.objectContaining({
+        data: {context: contextA, disableIpPinning: false, flow: 'add_feature'},
+      })
     );
     const itemA = write.mock.calls[0]![0][0] as {data: Record<string, Promise<Blob>>};
-    await expect(itemA.data['text/plain']!.then(b => b.text())).resolves.toBe(addFeaturePrompt);
+    await expect(itemA.data['text/plain']!.then(b => b.text())).resolves.toBe(
+      addFeaturePrompt
+    );
 
     rerender({ctx: contextB});
     await act(async () => {
@@ -200,7 +204,9 @@ describe('useAgentHandoff', () => {
     expect(mint).toHaveBeenCalledTimes(2);
     expect(mint).toHaveBeenLastCalledWith(
       url,
-      expect.objectContaining({data: {context: contextB, disableIpPinning: false, flow: 'add_feature'}})
+      expect.objectContaining({
+        data: {context: contextB, disableIpPinning: false, flow: 'add_feature'},
+      })
     );
   });
 
