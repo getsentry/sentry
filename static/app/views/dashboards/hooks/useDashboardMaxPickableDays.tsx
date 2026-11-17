@@ -5,6 +5,7 @@ import {
   useMaxPickableDays,
   type MaxPickableDaysOptions,
 } from 'sentry/utils/useMaxPickableDays';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
@@ -51,6 +52,40 @@ function getDataCategoriesFromWidgets(
     : [DataCategory.TRANSACTIONS];
 }
 
+// Trace metrics are capped at 30 days. Selected organizations can query their
+// downsampled retention on dashboards, but only back 90 days, because downsampled
+// retention for trace metrics may be removed.
+const TRACE_METRICS_EXTENDED_MAX_PICKABLE_DAYS = 90;
+
+export function useDashboardMaxPickableDaysForDataCategories(
+  dataCategories: readonly [DataCategory, ...DataCategory[]]
+): MaxPickableDaysOptions {
+  const organization = useOrganization();
+  const maxPickableDaysOptions = useMaxPickableDays({dataCategories});
+
+  const hasExtendedTraceMetricsRange =
+    organization.features.includes('dashboards-tracemetrics-90-day-range') &&
+    dataCategories.includes(DataCategory.TRACE_METRICS);
+
+  return useMemo(() => {
+    if (
+      !hasExtendedTraceMetricsRange ||
+      maxPickableDaysOptions.maxPickableDays >= TRACE_METRICS_EXTENDED_MAX_PICKABLE_DAYS
+    ) {
+      return maxPickableDaysOptions;
+    }
+
+    return {
+      ...maxPickableDaysOptions,
+      maxPickableDays: TRACE_METRICS_EXTENDED_MAX_PICKABLE_DAYS,
+      maxUpgradableDays: Math.max(
+        maxPickableDaysOptions.maxUpgradableDays,
+        TRACE_METRICS_EXTENDED_MAX_PICKABLE_DAYS
+      ),
+    };
+  }, [hasExtendedTraceMetricsRange, maxPickableDaysOptions]);
+}
+
 export function useDashboardMaxPickableDays(
   widgets: Widget[] | undefined
 ): MaxPickableDaysOptions {
@@ -63,5 +98,5 @@ export function useDashboardMaxPickableDays(
     return getDataCategoriesFromWidgets(widgets);
   }, [widgets]);
 
-  return useMaxPickableDays({dataCategories});
+  return useDashboardMaxPickableDaysForDataCategories(dataCategories);
 }

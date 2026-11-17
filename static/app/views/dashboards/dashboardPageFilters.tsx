@@ -1,7 +1,7 @@
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DataCategory} from 'sentry/types/core';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 
+import {useDashboardMaxPickableDaysForDataCategories} from './hooks/useDashboardMaxPickableDays';
 import {DEFAULT_STATS_PERIOD} from './data';
 
 const ALL_DASHBOARD_DATA_CATEGORIES = [
@@ -26,9 +26,9 @@ export function DashboardPageFilters({
   // `FiltersBar` derives per dashboard via `useDashboardMaxPickableDays`). A
   // widget-derived ceiling here would move as the dashboard's contents change and
   // reset a selection the picker had already allowed.
-  const {maxPickableDays} = useMaxPickableDays({
-    dataCategories: ALL_DASHBOARD_DATA_CATEGORIES,
-  });
+  const {maxPickableDays} = useDashboardMaxPickableDaysForDataCategories(
+    ALL_DASHBOARD_DATA_CATEGORIES
+  );
 
   return (
     <PageFiltersContainer
