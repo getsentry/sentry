@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import upperFirst from 'lodash/upperFirst';
 
 import {InfoTip} from '@sentry/scraps/info';
@@ -11,6 +11,13 @@ import {t, tct} from 'sentry/locale';
 import {DataCategoryExact} from 'sentry/types/core';
 
 import {getPricingDocsLinkForEventType} from './utils';
+
+export interface SubSettingField {
+  choices: ReadonlyArray<readonly [string, string]>;
+  help: ReactNode;
+  label: ReactNode;
+  name: string;
+}
 
 interface FineTuneField {
   description: string;
@@ -117,6 +124,13 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     type: 'select',
     // No choices here because it's going to have dynamic content
     // Component will create choices
+  },
+  inbox: {
+    title: t('Inbox Notifications'),
+    description: t(
+      'Choose which Inbox activity also notifies you by email or Slack. Everything still shows up in your Inbox.'
+    ),
+    type: 'select',
   },
 };
 
@@ -232,6 +246,16 @@ export const NOTIFICATION_SETTING_FIELDS = {
       'Notifications for Cron Monitors that have been in a failing state for a prolonged period of time'
     ),
   },
+  inbox: {
+    name: 'inbox',
+    type: 'select',
+    label: t('Inbox'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t('Email and Slack notifications for activity in your Inbox.'),
+  },
   // legacy options
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
@@ -331,5 +355,46 @@ export const QUOTA_FIELDS = [
       ['always', t('On')],
       ['never', t('Off')],
     ] as const,
+  },
+];
+
+const ON_OFF_CHOICES = [
+  ['always', t('On')],
+  ['never', t('Off')],
+] as const;
+
+const RECIPIENT_CHOICES = [
+  ['always', t('You and your team')],
+  ['self', t('Only you')],
+  ['team', t('Only your team')],
+  ['never', t('Off')],
+] as const;
+
+export const INBOX_FIELDS: SubSettingField[] = [
+  {
+    name: 'inboxAssignments',
+    label: t('Assignments'),
+    help: t('An issue is assigned to you or to one of your teams.'),
+    choices: RECIPIENT_CHOICES,
+  },
+  {
+    name: 'inboxMentions',
+    label: t('Mentions'),
+    help: t(
+      'You or one of your teams is mentioned in an issue comment, or you are mentioned in an investigation.'
+    ),
+    choices: RECIPIENT_CHOICES,
+  },
+  {
+    name: 'inboxPrReadyForReview',
+    label: t('Pull Requests Ready for Review'),
+    help: t('Seer opened a pull request for an issue and it is ready for your review.'),
+    choices: ON_OFF_CHOICES,
+  },
+  {
+    name: 'inboxInvestigations',
+    label: t('Investigations'),
+    help: t('An investigation you started finishes, or you are added to one.'),
+    choices: ON_OFF_CHOICES,
   },
 ];
