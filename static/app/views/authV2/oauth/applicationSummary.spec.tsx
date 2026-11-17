@@ -177,3 +177,45 @@ it('explains Sentry ownership when the badge receives keyboard focus', async () 
   expect(await screen.findByText('This app is built by Sentry.')).toBeInTheDocument();
   expect(badge).toHaveAccessibleDescription('This app is built by Sentry.');
 });
+describe('homepage link', () => {
+  function renderWithHomepage(homepageUrl: string | null) {
+    const context = OAuthContextFixture();
+    return render(
+      <ApplicationSummary
+        context={{...context, application: {...context.application, homepageUrl}}}
+      />
+    );
+  }
+
+  it('renders the homepage origin as a link for valid URLs', () => {
+    renderWithHomepage('https://example.com/some/path');
+    expect(screen.getByRole('link', {name: 'https://example.com'})).toHaveAttribute(
+      'href',
+      'https://example.com/some/path'
+    );
+  });
+
+  it.each(['not a url', 'ftp://example.com'])(
+    'does not render a homepage link for %s',
+    homepageUrl => {
+      renderWithHomepage(homepageUrl);
+      expect(
+        screen
+          .queryAllByRole('link')
+          .filter(link => link.getAttribute('href') === homepageUrl)
+      ).toHaveLength(0);
+    }
+  );
+
+  it('renders without URL.canParse (older browsers)', () => {
+    const originalCanParse = URL.canParse;
+    // Simulate browsers without URL.canParse (Safari < 17)
+    Reflect.deleteProperty(URL, 'canParse');
+    try {
+      renderWithHomepage('https://example.com');
+      expect(screen.getByRole('link', {name: 'https://example.com'})).toBeInTheDocument();
+    } finally {
+      URL.canParse = originalCanParse;
+    }
+  });
+});

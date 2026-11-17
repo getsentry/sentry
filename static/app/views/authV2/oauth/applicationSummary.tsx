@@ -13,6 +13,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 import {PermissionTable} from './permissionTable';
 import type {OAuthContext} from './types';
@@ -60,7 +61,7 @@ export function ApplicationSummary({
   const {application, permissionGroups} = context;
   const sentryApplication = SENTRY_APPLICATIONS.get(application.clientId);
   const homepageOrigin =
-    application.homepageUrl && URL.canParse(application.homepageUrl)
+    application.homepageUrl && isValidUrl(application.homepageUrl)
       ? new URL(application.homepageUrl).origin
       : null;
 
