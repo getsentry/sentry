@@ -2,6 +2,10 @@ import {useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {CustomSeriesRenderItem} from 'echarts';
 
+import {Container} from '@sentry/scraps/layout';
+
+import {t} from 'sentry/locale';
+
 import {
   BAND_HEIGHT,
   bandLayout,
@@ -12,13 +16,17 @@ import {
   type BandBucket,
   type BandElement,
 } from './bandShapes';
-import {bucketReleases, type ReleaseBucket} from './bucketReleases';
+import {
+  bucketReleases,
+  type BucketableRelease,
+  type ReleaseBucket,
+} from './bucketReleases';
+import {ChartBandTooltipHeading} from './chartBandTooltip';
 import type {ChartBand} from './mergeChartBands';
-import {ReleaseBandTooltipSection, type BandRelease} from './releaseBandTooltip';
 
 export const RELEASE_BAND_SERIES_ID = '__release_band__';
 
-interface ReleaseBandItem extends ReleaseBucket<BandRelease> {
+interface ReleaseBandItem extends ReleaseBucket<BucketableRelease> {
   opacity: number;
   value: [start: number, y: number];
 }
@@ -63,7 +71,7 @@ function releaseBandRenderItem(
 
 interface UseReleaseBandParams {
   buckets: BandBucket[];
-  releases?: readonly BandRelease[];
+  releases?: readonly BucketableRelease[];
 }
 
 /**
@@ -100,7 +108,14 @@ export function useReleaseBand({
       height: BAND_HEIGHT,
       tooltipSection: start => {
         const bucket = bucketsByStart.get(start);
-        return bucket ? <ReleaseBandTooltipSection bucket={bucket} /> : null;
+        return bucket ? (
+          <Container as="section">
+            <ChartBandTooltipHeading
+              label={t('Releases')}
+              value={bucket.releases.length}
+            />
+          </Container>
+        ) : null;
       },
       series: bandOffset => ({
         type: 'custom',
