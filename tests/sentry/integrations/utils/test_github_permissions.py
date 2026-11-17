@@ -190,6 +190,23 @@ def test_a_mistyped_required_level_stops_enforcing_rather_than_raising(
         ),
         ("123", "Organization", "", None),
         ("", "User", "example-user", None),
+        # GitHub Enterprise integrations store their external id as
+        # "{domain}:{installation_id}" and build the URL against that domain.
+        (
+            "example.ghe.com:123456",
+            "Organization",
+            "example-org",
+            "https://example.ghe.com/organizations/example-org"
+            "/settings/installations/123456/permissions/update",
+        ),
+        (
+            "example.ghe.com:123456",
+            "User",
+            "example-user",
+            "https://example.ghe.com/settings/installations/123456/permissions/update",
+        ),
+        ("ghe.example.com:", "User", "example-user", None),
+        (":123456", "User", "example-user", None),
     ],
 )
 def test_get_github_permissions_update_url(

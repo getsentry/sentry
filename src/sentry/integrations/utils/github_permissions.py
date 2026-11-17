@@ -197,13 +197,28 @@ def get_missing_github_app_permissions(
 def get_github_permissions_update_url(
     installation_id: str, account_type: str | None, account_login: str
 ) -> str | None:
+    """Page where the user reviews and accepts an installation's updated
+    permissions.
+
+    GitHub Enterprise integrations store their external id as
+    ``{domain}:{installation_id}`` (the installation id alone is not unique
+    across self-hosted hosts), so the URL is built against that domain.
+    """
     if not installation_id:
         return None
+
+    domain: str | None = None
+    if ":" in installation_id:
+        domain, _, installation_id = installation_id.partition(":")
+        if not domain or not installation_id:
+            return None
+    host = f"https://{domain}" if domain else "https://github.com"
+
     if account_type == "Organization":
         if not account_login:
             return None
         return (
-            f"https://github.com/organizations/{account_login}"
+            f"{host}/organizations/{account_login}"
             f"/settings/installations/{installation_id}/permissions/update"
         )
-    return f"https://github.com/settings/installations/{installation_id}/permissions/update"
+    return f"{host}/settings/installations/{installation_id}/permissions/update"
