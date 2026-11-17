@@ -11,8 +11,9 @@ request-signing transport, credential refresh, and
 `/v1/monitoring-providers/aws/verify-connection` endpoint to **all** Seer workers
 and API pods first. Older Seer pods reject the new connection discriminator.
 Then deploy the Sentry backend and the setup UI in separate PRs. Keep
-`organizations:integrations-aws` disabled until runtime configuration and live
-verification are complete.
+`organizations:integrations-aws` disabled until all cells and control have deployed
+(including the conditional integration-config update), runtime configuration is in
+place, and live verification is complete.
 
 ## Silos
 
@@ -22,14 +23,15 @@ cell-silo endpoint
 `/organizations/{org}/monitoring-providers/aws/verify-connection/`, which Synapse
 routes to the organization's cell. That endpoint calls the cell's Seer directly
 (it holds the request for up to `AWS_VERIFY_CONNECTION_TIMEOUT`, 90s, without
-retries), records the outcome on the org integration config (with a staleness
-guard against settings that have since changed), and returns it. The control-silo
-setup pipeline never verifies; its verification step only accepts the outcome the
-frontend obtained from the cell endpoint, cross-checked against the configured
-role, and persists it at install time. Saving settings resets the stored status to
-`unverified` until the settings UI re-verifies through the cell endpoint.
+retries). For installed integrations it records the outcome only if the verified
+configuration still matches in control. For setup it returns a signed
+`verificationReceipt`; the browser posts that field to the `aws_verification`
+pipeline step. The receipt expires after five minutes and is valid only for that
+organization, role, region, and external ID. The pipeline ignores browser-supplied
+statuses and error details. Saving new settings resets the status to `unverified`;
+investigations receive no AWS connection until verification succeeds.
 
-The only cross-silo call is the small `aws_seer.get_principal_arn` cell RPC
+Setup also uses the `aws_seer.get_principal_arn` cell RPC
 (`sentry/integrations/services/aws_seer`), which supplies the cell's Seer workload
 ARN for the CloudFormation template. Seer-facing code in `client.py` runs only in
 cells, and investigations build connections there too. As a result,
@@ -61,7 +63,8 @@ across this module, Seer's role ARN validation, and the ops policy.
 
 The external ID is persisted in the organization option `aws-seer.external-id`
 before the CloudFormation template is returned. It survives pipeline expiry,
-setup restarts, and reinstalls. Existing installations retain their external ID.
+setup restarts, and reinstalls. Organization imports do not copy this option; a
+newly imported organization generates its own external ID during setup.
 
 ## Permission Boundary and Verification
 

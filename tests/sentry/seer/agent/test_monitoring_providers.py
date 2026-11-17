@@ -810,6 +810,7 @@ class TestAwsMonitoringProviderConnections(TestCase):
             "role_arn": "arn:aws:iam::123456789012:role/sentry-seer/SentrySeer",
             "external_id": "11111111-1111-4111-8111-111111111111",
             "region": "us-east-1",
+            "connection_status": "connected",
         }
 
     def test_org_connection_serializes_role_configuration(self) -> None:
@@ -827,7 +828,9 @@ class TestAwsMonitoringProviderConnections(TestCase):
             "type": "aws_assume_role",
             "provider_key": "aws",
             "url": "https://aws-mcp.us-east-1.api.aws/mcp",
-            **self.config,
+            "role_arn": self.config["role_arn"],
+            "external_id": self.config["external_id"],
+            "region": self.config["region"],
             "auth_method": "aws_assume_role",
             "principal_arn": "arn:aws:iam::987654321098:role/SeerWorkload",
             "refreshable": False,
@@ -919,8 +922,11 @@ class TestAwsMonitoringProviderConnections(TestCase):
             organization=self.organization,
             provider="aws",
             external_id=str(self.organization.id),
-            oi_params={"config": self.config},
+            oi_params={
+                "config": {k: v for k, v in self.config.items() if k != "connection_status"}
+            },
         )
+        assert get_monitoring_provider_connections(self.organization, None) == []
         # No recorded verification status (e.g. settings were changed and not re-verified).
         assert provider.is_verified(self.organization) is False
 
@@ -933,3 +939,6 @@ class TestAwsMonitoringProviderConnections(TestCase):
                 with assume_test_silo_mode(SiloMode.CONTROL):
                     org_integration.update(config={**self.config, "connection_status": status})
                 assert provider.is_verified(self.organization) is verified
+                assert (
+                    bool(get_monitoring_provider_connections(self.organization, None)) is verified
+                )

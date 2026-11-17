@@ -5,9 +5,11 @@ import uuid
 from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
+from django.core.signing import BadSignature
 from django.http.request import HttpRequest
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from rest_framework.exceptions import NotFound
 from rest_framework.fields import CharField, ChoiceField
 from rest_framework.serializers import ValidationError
 
@@ -26,6 +28,7 @@ from sentry.integrations.aws.client import (
     get_sentry_principal_arn,
     parse_role_arn,
 )
+from sentry.integrations.aws.verification import VERIFICATION_MAX_AGE_SECONDS, verification_signer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -78,7 +81,7 @@ def get_cell_principal_arn(organization_id: int) -> str:
     """The Seer workload role in the organization's cell, which customer roles must trust."""
     principal_arn = aws_seer_service.get_principal_arn(organization_id=organization_id)
     if principal_arn is None:
-        raise IntegrationConfigurationError(AWS_NOT_CONFIGURED_MESSAGE)
+        raise NotFound(AWS_NOT_CONFIGURED_MESSAGE)
     return principal_arn
 
 
@@ -150,29 +153,11 @@ class AwsVerification(TypedDict):
 
 
 class AwsVerificationInputSerializer(CamelSnakeSerializer["AwsVerificationInput"]):
-    """The outcome the frontend obtained from the cell-silo verify-connection endpoint.
-
-    The control silo cannot reach the organization's Seer, so the pipeline records a
-    result rather than verifying; it only cross-checks that the result describes the
-    configured role.
-    """
-
-    connection_status = ChoiceField(
-        choices=[(status, status) for status in (AWS_STATUS_CONNECTED, AWS_STATUS_ERROR)],
-        required=True,
-    )
-    error_detail = CharField(
-        required=False, allow_null=True, allow_blank=True, default=None, max_length=512
-    )
-    role_arn = CharField(required=True, max_length=2048)
-    region = ChoiceField(choices=[(region, region) for region in AWS_MCP_REGIONS], required=True)
+    verification_receipt = CharField(max_length=2048)
 
 
 class AwsVerificationInput(TypedDict):
-    connection_status: str
-    error_detail: str | None
-    role_arn: str
-    region: str
+    verification_receipt: str
 
 
 class AwsVerificationApiStep:
@@ -196,17 +181,22 @@ class AwsVerificationApiStep:
         request: HttpRequest,
     ) -> PipelineStepResult:
         config: dict[str, Any] = pipeline.fetch_state("config") or {}
-        if validated_data["role_arn"] != config.get("role_arn") or validated_data[
-            "region"
-        ] != config.get("region"):
-            return PipelineStepResult.error(
-                "Verification results do not match the configured AWS role. "
-                "Please re-run verification."
+        assert pipeline.organization is not None
+        external_id = pipeline.fetch_state("aws_external_id")
+        if not external_id or not config:
+            return PipelineStepResult.error("Restart setup to configure the AWS role.")
+        signer = verification_signer(
+            organization_id=pipeline.organization.id,
+            role_arn=config["role_arn"],
+            region=config["region"],
+            external_id=external_id,
+        )
+        try:
+            verification: AwsVerification = signer.unsign_object(
+                validated_data["verification_receipt"], max_age=VERIFICATION_MAX_AGE_SECONDS
             )
-        verification: AwsVerification = {
-            "connection_status": validated_data["connection_status"],
-            "error_detail": validated_data.get("error_detail") or None,
-        }
+        except BadSignature:
+            return PipelineStepResult.error("Please verify the configured AWS role again.")
         pipeline.bind_state("verification", verification)
         return PipelineStepResult.advance()
 
@@ -295,12 +285,15 @@ class AwsIntegration(IntegrationInstallation):
 
 class AwsIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.AWS.value
-    name = "AWS for Seer"
     metadata = metadata
     integration_cls = AwsIntegration
     features = frozenset([IntegrationFeatures.SEER_CONTEXT])
     requires_feature_flag = True
     allow_multiple = False
+
+    @property
+    def name(self) -> str:
+        return "AWS for Seer"
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [AwsRoleApiStep(), AwsVerificationApiStep()]
@@ -388,6 +381,8 @@ class AwsOrgMonitoringProvider(OrgMonitoringProvider):
         ):
             return None
         config = org_integration.config
+        if config.get("connection_status") != AWS_STATUS_CONNECTED:
+            return None
         role_arn = config.get("role_arn")
         external_id = config.get("external_id")
         region = config.get("region")

@@ -106,7 +106,14 @@ class OrganizationOption(Model):
     value: { updated: datetime }
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = {RelocationScope.Organization, RelocationScope.Global}
+
+    def get_relocation_scope(self) -> RelocationScope:
+        # A customer's AWS trust policy binds this ID to this Sentry organization.
+        # Restore it only with a whole-instance backup, never into a relocated org.
+        if self.key == "aws-seer.external-id":
+            return RelocationScope.Global
+        return RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
     key = models.CharField(max_length=64)

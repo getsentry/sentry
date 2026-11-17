@@ -14,10 +14,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.endpoints.organization_monitoring_provider_index import (
-    MonitoringProviderPermission,
-)
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers.rest_framework.base import (
     CamelSnakeSerializer,
     convert_dict_key_case,
@@ -33,6 +30,7 @@ from sentry.integrations.aws.client import (
     parse_role_arn,
     verify_aws_connection,
 )
+from sentry.integrations.aws.verification import verification_signer
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
@@ -61,6 +59,7 @@ class AwsVerifyConnectionSerializer(CamelSnakeSerializer[AwsVerifyConnectionInpu
 def _record_verification_result(
     organization: Organization,
     verified: Mapping[str, Any],
+    external_id: str,
     result: AwsVerifyConnectionResult,
 ) -> None:
     ctx = integration_service.organization_context(
@@ -84,11 +83,12 @@ def _record_verification_result(
     config = org_integration.config or {}
     if config.get("role_arn") != verified["role_arn"]:
         return
-    if config.get("region") != verified["region"]:
+    if config.get("region") != verified["region"] or config.get("external_id") != external_id:
         return
 
     integration_service.update_organization_integration(
         org_integration_id=org_integration.id,
+        expected_config=config,
         config={
             **config,
             "connection_status": result["connection_status"],
@@ -111,7 +111,7 @@ class OrganizationMonitoringProviderAwsVerifyConnectionEndpoint(OrganizationEndp
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (MonitoringProviderPermission,)
+    permission_classes = (OrganizationIntegrationsPermission,)
 
     def post(self, request: Request, organization: Organization, **kwargs: object) -> Response:
         if not features.has("organizations:integrations-aws", organization, actor=request.user):
@@ -147,18 +147,28 @@ class OrganizationMonitoringProviderAwsVerifyConnectionEndpoint(OrganizationEndp
             return Response({"detail": AWS_VERIFICATION_MESSAGE}, status=502)
 
         try:
-            _record_verification_result(organization, data, result)
+            _record_verification_result(organization, data, external_id, result)
         except Exception:
             logger.exception(
                 "aws.verify_connection_record_failed",
                 extra={"organization_id": organization.id},
             )
 
+            return Response(
+                {"detail": "Could not save the AWS verification result. Try again."}, status=503
+            )
+
+        receipt = verification_signer(
+            organization_id=organization.id,
+            role_arn=data["role_arn"],
+            region=data["region"],
+            external_id=external_id,
+        ).sign_object(result)
         # Unlike GCP, AWS is not a connect_telemetry provider yet, so there are no
         # open investigation connect requests to apply here.
         return Response(
             convert_dict_key_case(
-                {**result, "role_arn": data["role_arn"], "region": data["region"]},
+                {**result, **data, "verification_receipt": receipt},
                 snake_to_camel_case,
             )
         )

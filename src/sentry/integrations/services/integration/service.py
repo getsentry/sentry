@@ -251,12 +251,14 @@ class IntegrationService(RpcService):
         *,
         org_integration_id: int,
         config: dict[str, Any] | None = None,
+        expected_config: dict[str, Any] | None = None,
         status: int | None = None,
         grace_period_end: datetime | None = None,
         set_grace_period_end_null: bool | None = None,
     ) -> RpcOrganizationIntegration | None:
         """
         Returns an RpcOrganizationIntegration after updating the fields provided.
+        If expected_config is supplied, skip the update and return None if it no longer matches.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
 

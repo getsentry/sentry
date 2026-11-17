@@ -3,11 +3,13 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Iterable
+from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import requests
 import sentry_sdk
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry import analytics
@@ -421,18 +423,32 @@ class DatabaseBackedIntegrationService(IntegrationService):
         *,
         org_integration_id: int,
         config: dict[str, Any] | None = None,
+        expected_config: dict[str, Any] | None = None,
         status: int | None = None,
         grace_period_end: datetime | None = None,
         set_grace_period_end_null: bool | None = None,
     ) -> RpcOrganizationIntegration | None:
-        ois = self.update_organization_integrations(
-            org_integration_ids=[org_integration_id],
-            config=config,
-            status=status,
-            grace_period_end=grace_period_end,
-            set_grace_period_end_null=set_grace_period_end_null,
-        )
-        return ois[0] if len(ois) > 0 else None
+        # Preserve the existing unconditional write path. A conditional write holds
+        # the row lock until the normal outbox-producing update completes.
+        with (
+            transaction.atomic(using=router.db_for_write(OrganizationIntegration))
+            if expected_config is not None
+            else nullcontext()
+        ):
+            if expected_config is not None and not (
+                OrganizationIntegration.objects.select_for_update()
+                .filter(pk=org_integration_id, config=expected_config)
+                .exists()
+            ):
+                return None
+            ois = self.update_organization_integrations(
+                org_integration_ids=[org_integration_id],
+                config=config,
+                status=status,
+                grace_period_end=grace_period_end,
+                set_grace_period_end_null=set_grace_period_end_null,
+            )
+            return ois[0] if ois else None
 
     def start_grace_period_for_provider(
         self,

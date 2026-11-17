@@ -693,7 +693,18 @@ class SanitizationTests(ImportTestCase):
                         }
                     )
 
-                # Also check organization options
+                # Organization-scoped imports must never supply an AWS trust identifier.
+                models.append(
+                    {
+                        "model": "sentry.organizationoption",
+                        "pk": 4,
+                        "fields": {
+                            "organization": 1,
+                            "key": "aws-seer.external-id",
+                            "value": "imported",
+                        },
+                    }
+                )
                 for key, value in option_values:
                     models.append(
                         {
@@ -708,7 +719,8 @@ class SanitizationTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
-        # Ensure that values come back out with the correct type.
+        assert not OrganizationOption.objects.filter(key="aws-seer.external-id").exists()
+        # Ensure that other values come back out with the correct type.
         for key, value in option_values:
             assert ProjectOption.objects.get(key=key).value == value
             assert OrganizationOption.objects.get(key=key).value == value

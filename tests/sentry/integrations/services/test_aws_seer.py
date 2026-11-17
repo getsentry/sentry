@@ -1,7 +1,8 @@
+from rest_framework.exceptions import NotFound
+
 from sentry.integrations.aws.client import AWS_NOT_CONFIGURED_MESSAGE
 from sentry.integrations.aws.integration import get_cell_principal_arn
 from sentry.integrations.services.aws_seer import aws_seer_service
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
 
@@ -23,7 +24,5 @@ class AwsSeerServiceTest(TestCase):
                 assert aws_seer_service.get_principal_arn(organization_id=self.organization.id) is (
                     None
                 )
-                with self.assertRaisesMessage(
-                    IntegrationConfigurationError, AWS_NOT_CONFIGURED_MESSAGE
-                ):
+                with self.assertRaisesMessage(NotFound, AWS_NOT_CONFIGURED_MESSAGE):
                     get_cell_principal_arn(self.organization.id)

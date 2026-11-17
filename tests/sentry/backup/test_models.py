@@ -11,6 +11,7 @@ from sentry.backup.scopes import ExportScope, RelocationScope
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apitoken import ApiToken
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
@@ -35,6 +36,20 @@ class DynamicRelocationScopeTests(TransactionTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.expect.json")
             return export_to_file(tmp_path, ExportScope.Global)
+
+    @expect_models(DYNAMIC_RELOCATION_SCOPE_TESTED, OrganizationOption)
+    def test_organization_option(self, expected_models: list[type[Model]]) -> None:
+        self.organization.update_option("aws-seer.external-id", "instance-bound")
+        self.organization.update_option("ordinary-option", True)
+        options = OrganizationOption.objects.filter(organization=self.organization)
+        assert (
+            options.get(key="aws-seer.external-id").get_relocation_scope() == RelocationScope.Global
+        )
+        assert (
+            options.get(key="ordinary-option").get_relocation_scope()
+            == RelocationScope.Organization
+        )
+        verify_models_in_output(expected_models, self.export())
 
     @expect_models(DYNAMIC_RELOCATION_SCOPE_TESTED, ApiAuthorization, ApiToken)
     def test_api_auth(self, expected_models: list[type[Model]]) -> None:

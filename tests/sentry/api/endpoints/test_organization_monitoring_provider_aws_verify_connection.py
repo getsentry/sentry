@@ -5,9 +5,11 @@ from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 
 _PATCH_VERIFY = (
     "sentry.api.endpoints.organization_monitoring_provider_aws_verify_connection"
@@ -68,10 +70,27 @@ class OrganizationMonitoringProviderAwsVerifyConnectionTest(APITestCase):
         assert response.status_code == 404
 
     @patch(_PATCH_VERIFY, return_value=_CONNECTED)
+    def test_requires_integration_management_scope(self, verify: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            read_token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+            manage_token = self.create_user_auth_token(
+                user=self.user, scope_list=["org:integrations"]
+            )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {read_token.token}")
+        self.get_error_response(
+            self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1", status_code=403
+        )
+        verify.assert_not_called()
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {manage_token.token}")
+        self.get_success_response(self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1")
+
+    @patch(_PATCH_VERIFY, return_value=_CONNECTED)
     def test_verifies_in_the_cell_with_the_stored_external_id(self, verify: MagicMock) -> None:
         response = self.get_success_response(
             self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1"
         )
+        assert response.data.pop("verificationReceipt")
         assert response.data == {
             "connectionStatus": "connected",
             "errorDetail": None,
@@ -156,6 +175,26 @@ class OrganizationMonitoringProviderAwsVerifyConnectionTest(APITestCase):
             with self.subTest(data=data):
                 self.get_success_response(self.organization.slug, **data)
                 assert self._config()["connection_status"] == "unverified"
+
+    @patch(_PATCH_VERIFY, return_value=_CONNECTED)
+    def test_concurrent_settings_save_is_not_overwritten(self, verify: MagicMock) -> None:
+        self._install()
+        snapshot = integration_service.organization_context(
+            organization_id=self.organization.id, provider="aws"
+        )
+        assert snapshot.organization_integration is not None
+        integration_service.update_organization_integration(
+            org_integration_id=snapshot.organization_integration.id,
+            config={**self._config(), "role_arn": _OTHER_ROLE_ARN},
+        )
+        # The cell saw the old settings, but control must compare against the live row.
+        with patch.object(integration_service, "organization_context", return_value=snapshot):
+            self.get_success_response(
+                self.organization.slug, role_arn=_ROLE_ARN, region="us-east-1"
+            )
+        config = self._config()
+        assert config["role_arn"] == _OTHER_ROLE_ARN
+        assert config["connection_status"] == "unverified"
 
     @patch(_PATCH_VERIFY, return_value=_CONNECTED)
     def test_succeeds_without_an_installed_integration(self, verify: MagicMock) -> None:
