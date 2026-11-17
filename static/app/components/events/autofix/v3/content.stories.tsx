@@ -466,17 +466,6 @@ export default Storybook.story('SeerDrawerContent', story => {
     />
   ));
 
-  story('Out of credits: PR iteration paused', () => (
-    <DrawerStory
-      description="Iteration was stopped while feedback was queued. A pause wins, so the queued feedback shows as paused, there's no credits line, and the feedback form is disabled."
-      runState={makeRun(PR_ITERATION_BLOCKS, {
-        repo_pr_states: OPEN_PR,
-        queued_feedback: QUEUED_FEEDBACK,
-        pr_iteration_paused: true,
-      })}
-    />
-  ));
-
   story('Out of credits: a step that stopped', () => (
     <DrawerStory
       description="The plan step failed after the root cause. The autofix-continue alert covers the retry (autofix_solution); the card's own retry is left to the failure handling."
