@@ -1192,8 +1192,9 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
       <Fragment>
         <p>
           Area and line charts support showing release markers via the{' '}
-          <code>releases</code> prop with two different visualizations specified by the
-          <code>showReleaseAs</code> prop: <code>"line"</code> and <code>"bubble"</code>.
+          <code>releases</code> prop with three different visualizations specified by the
+          <code>showReleaseAs</code> prop: <code>"line"</code>, <code>"bubble"</code>, and{' '}
+          <code>"band"</code>.
         </p>
 
         <p>
@@ -1201,6 +1202,11 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           should be reserved for inside the flyout when there are an appropriate number of
           releases to display. Clicking on a release line should open the release details
           inside of the flyout.
+        </p>
+
+        <p>
+          The release band marks each of the chart's time buckets that has releases, so it
+          lines up with the other bands under the plot, like dropped data.
         </p>
 
         <Storybook.SideBySide>
@@ -1239,6 +1245,18 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
               ]}
               releases={releases}
               showReleaseAs="bubble"
+            />
+          </MediumWidget>
+
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(sampleThroughputTimeSeries),
+                new Line(sampleDurationTimeSeries),
+                new Line(sampleDurationTimeSeriesP50),
+              ]}
+              releases={releases}
+              showReleaseAs="band"
             />
           </MediumWidget>
         </Storybook.SideBySide>

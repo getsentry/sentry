@@ -2,7 +2,7 @@ import sortedLastIndex from 'lodash/sortedLastIndex';
 
 import type {BandBucket} from './bandShapes';
 
-interface BucketableRelease {
+export interface BucketableRelease {
   timestamp: string;
 }
 

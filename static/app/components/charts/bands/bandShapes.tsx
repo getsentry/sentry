@@ -8,11 +8,12 @@ import type {ZRColor} from 'echarts/types/dist/shared';
 
 import {defined} from 'sentry/utils/defined';
 
-const BAND_PADDING = 4;
+const BAND_PADDING_TOP = 2;
+const BAND_PADDING_BOTTOM = 3;
 const BOX_HEIGHT = 4;
 const BOX_BORDER_RADIUS = 2;
 
-export const BAND_HEIGHT = BAND_PADDING + BOX_HEIGHT + BAND_PADDING;
+export const BAND_HEIGHT = BAND_PADDING_TOP + BOX_HEIGHT + BAND_PADDING_BOTTOM;
 
 /**
  * Each band gets its own hidden y-axis so its series never affects the scale
@@ -94,7 +95,7 @@ export function bandLayout(
   const {x, width} = params.coordSys as CartesianCoordSys;
   return {
     track: {left: x, right: x + width},
-    y: baseY + offset + BAND_PADDING,
+    y: baseY + offset + BAND_PADDING_TOP,
   };
 }
 
@@ -107,7 +108,7 @@ export function bandRect(
   y: number,
   track: PixelRange,
   fill: ZRColor,
-  options: {silent?: boolean; z2?: number} = {}
+  {opacity = 1, ...options}: {opacity?: number; silent?: boolean; z2?: number} = {}
 ): BandElement {
   const left = range.left <= track.left ? BOX_BORDER_RADIUS : 0;
   const right = range.right >= track.right ? BOX_BORDER_RADIUS : 0;
@@ -124,7 +125,8 @@ export function bandRect(
     },
     style: {
       fill,
-      lineWidth: BAND_PADDING * 2,
+      opacity,
+      lineWidth: BAND_PADDING_TOP * 2,
       stroke: 'transparent',
     },
   };

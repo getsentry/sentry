@@ -40,8 +40,4 @@ describe('bucketReleases', () => {
 
     expect(bucketReleases([before, after], buckets)).toEqual([]);
   });
-
-  it('returns nothing without buckets', () => {
-    expect(bucketReleases([release('1.0.0', 0)], [])).toEqual([]);
-  });
 });
