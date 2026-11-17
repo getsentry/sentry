@@ -188,7 +188,7 @@ class Team(Model):
             save_callback()
 
     @staticmethod
-    def outbox_for_delete(team_identifier: int, organization_identifier: int) -> CellOutbox:
+    def outbox_for_update(team_identifier: int, organization_identifier: int) -> CellOutbox:
         return CellOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=organization_identifier,
@@ -200,7 +200,7 @@ class Team(Model):
         # Nothing in the control silo copies team fields, so only deletes write an outbox:
         # the tombstone it leads to cleans up control silo rows that point at the team.
         with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=False):
-            Team.outbox_for_delete(self.id, self.organization_id).save()
+            Team.outbox_for_update(self.id, self.organization_id).save()
             return super().delete(*args, **kwargs)
 
     @property
