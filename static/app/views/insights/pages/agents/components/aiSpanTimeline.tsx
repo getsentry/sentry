@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 import {Text} from '@sentry/scraps/text';
 
 import {Count} from 'sentry/components/count';
@@ -48,6 +49,7 @@ import {
 } from './aiSpanList';
 import {AiSpanStatusIcon} from './aiSpanStatusIcon';
 import {LLMCosts} from './llmCosts';
+import {ScrubbedText} from './scrubbedText';
 
 interface SpanPresentation {
   color: string;
@@ -233,13 +235,14 @@ const TimelineRow = memo(function TimelineRowImpl({
               <Flex flex="1" minWidth="0">
                 {secondary && (
                   <InfoText
-                    title={secondary}
+                    title={stripAnnotations(secondary)}
                     mode="overflowOnly"
                     maxWidth={500}
                     size="sm"
                     variant="muted"
                   >
-                    {secondary}
+                    {/* Tool input previews mark scrubbed values in the conversation view. */}
+                    <ScrubbedText>{secondary}</ScrubbedText>
                   </InfoText>
                 )}
               </Flex>
