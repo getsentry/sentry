@@ -131,11 +131,12 @@ def handle_ui_feedback(
     )
 
     if not credits.has_enough_credits:
+        denial_reason = get_denial_reason(credits)
         # Hold the queue until a drain after a top-up, as a refused drain does.
         mark_out_of_credits(
             run_id=run_id,
             organization_id=group.organization.id,
-            denial_reason=get_denial_reason(credits),
+            denial_reason=denial_reason,
         )
         # Save the reason for the sweep, in case no top-up comes.
         record_pr_iteration_failure_reason(
@@ -145,7 +146,7 @@ def handle_ui_feedback(
             reason=PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value,
         )
         return seer_out_of_credits_response(
-            SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL, get_denial_reason(credits)
+            SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL, denial_reason
         )
 
     trigger_consume_pr_iteration_feedback(
