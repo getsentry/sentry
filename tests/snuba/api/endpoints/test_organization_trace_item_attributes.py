@@ -140,10 +140,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
     }
     item_type = SupportedTraceItemType.LOGS
 
-    def test_no_feature(self) -> None:
-        response = self.do_request(features={})
-        assert response.status_code == 404, response.content
-
     def test_invalid_query_returns_400(self) -> None:
         response = self.do_request(query={"query": "trace:nope", "project": self.project.id})
         assert response.status_code == 400, response.content
@@ -725,12 +721,8 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
 class OrganizationTraceItemAttributesEndpointSpansTest(
     OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase, SpanTestCase
 ):
-    feature_flags = {"organizations:visibility-explore-view": True}
+    feature_flags: dict[str, bool] = {}
     item_type = SupportedTraceItemType.SPANS
-
-    def test_no_feature(self) -> None:
-        response = self.do_request(features={})
-        assert response.status_code == 404, response.content
 
     def test_invalid_dataset(self) -> None:
         response = self.do_request(query={"dataset": "invalid"})
@@ -1964,10 +1956,6 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
     feature_flags = {"organizations:tracemetrics-enabled": True}
     item_type = SupportedTraceItemType.TRACEMETRICS
 
-    def test_no_feature(self) -> None:
-        response = self.do_request(features={})
-        assert response.status_code == 404, response.content
-
     def test_invalid_dataset(self) -> None:
         response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
@@ -2175,10 +2163,6 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         "organizations:trace-item-array-query-support": True,
     }
 
-    def test_no_feature(self) -> None:
-        response = self.do_request(features={}, key="test.attribute")
-        assert response.status_code == 404, response.content
-
     def test_invalid_dataset(self) -> None:
         response = self.do_request(query={"dataset": "invalid"})
         assert response.status_code == 400, response.content
@@ -2306,12 +2290,8 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
     BaseSpansTestCase,
     SpanTestCase,
 ):
-    feature_flags = {"organizations:visibility-explore-view": True}
+    feature_flags: dict[str, bool] = {}
     item_type = SupportedTraceItemType.SPANS
-
-    def test_no_feature(self) -> None:
-        response = self.do_request(features={})
-        assert response.status_code == 404, response.content
 
     def test_invalid_dataset(self) -> None:
         response = self.do_request(query={"dataset": "invalid"})
@@ -3267,10 +3247,6 @@ class OrganizationTraceItemAttributeValuesEndpointTraceMetricsTest(
     feature_flags = {"organizations:tracemetrics-enabled": True}
     item_type = SupportedTraceItemType.TRACEMETRICS
 
-    def test_no_feature(self) -> None:
-        response = self.do_request(features={}, key="test.attribute")
-        assert response.status_code == 404, response.content
-
     def test_attribute_values(self) -> None:
         metrics = [
             self.create_trace_metric(
@@ -3299,9 +3275,6 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
     APITestCase, BaseSpansTestCase, SpanTestCase
 ):
     viewname = "sentry-api-0-organization-trace-item-attributes-validate"
-    feature_flags = {
-        "organizations:visibility-explore-view": True,
-    }
 
     def setUp(self) -> None:
         super().setUp()
@@ -3315,7 +3288,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         query_params: dict[str, str] | None = None,
     ) -> Response:
         if features is None:
-            features = self.feature_flags
+            features = {}
 
         with self.feature(features):
             url = reverse(
@@ -3326,14 +3299,6 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
                 url, payload, format="json", query_params=query_params
             )
             return response
-
-    def test_no_feature(self) -> None:
-        response = self.do_request(
-            payload={"attributes": ["span.duration"]},
-            query_params={"itemType": "spans"},
-            features={},
-        )
-        assert response.status_code == 404
 
     def test_missing_item_type(self) -> None:
         response = self.do_request(

@@ -5,7 +5,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -62,9 +61,7 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
+        return True
 
     @extend_schema(
         operation_id="Star an Organization's Explore Saved Query",

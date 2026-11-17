@@ -702,7 +702,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_ingestion_delay_absent_without_flag(self, mock_measure: MagicMock) -> None:
-        response = self._do_request({"organizations:visibility-explore-view": True})
+        response = self._do_request({})
         assert response.status_code == 200, response.content
         assert "ingestion" not in response.data["meta"]
         # The measurement costs a snuba query, so it must not run when unflagged.
@@ -718,7 +718,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         )
         response = self._do_request(
             {
-                "organizations:visibility-explore-view": True,
                 "organizations:measured-ingestion-delay-metadata": True,
             }
         )
@@ -739,7 +738,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         )
         response = self._do_request(
             {
-                "organizations:visibility-explore-view": True,
                 "organizations:measured-ingestion-delay-metadata": True,
             }
         )
@@ -753,7 +751,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         mock_measure.side_effect = Exception("snuba is down")
         response = self._do_request(
             {
-                "organizations:visibility-explore-view": True,
                 "organizations:measured-ingestion-delay-metadata": True,
             }
         )
@@ -770,7 +767,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         )
         response = self._do_request(
             {
-                "organizations:visibility-explore-view": True,
                 "organizations:measured-ingestion-delay-metadata": True,
             }
         )
@@ -793,7 +789,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         )
         response = self._do_request(
             {
-                "organizations:visibility-explore-view": True,
                 "organizations:measured-ingestion-delay-metadata": True,
             }
         )
@@ -817,7 +812,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         )
         response = self._do_request(
             {
-                "organizations:visibility-explore-view": True,
                 "organizations:measured-ingestion-delay-metadata": True,
             }
         )
@@ -838,7 +832,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         mock_retention.return_value = 1  # 1 day
         response = self._do_request(
             {
-                "organizations:visibility-explore-view": True,
                 "organizations:measured-ingestion-delay-metadata": True,
             }
         )

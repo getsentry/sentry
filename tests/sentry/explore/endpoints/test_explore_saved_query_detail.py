@@ -19,8 +19,6 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer
 
 
 class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
-    feature_name = "organizations:visibility-explore-view"
-
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -53,32 +51,18 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             reverse("sentry-api-0-explore-saved-query-detail", args=[self.org.slug, "not-an-id"])
 
     def test_out_of_range_id(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail",
-                args=[self.org.slug, "99999999999999999999"],
-            )
-            response = self.client.get(url)
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail",
+            args=[self.org.slug, "99999999999999999999"],
+        )
+        response = self.client.get(url)
         assert response.status_code == 404
 
     def test_get(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
-            response = self.client.get(url)
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(self.query_id)
-        assert set(response.data["projects"]) == set(self.project_ids)
-        assert response.data["query"] == [{"fields": ["span.op"], "mode": "samples"}]
-
-    def test_get_explore_query_flag(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
-            response = self.client.get(url)
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
+        response = self.client.get(url)
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.query_id)
@@ -86,12 +70,11 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["query"] == [{"fields": ["span.op"], "mode": "samples"}]
 
     def test_get_org_without_access(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail",
-                args=[self.org_without_access.slug, self.query_id],
-            )
-            response = self.client.get(url)
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail",
+            args=[self.org_without_access.slug, self.query_id],
+        )
+        response = self.client.get(url)
 
         assert response.status_code == 403, response.content
 
@@ -114,11 +97,8 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         self.create_member(user=outsider, organization=self.org, role="member", teams=[])
         self.login_as(outsider)
 
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, prebuilt.id]
-            )
-            response = self.client.get(url)
+        url = reverse("sentry-api-0-explore-saved-query-detail", args=[self.org.slug, prebuilt.id])
+        response = self.client.get(url)
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(prebuilt.id)
@@ -130,11 +110,10 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             explore_saved_query=self.model,
             position=1,
         )
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
-            response = self.client.get(url)
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
+        response = self.client.get(url)
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.query_id)
@@ -151,11 +130,10 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         }
         self.model.save()
 
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
-            response = self.client.get(url)
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
+        response = self.client.get(url)
 
         assert response.status_code == 200, response.content
         assert response.data["crossEvents"] == [
@@ -180,11 +158,10 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         }
         self.model.save()
 
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
-            response = self.client.get(url)
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
+        response = self.client.get(url)
 
         assert response.status_code == 200, response.content
         assert response.data["crossEvents"] == [
@@ -200,31 +177,30 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         ]
 
     def test_put_adds_cross_events_metrics(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
 
-            response = self.client.put(
-                url,
-                {
-                    "name": "With metrics cross events",
-                    "projects": self.project_ids,
-                    "range": "24h",
-                    "query": [{"fields": ["span.op"], "mode": "samples"}],
-                    "crossEvents": [
-                        {
-                            "query": "",
-                            "type": "metrics",
-                            "metric": {
-                                "name": "http.response_time",
-                                "type": "distribution",
-                                "unit": "millisecond",
-                            },
+        response = self.client.put(
+            url,
+            {
+                "name": "With metrics cross events",
+                "projects": self.project_ids,
+                "range": "24h",
+                "query": [{"fields": ["span.op"], "mode": "samples"}],
+                "crossEvents": [
+                    {
+                        "query": "",
+                        "type": "metrics",
+                        "metric": {
+                            "name": "http.response_time",
+                            "type": "distribution",
+                            "unit": "millisecond",
                         },
-                    ],
-                },
-            )
+                    },
+                ],
+            },
+        )
 
         assert response.status_code == 200, response.content
         assert response.data["crossEvents"] == [
@@ -255,15 +231,14 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         )
 
         migrated_query.set_projects(self.project_ids)
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, migrated_query.id]
-            )
-            url_2 = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.model.id]
-            )
-            response_1 = self.client.get(url)
-            response_2 = self.client.get(url_2)
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, migrated_query.id]
+        )
+        url_2 = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.model.id]
+        )
+        response_1 = self.client.get(url)
+        response_2 = self.client.get(url_2)
 
         assert response_1.status_code == 200, response_1.content
         assert response_1.data["changedReason"] is not None
@@ -277,21 +252,20 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response_2.data["changedReason"] is None
 
     def test_put(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
 
-            response = self.client.put(
-                url,
-                {
-                    "name": "New query",
-                    "projects": self.project_ids,
-                    "query": [{"caseInsensitive": False, "fields": [], "mode": "samples"}],
-                    "range": "24h",
-                    "orderby": "-timestamp",
-                },
-            )
+        response = self.client.put(
+            url,
+            {
+                "name": "New query",
+                "projects": self.project_ids,
+                "query": [{"caseInsensitive": False, "fields": [], "mode": "samples"}],
+                "range": "24h",
+                "orderby": "-timestamp",
+            },
+        )
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.query_id)
@@ -319,9 +293,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             url = reverse(
                 "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
             )
-            with self.feature(
-                [self.feature_name, "organizations:explore-interpolation-and-smoothing"]
-            ):
+            with self.feature("organizations:explore-interpolation-and-smoothing"):
                 response = self.client.put(
                     url,
                     {
@@ -351,7 +323,6 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
             with self.feature(
                 {
-                    self.feature_name: True,
                     "organizations:explore-interpolation-and-smoothing": False,
                 }
             ):
@@ -369,7 +340,6 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             )
             with self.feature(
                 {
-                    self.feature_name: True,
                     "organizations:explore-interpolation-and-smoothing": False,
                 }
             ):
@@ -402,9 +372,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             url = reverse(
                 "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
             )
-            with self.feature(
-                [self.feature_name, "organizations:explore-interpolation-and-smoothing"]
-            ):
+            with self.feature("organizations:explore-interpolation-and-smoothing"):
                 response = self.client.put(
                     url,
                     {
@@ -458,7 +426,6 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             )
             with self.feature(
                 {
-                    self.feature_name: True,
                     "organizations:explore-interpolation-and-smoothing": transformations_enabled,
                 }
             ):
@@ -477,22 +444,21 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             assert self.model.query["query"][0][visualization_field] == [visualization]
 
     def test_put_with_interval(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
 
-            response = self.client.put(
-                url,
-                {
-                    "name": "New query",
-                    "projects": self.project_ids,
-                    "range": "24h",
-                    "interval": "10m",
-                    "orderby": "-count(span.duration)",
-                    "query": [{"fields": ["span.op", "count(span.duration)"], "mode": "samples"}],
-                },
-            )
+        response = self.client.put(
+            url,
+            {
+                "name": "New query",
+                "projects": self.project_ids,
+                "range": "24h",
+                "interval": "10m",
+                "orderby": "-count(span.duration)",
+                "query": [{"fields": ["span.op", "count(span.duration)"], "mode": "samples"}],
+            },
+        )
 
         assert response.status_code == 200, response.content
         assert response.data["interval"] == "10m"
@@ -505,24 +471,23 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         ]
 
     def test_put_adds_cross_events(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
 
-            response = self.client.put(
-                url,
-                {
-                    "name": "With cross events",
-                    "projects": self.project_ids,
-                    "range": "24h",
-                    "query": [{"fields": ["span.op"], "mode": "samples"}],
-                    "crossEvents": [
-                        {"query": "span.op:db", "type": "spans"},
-                        {"query": "severity:error", "type": "logs"},
-                    ],
-                },
-            )
+        response = self.client.put(
+            url,
+            {
+                "name": "With cross events",
+                "projects": self.project_ids,
+                "range": "24h",
+                "query": [{"fields": ["span.op"], "mode": "samples"}],
+                "crossEvents": [
+                    {"query": "span.op:db", "type": "spans"},
+                    {"query": "severity:error", "type": "logs"},
+                ],
+            },
+        )
 
         assert response.status_code == 200, response.content
         assert response.data["crossEvents"] == [
@@ -537,65 +502,62 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         }
         self.model.save()
 
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
 
-            response = self.client.put(
-                url,
-                {
-                    "name": "Cross events cleared",
-                    "projects": self.project_ids,
-                    "range": "24h",
-                    "query": [{"fields": ["span.op"], "mode": "samples"}],
-                },
-            )
+        response = self.client.put(
+            url,
+            {
+                "name": "Cross events cleared",
+                "projects": self.project_ids,
+                "range": "24h",
+                "query": [{"fields": ["span.op"], "mode": "samples"}],
+            },
+        )
 
         assert response.status_code == 200, response.content
         assert "crossEvents" not in response.data
 
     def test_put_invalid_cross_events(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
 
-            response = self.client.put(
-                url,
-                {
-                    "name": "Too many cross events",
-                    "projects": self.project_ids,
-                    "range": "24h",
-                    "query": [{"fields": ["span.op"], "mode": "samples"}],
-                    "crossEvents": [
-                        {"query": "a", "type": "spans"},
-                        {"query": "b", "type": "logs"},
-                        {"query": "c", "type": "spans"},
-                    ],
-                },
-            )
+        response = self.client.put(
+            url,
+            {
+                "name": "Too many cross events",
+                "projects": self.project_ids,
+                "range": "24h",
+                "query": [{"fields": ["span.op"], "mode": "samples"}],
+                "crossEvents": [
+                    {"query": "a", "type": "spans"},
+                    {"query": "b", "type": "logs"},
+                    {"query": "c", "type": "spans"},
+                ],
+            },
+        )
 
         assert response.status_code == 400, response.content
 
     def test_put_query_without_access(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail",
-                args=[self.org.slug, self.query_id_without_access],
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail",
+            args=[self.org.slug, self.query_id_without_access],
+        )
 
-            response = self.client.put(
-                url,
-                {
-                    "name": "New query",
-                    "projects": self.project_ids,
-                    "range": "24h",
-                    "mode": "samples",
-                },
-            )
+        response = self.client.put(
+            url,
+            {
+                "name": "New query",
+                "projects": self.project_ids,
+                "range": "24h",
+                "mode": "samples",
+            },
+        )
 
-            assert response.status_code == 404
+        assert response.status_code == 404
 
     def test_put_query_with_team(self) -> None:
         team = self.create_team(organization=self.org, members=[self.user])
@@ -608,23 +570,22 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         )
         query.set_projects([project.id])
 
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail",
-                args=[self.org.slug, query.id],
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail",
+            args=[self.org.slug, query.id],
+        )
 
-            response = self.client.put(
-                url,
-                {
-                    "name": "New query",
-                    "projects": [],
-                    "range": "24h",
-                    "query": [{"fields": ["span.op"], "mode": "samples"}],
-                },
-            )
+        response = self.client.put(
+            url,
+            {
+                "name": "New query",
+                "projects": [],
+                "range": "24h",
+                "query": [{"fields": ["span.op"], "mode": "samples"}],
+            },
+        )
 
-            assert response.status_code == 200
+        assert response.status_code == 200
 
     def test_put_query_without_team(self) -> None:
         team = self.create_team(organization=self.org, members=[])
@@ -637,100 +598,93 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         )
         query.set_projects([project.id])
 
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail",
-                args=[self.org.slug, query.id],
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail",
+            args=[self.org.slug, query.id],
+        )
 
-            response = self.client.put(url, {"name": "New query", "projects": [], "range": "24h"})
+        response = self.client.put(url, {"name": "New query", "projects": [], "range": "24h"})
 
-            assert response.status_code == 400
-            assert "No Projects found, join a Team" == response.data["detail"]
+        assert response.status_code == 400
+        assert "No Projects found, join a Team" == response.data["detail"]
 
     def test_put_org_without_access(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail",
-                args=[self.org_without_access.slug, self.query_id],
-            )
-            response = self.client.put(
-                url, {"name": "New query", "projects": self.project_ids, "range": "24h"}
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail",
+            args=[self.org_without_access.slug, self.query_id],
+        )
+        response = self.client.put(
+            url, {"name": "New query", "projects": self.project_ids, "range": "24h"}
+        )
 
         assert response.status_code == 403, response.content
 
     def test_put_query_with_segment_spans(self) -> None:
-        with self.feature(self.feature_name):
-            segment_spans_query = ExploreSavedQuery.objects.create(
-                organization=self.org,
-                created_by_id=self.user.id,
-                name="Test query",
-                query={"fields": ["span.op"], "mode": "samples"},
-                dataset=ExploreSavedQueryDataset.SEGMENT_SPANS,
-                changed_reason={"orderby": [{"orderby": "span.op", "reason": "span.op dropped"}]},
-            )
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail",
-                args=[self.org.slug, segment_spans_query.id],
-            )
+        segment_spans_query = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Test query",
+            query={"fields": ["span.op"], "mode": "samples"},
+            dataset=ExploreSavedQueryDataset.SEGMENT_SPANS,
+            changed_reason={"orderby": [{"orderby": "span.op", "reason": "span.op dropped"}]},
+        )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail",
+            args=[self.org.slug, segment_spans_query.id],
+        )
 
-            response = self.client.put(
-                url,
-                {
-                    "name": "Updated query",
-                    "projects": self.project_ids,
-                    "range": "24h",
-                    "dataset": "spans",
-                    "query": [{"fields": ["span.op"], "mode": "samples"}],
-                },
-            )
-            assert response.status_code == 200
-            assert response.data["dataset"] == "spans"
-            assert ExploreSavedQuery.objects.get(id=segment_spans_query.id).changed_reason is None
+        response = self.client.put(
+            url,
+            {
+                "name": "Updated query",
+                "projects": self.project_ids,
+                "range": "24h",
+                "dataset": "spans",
+                "query": [{"fields": ["span.op"], "mode": "samples"}],
+            },
+        )
+        assert response.status_code == 200
+        assert response.data["dataset"] == "spans"
+        assert ExploreSavedQuery.objects.get(id=segment_spans_query.id).changed_reason is None
 
     def test_delete(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
 
-            response = self.client.delete(url)
+        response = self.client.delete(url)
 
-            assert response.status_code == 204
+        assert response.status_code == 204
 
-            assert self.client.get(url).status_code == 404
+        assert self.client.get(url).status_code == 404
 
     def test_delete_removes_projects(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+        )
 
-            self.client.delete(url)
+        self.client.delete(url)
 
         projects = list(ExploreSavedQueryProject.objects.filter(explore_saved_query=self.query_id))
 
         assert projects == []
 
     def test_delete_query_without_access(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail",
-                args=[self.org.slug, self.query_id_without_access],
-            )
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail",
+            args=[self.org.slug, self.query_id_without_access],
+        )
 
-            response = self.client.delete(url)
+        response = self.client.delete(url)
 
-            assert response.status_code == 404
+        assert response.status_code == 404
 
     def test_delete_org_without_access(self) -> None:
-        with self.feature(self.feature_name):
-            url = reverse(
-                "sentry-api-0-explore-saved-query-detail",
-                args=[self.org_without_access.slug, self.query_id],
-            )
-            response = self.client.delete(url)
+        url = reverse(
+            "sentry-api-0-explore-saved-query-detail",
+            args=[self.org_without_access.slug, self.query_id],
+        )
+        response = self.client.delete(url)
 
         assert response.status_code == 403, response.content
 
@@ -786,8 +740,6 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
 
 class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
-    feature_name = "organizations:visibility-explore-view"
-
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -816,8 +768,7 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         assert last_visited is not None
         assert self.query.visits == 1
 
-        with self.feature(self.feature_name):
-            response = self.client.post(self.url(str(self.query.id)))
+        response = self.client.post(self.url(str(self.query.id)))
 
         assert response.status_code == 204
 
@@ -840,29 +791,13 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
             key="service-account-secret",
         )
 
-        with self.feature(self.feature_name):
-            response = self.client.post(
-                self.url(self.query.id), HTTP_X_VIEWER_CONTEXT=viewer_context
-            )
+        response = self.client.post(self.url(self.query.id), HTTP_X_VIEWER_CONTEXT=viewer_context)
 
         assert response.status_code == 204, response.content
         assert ExploreSavedQuery.objects.get(id=self.query.id).visits == 2
         assert not ExploreSavedQueryLastVisited.objects.filter(
             explore_saved_query=self.query
         ).exists()
-
-    def test_visit_query_no_access(self) -> None:
-        last_visited = self.query.last_visited
-        assert self.query.visits == 1
-
-        with self.feature({self.feature_name: False}):
-            response = self.client.post(self.url(str(self.query.id)))
-
-        assert response.status_code == 404
-
-        query = ExploreSavedQuery.objects.get(id=self.query.id)
-        assert query.visits == 1
-        assert query.last_visited == last_visited
 
     def test_visit_query_without_project_access(self) -> None:
         self.org.flags.allow_joinleave = False
@@ -887,8 +822,7 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=member_user)
 
-        with self.feature(self.feature_name):
-            response = self.client.post(self.url(str(restricted_query.id)))
+        response = self.client.post(self.url(str(restricted_query.id)))
 
         assert response.status_code == 403, response.content
 

@@ -23,7 +23,6 @@ class OrganizationTraceItemAttributeContextEndpointTest(
     viewname = "sentry-api-0-organization-trace-item-attribute-context"
 
     feature_flags = {
-        "organizations:visibility-explore-view": True,
         "organizations:data-browsing-attribute-context": True,
     }
 
@@ -364,7 +363,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
         assert response.status_code == 201, response.data
 
-    def test_requires_feature_flag(self) -> None:
+    def test_requires_attribute_context_feature(self) -> None:
         self.store_attribute(my_custom_attr="value")
 
         response = self.do_request(
@@ -374,7 +373,7 @@ class OrganizationTraceItemAttributeContextEndpointTest(
                 "attributeType": "string",
                 "brief": "My custom attribute",
             },
-            features={"organizations:visibility-explore-view": True},
+            features={},
         )
 
         assert response.status_code == 404

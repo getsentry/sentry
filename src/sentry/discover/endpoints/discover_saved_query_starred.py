@@ -3,7 +3,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -45,9 +44,7 @@ class DiscoverSavedQueryStarredEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        )
+        return True
 
     def post(self, request: Request, organization: Organization, id: int) -> Response:
         """

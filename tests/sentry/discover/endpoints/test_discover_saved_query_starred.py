@@ -8,10 +8,6 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class DiscoverSavedQueryStarredTest(APITestCase):
-    feature_flags = {
-        "organizations:visibility-explore-view": True,
-    }
-
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -35,26 +31,25 @@ class DiscoverSavedQueryStarredTest(APITestCase):
         )
 
     def test_post(self) -> None:
-        with self.feature(self.feature_flags):
-            assert not DiscoverSavedQuery.objects.filter(
-                id__in=DiscoverSavedQueryStarred.objects.filter(
-                    organization=self.org, user_id=self.user.id
-                ).values_list("discover_saved_query_id", flat=True)
-            ).exists()
-            response = self.client.post(self.url, data={"starred": "1"})
-            assert response.status_code == 200, response.content
-            assert DiscoverSavedQuery.objects.filter(
-                id__in=DiscoverSavedQueryStarred.objects.filter(
-                    organization=self.org, user_id=self.user.id
-                ).values_list("discover_saved_query_id", flat=True)
-            ).exists()
-            response = self.client.post(self.url, data={"starred": "0"})
-            assert response.status_code == 200, response.content
-            assert not DiscoverSavedQuery.objects.filter(
-                id__in=DiscoverSavedQueryStarred.objects.filter(
-                    organization=self.org, user_id=self.user.id
-                ).values_list("discover_saved_query_id", flat=True)
-            ).exists()
+        assert not DiscoverSavedQuery.objects.filter(
+            id__in=DiscoverSavedQueryStarred.objects.filter(
+                organization=self.org, user_id=self.user.id
+            ).values_list("discover_saved_query_id", flat=True)
+        ).exists()
+        response = self.client.post(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        assert DiscoverSavedQuery.objects.filter(
+            id__in=DiscoverSavedQueryStarred.objects.filter(
+                organization=self.org, user_id=self.user.id
+            ).values_list("discover_saved_query_id", flat=True)
+        ).exists()
+        response = self.client.post(self.url, data={"starred": "0"})
+        assert response.status_code == 200, response.content
+        assert not DiscoverSavedQuery.objects.filter(
+            id__in=DiscoverSavedQueryStarred.objects.filter(
+                organization=self.org, user_id=self.user.id
+            ).values_list("discover_saved_query_id", flat=True)
+        ).exists()
 
     def _use_token(self, scope_list: list[str]) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -65,8 +60,7 @@ class DiscoverSavedQueryStarredTest(APITestCase):
     @with_feature("organizations:granular-permission-scopes")
     def test_user_preference_write_can_star(self) -> None:
         self._use_token(["user_preference:write"])
-        with self.feature(self.feature_flags):
-            response = self.client.post(self.url, data={"starred": "1"})
+        response = self.client.post(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert DiscoverSavedQueryStarred.objects.filter(
             organization=self.org, user_id=self.user.id, discover_saved_query_id=self.query_id
@@ -75,6 +69,5 @@ class DiscoverSavedQueryStarredTest(APITestCase):
     @with_feature("organizations:granular-permission-scopes")
     def test_user_preference_read_cannot_star(self) -> None:
         self._use_token(["user_preference:read"])
-        with self.feature(self.feature_flags):
-            response = self.client.post(self.url, data={"starred": "1"})
+        response = self.client.post(self.url, data={"starred": "1"})
         assert response.status_code == 403

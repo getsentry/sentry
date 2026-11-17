@@ -159,20 +159,6 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "d" * 32
         assert response.data["type"] == "transaction"
 
-    def test_no_access_missing_feature(self) -> None:
-        with self.feature({"organizations:discover-basic": False}):
-            url = reverse(
-                "sentry-api-0-organization-event-details",
-                kwargs={
-                    "organization_id_or_slug": self.project.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                    "event_id": "a" * 32,
-                },
-            )
-
-            response = self.client.get(url, format="json")
-            assert response.status_code == 404, response.content
-
     def test_access_non_member_project(self) -> None:
         # Add a new user to a project and then access events on project they are not part of.
         member_user = self.create_user()
