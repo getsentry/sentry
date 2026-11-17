@@ -870,6 +870,8 @@ QUERY_ALIAS_COLUMN_MAP = {
                 "IPv4NumToString",
                 parameters=[anyIfNonZeroIP(column_name="ip_address_v4", aliased=False)],
             ),
+            # Not anyIfNonZeroIP: ClickHouse can't compare IPv6 with 0, and any() already skips
+            # the NULLs that ingestion writes when a row has no IPv6 address.
             Function("IPv6NumToString", parameters=[Function("any", [Column("ip_address_v6")])]),
         ],
         alias="user_ip",
