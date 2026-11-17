@@ -1,6 +1,9 @@
+import {Fragment, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {Button} from '@sentry/scraps/button';
 
 import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
 
@@ -175,6 +178,69 @@ describe('ConnectScmBlock', () => {
       await act(() => jest.advanceTimersByTimeAsync(60_000));
 
       expect(check).toHaveBeenCalledTimes(checks);
+    });
+  });
+
+  describe('after an earlier pause for the same repo', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      try {
+        jest.runOnlyPendingTimers();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it("waits for this pause's check instead of showing the earlier answer", async () => {
+      function Pauses() {
+        const [inputId, setInputId] = useState('earlier-input-id');
+        return (
+          <Fragment>
+            <Button onClick={() => setInputId('input-id')}>Pause again</Button>
+            <ConnectScmBlock
+              key={inputId}
+              pendingInput={{
+                id: inputId,
+                input_type: 'connect_scm',
+                data: {repo_name: 'acme/app', failure_reason: 'repo_not_in_sentry'},
+              }}
+              respondToUserInput={jest.fn()}
+            />
+          </Fragment>
+        );
+      }
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      mockRepoAccess('found');
+      render(<Pauses />, {organization});
+      expect(
+        await screen.findByText('Perfect, Seer can access acme/app')
+      ).toBeInTheDocument();
+
+      // Continue retried the call, it failed again, and the run paused on the same repo.
+      await act(() => jest.advanceTimersByTimeAsync(60_000));
+      MockApiClient.clearMockResponses();
+      let answer = () => {};
+      MockApiClient.addMockResponse({
+        url: REPO_ACCESS_URL,
+        body: {status: 'scm_account_not_connected', connectedAccounts: ['acme-labs']},
+        asyncDelay: new Promise<void>(resolve => {
+          answer = resolve;
+        }),
+      });
+      await user.click(screen.getByRole('button', {name: 'Pause again'}));
+
+      expect(screen.getByText("Seer can't access acme/app")).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
+
+      answer();
+      expect(
+        await screen.findByText(
+          "This repo's account isn't connected to this organization. Connected: acme-labs."
+        )
+      ).toBeInTheDocument();
     });
   });
 

@@ -138,8 +138,8 @@ interface ConnectScmBlockProps {
 /**
  * The prompt above the composer while a run waits on a repo it couldn't open. What it shows
  * comes from Sentry's answer to "can Seer open this repo now?", which it checks until the answer
- * is yes, and the URL. Until the first answer, or if checking fails, it shows the run's error.
- * The run resumes on one of its actions or on the user's next message.
+ * is yes, and the URL. Until this pause's first answer, or if checking fails, it shows the run's
+ * error. The run resumes on one of its actions or on the user's next message.
  */
 export function ConnectScmBlock({
   pendingInput,
@@ -152,7 +152,10 @@ export function ConnectScmBlock({
     parseAsString
   );
   const [shownAt] = useState(() => Date.now());
-  const {data: checkedAccess} = useQuery({
+  // The cache can hold an answer from an earlier pause for this repo, which this pause's failure
+  // may contradict, so only answers from after this one opened count.
+  const isCurrent = (dataUpdatedAt: number) => dataUpdatedAt >= shownAt;
+  const {data: latestAccess, dataUpdatedAt} = useQuery({
     ...apiOptions.as<RepoAccess>()(
       '/organizations/$organizationIdOrSlug/seer/repo-access/',
       {
@@ -164,7 +167,9 @@ export function ConnectScmBlock({
     // The fix happens in another tab, so coming back to this one is when to check again.
     refetchOnWindowFocus: true,
     refetchInterval: query => {
-      const status = query.state.data?.json.status;
+      const status = isCurrent(query.state.dataUpdatedAt)
+        ? query.state.data?.json.status
+        : undefined;
       if ((status && isSettled(status)) || Date.now() - shownAt > POLL_FOR_MS) {
         return false;
       }
@@ -172,6 +177,7 @@ export function ConnectScmBlock({
     },
   });
 
+  const checkedAccess = isCurrent(dataUpdatedAt) ? latestAccess : undefined;
   const access: RepoAccess = checkedAccess ?? {
     status: data.failure_reason,
     connectedAccounts: [],
