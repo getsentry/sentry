@@ -12,6 +12,7 @@ const instance = {} as ECharts;
 function band(id: string, height: number, onClick?: () => void): ChartBand {
   return {
     id,
+    buckets: [],
     height,
     onClick,
     series: offset => ({type: 'custom', name: `${id} at ${offset}`}),

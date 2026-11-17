@@ -97,6 +97,7 @@ export function useReleaseBand({
 
     return {
       id: RELEASE_BAND_SERIES_ID,
+      buckets: releaseBuckets,
       height: BAND_HEIGHT,
       series: bandOffset => ({
         type: 'custom',
