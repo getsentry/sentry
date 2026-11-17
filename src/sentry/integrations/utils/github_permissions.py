@@ -209,7 +209,9 @@ def get_github_permissions_update_url(
 
     domain: str | None = None
     if ":" in installation_id:
-        domain, _, installation_id = installation_id.partition(":")
+        # The domain may itself contain a port (e.g. ``ghe.example.com:8443``),
+        # so split on the last colon; the installation id is always numeric.
+        domain, _, installation_id = installation_id.rpartition(":")
         if not domain or not installation_id:
             return None
     host = f"https://{domain}" if domain else "https://github.com"

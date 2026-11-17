@@ -205,6 +205,14 @@ def test_a_mistyped_required_level_stops_enforcing_rather_than_raising(
             "example-user",
             "https://example.ghe.com/settings/installations/123456/permissions/update",
         ),
+        # The domain may itself carry a port; the id is after the last colon.
+        (
+            "ghe.example.com:8443:123456",
+            "Organization",
+            "example-org",
+            "https://ghe.example.com:8443/organizations/example-org"
+            "/settings/installations/123456/permissions/update",
+        ),
         ("ghe.example.com:", "User", "example-user", None),
         (":123456", "User", "example-user", None),
     ],
