@@ -31,7 +31,7 @@ describe('useSeerCreditCheck', () => {
     await waitFor(() => expect(result.current.hasEnoughCredits).toBe(false));
     expect(result.current.isPending).toBe(false);
     expect(request).toHaveBeenCalledTimes(1);
-    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(Sentry.logger.error).not.toHaveBeenCalled();
   });
 
   it('checks each operation separately', async () => {
@@ -120,7 +120,7 @@ describe('useSeerCreditCheck', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
-  it.each([400, 429, 500])('reports HTTP %s once and fails open', async statusCode => {
+  it.each([400, 429, 500])('logs HTTP %s once and fails open', async statusCode => {
     const request = MockApiClient.addMockResponse({url, statusCode, body: {}});
 
     const {result} = renderHookWithProviders(
@@ -137,19 +137,14 @@ describe('useSeerCreditCheck', () => {
     expect(result.current.action.isPending).toBe(false);
     expect(result.current.alert.hasEnoughCredits).toBe(true);
     expect(request).toHaveBeenCalledTimes(1);
-    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-    expect(Sentry.captureException).toHaveBeenCalledWith(
-      new Error('Seer credit check request failed'),
-      {
-        fingerprint: ['seer-credit-check-request-failed'],
-        tags: {
-          feature: 'seer_credit_check',
-          operation: 'autofix_solution',
-          billing_feature: 4,
-          'http.response_status_code': statusCode,
-        },
-      }
-    );
+    expect(Sentry.logger.error).toHaveBeenCalledTimes(1);
+    expect(Sentry.logger.error).toHaveBeenCalledWith('Seer credit check request failed', {
+      feature: 'seer_credit_check',
+      operation: 'autofix_solution',
+      billing_feature: 4,
+      'http.response_status_code': statusCode,
+    });
+    expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
   it('says when the check has answered since the caller mounted', async () => {

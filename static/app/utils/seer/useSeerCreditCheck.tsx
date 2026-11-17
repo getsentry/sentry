@@ -65,14 +65,11 @@ export function seerCreditCheckApiOptions(
       } catch (error) {
         const status = error instanceof RequestError ? error.status : undefined;
         if (status === 400 || status === 429 || (status !== undefined && status >= 500)) {
-          Sentry.captureException(new Error('Seer credit check request failed'), {
-            fingerprint: ['seer-credit-check-request-failed'],
-            tags: {
-              feature: 'seer_credit_check',
-              operation,
-              billing_feature: billingFeature,
-              [SEARCH_HTTP__RESPONSE_STATUS_CODE]: status,
-            },
+          Sentry.logger.error('Seer credit check request failed', {
+            feature: 'seer_credit_check',
+            operation,
+            billing_feature: billingFeature,
+            [SEARCH_HTTP__RESPONSE_STATUS_CODE]: status,
           });
         }
         throw error;
