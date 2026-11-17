@@ -1,8 +1,9 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxEventData, InboxEventSummary, InboxEventType, InboxItemType
+from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notebooks.access import NOTEBOOK_SCOPES, has_notebooks_access

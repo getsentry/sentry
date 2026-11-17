@@ -11,6 +11,7 @@ from openapi_schema_validator import OAS30Validator
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
+from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.item_retention import cleanup_inbox_items
@@ -23,7 +24,6 @@ from sentry.inbox.response_types import (
 from sentry.inbox.types import (
     SYSTEM_ACTOR,
     InboxActor,
-    InboxEventData,
     InboxEventSummary,
     InboxEventType,
     InboxItemType,
