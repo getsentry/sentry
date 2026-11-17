@@ -227,10 +227,10 @@ function ToggleConsolePlatformsModal({
       })
       .finally(() => {
         queryClient.invalidateQueries({
-          queryKey: apiOptions.as<unknown>()(
+          queryKey: apiOptions.partialQueryKey(
             '/organizations/$organizationIdOrSlug/console-sdk-invites/',
-            {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-          ).queryKey,
+            {path: {organizationIdOrSlug: organization.slug}}
+          ),
         });
       });
   };

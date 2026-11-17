@@ -28,10 +28,10 @@ export function useMutateActivity({organization, group}: Props) {
     organizationSlug: organization.slug,
     groupId: group.id,
   });
-  const activityQueryKey = apiOptions.as<unknown>()(
+  const activityQueryKey = apiOptions.partialQueryKey(
     '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
-    {path: {organizationIdOrSlug: organization.slug, issueId: group.id}, staleTime: 0}
-  ).queryKey;
+    {path: {organizationIdOrSlug: organization.slug, issueId: group.id}}
+  );
 
   const {mutateAsync} = useMutation({
     mutationFn: (mutation: ActivityMutation) => {

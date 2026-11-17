@@ -13,9 +13,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiFetch, useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useConcurrencyLimitedQueryFn} from 'sentry/utils/api/concurrency/useConcurrencyLimitedQueryFn';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
@@ -362,21 +360,16 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
         })
       );
     }
-    const eventsUrl = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-      path: {organizationIdOrSlug: orgSlug},
-    });
-
     // Invalidate fetched replay error events for all replayIds. Narrow to
     // `referrer=replay_details` so unrelated /events/ queries aren't refetched.
     queryClient.invalidateQueries({
-      predicate: query => {
-        const {queryKey} = query;
-        return (
-          isApiQueryKey(queryKey) &&
-          queryKey[1].fullUrl === eventsUrl &&
-          queryKey[1].options.query?.referrer === 'replay_details'
-        );
-      },
+      queryKey: apiOptions.partialQueryKey(
+        '/organizations/$organizationIdOrSlug/events/',
+        {
+          path: {organizationIdOrSlug: orgSlug},
+          query: {referrer: 'replay_details'},
+        }
+      ),
     });
   }, [orgSlug, replayId, projectSlug, queryClient]);
 

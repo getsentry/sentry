@@ -97,12 +97,51 @@ describe('apiQueryKey', () => {
     });
   });
 
-  describe('partial matching', () => {
-    it('matches all organizations below a url template prefix', () => {
+  describe('apiOptions.partialQueryKey', () => {
+    it('matches exactly one url without a glob, with any other options', () => {
+      const {matching} = seedCache();
+      const queryKey = apiOptions.partialQueryKey(
+        '/organizations/$organizationIdOrSlug/issues/',
+        {path: {organizationIdOrSlug: 'acme'}}
+      );
+
+      expect(queryKey).toEqual(['_api', {fullUrl: '/organizations/acme/issues/'}]);
+      expect(matching(queryKey)).toEqual([
+        'acmeIssues',
+        'acmeIssuesFiltered',
+        'acmeIssuesInfinite',
+      ]);
+    });
+
+    it('matches the url and everything below it with a glob', () => {
       const {matching} = seedCache();
 
       expect(
-        matching(['_api', {urlParts: ['organizations', '$organizationIdOrSlug']}])
+        matching(
+          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+            path: {organizationIdOrSlug: 'acme'},
+          })
+        )
+      ).toEqual(['acmeIssue', 'acmeIssues', 'acmeIssuesFiltered', 'acmeIssuesInfinite']);
+    });
+
+    it('leaves path params open that a glob does not pass', () => {
+      const {matching} = seedCache();
+
+      expect(
+        matching(
+          apiOptions.partialQueryKey(
+            '/organizations/$organizationIdOrSlug/issues/$issueId/*',
+            {path: {organizationIdOrSlug: 'acme'}}
+          )
+        )
+      ).toEqual(['acmeIssue']);
+      expect(
+        matching(
+          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+            path: {},
+          })
+        )
       ).toEqual([
         'acmeIssue',
         'acmeIssues',
@@ -112,26 +151,44 @@ describe('apiQueryKey', () => {
       ]);
     });
 
-    it('narrows a url template prefix by path params', () => {
+    it('narrows by infinite and by other options', () => {
       const {matching} = seedCache();
+      const path = {organizationIdOrSlug: 'acme'};
 
       expect(
-        matching([
-          '_api',
-          {
-            urlParts: ['organizations', '$organizationIdOrSlug', 'issues'],
-            options: {path: {organizationIdOrSlug: 'acme'}},
-          },
-        ])
-      ).toEqual(['acmeIssue', 'acmeIssues', 'acmeIssuesFiltered', 'acmeIssuesInfinite']);
+        matching(
+          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {
+            path,
+            infinite: true,
+          })
+        )
+      ).toEqual(['acmeIssuesInfinite']);
+      expect(
+        matching(
+          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {
+            path,
+            query: {query: 'is:unresolved'},
+          })
+        )
+      ).toEqual(['acmeIssuesFiltered']);
     });
 
-    it('narrows by infinite and by query options', () => {
-      const {matching} = seedCache();
-
-      expect(matching(['_api', {infinite: true}])).toEqual(['acmeIssuesInfinite']);
-      expect(matching(['_api', {options: {query: {query: 'is:unresolved'}}}])).toEqual([
-        'acmeIssuesFiltered',
+    it('only accepts known urls and segment prefixes', () => {
+      // @ts-expect-error an exact url needs every path param
+      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/');
+      // @ts-expect-error a prefix still needs a path object, use `path: {}` for any value
+      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*');
+      // @ts-expect-error unknown url
+      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/isues/', {
+        path: {organizationIdOrSlug: 'acme'},
+      });
+      // @ts-expect-error a glob has to follow a slash
+      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/iss*', {
+        path: {},
+      });
+      expect(apiOptions.partialQueryKey('/users/')).toEqual([
+        '_api',
+        {fullUrl: '/users/'},
       ]);
     });
   });

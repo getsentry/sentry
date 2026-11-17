@@ -154,10 +154,10 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     // a flicker from stale data on refetch
     return () => {
       queryClient.removeQueries({
-        queryKey: apiOptions.as<unknown>()(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/',
-          {path: {organizationIdOrSlug: organization.slug, dashboardId}, staleTime: 0}
-        ).queryKey,
+          {path: {organizationIdOrSlug: organization.slug, dashboardId}}
+        ),
       });
     };
   }, [dashboardId, organization.slug, queryClient]);

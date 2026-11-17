@@ -73,10 +73,9 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
     onSuccess: () => {
       toast.success('Broadcast updated.');
       queryClient.invalidateQueries({
-        queryKey: apiOptions.as<unknown>()('/broadcasts/$broadcastId/', {
+        queryKey: apiOptions.partialQueryKey('/broadcasts/$broadcastId/', {
           path: {broadcastId},
-          staleTime: 0,
-        }).queryKey,
+        }),
       });
       onSaved();
     },

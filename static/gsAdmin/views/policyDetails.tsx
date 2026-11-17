@@ -30,10 +30,12 @@ export function PolicyDetails() {
     path: {policySlug},
     staleTime: 0,
   });
-  const revisionsQueryKey = apiOptions.as<unknown>()('/policies/$policySlug/revisions/', {
-    path: {policySlug},
-    staleTime: 0,
-  }).queryKey;
+  const revisionsQueryKey = apiOptions.partialQueryKey(
+    '/policies/$policySlug/revisions/',
+    {
+      path: {policySlug},
+    }
+  );
   const invalidatePolicyQueries = () =>
     Promise.all([
       queryClient.invalidateQueries({queryKey: policyQueryOptions.queryKey}),

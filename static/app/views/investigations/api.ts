@@ -77,13 +77,12 @@ function allInvestigationCommentsQueryKey({
   investigationId: string;
   organizationSlug: string;
 }) {
-  return apiOptions.as<unknown>()(
+  return apiOptions.partialQueryKey(
     '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/',
     {
       path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
-      staleTime: 0,
     }
-  ).queryKey;
+  );
 }
 
 export function investigationCommentsQueryOptions({
@@ -405,10 +404,10 @@ export function investigationCandidatesQueryOptions({
 }
 
 function allInvestigationCandidatesQueryKey(organizationSlug: string) {
-  return apiOptions.as<unknown>()(
+  return apiOptions.partialQueryKey(
     '/organizations/$organizationIdOrSlug/investigations/candidates/',
-    {path: {organizationIdOrSlug: organizationSlug}, staleTime: 0}
-  ).queryKey;
+    {path: {organizationIdOrSlug: organizationSlug}}
+  );
 }
 
 type FavoriteVariables = {

@@ -32,10 +32,9 @@ import {
 export function BroadcastDetails() {
   const {broadcastId} = useParams<{broadcastId: string}>();
   const broadcastUrl = getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}});
-  const broadcastQueryKey = apiOptions.as<unknown>()('/broadcasts/$broadcastId/', {
+  const broadcastQueryKey = apiOptions.partialQueryKey('/broadcasts/$broadcastId/', {
     path: {broadcastId},
-    staleTime: 0,
-  }).queryKey;
+  });
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
 

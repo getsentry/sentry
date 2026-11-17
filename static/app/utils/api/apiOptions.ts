@@ -5,7 +5,11 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 import {apiFetch, apiFetchInfinite} from './apiFetch';
 import type {ApiResponse} from './apiFetch';
-import {createApiQueryKey, type QueryKeyEndpointOptions} from './apiQueryKey';
+import {
+  createApiQueryKey,
+  createApiQueryKeyFilter,
+  type QueryKeyEndpointOptions,
+} from './apiQueryKey';
 import {getApiUrl} from './getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from './getApiUrl';
 import type {KnownGetsentryApiUrls} from './knownGetsentryApiUrls';
@@ -19,6 +23,35 @@ type PathParamOptions<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
+
+type SegmentPrefixes<
+  TUrl extends string,
+  TPrefix extends string = '/',
+> = TUrl extends `${TPrefix}${infer Segment}/${infer Rest}`
+  ?
+      | `${TPrefix}${Segment}/`
+      | SegmentPrefixes<`${TPrefix}${Segment}/${Rest}`, `${TPrefix}${Segment}/`>
+  : never;
+
+/**
+ * A known url, or a known url prefix that ends in `/*` to also match every url below it.
+ */
+type KnownApiUrlPattern = KnownApiUrls | `${SegmentPrefixes<KnownApiUrls>}*`;
+
+/**
+ * Exact urls need every path param. Prefixes may leave params open, but still need
+ * a `path` object, so matching every organization is written as `path: {}`.
+ */
+type PatternPathOptions<TPattern extends string> = TPattern extends `${infer TPrefix}*`
+  ? ExtractPathParams<TPrefix> extends never
+    ? {path?: never}
+    : {path: Partial<Record<ExtractPathParams<TPrefix>, string | number>>}
+  : ExtractPathParams<TPattern> extends never
+    ? {path?: never}
+    : {path: Record<ExtractPathParams<TPattern>, string | number>};
+
+type PartialQueryKeyOptions<TPattern extends string> = QueryKeyEndpointOptions &
+  PatternPathOptions<TPattern> & {infinite?: true};
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -43,6 +76,17 @@ function stripUndefinedValues<T extends Record<string, unknown>>(obj: T): T {
   return result as T;
 }
 
+function stringifyPathParams(
+  pathParams: Record<string, string | number> | SkipToken | undefined
+): Record<string, string> | undefined {
+  if (!pathParams || pathParams === skipToken) {
+    return;
+  }
+  return Object.fromEntries(
+    Object.entries(pathParams).map(([key, value]) => [key, String(value)])
+  );
+}
+
 function getQueryKeyParams(
   path: KnownApiUrls,
   pathParams: Record<string, string | number> | SkipToken | undefined,
@@ -56,12 +100,7 @@ function getQueryKeyParams(
     urlParts: path.split('/').filter(Boolean),
     options: stripUndefinedValues({
       ...options,
-      path:
-        pathParams && pathParams !== skipToken
-          ? Object.fromEntries(
-              Object.entries(pathParams).map(([key, value]) => [key, String(value)])
-            )
-          : undefined,
+      path: stringifyPathParams(pathParams),
     }),
   };
 }
@@ -92,6 +131,37 @@ function _apiOptions<
     enabled: pathParams !== skipToken,
     staleTime,
     select: selectJson,
+  });
+}
+
+function _partialQueryKey(
+  url: string,
+  {
+    path,
+    infinite,
+    ...options
+  }: QueryKeyEndpointOptions & {
+    infinite?: true;
+    path?: Record<string, string | number>;
+  } = {}
+) {
+  const isPrefix = url.endsWith('*');
+  const keyOptions = stripUndefinedValues({
+    ...options,
+    path: isPrefix ? stringifyPathParams(path) : undefined,
+  });
+
+  return createApiQueryKeyFilter({
+    ...(isPrefix
+      ? {urlParts: url.slice(0, -1).split('/').filter(Boolean)}
+      : {
+          fullUrl: getApiUrl(
+            url as KnownApiUrls,
+            ...([{path}] as OptionalPathParams<KnownApiUrls>)
+          ),
+        }),
+    ...(Object.keys(keyOptions).length > 0 ? {options: keyOptions} : {}),
+    ...(infinite ? {infinite} : {}),
   });
 }
 
@@ -191,4 +261,28 @@ export const apiOptions = {
       options: Options & PathParamOptions<TApiPath>
     ) =>
       _apiOptionsInfinite<TManualData>(path, options as never),
+
+  /**
+   * A partial query key for query filters like `invalidateQueries`.
+   *
+   * A url without `*` matches exactly that url, with any other options. A prefix
+   * ending in `/*` matches that url and everything below it, and leaves path
+   * params that are not passed open.
+   *
+   * @example
+   * ```ts
+   * apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/repos/', {
+   *   path: {organizationIdOrSlug: organization.slug},
+   * });
+   * apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+   *   path: {organizationIdOrSlug: organization.slug},
+   * });
+   * ```
+   */
+  partialQueryKey: <TPattern extends KnownApiUrlPattern>(
+    url: TPattern,
+    ...[options]: PatternPathOptions<TPattern> extends {path: unknown}
+      ? [PartialQueryKeyOptions<TPattern>]
+      : [PartialQueryKeyOptions<TPattern>?]
+  ) => _partialQueryKey(url, options as never),
 };

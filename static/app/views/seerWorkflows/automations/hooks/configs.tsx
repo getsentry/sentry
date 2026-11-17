@@ -28,10 +28,10 @@ function useConfigUrls(configId = '') {
         path: {organizationIdOrSlug: organization.slug},
       }
     ),
-    configsQueryKey: apiOptions.as<unknown>()(
+    configsQueryKey: apiOptions.partialQueryKey(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-    ).queryKey,
+      {path: {organizationIdOrSlug: organization.slug}}
+    ),
     configUrl: getApiUrl(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
       {path: {organizationIdOrSlug: organization.slug, configId}}

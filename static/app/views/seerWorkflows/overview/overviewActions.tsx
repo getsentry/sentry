@@ -116,10 +116,10 @@ export function useNextAction({
     try {
       await config.trigger(autofix, run.seerRunId);
       queryClient.invalidateQueries({
-        queryKey: apiOptions.as<unknown>()(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
-          {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-        ).queryKey,
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
       });
     } catch (error) {
       if (config.errorFallback) {
@@ -127,13 +127,12 @@ export function useNextAction({
         toast.error(typeof detail === 'string' ? detail : config.errorFallback);
       }
       queryClient.removeQueries({
-        queryKey: apiOptions.as<unknown>()(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
           {
             path: {organizationIdOrSlug: organization.slug, issueId: run.groupId},
-            staleTime: 0,
           }
-        ).queryKey,
+        ),
       });
       setIsDispatched(false);
     }

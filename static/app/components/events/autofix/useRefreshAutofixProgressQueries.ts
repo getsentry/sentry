@@ -32,29 +32,26 @@ export function useRefreshAutofixProgressQueries(groupId: string) {
       // The inbox sections, bucketed and sorted on `issue.progress:`, which each
       // completed step advances. Not the legacy issue stream — that reads
       // through GroupStore and IssueListCacheStore, which this cannot reach.
-      apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/issues/', {
+      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {
         path,
-        staleTime: 0,
-      }).queryKey,
+      }),
       // Counts on the inbox's my / my teams / all tabs.
-      apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/issues-count/', {
+      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues-count/', {
         path,
-        staleTime: 0,
-      }).queryKey,
+      }),
       // Pull request badge on the inbox row, filled in once a PR is opened.
-      apiOptions.as<unknown>()(
+      apiOptions.partialQueryKey(
         '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
-        {path: {...path, issueId: groupId}, staleTime: 0}
-      ).queryKey,
+        {path: {...path, issueId: groupId}}
+      ),
       // Seer workflows overview cards, including the issue stats and project
       // config expands that never poll.
-      apiOptions.as<unknown>()(
+      apiOptions.partialQueryKey(
         '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
         {
           path,
-          staleTime: 0,
         }
-      ).queryKey,
+      ),
     ];
 
     for (const queryKey of queryKeys) {

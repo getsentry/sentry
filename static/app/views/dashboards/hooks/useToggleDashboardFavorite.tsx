@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient, type Query} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -37,16 +37,13 @@ export function useToggleDashboardFavorite() {
 
   // Table query key for dashboards pinned by favorites.
   const listFilter = {
-    queryKey: apiOptions.as<unknown>()(
+    queryKey: apiOptions.partialQueryKey(
       '/organizations/$organizationIdOrSlug/dashboards/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
+        query: {pin: 'favorites'},
       }
-    ).queryKey,
-    predicate: (query: Query) =>
-      isApiQueryKey(query.queryKey) &&
-      query.queryKey[1].options.query?.pin === 'favorites',
+    ),
   };
   // Query key for the "Starred Dashboards" sidebar.
   const starredQueryKey = getStarredDashboardsQueryKey(organization);

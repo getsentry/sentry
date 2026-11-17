@@ -69,3 +69,14 @@ export function createApiQueryKey(
 export function createApiQueryKey(params: ApiQueryKeyParams | InfiniteApiQueryKeyParams) {
   return [API_QUERY_KEY_MARKER, params] as const;
 }
+
+type ApiQueryKeyFilterParams = Partial<
+  Pick<ApiQueryKeyParams, 'fullUrl' | 'options' | 'urlParts'>
+> & {infinite?: true};
+
+/**
+ * A partial api query key, only meant for query filters like `invalidateQueries`.
+ */
+export function createApiQueryKeyFilter(params: ApiQueryKeyFilterParams) {
+  return [API_QUERY_KEY_MARKER, params] as const;
+}

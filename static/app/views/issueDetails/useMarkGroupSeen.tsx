@@ -3,7 +3,6 @@ import {useMutation, useQueryClient, type InfiniteData} from '@tanstack/react-qu
 import type {Group} from 'sentry/types/group';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -13,10 +12,10 @@ import {groupQueryKey} from './useGroup';
 export function useMarkGroupSeen() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const issuesQueryKey = apiOptions.as<unknown>()(
+  const issuesQueryKey = apiOptions.partialQueryKey(
     '/organizations/$organizationIdOrSlug/issues/',
-    {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-  ).queryKey;
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
 
   return useMutation({
     mutationFn: (groupId: string) =>
@@ -39,9 +38,13 @@ export function useMarkGroupSeen() {
       // Inbox sections are infinite queries against the organization issues endpoint.
       queryClient.setQueriesData<InfiniteData<ApiResponse<Group[]>>>(
         {
-          queryKey: issuesQueryKey,
-          predicate: query =>
-            isApiQueryKey(query.queryKey) && query.queryKey[1].infinite === true,
+          queryKey: apiOptions.partialQueryKey(
+            '/organizations/$organizationIdOrSlug/issues/',
+            {
+              path: {organizationIdOrSlug: organization.slug},
+              infinite: true,
+            }
+          ),
         },
         previous =>
           previous

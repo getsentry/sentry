@@ -40,16 +40,16 @@ export function DirectEnableButton({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: apiOptions.as<unknown>()(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/integrations/',
-          {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-        ).queryKey,
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
       });
       queryClient.invalidateQueries({
-        queryKey: apiOptions.as<unknown>()(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/config/integrations/',
-          {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-        ).queryKey,
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
       });
     },
     onError: () => toast.error(t('Failed to enable integration.')),

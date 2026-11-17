@@ -23,13 +23,12 @@ import type {
  * Matches the project's seer repos lists for every filter.
  */
 function allSeerProjectReposQueryKey(organization: Organization, project: AvatarProject) {
-  return apiOptions.as<unknown>()(
+  return apiOptions.partialQueryKey(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/',
     {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-      staleTime: 0,
     }
-  ).queryKey;
+  );
 }
 
 export function isGitHubProvider(provider: string): boolean {

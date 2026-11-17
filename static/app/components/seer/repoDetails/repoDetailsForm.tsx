@@ -75,10 +75,10 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: apiOptions.as<unknown>()(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/repos/',
-          {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-        ).queryKey,
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
       });
       queryClient.invalidateQueries({
         queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
