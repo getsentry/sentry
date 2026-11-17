@@ -66,24 +66,34 @@ export function getRefusedStepMessage(
     : OUT_OF_CREDITS_START_STEP_MESSAGE[step];
 }
 
-/**
- * The Code Changes card's line for PR iteration work held for credits.
- */
 // TODO(CW-3102): Point at the Retry button instead of the next iteration.
-export const OUT_OF_CREDITS_PR_ITERATION_MESSAGE = {
+const OUT_OF_CREDITS_PR_ITERATION_MESSAGE = {
   push: t(
     "Seer couldn't push the latest changes because your organization is out of credits. Seer continues the next time it iterates on the pull request."
   ),
   branch_moved_retry: t(
     "Seer couldn't redo the latest changes on the pull request's newer commits because your organization is out of credits. Seer continues the next time it iterates on the pull request."
   ),
-  held: (count: number) =>
+  queued: (count: number) =>
     tn(
       '%s feedback item is waiting because your organization is out of credits. Seer continues the next time it iterates on the pull request.',
       '%s feedback items are waiting because your organization is out of credits. Seer continues the next time it iterates on the pull request.',
       count
     ),
 };
+
+/**
+ * The Code Changes card's line for PR iteration work waiting for credits.
+ */
+export function getPrIterationOutOfCreditsMessage(
+  waitingAction: 'push' | 'branch_moved_retry' | null,
+  queuedCount: number
+): string | null {
+  if (waitingAction) {
+    return OUT_OF_CREDITS_PR_ITERATION_MESSAGE[waitingAction];
+  }
+  return queuedCount ? OUT_OF_CREDITS_PR_ITERATION_MESSAGE.queued(queuedCount) : null;
+}
 
 export const OUT_OF_CREDITS_CHAT_MESSAGE = t(
   'Seer stopped because your organization is out of credits.'

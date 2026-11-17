@@ -14,6 +14,7 @@ import {
   collectPatches,
   getAutofixArtifactFromSection,
   getOutOfCreditsStep,
+  getPrIterationWaitingAction,
   isCodeChangesArtifact,
   isPrIterationBlock,
   isPrIterationPaused,
@@ -23,7 +24,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {
-  OUT_OF_CREDITS_PR_ITERATION_MESSAGE,
+  getPrIterationOutOfCreditsMessage,
   OUT_OF_CREDITS_STEP_MESSAGE,
 } from 'sentry/components/seer/outOfCredits/messages';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
@@ -142,17 +143,12 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const isPaused = isPrIterationPaused(autofix.runState);
 
-  const outOfCredits = autofix.runState?.pr_iteration_out_of_credits;
-  const unfinishedAction = outOfCredits?.unfinished_action;
-  let heldForCreditsMessage: string | null = null;
-  if (unfinishedAction === 'push' || unfinishedAction === 'branch_moved_retry') {
-    heldForCreditsMessage = OUT_OF_CREDITS_PR_ITERATION_MESSAGE[unfinishedAction];
-  } else if (outOfCredits) {
-    const heldFeedbackCount = autofix.runState?.queued_feedback?.length ?? 0;
-    if (heldFeedbackCount) {
-      heldForCreditsMessage = OUT_OF_CREDITS_PR_ITERATION_MESSAGE.held(heldFeedbackCount);
-    }
-  }
+  const outOfCreditsMessage = defined(autofix.runState?.pr_iteration_out_of_credits)
+    ? getPrIterationOutOfCreditsMessage(
+        getPrIterationWaitingAction(autofix.runState),
+        autofix.runState?.queued_feedback?.length ?? 0
+      )
+    : null;
 
   // Once a PR exists, reset opens the PR iteration form, so it stays available
   // while an iteration is processing.
@@ -361,8 +357,6 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       );
     } else if (isResetAvailable) {
       // An iteration is retried with feedback, through the PR iteration form.
-      // TODO(CW-3102): Retry the stopped iteration's own feedback once the
-      // organization has credits, instead of asking for it again.
       retry = (
         <Flex>
           <Button
@@ -475,12 +469,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : outOfCreditsRetry.tooltip}
     >
       <FeedbackList items={feedback} />
-      {heldForCreditsMessage && (
-        <OutOfCreditsStatus message={heldForCreditsMessage}>
-          {/* TODO(CW-3102): Add a Retry button, enabled once the organization
-              has credits, so held work doesn't wait for the next iteration. */}
-        </OutOfCreditsStatus>
-      )}
+      {/* TODO(CW-3102): Add a Retry button, enabled once the organization has
+          credits, so the work doesn't wait for the next iteration. */}
+      {outOfCreditsMessage && <OutOfCreditsStatus message={outOfCreditsMessage} />}
       {content}
     </ArtifactCard>
   );

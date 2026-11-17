@@ -71,7 +71,7 @@ export function PrIterationFeedbackForm({
     } catch (e) {
       // startStep already reports why the request failed.
       setIsSubmitting(false);
-      // Feedback refused for credits is held and runs later, so sending it
+      // Feedback refused for credits waits on the queue and runs later, so sending it
       // again would queue it twice.
       if (isOutOfCreditsError(e)) {
         setFeedback('');

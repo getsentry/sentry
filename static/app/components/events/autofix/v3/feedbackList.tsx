@@ -21,7 +21,7 @@ import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   isOutOfCreditsSection,
   isPrIterationBlock,
-  isPrIterationOutOfCredits,
+  getPrIterationWaitingAction,
   isPrIterationPaused,
   type AutofixSection,
   type RawFeedback,
@@ -45,8 +45,8 @@ const SOURCE_BADGE_SIZE = 14;
  * - `error`: the iteration or its push failed.
  * - `in_progress`: it's driving the iteration currently being processed.
  * - `queued`: submitted while a run was processing, not yet picked up.
- * - `waiting_for_credits`: held for credits, or its iteration's push or retry
- *   was. Runs the next time Seer iterates on the PR.
+ * - `waiting_for_credits`: it, or its iteration's push or retry, is waiting
+ *   for credits.
  * - `paused`: queued, but iteration on the PR is paused, so it won't run.
  */
 type FeedbackStatus =
@@ -225,12 +225,7 @@ export function usePrIterationFeedback(
       autofix.runState?.status === 'awaiting_user_input' ||
       repoStates.some(repo => repo.pr_creation_status === 'creating');
 
-    const unfinishedAction =
-      autofix.runState?.pr_iteration_out_of_credits?.unfinished_action;
-    const heldForCreditsAction =
-      unfinishedAction === 'push' || unfinishedAction === 'branch_moved_retry'
-        ? unfinishedAction
-        : null;
+    const waitingAction = getPrIterationWaitingAction(autofix.runState);
 
     const currentStep = section.blocks[currentStepStart];
     const currentIterationIndex =
@@ -264,7 +259,7 @@ export function usePrIterationFeedback(
       ) {
         if (inProgress) {
           status = 'in_progress';
-        } else if (heldForCreditsAction) {
+        } else if (waitingAction) {
           status = 'waiting_for_credits';
         } else if (section.status === 'error' || pushErrors.length > 0) {
           status = 'error';
@@ -292,7 +287,7 @@ export function usePrIterationFeedback(
 
   const queuedFeedback = useMemo<IterationFeedback[]>(() => {
     const paused = isPrIterationPaused(autofix.runState);
-    const heldForCredits = isPrIterationOutOfCredits(autofix.runState);
+    const outOfCredits = defined(autofix.runState?.pr_iteration_out_of_credits);
     return (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
       const parsed = parseFeedbackItem(raw);
       if (!parsed) {
@@ -301,7 +296,7 @@ export function usePrIterationFeedback(
 
       const status: FeedbackStatus = paused
         ? 'paused'
-        : heldForCredits
+        : outOfCredits
           ? 'waiting_for_credits'
           : 'queued';
       return [

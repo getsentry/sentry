@@ -389,7 +389,7 @@ export default Storybook.story('SeerDrawerContent', story => {
     />
   ));
 
-  story('Out of credits: PR iteration feedback held', () => (
+  story('Out of credits: PR iteration feedback waiting', () => (
     <DrawerStory
       description="Feedback was refused for credits and waits in the queue. It shows as waiting, the card says how many items wait, and the feedback form is disabled."
       runState={makeRun(PR_ITERATION_BLOCKS, {
@@ -417,7 +417,7 @@ export default Storybook.story('SeerDrawerContent', story => {
     />
   ));
 
-  story('Out of credits: PR iteration push held', () => (
+  story('Out of credits: PR iteration push waiting', () => (
     <DrawerStory
       description="Sentry refused to push the latest iteration for credits. The iteration shows as waiting instead of pushed, and the next iteration pushes it."
       runState={makeRun(PR_ITERATION_BLOCKS, {
@@ -444,7 +444,7 @@ export default Storybook.story('SeerDrawerContent', story => {
     />
   ));
 
-  story('Out of credits: PR iteration retry held', () => (
+  story('Out of credits: PR iteration retry waiting', () => (
     <DrawerStory
       description="New commits landed on the PR, and the retry on top of them was refused for credits. The iteration shows as waiting, and the next iteration redoes it. The Pull Requests card still offers Retry PR, which isn't gated on credits and force-pushes over the newer commits."
       runState={makeRun(PR_ITERATION_BLOCKS, {
@@ -480,9 +480,9 @@ export default Storybook.story('SeerDrawerContent', story => {
     />
   ));
 
-  story('With credits: PR iteration feedback held', () => (
+  story('With credits: PR iteration feedback waiting', () => (
     <DrawerStory
-      description="The held feedback after a top-up. It still shows as waiting, since nothing has drained yet, but the feedback form is enabled. Sending feedback drains the queue, so the held feedback runs with it."
+      description="The waiting feedback after a top-up. It still shows as waiting, since nothing has drained yet, but the feedback form is enabled. Sending feedback drains the queue, so the waiting feedback runs with it."
       runState={makeRun(PR_ITERATION_BLOCKS, {
         repo_pr_states: OPEN_PR,
         queued_feedback: QUEUED_FEEDBACK,

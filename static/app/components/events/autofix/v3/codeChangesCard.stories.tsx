@@ -375,7 +375,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
           />
         </StatusExample>
 
-        <StatusExample label="Waiting for credits — held for credits until Seer next iterates (warning clock + “Queued” label).">
+        <StatusExample label="Waiting for credits — runs the next time Seer iterates (warning clock + “Queued” label).">
           <CodeChangesCard
             groupId="1"
             autofix={makeAutofix([userUiFeedback('Make the button blue', user)], {

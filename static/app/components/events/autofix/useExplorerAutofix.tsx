@@ -762,10 +762,14 @@ export function isPrIterationPaused(runState: ExplorerAutofixState | null): bool
   return runState?.pr_iteration_paused === true;
 }
 
-export function isPrIterationOutOfCredits(
+/**
+ * The latest PR iteration's push or retry, when it's waiting for credits.
+ */
+export function getPrIterationWaitingAction(
   runState: ExplorerAutofixState | null
-): boolean {
-  return defined(runState?.pr_iteration_out_of_credits);
+): 'push' | 'branch_moved_retry' | null {
+  const action = runState?.pr_iteration_out_of_credits?.unfinished_action;
+  return action === 'push' || action === 'branch_moved_retry' ? action : null;
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
@@ -1098,7 +1102,7 @@ export function useExplorerAutofix(
           queryClient.invalidateQueries({
             queryKey: seerCreditChecksQueryKey(organization),
           });
-          // A refused PR iteration is held on the queue, so show it.
+          // A refused PR iteration waits on the queue, so show it.
           if (step === 'pr_iteration') {
             queryClient.invalidateQueries({queryKey});
           }
