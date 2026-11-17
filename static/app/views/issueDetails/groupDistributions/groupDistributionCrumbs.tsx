@@ -12,7 +12,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-import {DrawerTab} from './types';
+import {DISTRIBUTIONS_TYPE_QUERY_KEY, DrawerTab} from './types';
 import {useTagExportMenuItems} from './useTagExportMenuItems';
 
 interface Props {
@@ -45,7 +45,7 @@ export function GroupDistributionCrumbs({group, project, tab}: Props) {
       label: listLabel,
       to: {
         pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-        query: {...location.query, tab},
+        query: {...location.query, [DISTRIBUTIONS_TYPE_QUERY_KEY]: tab},
       },
     },
   ];

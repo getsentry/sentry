@@ -10,6 +10,8 @@ import {GroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistribut
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
+import {DISTRIBUTIONS_TYPE_QUERY_KEY} from './types';
+
 /**
  * Shared tags and feature flags distributions drawer used by issue details.
  */
@@ -45,9 +47,10 @@ export function useGroupDistributionsDrawer({
               pathname: getReturnPath(),
               query: {
                 ...location.query,
+                tagDrawerCursor: undefined,
                 tagDrawerSort: undefined,
-                tab: undefined,
                 flagDrawerCursor: undefined,
+                [DISTRIBUTIONS_TYPE_QUERY_KEY]: undefined,
               },
             },
             {preventScrollReset: true}

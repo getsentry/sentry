@@ -12,7 +12,10 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
+import {
+  DISTRIBUTIONS_TYPE_QUERY_KEY,
+  DrawerTab,
+} from 'sentry/views/issueDetails/groupDistributions/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -68,7 +71,10 @@ export function FlagActionDropdown({
             label: t('See flag details'),
             to: {
               pathname: `${baseUrl}${Tab.DISTRIBUTIONS}/${flag}`,
-              query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
+              query: {
+                ...location.query,
+                [DISTRIBUTIONS_TYPE_QUERY_KEY]: DrawerTab.FEATURE_FLAGS,
+              },
             },
           },
           {

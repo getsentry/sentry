@@ -27,7 +27,10 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
+import {
+  DISTRIBUTIONS_TYPE_QUERY_KEY,
+  DrawerTab,
+} from 'sentry/views/issueDetails/groupDistributions/types';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -124,7 +127,10 @@ export function FlagDetailsDrawerContent({group}: Props) {
                   size="sm"
                   to={{
                     pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-                    query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
+                    query: {
+                      ...location.query,
+                      [DISTRIBUTIONS_TYPE_QUERY_KEY]: DrawerTab.FEATURE_FLAGS,
+                    },
                   }}
                 >
                   {t('See all flags')}

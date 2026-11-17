@@ -11,7 +11,6 @@ import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
@@ -41,7 +40,6 @@ function splitByThreshold(items: SimilarItem[]) {
 
 export function SimilarStackTrace({project}: Props) {
   const api = useApi({persistInFlight: true});
-  const location = useLocation();
   const organization = useOrganization();
   const groupId = useGroupId();
   const navigate = useNavigate();
@@ -80,7 +78,7 @@ export function SimilarStackTrace({project}: Props) {
           canFetch && !hasEmbeddings
             ? {organizationIdOrSlug: organization.slug, issueId: groupId}
             : skipToken,
-        query: {...location.query, limit: 50},
+        query: {limit: 50},
         staleTime: 0,
       }
     ),

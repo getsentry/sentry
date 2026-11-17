@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
+import {
+  DISTRIBUTIONS_TYPE_QUERY_KEY,
+  DrawerTab,
+} from 'sentry/views/issueDetails/groupDistributions/types';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -23,7 +26,7 @@ export function FlagDetailsLink({flag, children}: Props) {
         pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${flag.key}/`,
         query: {
           ...location.query,
-          tab: DrawerTab.FEATURE_FLAGS,
+          [DISTRIBUTIONS_TYPE_QUERY_KEY]: DrawerTab.FEATURE_FLAGS,
         },
       }}
     >
