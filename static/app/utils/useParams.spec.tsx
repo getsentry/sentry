@@ -1,8 +1,8 @@
-import {useParams as useReactRouter6Params} from 'react-router';
+import {useParams as useReactRouterParams} from 'react-router';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useParams} from 'sentry/utils/useParams';
+import {useParams} from './useParams';
 
 const mockUsingCustomerDomain = jest.fn();
 const mockCustomerDomain = jest.fn();
@@ -76,7 +76,7 @@ describe('useParams', () => {
 
       function Component() {
         // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
-        originalParams = useReactRouter6Params();
+        originalParams = useReactRouterParams();
         // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         paramsValue = useParams();
         return <div>rendered component for org: {paramsValue.orgId ?? 'no org id'}</div>;
@@ -107,7 +107,7 @@ describe('useParams', () => {
 
       function Component() {
         // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
-        originalParams = useReactRouter6Params();
+        originalParams = useReactRouterParams();
         // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         paramsValue = useParams();
         return <div>rendered component for org: {paramsValue.orgId ?? 'no org id'}</div>;

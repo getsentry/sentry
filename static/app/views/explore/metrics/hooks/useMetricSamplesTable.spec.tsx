@@ -4,8 +4,9 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
-import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
+
+import {MockMetricQueryParamsContext} from './testUtils';
+import {useMetricSamplesTable} from './useMetricSamplesTable';
 
 describe('useMetricSamplesTable', () => {
   beforeEach(() => {
@@ -22,10 +23,6 @@ describe('useMetricSamplesTable', () => {
       })
     );
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
@@ -124,9 +121,7 @@ describe('useMetricSamplesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'metric.name:test.metric metric.type:counter',
-          caseInsensitive: undefined,
           dataset: 'tracemetrics',
-          disableAggregateExtrapolation: undefined,
           environment: ['prod'],
           field: [
             'id',
@@ -184,9 +179,6 @@ describe('useMetricSamplesTable', () => {
         query: expect.objectContaining({
           statsPeriodStart: '24h',
           statsPeriodEnd: '120s',
-          statsPeriod: undefined,
-          start: undefined,
-          end: undefined,
         }),
       })
     );

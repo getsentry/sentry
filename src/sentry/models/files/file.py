@@ -36,7 +36,7 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
     def _create_blob_index(self, blob: FileBlob, offset: int) -> FileBlobIndex:
         return FileBlobIndex.objects.create(file=self, blob=blob, offset=offset)
 
-    def _create_blob_from_file(self, contents: ContentFile, logger: Any) -> FileBlob:
+    def _create_blob_from_file(self, contents: "ContentFile[bytes]", logger: Any) -> FileBlob:
         return FileBlob.from_file(contents, logger)
 
     def _get_blobs_by_id(self, blob_ids: Sequence[int]) -> models.QuerySet[FileBlob]:

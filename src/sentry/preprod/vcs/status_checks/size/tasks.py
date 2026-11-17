@@ -211,7 +211,7 @@ def evaluate_size_and_format_messages(
     )
 
     # When no rules are configured, always show neutral status.
-    # When rules exist, show actual status (in_progress, failure, success).
+    # When rules exist, show actual status (in_progress, failure, action_required, success).
     if not rules:
         status = StatusCheckStatus.NEUTRAL
 
@@ -292,6 +292,7 @@ def create_preprod_status_check_task(
         # not having their repos integrated into Sentry
         return
 
+    assert repository.integration_id is not None
     provider = get_status_check_provider(
         client,
         commit_comparison.provider,
@@ -716,7 +717,7 @@ def _compute_overall_status(
                             )
 
         if triggered_rules:
-            return StatusCheckStatus.FAILURE, triggered_rules
+            return StatusCheckStatus.ACTION_REQUIRED, triggered_rules
 
         return StatusCheckStatus.SUCCESS, triggered_rules
     else:

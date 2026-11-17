@@ -131,7 +131,7 @@ class TreeClusterer(Clusterer):
 Edge: TypeAlias = Union[str, Merged]
 
 
-class Node(UserDict):
+class Node(UserDict[Edge, "Node"]):
     """Keys in this dict are names of the children"""
 
     def paths(self, ancestors: list[Edge] | None = None) -> Iterable[list[Edge]]:

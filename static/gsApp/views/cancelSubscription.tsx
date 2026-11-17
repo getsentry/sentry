@@ -225,7 +225,7 @@ function CancelSubscriptionForm() {
               <form.AppField name="reason">
                 {field => (
                   <Container width="fit-content" maxWidth="100%">
-                    <field.Radio.Group
+                    <field.RadioGroup
                       value={field.state.value}
                       onChange={val => {
                         field.handleChange(val);
@@ -233,44 +233,43 @@ function CancelSubscriptionForm() {
                         form.setFieldValue('checkboxes', {});
                       }}
                     >
-                      <field.Layout.Stack required label={t('Reason')}>
-                        <Stack gap="sm">
-                          {CANCEL_STEPS.map(cancel => (
-                            <field.Radio.Item
-                              key={cancel.reason[0]}
-                              value={cancel.reason[0]}
-                            >
-                              <Stack>
-                                {cancel.reason[1]}
-                                {cancel.checkboxes &&
-                                  selectedReason === cancel.reason[0] &&
-                                  cancel.checkboxes.map(([name, label]) => (
-                                    <Flex
-                                      key={name}
-                                      align="center"
-                                      gap="md"
-                                      padding="md 0"
-                                    >
-                                      <Checkbox
-                                        aria-label={label}
-                                        checked={checkboxes[name]}
-                                        name={name}
-                                        onChange={event => {
-                                          form.setFieldValue('checkboxes', {
-                                            ...checkboxes,
-                                            [name]: event.target.checked,
-                                          });
-                                        }}
-                                      />
-                                      {label}
-                                    </Flex>
-                                  ))}
-                              </Stack>
-                            </field.Radio.Item>
-                          ))}
-                        </Stack>
-                      </field.Layout.Stack>
-                    </field.Radio.Group>
+                      {({Item}) => (
+                        <field.Layout.Stack required label={t('Reason')}>
+                          <Stack gap="sm">
+                            {CANCEL_STEPS.map(cancel => (
+                              <Item key={cancel.reason[0]} value={cancel.reason[0]}>
+                                <Stack>
+                                  {cancel.reason[1]}
+                                  {cancel.checkboxes &&
+                                    selectedReason === cancel.reason[0] &&
+                                    cancel.checkboxes.map(([name, label]) => (
+                                      <Flex
+                                        key={name}
+                                        align="center"
+                                        gap="md"
+                                        padding="md 0"
+                                      >
+                                        <Checkbox
+                                          aria-label={label}
+                                          checked={checkboxes[name]}
+                                          name={name}
+                                          onChange={event => {
+                                            form.setFieldValue('checkboxes', {
+                                              ...checkboxes,
+                                              [name]: event.target.checked,
+                                            });
+                                          }}
+                                        />
+                                        {label}
+                                      </Flex>
+                                    ))}
+                                </Stack>
+                              </Item>
+                            ))}
+                          </Stack>
+                        </field.Layout.Stack>
+                      )}
+                    </field.RadioGroup>
                   </Container>
                 )}
               </form.AppField>

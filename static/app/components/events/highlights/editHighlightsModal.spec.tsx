@@ -10,14 +10,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {
-  EditHighlightsModal,
-  type EditHighlightsModalProps,
-} from 'sentry/components/events/highlights/editHighlightsModal';
+import {openModal} from '@sentry/scraps/modal';
+
 import type {DetailedProject} from 'sentry/types/project';
 import * as analytics from 'sentry/utils/analytics';
 
+import {EditHighlightsModal, type EditHighlightsModalProps} from './editHighlightsModal';
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
 describe('EditHighlightsModal', () => {

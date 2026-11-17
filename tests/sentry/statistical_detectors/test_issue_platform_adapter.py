@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import MagicMock
 
 from sentry.issues.grouptype import PerformanceP95EndpointRegressionGroupType
 from sentry.seer.breakpoints import BreakpointData
@@ -7,8 +8,8 @@ from sentry.statistical_detectors.issue_platform_adapter import send_regression_
 
 @mock.patch("sentry.statistical_detectors.issue_platform_adapter.produce_occurrence_to_kafka")
 def test_send_regressions_to_plaform(
-    mock_produce_occurrence_to_kafka,
-):
+    mock_produce_occurrence_to_kafka: MagicMock,
+) -> None:
     project_id = "123"
 
     mock_regression: BreakpointData = {

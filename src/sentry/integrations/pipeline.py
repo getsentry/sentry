@@ -5,12 +5,12 @@ from collections.abc import Callable, Sequence
 from typing import Any, Never, TypedDict
 
 import sentry_sdk
-from django.db import IntegrityError
+from django.db import IntegrityError, router, transaction
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from sentry_sdk.tracing import TransactionSource
+from sentry_sdk.traces import SegmentNameSource
 
 from sentry import analytics, features
 from sentry.analytics.events.integration_pipeline_step import IntegrationPipelineStep
@@ -25,7 +25,10 @@ from sentry.integrations.base import (
     is_provider_enabled,
 )
 from sentry.integrations.manager import default_manager
-from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration import (
+    Integration,
+    OrganizationIntegrationDeletionInProgress,
+)
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
@@ -68,7 +71,7 @@ def initialize_integration_pipeline(
     fail (feature flags disabled or provider cannot be added).
     """
     scope = sentry_sdk.get_current_scope()
-    scope.set_transaction_name(f"integration.{provider_id}", source=TransactionSource.VIEW)
+    scope.set_transaction_name(f"integration.{provider_id}", source=SegmentNameSource.VIEW)
 
     pipeline = IntegrationPipeline(
         request=request, organization=organization, provider_key=provider_id
@@ -110,7 +113,11 @@ class _IntegrationDefaults(TypedDict):
 
 
 def ensure_integration(
-    key: str, data: IntegrationData, *, overwrite_existing_integration: bool = True
+    key: str,
+    data: IntegrationData,
+    *,
+    overwrite_existing_integration: bool = True,
+    merge_metadata: bool = False,
 ) -> Integration:
     defaults: _IntegrationDefaults = {
         "metadata": data.get("metadata", {}),
@@ -120,9 +127,29 @@ def ensure_integration(
     integration, created = Integration.objects.get_or_create(
         provider=key, external_id=data["external_id"], defaults=defaults
     )
-    if not created and (overwrite_existing_integration or not _has_live_installations(integration)):
-        integration.update(**defaults)
+    if created:
+        return integration
+    if not overwrite_existing_integration and _has_live_installations(integration):
+        return integration
 
+    # Model.update() does not bump date_updated (the pre_save signal only fires on
+    # save()). Token-refresh code uses date_updated as a version stamp to detect
+    # concurrent reauthorizations, so bump it explicitly to make this write visible.
+    if not merge_metadata:
+        integration.update(date_updated=timezone.now(), **defaults)
+        return integration
+
+    # Keep keys written outside this flow (e.g. by a background sync) instead
+    # of replacing the whole blob. Lock the row so a concurrent metadata write
+    # isn't lost between the read and the update.
+    with transaction.atomic(router.db_for_write(Integration)):
+        integration = Integration.objects.select_for_update().get(id=integration.id)
+        integration.update(
+            metadata={**integration.metadata, **defaults["metadata"]},
+            name=defaults["name"],
+            status=defaults["status"],
+            date_updated=timezone.now(),
+        )
     return integration
 
 
@@ -258,10 +285,34 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
 
         Raises IntegrationError on failure. Returns the created OrganizationIntegration.
         """
+        if not self.provider.reject_pending_deletion_reinstall:
+            return self._install_integration_transaction(data)
+
+        try:
+            with transaction.atomic(using=router.db_for_write(Integration)):
+                return self._install_integration_transaction(data)
+        except OrganizationIntegrationDeletionInProgress as error:
+            raise IntegrationError(
+                _(
+                    "This integration is already being removed. "
+                    "Removal is queued automatically; try installing it again in about 15 minutes."
+                )
+            ) from error
+
+    def _install_integration_transaction(self, data: IntegrationData) -> OrganizationIntegration:
         if "expect_exists" in data:
-            self.integration = Integration.objects.get(
-                provider=self.provider.integration_key, external_id=data["external_id"]
-            )
+            # Created by the provider's install webhook, and it may have been uninstalled
+            # since the link was opened.
+            integration = Integration.objects.filter(
+                provider=self.provider.integration_key,
+                external_id=data["external_id"],
+                status=ObjectStatus.ACTIVE,
+            ).first()
+            if integration is None:
+                raise IntegrationError(
+                    "This installation no longer exists. Reinstall the app and try again."
+                )
+            self.integration = integration
         else:
             self.integration = ensure_integration(
                 self.provider.integration_key,
@@ -348,9 +399,11 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             default_auth_id = identity_model.id
 
         org_integration = self.integration.add_organization(
-            self.organization, self.request.user, default_auth_id=default_auth_id
+            self.organization,
+            self.request.user,
+            default_auth_id=default_auth_id,
+            reject_pending_deletion=self.provider.reject_pending_deletion_reinstall,
         )
-
         if org_integration is None:
             raise IntegrationError("Could not create the integration for this organization.")
 
@@ -365,10 +418,10 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             return self._get_redirect_response(redirect_url_format=redirect_url_format)
         return self._dialog_success(org_integration)
 
-    def _dialog_success(self, org_integration) -> HttpResponseBase:
+    def _dialog_success(self, org_integration: OrganizationIntegration) -> HttpResponseBase:
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
-    def _dialog_response(self, data, success) -> HttpResponseBase:
+    def _dialog_response(self, data: object, success: bool) -> HttpResponseBase:
         document_origin = "document.origin"
         if features.has("system:multi-region"):
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'

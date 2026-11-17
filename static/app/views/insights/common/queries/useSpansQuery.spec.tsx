@@ -1,5 +1,6 @@
 import {EventView} from 'sentry/utils/discover/eventView';
-import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+
+import {getStaleTimeForEventView} from './useSpansQuery';
 
 function makeEventView(range: {end?: string; range?: string; start?: string}) {
   return EventView.fromSavedQuery({

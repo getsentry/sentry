@@ -2,7 +2,8 @@ import {skipToken} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+import {apiOptions} from './api/apiOptions';
 
 interface ProjectKeysParameters {
   orgSlug: Organization['slug'];

@@ -8,18 +8,15 @@ import partition from 'lodash/partition';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
-import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
-import {DemoWalkthroughStore} from 'sentry/stores/demoWalkthroughStore';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -30,6 +27,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
+
+import {useOnboardingTasks} from './useOnboardingTasks';
+import {findCompleteTasks, taskIsDone} from './utils';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete
@@ -94,7 +94,9 @@ function TaskCard({
         {title}
         {description && <p>{description}</p>}
       </TaskCardDescription>
-      <TaskCardActions>{actions}</TaskCardActions>
+      <Grid align="start" gap="md" autoColumns="20px" flow="column">
+        {actions}
+      </Grid>
     </TaskCardWrapper>
   );
 }
@@ -206,8 +208,6 @@ function Task({task, hidePanel}: TaskProps) {
           tours?.[DemoTour.RELEASES]?.startTour();
         } else if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
           tours?.[DemoTour.ISSUES]?.startTour();
-        } else {
-          DemoWalkthroughStore.activateGuideAnchor(task.task);
         }
       }
 
@@ -625,12 +625,4 @@ const TaskCardDescription = styled('div')`
   strong {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const TaskCardActions = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 20px;
-  gap: ${p => p.theme.space.md};
-  align-items: flex-start;
 `;

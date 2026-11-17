@@ -23,8 +23,9 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ActionTarget} from 'sentry/types/workflowEngine/actions';
-import AutomationDetail from 'sentry/views/automations/detail';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import AutomationDetail from './detail';
 
 describe('AutomationDetail', () => {
   const organization = OrganizationFixture();

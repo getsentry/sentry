@@ -1,8 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {FilterType, TermOperator, Token} from 'sentry/components/searchSyntax/parser';
-
+import type {ParseResult, TokenResult} from './parser';
+import {FilterType, parseSearch, TermOperator, Token} from './parser';
 import {HighlightQuery} from './renderer';
 
 const query: ParseResult = [
@@ -50,5 +49,11 @@ describe('SmartSearchBar', () => {
 
     expect(screen.getByText('user.email:')).toBeInTheDocument();
     expect(screen.getByText('foo@example.com')).toBeInTheDocument();
+  });
+
+  it('renders a numeric list', () => {
+    render(<HighlightQuery parsedQuery={parseSearch('project.id:[1, 2]')!} />);
+
+    expect(screen.getByTestId('filter-token')).toHaveTextContent('project.id:1, 2');
   });
 });

@@ -17,6 +17,7 @@ class SeerOperatorInteractionType(StrEnum):
     OPERATOR_CACHE_GET = "cache_get"
     OPERATOR_CACHE_MIGRATE = "cache_migrate"
     ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR = "entrypoint_on_trigger_autofix_error"
+    ENTRYPOINT_ON_TRIGGER_AUTOFIX_OUT_OF_CREDITS = "entrypoint_on_trigger_autofix_out_of_credits"
     ENTRYPOINT_ON_TRIGGER_AUTOFIX_SUCCESS = "entrypoint_on_trigger_autofix_success"
     ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS = "entrypoint_on_trigger_autofix_already_exists"
     ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR = "entrypoint_on_trigger_handoff_error"
@@ -59,17 +60,20 @@ class SeerOperatorEventLifecycleMetric(EventLifecycleMetric):
 
 class SlackEntrypointInteractionType(StrEnum):
     SEND_THREAD_UPDATE = "send_thread_update"
+    EDIT_THREAD_MESSAGE = "edit_thread_message"
     PROCESS_THREAD_UPDATE = "process_thread_update"
     SCHEDULE_ALL_THREAD_UPDATES = "schedule_all_thread_updates"
     UPDATE_EXISTING_MESSAGE = "update_existing_message"
     PROCESS_MENTION = "process_mention"
     PROCESS_REACTION = "process_reaction"
+    UPDATE_INVESTIGATION_STATUS = "update_investigation_status"
+    SEND_INVESTIGATION_CONCLUSION = "send_investigation_conclusion"
 
 
 @dataclass
 class SlackEntrypointEventLifecycleMetric(EventLifecycleMetric):
     interaction_type: SlackEntrypointInteractionType
-    integration_id: int
+    integration_id: int | None
     organization_id: int
 
     def get_extras(self) -> Mapping[str, Any]:

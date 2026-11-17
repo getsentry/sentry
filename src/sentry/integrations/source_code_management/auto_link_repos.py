@@ -6,7 +6,6 @@ from collections.abc import Sequence
 from django.db.models import Exists, OuterRef
 from django.utils.text import slugify
 
-from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -64,11 +63,6 @@ def auto_link_repos_by_name(
 
     Returns the number of links created
     """
-    if not features.has("organizations:auto-link-repos-by-name", organization):
-        return 0
-
-    dry_run = options.get("repository.auto-link-by-name-dry-run")
-
     repo_qs = Repository.objects.filter(
         organization_id=organization.id,
         status=ObjectStatus.ACTIVE,
@@ -101,9 +95,14 @@ def auto_link_repos_by_name(
         if project_id is None:
             continue
 
-        if dry_run:
+        _, was_created = ProjectRepository.objects.get_or_create(
+            project_id=project_id,
+            repository=repo,
+            defaults={"source": ProjectRepositorySource.AUTO_NAME_MATCH},
+        )
+        if was_created:
             logger.info(
-                "auto_link_repos_by_name.dry_run_match",
+                "auto_link_repos_by_name.linked",
                 extra={
                     "organization_id": organization.id,
                     "repository_id": repo.id,
@@ -112,26 +111,8 @@ def auto_link_repos_by_name(
                     "project_slug": project_slug,
                 },
             )
-            metrics.incr("auto_link_repos_by_name.dry_run_match", sample_rate=1.0)
-        else:
-            _, was_created = ProjectRepository.objects.get_or_create(
-                project_id=project_id,
-                repository=repo,
-                defaults={"source": ProjectRepositorySource.AUTO_NAME_MATCH},
-            )
-            if was_created:
-                logger.info(
-                    "auto_link_repos_by_name.linked",
-                    extra={
-                        "organization_id": organization.id,
-                        "repository_id": repo.id,
-                        "repository_name": repo.name,
-                        "project_id": project_id,
-                        "project_slug": project_slug,
-                    },
-                )
-                metrics.incr("auto_link_repos_by_name.linked", sample_rate=1.0)
-                created += 1
+            metrics.incr("auto_link_repos_by_name.linked", sample_rate=1.0)
+            created += 1
 
     return created
 

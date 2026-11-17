@@ -325,7 +325,7 @@ default_manager.add(
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
 default_manager.add(events.InternalIntegrationDisabledAuditLogEvent())
 default_manager.add(
-    AuditLogEvent(
+    events.InternalIntegrationTokenAuditLogEvent(
         event_id=135,
         name="INTERNAL_INTEGRATION_ADD_TOKEN",
         api_name="internal-integration.add-token",
@@ -333,7 +333,7 @@ default_manager.add(
     )
 )
 default_manager.add(
-    AuditLogEvent(
+    events.InternalIntegrationTokenAuditLogEvent(
         event_id=136,
         name="INTERNAL_INTEGRATION_REMOVE_TOKEN",
         api_name="internal-integration.remove-token",
@@ -722,6 +722,22 @@ default_manager.add(events.RepoDisabledAuditLogEvent())
 default_manager.add(events.RepoEnabledAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
+        event_id=1174,
+        name="SEER_PROJECT_REPOSITORIES_REPLACE",
+        api_name="seer-project-repositories.replace",
+        template="replaced active Seer repository configurations for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1176,
+        name="SEER_PROJECT_REPOSITORIES_UPDATE",
+        api_name="seer-project-repositories.update",
+        template="updated Seer repository configurations for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=219,
         name="DASHBOARD_ADD",
         api_name="dashboard.create",
@@ -750,5 +766,45 @@ default_manager.add(
         name="DASHBOARD_RESTORE",
         api_name="dashboard.restore",
         template="restored dashboard {title}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=223,
+        name="SERVICE_ACCOUNT_ADD",
+        api_name="service-account.create",
+        template="added service account {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=224,
+        name="SERVICE_ACCOUNT_EDIT",
+        api_name="service-account.edit",
+        template="edited service account {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=225,
+        name="SERVICE_ACCOUNT_REMOVE",
+        api_name="service-account.remove",
+        template="removed service account {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=226,
+        name="SERVICE_ACCOUNT_TOKEN_ADD",
+        api_name="service-account-token.create",
+        template="added token {name} to service account {service_account_name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=227,
+        name="SERVICE_ACCOUNT_TOKEN_REMOVE",
+        api_name="service-account-token.remove",
+        template="revoked token {name} of service account {service_account_name}",
     )
 )

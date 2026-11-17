@@ -191,7 +191,7 @@ class TestFindStacktraces:
         assert infos[0].exception_type == "Error"
 
 
-def _thread(**kwargs):
+def _thread(**kwargs: object) -> dict[str, object]:
     return {"stacktrace": {"frames": [{"in_app": True, "marco": "polo"}]}, **kwargs}
 
 
@@ -210,8 +210,10 @@ def _thread(**kwargs):
         {"threads": {"values": [None, _thread()]}},
     ],
 )
-def test_get_crash_frame(event) -> None:
-    assert get_crash_frame_from_event_data(event)["marco"] == "polo"
+def test_get_crash_frame(event: dict[str, object]) -> None:
+    crash_frame = get_crash_frame_from_event_data(event)
+    assert crash_frame is not None
+    assert crash_frame["marco"] == "polo"
 
 
 @pytest.mark.parametrize(
@@ -223,5 +225,5 @@ def test_get_crash_frame(event) -> None:
         {"threads": {"values": [_thread(current=True), _thread(current=True)]}},
     ],
 )
-def test_get_crash_frame_returns_none(event) -> None:
+def test_get_crash_frame_returns_none(event: dict[str, object]) -> None:
     assert get_crash_frame_from_event_data(event) is None

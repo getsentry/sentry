@@ -20,7 +20,7 @@ from sentry.workflow_engine.processors.action import (
     process_workflow_action_group_statuses,
     update_workflow_action_group_statuses,
 )
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, FeatureGate, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -321,6 +321,58 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
 
 
 class TestIsActionPermitted(BaseWorkflowTest):
+    def test_non_integration_action_requires_handler_features(self) -> None:
+        class GatedActionHandler(ActionHandler):
+            required_features = (FeatureGate("organizations:seer-automations"),)
+
+        with patch(
+            "sentry.workflow_engine.processors.action.action_handler_registry.get",
+            return_value=GatedActionHandler,
+        ):
+            with self.feature({"organizations:seer-automations": False}):
+                assert not is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
+
+            with self.feature("organizations:seer-automations"):
+                assert is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
+
+    def test_integration_requires_handler_and_provider_features(self) -> None:
+        class GatedActionHandler(ActionHandler):
+            required_features = (FeatureGate("organizations:seer-automations"),)
+
+        with (
+            patch(
+                "sentry.workflow_engine.processors.action.action_handler_registry.get",
+                return_value=GatedActionHandler,
+            ),
+            patch(
+                "sentry.workflow_engine.processors.action._get_integration_features",
+                return_value=frozenset({IntegrationFeatures.ALERT_RULE}),
+            ),
+        ):
+            with self.feature(
+                {
+                    "organizations:seer-automations": False,
+                    "organizations:integrations-alert-rule": True,
+                }
+            ):
+                assert not is_action_permitted(Action.Type.SLACK, self.organization)
+
+            with self.feature(
+                {
+                    "organizations:seer-automations": True,
+                    "organizations:integrations-alert-rule": False,
+                }
+            ):
+                assert not is_action_permitted(Action.Type.SLACK, self.organization)
+
+            with self.feature(
+                {
+                    "organizations:seer-automations": True,
+                    "organizations:integrations-alert-rule": True,
+                }
+            ):
+                assert is_action_permitted(Action.Type.SLACK, self.organization)
+
     @patch("sentry.workflow_engine.processors.action._get_integration_features")
     def test_basic(self, mock_get_features: MagicMock) -> None:
         org = self.create_organization()

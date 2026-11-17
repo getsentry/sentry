@@ -37,7 +37,7 @@ def build_backlog_schedule_lock_key(subscription_id: str) -> str:
     return f"uptime:backlog_schedule_lock:{subscription_id}"
 
 
-def get_cluster() -> RedisCluster | StrictRedis:
+def get_cluster() -> "RedisCluster[str] | StrictRedis[str]":
     return redis.redis_clusters.get(settings.SENTRY_UPTIME_DETECTOR_CLUSTER)
 
 

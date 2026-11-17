@@ -104,7 +104,7 @@ class CursorOriginWebhookTest(APITestCase):
                     "webhook-event-type": event_type,
                 },
             )
-        return response.status_code
+        return int(response.status_code)
 
     def test_an_uninstall_disables_the_integration(self) -> None:
         integration = self.create_integration(
@@ -306,7 +306,6 @@ class CursorOriginPullRequestWebhookTest(APITestCase):
         assert response.status_code == 204
 
     def test_close_attributes_linked_issue_activity(self) -> None:
-        # Close activity is emitted even without the pr-lifecycle-activity flag.
         with capture_action_log() as action_log:
             self._post_pull_request("pull_request.closed", _payload(state="closed"))
 
@@ -320,10 +319,7 @@ class CursorOriginPullRequestWebhookTest(APITestCase):
         assert get_action_context() is None
 
     def test_merge_attributes_linked_issue_activity(self) -> None:
-        with (
-            self.feature("organizations:pr-lifecycle-activity"),
-            capture_action_log() as action_log,
-        ):
+        with capture_action_log() as action_log:
             self._post_pull_request("pull_request.merged", _payload(state="closed", merged=True))
 
         action_log.assert_logged(
@@ -339,10 +335,7 @@ class CursorOriginPullRequestWebhookTest(APITestCase):
             state=PullRequestLifecycleState.CLOSED
         )
 
-        with (
-            self.feature("organizations:pr-lifecycle-activity"),
-            capture_action_log() as action_log,
-        ):
+        with capture_action_log() as action_log:
             self._post_pull_request("pull_request.reopened", _payload())
 
         action_log.assert_logged(
@@ -379,7 +372,7 @@ class CursorOriginWebhookCellTest(APITestCase):
                     "webhook-event-type": "installation.deleted",
                 },
             )
-        return response.status_code
+        return int(response.status_code)
 
     def test_a_delivery_held_in_the_mailbox_is_still_accepted(self) -> None:
         """The window is checked at the edge; a queue wait must not lose the delivery."""

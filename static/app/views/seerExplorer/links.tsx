@@ -1,12 +1,11 @@
 import type {LocationDescriptor} from 'history';
-import queryString, {type ParsedQuery} from 'query-string';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {isAggregateField, type Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import * as qs from 'sentry/utils/url/qs';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -39,13 +38,9 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {callRecordLabel} from 'sentry/views/seerExplorer/callRecords';
-import type {
-  CallRecord,
-  ToolCall,
-  ToolLink,
-  ToolResult,
-} from 'sentry/views/seerExplorer/types';
+
+import {callRecordLabel} from './callRecords';
+import type {CallRecord, ToolCall, ToolLink, ToolResult} from './types';
 
 /**
  * Where a Code Mode call sends you.
@@ -114,7 +109,7 @@ export type LinkSubject = {
   /** Which external provider served the call, if any. */
   provider?: string;
   /** The requested query string, parsed — params the route template does not name. */
-  query?: ParsedQuery;
+  query?: qs.ParsedQuery;
   status?: number;
   /** The title seer shipped for this call. Absent on a seer-emitted link. */
   title?: string;
@@ -449,32 +444,6 @@ export const LINK_RULES: LinkRule[] = [
             'monitor_check_in_failure'
           ),
           ...(project?.id ? {query: {project: project.id}} : {}),
-        },
-      };
-    },
-  },
-  {
-    id: 'get_issue_alert_rule',
-    prefix: /\/rules\/\{rule_id\}/,
-    resolve: ({params, title}, {organization, projects}) => {
-      const ruleId = asUrlSegment(params.rule_id);
-      if (!ruleId) {
-        return null;
-      }
-
-      const project = resolveProject(params.project_id_or_slug, projects);
-      if (!project) {
-        return null;
-      }
-
-      // Legacy issue-alert detail; workflow-engine orgs redirect this onto the automation page.
-      return {
-        label: title ?? t('View alert rule'),
-        url: {
-          pathname: makeAlertsPathname({
-            organization,
-            path: `/rules/${project.slug}/${ruleId}/`,
-          }),
         },
       };
     },
@@ -819,7 +788,7 @@ export function resolveLink(
 /** A call Code Mode reported, as something the rules can match on. */
 export function subjectFromCallRecord(record: CallRecord): LinkSubject {
   const [pathname, queryStringPart] = (record.resolved_path ?? '').split('?');
-  const query = queryStringPart ? queryString.parse(queryStringPart) : undefined;
+  const query = queryStringPart ? qs.parse(queryStringPart) : undefined;
   const params = record.kind === 'lib' ? record.params : record.path_params;
 
   return {
@@ -982,7 +951,7 @@ function telemetryDatasetLabel(dataset: unknown): string | undefined {
 }
 
 /** Django QueryDict.get uses the last value for repeated scalar parameters. */
-function getApiScalar(value: ParsedQuery[string] | undefined): string | undefined {
+function getApiScalar(value: qs.ParsedQuery[string] | undefined): string | undefined {
   const scalar = Array.isArray(value) ? value.at(-1) : value;
   return typeof scalar === 'string' ? scalar : undefined;
 }

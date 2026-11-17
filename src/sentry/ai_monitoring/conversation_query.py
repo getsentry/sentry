@@ -34,7 +34,15 @@ from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
 from sentry.api.event_search import AggregateFilter, event_search_grammar
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.utils import InvalidQuery, parse_duration
+
+# Resolver config for compiled conversation queries. elapsed_if backs the time span alias.
+CONVERSATION_RESOLVER_CONFIG = SearchResolverConfig(
+    auto_fields=True,
+    disable_aggregate_extrapolation=True,
+    fields_acl=FieldsACL(functions={"elapsed_if"}),
+)
 
 # Matches a query that is exactly one positive conversation ID filter. Keeping this
 # predicate in WHERE lets Snuba use its indexed ai_conversation_id column.

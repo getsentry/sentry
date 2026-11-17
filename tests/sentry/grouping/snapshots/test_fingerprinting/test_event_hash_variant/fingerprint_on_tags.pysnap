@@ -10,7 +10,7 @@ config:
     matchers:
     - - tags.foobar
       - '*stuff*'
-    text: tags.foobar:"*stuff*" -> "foobar-matched-stuff-{{ tags.barfoo }}"
+    text: tags.foobar:"*stuff*" -> "foobar-matched-stuff-", "{{ tags.barfoo }}"
   version: 1
 fingerprint:
 - foobar-matched-stuff-
@@ -21,7 +21,8 @@ variants:
     contributes: true
     hint: null
     key: custom_server_fingerprint
-    matched_rule: tags.foobar:"*stuff*" -> "foobar-matched-stuff-{{ tags.barfoo }}"
+    matched_rule: tags.foobar:"*stuff*" -> "foobar-matched-stuff-", "{{ tags.barfoo
+      }}"
     type: custom_fingerprint
     values:
     - foobar-matched-stuff-

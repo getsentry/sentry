@@ -3,9 +3,10 @@ import {useCallback} from 'react';
 import type {GetTagKeys} from 'sentry/components/searchQueryBuilder';
 import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
-import {useGetTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeKeys';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {isHiddenAttribute} from 'sentry/views/explore/utils';
+
+import {useGetTraceItemAttributeKeys} from './useGetTraceItemAttributeKeys';
 
 export function useGetTraceItemAttributeTagKeys({
   itemType,

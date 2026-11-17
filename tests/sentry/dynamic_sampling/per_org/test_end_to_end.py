@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
@@ -80,7 +80,9 @@ class PerOrgEndToEndTest(TestCase, SnubaTestCase, SpanTestCase):
     @with_feature("organizations:dynamic-sampling")
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     @patch("sentry.quotas.backend.get_blended_sample_rate", return_value=BLENDED_SAMPLE_RATE)
-    def test_stored_segments_end_up_as_project_rules(self, get_blended_sample_rate) -> None:
+    def test_stored_segments_end_up_as_project_rules(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
         project_a = self.create_project_with_segments(9)
         project_b = self.create_project_with_segments(7)
         project_c = self.create_project_with_segments(3)

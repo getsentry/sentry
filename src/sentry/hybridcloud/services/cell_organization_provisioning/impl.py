@@ -2,11 +2,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from sentry_sdk import capture_exception
 
-from sentry import analytics, audit_log, roles
-from sentry.analytics.events.data_consent_org_creation import (
-    AggregatedDataConsentOrganizationCreatedEvent,
-)
-from sentry.analytics.events.organization_created import OrganizationCreatedEvent
+from sentry import roles
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -20,10 +16,9 @@ from sentry.models.organization import ORGANIZATION_NAME_MAX_LENGTH, Organizatio
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservationType
-from sentry.services.organization import OrganizationOptions, OrganizationProvisioningOptions
-from sentry.signals import organization_created, terms_accepted
+from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.users.services.user.model import RpcUser
-from sentry.utils.audit import create_audit_entry_from_user
+from sentry.utils import json
 
 
 def create_post_provision_outbox(
@@ -35,6 +30,19 @@ def create_post_provision_outbox(
         category=OutboxCategory.POST_ORGANIZATION_PROVISION,
         object_identifier=org_id,
         payload=provisioning_options.post_provision_options.dict(),
+    )
+
+
+def create_provision_analytics_outbox(
+    provisioning_options: OrganizationProvisioningOptions, org_id: int
+) -> CellOutbox:
+    payload = json.loads(provisioning_options.provision_options.json())
+    return CellOutbox(
+        shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+        shard_identifier=org_id,
+        category=OutboxCategory.ORGANIZATION_PROVISION_ANALYTICS,
+        object_identifier=org_id,
+        payload=payload,
     )
 
 
@@ -160,66 +168,11 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
                 provisioning_options=provision_payload, org_id=organization.id
             ).save()
 
-        self._record_organization_create_analytics(organization, provision_options)
+            create_provision_analytics_outbox(
+                provisioning_options=provision_payload, org_id=organization.id
+            ).save()
 
         return True
-
-    def _record_organization_create_analytics(
-        self, organization: Organization, provision_options: OrganizationOptions
-    ) -> None:
-        # These operations involve RPC calls to control so do them outside of the transaction
-        audit_data = organization.get_audit_log_data()
-        actor_label = None
-        if provision_options.channel_name:
-            audit_data["channel"] = provision_options.channel_name
-            actor_label = f"provision_channel:{provision_options.channel_name}"
-        try:
-            create_audit_entry_from_user(
-                user=provision_options.owner,
-                ip_address=provision_options.ip_address,
-                organization=organization,
-                target_object=organization.id,
-                event=audit_log.get_event_id("ORG_ADD"),
-                data=audit_data,
-                actor_label=actor_label,
-            )
-        except Exception as e:
-            capture_exception(e)
-
-        try:
-            analytics.record(
-                OrganizationCreatedEvent(
-                    id=organization.id,
-                    name=organization.name,
-                    slug=organization.slug,
-                    actor_id=provision_options.owner.id,
-                )
-            )
-        except Exception as e:
-            capture_exception(e)
-
-        if provision_options.agree_terms:
-            terms_accepted.send_robust(
-                user=provision_options.owner,
-                organization_id=organization.id,
-                ip_address=provision_options.ip_address,
-                sender=type(self),
-            )
-
-        if provision_options.aggregated_data_consent:
-            organization.update_option("sentry:aggregated_data_consent", True)
-            try:
-                analytics.record(
-                    AggregatedDataConsentOrganizationCreatedEvent(organization_id=organization.id)
-                )
-            except Exception as e:
-                capture_exception(e)
-
-        organization_created.send_robust(
-            organization=organization,
-            user=provision_options.owner,
-            sender=type(self),
-        )
 
     def update_organization_slug_from_reservation(
         self,

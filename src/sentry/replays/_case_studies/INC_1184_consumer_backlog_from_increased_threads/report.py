@@ -15,6 +15,7 @@ backlog and we were back to normal.
 
 import time
 from threading import Semaphore
+from typing import cast
 
 from arroyo.processing.strategies import RunTask, RunTaskInThreads
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
@@ -22,40 +23,40 @@ from arroyo.types import FilteredPayload, Message, Value
 
 
 class Producer:
-    def __init__(self, step):
+    def __init__(self, step: ProcessingStrategy[FilteredPayload | None]) -> None:
         self.step = step
         self.produced_count = 0
 
-    def submit(self):
+    def submit(self) -> None:
         self.step.submit(Message(Value(None, {}, None)))
         self.produced_count += 1
 
-    def poll(self):
+    def poll(self) -> None:
         self.step.poll()
 
 
 class Consumer(ProcessingStrategy[FilteredPayload | None]):
-    def __init__(self):
+    def __init__(self) -> None:
         self.consumed_count = 0
 
-    def submit(self, message):
+    def submit(self, message: Message[FilteredPayload | None]) -> None:
         self.consumed_count += 1
 
-    def poll(self): ...
+    def poll(self) -> None: ...
 
-    def close(self): ...
+    def close(self) -> None: ...
 
-    def join(self, timeout=None): ...
+    def join(self, timeout: float | None = None) -> None: ...
 
-    def terminate(self): ...
+    def terminate(self) -> None: ...
 
 
 class SharedResource:
-    def __init__(self, max_workers, wait):
+    def __init__(self, max_workers: int, wait: float) -> None:
         self.lock = Semaphore(max_workers)
         self.wait = wait
 
-    def __call__(self):
+    def __call__(self) -> None:
         with self.lock:
             time.sleep(self.wait)
 
@@ -63,26 +64,34 @@ class SharedResource:
 # Fixture
 
 
-def case(step_workers, step_queue_depth, shared_resource_workers, shared_resource_work_time):
+def case(
+    step_workers: int,
+    step_queue_depth: int,
+    shared_resource_workers: int,
+    shared_resource_work_time: float,
+) -> tuple[Producer, Consumer, ProcessingStrategy[FilteredPayload | None]]:
     shared = SharedResource(shared_resource_workers, wait=shared_resource_work_time)
     consumer = Consumer()
 
-    def processor(m):
+    def processor(m: Message[FilteredPayload | None]) -> None:
         shared()  # lock and sleep
 
-    def run_task_work(m):
+    def run_task_work(m: Message[FilteredPayload | None]) -> Message[FilteredPayload | None]:
         # useless work in a loop to emulate processing.
         for i in range(10_000):
             i / 0.1
         return m
 
-    step = RunTask(
+    step = RunTask[FilteredPayload | None, Message[FilteredPayload | None]](
         function=run_task_work,
-        next_step=RunTaskInThreads(
-            processing_function=processor,
-            concurrency=step_workers,
-            max_pending_futures=step_queue_depth,
-            next_step=consumer,
+        next_step=cast(
+            ProcessingStrategy[FilteredPayload | Message[FilteredPayload | None]],
+            RunTaskInThreads(
+                processing_function=processor,
+                concurrency=step_workers,
+                max_pending_futures=step_queue_depth,
+                next_step=consumer,
+            ),
         ),
     )
 
@@ -94,7 +103,7 @@ def case(step_workers, step_queue_depth, shared_resource_workers, shared_resourc
 # Test Cases
 
 
-def test1_unbalanced_worker_counts():
+def test1_unbalanced_worker_counts() -> None:
     """
     Background:
     "10 connections are available. 8 threads: which means we never see backpressure. We go to 16
@@ -131,7 +140,7 @@ def test1_unbalanced_worker_counts():
     assert consumer.consumed_count == 10
 
 
-def test2_insufficient_queue_depth():
+def test2_insufficient_queue_depth() -> None:
     """
     Background:
     "two steps. processor and commit. processor pushes to a queue. threads pick up message off the
@@ -169,7 +178,7 @@ def test2_insufficient_queue_depth():
         ...
 
 
-def test3_over_production_hogs_cpu_time_leading_to_starvation():
+def test3_over_production_hogs_cpu_time_leading_to_starvation() -> None:
     """
     Background:
     "Because every time a MessageRejected is raised by the commit step, it happens when process
@@ -230,7 +239,7 @@ def test3_over_production_hogs_cpu_time_leading_to_starvation():
     # 65 ± 10 milliseconds.
 
 
-def test4_high_production_to_queue_does_not_starve():
+def test4_high_production_to_queue_does_not_starve() -> None:
     """
     Background:
     "If they enqueued work indefinitively we would not see a backlog probably"
@@ -275,7 +284,7 @@ def test4_high_production_to_queue_does_not_starve():
     # 40 ± 5 milliseconds.
 
 
-def test5_modulated_message_rejected_intensity_from_production_patterns():
+def test5_modulated_message_rejected_intensity_from_production_patterns() -> None:
     """
     Background:
     During the incident the production environment was experiencing perodic load spikes. Production
@@ -354,7 +363,7 @@ def test5_modulated_message_rejected_intensity_from_production_patterns():
     # 740 ± 40 milliseconds.
 
 
-def test6_production_patterns_with_unbalanced_threads():
+def test6_production_patterns_with_unbalanced_threads() -> None:
     """
     Background:
     During the production incident resolution was driven by lowering the number of threads the
@@ -436,7 +445,7 @@ def test6_production_patterns_with_unbalanced_threads():
     # 1000 ± 50 milliseconds.
 
 
-def test7_production_patterns_with_unbalanced_threads_with_sufficient_queue_depth():
+def test7_production_patterns_with_unbalanced_threads_with_sufficient_queue_depth() -> None:
     """
     Background:
     During the production incident resolution was driven by lowering the number of threads the
@@ -518,7 +527,7 @@ def test7_production_patterns_with_unbalanced_threads_with_sufficient_queue_dept
     # 400 ± 5 milliseconds.
 
 
-def test8_introducing_backoff_reduces_starvation():
+def test8_introducing_backoff_reduces_starvation() -> None:
     """
     Background:
     This test is idential to test3 except we sleep after each message rejected.

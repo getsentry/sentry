@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Prose} from '@sentry/scraps/text';
@@ -18,9 +18,10 @@ import {
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {hasAIInputAttribute} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
-import {hasAIOutputAttribute} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
+
+import {hasAIInputAttribute} from './aiInput';
+import {hasAIOutputAttribute} from './aiOutput';
 
 type SupportedSDKLanguage = 'javascript' | 'python';
 

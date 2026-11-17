@@ -1,4 +1,4 @@
-import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {ellipsize} from './ellipsize';
 
 describe('ellipsize', () => {
   it.each([

@@ -1,10 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getWERContextData,
-  type WERContext,
-} from 'sentry/components/events/contexts/knownContext/wer';
+
+import {getWERContextData, type WERContext} from './wer';
 
 const REPORT_ID = '3ea2a4b8-2ab3-4f69-9f0b-baa5c60847b8';
 const MOCK_WER_CONTEXT: WERContext = {

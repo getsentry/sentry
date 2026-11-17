@@ -1,8 +1,9 @@
-import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {parseAggregateExpression} from './parseAggregateExpression';
 
 describe('parseAggregateExpression', () => {
   it('parses a single aggregate into one row with label A', () => {

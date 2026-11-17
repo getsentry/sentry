@@ -10,6 +10,7 @@ import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
+import {Flex, Container as ScrapsContainer} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -31,22 +32,9 @@ import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
-import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
-import type {RateUnit} from 'sentry/utils/discover/fields';
-import {
-  ABYTE_UNITS,
-  getAggregateAlias,
-  getSpanOperationName,
-  isEquation,
-  isRelativeSpanOperationBreakdownField,
-  parseFunction,
-  SPAN_OP_BREAKDOWN_FIELDS,
-  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-  stripEquationPrefix,
-} from 'sentry/utils/discover/fields';
-import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -90,6 +78,19 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ArrayValue} from './arrayValue';
 import {emptyStringValue, emptyValue, nullableValue} from './emptyFieldValues';
+import type {EventData, EventView, MetaType} from './eventView';
+import type {RateUnit} from './fields';
+import {
+  ABYTE_UNITS,
+  getAggregateAlias,
+  getSpanOperationName,
+  isEquation,
+  isRelativeSpanOperationBreakdownField,
+  parseFunction,
+  SPAN_OP_BREAKDOWN_FIELDS,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+  stripEquationPrefix,
+} from './fields';
 import {DURATION_UNITS, SIZE_UNITS} from './fieldUnits';
 import type {FieldFormatterType, SpecialFieldKey} from './getSortField';
 import {
@@ -106,6 +107,7 @@ import {
   VersionContainer,
 } from './styles';
 import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamKeyTransactionField';
+import {ViewReplayLink} from './viewReplayLink';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.
@@ -361,10 +363,6 @@ type SpecialField = {
   renderFunc: SpecialFieldRenderFunc;
 };
 
-const DownloadCount = styled('span')`
-  padding-left: ${p => p.theme.space.sm};
-`;
-
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
@@ -397,6 +395,36 @@ function renderAIOutputMessages(rawOutputMessages: unknown) {
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
+function performanceScoreRenderer(field: string): SpecialField {
+  return {
+    renderFunc: data => {
+      const score = data[field];
+      if (typeof score !== 'number') {
+        return <RightAlignedContainer>{emptyValue}</RightAlignedContainer>;
+      }
+      return (
+        <RightAlignedContainer>
+          <PerformanceBadge score={Math.round(score * 100)} />
+        </RightAlignedContainer>
+      );
+    },
+  };
+}
+
+function opportunityScoreRenderer(field: string): SpecialField {
+  return {
+    renderFunc: data => {
+      const score = data[field];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
+      );
+    },
+  };
+}
+
 const SPECIAL_FIELDS: Record<string, SpecialField> = {
   // This is a custom renderer for a field outside discover
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
@@ -422,7 +450,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           label: attachment.name,
           onAction: () =>
             window.open(
-              `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+              resolveHostname(
+                `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+              )
             ),
         }));
 
@@ -437,7 +467,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
                 icon={
                   <Fragment>
                     <IconDownload variant="primary" size="sm" />
-                    <DownloadCount>{items.length}</DownloadCount>
+                    <ScrapsContainer as="span" paddingLeft="sm">
+                      {items.length}
+                    </ScrapsContainer>
                   </Fragment>
                 }
                 aria-label={t('Download attachments')}
@@ -466,14 +498,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               minidump
                 ? () => {
                     window.open(
-                      `/api/0/projects/${organization.slug}/${projectSlug}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                      resolveHostname(
+                        `/api/0/projects/${organization.slug}/${projectSlug}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                      )
                     );
                   }
                 : undefined
             }
           >
             <IconDownload variant="primary" size="sm" />
-            <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
+            <ScrapsContainer as="span" paddingLeft="sm">
+              {minidump ? 1 : 0}
+            </ScrapsContainer>
           </Button>
         </RightAlignedContainer>
       );
@@ -865,30 +901,15 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       </Container>
     ),
   },
-  'performance_score(measurements.score.total)': {
-    renderFunc: data => {
-      const score = data['performance_score(measurements.score.total)'];
-      if (typeof score !== 'number') {
-        return <RightAlignedContainer>{emptyValue}</RightAlignedContainer>;
-      }
-      return (
-        <RightAlignedContainer>
-          <PerformanceBadge score={Math.round(score * 100)} />
-        </RightAlignedContainer>
-      );
-    },
-  },
-  'opportunity_score(measurements.score.total)': {
-    renderFunc: data => {
-      const score = data['opportunity_score(measurements.score.total)'];
-      if (typeof score !== 'number') {
-        return <Container>{emptyValue}</Container>;
-      }
-      return (
-        <RightAlignedContainer>{Math.round(score * 10000) / 100}</RightAlignedContainer>
-      );
-    },
-  },
+  // The spans form takes the total score measurement, the trace metrics form no argument
+  'performance_score(measurements.score.total)': performanceScoreRenderer(
+    'performance_score(measurements.score.total)'
+  ),
+  'performance_score()': performanceScoreRenderer('performance_score()'),
+  'opportunity_score(measurements.score.total)': opportunityScoreRenderer(
+    'opportunity_score(measurements.score.total)'
+  ),
+  'opportunity_score()': opportunityScoreRenderer('opportunity_score()'),
   'browser.name': {
     renderFunc: data => {
       const browserName = data['browser.name'];
@@ -1174,7 +1195,7 @@ export const spanOperationRelativeBreakdownRenderer = (
   }
 
   return (
-    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
+    <Flex position="relative" data-test-id="relative-ops-breakdown">
       {orderedSpanOpsBreakdownFields.map(field => {
         if (!isDurationValue(data, field)) {
           return null;
@@ -1240,14 +1261,9 @@ export const spanOperationRelativeBreakdownRenderer = (
           <OtherRelativeOpsBreakdown />
         </Tooltip>
       </div>
-    </RelativeOpsBreakdown>
+    </Flex>
   );
 };
-
-const RelativeOpsBreakdown = styled('div')`
-  position: relative;
-  display: flex;
-`;
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
   position: relative;

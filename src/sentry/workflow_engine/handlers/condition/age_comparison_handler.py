@@ -60,7 +60,7 @@ class AgeComparisonConditionHandler(ActionFilterDataConditionHandler[WorkflowEve
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        group = event_data.group
+        group = event_data.require_group()
         first_seen = group.first_seen
         current_time = timezone.now()
         comparison_type = comparison["comparison_type"]

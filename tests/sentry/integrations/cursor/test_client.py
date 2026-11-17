@@ -418,6 +418,34 @@ class CursorAgentClientTest(TestCase):
         assert mock_post.call_count == 1
 
     @patch.object(CursorAgentClient, "get")
+    def test_verify_api_key_uses_v1_me(self, mock_get: Mock) -> None:
+        mock_get.return_value = Mock(
+            json={
+                "apiKeyName": "Production API Key",
+                "createdAt": "2026-04-13T18:30:00.000Z",
+                "userEmail": "developer@example.com",
+            }
+        )
+
+        metadata = self.cursor_client.verify_api_key()
+
+        assert mock_get.call_args[0][0] == "/v1/me"
+        assert metadata.apiKeyName == "Production API Key"
+        assert metadata.userEmail == "developer@example.com"
+
+    @patch.object(CursorAgentClient, "get")
+    def test_verify_api_key_service_account(self, mock_get: Mock) -> None:
+        mock_get.return_value = Mock(
+            json={"apiKeyName": "Service Account", "createdAt": "2026-04-13T18:30:00.000Z"}
+        )
+
+        metadata = self.cursor_client.verify_api_key()
+
+        mock_get.assert_called_once()
+        assert metadata.apiKeyName == "Service Account"
+        assert metadata.userEmail is None
+
+    @patch.object(CursorAgentClient, "get")
     def test_get_available_models(self, mock_get: Mock) -> None:
         """Test get_available_models() returns the list of model names."""
         mock_get.return_value = self._make_models_response(["claude-4-opus", "gpt-4", "gemini-pro"])

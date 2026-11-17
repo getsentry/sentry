@@ -36,7 +36,7 @@ class IssueOpenDurationConditionHandler(ActionFilterDataConditionHandler[Workflo
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        group = event_data.group
+        group = event_data.require_group()
         latest_open_period = get_latest_open_period(group)
         if not latest_open_period:
             return False

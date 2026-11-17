@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {NewProviderForm} from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
+import {NewProviderForm} from './newProviderForm';
 
 describe('NewProviderForm', () => {
   it('renders', () => {

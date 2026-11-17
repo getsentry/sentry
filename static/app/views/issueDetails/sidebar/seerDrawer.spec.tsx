@@ -101,7 +101,6 @@ describe('SeerDrawer', () => {
       body: {
         hasSupportedScmIntegration: false,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -110,10 +109,6 @@ describe('SeerDrawer', () => {
       body: {
         integrations: [],
       },
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/autofix-repos/`,
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/repos/`,
@@ -241,6 +236,59 @@ describe('SeerDrawer', () => {
     });
     expect(resetButton).toBeInTheDocument();
     expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('disables reset when out of Seer credits', async () => {
+    const creditOrganization = OrganizationFixture({
+      ...organization,
+      features: [
+        ...organization.features,
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: makeExplorerAutofixData({status: 'error'})},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${creditOrganization.slug}/seer/credit-check/`,
+      body: {hasEnoughCredits: false},
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+      organization: creditOrganization,
+    });
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    expect(
+      screen.getByRole('button', {name: 'Start a new analysis from scratch'})
+    ).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('restarts a failed run without asking what to change', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: makeExplorerAutofixData({status: 'error'})},
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      method: 'POST',
+      body: {run_id: 2},
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Start a new analysis from scratch'})
+    );
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
   });
 
   it('clicking reset triggers a new root cause analysis', async () => {
@@ -387,7 +435,7 @@ describe('SeerDrawer', () => {
       });
     }
 
-    it('does not poll the autofix endpoint when both PR iteration features are disabled', async () => {
+    it('polls the autofix endpoint when a PR exists', async () => {
       const getMock = mockAutofixWithPr();
 
       render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
@@ -402,33 +450,7 @@ describe('SeerDrawer', () => {
         await jest.advanceTimersByTimeAsync(10_000);
       });
 
-      expect(getMock.mock.calls).toHaveLength(callsAfterLoad);
+      expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
     });
-
-    it.each([['autofix-pr-iteration'], ['autofix-pr-iteration-manual']])(
-      'polls the autofix endpoint when %s is enabled and a PR exists',
-      async feature => {
-        const getMock = mockAutofixWithPr();
-
-        render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-          organization: OrganizationFixture({
-            hideAiFeatures: false,
-            features: [feature],
-          }),
-        });
-
-        await waitForElementToBeRemoved(() =>
-          screen.queryByTestId('ai-setup-loading-indicator')
-        );
-
-        const callsAfterLoad = getMock.mock.calls.length;
-
-        await act(async () => {
-          await jest.advanceTimersByTimeAsync(10_000);
-        });
-
-        expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
-      }
-    );
   });
 });

@@ -126,3 +126,15 @@ class AuditLogEntrySerializerTest(TestCase):
         serializer = AuditLogEntrySerializer()
         result = serialize(log, serializer=serializer)
         assert result["note"] == ""
+
+    def test_internal_integration_token_note_legacy_slug(self) -> None:
+        log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("INTERNAL_INTEGRATION_REMOVE_TOKEN"),
+            actor=self.user,
+            datetime=timezone.now(),
+            data={"sentry_app_slug": "my-integration", "sentry_app_installation_uuid": "abc"},
+        )
+
+        result = serialize(log, serializer=AuditLogEntrySerializer())
+        assert result["note"] == "revoked a token for internal integration my-integration"

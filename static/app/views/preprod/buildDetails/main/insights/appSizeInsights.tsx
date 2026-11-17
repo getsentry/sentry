@@ -10,11 +10,12 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AppSizeInsightsSidebar} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebar';
-import {formatUpside} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
-import {InsightTimedOutWarning} from 'sentry/views/preprod/buildDetails/main/insights/insightTimedOutWarning';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
+
+import {AppSizeInsightsSidebar} from './appSizeInsightsSidebar';
+import {formatUpside} from './appSizeInsightsSidebarRow';
+import {InsightTimedOutWarning} from './insightTimedOutWarning';
 
 interface AppSizeInsightsProps {
   processedInsights: ProcessedInsight[];

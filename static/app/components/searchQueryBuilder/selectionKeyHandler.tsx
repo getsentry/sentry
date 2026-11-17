@@ -1,16 +1,17 @@
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
 
+import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
+import {defined} from 'sentry/utils/defined';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+
+import {useKeyboardSelection} from './hooks/useKeyboardSelection';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
-import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
-import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils/defined';
-import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+} from './context';
+import {findNearestFreeTextKey} from './utils';
 
 type SelectionKeyHandlerProps = {
   gridRef: React.RefObject<HTMLDivElement | null>;

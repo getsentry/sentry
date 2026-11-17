@@ -1,9 +1,6 @@
 import {IconPlay} from '@sentry/icons/play';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
-import {ReplayInlineCTAPanel} from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
-import {ReplaySection} from 'sentry/components/feedback/feedbackItem/replaySection';
 import {Placeholder} from 'sentry/components/placeholder';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
@@ -12,6 +9,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+
+import {FeedbackItemSection} from './feedbackItemSection';
+import {ReplayInlineCTAPanel} from './replayInlineCTAPanel';
+import {ReplaySection} from './replaySection';
 
 interface Props {
   eventData: Event | undefined;

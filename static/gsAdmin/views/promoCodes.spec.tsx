@@ -234,6 +234,71 @@ describe('PromoCodes', () => {
     expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('trialDays');
   });
 
+  it('creates a batch of promo codes and downloads them as a CSV', async () => {
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
+    const create = MockApiClient.addMockResponse({
+      url: '/promocodes/',
+      method: 'POST',
+      body: [
+        PromoCodeFixture({code: 'PYCON-AAAAAAAA'}),
+        PromoCodeFixture({code: 'PYCON-BBBBBBBB'}),
+      ],
+    });
+    const createObjectURL = jest.fn((_blob: Blob) => 'blob:codes');
+    const revokeObjectURL = jest.fn();
+    Object.assign(URL, {createObjectURL, revokeObjectURL});
+    const click = jest
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
+    render(<PromoCodes />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
+    renderGlobalModal();
+    await userEvent.click(screen.getByLabelText('Create a batch of codes?'));
+    expect(screen.queryByRole('textbox', {name: /Code \(ID\)/})).not.toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', {name: 'Code Prefix'}), 'PYCON-');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Count'}), '2');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '1');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create.mock.calls[0]?.[1]?.data).toEqual(
+      expect.objectContaining({codePrefix: 'PYCON-', count: '2', maxClaims: '1'})
+    );
+    expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('code');
+    await waitFor(() => expect(click).toHaveBeenCalled());
+    expect(await createObjectURL.mock.calls[0]?.[0]?.text()).toBe(
+      'code\nPYCON-AAAAAAAA\nPYCON-BBBBBBBB'
+    );
+    expect(
+      screen.queryByRole('heading', {name: 'Add New Promo Code'})
+    ).not.toBeInTheDocument();
+    click.mockRestore();
+  });
+
+  it('validates the batch count', async () => {
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
+    const create = MockApiClient.addMockResponse({
+      url: '/promocodes/',
+      method: 'POST',
+      body: [],
+    });
+    render(<PromoCodes />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
+    renderGlobalModal();
+    await userEvent.click(screen.getByLabelText('Create a batch of codes?'));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Code Prefix'}), 'PYCON-');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Count'}), '5001');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '1');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    expect(await screen.findByText('Count must be at most 5000')).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('shows non-field API errors when saving fails', async () => {
     MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
     MockApiClient.addMockResponse({

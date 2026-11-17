@@ -7,7 +7,7 @@ import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
-import {Pagination} from '@sentry/scraps/pagination';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {DiscoverButton} from 'sentry/components/discoverButton';
@@ -23,9 +23,11 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {getPaginationProps} from 'sentry/utils/pagination';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {NoGroupsHandler} from 'sentry/views/issueList/noGroupsHandler';
 
 enum IssuesType {
@@ -53,11 +55,15 @@ type Props = {
 
 export function ProjectIssues({organization, location, projectId, query = ''}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
-  const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
+  const [onCursor, setOnCursor] = useState<CursorHandler | undefined>();
   const [issuesType, setIssuesType] = useQueryState('issuesType', {
     ...parseAsStringLiteral(Object.values(IssuesType)),
     defaultValue: IssuesType.UNHANDLED,
   });
+  const {start, end, statsPeriod, environment} = loadQueryParamsFromLocation(
+    pageFilterParsers,
+    location
+  );
   const withSearch = (baseQuery: string, search = query) =>
     [baseQuery, search].join(' ').trim();
   const {data: counts} = useQuery(
@@ -68,12 +74,10 @@ export function ProjectIssues({organization, location, projectId, query = ''}: P
         query: {
           project: projectId,
           query: Object.values(ISSUE_QUERIES).map(baseQuery => withSearch(baseQuery)),
-          ...(!location.query.start && {
-            statsPeriod: location.query.statsPeriod || DEFAULT_STATS_PERIOD,
-          }),
-          start: location.query.start,
-          end: location.query.end,
-          environment: location.query.environment,
+          ...(!start && {statsPeriod: statsPeriod || DEFAULT_STATS_PERIOD}),
+          start: start || undefined,
+          end: end || undefined,
+          environment,
         },
         staleTime: 0,
       }
@@ -142,12 +146,10 @@ export function ProjectIssues({organization, location, projectId, query = ''}: P
   };
 
   function renderEmptyMessage() {
-    const selectedTimePeriod = location.query.start
+    const selectedTimePeriod = start
       ? null
       : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        DEFAULT_RELATIVE_PERIODS[
-          decodeScalar(location.query.statsPeriod, DEFAULT_STATS_PERIOD)
-        ];
+        DEFAULT_RELATIVE_PERIODS[statsPeriod || DEFAULT_STATS_PERIOD];
     const displayedPeriod = selectedTimePeriod
       ? selectedTimePeriod.toLowerCase()
       : t('given timeframe');
@@ -224,7 +226,11 @@ export function ProjectIssues({organization, location, projectId, query = ''}: P
           >
             {t('Open in Explore')}
           </DiscoverButton>
-          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
+          <StyledPagination
+            {...getPaginationProps(pageLinks)}
+            onCursor={onCursor}
+            size="xs"
+          />
         </Grid>
       </Flex>
 

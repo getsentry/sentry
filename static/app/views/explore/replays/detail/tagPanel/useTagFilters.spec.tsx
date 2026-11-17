@@ -2,7 +2,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHookWithProviders as renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useTagFilters} from 'sentry/views/explore/replays/detail/tagPanel/useTagFilters';
+import {useTagFilters} from './useTagFilters';
 
 const tags = ReplayRecordFixture().tags;
 

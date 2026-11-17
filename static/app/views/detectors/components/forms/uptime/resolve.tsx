@@ -6,7 +6,8 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {UPTIME_DEFAULT_RECOVERY_THRESHOLD} from 'sentry/views/detectors/components/forms/uptime/fields';
+
+import {UPTIME_DEFAULT_RECOVERY_THRESHOLD} from './fields';
 
 export function UptimeDetectorResolveSection({step}: {step?: number}) {
   return (

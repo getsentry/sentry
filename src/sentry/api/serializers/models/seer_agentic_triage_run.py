@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Prefetch, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -26,6 +27,8 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.schemas import WorkflowRunSource
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class SeerAgenticTriageRunResultResponse(TypedDict):
@@ -59,7 +62,11 @@ class SeerWorkflowRunExecutionResponse(TypedDict):
 
 class SeerWorkflowRunExecutionSerializer(Serializer[SeerWorkflowRunExecutionResponse]):
     def serialize(
-        self, obj: SeerWorkflowRunExecution, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: SeerWorkflowRunExecution,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> SeerWorkflowRunExecutionResponse:
         return {"seerRunId": str(obj.seer_run.uuid) if obj.seer_run is not None else None}
 
@@ -82,7 +89,11 @@ class SeerAgenticTriageRunResponse(TypedDict):
 @register(SeerWorkflowRun)
 class SeerAgenticTriageRunSerializer(Serializer[SeerAgenticTriageRunResponse]):
     def get_attrs(
-        self, item_list: Sequence[SeerWorkflowRun], user: Any, **kwargs: Any
+        self,
+        item_list: Sequence[SeerWorkflowRun],
+        user: User | RpcUser | AnonymousUser,
+        accessible_project_ids: Collection[int] | None = None,
+        **kwargs: Any,
     ) -> dict[SeerWorkflowRun, dict[str, Any]]:
         prefetch_related_objects(
             item_list,
@@ -107,6 +118,22 @@ class SeerAgenticTriageRunSerializer(Serializer[SeerAgenticTriageRunResponse]):
         group_ids = {r.group_id for r in triage_results if r.group_id is not None}
         # qualified_short_id needs group.project.slug, hence select_related.
         groups_by_id = Group.objects.filter(id__in=group_ids).select_related("project").in_bulk()
+        # None means the caller can see every project. A set drops groups outside it
+        # so a run that slipped the queryset filter cannot emit their titles or PRs.
+        blocked_group_ids: set[int] = set()
+        if accessible_project_ids is not None:
+            accessible_ids = set(accessible_project_ids)
+            blocked_group_ids = {
+                group_id
+                for group_id, group in groups_by_id.items()
+                if group.project_id not in accessible_ids
+            }
+            groups_by_id = {
+                group_id: group
+                for group_id, group in groups_by_id.items()
+                if group_id not in blocked_group_ids
+            }
+            triage_results = [r for r in triage_results if r.group_id not in blocked_group_ids]
         group_titles_by_id: dict[int, str | None] = {
             group_id: group.title for group_id, group in groups_by_id.items()
         }
@@ -153,6 +180,7 @@ class SeerAgenticTriageRunSerializer(Serializer[SeerAgenticTriageRunResponse]):
             "group_titles_by_id": group_titles_by_id,
             "group_short_ids_by_id": group_short_ids_by_id,
             "pull_requests_by_result_id": pull_requests_by_result_id,
+            "blocked_group_ids": blocked_group_ids,
         }
         return {run: shared for run in item_list}
 
@@ -160,10 +188,13 @@ class SeerAgenticTriageRunSerializer(Serializer[SeerAgenticTriageRunResponse]):
         self,
         obj: SeerWorkflowRun,
         attrs: Mapping[str, Any],
-        user: Any,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> SeerAgenticTriageRunResponse:
-        all_results = list(obj.results.all())
+        blocked_group_ids = attrs.get("blocked_group_ids", ())
+        all_results = [
+            result for result in obj.results.all() if result.group_id not in blocked_group_ids
+        ]
         triage_results = [r for r in all_results if r.kind == SeerWorkflowStrategy.AGENTIC_TRIAGE]
         extras = {key: value for key, value in (obj.extras or {}).items() if key != "agent_run_id"}
         # A dispatch failure records on the run; per-shard delivery failures record

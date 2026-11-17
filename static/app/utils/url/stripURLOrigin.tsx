@@ -1,4 +1,4 @@
-import {safeURL} from 'sentry/utils/url/safeURL';
+import {safeURL} from './safeURL';
 
 /**
  * Accept a url like:

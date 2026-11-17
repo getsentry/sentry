@@ -3,8 +3,9 @@ import {parseActorString} from 'sentry/utils/parseActorString';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
 import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
-import {useUptimeDetectorFormField} from 'sentry/views/detectors/components/forms/uptime/fields';
-import {formatUptimeUrl} from 'sentry/views/detectors/components/forms/uptime/formatUptimeUrl';
+
+import {useUptimeDetectorFormField} from './fields';
+import {formatUptimeUrl} from './formatUptimeUrl';
 
 const FALLBACK_ISSUE_TITLE = t('Downtime detected for …');
 const SUBTITLE = t('Your monitored domain is down');

@@ -11,7 +11,10 @@ from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
+from sentry.integrations.slack.requests.base import (
+    SlackDMRequest,
+    SlackRequestError,
+)
 from sentry.integrations.slack.unfurl.handlers import match_link
 from sentry.integrations.slack.unfurl.types import LinkType
 from sentry.integrations.slack.utils.constants import SlackScope
@@ -334,7 +337,8 @@ class SlackEventRequest(SlackDMRequest):
 
     @property
     def dm_data(self) -> Mapping[str, Any]:
-        return self.data.get("event", {})
+        event = self.data.get("event", {})
+        return event
 
     @property
     def channel_id(self) -> str:

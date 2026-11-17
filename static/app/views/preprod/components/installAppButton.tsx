@@ -6,7 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {openInstallModal} from 'sentry/views/preprod/components/installModal';
+
+import {openInstallModal} from './installModal';
 
 interface InstallAppButtonProps {
   artifactId: string;

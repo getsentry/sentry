@@ -7,7 +7,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
+
+import {NoDataMessage} from './noDataMessage';
 
 describe('NoDataMessage', () => {
   beforeEach(() => {
@@ -26,7 +27,6 @@ describe('NoDataMessage', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     ProjectsStore.reset();
   });
 

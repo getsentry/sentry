@@ -28,7 +28,19 @@ from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.project import Project
 from sentry.models.projectkeymapping import ProjectKeyMapping
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountProjectReplica,
+    ServiceAccountReplica,
+    ServiceAccountToken,
+    ServiceAccountTokenReplica,
+)
+from sentry.service_accounts.services.service_account.model import (
+    RpcServiceAccount,
+    RpcServiceAccountToken,
+)
 from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.utils import metrics
@@ -216,6 +228,79 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
             date_deactivated=token.date_deactivated,
         )
         handle_replication(OrgAuthToken, destination)
+
+    def upsert_replicated_service_account(
+        self,
+        *,
+        service_account: RpcServiceAccount,
+        cell_name: str,
+    ) -> None:
+        try:
+            organization = Organization.objects.get(id=service_account.organization_id)
+        except Organization.DoesNotExist:
+            return
+
+        destination = ServiceAccountReplica(
+            organization=organization,
+            service_account_id=service_account.id,
+            name=service_account.name,
+            scope_list=service_account.scope_list,
+            is_active=service_account.is_active,
+            all_projects=service_account.all_projects,
+        )
+        with enforce_constraints(transaction.atomic(router.db_for_write(ServiceAccountReplica))):
+            handle_replication(ServiceAccount, destination)
+            replica = ServiceAccountReplica.objects.get(service_account_id=service_account.id)
+            # A control link can outlive its project until the tombstone cascade reaches
+            # control, and survives a transfer of its project to another org.
+            valid_project_ids = set(
+                Project.objects.filter(
+                    organization_id=organization.id, id__in=service_account.project_ids
+                ).values_list("id", flat=True)
+            )
+            links = ServiceAccountProjectReplica.objects.filter(service_account=replica)
+            links.exclude(project_id__in=valid_project_ids).delete()
+            existing_project_ids = set(links.values_list("project_id", flat=True))
+            ServiceAccountProjectReplica.objects.bulk_create(
+                [
+                    ServiceAccountProjectReplica(service_account=replica, project_id=project_id)
+                    for project_id in valid_project_ids - existing_project_ids
+                ]
+            )
+
+    def upsert_replicated_service_account_token(
+        self,
+        *,
+        token: RpcServiceAccountToken,
+        cell_name: str,
+    ) -> None:
+        # The account replica's org foreign key cascades, so finding it also proves the org
+        # exists. Raising here would block the org's outbox shard until someone intervenes.
+        service_account = ServiceAccountReplica.objects.filter(
+            organization_id=token.organization_id, service_account_id=token.service_account_id
+        ).first()
+        if service_account is None:
+            logger.warning(
+                "service_account_token_replica.missing_service_account",
+                extra={
+                    "token_id": token.id,
+                    "service_account_id": token.service_account_id,
+                    "organization_id": token.organization_id,
+                },
+            )
+            _record_replica_write(OutboxCategory.SERVICE_ACCOUNT_TOKEN_UPDATE, "skipped")
+            return
+
+        destination = ServiceAccountTokenReplica(
+            service_account=service_account,
+            token_id=token.id,
+            organization_id=token.organization_id,
+            token_hashed=token.token_hashed,
+            scope_list=token.scope_list,
+            date_expires=token.date_expires,
+            date_deactivated=token.date_deactivated,
+        )
+        handle_replication(ServiceAccountToken, destination)
 
     def upsert_replicated_auth_provider(
         self,

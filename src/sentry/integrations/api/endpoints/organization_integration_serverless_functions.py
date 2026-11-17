@@ -44,7 +44,7 @@ class ServerlessFunctionResponse(TypedDict):
     enabled: bool
 
 
-class ServerlessActionSerializer(CamelSnakeSerializer):
+class ServerlessActionSerializer(CamelSnakeSerializer[dict[str, str]]):
     action = serializers.ChoiceField(
         ACTIONS, help_text="The action to perform on the serverless function."
     )

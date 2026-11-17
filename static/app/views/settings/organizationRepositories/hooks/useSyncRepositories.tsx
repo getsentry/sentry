@@ -1,11 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -72,7 +69,7 @@ function usePhaseTimer(
       const nextIdx = idx + 1;
       if (nextIdx < configRef.current.length) {
         if (phase.transitionToast) {
-          addLoadingMessage(phase.transitionToast);
+          toast.loading(phase.transitionToast);
         }
         setPhaseIndex(nextIdx);
         scheduleRef.current(nextIdx);
@@ -177,7 +174,7 @@ export function useSyncRepositories(
 
   function startSyncing() {
     setIsSyncing(true);
-    addLoadingMessage(t('Repository sync started, this may take a few moments'));
+    toast.loading(t('Repository sync started, this may take a few moments'));
   }
 
   function stopSyncing() {
@@ -188,7 +185,7 @@ export function useSyncRepositories(
   const phaseTimer = usePhaseTimer(pollingConfig, {
     onTimeout: () => {
       stopSyncing();
-      addErrorMessage(
+      toast.error(
         t('Repositories still syncing — giving up polling. Come back later to check.')
       );
     },
@@ -221,7 +218,7 @@ export function useSyncRepositories(
       phaseTimerRef.current.cancel();
       // oxlint-disable-next-line react/set-state-in-effect
       stopSyncing();
-      addSuccessMessage(t('Repositories synced successfully'));
+      toast.success(t('Repositories synced successfully'));
       onSyncedRef.current?.();
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
@@ -251,7 +248,7 @@ export function useSyncRepositories(
             .catch(() => {
               phaseTimerRef.current.cancel();
               stopSyncing();
-              addErrorMessage(t('Failed to start repository sync'));
+              toast.error(t('Failed to start repository sync'));
             });
         }
       : undefined;

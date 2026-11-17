@@ -2,10 +2,11 @@ import collections
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from heapq import nlargest
-from typing import Any
+from typing import Any, cast
 
-from django.db.models import Count, DateTimeField, F, Func, Q
+from django.db.models import Count, DateTimeField, F, Func, Q, QuerySet
 from django.db.models.functions import Extract
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,13 +15,22 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.endpoints.timeseries import GroupBy, Row, SeriesMeta, TimeSeries
+from sentry.api.endpoints.timeseries import GroupBy, Row, SeriesMeta, StatsResponse, TimeSeries
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, IssueParams, OrganizationParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.events.types import SnubaRow
 from sentry.snuba.discover import create_groupby_dict, create_result_key
 from sentry.utils.dates import get_rollup_from_request
 
@@ -30,13 +40,41 @@ GROUPBY_TRANSLATION = {
 INVERSE_GROUPBY_TRANSLATION = {value: key for key, value in GROUPBY_TRANSLATION.items()}
 
 
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
+    @extend_schema(
+        operation_id="Retrieve Issue Time Series for an Organization",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            IssueParams.STATS_CATEGORY,
+            IssueParams.TIMESERIES_INTERVAL,
+            IssueParams.TIMESERIES_Y_AXIS,
+            IssueParams.TIMESERIES_GROUP_BY,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("OrganizationIssueTimeSeries", StatsResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
-        """Stats bucketed by time."""
+        """
+        Return issue counts bucketed by time, with one series per requested `yAxis`. When
+        grouped, a series split into more than four groups keeps the five largest and folds
+        the rest into an `other` series. Timestamps are in milliseconds. Only the first
+        `environment` is applied.
+        """
         environments = [e.id for e in get_environments(request, organization)]
         projects = self.get_projects(request, organization)
         start, end = get_date_range_from_params(request.GET)
@@ -85,12 +123,12 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
                 raise ParseError(f"Unknown axis: {axis}")
 
         def gen_ts(
-            qs,
+            qs: QuerySet[Group],
             group_by: list[str],
             date_column_name: str,
             axis: str,
-        ):
-            qs = make_timeseries_query(
+        ) -> list[TimeSeries]:
+            rows = make_timeseries_query(
                 qs,
                 projects,
                 environments,
@@ -105,7 +143,7 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
             grouped_counter: collections.defaultdict[str, int] = collections.defaultdict(int)
             groupby_key_to_dict: dict[str, list[GroupBy]] = {}
             grouped_series: dict[str, list[Row]] = collections.defaultdict(list)
-            for row in qs:
+            for row in rows:
                 key = create_result_key(row, group_by, {})
                 groupby_dict = create_groupby_dict(row, group_by, {})
                 for groupby_item in groupby_dict:
@@ -133,6 +171,7 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
                         new_grouped_series[key] = series
                     else:
                         for s in series:
+                            assert s["value"] is not None
                             other_series[s["timestamp"]] += s["value"]
 
                 if other_series:
@@ -174,7 +213,7 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
                 for i, (key, series) in enumerate(new_grouped_series.items())
             ]
 
-        timeseries = []
+        timeseries: list[TimeSeries] = []
         for axis in axes:
             axis_definition = SUPPORTED_AXES[axis]
             timeseries.extend(
@@ -188,21 +227,19 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
                 )
             )
 
-        return Response(
-            {
-                "timeSeries": timeseries,
-                "meta": {
-                    "dataset": issue_category,
-                    "end": end.timestamp() * 1000,
-                    "start": start.timestamp() * 1000,
-                },
+        response: StatsResponse = {
+            "timeSeries": timeseries,
+            "meta": {
+                "dataset": issue_category,
+                "end": end.timestamp() * 1000,
+                "start": start.timestamp() * 1000,
             },
-            status=200,
-        )
+        }
+        return Response(response, status=200)
 
 
 def make_timeseries_query(
-    qs,
+    qs: QuerySet[Group],
     projects: list[Project],
     environments: list[int],
     type_filter: Q,
@@ -211,7 +248,7 @@ def make_timeseries_query(
     source: str,
     start: datetime,
     end: datetime,
-):
+) -> QuerySet[Group, SnubaRow]:
     environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
     )
@@ -252,7 +289,7 @@ def make_timeseries_query(
         .values(*values)
         .annotate(value=Count("id"))
     )
-    return qs
+    return cast(QuerySet[Group, SnubaRow], qs)
 
 
 def make_timeseries_result(

@@ -3,11 +3,10 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
-import type {StylesConfig, SelectValue, MultiValueProps} from '@sentry/scraps/select';
+import {Stack, Grid} from '@sentry/scraps/layout';
+import type {StylesConfig, SelectValue} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 
-import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
@@ -15,6 +14,7 @@ import type {Organization, OrgRole} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {EmailValue} from './emailValue';
+import {useInviteMembersContext} from './inviteMembersContext';
 import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
@@ -24,8 +24,31 @@ type Props = {
   roleOptions: OrgRole[];
 };
 
+// Address lists copied from mail clients look like `Jane Doe <jane@example.com>`.
+const EMAIL_PATTERN = /[^\s<>[\],;"()]+@[^\s<>[\],;"()]+/g;
+const SEPARATOR_PATTERN = /[\s,;<>]/;
+
+export function parseEmails(input: string): string[] {
+  const emails = input.replace(/mailto:/gi, '').match(EMAIL_PATTERN);
+  if (emails) {
+    return emails;
+  }
+  return input.split(/[\s,;]+/).filter(Boolean);
+}
+
 function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
+}
+
+function EmailMultiValueLabel({
+  option,
+  children,
+}: {
+  children: React.ReactNode;
+  option: SelectOption;
+}) {
+  const {inviteStatus} = useInviteMembersContext();
+  return <EmailValue status={inviteStatus[option.value]!}>{children}</EmailValue>;
 }
 
 // If Member Invites are enabled but Open Membership is disabled, only allow members to invite to teams they are a member of
@@ -41,15 +64,8 @@ function orgOnlyAllowsMemberInvitesWithinTeam(organization: Organization): boole
 export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   const organization = useOrganization();
   const filterByUserMembership = orgOnlyAllowsMemberInvitesWithinTeam(organization);
-  const {
-    inviteStatus,
-    isOverMemberLimit,
-    pendingInvites,
-    setEmails,
-    setRole,
-    setTeams,
-    reset,
-  } = useInviteMembersContext();
+  const {inviteStatus, isOverMemberLimit, pendingInvites, setEmails, setRole, setTeams} =
+    useInviteMembersContext();
   const emails = [...(pendingInvites.emails ?? [])];
   const role = pendingInvites.role ?? '';
   const teams = [...(pendingInvites.teams ?? [])];
@@ -81,6 +97,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
     switch (e.key) {
       case 'Enter':
       case ',':
+      case ';':
       case ' ':
         e.preventDefault();
         handleInput(inputValue);
@@ -92,7 +109,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   };
 
   const handleInput = (input: string) => {
-    const newEmails = input.trim() ? input.trim().split(/[\s,]+/) : [];
+    const newEmails = parseEmails(input);
     if (newEmails.length > 0) {
       onChangeEmails([
         ...mapToOptions(emails),
@@ -118,34 +135,45 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           placeholder={t('Enter one or more emails')}
           inputValue={inputValue}
           value={emails}
-          components={{
-            MultiValue: (props: MultiValueProps<SelectOption>) => (
-              <EmailValue status={inviteStatus[props.data.value]!} valueProps={props} />
-            ),
-            DropdownIndicator: () => null,
-          }}
+          components={{MultiValueLabel: EmailMultiValueLabel}}
+          dropdownIndicator={null}
           options={mapToOptions(emails)}
           onBlur={(e: any) => {
             handleInput(e.target.value);
           }}
           styles={getStyles(theme, inviteStatus)}
-          onInputChange={setInputValue}
+          onInputChange={(value, reason) => {
+            // Typed separators are caught in onKeyDown, so one here means pasted text.
+            if (reason === 'input' && SEPARATOR_PATTERN.test(value)) {
+              handleInput(value);
+              setInputValue('');
+              return;
+            }
+            setInputValue(value);
+          }}
           onKeyDown={handleKeyDown}
           onChange={onChangeEmails}
           multiple
           creatable
           clearable
-          onClear={reset}
-          menuIsOpen={false}
+          isOpen={false}
         />
       </div>
-      <RoleTeamWrapper>
+      <Grid
+        align="start"
+        gap="lg"
+        columns={{zero: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))'}}
+      >
         <div>
           <Heading htmlFor="role">{t('Role')}</Heading>
           <RoleSelectControl
             id="role"
             aria-label={t('Role')}
             disabled={isOverMemberLimit}
+            // A search field opens the on-screen keyboard over the menu on
+            // touch devices, and there are only a handful of roles.
+            searchable={false}
+            maxMenuWidth="100%"
             value={role}
             roles={roleOptions}
             disableUnallowed={roleDisabledUnallowed}
@@ -172,7 +200,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
             clearable
           />
         </div>
-      </RoleTeamWrapper>
+      </Grid>
     </Stack>
   );
 }
@@ -181,9 +209,9 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
  * The email select control has custom selected item states as items
  * show their delivery status after the form is submitted.
  */
-function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
+function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig<string> {
   return {
-    multiValue: (provided, {data}: MultiValueProps<SelectOption>) => {
+    multiValue: (provided, {data}) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
@@ -196,7 +224,7 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
           : {}),
       };
     },
-    multiValueLabel: (provided, {data}: MultiValueProps<SelectOption>) => {
+    multiValueLabel: (provided, {data}) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
@@ -204,7 +232,7 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
         ...(status?.error ? {color: theme.colors.red500} : {}),
       };
     },
-    multiValueRemove: (provided, {data}: MultiValueProps<SelectOption>) => {
+    multiValueRemove: (provided, {data}) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
@@ -227,11 +255,4 @@ const Heading = styled('label')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const RoleTeamWrapper = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.lg};
-  grid-template-columns: 1fr 1fr;
-  align-items: start;
 `;

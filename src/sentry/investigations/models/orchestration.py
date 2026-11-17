@@ -3,12 +3,14 @@ from __future__ import annotations
 from typing import Any
 
 from django.db import models
+from django.db.models import Q
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.viewer_context import ActorId, ActorType, actor_id_from_references
 
 
 class InvestigationOrchestrationPhase(models.TextChoices):
@@ -47,6 +49,14 @@ class InvestigationOrchestrationCommandStatus(models.TextChoices):
     FAILED = "failed", "Failed"
 
 
+class InvestigationOrchestrationRerun(models.TextChoices):
+    """What Seer did with a re-run it accepted."""
+
+    STARTED = "started", "Started"
+    HELD = "held", "Held until the busy run finishes"
+    SKIPPED = "skipped", "Dropped before it started"
+
+
 @cell_silo_model
 class InvestigationOrchestrationRun(DefaultFieldsModel):
     """Sentry's durable control-plane projection of one Seer investigation run."""
@@ -54,7 +64,7 @@ class InvestigationOrchestrationRun(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     investigation = models.OneToOneField(
-        "investigations.Investigation",
+        "notebooks.Notebook",
         on_delete=models.CASCADE,
         related_name="orchestration_run",
     )
@@ -159,6 +169,9 @@ class InvestigationOrchestrationCommand(DefaultFieldsModel):
     )
     request_id = models.UUIDField()
     actor_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    requested_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
     expected_workflow_version = BoundedPositiveIntegerField()
     resulting_workflow_version = BoundedPositiveIntegerField(null=True)
     type = models.CharField(max_length=64)
@@ -172,6 +185,9 @@ class InvestigationOrchestrationCommand(DefaultFieldsModel):
         db_default=InvestigationOrchestrationCommandStatus.ACCEPTED,
     )
     error: models.Field[dict[str, Any] | None, dict[str, Any] | None] = models.JSONField(null=True)
+    rerun = models.CharField(
+        max_length=16, null=True, choices=InvestigationOrchestrationRerun.choices
+    )
 
     class Meta:
         app_label = "investigations"
@@ -180,8 +196,22 @@ class InvestigationOrchestrationCommand(DefaultFieldsModel):
             models.UniqueConstraint(
                 fields=["orchestration_run", "request_id"],
                 name="invest_orch_unique_command_request",
-            )
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(actor_id__isnull=True) | Q(requested_by_service_account_id__isnull=True)
+                ),
+                name="invest_orch_command_actor_shape",
+            ),
         ]
         indexes = [models.Index(fields=["orchestration_run", "status", "date_added"])]
 
     __repr__ = sane_repr("orchestration_run_id", "request_id", "type", "status")
+
+    @property
+    def requested_by_actor(self) -> ActorId:
+        actor = actor_id_from_references(
+            user_id=self.actor_id,
+            service_account_id=self.requested_by_service_account_id,
+        )
+        return actor if actor is not None else ActorId(ActorType.SYSTEM, None)

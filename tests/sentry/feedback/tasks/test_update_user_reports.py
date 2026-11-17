@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.feedback.tasks.update_user_reports import update_user_reports
 from sentry.models.userreport import UserReport
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import epoch
@@ -15,7 +16,7 @@ pytestmark = [requires_snuba]
 class UpdateUserReportTest(TestCase):
     def create_event_and_report(
         self, project_id: int, event_dt: datetime | None = None, report_dt: datetime | None = None
-    ):
+    ) -> tuple[Event, UserReport]:
         event_dt = event_dt or timezone.now()
         report_dt = report_dt or timezone.now()
         event = self.store_event(data={"timestamp": event_dt.isoformat()}, project_id=project_id)
@@ -170,8 +171,8 @@ class UpdateUserReportTest(TestCase):
 
     @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_does_not_call_feedback_shim_if_environment_is_set(
-        self, mock_produce_occurrence_to_kafka
-    ):
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         project = self.create_project()
         event1 = self.store_event(
             data={
