@@ -367,14 +367,6 @@ def continue_pr_iteration(
     return False
 
 
-def is_pr_feedback_turn(state: SeerRunState) -> bool:
-    for block in reversed(state.blocks):
-        step = (block.message.metadata or {}).get("step")
-        if step is not None:
-            return step == AutofixStep.PR_ITERATION.value
-    return False
-
-
 def drain_single_run_feedback_queue(
     organization: Organization, group: Group, run_id: int, state: SeerRunState
 ) -> None:

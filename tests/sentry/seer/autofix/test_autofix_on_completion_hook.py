@@ -64,7 +64,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.out_of_credits import (
-    OutOfCredits,
+    OutOfCreditsMarker,
     StrandedAction,
     get_out_of_credits,
     mark_out_of_credits,
@@ -1355,9 +1355,9 @@ class TestPrIterationCompletionHook(TestCase):
 
         assert outcome == PrIterationOutcome.SENTRY_OUT_OF_CREDITS
         assert retried is False
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=StrandedAction.BRANCH_MOVED_RETRY
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=StrandedAction.BRANCH_MOVED_RETRY)
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
@@ -1442,9 +1442,9 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=StrandedAction.PUSH
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=StrandedAction.PUSH)
         assert (
             mock_complete.call_args.kwargs["outcome"]
             == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
@@ -1467,9 +1467,9 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         mock_push.assert_called_once()
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=StrandedAction.PUSH
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=StrandedAction.PUSH)
 
     def test_a_redone_branch_moved_retry_past_the_retry_cap_pauses_as_an_error(self) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -1501,9 +1501,9 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=StrandedAction.PUSH
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=StrandedAction.PUSH)
         mock_push.assert_not_called()
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
@@ -1523,9 +1523,9 @@ class TestPrIterationCompletionHook(TestCase):
             self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
         )
 
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=None
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=None)
         mock_push.assert_not_called()
 
 
@@ -1642,9 +1642,9 @@ class TestFailedRunCompletionHook(TestCase):
 
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
         # Nothing was refused in Sentry: the next iteration pushes the partial changes.
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=None
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=None)
 
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
