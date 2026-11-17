@@ -73,7 +73,11 @@ def service_account_create_outbox(
     """The outbox that creates and links the owner's account; save it in the owner's transaction.
 
     Callers validate the grant first. Control rejecting it leaves the owner without an account.
+    A person's account has no cell object to link, so create it with
+    `service_account_service.create_service_account` instead.
     """
+    if owner_kind == ServiceAccountOwnerKind.USER:
+        raise ValueError("A user-created service account has no cell owner to link.")
     payload: ServiceAccountCreatePayload = {
         "owner_kind": owner_kind.value,
         "owner_id": owner_id,
