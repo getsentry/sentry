@@ -1,11 +1,11 @@
 import {SEARCH_PAGE__SERVER_RENDERING__TYPE} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
-import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import * as qs from 'sentry/utils/url/qs';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
@@ -576,9 +576,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     tree.indicators.sort((a, b) => a.start - b.start);
 
-    if (options.organization.features.includes('performance-trace-cache-lifecycle')) {
-      TraceTree.AddServerRenderPlaceholders(tree.root);
-    }
+    TraceTree.AddServerRenderPlaceholders(tree.root);
 
     TraceTree.ApplyPreferences(tree.root, options);
 

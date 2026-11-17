@@ -871,6 +871,22 @@ describe('EntityHeader', () => {
         'a text stat with both tooltips',
         {type: 'text', labelTooltip: 'Why', valueTooltip: 'Split'},
       ],
+      [
+        'an empty link stat with a label tooltip',
+        {type: 'link', to: '/e/', value: null, labelTooltip: 'Why'},
+      ],
+      [
+        'an empty link stat with a value tooltip',
+        {type: 'link', to: '/e/', value: null, valueTooltip: 'Not recorded'},
+      ],
+      [
+        'an empty text stat with a value tooltip',
+        {type: 'text', value: null, valueTooltip: 'Not recorded'},
+      ],
+      [
+        'an empty text stat with both tooltips',
+        {type: 'text', value: null, labelTooltip: 'Why', valueTooltip: 'Not recorded'},
+      ],
     ] as const)('never hides a focusable element on %s', (_, stat) => {
       render(
         <EntityHeader
@@ -890,6 +906,207 @@ describe('EntityHeader', () => {
 
       expect(tabStops.length).toBeGreaterThan(0);
       expect([...tabStops].filter(isInaccessible)).toEqual([]);
+    });
+
+    describe('with no data', () => {
+      it('shows a dash but reads the stat as having no data', () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [{type: 'text', label: 'Cost', value: null}],
+            }}
+          />
+        );
+
+        // The dash is for the eye only. Read aloud it would be "dash", which
+        // sounds like a value.
+        expect(screen.getByText('—')).toHaveAttribute('aria-hidden', 'true');
+        expect(screen.getByText('No data')).toBeInTheDocument();
+
+        // Still label first, then the value: "Cost", "No data".
+        const item = within(screen.getByRole('list', {name: 'Build stats'})).getByRole(
+          'listitem'
+        );
+        expect(item).toHaveTextContent(/^Cost—No data$/);
+      });
+
+      it('keeps an empty link stat a link, named by its label', () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Replay user', value: 'Session'}}
+            stats={{
+              label: 'Replay stats',
+              items: [
+                {
+                  type: 'link',
+                  label: 'Errors',
+                  value: null,
+                  to: '/replays/1/?t_main=errors',
+                },
+              ],
+            }}
+          />
+        );
+
+        // The type may not change once the data loads, so it links regardless.
+        expect(screen.getByRole('link', {name: 'Errors'})).toHaveAttribute(
+          'href',
+          '/replays/1/?t_main=errors'
+        );
+        expect(screen.getByRole('listitem')).toContainElement(
+          screen.getByText('No data')
+        );
+      });
+
+      it('explains why there is no value from the value trigger', async () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [
+                {
+                  type: 'text',
+                  label: 'Cost',
+                  value: null,
+                  valueTooltip: 'No cost is recorded for local builds',
+                },
+              ],
+            }}
+          />
+        );
+
+        await userEvent.tab();
+        expect(document.activeElement).not.toHaveAttribute('aria-hidden');
+        expect(document.activeElement).toContainElement(screen.getByText('No data'));
+        expect(
+          await screen.findByText('No cost is recorded for local builds')
+        ).toBeInTheDocument();
+
+        await userEvent.tab();
+        expect(document.body).toHaveFocus();
+      });
+
+      it('still reads no data when the label carries the tooltip', async () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [
+                {
+                  type: 'text',
+                  label: 'Install Size',
+                  value: null,
+                  labelTooltip: 'Size on device',
+                },
+              ],
+            }}
+          />
+        );
+
+        await userEvent.tab();
+        expect(screen.getByText('Install Size')).toHaveFocus();
+        expect(await screen.findByText('Size on device')).toBeInTheDocument();
+        expect(screen.getByRole('listitem')).toContainElement(
+          screen.getByText('No data')
+        );
+      });
+
+      it('reads a zero as a zero, not as no data', () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Replay user', value: 'Session'}}
+            stats={{
+              label: 'Replay stats',
+              items: [{type: 'text', label: 'Errors', value: 0}],
+            }}
+          />
+        );
+
+        expect(screen.getByText('0')).toBeInTheDocument();
+        expect(screen.queryByText('No data')).not.toBeInTheDocument();
+        expect(screen.queryByText('—')).not.toBeInTheDocument();
+      });
+
+      it('shows the skeleton rather than the dash while loading', () => {
+        const warn = jest.spyOn(console, 'warn');
+
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [{type: 'text', label: 'Cost', value: null, isLoading: true}],
+            }}
+          />
+        );
+
+        expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+        expect(screen.queryByText('—')).not.toBeInTheDocument();
+        expect(screen.queryByText('No data')).not.toBeInTheDocument();
+        expect(warn).not.toHaveBeenCalled();
+
+        warn.mockRestore();
+      });
+
+      it('warns once per label when a placeholder is passed as the value', () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+        // Labels are unique to this test: the warning is deduplicated for the
+        // life of the module.
+        const {rerender} = render(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [
+                {type: 'text', label: 'Placeholder Size', value: '-'},
+                {type: 'text', label: 'Real Size', value: '12 MB'},
+              ],
+            }}
+          />
+        );
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('Placeholder Size'));
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('value: null'));
+        // A warning, not a correction: the value renders as given.
+        expect(screen.getByText('-')).toBeInTheDocument();
+
+        rerender(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [
+                {type: 'text', label: 'Placeholder Size', value: '-'},
+                {type: 'text', label: 'Real Size', value: '13 MB'},
+              ],
+            }}
+          />
+        );
+
+        expect(warn).toHaveBeenCalledTimes(1);
+
+        // Padding around a placeholder does not hide it.
+        rerender(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [{type: 'text', label: 'Padded Size', value: ' — '}],
+            }}
+          />
+        );
+
+        expect(warn).toHaveBeenCalledTimes(2);
+        expect(warn).toHaveBeenLastCalledWith(expect.stringContaining('Padded Size'));
+
+        warn.mockRestore();
+      });
     });
 
     it('renders a tooltip on a metadata item', async () => {

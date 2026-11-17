@@ -4,7 +4,7 @@ import {IconArrow} from '@sentry/icons/arrow';
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Feature} from 'sentry/components/acl/feature';
@@ -27,6 +27,7 @@ import {
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
   ProviderLabels,
+  PROVIDER_TAB_ORDER,
   type DataForwarderPayload,
 } from './util/types';
 
@@ -109,28 +110,32 @@ export default function OrganizationDataForwardingSetup() {
                   features={features}
                 />
               )}
-              <Tabs value={provider} onChange={setProvider}>
-                <TabList variant="floating">
-                  {Object.entries(ProviderLabels).map(([key, label]) => (
-                    <TabList.Item
-                      key={key}
-                      disabled={
-                        disabledProviders.has(key as DataForwarderProviderSlug) ||
-                        !hasFeature
-                      }
-                      tooltip={
-                        disabledProviders.has(key as DataForwarderProviderSlug)
-                          ? {title: t('Only one configuration is allowed per provider.')}
-                          : undefined
-                      }
-                    >
-                      <Flex align="center" gap="sm">
-                        <PluginIcon pluginId={key} />
-                        <b>{label}</b>
-                      </Flex>
-                    </TabList.Item>
-                  ))}
-                </TabList>
+              <Tabs value={provider ?? PROVIDER_TAB_ORDER[0]} onChange={setProvider}>
+                {({TabList}) => (
+                  <TabList variant="floating">
+                    {PROVIDER_TAB_ORDER.map(key => (
+                      <TabList.Item
+                        key={key}
+                        textValue={ProviderLabels[key]}
+                        disabled={disabledProviders.has(key) || !hasFeature}
+                        tooltip={
+                          disabledProviders.has(key)
+                            ? {
+                                title: t(
+                                  'Only one configuration is allowed per provider.'
+                                ),
+                              }
+                            : undefined
+                        }
+                      >
+                        <Flex align="center" gap="sm">
+                          <PluginIcon pluginId={key} />
+                          <b>{ProviderLabels[key]}</b>
+                        </Flex>
+                      </TabList.Item>
+                    ))}
+                  </TabList>
+                )}
               </Tabs>
               {provider && (
                 <ProviderSetupForm

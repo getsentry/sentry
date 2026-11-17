@@ -270,38 +270,43 @@ export function PageLayout(props: Props) {
             }
           >
             <Tabs value={tab} onChange={onTabChange}>
-              <Stack flex={1}>
-                <TransactionHeader
-                  eventView={eventView}
-                  location={location}
-                  organization={organization}
-                  projects={projects}
-                  projectId={projectId}
-                  transactionName={transactionName}
-                  currentTab={tab}
-                  onChangeThreshold={(threshold, metric) => {
-                    setTransactionThreshold(threshold);
-                    setTransactionThresholdMetric(metric);
-                  }}
-                  metricsCardinality={metricsCardinality}
-                />
-                <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                  {defined(error) && <StyledAlert variant="danger">{error}</StyledAlert>}
-                  <TransactionSummaryContext
-                    value={{
-                      organization,
-                      projectId,
-                      projects,
-                      setError,
-                      transactionName,
-                      transactionThreshold,
-                      transactionThresholdMetric,
+              {({TabList}) => (
+                <Stack flex={1}>
+                  <TransactionHeader
+                    TabList={TabList}
+                    eventView={eventView}
+                    location={location}
+                    organization={organization}
+                    projects={projects}
+                    projectId={projectId}
+                    transactionName={transactionName}
+                    currentTab={tab}
+                    onChangeThreshold={(threshold, metric) => {
+                      setTransactionThreshold(threshold);
+                      setTransactionThresholdMetric(metric);
                     }}
-                  >
-                    <Outlet />
-                  </TransactionSummaryContext>
-                </StyledBody>
-              </Stack>
+                    metricsCardinality={metricsCardinality}
+                  />
+                  <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
+                    {defined(error) && (
+                      <StyledAlert variant="danger">{error}</StyledAlert>
+                    )}
+                    <TransactionSummaryContext
+                      value={{
+                        organization,
+                        projectId,
+                        projects,
+                        setError,
+                        transactionName,
+                        transactionThreshold,
+                        transactionThresholdMetric,
+                      }}
+                    >
+                      <Outlet />
+                    </TransactionSummaryContext>
+                  </StyledBody>
+                </Stack>
+              )}
             </Tabs>
           </PageFiltersContainer>
         </MetricsCardinalityProvider>

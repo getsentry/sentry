@@ -28,8 +28,8 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
             conversation_id, timestamp, operation_type="ai_client", agent_name=agent_name
         )
 
-    def select(self, filter_query: str = "") -> list[str]:
-        return DATASET.select(self.project, filter_query, self.start, self.end, limit=100)
+    def select(self, filter_query: str = "", limit: int = 100) -> list[str]:
+        return DATASET.select(self.project, filter_query, self.start, self.end, limit, 0)
 
     def test_selects_conversations_that_became_inactive_in_window(self) -> None:
         self.store_conversation_span("inactive", self.last_span_end - timedelta(minutes=2))
@@ -54,11 +54,17 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
 
         assert self.select("gen_ai.agent.name:researcher") == ["researcher"]
 
-    def test_respects_limit(self) -> None:
-        self.store_conversation_span("first", self.last_span_end - timedelta(minutes=3))
-        self.store_conversation_span("second", self.last_span_end - timedelta(minutes=2))
+    def test_limit_keeps_the_newest(self) -> None:
+        self.store_conversation_span("oldest", self.last_span_end - timedelta(minutes=3))
+        self.store_conversation_span("newest", self.last_span_end - timedelta(minutes=2))
 
-        assert DATASET.select(self.project, "", self.start, self.end, limit=1) == ["first"]
+        assert self.select(limit=1) == ["newest"]
+
+    def test_pages_with_offset(self) -> None:
+        self.store_conversation_span("oldest", self.last_span_end - timedelta(minutes=3))
+        self.store_conversation_span("newest", self.last_span_end - timedelta(minutes=2))
+
+        assert DATASET.select(self.project, "", self.start, self.end, 1, 1) == ["oldest"]
 
     def test_limit_applies_after_the_filter(self) -> None:
         self.store_conversation_span(
@@ -68,9 +74,7 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
             "researcher", self.last_span_end - timedelta(minutes=2), agent_name="researcher"
         )
 
-        assert DATASET.select(
-            self.project, "gen_ai.agent.name:researcher", self.start, self.end, limit=1
-        ) == ["researcher"]
+        assert self.select("gen_ai.agent.name:researcher", limit=1) == ["researcher"]
 
 
 class LoadConversationTest(BaseAIConversationsTestCase):
@@ -117,6 +121,7 @@ class LoadConversationTest(BaseAIConversationsTestCase):
             timestamp=self.start + timedelta(seconds=5),
             client_sample_rate=1.0,
             conversation_id="conversation",
+            environment=None,
         )
 
     def test_keeps_newest_spans_and_cuts_long_messages(self) -> None:
@@ -144,6 +149,23 @@ class LoadConversationTest(BaseAIConversationsTestCase):
         incr.assert_called_once_with(
             "telemetry_classifiers.load.truncated", tags={"dataset": "conversation"}
         )
+
+    def test_takes_environment_from_newest_span(self) -> None:
+        for index, environment in enumerate(["staging", "production"]):
+            span = self.store_ai_span(
+                "conversation",
+                self.start + timedelta(seconds=index),
+                operation_type="ai_client",
+                input_messages=[{"role": "user", "content": environment}],
+                store=False,
+            )
+            span["sentry_tags"]["environment"] = environment
+            self.store_spans([span])
+
+        loaded = DATASET.load(self.project, "conversation")
+
+        assert loaded is not None
+        assert loaded.environment == "production"
 
     def test_returns_none_without_message_spans(self) -> None:
         self.store_ai_span("conversation", self.start, operation_type="tool")

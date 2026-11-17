@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from drf_spectacular.utils import extend_schema
+from django.db.models import QuerySet
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,6 +22,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Organizati
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.telemetry_classifiers.search import filter_classifiers_by_query
 from sentry.telemetry_classifiers.serializers import (
     TelemetryClassifierRequestSerializer,
     TelemetryClassifierResponse,
@@ -29,9 +31,8 @@ from sentry.telemetry_classifiers.serializers import (
 
 
 class TelemetryClassifierPermission(OrganizationPermission):
-    # Team admins have project:write on their projects but only org:read on the org, so writes
-    # check project:write on the classifier's project instead (in the create serializer and in
-    # the update handler).
+    # Members only have org:read on the org, so writes check project:read on the classifier's
+    # project instead (in the create serializer and in the update handler).
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
@@ -54,12 +55,24 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "Filter classifiers with search syntax. Supported keys are `name`, "
+                    "`attribute`, `status` and `dataset`. Free text matches the name or "
+                    "result attribute. For example, `status:enabled frustration`."
+                ),
+            ),
             CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "ListTelemetryClassifiersResponse", list[TelemetryClassifierResponse]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -75,7 +88,12 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         projects = self.get_projects(request, organization)
-        queryset = TelemetryClassifier.objects.filter(project__in=projects)
+        queryset: QuerySet[TelemetryClassifier] = TelemetryClassifier.objects.filter(
+            project__in=projects
+        )
+
+        if raw_query := request.GET.get("query", "").strip():
+            queryset = filter_classifiers_by_query(queryset, raw_query)
 
         return self.paginate(
             request=request,
@@ -105,7 +123,7 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[TelemetryClassifierResponse]:
         """
-        Create a telemetry classifier on a project the caller can write to.
+        Create a telemetry classifier on a project the caller can access.
         """
         if not features.has("organizations:classifiers-ui", organization, actor=request.user):
             return self.respond(status=404)

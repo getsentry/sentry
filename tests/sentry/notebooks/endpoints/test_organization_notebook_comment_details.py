@@ -28,7 +28,7 @@ class OrganizationNotebookCommentDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-comment-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.notebook.id,
+                "notebook_id": self.notebook.id,
                 "comment_id": comment_id,
             },
         )

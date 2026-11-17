@@ -11,6 +11,7 @@ import {
   INBOX_SUBJECT_TYPES,
   type InboxEventType,
   type InboxFilters,
+  type InboxRecipient,
   type InboxSubject,
   type InboxSubjectType,
 } from './types';
@@ -67,8 +68,17 @@ export const INBOX_EVENT_TYPE_CONFIG: Record<InboxEventType, InboxEventTypeConfi
   },
 };
 
+export const INBOX_RECIPIENT_LABELS: Record<InboxRecipient, string> = {
+  team: t('Team'),
+  user: t('User'),
+};
+
 export function hasInboxFilters(filters: InboxFilters) {
-  return filters.subjectType.length > 0 || filters.eventType.length > 0;
+  return (
+    filters.subjectType.length > 0 ||
+    filters.eventType.length > 0 ||
+    filters.recipient.length > 0
+  );
 }
 
 export function getInboxItemPath(organization: Organization, item: InboxSubject) {

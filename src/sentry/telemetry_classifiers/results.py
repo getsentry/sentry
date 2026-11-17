@@ -13,6 +13,7 @@ from sentry.telemetry_classifiers.types import TelemetryInput
 
 # Used when the organization's retention for the category isn't limited.
 _DEFAULT_RETENTION_DAYS = 30
+_ENVIRONMENT_ATTRIBUTE = "sentry.environment"
 
 
 def write_result(
@@ -32,6 +33,8 @@ def write_result(
     retention_days = quotas.backend.get_event_retention(
         organization=project.organization, category=category
     )
+    if source.environment:
+        attributes = {**attributes, _ENVIRONMENT_ATTRIBUTE: source.environment}
     produce_enrichment_attributes(
         project,
         idempotency_key=f"{classifier.id}:{entity_id}:{source.timestamp.isoformat()}",

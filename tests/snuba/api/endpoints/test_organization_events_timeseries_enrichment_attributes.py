@@ -246,6 +246,42 @@ class OrganizationEventsTimeseriesEnrichmentAttributesEndpointTest(
             self.start, 3_600_000, [1, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
 
+    def test_filter_on_environment(self) -> None:
+        self.create_environment(project=self.project, name="production")
+        self.store_eap_items(
+            [
+                self.create_enrichment_attributes(
+                    {FRUSTRATION: 0.2, "sentry.environment": "production"},
+                    timestamp=self.start + timedelta(minutes=1),
+                ),
+                self.create_enrichment_attributes(
+                    {FRUSTRATION: 0.4, "sentry.environment": "staging"},
+                    timestamp=self.start + timedelta(minutes=2),
+                ),
+                self.create_enrichment_attributes(
+                    {FRUSTRATION: 0.9}, timestamp=self.start + timedelta(minutes=3)
+                ),
+            ]
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "environment": "production",
+                "dataset": "enrichment_attributes",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 1
+        assert response.data["timeSeries"][0]["values"] == build_expected_timeseries(
+            self.start, 3_600_000, [1, 0, 0, 0, 0, 0], ignore_accuracy=True
+        )
+
     def test_requires_feature_flag(self) -> None:
         response = self._do_request(
             data={

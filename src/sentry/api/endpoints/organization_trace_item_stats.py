@@ -27,7 +27,12 @@ from sentry.api.event_search import (
 )
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.trace_item_stats_examples import TraceItemStatsExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
@@ -51,7 +56,7 @@ from sentry.search.eap.spans.attributes import (
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute_to_api
+from sentry.search.eap.utils import can_expose_attribute_to_api, get_stats_chunk_count
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
@@ -191,7 +196,8 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.DATA_BROWSING
 
     @extend_schema(
-        operation_id="Retrieve Trace Item Statistics",
+        operation_id="listOrganizationTraceItemsStats",
+        summary="Retrieve Trace Item Statistics",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -206,6 +212,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
             200: inline_sentry_response_serializer(
                 "TraceItemStatsResponse", TraceItemStatsResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -380,9 +387,10 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     AttributeKey(name=requested_key, type=AttributeKey.TYPE_STRING)
                 )
 
+            chunk_count = get_stats_chunk_count(len(request_attrs_list), MAX_THREADS)
             chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
             for i, attr in enumerate(request_attrs_list):
-                chunked_attributes[i % MAX_THREADS].append(
+                chunked_attributes[i % chunk_count].append(
                     AttributeKey(name=attr.name, type=AttributeKey.TYPE_STRING)
                 )
 
