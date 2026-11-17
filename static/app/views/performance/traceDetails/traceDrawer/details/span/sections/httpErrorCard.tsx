@@ -1,14 +1,13 @@
-import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {HTTP_ERROR_STATUSES} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/constants';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
+
+import {SpanErrorCard} from './spanErrorCard';
 
 type HttpErrorCardProps = {
   node: EapSpanNode;
@@ -43,40 +42,19 @@ export function HttpErrorCard({node}: HttpErrorCardProps) {
   const {statusText, statusCode} = getStatusInfo(node);
 
   return (
-    <Wrapper>
-      <StyledPanel>
-        <StyledPanelItem>
-          <Flex align="center" justify="center">
-            <IconWarning size="md" variant="warning" />
-          </Flex>
-          <Stack gap="2xs">
-            <Flex gap="xs" align="center">
-              <Text bold>{statusText ?? t('HTTP Error')}</Text>
-              {statusCode !== null && (
-                <Text variant="muted">{t('HTTP %s', statusCode)}</Text>
-              )}
-            </Flex>
-            <Text size="sm" variant="muted">
-              {t('This span returned an error status but has no associated issue.')}
-            </Text>
-          </Stack>
-        </StyledPanelItem>
-      </StyledPanel>
-    </Wrapper>
+    <SpanErrorCard
+      icon={<IconWarning size="md" variant="warning" />}
+      title={
+        <Flex gap="xs" align="center">
+          <Text bold>{statusText ?? t('HTTP Error')}</Text>
+          {statusCode !== null && <Text variant="muted">{t('HTTP %s', statusCode)}</Text>}
+        </Flex>
+      }
+      message={
+        <Text size="sm" variant="muted">
+          {t('This span returned an error status but has no associated issue.')}
+        </Text>
+      }
+    />
   );
 }
-
-const Wrapper = styled('div')`
-  margin: ${p => p.theme.space.md} 0;
-`;
-
-const StyledPanel = styled(Panel)`
-  margin-bottom: 0;
-`;
-
-const StyledPanelItem = styled(PanelItem)`
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.lg}
-    ${p => p.theme.space.md};
-`;

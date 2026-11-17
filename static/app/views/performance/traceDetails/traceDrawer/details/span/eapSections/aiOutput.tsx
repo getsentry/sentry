@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {ToolError} from 'sentry/components/ai/toolDetails/toolError';
 import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -9,7 +8,6 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   getIsAiNode,
-  getToolError,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -47,12 +45,7 @@ export function AIOutputSection({
   event?: EventTransaction;
   initialCollapse?: boolean;
 }) {
-  if (!getIsAiNode(node)) {
-    return null;
-  }
-
-  const toolError = getToolError(node, attributes, event);
-  if (!toolError && !hasAIOutputAttribute(node, attributes, event)) {
+  if (!getIsAiNode(node) || !hasAIOutputAttribute(node, attributes, event)) {
     return null;
   }
 
@@ -69,8 +62,7 @@ export function AIOutputSection({
     !responseText &&
     !responseObject &&
     !toolCalls &&
-    !hasToolOutput &&
-    !toolError
+    !hasToolOutput
   ) {
     return null;
   }
@@ -83,7 +75,6 @@ export function AIOutputSection({
       disableCollapsePersistence
       initialCollapse={initialCollapse}
     >
-      {toolError ? <ToolError error={toolError} /> : null}
       {reasoningText && (
         <Fragment>
           <TraceDrawerComponents.MultilineTextLabel>

@@ -261,7 +261,7 @@ export interface ToolError {
  * their result content.
  */
 export function getToolError(
-  node: AITraceSpanNode,
+  node: BaseNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ): ToolError | null {

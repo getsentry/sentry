@@ -11,7 +11,6 @@ import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
-import {ToolError} from 'sentry/components/ai/toolDetails/toolError';
 import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -62,6 +61,7 @@ import {
   getAIToolOutput,
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
+import {ToolErrorCard} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/sections/toolErrorCard';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
@@ -209,6 +209,12 @@ export function ConversationSpanDetail({
   const combinedTab = getCombinedTab(evaluation, extraction);
 
   const title = memory?.operation || node.op || node.description || t('Span');
+  // Tool errors aren't always application errors, so they rarely have an
+  // issue. Show them in the issue slot when there isn't one.
+  const toolError =
+    isAttributesLoading || node.uniqueIssues.length > 0
+      ? null
+      : getToolError(node, attributes);
   const duration = getNodeTimeBounds(node).duration;
   const comparison = getDurationComparison(
     avgDuration,
@@ -269,6 +275,7 @@ export function ConversationSpanDetail({
         organization={organization}
         traceSlug={traceId}
       />
+      {toolError ? <StyledToolErrorCard error={toolError} /> : null}
 
       {/*
        * The per-span fetch backs both the metadata and the tab content, and it
@@ -496,7 +503,6 @@ function OutputTab({
   );
   const toolOutput = getAIToolOutput(node, attributes);
   const hasToolOutput = toolOutput !== undefined;
-  const toolError = getToolError(node, attributes);
 
   // Reasoning is supplementary to the actual output, so clip it when there is
   // other content; when it is the only output, show it in full.
@@ -509,15 +515,13 @@ function OutputTab({
     !responseText &&
     !responseObject &&
     !toolCalls &&
-    !hasToolOutput &&
-    !toolError
+    !hasToolOutput
   ) {
     return <EmptySpanTab message={t('No output for this span')} />;
   }
 
   return (
     <Fragment>
-      {toolError ? <ToolError error={toolError} /> : null}
       {reasoningText ? (
         <Fragment>
           <TraceDrawerComponents.MultilineTextLabel>
@@ -615,6 +619,10 @@ function AttributesTab({
 // under the waterfall, so scope those variables here.
 const StyledIssueList = styled(IssueList)`
   ${traceGridCssVariables}
+  flex-shrink: 0;
+`;
+
+const StyledToolErrorCard = styled(ToolErrorCard)`
   flex-shrink: 0;
 `;
 
