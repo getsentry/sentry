@@ -102,10 +102,10 @@ export function makeEventsTimeSeriesQueryKeyPrefix(
   organizationSlug: string,
   options?: QueryKeyEndpointOptions
 ) {
-  return apiOptions.as<unknown>()(
-    '/organizations/$organizationIdOrSlug/events-timeseries/',
-    {path: {organizationIdOrSlug: organizationSlug}, ...options, staleTime: 0}
-  ).queryKey;
+  return apiOptions.queryKey('/organizations/$organizationIdOrSlug/events-timeseries/', {
+    path: {organizationIdOrSlug: organizationSlug},
+    ...options,
+  });
 }
 
 /**

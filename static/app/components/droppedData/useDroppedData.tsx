@@ -24,10 +24,9 @@ interface DroppedEventsResponse {
 }
 
 export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
-  return apiOptions.as<unknown>()(
-    '/organizations/$organizationIdOrSlug/events-dropped/',
-    {path: {organizationIdOrSlug: organizationSlug}, staleTime: 0}
-  ).queryKey;
+  return apiOptions.queryKey('/organizations/$organizationIdOrSlug/events-dropped/', {
+    path: {organizationIdOrSlug: organizationSlug},
+  });
 }
 
 export interface UseDroppedDataParams {

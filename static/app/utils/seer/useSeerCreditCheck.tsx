@@ -82,10 +82,9 @@ export function seerCreditCheckApiOptions(
  * rechecked at once, for example after credits are added.
  */
 export function seerCreditChecksQueryKey(organization: Organization) {
-  return apiOptions.as<unknown>()(
-    '/organizations/$organizationIdOrSlug/seer/credit-check/',
-    {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-  ).queryKey;
+  return apiOptions.queryKey('/organizations/$organizationIdOrSlug/seer/credit-check/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 }
 
 interface UseSeerCreditCheckOptions {

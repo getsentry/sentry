@@ -41,13 +41,9 @@ export function OverviewIssuePriority({group}: OverviewIssuePriorityProps) {
     (nextPriority: PriorityLevel) => {
       setPriorityOverride({groupId: group.id, priority: nextPriority});
       void queryClient.invalidateQueries({
-        queryKey: apiOptions.as<unknown>()(
-          '/organizations/$organizationIdOrSlug/issues/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            staleTime: 0,
-          }
-        ).queryKey,
+        queryKey: apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
       });
     },
     [group.id, organization.slug, queryClient]

@@ -704,10 +704,10 @@ function IssueListOverviewInner({
 
   const invalidateIssueCounts = () => {
     queryClient.invalidateQueries({
-      queryKey: apiOptions.as<unknown>()(
+      queryKey: apiOptions.queryKey(
         '/organizations/$organizationIdOrSlug/issues-count/',
-        {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-      ).queryKey,
+        {path: {organizationIdOrSlug: organization.slug}}
+      ),
     });
   };
 
