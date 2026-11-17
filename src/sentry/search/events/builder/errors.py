@@ -96,21 +96,26 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
         orders by ``transform(project_id, ...)``, which snuba computes inside
         the ``events`` subquery, so referencing it from the outer query fails
         with ``Column 'events._snuba_gen_1' is not under aggregate function and
-        not in GROUP BY keys``. Add such functions to the groupby; they are
-        functionally dependent on the grouped columns and do not change the
-        grouping. Only pre-existing grouped queries are modified: aggregates
-        from the orderby are never grouping keys, and ungrouped queries have
-        no outer GROUP BY to satisfy.
+        not in GROUP BY keys``.
+
+        Give the function an explicit alias and add it to the groupby, so the
+        subquery, the outer GROUP BY and the outer ORDER BY all refer to the
+        same named column. The function is dependent on the grouped columns
+        and does not change the grouping. Only pre-existing grouped queries
+        are modified: aggregates from the orderby are never grouping keys, and
+        ungrouped queries have no outer GROUP BY to satisfy.
         """
         if not isinstance(self.match, Join) or not self.groupby:
             return
-        for order in self.orderby:
+        for index, order in enumerate(self.orderby):
             if (
                 isinstance(order.exp, Function)
                 and order.exp.function == "transform"
                 and order.exp not in self.groupby
             ):
-                self.groupby.append(order.exp)
+                aliased = dataclasses.replace(order.exp, alias=f"project_transform_{index}")
+                self.orderby[index] = OrderBy(aliased, order.direction)
+                self.groupby.append(aliased)
 
     def aliased_column(self, name: str) -> SelectType:
         aliased_col: SelectType = super().aliased_column(name)
