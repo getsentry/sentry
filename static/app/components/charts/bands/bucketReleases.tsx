@@ -12,9 +12,9 @@ export interface ReleaseBucket<Release extends BucketableRelease> extends BandBu
 
 /**
  * Puts each release in the chart bucket it was created in, so release buckets
- * line up with the other bands. `buckets` must be sorted by `start`. Only
- * buckets with releases are returned, and releases outside every bucket are
- * left out.
+ * line up with the other bands. `buckets` must be sorted by `start`. Every
+ * bucket is returned, including those without releases, and releases outside
+ * every bucket are left out.
  */
 export function bucketReleases<Release extends BucketableRelease>(
   releases: readonly Release[],
@@ -36,8 +36,8 @@ export function bucketReleases<Release extends BucketableRelease>(
     releasesByBucket.set(index, releasesInBucket);
   }
 
-  return buckets.flatMap((bucket, index) => {
-    const releasesInBucket = releasesByBucket.get(index);
-    return releasesInBucket ? [{...bucket, releases: releasesInBucket}] : [];
-  });
+  return buckets.map((bucket, index) => ({
+    ...bucket,
+    releases: releasesByBucket.get(index) ?? [],
+  }));
 }

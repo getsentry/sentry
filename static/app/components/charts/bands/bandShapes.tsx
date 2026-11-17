@@ -112,20 +112,22 @@ export function bandLayout(
 
 /**
  * Rounds only the corners that sit on the ends of the track, so segments
- * inside the band read as one continuous line.
+ * inside the band read as one continuous line. Silent, since hovering goes
+ * through `bandHoverTarget`.
  */
 export function bandRect(
   range: PixelRange,
   y: number,
   track: PixelRange,
   fill: ZRColor,
-  {opacity = 1, ...options}: {opacity?: number; silent?: boolean; z2?: number} = {}
+  {opacity = 1, ...options}: {opacity?: number; z2?: number} = {}
 ): BandElement {
   const left = range.left <= track.left ? BOX_BORDER_RADIUS : 0;
   const right = range.right >= track.right ? BOX_BORDER_RADIUS : 0;
 
   return {
     type: 'rect',
+    silent: true,
     ...options,
     shape: {
       x: range.left,
@@ -134,12 +136,24 @@ export function bandRect(
       height: BOX_HEIGHT,
       r: [left, right, right, left],
     },
-    style: {
-      fill,
-      opacity,
-      lineWidth: BAND_PADDING_TOP * 2,
-      stroke: 'transparent',
+    style: {fill, opacity},
+  };
+}
+
+/**
+ * Covers the bucket across the band's full height, padding included, so
+ * stacked bands meet without a gap that ignores the mouse.
+ */
+export function bandHoverTarget(range: PixelRange, y: number): BandElement {
+  return {
+    type: 'rect',
+    shape: {
+      x: range.left,
+      y: y - BAND_PADDING_TOP,
+      width: range.right - range.left,
+      height: BAND_HEIGHT,
     },
+    style: {fill: 'transparent'},
   };
 }
 
@@ -148,10 +162,7 @@ export function bandRect(
  * the band's boxes.
  */
 export function bandTrack(track: PixelRange, y: number, theme: Theme): BandElement {
-  return bandRect(track, y, track, theme.tokens.background.secondary, {
-    silent: true,
-    z2: -1,
-  });
+  return bandRect(track, y, track, theme.tokens.background.secondary, {z2: -1});
 }
 
 /**

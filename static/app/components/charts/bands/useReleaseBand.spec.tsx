@@ -32,7 +32,7 @@ describe('useReleaseBand', () => {
     expect(result.current).toBeNull();
   });
 
-  it('draws the track once and a highlightable marker shaded by release count on each bucket', () => {
+  it('draws a marker shaded by release count on buckets with releases and keeps every bucket hoverable', () => {
     const TRACK_WIDTH = 600;
     const api = {
       coord: ([time]: number[]) => [(time ?? 0) / 1000, 100],
@@ -55,7 +55,9 @@ describe('useReleaseBand', () => {
     }
     const renderItem = series.renderItem as CustomSeriesRenderItem;
 
-    const [first, second] = [0, 1].map(
+    expect(series.data).toHaveLength(buckets.length);
+
+    const [empty, one, three] = [0, 2, 5].map(
       dataIndex =>
         (
           renderItem(
@@ -75,26 +77,36 @@ describe('useReleaseBand', () => {
         ).children
     );
 
-    expect(first).toHaveLength(5);
-    expect(first?.[0]).toMatchObject({shape: {x: 0, width: TRACK_WIDTH}, silent: true});
-    expect(second).toHaveLength(4);
+    expect(empty).toHaveLength(5);
+    expect(empty?.[0]).toMatchObject({shape: {x: 0, width: TRACK_WIDTH}, silent: true});
+    expect(empty?.at(-1)).toMatchObject({
+      shape: {x: 0, width: 30},
+      style: {fill: 'transparent'},
+    });
+    expect(one).toHaveLength(5);
+    expect(three).toHaveLength(5);
 
-    expect(first?.at(-1)).toMatchObject({
+    expect(one?.at(-2)).toMatchObject({
       shape: {x: 90, width: 60},
       style: {opacity: 0.25},
     });
-    expect(second?.at(-1)).toMatchObject({
+    expect(three?.at(-2)).toMatchObject({
       shape: {x: 270, width: 60},
       style: {opacity: 0.75},
     });
-    expect(second?.slice(0, 3)).toMatchObject([
+    expect(three?.at(-1)).toMatchObject({
+      shape: {x: 270, width: 60},
+      style: {fill: 'transparent'},
+    });
+    expect(three?.at(-1)?.silent).toBeUndefined();
+    expect(three?.slice(0, 3)).toMatchObject([
       {shape: {x: 0, width: 270}, silent: true},
       {shape: {x: 330, width: 270}, silent: true},
       {shape: {x: 270, width: 60}, silent: true},
     ]);
   });
 
-  it('gives the shared tooltip the release count of each bucket with releases', () => {
+  it('gives the shared tooltip the release count of every bucket', () => {
     const {result} = renderHookWithProviders(() =>
       useReleaseBand({
         buckets,
@@ -107,11 +119,14 @@ describe('useReleaseBand', () => {
     );
     const band = result.current!;
 
-    expect(band.tooltipSection?.(2 * MINUTE)).toBeNull();
+    expect(band.tooltipSection?.(20 * MINUTE)).toBeNull();
 
-    render(band.tooltipSection!(5 * MINUTE)!);
-
+    const {unmount} = render(band.tooltipSection!(5 * MINUTE)!);
     expect(screen.getByText('Releases')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
+    unmount();
+
+    render(band.tooltipSection!(2 * MINUTE)!);
+    expect(screen.getByText('0')).toBeInTheDocument();
   });
 });
