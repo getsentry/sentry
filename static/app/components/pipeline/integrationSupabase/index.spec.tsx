@@ -81,9 +81,7 @@ describe('Supabase integration pipeline', () => {
       await screen.findByRole('button', {name: 'Authorize Supabase'})
     );
     expect(
-      screen.getByText(
-        /This read-only connection is shared with your Sentry organization/
-      )
+      screen.getByText(/which a Supabase organization owner must authorize/)
     ).toBeInTheDocument();
     expect(window.open).toHaveBeenCalledWith(
       OAUTH_URL,
