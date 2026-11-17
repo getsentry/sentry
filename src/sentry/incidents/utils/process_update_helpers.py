@@ -22,10 +22,9 @@ def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = Fal
     """
     Normalize a Snuba/EAP aggregate to float | None.
 
-    Subscription and comparison queries can return None, empty strings, or other
-    non-numeric values for some aggregates (e.g. max/min with no matching rows).
-    Callers should skip the update when this returns None rather than doing type
-    checks later.
+    Subscription and comparison queries can return None, empty strings, or other non-numeric values
+    for some aggregates (e.g. max/min with no matching rows). Callers should skip the update when
+    this returns None rather than doing type checks later.
     """
     if value is None:
         return 0.0 if none_defaults_to_zero else None
@@ -37,9 +36,9 @@ def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = Fal
     if isinstance(value, (int, float)):
         return float(value)
 
-    # Snuba occasionally returns empty/non-numeric strings for max/min-style
-    # aggregates when no matching rows exist. Skip those updates rather than
-    # crashing in math.isnan() or coercing to 0 (which can false-trigger alerts).
+    # Snuba occasionally returns empty/non-numeric strings for max/min-style aggregates when no
+    # matching rows exist. Skip those updates rather than crashing in math.isnan() or coercing to 0
+    # (which can false-trigger alerts).
     if isinstance(value, str):
         if value.strip() == "":
             return None

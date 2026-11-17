@@ -35,12 +35,10 @@ from sentry.workflow_engine.processors.data_packet import process_data_packet
 from sentry.workflow_engine.types import DetectorGroupKey
 
 logger = logging.getLogger(__name__)
+
 REDIS_TTL = int(timedelta(days=7).total_seconds())
-# Stores a minimum threshold that represents a session count under which we don't evaluate crash
-# rate alert, and the update is just dropped. If it is set to None, then no minimum threshold
-# check is applied
-# ToDo(ahmed): This is still experimental. If we decide that it makes sense to keep this
-#  functionality, then maybe we should move this to constants
+# Minimum sessions/users needed before crash rate detection will apply. Setting it to `None`
+# disables it.
 CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
 
 
@@ -50,11 +48,7 @@ class SubscriptionProcessor:
     Use the `process` classmethod as the entry point.
     """
 
-    def __init__(
-        self,
-        subscription: QuerySubscription,
-        detector: Detector,
-    ) -> None:
+    def __init__(self, subscription: QuerySubscription, detector: Detector) -> None:
         """
         Initialize with pre-validated subscription and detector.
         Use the `process` classmethod rather than calling this directly.
@@ -65,15 +59,12 @@ class SubscriptionProcessor:
 
     @classmethod
     def process(
-        cls,
-        subscription: QuerySubscription,
-        subscription_update: QuerySubscriptionUpdate,
+        cls, subscription: QuerySubscription, subscription_update: QuerySubscriptionUpdate
     ) -> bool:
         """
         Entry point for processing a subscription update.
         Returns False if required objects don't exist or are invalid.
         """
-        # Look up detector
         try:
             detector = Detector.objects.get(
                 data_sources__source_id=str(subscription.id),
@@ -231,8 +222,8 @@ class SubscriptionProcessor:
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> bool:
         """
-        Core processing method. Assumes subscription has cached project/organization
-        and detector exists (enforced by the `process` classmethod).
+        Core processing method. Assumes subscription has cached project/organization and detector
+        exists (enforced by the `process` classmethod).
         """
         dataset = self.subscription.snuba_query.dataset
         organization = self.subscription.project.organization
@@ -271,11 +262,11 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.process_update.start")
             evaluation_value = self.get_evaluation_value(subscription_update)
 
-            # `get_evaluation_value` already normalizes Snuba values to float | None.
+            # `get_evaluation_value` already normalizes Snuba values to float | None
             if evaluation_value is None or math.isnan(evaluation_value):
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
-                # We have an invalid aggregate, but we _did_ process the update, so we store
-                # last_update to reflect that and avoid reprocessing.
+                # We have an invalid aggregate, but we _did_ process the update, so we bump the last
+                # update time to reflect that and avoid reprocessing
                 store_detector_last_update(
                     self.detector, self.subscription.project.id, self.last_update
                 )
