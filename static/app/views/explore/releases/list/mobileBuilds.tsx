@@ -125,7 +125,7 @@ export function MobileBuilds({
   );
 
   const handleExportCsv = useCallback(() => {
-    const url = `${organization.links.regionUrl}${getBuildsExportHref(organization.slug, buildsQueryParams)}`;
+    const url = getBuildsExportHref(organization.slug, buildsQueryParams);
     downloadFromHref(`${organization.slug}-build-distribution.csv`, url);
     trackAnalytics('preprod.builds.distribution.download_csv', {organization});
   }, [organization, buildsQueryParams]);

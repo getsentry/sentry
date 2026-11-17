@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import {useQueryStates} from 'nuqs';
-import qs from 'query-string';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -33,6 +32,7 @@ import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {parseAsSingleScalar} from 'sentry/views/explore/queryParams/parsers';

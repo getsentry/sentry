@@ -27,7 +27,7 @@ from sentry.notifications.platform.tracking import NotificationLink
 from sentry.notifications.platform.types import NotificationSource
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.operator import process_investigation_updates
-from sentry.seer.entrypoints.slack.entrypoint import (
+from sentry.seer.entrypoints.slack.investigation import (
     SlackInvestigationCachePayload,
     SlackInvestigationThreadState,
 )

@@ -14,6 +14,7 @@ from sentry.agent_handoff.flows import get_flow
 from sentry.agent_handoff.flows.base import InvalidHandoffContext
 from sentry.agent_handoff.runbook import render_agent_runbook
 from sentry.analytics.events.agent_handoff import AgentHandoffClaimedEvent
+from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeIssuedEvent
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
     persist_authorization,
@@ -36,10 +37,10 @@ def _record_claim(outcome: ClaimOutcome, handoff: AgentHandoff | None) -> None:
     analytics.record(
         AgentHandoffClaimedEvent(
             outcome=outcome.value,
+            handoff_id=handoff.handoff_id if handoff else None,
             user_id=handoff.user_id if handoff else None,
             organization_id=handoff.organization_id if handoff else None,
             flow=handoff.flow.value if handoff else None,
-            run_id=handoff.context.run_id if handoff and handoff.context else None,
         )
     )
 
@@ -97,11 +98,20 @@ def _render_guide(handoff: AgentHandoff) -> str | None:
         return None
 
     persist_authorization(application, user.id, handoff.scope_list, organization_id)
-    _, setup_code = ApiSetupCode.mint(
+    minted, setup_code = ApiSetupCode.mint(
         application=application,
         user_id=user.id,
         scope_list=handoff.scope_list,
         organization_id=organization_id,
+    )
+    analytics.record(
+        OAuthSetupCodeIssuedEvent(
+            user_id=user.id,
+            organization_id=organization_id,
+            application_id=application.id,
+            setup_code_id=minted.id,
+            flow=handoff.flow.value,
+        )
     )
     return render_agent_runbook(
         organization_slug=context.organization.slug,

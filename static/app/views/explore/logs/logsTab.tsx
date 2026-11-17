@@ -10,7 +10,7 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {makeDroppedDataQueryKeyPrefix} from 'sentry/components/droppedData/useDroppedData';
@@ -529,10 +529,12 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
             </LogsGraphContainer>
             <LogsTableActionsContainer>
               <Tabs value={tableTab} onChange={setTableTab} size="sm">
-                <TabList variant="floating">
-                  <TabList.Item key="logs">{t('Logs')}</TabList.Item>
-                  <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
-                </TabList>
+                {({TabList}) => (
+                  <TabList variant="floating">
+                    <TabList.Item key="logs">{t('Logs')}</TabList.Item>
+                    <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
+                  </TabList>
+                )}
               </Tabs>
               {tableTab === 'logs' && (
                 <TableActionsContainer>

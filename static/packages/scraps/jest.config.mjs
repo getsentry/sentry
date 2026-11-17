@@ -1,13 +1,5 @@
 import {runOnFirstShard} from '../../../scripts/jestSingleShard.js';
 
-// These packages publish ESM only; compile them for the CommonJS test runtime.
-const ESM_NODE_MODULES = [
-  '@tanstack\\+(?:react-)?hotkeys@',
-  'query-string@',
-  'filter-obj@',
-  'split-on-first@',
-];
-
 const config = {
   testEnvironment: '<rootDir>/test/env/environment.mjs',
   setupFilesAfterEnv: ['<rootDir>/test/env/setup.ts'],
@@ -29,7 +21,8 @@ const config = {
       },
     ],
   },
-  transformIgnorePatterns: [`/node_modules/.pnpm/(?!${ESM_NODE_MODULES.join('|')})`],
+  // TanStack Hotkeys publishes ESM only; compile it for the CommonJS test runtime.
+  transformIgnorePatterns: ['/node_modules/.pnpm/(?!@tanstack\\+(?:react-)?hotkeys@)'],
   clearMocks: true,
 };
 
