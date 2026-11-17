@@ -13,18 +13,20 @@ interface RepoAccess {
   status: string;
 }
 
-/** Answers the popup's repo access check with `access`. */
+/** Answers the popup's repo access check with `access`, or never when it's null. */
 class RepoAccessQueryClient extends QueryClient {
-  access: RepoAccess;
+  access: RepoAccess | null;
 
-  constructor(access: RepoAccess) {
+  constructor(access: RepoAccess | null) {
     super({defaultOptions: {queries: {retry: false}}});
     this.access = access;
   }
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const queryFn = () => Promise.resolve({json: this.access, headers: {}});
+    const access = this.access;
+    const queryFn = () =>
+      access ? Promise.resolve({json: access, headers: {}}) : new Promise(() => {});
     return {...defaulted, queryFn: queryFn as never};
   };
 }
@@ -35,11 +37,12 @@ function Example({
   connectedAccounts = [],
 }: {
   failureReason: string;
-  status: string;
+  /** Null to keep the check from ever answering. */
+  status: string | null;
   connectedAccounts?: string[];
 }) {
   const [queryClient] = useState(
-    () => new RepoAccessQueryClient({status, connectedAccounts})
+    () => new RepoAccessQueryClient(status ? {status, connectedAccounts} : null)
   );
   const pendingInput: PendingUserInput = {
     id: `story-${failureReason}-${status}`,
@@ -57,6 +60,8 @@ function Example({
 }
 
 export default Storybook.story('ConnectScmBlock', story => {
+  story('Checking', () => <Example failureReason="repo_not_in_sentry" status={null} />);
+
   story('No source control connected', () => (
     <Example failureReason="no_scm_integration" status="no_scm_integration" />
   ));

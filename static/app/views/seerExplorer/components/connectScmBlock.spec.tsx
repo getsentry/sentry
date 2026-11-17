@@ -46,6 +46,23 @@ describe('ConnectScmBlock', () => {
     return respondToUserInput;
   }
 
+  it('shows that it is checking until the first answer', async () => {
+    mockRepoAccess('repo_not_in_sentry');
+    renderBlock({failureReason: 'repo_not_in_sentry'});
+
+    expect(
+      screen.getByText('Checking whether Seer can access acme/app')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Continue without code'})
+    ).not.toBeInTheDocument();
+
+    expect(await screen.findByText("Seer can't access acme/app")).toBeInTheDocument();
+    expect(
+      screen.queryByText('Checking whether Seer can access acme/app')
+    ).not.toBeInTheDocument();
+  });
+
   it('links to integrations when nothing is connected', async () => {
     mockRepoAccess('no_scm_integration');
     renderBlock();
@@ -133,13 +150,12 @@ describe('ConnectScmBlock', () => {
     const check = MockApiClient.addMockResponse({url: REPO_ACCESS_URL, statusCode: 500});
     renderBlock({failureReason: 'repo_not_in_sentry'});
 
-    await act(() => Promise.resolve());
-    expect(check).toHaveBeenCalled();
     expect(
-      screen.getByText(
+      await screen.findByText(
         "This repo isn't in Sentry. Check its name, and that Sentry has access to it."
       )
     ).toBeInTheDocument();
+    expect(check).toHaveBeenCalled();
     expect(
       screen.getByRole('button', {name: 'Continue without code'})
     ).toBeInTheDocument();
@@ -152,7 +168,8 @@ describe('ConnectScmBlock', () => {
 
     afterEach(() => {
       try {
-        jest.runOnlyPendingTimers();
+        // The popup's own timers update its state.
+        act(() => jest.runOnlyPendingTimers());
       } finally {
         jest.useRealTimers();
       }
@@ -185,6 +202,44 @@ describe('ConnectScmBlock', () => {
       await act(() => jest.advanceTimersByTimeAsync(60_000));
 
       expect(check).toHaveBeenCalledTimes(checks);
+      expect(screen.getByText('Stopped checking every few seconds.')).toBeInTheDocument();
+    });
+
+    it('checks again on Check again after it stopped', async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      mockRepoAccess('repo_not_in_sentry');
+      renderBlock({failureReason: 'repo_not_in_sentry'});
+      expect(await screen.findByText("Seer can't access acme/app")).toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(10 * 60_000 + 5_000));
+
+      // The repo reached Sentry after the popup stopped checking.
+      MockApiClient.clearMockResponses();
+      const check = mockRepoAccess('found');
+      await user.click(screen.getByRole('button', {name: 'Check again'}));
+
+      expect(
+        await screen.findByText('Perfect, Seer can access acme/app')
+      ).toBeInTheDocument();
+      expect(check).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByText('Stopped checking every few seconds.')
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps checking after Check again', async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const check = mockRepoAccess('repo_not_in_sentry');
+      renderBlock({failureReason: 'repo_not_in_sentry'});
+      expect(await screen.findByText("Seer can't access acme/app")).toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(10 * 60_000 + 5_000));
+
+      await user.click(screen.getByRole('button', {name: 'Check again'}));
+      await act(() => jest.advanceTimersByTimeAsync(0));
+      const checks = check.mock.calls.length;
+      await act(() => jest.advanceTimersByTimeAsync(5_000));
+
+      expect(check).toHaveBeenCalledTimes(checks + 1);
+      expect(screen.queryByRole('button', {name: 'Check again'})).not.toBeInTheDocument();
     });
   });
 
@@ -195,7 +250,8 @@ describe('ConnectScmBlock', () => {
 
     afterEach(() => {
       try {
-        jest.runOnlyPendingTimers();
+        // The popup's own timers update its state.
+        act(() => jest.runOnlyPendingTimers());
       } finally {
         jest.useRealTimers();
       }
@@ -239,7 +295,9 @@ describe('ConnectScmBlock', () => {
       });
       await user.click(screen.getByRole('button', {name: 'Pause again'}));
 
-      expect(screen.getByText("Seer can't access acme/app")).toBeInTheDocument();
+      expect(
+        screen.getByText('Checking whether Seer can access acme/app')
+      ).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
 
       answer();
