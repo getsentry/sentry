@@ -107,44 +107,33 @@ class TimeseriesAnnotation(DefaultFieldsModel):
             models.CheckConstraint(
                 condition=(
                     models.Q(
-                        created_by_id__isnull=False,
                         created_by_service_account_id__isnull=True,
                         created_by_label__isnull=True,
                     )
                     | models.Q(
                         created_by_id__isnull=True,
-                        created_by_service_account_id__isnull=False,
                         created_by_label__isnull=True,
                     )
                     | models.Q(
                         created_by_id__isnull=True,
                         created_by_service_account_id__isnull=True,
-                        created_by_label__isnull=False,
                     )
                 ),
-                name="timeseries_annotation_exactly_one_creator",
+                name="timeseries_annotation_at_most_one_creator",
             ),
             models.CheckConstraint(
                 condition=(
                     models.Q(
-                        updated_by_id__isnull=True,
-                        updated_by_service_account_id__isnull=True,
-                        updated_by_label__isnull=True,
-                    )
-                    | models.Q(
-                        updated_by_id__isnull=False,
                         updated_by_service_account_id__isnull=True,
                         updated_by_label__isnull=True,
                     )
                     | models.Q(
                         updated_by_id__isnull=True,
-                        updated_by_service_account_id__isnull=False,
                         updated_by_label__isnull=True,
                     )
                     | models.Q(
                         updated_by_id__isnull=True,
                         updated_by_service_account_id__isnull=True,
-                        updated_by_label__isnull=False,
                     )
                 ),
                 name="timeseries_annotation_at_most_one_updater",
