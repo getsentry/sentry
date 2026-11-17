@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
@@ -36,11 +35,9 @@ class OutOfCreditsMarker:
 class OutOfCreditsSummary:
     """What running out of credits left undone on a PR iteration, as the run stands now."""
 
-    # What the latest iteration left unfinished, or None when only queued feedback is held.
-    unfinished_action: PrIterationUnfinishedAction | None
+    # What the latest iteration left unfinished.
+    unfinished_action: PrIterationUnfinishedAction
     unfinished_iteration_index: int | None
-    # Number of queued items a drain refused for credits.
-    held_feedback_count: int
 
 
 def _get_seer_run(run_id: int, organization_id: int) -> SeerRun | None:
@@ -126,21 +123,15 @@ def is_held_for_credits(state: SeerRunState, item: QueuedAutofixFeedback) -> boo
     return item.held_for_credits and state.status != "processing"
 
 
-def out_of_credits_summary(
-    state: SeerRunState, run: SeerRun | None, queued_items: Sequence[QueuedAutofixFeedback]
-) -> OutOfCreditsSummary | None:
-    """What work running out of credits left unfinished on the run's PR iteration, or None when
-    no work is unfinished or held."""
+def out_of_credits_summary(state: SeerRunState, run: SeerRun | None) -> OutOfCreditsSummary | None:
+    """What running out of credits left unfinished on the run's PR iteration, or None when
+    nothing is unfinished."""
     unfinished_action = _unfinished_action(state, run)
-    held_feedback_count = sum(is_held_for_credits(state, item) for item in queued_items)
-    if unfinished_action is None and not held_feedback_count:
+    if unfinished_action is None:
         return None
     return OutOfCreditsSummary(
         unfinished_action=unfinished_action,
-        unfinished_iteration_index=(
-            get_latest_iteration_index(state) if unfinished_action is not None else None
-        ),
-        held_feedback_count=held_feedback_count,
+        unfinished_iteration_index=get_latest_iteration_index(state),
     )
 
 

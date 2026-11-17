@@ -312,9 +312,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["pr_iteration_pause_reason"] == "user_stop"
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
-    def test_get_warns_pr_iteration_out_of_credits_for_held_feedback(
-        self, mock_get_explorer_state: MagicMock
-    ) -> None:
+    def test_get_flags_feedback_held_for_credits(self, mock_get_explorer_state: MagicMock) -> None:
         group = self.create_group()
         self.create_seer_run(organization=self.organization, seer_run_state_id=888)
         mock_get_explorer_state.return_value = SeerRunState(
@@ -324,10 +322,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             updated_at="2023-07-18T12:00:00Z",
         )
         self.login_as(user=self.user)
-
-        response = self.client.get(self._get_url(group.id), format="json")
-        assert response.status_code == 200, response.data
-        assert response.data["autofix"]["warnings"] == []
 
         requeue_autofix_feedback(
             888,
@@ -348,14 +342,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         queued_feedback = response.data["autofix"]["queued_feedback"]
         assert [item["held_for_credits"] for item in queued_feedback] == [True]
-        assert response.data["autofix"]["warnings"] == [
-            {
-                "warning_type": "pr_iteration_out_of_credits",
-                "unfinished_action": None,
-                "unfinished_iteration_index": None,
-                "held_feedback_count": 1,
-            }
-        ]
+        # Held feedback is read off the queue, so it needs no warning.
+        assert response.data["autofix"]["warnings"] == []
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_drops_the_out_of_credits_warning_once_paused(

@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import Literal
 
 from sentry.seer.agent.client_models import (
@@ -18,6 +17,7 @@ from sentry.seer.autofix.pr_iteration.out_of_credits import (
     OutOfCreditsSummary,
     StrandedAction,
     get_out_of_credits,
+    is_held_for_credits,
     mark_out_of_credits,
     out_of_credits_summary,
     take_out_of_credits,
@@ -139,11 +139,9 @@ class OutOfCreditsSummaryTest(TestCase):
             held_for_credits=held_for_credits,
         )
 
-    def _summary(
-        self, state: SeerRunState, queued_items: Sequence[QueuedAutofixFeedback] = ()
-    ) -> OutOfCreditsSummary | None:
+    def _summary(self, state: SeerRunState) -> OutOfCreditsSummary | None:
         self.seer_run.refresh_from_db()
-        return out_of_credits_summary(state, self.seer_run, queued_items)
+        return out_of_credits_summary(state, self.seer_run)
 
     def test_reports_a_stranded_push_while_its_changes_are_unpushed(self) -> None:
         mark_out_of_credits(
@@ -151,9 +149,7 @@ class OutOfCreditsSummaryTest(TestCase):
         )
 
         assert self._summary(self._state([self._unpushed_iteration_block()])) == (
-            OutOfCreditsSummary(
-                unfinished_action="push", unfinished_iteration_index=1, held_feedback_count=0
-            )
+            OutOfCreditsSummary(unfinished_action="push", unfinished_iteration_index=1)
         )
 
     def test_ignores_a_stranded_push_once_the_changes_are_pushed(self) -> None:
@@ -170,7 +166,7 @@ class OutOfCreditsSummaryTest(TestCase):
         )
 
         assert self._summary(state) == OutOfCreditsSummary(
-            unfinished_action="agent_turn", unfinished_iteration_index=1, held_feedback_count=0
+            unfinished_action="agent_turn", unfinished_iteration_index=1
         )
 
     def test_reports_a_push_seer_refused_for_credits(self) -> None:
@@ -185,7 +181,7 @@ class OutOfCreditsSummaryTest(TestCase):
         )
 
         assert self._summary(state) == OutOfCreditsSummary(
-            unfinished_action="push", unfinished_iteration_index=1, held_feedback_count=0
+            unfinished_action="push", unfinished_iteration_index=1
         )
 
     def test_ignores_a_push_seer_refused_while_the_next_iteration_runs(self) -> None:
@@ -213,17 +209,7 @@ class OutOfCreditsSummaryTest(TestCase):
 
         assert self._summary(state) is None
 
-    def test_counts_only_feedback_held_for_credits(self) -> None:
-        queued = [
-            self._queued_feedback(held_for_credits=True),
-            self._queued_feedback(held_for_credits=False),
-        ]
-
-        assert self._summary(self._state([]), queued) == OutOfCreditsSummary(
-            unfinished_action=None, unfinished_iteration_index=None, held_feedback_count=1
-        )
-
     def test_holds_nothing_while_a_turn_runs(self) -> None:
         state = self._state([], status="processing")
 
-        assert self._summary(state, [self._queued_feedback(held_for_credits=True)]) is None
+        assert is_held_for_credits(state, self._queued_feedback(held_for_credits=True)) is False

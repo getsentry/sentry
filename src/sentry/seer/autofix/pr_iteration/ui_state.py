@@ -64,15 +64,12 @@ def get_pr_iteration_state_fields(
     paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
     pause_reason = pause_reason_from_marker(paused_marker)
 
-    out_of_credits = (
-        out_of_credits_summary(state, run, queued_items) if paused_marker is None else None
-    )
+    out_of_credits = out_of_credits_summary(state, run) if paused_marker is None else None
     if out_of_credits is not None:
         warnings.append(
             PrIterationOutOfCreditsWarning(
                 unfinished_action=out_of_credits.unfinished_action,
                 unfinished_iteration_index=out_of_credits.unfinished_iteration_index,
-                held_feedback_count=out_of_credits.held_feedback_count,
             ).dict()
         )
 
