@@ -12,6 +12,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from pydantic import BaseModel, Field, ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -32,6 +33,7 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
+from sentry.workflow_engine.models import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -105,11 +107,18 @@ def lock_config(organization_id: int, config_id: int) -> Iterator[LockedConfig]:
     """Hold the config's row lock for the block. Raises DoesNotExist for a missing config."""
     database = router.db_for_write(SeerWorkflowConfig)
     with transaction.atomic(database):
-        yield LockedConfig(
+        config = (
             SeerWorkflowConfig.objects.using(database)
             .select_for_update()
             .get(id=config_id, organization_id=organization_id)
         )
+        if config.backing_workflow_id is not None:
+            config.backing_workflow = (
+                Workflow.objects_for_deletion.using(database)
+                .select_for_update()
+                .get(id=config.backing_workflow_id, organization_id=organization_id)
+            )
+        yield LockedConfig(config)
 
 
 class NoSettings(BaseModel):
@@ -198,10 +207,17 @@ class AutomationDefinition[Inputs: BaseModel]:
     def project_ids(self, config: SeerWorkflowConfig) -> list[int]:
         return list(self.trigger.projects(config).order_by("id").values_list("id", flat=True))
 
+    @staticmethod
+    def is_enabled(config: SeerWorkflowConfig) -> bool:
+        workflow = config.backing_workflow
+        if workflow is None:
+            return config.enabled
+        return workflow.enabled and workflow.status == ObjectStatus.ACTIVE
+
     def covers(self, config: SeerWorkflowConfig, project_id: int, environment: str | None) -> bool:
         filters = SeerWorkflowFilters.parse_obj(config.filters)
         return (
-            config.enabled
+            self.is_enabled(config)
             and (not filters.environments or environment in filters.environments)
             and self.trigger.projects(config).filter(id=project_id).exists()
         )
@@ -317,6 +333,12 @@ class ConfigUpdate:
         self.related_changed = True
 
     def set_enabled(self, enabled: bool) -> None:
+        workflow = self.config.backing_workflow
+        if workflow is not None:
+            if workflow.enabled != enabled:
+                workflow.update(enabled=enabled)
+                self.mark_related_changed()
+            return
         if self.config.enabled == enabled:
             return
         self.config.enabled = enabled
@@ -324,6 +346,17 @@ class ConfigUpdate:
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         self.definition.validate_settings(extras)
+        workflow = self.config.backing_workflow
+        if workflow is not None:
+            fields: dict[str, Any] = {}
+            if extras.name is not None and workflow.name != extras.name:
+                fields["name"] = extras.name
+            if extras.created_by is not None and workflow.created_by_id != extras.created_by:
+                fields["created_by_id"] = extras.created_by
+            if fields:
+                workflow.update(**fields)
+                self.mark_related_changed()
+            extras = extras.copy(update={"name": None, "created_by": None})
         new_extras = extras.dict(exclude_none=True)
         current_extras = {k: v for k, v in self.config.extras.items() if v is not None}
         if current_extras == new_extras:

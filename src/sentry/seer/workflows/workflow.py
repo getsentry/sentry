@@ -228,7 +228,12 @@ class SeerWorkflow:
 
     @property
     def extras(self) -> SeerWorkflowConfigExtras:
-        return SeerWorkflowConfigExtras.parse_obj(self.get_config().extras)
+        config = self.get_config()
+        extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
+        if config.backing_workflow is not None:
+            extras.name = config.backing_workflow.name
+            extras.created_by = config.backing_workflow.created_by_id
+        return extras
 
     @property
     def filters(self) -> SeerWorkflowFilters:

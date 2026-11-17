@@ -717,6 +717,13 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["monitorIds"] == [monitor.id]
         assert not backing_workflow.get().enabled
 
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", name="Checkout breaches"
+        )
+        assert response.data["name"] == "Checkout breaches"
+        assert backing_workflow.get().name == "Checkout breaches"
+        assert "name" not in workflow.get_config().extras
+
     def test_member_cannot_enable_investigations_for_inaccessible_projects(self) -> None:
         monitor = self.create_metric_monitor(self.project)
         workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
@@ -1525,11 +1532,13 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        assert config.enabled is True
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert config.extras == {"name": "Latency breaches", "created_by": self.user.id}
+        assert config.extras == {}
         assert config.version == 1
         assert config.backing_workflow is not None
+        assert config.backing_workflow.enabled is True
+        assert config.backing_workflow.name == "Latency breaches"
+        assert config.backing_workflow.created_by_id == self.user.id
         assert set(
             config.backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True)
         ) == {monitor.id for monitor in monitors}

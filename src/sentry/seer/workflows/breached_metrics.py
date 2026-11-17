@@ -24,6 +24,7 @@ from sentry.models.project import Project
 from sentry.notebooks.models import Notebook
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigExtras,
     SeerWorkflowExecutionExtras,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -118,6 +119,8 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
         if change is None:
             return
         update.mark("backing_workflow")
+        if change.workflow_created:
+            update.mark("extras", "enabled")
         # Read the version at commit time, after update_config bumps it.
         transaction.on_commit(
             lambda: logger.info(
@@ -134,16 +137,7 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
         )
 
     def sync(self, config: SeerWorkflowConfig) -> None:
-        workflow = (
-            Workflow.objects.filter(
-                id=config.backing_workflow_id, organization_id=config.organization_id
-            )
-            .exclude(enabled=config.enabled)
-            .get_or_none()
-        )
-        if workflow is not None:
-            # Saved through the instance so the processing-workflows cache is invalidated.
-            workflow.update(enabled=config.enabled)
+        pass
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
         if config.backing_workflow_id is None:
@@ -352,7 +346,7 @@ class SeerMetricAlertActionHandler(ActionHandler):
 
         try:
             with lock_config(group.organization.id, binding.workflow_config_id) as config:
-                if not config.enabled:
+                if not AutomationDefinition.is_enabled(config):
                     return IgnoredMetricBreach("config_disabled")
                 definition = _definition_for(config)
                 if definition is None or not isinstance(definition.trigger, MetricAlertTrigger):
@@ -506,7 +500,20 @@ def _get_or_create_backing_workflow(
     )
     if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
         return workflow, False
-    config.backing_workflow = workflow = _create_backing_workflow(organization_id, config)
+    extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
+    if workflow is None:
+        name, created_by_id, enabled = extras.name, extras.created_by, config.enabled
+    else:
+        name, created_by_id, enabled = workflow.name, workflow.created_by_id, workflow.enabled
+    config.backing_workflow = workflow = _create_backing_workflow(
+        organization_id,
+        config,
+        name=name or "Seer automation",
+        created_by_id=created_by_id,
+        enabled=enabled,
+    )
+    config.extras = extras.copy(update={"name": None, "created_by": None}).dict(exclude_none=True)
+    config.enabled = False
     return workflow, True
 
 
@@ -522,7 +529,14 @@ def _replace_monitor_connections(
     )
 
 
-def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -> Workflow:
+def _create_backing_workflow(
+    organization_id: int,
+    config: SeerWorkflowConfig,
+    *,
+    name: str,
+    created_by_id: int | None,
+    enabled: bool,
+) -> Workflow:
     triggers = DataConditionGroup.objects.create(
         organization_id=organization_id,
         logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
@@ -535,8 +549,9 @@ def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -
     )
     workflow = Workflow.objects.create(
         organization_id=organization_id,
-        name="Seer automation",
-        enabled=True,
+        name=name,
+        enabled=enabled,
+        created_by_id=created_by_id,
         config={"frequency": 0},
         when_condition_group=triggers,
     )

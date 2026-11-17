@@ -252,7 +252,8 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
         assert all("FOR UPDATE" in query for query in config_reads)
 
     def test_ignored_configuration_reports_reason_without_starting_work(self) -> None:
-        self.config.update(enabled=False)
+        assert self.config.backing_workflow is not None
+        self.config.backing_workflow.update(enabled=False)
 
         rejected = SeerMetricAlertActionHandler.accept(
             self.group,
@@ -844,7 +845,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         original = self.select_monitors(self.monitor_ids)
         backing = original.backing_workflow
         assert backing is not None
-        backing.update(status=ObjectStatus.PENDING_DELETION)
+        backing.update(name="Latency breaches", enabled=False, status=ObjectStatus.PENDING_DELETION)
         assert self.project_ids() == set()
 
         replaced = self.select_monitors(self.monitor_ids[:1])
@@ -852,6 +853,8 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert replaced.backing_workflow is not None
         assert replaced.backing_workflow_id != backing.id
         assert replaced.backing_workflow.status == ObjectStatus.ACTIVE
+        assert replaced.backing_workflow.name == "Latency breaches"
+        assert replaced.backing_workflow.enabled is False
         assert replaced.version == original.version + 1
         assert self.project_ids() == {self.monitors[0].project_id}
         assert SeerWorkflowTriggerBinding.objects.filter(workflow_config=self.config).count() == 2
@@ -887,11 +890,12 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         config = workflow.get_config()
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        assert config.enabled is True
         assert config.filters == {"all_projects": False, "environments": ["production"]}
         assert workflow.extras.name == "Latency breaches"
         assert config.version == 1
         assert config.backing_workflow is not None
+        assert config.backing_workflow.enabled is True
+        assert config.backing_workflow.name == "Latency breaches"
         assert set(
             config.backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True)
         ) == set(self.monitor_ids)

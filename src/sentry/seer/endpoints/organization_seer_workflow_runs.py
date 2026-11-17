@@ -236,6 +236,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
         ).annotate(
             strategy=F("workflow_config__strategy"),
             config_extras=F("workflow_config__extras"),
+            config_workflow_name=F("workflow_config__backing_workflow__name"),
         )
 
         # Filter by a config
@@ -364,7 +365,9 @@ def serialize_workflow_run(
 ) -> SeerWorkflowRunResponse:
     """Serialize a run loaded with `strategy` and `config_extras` annotations."""
     config_extras = getattr(run, "config_extras")
-    config_name = config_extras.get("name") if isinstance(config_extras, dict) else None
+    config_name = getattr(run, "config_workflow_name") or (
+        config_extras.get("name") if isinstance(config_extras, dict) else None
+    )
     result: SeerWorkflowRunResponseBase = {
         "id": str(run.id),
         "configId": str(run.workflow_config_id),

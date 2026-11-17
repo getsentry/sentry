@@ -206,7 +206,7 @@ class MetricBreachTrigger:
         config = SeerWorkflowConfig.objects.filter(
             organization_id=self.organization.id,
             strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-            extras__name=AUTOMATION_NAME,
+            backing_workflow__name=AUTOMATION_NAME,
         ).first()
         if config is not None:
             workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)

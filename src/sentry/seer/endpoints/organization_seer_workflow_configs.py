@@ -6,7 +6,7 @@ from datetime import datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Subquery, prefetch_related_objects
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -42,6 +42,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.base import (
     AllProjects,
+    AutomationDefinition,
     SeerServiceAccountGrant,
     SelectedMonitors,
     SelectedProjects,
@@ -812,6 +813,7 @@ def serialize_workflow_configs(
     accounts: Sequence[RpcServiceAccount] = (),
 ) -> SeerWorkflowConfigsResponse:
     """``accounts`` override the cell replicas, which may lag a write in this request."""
+    prefetch_related_objects(configs, "backing_workflow")
     accessible = set(accessible_project_ids)
     service_accounts = get_config_service_accounts(configs, accessible_project_ids=accessible) | {
         account.id: SeerServiceAccountResponse(
@@ -931,7 +933,7 @@ def serialize_workflow_config(
     result: SeerWorkflowConfigResponse = {
         "id": str(config.id),
         "strategy": config.strategy,
-        "enabled": config.enabled,
+        "enabled": AutomationDefinition.is_enabled(config),
         "schedule": config.schedule,
         "version": config.version,
         "projects": project_ids,
@@ -956,6 +958,9 @@ def serialize_workflow_config(
         result["dateLastRun"] = last_run.last_run_at
         result["lastRunStatus"] = last_run.last_run_status
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
+    if config.backing_workflow is not None:
+        extras.name = config.backing_workflow.name
+        extras.created_by = config.backing_workflow.created_by_id
     if extras.name is not None:
         result["name"] = extras.name
     if extras.created_by is not None:

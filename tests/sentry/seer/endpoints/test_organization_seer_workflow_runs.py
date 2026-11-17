@@ -437,6 +437,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             .annotate(
                 strategy=F("workflow_config__strategy"),
                 config_extras=F("workflow_config__extras"),
+                config_workflow_name=F("workflow_config__backing_workflow__name"),
             )
             .order_by("id")
         )
