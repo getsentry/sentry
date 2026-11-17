@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -69,14 +69,14 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const view: TraceView = insideRun ? (selectedView ?? 'agent-activity') : 'waterfall';
 
   // Count each event once, so switching back from the waterfall isn't a second view.
-  const isShowingAgentActivity = !isLoading && view === 'agent-activity';
   const trackedEventId = useRef<string | null>(null);
-  useEffect(() => {
-    if (isShowingAgentActivity && trackedEventId.current !== event.id) {
-      trackedEventId.current = event.id;
-      trackAnalytics('issue_details.agent_run.viewed', {organization});
+  const trackAgentRunViewed = useCallback(() => {
+    if (trackedEventId.current === event.id) {
+      return;
     }
-  }, [isShowingAgentActivity, event.id, organization]);
+    trackedEventId.current = event.id;
+    trackAnalytics('issue_details.agent_run.viewed', {organization});
+  }, [event.id, organization]);
 
   if (!hasTracePreview) {
     return null;
@@ -96,12 +96,16 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     // Wait for both so the preview neither opens on one view and switches, nor grows.
     content = <TraceViewSkeleton />;
   } else if (insideRun && view === 'agent-activity') {
+    // Tracked from inside the section so a collapsed section doesn't count as a view.
     content = (
-      <EventAgentActivity
-        event={event}
-        failingNode={insideRun.failingNode}
-        nodes={insideRun.nodes}
-      />
+      <Fragment>
+        <OnVisible onVisible={trackAgentRunViewed} />
+        <EventAgentActivity
+          event={event}
+          failingNode={insideRun.failingNode}
+          nodes={insideRun.nodes}
+        />
+      </Fragment>
     );
   } else {
     content = (
