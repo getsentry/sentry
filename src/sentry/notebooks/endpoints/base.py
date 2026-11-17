@@ -163,6 +163,8 @@ class OrganizationNotebookEndpoint(OrganizationNotebooksBaseEndpoint):
             )
         except (Notebook.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
+        if isinstance(request.access, ServiceAccountAccess):
+            require_project_access(request, list(notebook.projects.values_list("id", flat=True)))
         kwargs["notebook"] = notebook
         return args, kwargs
 
