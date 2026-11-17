@@ -184,8 +184,12 @@ class DatabaseConnectionResetHook:
     This leaves a connection mid-transaction and with auto-commit off, causing later tasks that
     re-use the connection to fail until the worker is recycled
 
-    This hook makes it so that when a task raises any error, or leaves a connection mid-transaction,
-    it closes all open database connections to prevent this class of bugs from happening
+    This hook makes it so that after every task, whether it failed or not, any connection left in a
+    broken transaction state is closed, so the next task reconnects from a clean state
+
+    Healthy connections are kept, even when the task failed. Closing them would make the next task
+    reconnect, and when pgbouncer is at max_client_conn that reconnect is refused, fails the task,
+    and would close everything again
     """
 
     def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
@@ -195,41 +199,49 @@ class DatabaseConnectionResetHook:
     def on_execute(self, headers: dict[str, str]) -> Iterator[None]:
         try:
             yield
-        except BaseException:
-            reset_database_connections()
-            raise
-
-        # A task can catch the error a deadline leaves behind and still succeed
-        if any_database_connection_left_mid_transaction():
-            reset_database_connections()
+        finally:
+            # A task can also catch the error a deadline leaves behind and still succeed
+            reset_broken_database_connections()
 
 
-def any_database_connection_left_mid_transaction() -> bool:
-    return any(
-        is_left_mid_transaction(connection) for connection in connections.all(initialized_only=True)
-    )
+def is_broken(connection: BaseDatabaseWrapper) -> bool:
+    # No atomic block can legitimately be open, or owe commit hooks, once the task has exited
+    if connection.in_atomic_block or connection.needs_rollback or connection.run_on_commit:
+        return True
+
+    # Read the attribute rather than get_autocommit(), which would open a connection
+    return connection.connection is not None and not connection.autocommit
 
 
-def is_left_mid_transaction(connection: BaseDatabaseWrapper) -> bool:
-    return connection.connection is not None and not connection.get_autocommit()
+def reset_broken_database_connections() -> None:
+    broken_connections = [
+        connection for connection in connections.all(initialized_only=True) if is_broken(connection)
+    ]
 
+    if not broken_connections:
+        return
 
-def reset_database_connections() -> None:
     # It is possible for this step to get SIGALRM'd too, so delay it to the end of the function
     alarm_signal_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGALRM})
 
     try:
-        for connection in connections.all(initialized_only=True):
-            # Since we may have interrupted Django's transaction cleanup we
-            # need to reset these flags
-            # The test cases showcase why this is necessary
-            connection.in_atomic_block = False
-            connection.run_on_commit = []
-
-            connection.close()
+        for connection in broken_connections:
+            reset_database_connection(connection)
     finally:
         # Immediately trigger a SIGALRM if one was pending
         signal.pthread_sigmask(signal.SIG_SETMASK, alarm_signal_mask)
+
+
+def reset_database_connection(connection: BaseDatabaseWrapper) -> None:
+    # Since we may have interrupted Django's transaction cleanup we
+    # need to reset these flags
+    # The test cases showcase why this is necessary
+    connection.in_atomic_block = False
+    connection.run_on_commit = []
+    # Otherwise the closed connection still looks broken, and every later task resets it again
+    connection.needs_rollback = False
+
+    connection.close()
 
 
 _producers: dict[str, SingletonProducer] = {}

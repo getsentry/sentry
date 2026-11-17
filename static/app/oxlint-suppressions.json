@@ -1040,11 +1040,6 @@
       "count": 1
     }
   },
-  "components/onboarding/platformOptionsControl.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "components/onboarding/scm/scmPlatformFeaturesCore.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -3248,11 +3243,6 @@
   },
   "views/explore/spans/charts/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/explore/spans/spansTab.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
     }
   },

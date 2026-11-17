@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
+from sentry.apidocs.error_codes import SENTRY_API_ERROR_COMPONENT, sentry_api_error_schema
 from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
     _EXPERIMENTAL_OPERATIONS,
@@ -28,6 +29,7 @@ from sentry.core.endpoints.project_details import ProjectDetailsEndpoint
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
 from sentry.investigations.apidocs import investigation_endpoints
 from sentry.issues.endpoints.group_details import GroupDetailsEndpoint
+from sentry.notebooks.endpoints.base import OrganizationNotebooksBaseEndpoint
 
 
 @pytest.mark.django_db
@@ -46,12 +48,38 @@ def test_investigation_schema_selects_only_private_frontend_routes() -> None:
         for path, _regex, _method, _callback in selected
     )
     assert all(
-        callback.view_class.publish_status[method] is ApiPublishStatus.PRIVATE
+        not callback.view_class.publish_status[method].is_published
         for _path, _regex, method, callback in selected
     )
     with patch("sentry.apidocs.hooks.__write_ownership_data"):
         published = custom_preprocessing_hook(endpoints)
-    assert not {entry[0] for entry in selected}.intersection(entry[0] for entry in published)
+    assert not {(entry[0], entry[2]) for entry in selected}.intersection(
+        (entry[0], entry[2]) for entry in published
+    )
+
+
+def test_investigation_schema_keeps_unpublished_notebook_methods() -> None:
+    view_class = type(
+        "FakeNotebookEndpoint",
+        (OrganizationNotebooksBaseEndpoint,),
+        {
+            "publish_status": {
+                "GET": ApiPublishStatus.PRIVATE,
+                "POST": ApiPublishStatus.EXPERIMENTAL,
+                "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+                "DELETE": ApiPublishStatus.PUBLIC,
+            }
+        },
+    )
+    callback = type("FakeCallback", (), {"view_class": view_class})
+    endpoints = [
+        ("/api/0/notebooks/", "/api/0/notebooks/", method, callback)
+        for method in ("GET", "POST", "PUT", "DELETE")
+    ]
+
+    selected = investigation_endpoints(endpoints)
+
+    assert [method for _path, _regex, method, _callback in selected] == ["GET", "POST"]
 
 
 class EndpointServersTest(TestCase):
@@ -477,7 +505,7 @@ class FixIssueRoutesTest(TestCase):
                     }
                 },
             },
-            "components": {"schemas": {}},
+            "components": {"schemas": {SENTRY_API_ERROR_COMPONENT: sentry_api_error_schema()}},
         }
         assert custom_postprocessing_hook(BEFORE, None) == AFTER
 

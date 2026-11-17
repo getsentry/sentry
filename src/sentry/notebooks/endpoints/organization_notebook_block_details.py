@@ -11,12 +11,18 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookBlockEndpoint,
-    require_authenticated_user,
+    require_notebook_writer,
     service_error,
 )
 from sentry.notebooks.endpoints.serializers import (
@@ -32,10 +38,16 @@ from sentry.notebooks.services import delete_block, update_block
 @cell_silo_endpoint
 class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"PUT": ApiPublishStatus.PRIVATE, "DELETE": ApiPublishStatus.PRIVATE}
+    publish_status = {
+        "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+    }
+    idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="Update an Investigation Block",
+        operation_id="updateOrganizationNotebookBlock",
+        summary="Update a Notebook Block",
+        tags=["Notebooks"],
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             NotebookParams.NOTEBOOK_ID,
@@ -44,7 +56,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         request=BlockUpdateValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "InvestigationBlockResponse", NotebookBlockSerializerResponse
+                "NotebookBlockResponse", NotebookBlockSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,
@@ -55,10 +67,11 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         examples=[
             OpenApiExample(
                 "Example request",
-                value={"investigationVersion": 2, "version": 1, "content": "Revised observations"},
+                value={"notebookVersion": 2, "version": 1, "content": "Revised observations"},
                 request_only=True,
             )
-        ],
+        ]
+        + NotebookExamples.BLOCK_DETAILS,
     )
     def put(
         self,
@@ -66,23 +79,27 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         organization: Organization,
         notebook: Notebook,
         block: NotebookBlock,
-    ) -> Response:
+    ) -> (
+        Response[NotebookBlockSerializerResponse]
+        | Response[ValidationErrorResponse]
+        | Response[DetailResponse]
+    ):
         """
         Update at least one of title, content, generationPrompt, config, or display. Send both
         notebook and block versions. The block kind cannot change. Returns the updated block.
-        Requires an authenticated user. Requires the organizations:investigations feature and
-        open organization membership.
+        Requires a user or service account. Requires the organizations:investigations feature
+        and open organization membership.
         """
-        actor_id = require_authenticated_user(request)
+        actor_id = require_notebook_writer(request, notebook)
         if block.deleted_at is not None:
             raise ResourceDoesNotExist
 
         validator = BlockUpdateValidator(data=request.data, context={"block": block})
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
 
         values = dict(validator.validated_data)
-        expected_notebook_version = values.pop("investigation_version")
+        expected_notebook_version = values.pop("notebook_version")
         expected_block_version = values.pop("version")
         if "generation_prompt" in values:
             values["prompt"] = values.pop("generation_prompt")
@@ -109,7 +126,9 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         )
 
     @extend_schema(
-        operation_id="Delete an Investigation Block",
+        operation_id="deleteOrganizationNotebookBlock",
+        summary="Delete a Notebook Block",
+        tags=["Notebooks"],
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             NotebookParams.NOTEBOOK_ID,
@@ -127,7 +146,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         examples=[
             OpenApiExample(
                 "Example request",
-                value={"investigationVersion": 2, "version": 1},
+                value={"notebookVersion": 2, "version": 1},
                 request_only=True,
             )
         ],
@@ -138,23 +157,23 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         organization: Organization,
         notebook: Notebook,
         block: NotebookBlock,
-    ) -> Response:
+    ) -> Response[None] | Response[ValidationErrorResponse] | Response[DetailResponse]:
         """
         Soft-delete an active block using notebook and block versions. Active executions and
-        other state conflicts return 409. Returns no body. Requires an authenticated user.
+        other state conflicts return 409. Returns no body. Requires a user or service account.
         Requires the organizations:investigations feature and open organization membership.
         """
-        require_authenticated_user(request)
+        require_notebook_writer(request, notebook)
         if block.deleted_at is not None:
             raise ResourceDoesNotExist
 
         validator = BlockDeleteValidator(data=request.data)
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
         try:
             delete_block(
                 block=block,
-                expected_notebook_version=validator.validated_data["investigation_version"],
+                expected_notebook_version=validator.validated_data["notebook_version"],
                 expected_block_version=validator.validated_data["version"],
             )
         except Exception as error:

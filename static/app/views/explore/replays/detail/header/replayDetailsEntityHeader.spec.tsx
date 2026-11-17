@@ -72,10 +72,6 @@ describe('ReplayDetailsEntityHeader', () => {
     ProjectsStore.loadInitialData([project]);
   });
 
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
-
   function mockViewedBy(replayId: string) {
     return MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${replayId}/viewed-by/`,

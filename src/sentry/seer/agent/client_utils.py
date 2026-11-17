@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
@@ -91,6 +91,7 @@ class UserOrgContext(TypedDict):
 
 class AgentChatRequest(TypedDict):
     organization_id: int
+    billing_feature: NotRequired[int]
     query: str
     run_id: int | None
     insert_index: int | None
@@ -107,7 +108,6 @@ class AgentChatRequest(TypedDict):
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
     artifact_schema: NotRequired[dict[str, Any]]
-    custom_tools: NotRequired[list[dict[str, Any]]]
     on_completion_hook: NotRequired[dict[str, Any]]
     category_key: NotRequired[str]
     category_value: NotRequired[str]
@@ -152,6 +152,7 @@ class AgentRunOptions(TypedDict):
 
 class SeerFeatureRunRequest(TypedDict):
     feature_id: str
+    billing_feature: NotRequired[int]
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
     user_org_context: NotRequired[UserOrgContext]
@@ -427,6 +428,8 @@ def collect_user_org_context(
     user: RequestPrincipal | None,
     organization: Organization,
     request: HttpRequest | Request | None = None,
+    *,
+    priority_project_repo_ids: Collection[int] = (),
 ) -> UserOrgContext:
     """Collect user and organization context for a new agent run."""
     all_projects = Project.objects.filter(
@@ -434,7 +437,10 @@ def collect_user_org_context(
     ).values("id", "slug")
 
     prefs_by_pid = bulk_read_preferences_from_sentry_db(
-        organization.id, [p["id"] for p in all_projects], limit_repos=True
+        organization.id,
+        [p["id"] for p in all_projects],
+        limit_repos=True,
+        priority_project_repo_ids=priority_project_repo_ids,
     )
     repos_by_pid = {
         str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()

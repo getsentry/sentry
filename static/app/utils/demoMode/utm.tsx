@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import * as qs from 'sentry/utils/url/qs';
 
 const trackableParams = [/^GCLID$/, /^promo_name$/, /^utm_.+$/];
 const trackableParamsRegExp = new RegExp(

@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -191,28 +191,21 @@ function LifecycleFoldSection({
   children: React.ReactNode;
   tag?: React.ReactNode;
 }) {
-  const title = (
-    <TraceDrawerComponents.SectionTitleWithQuestionTooltip
-      title={t('Cache Lifecycle')}
-      tooltipText={t(
-        'A cache-specific summary of this span’s attributes and links. Times are relative to this span.'
-      )}
-    />
-  );
-
   return (
     <FoldSection
       sectionKey="cache-lifecycle"
       disableCollapsePersistence
       title={
-        tag ? (
-          <Flex gap="sm" align="center">
-            {title}
-            {tag}
-          </Flex>
-        ) : (
-          title
-        )
+        <Flex gap="sm" align="center">
+          <TraceDrawerComponents.SectionTitleWithQuestionTooltip
+            title={t('Cache lifecycle')}
+            tooltipText={t(
+              'A cache-specific summary of this span’s attributes and links. Times are relative to this span.'
+            )}
+          />
+          <FeatureBadge type="new" />
+          {tag}
+        </Flex>
       }
     >
       <Timeline.Container>{children}</Timeline.Container>

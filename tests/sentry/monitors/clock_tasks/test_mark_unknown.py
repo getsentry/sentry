@@ -50,7 +50,7 @@ class MonitorClockTasksMarkUnknownTest(TestCase):
             status=MonitorStatus.OK,
         )
         # Checkin will timeout in 30 minutes
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts,

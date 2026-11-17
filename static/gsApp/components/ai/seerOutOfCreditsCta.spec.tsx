@@ -121,12 +121,58 @@ describe('SeerOutOfCreditsCta', () => {
     ).toBeInTheDocument();
   });
 
-  it('tells members to ask their admin about the daily usage limit', () => {
+  it('lets members ask their admins to raise the daily usage limit', async () => {
     const organization = OrganizationFixture({access: ['org:read']});
     act(() =>
       SubscriptionStore.set(
         organization.slug,
-        SubscriptionFixture({organization, canSelfServe: true})
+        SubscriptionFixture({
+          organization,
+          canSelfServe: true,
+          onDemandPeriodStart: '2017-10-01',
+        })
+      )
+    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      method: 'PUT',
+    });
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer-top-up-request/`,
+      method: 'POST',
+    });
+
+    render(
+      <SeerOutOfCreditsCta reason="agent-chat" denialReason="daily_cap_exceeded" />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        'Your organization hit its daily usage limit, so you cannot continue messaging Seer. If you want to increase your limit, reach out to your admin.'
+      )
+    ).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/seer-top-up-request/`,
+        expect.objectContaining({data: {denialReason: 'daily_cap_exceeded'}})
+      )
+    );
+    expect(await screen.findByRole('button', {name: 'Admins emailed'})).toBeDisabled();
+  });
+
+  it('gives members of orgs that cannot self-serve no button for the daily usage limit', () => {
+    const organization = OrganizationFixture({access: ['org:read']});
+    act(() =>
+      SubscriptionStore.set(
+        organization.slug,
+        SubscriptionFixture({organization, canSelfServe: false})
       )
     );
 
@@ -140,11 +186,10 @@ describe('SeerOutOfCreditsCta', () => {
         'Your organization hit its daily usage limit, so you cannot continue messaging Seer. If you want to increase your limit, reach out to your admin.'
       )
     ).toBeInTheDocument();
-    // "Contact Admin" asks for credits, which won't lift the limit.
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('tells members when Autofix hit the daily usage limit', () => {
+  it('tells members when Autofix hit the daily usage limit', async () => {
     const organization = OrganizationFixture({access: ['org:read']});
     act(() =>
       SubscriptionStore.set(
@@ -152,6 +197,11 @@ describe('SeerOutOfCreditsCta', () => {
         SubscriptionFixture({organization, canSelfServe: true})
       )
     );
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {},
+    });
 
     render(
       <SeerOutOfCreditsCta
@@ -163,7 +213,7 @@ describe('SeerOutOfCreditsCta', () => {
     );
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         'Your organization hit its daily usage limit, so you cannot start an Autofix run. If you want to increase your limit, reach out to your admin.'
       )
     ).toBeInTheDocument();

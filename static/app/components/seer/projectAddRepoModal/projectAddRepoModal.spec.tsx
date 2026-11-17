@@ -63,7 +63,6 @@ describe('ProjectAddRepoModal', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   function openAddRepoModal(org = organization) {
@@ -184,6 +183,26 @@ describe('ProjectAddRepoModal', () => {
       await screen.findByText(/Seer uses the repositories linked to your project/)
     ).toBeInTheDocument();
     expect(screen.queryByText(/Autofix requires you to attach/)).not.toBeInTheDocument();
+  });
+
+  it('starts with Auto-Iterate on PRs off for token-billed orgs', async () => {
+    openAddRepoModal(
+      OrganizationFixture({
+        features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
+      })
+    );
+
+    expect(
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
+    ).not.toBeChecked();
+  });
+
+  it('starts with Auto-Iterate on PRs on for other orgs', async () => {
+    openAddRepoModal();
+
+    expect(
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
+    ).toBeChecked();
   });
 
   it('tells other orgs to attach repositories for Autofix', async () => {

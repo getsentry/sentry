@@ -97,7 +97,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
     canAllocate: true,
     canProductTrial: true,
     freeEventsMultiple: 1_000,
-    feature: 'performance-view',
     hasSpikeProtection: true,
     checkoutTooltip: t(
       'Transactions are sent when your service receives a request and sends a response.'
