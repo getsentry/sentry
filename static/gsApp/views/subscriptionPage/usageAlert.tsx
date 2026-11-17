@@ -13,14 +13,11 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {AddEventsCTA} from 'getsentry/components/addEventsCTA';
 import {RESERVED_BUDGET_QUOTA, SEER_CREDITS_LINE_ITEM_UID} from 'getsentry/constants';
-import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
 import {
   convertUsageToReservedUnit,
   formatReservedWithUnits,
   getBestActionToIncreaseEventLimits,
-  hasPerformance,
-  isBizPlanFamily,
   isUnlimitedReserved,
   UsageAction,
 } from 'getsentry/utils/billing';
@@ -225,17 +222,8 @@ export function UsageAlert({subscription, usage}: Props) {
   const projectedOverages = getProjectedOverages();
   const hasOverage = hasExceeded || !!projectedOverages.length;
 
-  // if no overage, we can still have a CTA
   if (!hasOverage) {
-    return getBestActionToIncreaseEventLimits(organization, subscription) ===
-      'request_add_events' &&
-      isBizPlanFamily(subscription.planDetails) &&
-      hasPerformance(subscription.planDetails) ? (
-      <OrgStatsBanner
-        organization={organization}
-        referrer="subscription-default-event-cta"
-      />
-    ) : null;
+    return null;
   }
 
   const showProjected = !hasExceeded;

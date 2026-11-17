@@ -732,5 +732,29 @@ describe('Subscription > UsageAlert', () => {
         screen.getByText(textWithMarkupMatcher(/depleted its errors capacity/))
       ).toBeInTheDocument();
     });
+
+    it('does not ask a non-billing member for more quota when only Seer Credits ran out', () => {
+      const organization = OrganizationFixture({access: []});
+      const subscription = SubscriptionFixture({
+        organization,
+        plan: 'am3_business',
+        canSelfServe: true,
+        categories: {
+          errors: MetricHistoryFixture({usageExceeded: false}),
+          [SEER_CREDITS_LINE_ITEM_UID]: MetricHistoryFixture({
+            category: SEER_CREDITS_LINE_ITEM_UID as DataCategory,
+            usageExceeded: true,
+          }),
+        },
+      });
+
+      SubscriptionStore.set(organization.slug, subscription);
+      const {container} = render(
+        <UsageAlert subscription={subscription} usage={emptyUsage} />,
+        {organization}
+      );
+
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 });

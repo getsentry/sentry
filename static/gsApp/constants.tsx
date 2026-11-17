@@ -25,6 +25,9 @@ export const MILLISECONDS_IN_HOUR = 3_600_000;
  * subscription and usage responses key them by their line item UID
  * (getsentry's `SEER_CREDITS_LINE_ITEM_UID`). The billing page reports them on
  * the Seer card rather than with the other categories.
+ *
+ * Widened to `string` because callers compare it with `DataCategory` keys, which
+ * TypeScript rejects for a literal type outside the enum (TS2367).
  */
 export const SEER_CREDITS_LINE_ITEM_UID =
   '8ee96181-c10a-4fe1-8e00-08af59522463' as string;
