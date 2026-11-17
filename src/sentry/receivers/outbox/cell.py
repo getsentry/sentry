@@ -231,7 +231,7 @@ def process_project_updates(
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.TEAM_UPDATE)
-def process_team_updates(object_identifier: int, **kwds: Any) -> None:
+def process_team_deletions(object_identifier: int, **kwds: Any) -> None:
     maybe_process_tombstone(Team, object_identifier)
 
 

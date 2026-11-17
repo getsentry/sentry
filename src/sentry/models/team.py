@@ -187,16 +187,20 @@ class Team(Model):
         else:
             save_callback()
 
+    @staticmethod
+    def outbox_for_delete(team_identifier: int, organization_identifier: int) -> CellOutbox:
+        return CellOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=organization_identifier,
+            category=OutboxCategory.TEAM_UPDATE,
+            object_identifier=team_identifier,
+        )
+
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
-        # Only deletes need an outbox: its tombstone removes control silo rows linked to the team.
+        # Nothing in the control silo copies team fields, so only deletes write an outbox:
+        # the tombstone it leads to cleans up control silo rows that point at the team.
         with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=False):
-            outbox = CellOutbox(
-                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-                shard_identifier=self.organization_id,
-                category=OutboxCategory.TEAM_UPDATE,
-                object_identifier=self.id,
-            )
-            outbox.save()
+            Team.outbox_for_delete(self.id, self.organization_id).save()
             return super().delete(*args, **kwargs)
 
     @property
