@@ -36,7 +36,9 @@ export function EventAttachmentActions({
 }: Props) {
   const organization = useOrganization();
   const {hasRole: hasAttachmentRole} = useRole({role: 'attachmentsRole'});
-  const url = `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/`;
+  const url = resolveHostname(
+    `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/`
+  );
   const hasPreview = hasInlineAttachmentRenderer(attachment);
   const isTooLarge = isAttachmentTooLargeForPreview(attachment);
   const canPreview = hasPreview && !isTooLarge;
@@ -68,7 +70,7 @@ export function EventAttachmentActions({
       <LinkButton
         size="xs"
         icon={<IconDownload />}
-        href={hasAttachmentRole ? resolveHostname(`${url}?download=1`) : ''}
+        href={hasAttachmentRole ? `${url}?download=1` : ''}
         disabled={!hasAttachmentRole}
         tooltipProps={{
           title: hasAttachmentRole

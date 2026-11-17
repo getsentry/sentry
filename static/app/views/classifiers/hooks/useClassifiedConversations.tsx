@@ -1,5 +1,6 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -16,14 +17,44 @@ import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableC
 const CLASSIFIED_CONVERSATIONS_PER_PAGE = 20;
 
 const CONVERSATION_ID_FIELD = 'gen_ai.conversation.id';
+const TIMESTAMP_FIELD = 'timestamp';
+
+const CLASSIFIED_CONVERSATION_SORTS = ['age', '-age', 'result', '-result'] as const;
+
+export type ClassifiedConversationSortKey = 'age' | 'result';
+
+export type ClassifiedConversationSort = (typeof CLASSIFIED_CONVERSATION_SORTS)[number];
 
 type ClassifierResultRow = Record<string, string | number | null | undefined>;
+
+export interface ClassifiedConversation {
+  classifiedAt: string | null;
+  conversation: Conversation;
+  result: number | null;
+}
 
 export function useClassifiedConversations(classifier: TelemetryClassifier) {
   const organization = useOrganization();
   const {cursor, setCursor, unsetCursor} = useTableCursor();
+  const [sort, setSortState] = useQueryState(
+    'sort',
+    parseAsStringLiteral(CLASSIFIED_CONVERSATION_SORTS)
+      .withDefault('-age')
+      .withOptions({history: 'replace'})
+  );
   const resultField = `tags[${getResultAttributeKey(classifier.resultAttribute)},number]`;
   const project = [Number(classifier.projectId)];
+
+  const sortDirection = sort.startsWith('-') ? '-' : '';
+  const sortField = sort.endsWith('result') ? resultField : TIMESTAMP_FIELD;
+
+  const setSort = useCallback(
+    (nextSort: ClassifiedConversationSort) => {
+      setSortState(nextSort);
+      unsetCursor();
+    },
+    [setSortState, unsetCursor]
+  );
 
   const resultsQuery = useQuery({
     ...apiOptions.as<{data: ClassifierResultRow[]}>()(
@@ -32,9 +63,9 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
         path: {organizationIdOrSlug: organization.slug},
         query: {
           dataset: DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
-          field: [CONVERSATION_ID_FIELD, resultField, 'timestamp'],
+          field: [CONVERSATION_ID_FIELD, resultField, TIMESTAMP_FIELD],
           query: `has:${resultField}`,
-          sort: '-timestamp',
+          sort: `${sortDirection}${sortField}`,
           per_page: CLASSIFIED_CONVERSATIONS_PER_PAGE,
           cursor,
           project,
@@ -47,25 +78,29 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
     select: selectJsonWithHeaders,
   });
 
-  const results = useMemo(() => {
-    const resultsByConversationId = new Map<string, number | null>();
+  const classifications = useMemo(() => {
+    const classificationsByConversationId = new Map<
+      string,
+      Pick<ClassifiedConversation, 'classifiedAt' | 'result'>
+    >();
     for (const row of resultsQuery.data?.json.data ?? []) {
       const conversationId = row[CONVERSATION_ID_FIELD];
       if (typeof conversationId !== 'string' || !conversationId) {
         continue;
       }
-      if (!resultsByConversationId.has(conversationId)) {
-        const value = row[resultField];
-        resultsByConversationId.set(
-          conversationId,
-          typeof value === 'number' ? value : null
-        );
+      if (!classificationsByConversationId.has(conversationId)) {
+        const result = row[resultField];
+        const timestamp = row[TIMESTAMP_FIELD];
+        classificationsByConversationId.set(conversationId, {
+          result: typeof result === 'number' ? result : null,
+          classifiedAt: typeof timestamp === 'string' ? timestamp : null,
+        });
       }
     }
-    return resultsByConversationId;
+    return classificationsByConversationId;
   }, [resultsQuery.data, resultField]);
 
-  const conversationIds = [...results.keys()];
+  const conversationIds = [...classifications.keys()];
 
   const conversationsQuery = useQuery(
     apiOptions.as<Conversation[]>()(
@@ -88,25 +123,26 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
     )
   );
 
-  const data = useMemo(() => {
+  const data = useMemo<ClassifiedConversation[]>(() => {
     const conversationsById = new Map(
       (conversationsQuery.data ?? []).map(conversation => [
         conversation.conversationId,
         conversation,
       ])
     );
-    return [...results.keys()].flatMap(
-      conversationId => conversationsById.get(conversationId) ?? []
-    );
-  }, [conversationsQuery.data, results]);
+    return [...classifications].flatMap(([conversationId, classification]) => {
+      const conversation = conversationsById.get(conversationId);
+      return conversation ? [{...classification, conversation}] : [];
+    });
+  }, [conversationsQuery.data, classifications]);
 
   return {
     data,
-    results,
     isFetching: resultsQuery.isFetching || conversationsQuery.isFetching,
     error: resultsQuery.error ?? conversationsQuery.error,
     pageLinks: resultsQuery.data?.headers.Link,
     setCursor,
-    unsetCursor,
+    sort,
+    setSort,
   };
 }

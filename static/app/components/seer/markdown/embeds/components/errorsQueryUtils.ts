@@ -1,11 +1,11 @@
 import type {Query} from 'history';
-import qs from 'query-string';
 
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import * as qs from 'sentry/utils/url/qs';
 
 export type ErrorsQueryData = EmbedOutput<'errorsQuery'>;
 

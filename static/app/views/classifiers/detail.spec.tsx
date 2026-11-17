@@ -8,6 +8,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -17,6 +18,10 @@ import type {Organization} from 'sentry/types/organization';
 import ClassifierDetail from './detail';
 
 const RESULT_FIELD = 'tags[sentry.enrichment.user_frustration,number]';
+
+function minutesAgo(minutes: number) {
+  return new Date(Date.now() - minutes * 60_000).toISOString();
+}
 
 function ConversationFixture(conversationId: string, title: string) {
   return {
@@ -140,9 +145,21 @@ describe('ClassifierDetail', () => {
       url: eventsUrl,
       body: {
         data: [
-          {'gen_ai.conversation.id': 'conv-2', [RESULT_FIELD]: 0.9},
-          {'gen_ai.conversation.id': 'conv-1', [RESULT_FIELD]: 0.25},
-          {'gen_ai.conversation.id': 'conv-2', [RESULT_FIELD]: 0.1},
+          {
+            'gen_ai.conversation.id': 'conv-2',
+            [RESULT_FIELD]: 0.9,
+            timestamp: minutesAgo(5),
+          },
+          {
+            'gen_ai.conversation.id': 'conv-1',
+            [RESULT_FIELD]: 0.25,
+            timestamp: minutesAgo(10),
+          },
+          {
+            'gen_ai.conversation.id': 'conv-2',
+            [RESULT_FIELD]: 0.1,
+            timestamp: minutesAgo(15),
+          },
         ],
       },
       headers: {
@@ -161,14 +178,19 @@ describe('ClassifierDetail', () => {
 
     expect(await screen.findByText('Second conversation')).toBeInTheDocument();
     expect(
-      screen.getByRole('columnheader', {name: 'user_frustration'})
+      screen.getByRole('columnheader', {name: 'sentry.enrichment.user_frustration'})
     ).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(
+      ['Conversation', 'sentry.enrichment.user_frustration', 'Age']
+    );
 
     const [, secondRow, firstRow] = screen.getAllByRole('row');
     expect(within(secondRow!).getByText('Second conversation')).toBeInTheDocument();
     expect(within(secondRow!).getByText('90%')).toBeInTheDocument();
+    expect(within(secondRow!).getByText('5m ago')).toBeInTheDocument();
     expect(within(firstRow!).getByText('First conversation')).toBeInTheDocument();
     expect(within(firstRow!).getByText('25%')).toBeInTheDocument();
+    expect(within(firstRow!).getByText('10m ago')).toBeInTheDocument();
 
     expect(resultsRequest).toHaveBeenCalledWith(
       eventsUrl,
@@ -203,6 +225,93 @@ describe('ClassifierDetail', () => {
       expect.objectContaining({
         query: expect.objectContaining({cursor: '0:20:0'}),
       })
+    );
+  });
+
+  it('sorts the classified conversations by result and age', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({
+        id: '10',
+        projectId: '1',
+        resultAttribute: 'user_frustration',
+      }),
+    });
+    const resultsRequest = MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {
+        data: [
+          {
+            'gen_ai.conversation.id': 'conv-1',
+            [RESULT_FIELD]: 0.5,
+            timestamp: minutesAgo(5),
+          },
+        ],
+      },
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.classifiers.detail.conversations'}),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: conversationsUrl,
+      body: [ConversationFixture('conv-1', 'First conversation')],
+    });
+
+    renderDetail();
+
+    await screen.findByText('First conversation');
+    expect(screen.getByRole('columnheader', {name: 'Age'})).toHaveAttribute(
+      'aria-sort',
+      'descending'
+    );
+    expect(screen.queryByRole('button', {name: 'Conversation'})).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'sentry.enrichment.user_frustration'})
+    );
+
+    await waitFor(() =>
+      expect(resultsRequest).toHaveBeenLastCalledWith(
+        eventsUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({sort: `-${RESULT_FIELD}`}),
+        })
+      )
+    );
+    expect(
+      await screen.findByRole('columnheader', {
+        name: 'sentry.enrichment.user_frustration',
+      })
+    ).toHaveAttribute('aria-sort', 'descending');
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'sentry.enrichment.user_frustration'})
+    );
+
+    await waitFor(() =>
+      expect(resultsRequest).toHaveBeenLastCalledWith(
+        eventsUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({sort: RESULT_FIELD}),
+        })
+      )
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Age'}));
+    expect(await screen.findByRole('columnheader', {name: 'Age'})).toHaveAttribute(
+      'aria-sort',
+      'descending'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Age'}));
+
+    await waitFor(() =>
+      expect(resultsRequest).toHaveBeenLastCalledWith(
+        eventsUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({sort: 'timestamp'}),
+        })
+      )
     );
   });
 
