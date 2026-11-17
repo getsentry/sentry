@@ -9,7 +9,6 @@ import {useMenu, useSubmenuTrigger} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {Item, Section} from '@react-stately/collections';
 import type {RootMenuTriggerState} from '@react-stately/menu';
-import {useSubmenuTriggerState} from '@react-stately/menu';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 import type {Key, Node} from '@react-types/shared';
@@ -48,6 +47,7 @@ import type {DropdownMenuSeparatorProps} from './separator';
 import {DropdownMenuSeparator} from './separator';
 import {useDropdownMenuKeyboard} from './useDropdownMenuKeyboard';
 import {useDropdownMenuRowLayout} from './useDropdownMenuRowLayout';
+import {useDropdownSubmenuState} from './useDropdownSubmenuState';
 import {
   countMenuItems,
   filterMenuItems,
@@ -325,7 +325,11 @@ function DropdownMenuList({
   const {t} = useTranslation();
   const theme = useTheme();
   const context = useContext(DropdownMenuContext);
+  // A root menu passes its own state, even when it renders inside another
+  // menu, so it starts a new menu tree.
+  const isRootMenu = rootMenuStateProp !== undefined;
   const rootMenuState = rootMenuStateProp ?? context.rootMenuState;
+  const submenuLevel = isRootMenu ? 0 : (context.submenuLevel ?? -1) + 1;
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
   const flatNodes = useMemo(() => flattenSections(stateCollection), [stateCollection]);
@@ -390,11 +394,17 @@ function DropdownMenuList({
   // Submenus render into this element. It sits inside the root overlay, but
   // outside every menu element.
   const [ownPortalContainer, setOwnPortalContainer] = useState<HTMLElement | null>(null);
-  const portalContainer = context.portalContainer ?? ownPortalContainer;
+  const portalContainer = isRootMenu ? ownPortalContainer : context.portalContainer;
 
   const contextValue = useMemo(
-    () => ({rootMenuState, parentMenuRef: menuRef, portalContainer, virtualizeThreshold}),
-    [rootMenuState, menuRef, portalContainer, virtualizeThreshold]
+    () => ({
+      rootMenuState,
+      parentMenuRef: menuRef,
+      portalContainer,
+      submenuLevel,
+      virtualizeThreshold,
+    }),
+    [rootMenuState, menuRef, portalContainer, submenuLevel, virtualizeThreshold]
   );
   const searchInput = searchState && (
     <DropdownMenuSearch
@@ -523,9 +533,7 @@ function DropdownMenuList({
               </Overlay>
             )}
           </Stack>
-          {!context.portalContainer && (
-            <Container display="contents" ref={setOwnPortalContainer} />
-          )}
+          {isRootMenu && <Container display="contents" ref={setOwnPortalContainer} />}
         </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
@@ -637,14 +645,19 @@ function DropdownSubmenu({
   onClose,
   size,
 }: DropdownSubmenuProps) {
-  const {rootMenuState, parentMenuRef, portalContainer} = useContext(DropdownMenuContext);
-  if (!rootMenuState || !parentMenuRef) {
+  const {rootMenuState, parentMenuRef, portalContainer, submenuLevel} =
+    useContext(DropdownMenuContext);
+  if (!rootMenuState || !parentMenuRef || submenuLevel === undefined) {
     throw new Error('DropdownSubmenu must be rendered inside a DropdownMenu');
   }
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
   const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
-  const submenuState = useSubmenuTriggerState({triggerKey: node.key}, rootMenuState);
+  const submenuState = useDropdownSubmenuState({
+    level: submenuLevel,
+    rootMenuState,
+    triggerKey: node.key,
+  });
   const submenuRef = useRef<HTMLUListElement>(null);
   const {
     isOpen,

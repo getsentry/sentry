@@ -23,6 +23,11 @@ interface DropdownMenuContextValue {
    */
   rootMenuState?: RootMenuTriggerState;
   /**
+   * Level of the submenus opened from the current menu's items: 0 in the root
+   * menu, 1 in its submenus, and so on.
+   */
+  submenuLevel?: number;
+  /**
    * `virtualizeThreshold` of the parent menu, inherited by its submenus.
    */
   virtualizeThreshold?: number;

@@ -685,6 +685,68 @@ describe('DropdownMenu', () => {
     );
   });
 
+  it('keeps a submenu open while the pointer moves diagonally toward it', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu
+        triggerLabel="Menu"
+        items={[
+          {
+            key: 'parent',
+            label: 'Parent',
+            submenu: true,
+            children: [{key: 'child', label: 'Child'}],
+          },
+          {key: 'sibling', label: 'Sibling'},
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+    await user.click(screen.getByRole('button', {name: 'Menu'}));
+    const rootMenu = screen.getByRole('menu');
+
+    // jsdom has no layout. Place the root menu on the left and its submenu
+    // on the right, which React Aria reads to tell where the pointer heads.
+    jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.getAttribute('role') !== 'menu') {
+          return new DOMRect();
+        }
+        return this === rootMenu
+          ? new DOMRect(0, 0, 200, 240)
+          : new DOMRect(200, 0, 200, 240);
+      });
+    // React Aria handles one pointer move every 50ms.
+    let now = Date.now();
+    jest.spyOn(Date, 'now').mockImplementation(() => (now += 100));
+
+    await user.pointer({
+      target: screen.getByRole('menuitem', {name: 'Parent'}),
+      coords: {clientX: 100, clientY: 20},
+    });
+    expect(await screen.findByRole('menuitemradio', {name: 'Child'})).toBeInTheDocument();
+
+    // Moving toward the submenu blocks the parent menu, so crossing a sibling
+    // item on the way does not close the submenu.
+    await user.pointer({coords: {clientX: 120, clientY: 30}});
+    await user.pointer({coords: {clientX: 150, clientY: 50}});
+    await waitFor(() => expect(rootMenu).toHaveStyle({pointerEvents: 'none'}));
+    await expect(
+      user.hover(screen.getByRole('menuitemradio', {name: 'Sibling'}))
+    ).rejects.toThrow('pointer-events: none');
+    expect(screen.getByRole('menuitemradio', {name: 'Child'})).toBeInTheDocument();
+
+    // Moving away from the submenu unblocks the parent menu. The pointer is
+    // still over the blocked menu, so skip user-event's pointer-events check.
+    await userEvent
+      .setup({pointerEventsCheck: 0})
+      .pointer({coords: {clientX: 100, clientY: 60}});
+    await waitFor(() => expect(rootMenu).not.toHaveStyle({pointerEvents: 'none'}));
+
+    jest.restoreAllMocks();
+  });
+
   it.each(['Escape', 'ArrowLeft'])(
     'closes nested submenus one level at a time with %s',
     async key => {
@@ -1205,6 +1267,61 @@ describe('DropdownMenu', () => {
         await screen.findByRole('menuitemradio', {name: 'Item 499'})
       ).toBeInTheDocument();
       expect(screen.getAllByRole('menuitemradio')).toHaveLength(manyItems.length);
+    });
+
+    it('opens a submenu whose trigger mounts while another submenu is open', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          items={[
+            {
+              key: 'first',
+              // The longest label, which a virtualized menu keeps mounted.
+              label: 'First submenu with a long label',
+              submenu: true,
+              children: [{key: 'first-child', label: 'First child'}],
+            },
+            ...manyItems.slice(0, 100),
+            {
+              key: 'second',
+              label: 'Second submenu',
+              submenu: true,
+              children: [{key: 'second-child', label: 'Second child'}],
+            },
+            ...manyItems.slice(100),
+          ]}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      const rootMenu = screen.getByRole('menu');
+      expect(
+        screen.queryByRole('menuitem', {name: 'Second submenu'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.hover(
+        screen.getByRole('menuitem', {name: 'First submenu with a long label'})
+      );
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'First child'})
+      ).toBeInTheDocument();
+
+      // Let the virtualizer settle its scroll to the hovered trigger.
+      await act(() => new Promise(resolve => requestAnimationFrame(resolve)));
+
+      // The second trigger mounts while the first submenu is still open.
+      rootMenu.scrollTop = 3_950;
+      fireEvent.scroll(rootMenu);
+      const second = await screen.findByRole('menuitem', {name: 'Second submenu'});
+
+      await userEvent.hover(second, {pointerEventsCheck: 0});
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Second child'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'First child'})
+      ).not.toBeInTheDocument();
     });
 
     const sectionedItems = ['A', 'B'].map(section => ({
