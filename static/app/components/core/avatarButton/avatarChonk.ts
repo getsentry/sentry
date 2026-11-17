@@ -15,6 +15,10 @@ import {hexToOklch, oklchToHex} from './oklch';
  * `edge` is the color along the bottom of a full-bleed image, which sits right
  * on top of the chonk. The chonk stays at least MIN_EDGE_STEP darker than it,
  * so an image that darkens toward the bottom doesn't merge into its chonk.
+ *
+ * In light mode, a dark avatar (like the Sentry logo) would push that darker
+ * step to near-black, which loses the hue. Below MIN_DARK_CHONK the chonk flips
+ * to a lighter tint of the same hue instead, still clear of the avatar.
  */
 export function getAvatarChonk(
   dominant: string,
@@ -25,11 +29,23 @@ export function getAvatarChonk(
     return undefined;
   }
   const {l, c, h} = hexToOklch(dominant);
-  const lightness = themeType === 'dark' ? 0.19 : l - 0.13;
-  const chroma = themeType === 'dark' ? Math.min(c, 0.09) : c;
-  const ceiling = edge ? hexToOklch(edge).l - MIN_EDGE_STEP : 1;
-  return oklchToHex({l: Math.max(0, Math.min(lightness, ceiling)), c: chroma, h});
+  if (themeType === 'dark') {
+    return oklchToHex({l: 0.19, c: Math.min(c, 0.09), h});
+  }
+  const edgeL = edge ? hexToOklch(edge).l : undefined;
+  const darker = Math.min(l - 0.13, edgeL === undefined ? 1 : edgeL - MIN_EDGE_STEP);
+  if (darker >= MIN_DARK_CHONK) {
+    return oklchToHex({l: darker, c, h});
+  }
+  const lighter = Math.min(MAX_LIGHT_CHONK, Math.max(l, edgeL ?? 0) + LIGHT_CHONK_STEP);
+  return oklchToHex({l: lighter, c, h});
 }
+
+// Below this OKLCH lightness a light-mode chonk reads as black, not the hue.
+export const MIN_DARK_CHONK = 0.25;
+// How much lighter than the avatar the light-mode fallback chonk is.
+const LIGHT_CHONK_STEP = 0.26;
+const MAX_LIGHT_CHONK = 0.8;
 
 // How much darker (OKLCH lightness) the chonk must be than the bottom edge of a
 // full-bleed image for the button's edge to stay visible.
