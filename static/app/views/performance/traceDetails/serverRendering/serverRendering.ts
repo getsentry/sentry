@@ -32,6 +32,11 @@ export interface ServerRender {
 
 /** A render whose HTML the server reuses for many page loads. */
 interface SharedRender extends ServerRender {
+  /**
+   * Seconds from the start of this render to the start of the pageload.
+   * `undefined` for older SDKs.
+   */
+  age: number | undefined;
   /** `undefined` when the type is not set. */
   part: StaticPart | undefined;
 }
@@ -47,6 +52,9 @@ interface PageServerRendering {
 const PAGELOAD_OP = 'pageload';
 const CACHE_ORIGIN_LINK_TYPE = 'cache_origin';
 const SERVER_REQUEST_LINK_TYPE = 'server_request';
+// TODO: Use the constant from `@sentry/conventions` when a release has it.
+// https://github.com/getsentry/sentry-conventions/pull/799
+const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
 export function getServerRenderingType(
   value: string | number | boolean | undefined
@@ -89,7 +97,7 @@ export function getPageServerRendering({
   const cacheOrigin = findLinkOfType(links, CACHE_ORIGIN_LINK_TYPE);
   const serverRequest = findLinkOfType(links, SERVER_REQUEST_LINK_TYPE);
 
-  const sharedRender = getSharedRender(type, cacheOrigin);
+  const sharedRender = getSharedRender(type, cacheOrigin, getRenderAge(attributes));
   const requestRender = getRequestRender(type, serverRequest);
 
   if (!sharedRender && !requestRender) {
@@ -105,10 +113,17 @@ function findLinkOfType(
   return links?.find(link => getSpanLinkType(link) === type);
 }
 
+/** SDKs clamp the age at 0, so a negative value is not valid. */
+function getRenderAge(attributes: TraceItemResponseAttribute[]): number | undefined {
+  const age = Number(getAttributeValue(attributes, PAGE_SERVER_RENDERING_AGE, 'number'));
+  return Number.isFinite(age) && age >= 0 ? age : undefined;
+}
+
 /** A `cache_origin` link or a static type means the server reused HTML. */
 function getSharedRender(
   type: ServerRenderingType | undefined,
-  cacheOrigin: TraceItemResponseLink | undefined
+  cacheOrigin: TraceItemResponseLink | undefined,
+  age: number | undefined
 ): SharedRender | undefined {
   if (!type && !cacheOrigin) {
     return undefined;
@@ -116,6 +131,7 @@ function getSharedRender(
   return {
     part: type ? getStaticPart(type) : undefined,
     location: cacheOrigin ? toLinkedLocation(cacheOrigin) : {type: 'not_traced'},
+    age,
   };
 }
 

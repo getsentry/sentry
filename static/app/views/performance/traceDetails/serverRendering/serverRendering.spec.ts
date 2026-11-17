@@ -76,6 +76,42 @@ describe('getPageServerRendering', () => {
     });
   });
 
+  it('gives the shared render the age of the render', () => {
+    const result = getPageServerRendering({
+      op: 'pageload',
+      attributes: [
+        ...typeAttribute('static'),
+        {name: 'page.server_rendering.age', type: 'int', value: 172800},
+      ],
+      links: [makeLink('cache_origin')],
+    });
+
+    expect(result?.sharedRender?.age).toBe(172800);
+  });
+
+  it('gives the shared render no age when the attribute is missing', () => {
+    const result = getPageServerRendering({
+      op: 'pageload',
+      attributes: typeAttribute('static'),
+      links: [makeLink('cache_origin')],
+    });
+
+    expect(result?.sharedRender?.age).toBeUndefined();
+  });
+
+  it('ignores a negative age', () => {
+    const result = getPageServerRendering({
+      op: 'pageload',
+      attributes: [
+        ...typeAttribute('static'),
+        {name: 'page.server_rendering.age', type: 'int', value: -5},
+      ],
+      links: [makeLink('cache_origin')],
+    });
+
+    expect(result?.sharedRender?.age).toBeUndefined();
+  });
+
   it('marks the shared render as not traced when a static page has no link', () => {
     const result = getPageServerRendering({
       op: 'pageload',
