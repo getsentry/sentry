@@ -22,7 +22,7 @@ The "Configure React SDK" page is where a user who set up manually gets their DS
 Preconditions:
 
 - Baseline from `README.md`. Run the shared recipe on a fresh org `O`, so the page shows `Configure React SDK`.
-- `EV=$PWD/.artifacts/verify-onboarding/<run-id>/manual-setup-docs`.
+- `EV=$PWD/.artifacts/verify-sentry/<run-id>/manual-setup-docs`.
 - `$ST $O --out $EV/00-state.json` shows one `Active` project `javascript-react` with one DSN. Call that DSN `D`.
 
 - **`docs-sections`: sections.** `$A snapshot -i > $EV/docs-sections.aria.txt` lists headings `Configure React SDK`, `Install`, `Configure SDK`, `Verify`, and buttons `npm`, `yarn`, `pnpm`. Save `$A screenshot --full $EV/docs-sections.png`.
@@ -30,7 +30,7 @@ Preconditions:
 - **`copy-dsn`: copy.** `$A find role button click --name "Copy DSN"`. Within a second, `$A snapshot` contains `DSN copied to clipboard`. The paste check from `README.md` returns `D`.
 - **`products-selectable`: product toggles.** `snapshot -i` shows checkboxes `Error Monitoring` (checked, disabled), and `Tracing`, `Session Replay`, `Logs`, `Application Metrics`, all unchecked and enabled.
 - **`product-toggle-updates-snippet`: Tracing.** `$A find role checkbox click --name "Tracing"`. `$A get url` ends in `?product=error-monitoring&product=performance-monitoring`, and `$A eval "document.body.innerText.includes('tracesSampleRate')"` prints `true`. Repeat with `Session Replay`: the URL gains `product=session-replay` and the snippet contains `replaysSessionSampleRate`.
-- **`wait-for-first-event`: first error.** `$A snapshot` contains `Waiting for error`. Run `.venv/bin/python .agents/skills/verify-onboarding/scripts/onboarding.py event $O javascript-react`. `$A wait --text "Error Received"` succeeds without a reload, and `snapshot -i` lists button `Take me to my error`.
+- **`wait-for-first-event`: first error.** `$A snapshot` contains `Waiting for error`. Run `.venv/bin/python .agents/skills/verify-sentry/scripts/sentry_dev.py event $O javascript-react`. `$A wait --text "Error Received"` succeeds without a reload, and `snapshot -i` lists button `Take me to my error`.
 - **`skip-keeps-project`: Skip setup.** On another fresh org at this page, `$A find role button click --name "Skip setup"`. Dialog `Skipping ahead?` lists reasons. `$A find role button click --name "I'll read the docs myself"`. `$A get url` is `/organizations/$O/issues/?guidedStep=1&project=<id>&referrer=onboarding-first-event-footer-skip`, and `$ST $O` still shows the project `Active` with DSN `D`.
 
 ## Gotchas

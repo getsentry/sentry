@@ -1,17 +1,17 @@
-# Onboarding verification map
+# Sentry verification map
 
-This directory is the maintained source for verifying Sentry onboarding and project creation. Read this index before you drive. Then use the matching feature file as the recipe.
+This directory is the maintained source for verifying the Sentry web app. Each file covers one system; the first systems mapped are onboarding and project creation. Read this index before you drive. Then use the matching feature file as the recipe.
 
 ## Baseline preconditions
 
-- `onboarding.py launch` with the default flags (`agentic,scm-project-creation`) unless a recipe says otherwise, then `seed`, `login owner`, and `login member`. `doctor` reports `ok` on every line.
-- Base URL `http://dev.getsentry.net:8000`. Read org slugs from `/tmp/verify-onboarding/seed.json`: `new_orgs[i]`, `existing_org`, `new_team` (`onboarding`), `existing_team` (`backend`).
+- `sentry_dev.py launch` with the default flags (`agentic,scm-project-creation`) unless a recipe says otherwise, then `seed`, `login owner`, and `login member`. `doctor` reports `ok` on every line.
+- Base URL `http://dev.getsentry.net:8000`. Read org slugs from `/tmp/verify-sentry/seed.json`: `new_orgs[i]`, `existing_org`, `new_team` (`onboarding`), `existing_team` (`backend`).
 - Use a fresh org from `new_orgs` for every new-org journey. Onboarding has no reset: a second journey in the same org starts with that org's leftovers.
 - Never drive an instance that this run did not start.
 
 ## Driving conventions
 
-- `A="agent-browser --session verify-onboarding-owner"` and `M="agent-browser --session verify-onboarding-member"`. `ST=".venv/bin/python .agents/skills/verify-onboarding/scripts/onboarding.py state"`. `EV` is the absolute evidence dir for the feature.
+- `A="agent-browser --session verify-sentry-owner"` and `M="agent-browser --session verify-sentry-member"`. `ST=".venv/bin/python .agents/skills/verify-sentry/scripts/sentry_dev.py state"`. `EV` is the absolute evidence dir for the feature.
 - Wait for the agent prompt to be ready before copying it. The button renders disabled until the onboarding run exists: `$A wait --fn "(b => b && !b.disabled)(document.querySelector('button[aria-label=\"Copy agent prompt\"]'))"`.
 - Start HAR capture before the first `Copy agent prompt` click after a page load: `$A network har start`, click, `sleep 2`, `$A network har stop $EV/copy.har`. The page caches the minted handoff code for 5 minutes, so a second click sends no request and the HAR has no code.
 - The platform picker is a combobox: `$A fill 'input[aria-autocomplete="list"]' "React"`, then `$A click 'xpath=//p[@data-test-id="menu-list-item-label"][text()="React"]'`.

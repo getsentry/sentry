@@ -5,7 +5,7 @@ It does what a real agent does after the user pastes the prompt: claims the hand
 /agent-handoff.md, redeems the setup code at /oauth/token/, reports progress with the run code,
 creates a project, sends a verification error through the DSN, and completes the run.
 
-    python3 .agents/skills/verify-onboarding/scripts/fake_agent.py \\
+    python3 .agents/skills/verify-sentry/scripts/fake_agent.py \\
         --org <org-slug> --team <team-slug> --har <capture.har> --out <transcript.json> \\
         [--platform javascript-react] [--stop-after <stage>] [--fail-at <stage>] [--delay <seconds>]
 
@@ -121,9 +121,7 @@ def send_error(agent: Agent, dsn: str, message: str) -> str:
     parts = urllib.parse.urlsplit(dsn)
     project_id = parts.path.strip("/")
     event_id = uuid.uuid4().hex
-    auth = (
-        f"Sentry sentry_version=7, sentry_client=verify-onboarding/1.0, sentry_key={parts.username}"
-    )
+    auth = f"Sentry sentry_version=7, sentry_client=verify-sentry/1.0, sentry_key={parts.username}"
     event = {
         "event_id": event_id,
         "platform": "javascript",
@@ -190,7 +188,7 @@ def main() -> None:
                     run_code,
                     stage,
                     "failed",
-                    eventNote="verify-onboarding injected failure",
+                    eventNote="verify-sentry injected failure",
                     runStatus="failed",
                 )
                 result["run_status"] = run["runStatus"]
@@ -216,7 +214,7 @@ def main() -> None:
         dsn = json.loads(keys_text)[0]["dsn"]["public"]
         step("instrument_app")
         step("plan_test_error")
-        result["event_id"] = send_error(agent, dsn, "verify-onboarding agent test error")
+        result["event_id"] = send_error(agent, dsn, "verify-sentry agent test error")
         step("send_verification_error")
 
         issue_ids: list[str] = []

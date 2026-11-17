@@ -23,12 +23,12 @@ A user in an org with no projects goes through `/onboarding/<org>/`: welcome, co
 Preconditions:
 
 - Baseline from `README.md`. `O` is an unused entry of `new_orgs`.
-- `EV=$PWD/.artifacts/verify-onboarding/<run-id>/new-org-onboarding`.
+- `EV=$PWD/.artifacts/verify-sentry/<run-id>/new-org-onboarding`.
 
 - **`welcome-choices`: welcome.** `$A open "http://dev.getsentry.net:8000/onboarding/$O/"`, then wait for the prompt as in `README.md`. `snapshot -i` lists heading `Let your agent set up Sentry`, button `Copy agent prompt` (enabled), and button `Prefer to do it yourself? Set up manually`.
 - **`scm-connect-providers`: connect step.** Click `[data-test-id="onboarding-setup-in-browser"]`, then `$A wait --text "Continue without a repo"`. `snapshot -i` lists buttons `Add GitHub`, `Add GitLab`, `Add Bitbucket`, `More providers`, `Back`, `Continue without a repo`, and a disabled `Continue`.
 - **`platform-creates-project`: pick React.** Finish the shared recipe in `README.md`. The URL ends in `/setup-docs/?product=error-monitoring`. `$ST $O --out $EV/platform-creates-project.json` shows one project, `javascript-react`, status `Active`, `first_event: null`, with one DSN.
-- **`first-event-lands-on-issue`: first error.** `snapshot` contains `Waiting for error`. Run `.venv/bin/python .agents/skills/verify-onboarding/scripts/onboarding.py event $O javascript-react`; it prints `HTTP 200`. `$A wait --text "Error Received"`, then `$A find role button click --name "Take me to my error"` (it is a link button, so it has role `button`). The URL is `/organizations/$O/issues/<id>/?project=<id>&referrer=onboarding-first-event-footer`, and `state` shows a non-null `first_event`.
+- **`first-event-lands-on-issue`: first error.** `snapshot` contains `Waiting for error`. Run `.venv/bin/python .agents/skills/verify-sentry/scripts/sentry_dev.py event $O javascript-react`; it prints `HTTP 200`. `$A wait --text "Error Received"`, then `$A find role button click --name "Take me to my error"` (it is a link button, so it has role `button`). The URL is `/organizations/$O/issues/<id>/?project=<id>&referrer=onboarding-first-event-footer`, and `state` shows a non-null `first_event`.
 - **`member-new-org`: member.** With another fresh org `O2`, run the welcome step and the shared recipe with `$M`. Capture the HAR of the copy click: the `agent-handoff/prompts/` entry has status `201`. Setup docs open, and `state` shows one `Active` project.
 
 ## Gotchas

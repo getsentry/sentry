@@ -26,8 +26,8 @@ A user copies a prompt for their coding agent. The agent claims the handoff code
 Preconditions:
 
 - Baseline from `README.md`, flags include `agentic`. `O` is a fresh entry of `new_orgs`.
-- `EV=$PWD/.artifacts/verify-onboarding/<run-id>/agent-handoff`.
-- `FA="python3 .agents/skills/verify-onboarding/scripts/fake_agent.py"`.
+- `EV=$PWD/.artifacts/verify-sentry/<run-id>/agent-handoff`.
+- `FA="python3 .agents/skills/verify-sentry/scripts/fake_agent.py"`.
 
 - **`prompt-copy`: copy.** `$A open "http://dev.getsentry.net:8000/onboarding/$O/"`, wait for the prompt as in `README.md`, start a HAR, `$A find role button click --name "Copy agent prompt"`, and stop the HAR to `$EV/copy.har`. `$A snapshot` contains `Agent prompt copied to clipboard`. In the HAR, the `POST /api/0/organizations/$O/agent-handoff/prompts/` entry is `201`, its request body has `"flow":"onboarding"`, and its response has a `code` starting with `sntryh_`. The paste check from `README.md` returns text that contains `http://dev.getsentry.net:8000/agent-handoff.md` and that `code`.
 - **`claim-guide`, `progress-live`, `complete-new-org`: run the agent.** Start it in the background so the page can be watched: `setsid nohup $FA --org $O --team onboarding --har $EV/copy.har --out $EV/agent-transcript.json --delay 6 > $EV/agent-stdout.json 2>&1 < /dev/null &`. Within 15 seconds the page shows heading `Agent Connected` and `Done` rows appear one by one; save a screenshot. When `$EV/agent-stdout.json` is written it has `"guide_has_org_slug": true` and `"run_status": "completed"`. The page shows `You're All Set` and a link `Check out your first issue`; clicking it opens `/organizations/$O/issues/<issue_ids[0]>/`.
