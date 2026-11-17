@@ -75,7 +75,6 @@ export function SpanDescription({
     projectSlug: project?.slug,
   });
   const span = node.value;
-  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
 
   const category = getAttributeValue(attributes, 'span.category', 'string');
   const dbSystem = getAttributeValue(attributes, 'db.system', 'string');
@@ -130,30 +129,28 @@ export function SpanDescription({
         group={group}
         organization={organization}
       />
-      {hasExploreEnabled && (
-        <StyledLink
-          to={getSearchInExploreTarget(
+      <StyledLink
+        to={getSearchInExploreTarget(
+          organization,
+          location,
+          node.projectId?.toString(),
+          exploreAttributeName,
+          exploreAttributeValue,
+          TraceDrawerActionKind.INCLUDE
+        )}
+        onClick={() => {
+          traceAnalytics.trackExploreSearch(
             organization,
-            location,
-            node.projectId?.toString(),
             exploreAttributeName,
             exploreAttributeValue,
-            TraceDrawerActionKind.INCLUDE
-          )}
-          onClick={() => {
-            traceAnalytics.trackExploreSearch(
-              organization,
-              exploreAttributeName,
-              exploreAttributeValue,
-              TraceDrawerActionKind.INCLUDE,
-              'drawer'
-            );
-          }}
-        >
-          <IconGraph type="scatter" size="xs" />
-          {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
-        </StyledLink>
-      )}
+            TraceDrawerActionKind.INCLUDE,
+            'drawer'
+          );
+        }}
+      >
+        <IconGraph type="scatter" size="xs" />
+        {t('More Samples')}
+      </StyledLink>
     </BodyContentWrapper>
   ) : null;
 

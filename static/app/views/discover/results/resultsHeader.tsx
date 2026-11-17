@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
-import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {t} from 'sentry/locale';
@@ -9,92 +8,35 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {useApi} from 'sentry/utils/useApi';
 import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
-import {SavedQueryButtonGroup} from 'sentry/views/discover/savedQuery';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type Props = {
-  errorCode: number;
   eventView: EventView;
   location: Location;
   organization: Organization;
-  setSavedQuery: (savedQuery?: SavedQuery) => void;
-  yAxis: string[];
   isHomepage?: boolean;
 };
 
-export function ResultsHeader({
-  errorCode,
-  eventView,
-  location,
-  organization,
-  setSavedQuery,
-  yAxis,
-  isHomepage,
-}: Props) {
+export function ResultsHeader({eventView, location, organization, isHomepage}: Props) {
   const api = useApi();
-  const [homepageQuery, setHomepageQuery] = useState<SavedQuery | undefined>(undefined);
   const [savedQuery, setSavedQueryState] = useState<SavedQuery | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(() => {
     if (!isHomepage && typeof eventView.id === 'string') {
-      setLoading(true);
       fetchSavedQuery(api, organization.slug, eventView.id).then(fetchedSavedQuery => {
         setSavedQueryState(getSavedQueryWithDataset(fetchedSavedQuery));
-        setLoading(false);
       });
     }
   }, [api, eventView.id, isHomepage, organization.slug]);
 
-  const fetchHomepageQueryData = useCallback(() => {
-    setLoading(true);
-    fetchHomepageQuery(api, organization.slug).then(fetchedHomepageQuery => {
-      setHomepageQuery(getSavedQueryWithDataset(fetchedHomepageQuery));
-      setLoading(false);
-    });
-  }, [api, organization.slug]);
-
   useEffect(() => {
     if (!isHomepage && eventView.id) {
-      // oxlint-disable-next-line react/set-state-in-effect
       fetchData();
-    } else if (eventView.id === undefined) {
-      setLoading(false);
     }
   }, [eventView.id, isHomepage, fetchData]);
 
-  useEffect(() => {
-    if (isHomepage) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      fetchHomepageQueryData();
-    }
-  }, [isHomepage, fetchHomepageQueryData]);
-
   const hasDiscoverQueryFeature = organization.features.includes('discover-query');
-  const hasExplore = organization.features.includes('visibility-explore-view');
-
-  const savedQueryButton = (
-    <SavedQueryButtonGroup
-      setSavedQuery={setSavedQuery}
-      location={location}
-      organization={organization}
-      eventView={eventView}
-      savedQuery={savedQuery}
-      queryDataLoading={loading}
-      disabled={errorCode >= 400 && errorCode < 500}
-      updateCallback={fetchData}
-      yAxis={yAxis}
-      isHomepage={isHomepage}
-      setHomepageQuery={updatedHomepageQuery => {
-        setHomepageQuery(getSavedQueryWithDataset(updatedHomepageQuery));
-        if (isHomepage) {
-          setSavedQuery(updatedHomepageQuery);
-        }
-      }}
-      homepageQuery={homepageQuery}
-    />
-  );
 
   return (
     <Fragment>
@@ -120,7 +62,6 @@ export function ResultsHeader({
           }}
         />
       )}
-      {!hasExplore && <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>}
     </Fragment>
   );
 }

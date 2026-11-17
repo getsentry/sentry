@@ -22,7 +22,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
-import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 
 import {usePrimaryNavigation} from './primaryNavigationContext';
 
@@ -170,7 +169,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
         case NavigationTour.EXPLORE:
           if (activeGroup !== 'explore') {
             const target = normalizeUrl({
-              pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
+              pathname: `/${prefix}/explore/traces/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
             navigate(target, {replace: true});

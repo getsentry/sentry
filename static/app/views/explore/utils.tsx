@@ -370,30 +370,6 @@ export function viewSamplesTarget({
   return target;
 }
 
-export function getDefaultExploreRoute(organization: Organization) {
-  if (organization.features.includes('visibility-explore-view')) {
-    return 'traces';
-  }
-
-  if (organization.features.includes('ourlogs-enabled')) {
-    return 'logs';
-  }
-
-  if (organization.features.includes('discover-basic')) {
-    return 'discover/homepage';
-  }
-
-  if (organization.features.includes('performance-profiling')) {
-    return 'profiles';
-  }
-
-  if (organization.features.includes('session-replay-ui')) {
-    return 'replays';
-  }
-
-  return 'releases';
-}
-
 export function computeVisualizeSampleTotals(
   yAxes: string[],
   data: SortedTimeSeries['data'],

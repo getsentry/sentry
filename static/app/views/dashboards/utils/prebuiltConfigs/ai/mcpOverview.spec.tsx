@@ -78,7 +78,7 @@ describe('MCP Transport Distribution', () => {
     const requests = mockTransportRequests();
 
     render(<VisualizationWidget widget={widget} selection={selection} />, {
-      organization: OrganizationFixture({features: ['visibility-explore-view']}),
+      organization: OrganizationFixture(),
     });
 
     for (const [label, count] of [
@@ -166,7 +166,7 @@ describe('MCP Transport Distribution', () => {
           ],
         }}
       />,
-      {organization: OrganizationFixture({features: ['visibility-explore-view']})}
+      {organization: OrganizationFixture()}
     );
 
     for (const label of ['http', 'stdio', 'CustomHTTPTransport', '(no value)']) {

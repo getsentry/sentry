@@ -12,13 +12,8 @@ type Props = {
 
 export function OpenInLogsButton({replayId}: Props) {
   const organization = useOrganization();
-  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {selection} = usePageFilters();
   const logsSearch = useQueryParamsSearch();
-
-  if (!hasExploreEnabled) {
-    return null;
-  }
 
   let query = logsSearch.formatString();
   if (replayId) {

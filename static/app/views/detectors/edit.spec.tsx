@@ -40,9 +40,7 @@ import {SnubaQueryType} from './components/forms/metric/metricFormData';
 import DetectorEdit from './edit';
 
 describe('DetectorEdit', () => {
-  const organization = OrganizationFixture({
-    features: ['visibility-explore-view'],
-  });
+  const organization = OrganizationFixture();
   const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
     route: '/organizations/:orgId/monitors/:detectorId/edit/',
@@ -239,7 +237,6 @@ describe('DetectorEdit', () => {
 
     it('keeps Cancel available without alerts:write, hiding Disable and Delete', async () => {
       const readOnlyOrganization = OrganizationFixture({
-        features: ['visibility-explore-view'],
         access: ['org:read', 'project:read'],
       });
 
@@ -1014,7 +1011,7 @@ describe('DetectorEdit', () => {
 
     it('shows transactions dataset when editing existing transactions detector even with deprecation flag enabled', async () => {
       const organizationWithDeprecation = OrganizationFixture({
-        features: ['visibility-explore-view', 'discover-saved-queries-deprecation'],
+        features: ['discover-saved-queries-deprecation'],
       });
 
       const existingTransactionsDetector = MetricDetectorFixture({

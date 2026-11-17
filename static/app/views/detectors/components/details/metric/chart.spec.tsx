@@ -52,9 +52,7 @@ describe('MetricDetectorDetailsChart', () => {
   });
 
   describe('anomaly threshold cutoff message', () => {
-    const organization = OrganizationFixture({
-      features: ['visibility-explore-view'],
-    });
+    const organization = OrganizationFixture();
 
     const anomalyDetector = MetricDetectorFixture({
       config: {detectionType: 'dynamic'},

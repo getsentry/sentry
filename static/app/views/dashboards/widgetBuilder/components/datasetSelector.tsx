@@ -32,13 +32,11 @@ export function WidgetBuilderDatasetSelector() {
     details: t('Errors from your application'),
   });
 
-  if (organization.features.includes('visibility-explore-view')) {
-    datasetOptions.push({
-      value: WidgetType.SPANS,
-      label: t('Spans'),
-      details: t('Spans from distributed traces'),
-    });
-  }
+  datasetOptions.push({
+    value: WidgetType.SPANS,
+    label: t('Spans'),
+    details: t('Spans from distributed traces'),
+  });
 
   if (isLogsEnabled(organization)) {
     datasetOptions.push({
