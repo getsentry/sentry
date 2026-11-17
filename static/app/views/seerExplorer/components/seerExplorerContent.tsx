@@ -354,10 +354,9 @@ export function SeerExplorerContent({
   // waits on an answer to a message it already has.
   const isComposerShown =
     !readOnly && !showLoadError && !showFileApprovalBar && !showQuestionBar;
-  const isSingleRun = featureId === SINGLE_RUN_FEATURE_ID;
   // Chat state does not expose attribution. The send endpoint checks replies
   // against the single run's saved feature.
-  const isSingleRunReply = isSingleRun && !pendingRestart;
+  const isSingleRunReply = featureId === SINGLE_RUN_FEATURE_ID && !pendingRestart;
   const {hasEnoughCredits, denialReason, hasCheckedSinceMount} = useSeerCreditCheck(
     'agent_chat_message',
     {enabled: isComposerShown && !isSingleRunReply}
@@ -1036,7 +1035,7 @@ export function SeerExplorerContent({
           onSend={handleSend}
           repoPRStates={repoPRStates}
           runId={runId}
-          isSingleRun={isSingleRun}
+          isSingleRun={featureId === SINGLE_RUN_FEATURE_ID}
           composerRef={composerRef}
           fileApprovalActions={
             showFileApprovalBar
