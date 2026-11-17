@@ -1,17 +1,24 @@
 #!/usr/bin/env python
 
+import os
+import sys
+from pathlib import Path
+
+WORKSPACE = Path(__file__).resolve().parents[3]
+
+# getsentry's devserver keeps its own database, so its settings must load before Django does.
+if "--getsentry" in sys.argv:
+    os.environ["SENTRY_CONF"] = str(WORKSPACE / "getsentry" / "getsentry" / "settings.py")
+
 from sentry.runner import configure
 
 configure()
 
 import argparse
-import os
 import subprocess
-import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any
 
 from django.db.models import Max, Min
@@ -87,7 +94,8 @@ class MetricBreachTrigger:
             update.set_scope(SelectedMonitors((monitor.id,)))
 
         subscription = self._subscription(monitor)
-        evaluated_at = datetime.fromisoformat(source["analysisWindow"]["end"])
+        # Sentry opens the issue when the monitor is evaluated, so the seed puts its breach at now.
+        evaluated_at = datetime.fromisoformat(source["openPeriod"]["start"])
         value = self._monitor_value(monitor, subscription, evaluated_at)
         self._write(
             f"> Evaluating the monitor with {subscription.snuba_query.aggregate} = {value}..."
@@ -286,7 +294,15 @@ if __name__ == "__main__":
         description="Seed a Seer eval scenario and breach its monitor to start an automation run."
     )
     parser.add_argument(
-        "org_id", nargs="?", default=1, type=int, help="Organization ID (default: 1)"
+        "org",
+        nargs="?",
+        default="sentry",
+        help="Organization slug or ID (default: sentry)",
+    )
+    parser.add_argument(
+        "--getsentry",
+        action="store_true",
+        help="Run against the getsentry devserver's database, as on a box",
     )
     parser.add_argument(
         "--scenario",
@@ -296,7 +312,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seer-path",
         type=Path,
-        default=Path(__file__).resolve().parents[3] / "seer",
+        default=WORKSPACE / "seer",
         help="Seer checkout to seed from (default: next to this repository)",
     )
     args = parser.parse_args()
@@ -305,7 +321,11 @@ if __name__ == "__main__":
     if superuser is None:
         sys.exit("> No superuser exists (run `sentry createuser --superuser`).")
     MetricBreachTrigger(
-        organization=Organization.objects.get(id=args.org_id),
+        organization=(
+            Organization.objects.get(id=int(args.org))
+            if args.org.isdigit()
+            else Organization.objects.get(slug=args.org)
+        ),
         scenario=args.scenario,
         seer_path=args.seer_path,
         user=superuser,
