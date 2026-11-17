@@ -76,10 +76,6 @@ describe('useSaveAsItems', () => {
     });
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('should open save query modal when save as new query is clicked', () => {
     const {result} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: Wrapper,

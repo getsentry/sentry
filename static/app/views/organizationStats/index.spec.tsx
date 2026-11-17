@@ -47,10 +47,6 @@ describe('OrganizationStats', () => {
     ConfigStore.set('user', UserFixture());
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   /**
    * Features and Alerts
    */

@@ -513,6 +513,74 @@ describe('provisionSubscriptionAction', () => {
     expect(screen.getByDisplayValue('0.84')).toBeInTheDocument();
   });
 
+  it('prefills the form based on an annual billing platform enterprise subscription', async () => {
+    const packageUid = '00000000-0000-4000-8000-000000000001';
+    const monthlyPlanId = `${packageUid}-1`;
+    const annualPlanId = `${packageUid}-12`;
+    const legacyMonthlyPlan = mockBillingConfig.planList.find(
+      plan => plan.id === 'am3_business_ent'
+    )!;
+    const legacyAnnualPlan = mockBillingConfig.planList.find(
+      plan => plan.id === 'am3_business_ent_auf'
+    )!;
+    const platformBillingConfig = BillingConfigFixture(PlanTier.AM3);
+    platformBillingConfig.planList = [
+      {...legacyMonthlyPlan, id: monthlyPlanId},
+      {...legacyAnnualPlan, id: annualPlanId},
+    ];
+
+    const legacySub = InvoicedSubscriptionFixture({
+      organization: mockOrg,
+      plan: 'am3_business_ent_auf',
+      customPrice: 60_000_00,
+      customPricePcss: 40_000_00,
+      isManaged: true,
+      onDemandInvoicedManual: true,
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        onDemandSpendUsed: 0,
+        sharedMaxBudget: 1000,
+      },
+      supportsOnDemand: true,
+      categories: {
+        errors: MetricHistoryFixture({
+          reserved: 100_000,
+          paygCpe: 84,
+          customPrice: 20_000_00,
+        }),
+      },
+    });
+    const platformSub = {
+      ...legacySub,
+      plan: annualPlanId,
+      planDetails: {...legacySub.planDetails, id: annualPlanId},
+    };
+    expect(platformSub.billingInterval).toBe('annual');
+
+    triggerProvisionSubscription({
+      subscription: platformSub,
+      orgId: '',
+      onSuccess,
+      billingConfig: platformBillingConfig,
+    });
+
+    loadModal();
+
+    expect(
+      await screen.findByText(`Enterprise (Business) (${monthlyPlanId})`)
+    ).toBeInTheDocument();
+    expect(screen.getByText('Annual')).toBeInTheDocument();
+    expect(screen.getByText('Invoiced')).toBeInTheDocument();
+    expect(screen.getByText('Shared')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'Managed Subscription'})).toBeChecked();
+    expect(screen.getByDisplayValue('100000')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('20000')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('40000')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('60000')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('0.84')).toBeInTheDocument();
+  });
+
   it('select am enterprise enables custom prices', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,

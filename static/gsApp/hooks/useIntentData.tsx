@@ -9,6 +9,7 @@ interface HookResult {
   error: string | undefined;
   intentData: PaymentCreateResponse | undefined;
   isError: boolean;
+  isFetching: boolean;
   isLoading: boolean;
 }
 
@@ -38,12 +39,14 @@ export function usePaymentIntentData({
     data: paymentIntentData,
     error,
     isError,
+    isFetching,
   } = useQuery(paymentIntentOptions(organizationSlug, invoiceId));
 
   return {
     intentData: paymentIntentData,
     isLoading: isLoading || isPending,
     isError,
+    isFetching,
     error: getIntentErrorMessage(error),
   };
 }

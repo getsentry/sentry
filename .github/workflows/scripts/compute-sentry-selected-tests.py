@@ -25,6 +25,7 @@ from pathlib import Path
 
 from count_test_items import count_tests_in_file
 from find_test_imports import find_test_imports
+from selected_tests_common import PYTHON_FULL_SUITE_TRIGGERS, covering_contexts, matches_trigger
 
 # -- Path conventions --
 # The coverage DB stores paths relative to the getsentry rootdir:
@@ -45,53 +46,8 @@ TEST_DIRS = (
     "tests/integration/",
 )
 
-# Most of these won't have coverage info because they're evaluated at
-# module load time and app warmup, before any per-test coverage context is active.
-#
-# Tracking a "startup" coverage context doesn't work: django.setup()
-# eagerly imports models, fields, validators, utils, etc. We also have
-# large dynamic __init__'s so a startup context would select nearly every
-# test.
-FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
-    re.compile(r"^src/sentry/testutils/pytest/"),
-    re.compile(r"(^|/)conftest\.py$"),
-    "src/sentry/runner/initializer.py",
-    "src/sentry/constants.py",
-    # column-alias enum evaluated at import time; used indirectly by every
-    # Snuba query builder so coverage never records per-test contexts for it
-    "src/sentry/snuba/events.py",
-    # pure constants/aliases consumed at module level by search field/function
-    # registries — same pattern as constants.py, coverage sees only startup context
-    "src/sentry/search/events/constants.py",
-    # EAP shared column/aggregate definitions; consumed at import time by every
-    # EAP dataset file via module-level list comprehensions — zero coverage data
-    "src/sentry/search/eap/common_columns.py",
-    "src/sentry/search/eap/common_aggregates.py",
-    # option defaults registered at startup via initialize_app()
-    re.compile(r"^src/sentry/options/"),
-    # feature flags registered via manager.add() at import time
-    re.compile(r"^src/sentry/features/"),
-    # audit log events registered via default_manager.add() at import time;
-    # 60+ test files consume this via `from sentry import audit_log` (parent-package
-    # import), which the static import scan can't detect — so targeted mapping is
-    # unsafe and the full suite is required
-    re.compile(r"^src/sentry/audit_log/"),
-    # signal definitions created at module level; receivers depend on these
-    "src/sentry/signals.py",
-    # signal handlers registered globally via initialize_receivers()
-    re.compile(r"^src/sentry/receivers/"),
-    # stdlib/third-party monkey-patches applied before Django setup
-    re.compile(r"^src/sentry/monkey/"),
-    # monkeypatches transaction.atomic for silo-aware DB routing
-    re.compile(r"^src/sentry/silo/patches/"),
-    # SiloRouter loaded via DATABASE_ROUTERS; affects every DB query
-    "src/sentry/db/router.py",
-    "src/sentry/conf/server.py",
-    "src/sentry/web/urls.py",
-    "pyproject.toml",
-    "uv.lock",
-    re.compile(r"/migrations/\d{4}_[^/]+\.py$"),
-]
+# In selected_tests_common.py because the acceptance selector uses them too.
+FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = PYTHON_FULL_SUITE_TRIGGERS
 
 EXCLUDED_TEST_FILES: set[str] = {
     "tests/sentry/test_wsgi.py",
@@ -176,61 +132,25 @@ def _is_test(path: str) -> bool:
     return any(path.startswith(d) for d in TEST_DIRS)
 
 
-def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
-    if isinstance(trigger, re.Pattern):
-        return trigger.search(file_path) is not None
-    return file_path == trigger
-
-
 def _changed_files_match_public_api_matrix_paths(changed_files: list[str]) -> list[str]:
     return [
         f
         for f in changed_files
-        if any(_matches_trigger(f, t) for t in PUBLIC_API_MATRIX_PATH_TRIGGERS)
+        if any(matches_trigger(f, t) for t in PUBLIC_API_MATRIX_PATH_TRIGGERS)
     ]
 
 
 def _query_coverage(coverage_db_path: str, db_file_paths: list[str]) -> set[str]:
     """Query coverage DB for test contexts covering the given source files."""
-    conn = sqlite3.connect(coverage_db_path)
-    try:
-        cur = conn.cursor()
-
-        tables = {
-            r[0]
-            for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-        }
-        if "line_bits" not in tables or "context" not in tables:
-            raise ValueError(
-                "Coverage database missing line_bits/context tables. "
-                "Coverage must be collected with --cov-context=test"
-            )
-
-        test_contexts: set[str] = set()
-        for file_path in db_file_paths:
-            cur.execute(
-                """
-                SELECT c.context, lb.numbits
-                FROM line_bits lb
-                JOIN file f    ON lb.file_id = f.id
-                JOIN context c ON lb.context_id = c.id
-                WHERE f.path LIKE '%' || ?
-                  AND c.context != ''
-            """,
-                (f"%{file_path}",),
-            )
-            rows = cur.fetchall()
-            matched = 0
-            for context, bitblob in rows:
-                if any(b != 0 for b in bytes(bitblob)):
-                    test_contexts.add(context)
-                    matched += 1
-            if not rows:
-                print(f"  No coverage data for: {file_path}")
-            elif matched:
-                print(f"  {file_path} -> {matched} test context(s)")
-    finally:
-        conn.close()
+    covered = covering_contexts(coverage_db_path, db_file_paths)
+    test_contexts: set[str] = set()
+    for file_path in db_file_paths:
+        contexts = covered.get(file_path)
+        if contexts is None:
+            print(f"  No coverage data for: {file_path}")
+        elif contexts:
+            print(f"  {file_path} -> {len(contexts)} test context(s)")
+            test_contexts.update(contexts)
 
     # Extract sentry test file paths from contexts.
     # DB context format: '../sentry/tests/sentry/foo.py::Class::test|run'
@@ -293,7 +213,7 @@ def main() -> int:
     else:
         all_paths = changed + previous_filenames
         triggered_by = [
-            f for f in all_paths if any(_matches_trigger(f, t) for t in FULL_SUITE_TRIGGERS)
+            f for f in all_paths if any(matches_trigger(f, t) for t in FULL_SUITE_TRIGGERS)
         ]
         if triggered_by:
             print(f"Full test suite triggered by: {', '.join(triggered_by)}")
