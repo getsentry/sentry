@@ -965,13 +965,13 @@ def test_error_filter_drops_only_errors(
         default_project, data_type="error", conditions=[condition]
     )
     [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
-    condition = generic_filter["condition"]
-    assert condition is not None
+    relay_condition = generic_filter["condition"]
+    assert relay_condition is not None
 
     dropped = {
         item_type
         for item_type, item in ERROR_FILTER_ITEMS.items()
-        if relay_matches(condition, item)
+        if relay_matches(relay_condition, item)
     }
     assert dropped == {"error"}
 
