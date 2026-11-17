@@ -15,8 +15,9 @@ The transcript records each call's method, path, and status. Codes and tokens ar
 from __future__ import annotations
 
 import argparse
-import json
+import json  # noqa: S003  # stdlib only, so it runs without the sentry virtualenv
 import re
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -240,7 +241,7 @@ def main() -> None:
     finally:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps({**result, "calls": agent.transcript}, indent=2) + "\n")
-    print(json.dumps(result, indent=2))
+    sys.stdout.write(json.dumps(result, indent=2) + "\n")
 
 
 if __name__ == "__main__":

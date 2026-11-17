@@ -295,7 +295,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # Allow print statements in specific files (matches S002 ignores)
-".agents/*" = ["T20"]
 ".github/*" = ["T20"]
 "devenv/*.py" = ["T20"]
 "src/sentry/build/*" = ["T20"]

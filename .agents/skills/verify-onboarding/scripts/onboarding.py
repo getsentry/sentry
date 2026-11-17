@@ -11,7 +11,7 @@ Commands: launch, doctor, seed, login, state, event, stop. See ../SKILL.md.
 from __future__ import annotations
 
 import argparse
-import json
+import json  # noqa: S003  # stdlib on purpose: launch, doctor, and stop run before Django is set up
 import os
 import re
 import secrets
@@ -74,8 +74,12 @@ SENTRY_OPTIONS.update(
 """
 
 
+def emit(text: str, *, err: bool = False) -> None:
+    (sys.stderr if err else sys.stdout).write(text + "\n")
+
+
 def fail(message: str) -> NoReturn:
-    print(f"verify-onboarding: {message}", file=sys.stderr)
+    emit(f"verify-onboarding: {message}", err=True)
     sys.exit(1)
 
 
@@ -230,11 +234,11 @@ def launch(args: argparse.Namespace) -> None:
     deadline = time.monotonic() + args.timeout
     while time.monotonic() < deadline:
         if process.poll() is not None:
-            print(LOG_FILE.read_text()[-4000:], file=sys.stderr)
+            emit(LOG_FILE.read_text()[-4000:], err=True)
             fail(f"devserver exited with {process.returncode}; log at {LOG_FILE}")
         built = re.search(r"built in .* \(app\)", LOG_FILE.read_text())
         if built and http_status(f"{BASE_URL}/auth/login/", timeout=30) == 200:
-            print(json.dumps(run, indent=2))
+            emit(json.dumps(run, indent=2))
             return
         time.sleep(2)
     fail(f"devserver not ready after {args.timeout}s; log at {LOG_FILE}. Run `stop`.")
@@ -256,9 +260,9 @@ def doctor(args: argparse.Namespace) -> None:
     checks.append(("agent handoff guide answers", preview == 200, f"HTTP {preview}"))
 
     for name, ok, detail in checks:
-        print(f"{'ok ' if ok else 'BAD'} {name} ({detail})")
-    print(f"flags: {', '.join(run['flags']) or 'none'}; ingest: {run['ingest']}")
-    print(f"evidence: {run['evidence_dir']}")
+        emit(f"{'ok ' if ok else 'BAD'} {name} ({detail})")
+    emit(f"flags: {', '.join(run['flags']) or 'none'}; ingest: {run['ingest']}")
+    emit(f"evidence: {run['evidence_dir']}")
     if not all(ok for _, ok, _ in checks):
         sys.exit(1)
 
@@ -274,7 +278,7 @@ def seed(args: argparse.Namespace) -> None:
     run = read_run()
     configure_django()
     from sentry.models.apiapplication import ApiApplication
-    from sentry.testutils.factories import Factories
+    from sentry.testutils.factories import Factories  # noqa: S007  # seeds a local devserver only
     from sentry.users.models.user import User
 
     application, _ = ApiApplication.objects.get_or_create(
@@ -337,7 +341,7 @@ def seed(args: argparse.Namespace) -> None:
     }
     out = RUN_DIR / "seed.json"
     out.write_text(json.dumps(seeded, indent=2))
-    print(json.dumps(seeded, indent=2))
+    emit(json.dumps(seeded, indent=2))
 
 
 def state(args: argparse.Namespace) -> None:
@@ -361,7 +365,7 @@ def state(args: argparse.Namespace) -> None:
         )
     result = {"org": organization.slug, "projects": projects}
     text = json.dumps(result, indent=2)
-    print(text)
+    emit(text)
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(text + "\n")
@@ -395,7 +399,7 @@ def event(args: argparse.Namespace) -> None:
         method="POST",
     )
     with urllib.request.urlopen(request, timeout=30) as response:
-        print(f"HTTP {response.status} {response.read().decode()}")
+        emit(f"HTTP {response.status} {response.read().decode()}")
 
 
 def browser(session: str, *command: str) -> str:
@@ -440,12 +444,12 @@ def login(args: argparse.Namespace) -> None:
     url = browser(session, "get", "url").strip()
     if "/auth/login/" in url:
         fail(f"login as {args.role} did not leave the login page ({url})")
-    print(f"session {session} signed in as {seeded[f'{args.role}_email']} at {url}")
+    emit(f"session {session} signed in as {seeded[f'{args.role}_email']} at {url}")
 
 
 def stop(args: argparse.Namespace) -> None:
     if not RUN_FILE.exists():
-        print("nothing to stop")
+        emit("nothing to stop")
         return
     run = json.loads(RUN_FILE.read_text())
     pids = descendants(run["pid"]) if alive(run) else set()
@@ -463,9 +467,7 @@ def stop(args: argparse.Namespace) -> None:
     shutil.rmtree(CONF_DIR, ignore_errors=True)
     for path in (RUN_FILE, RUN_DIR / "seed.json"):
         path.unlink(missing_ok=True)
-    print(
-        f"stopped devserver {run['pid']} and its children; evidence kept at {run['evidence_dir']}"
-    )
+    emit(f"stopped devserver {run['pid']} and its children; evidence kept at {run['evidence_dir']}")
 
 
 def main() -> None:
