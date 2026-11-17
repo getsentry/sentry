@@ -74,38 +74,6 @@ class OrganizationInboxIndexTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def test_monitor_visibility_applies_to_list_count_and_events(self) -> None:
-        visible = self.create_notebook(self.organization, title="Manual")
-        visible_item = self.create_inbox_item(subject_type="notebook", subject_id=str(visible.id))
-        self.create_inbox_item_event(inbox_item=visible_item, type="notebook.completed")
-        hidden = self.create_notebook(
-            self.organization,
-            title="Protected monitor",
-            source_type="metric_open_period",
-            source_key="metric_open_period:1:1",
-            source_revision=1,
-            source={"type": "metric_open_period", "snapshot": {"project": {"id": "invalid"}}},
-        )
-        hidden_item = self.create_inbox_item(subject_type="notebook", subject_id=str(hidden.id))
-        self.create_inbox_item_event(inbox_item=hidden_item, type="notebook.completed")
-        response = self.get_success_response(self.organization.slug, per_page=1)
-        assert [item["id"] for item in response.data] == [str(visible_item.id)]
-        count_url = reverse("sentry-api-0-organization-inbox-count", args=[self.organization.slug])
-        assert self.client.get(count_url).data == {"count": 1}
-        events_url = reverse(
-            "sentry-api-0-organization-inbox-item-events",
-            args=[self.organization.slug, hidden_item.id],
-        )
-        assert self.client.get(events_url).status_code == 404
-        hidden.update(
-            source={
-                "type": "metric_open_period",
-                "snapshot": {"project": {"id": str(self.project.id)}},
-            }
-        )
-        assert self.client.get(events_url).status_code == 200
-        assert self.client.get(count_url).data == {"count": 2}
-
     def test_list_is_personal_and_organization_scoped(self) -> None:
         item = self.create_inbox_item(subject_id=str(self.group.id))
         self.create_inbox_item_event(inbox_item=item, data={})

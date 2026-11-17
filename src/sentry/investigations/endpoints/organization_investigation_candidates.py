@@ -20,10 +20,10 @@ from sentry.investigations.endpoints.validators import InvestigationCandidatesVa
 from sentry.investigations.services import agentic_breached_metric_source_key
 from sentry.investigations.services.breached_metrics import resolve_investigation_sources
 from sentry.models.organization import Organization
-from sentry.notebooks.access import filter_visible_notebooks
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
     can_request_actor_create_notebook,
+    organization_project_ids,
     service_error,
 )
 from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookStatus
@@ -66,7 +66,6 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationNotebooksBaseEndpo
         status view (with investigationId and optionally orchestration), investigate, or
         unavailable. Missing or inaccessible sources are unavailable. Requires the
         organizations:investigations feature and open organization membership.
-        Monitor-backed investigations also require current access to their original source project.
         """
         validator = InvestigationCandidatesValidator(data=request.data)
         if not validator.is_valid():
@@ -82,12 +81,7 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationNotebooksBaseEndpo
             resolved_sources = resolve_investigation_sources(
                 organization=organization,
                 sources=sources,
-                accessible_project_ids={
-                    project.id
-                    for project in self.get_projects(
-                        request, organization, include_all_accessible=True
-                    )
-                },
+                accessible_project_ids=organization_project_ids(organization),
             )
         except Exception as error:
             response = service_error(error)
@@ -101,13 +95,10 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationNotebooksBaseEndpo
             if source is not None
         }
         existing = list(
-            filter_visible_notebooks(
-                Notebook.objects.filter(
-                    organization=organization,
-                    status=NotebookStatus.ACTIVE,
-                    source_key__in=source_keys,
-                ),
-                request.access,
+            Notebook.objects.filter(
+                organization=organization,
+                status=NotebookStatus.ACTIVE,
+                source_key__in=source_keys,
             )
         )
         existing_by_source_key = {

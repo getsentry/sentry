@@ -5,7 +5,9 @@ from collections.abc import Mapping, Sequence, Set
 from datetime import datetime
 from typing import Literal, NamedTuple, TypedDict
 
-from django.db.models import F, Prefetch, Q, prefetch_related_objects
+from django.db.models import Exists, F, OuterRef, Prefetch, Q, TextField, prefetch_related_objects
+from django.db.models.fields.json import KeyTextTransform, KeyTransform
+from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema
 from pydantic import ValidationError
 from rest_framework import serializers
@@ -23,12 +25,13 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import seer_workflow_examples as SeerWorkflowExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.access import Access
+from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
-from sentry.notebooks.access import filter_visible_notebooks, has_notebooks_access
-from sentry.notebooks.models import Notebook
+from sentry.models.project import Project
+from sentry.notebooks.access import has_notebooks_access
+from sentry.notebooks.models import Notebook, NotebookSourceType
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
@@ -220,8 +223,8 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
         access every project in the saved run snapshot; runs without a saved scope are
         hidden from them.
 
-        Execution ``outputs`` omit investigations whose original source project is inaccessible,
-        and are empty without investigation access.
+        Execution ``outputs`` omit monitor investigations whose original source project is
+        inaccessible, and are empty without investigation access.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -271,7 +274,6 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
                 # returning empty outputs for otherwise visible runs.
                 include_investigations=has_notebooks_access(organization, actor=request.user),
                 accessible_project_ids=accessible_project_ids,
-                investigation_access=request.access,
             ),
         )
 
@@ -298,20 +300,33 @@ def serialize_workflow_runs(
     *,
     include_investigations: bool,
     accessible_project_ids: set[int] | None = None,
-    investigation_access: Access | None = None,
 ) -> SeerWorkflowRunsResponse:
     """Serialize runs loaded with `strategy` and `config_extras` annotations.
 
-    `accessible_project_ids` limits detector names to those projects; None means all.
-    Viewer-facing callers must pass `investigation_access` to filter output provenance.
+    `accessible_project_ids` limits detector names and monitor investigation outputs to
+    those projects; None means all active projects in each investigation's organization.
     """
     output_links = SeerWorkflowOutputLink.objects.select_related("notebook").order_by("id")
     if not include_investigations:
         output_links = output_links.none()
-    elif investigation_access is not None:
-        output_links = output_links.filter(
-            notebook__in=filter_visible_notebooks(Notebook.objects.all(), investigation_access)
+    else:
+        projects = Project.objects.filter(
+            organization_id=OuterRef("organization_id"), status=ObjectStatus.ACTIVE
         )
+        if accessible_project_ids is not None:
+            projects = projects.filter(id__in=accessible_project_ids)
+        # The original server-owned source survives edits to project selection and run links.
+        # Cast the project ID, never the saved JSON, so malformed snapshots cannot fail a page.
+        projects = projects.annotate(source_project_id=Cast("id", TextField())).filter(
+            source_project_id=KeyTextTransform(
+                "id", KeyTransform("project", KeyTransform("snapshot", OuterRef("source")))
+            )
+        )
+        visible_notebooks = Notebook.objects.filter(
+            ~Q(source_type=NotebookSourceType.METRIC_OPEN_PERIOD)
+            | (Q(source__type=NotebookSourceType.METRIC_OPEN_PERIOD) & Q(Exists(projects)))
+        )
+        output_links = output_links.filter(notebook__in=visible_notebooks)
     prefetch_related_objects(
         runs,
         Prefetch(

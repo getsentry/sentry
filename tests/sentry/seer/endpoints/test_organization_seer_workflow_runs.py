@@ -13,7 +13,7 @@ from rest_framework.test import APIClient
 
 from sentry.apidocs.examples.seer_workflow_examples import WORKFLOW_RUNS_RESPONSE
 from sentry.apidocs.spectacular_ports import resolve_type_hint
-from sentry.auth.access import from_user
+from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -475,11 +475,8 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             .order_by("id")
         )
         using = router.db_for_read(SeerWorkflowRunExecution)
-        access = from_user(self.user, self.organization)
         with CaptureQueriesContext(connections[using]) as queries:
-            result = serialize_workflow_runs(
-                runs, include_investigations=True, investigation_access=access
-            )
+            result = serialize_workflow_runs(runs, include_investigations=True)
 
         assert len(queries) == 2
         assert [len(run["executions"]) for run in result["runs"]] == [2, 2, 2]
@@ -505,7 +502,8 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 key="workflow-output-visibility-test-secret",
             )
         )
-        run = self.create_run(extras={"snapshot": {"inputs": {"project_id": self.project.id}}})
+        detector = self.create_detector(project=self.project)
+        run = self.create_run(inputs=self.monitor_inputs(detector.id, self.project.id))
         execution = Factories.create_seer_workflow_run_execution(run)
         visible = self.create_notebook(
             self.organization,
@@ -550,6 +548,37 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
         assert response.data["runs"][0]["executions"][0]["outputs"] == []
         assert foreign.title not in response.content.decode()
+
+    def test_omits_monitor_outputs_without_valid_active_source_projects(self) -> None:
+        foreign = self.create_project(organization=self.create_organization())
+        inactive = self.create_project(
+            organization=self.organization, status=ObjectStatus.PENDING_DELETION
+        )
+        deleted = self.create_project(organization=self.organization)
+        deleted_id = deleted.id
+        deleted.delete()
+        run = self.create_run()
+        execution = Factories.create_seer_workflow_run_execution(run)
+        sources = [
+            {},
+            {"type": "metric_open_period"},
+            {"type": "manual", "snapshot": {"project": {"id": self.project.id}}},
+            {"type": "metric_open_period", "snapshot": {"project": {"id": foreign.id}}},
+            {"type": "metric_open_period", "snapshot": {"project": {"id": inactive.id}}},
+            {"type": "metric_open_period", "snapshot": {"project": {"id": deleted_id}}},
+        ]
+        for index, source in enumerate(sources):
+            notebook = self.create_notebook(
+                self.organization,
+                source_type="metric_open_period",
+                source_key=f"metric_open_period:{run.id}:{index}",
+                source_revision=1,
+                source=source,
+            )
+            Factories.create_seer_workflow_output_link(execution, notebook=notebook)
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["runs"][0]["executions"][0]["outputs"] == []
 
     def test_omits_outputs_when_investigations_are_disabled(self) -> None:
         run = self.create_run()

@@ -45,7 +45,5 @@ class OrganizationInboxCountEndpoint(OrganizationInboxEndpoint):
             user_id=user.id,
             status=ObjectStatus.ACTIVE,
         )
-        count = self.filter_visible_items(
-            filter_inbox_items(items, filters.validated_data), request
-        ).count()
+        count = filter_inbox_items(items, filters.validated_data).count()
         return Response({"count": count})

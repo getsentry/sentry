@@ -172,32 +172,6 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         ]
 
     @with_feature(["organizations:investigations", "organizations:investigations-issue-links"])
-    def test_monitor_links_are_filtered_before_activity_limit(self) -> None:
-        self._first_seen()
-        visible = self.create_notebook(self.organization, title="Visible")
-        self._investigation_link(visible.id)
-        hidden = self.create_notebook(
-            self.organization,
-            title="Hidden",
-            source_type="metric_open_period",
-            source_key="metric_open_period:1:1",
-            source_revision=1,
-            source={"type": "metric_open_period", "snapshot": {"project": {"id": "missing"}}},
-        )
-        self._investigation_link(hidden.id)
-
-        items = self._activity_items(limit=1)
-        assert items[0]["data"]["investigation"]["id"] == str(visible.id)
-        assert len(items) == 2
-        hidden.update(
-            source={
-                "type": "metric_open_period",
-                "snapshot": {"project": {"id": str(self.project.id)}},
-            }
-        )
-        assert self._activity_items(limit=1)[0]["data"]["investigation"]["id"] == str(hidden.id)
-
-    @with_feature(["organizations:investigations", "organizations:investigations-issue-links"])
     def test_investigation_links_are_hidden_from_tokens_without_an_org_scope(self) -> None:
         self._first_seen()
         investigation = self.create_notebook(organization=self.organization, title="Checkout")

@@ -495,10 +495,6 @@ class OrganizationNotebookIndexTest(APITestCase):
                     "source_type": "metric_open_period",
                     "source_key": "metric_open_period:1:1",
                     "source_revision": 1,
-                    "source": {
-                        "type": "metric_open_period",
-                        "snapshot": {"project": {"id": str(self.project.id)}},
-                    },
                 },
             ),
             (

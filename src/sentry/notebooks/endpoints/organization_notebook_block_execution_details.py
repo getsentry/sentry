@@ -88,7 +88,6 @@ class OrganizationNotebookBlockExecutionDetailsEndpoint(OrganizationNotebookBloc
         flag, pending user input, partial Markdown for text blocks, and any error. Pending input
         and transcript entries retain their Seer-owned shape. Requires the
         organizations:investigations feature and open organization membership.
-        Monitor-backed investigations also require current access to their original source project.
         """
         execution = self._execution(block, execution_id)
         pending = None

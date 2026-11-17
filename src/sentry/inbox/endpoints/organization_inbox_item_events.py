@@ -45,7 +45,7 @@ class OrganizationInboxItemEventsEndpoint(OrganizationInboxEndpoint):
         """List an inbox item's events, newest first. Reading does not change its read state."""
         user = request.user
         item = get_object_or_404(
-            self.filter_visible_items(InboxItem.objects.all(), request),
+            InboxItem,
             id=item_id,
             organization=organization,
             user_id=user.id,

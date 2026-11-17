@@ -12,7 +12,6 @@ from sentry.seer import agent_token
 from sentry.tasks.seer.investigation import _dispatch_viewer_scope
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.testutils.helpers.notebook_producer_sources import register_example_source_type
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
@@ -360,82 +359,3 @@ class NotebookWriterTest(APITestCase):
                 "project_id", flat=True
             )
         ) == [self.project.id]
-
-    def test_monitor_reads_require_original_project_access(self) -> None:
-        other = self.create_project(organization=self.organization)
-        notebook = self.create_notebook(
-            self.organization,
-            title="Protected monitor investigation",
-            source_type="metric_open_period",
-            source_key="metric_open_period:1:1",
-            source_revision=1,
-            source={"type": "metric_open_period", "snapshot": {"project": {"id": str(other.id)}}},
-        )
-        block = self.create_notebook_block(
-            notebook=notebook, position=0, kind="text", content="Private findings"
-        )
-        execution = self.create_notebook_block_execution(block=block, block_version=block.version)
-        self.create_investigation_orchestration_run(
-            investigation=notebook, projection={"report": {}}
-        )
-        # Editable selection cannot substitute for the original source project.
-        self.create_notebook_project(notebook, self.project)
-        client, _ = self.service_account_client(project_ids=[self.project.id])
-        routes = [
-            ("sentry-api-0-organization-notebook-details", {}),
-            (
-                "sentry-api-0-organization-notebook-block-execution-details",
-                {"block_id": block.id, "execution_id": execution.id},
-            ),
-            ("sentry-api-0-organization-notebook-comments", {}),
-            ("sentry-api-0-organization-notebook-comment-counts", {}),
-            ("sentry-api-0-organization-investigation-orchestration", {}),
-        ]
-        for route, params in routes:
-            url = self.url(route, notebook_id=notebook.id, **params)
-            denied = client.get(url)
-            assert denied.status_code == 404, denied.data
-            assert "Protected monitor investigation" not in str(denied.data)
-            assert "Private findings" not in str(denied.data)
-            assert self.agent_client().get(url).status_code == 200
-        presence_url = self.url(
-            "sentry-api-0-organization-notebook-presence", notebook_id=notebook.id
-        )
-        self.login_as(self.user)
-        assert self.client.put(presence_url).status_code == 200
-        notebook.update(source={})
-        assert self.client.put(presence_url).status_code == 404
-
-    def test_monitor_collection_filters_before_pagination(self) -> None:
-        visible = self.create_notebook(
-            self.organization,
-            source_type="metric_open_period",
-            source_key="metric_open_period:1:1",
-            source_revision=1,
-            source={
-                "type": "metric_open_period",
-                "snapshot": {"project": {"id": str(self.project.id)}},
-            },
-        )
-        hidden = self.create_notebook(
-            self.organization,
-            source_type="metric_open_period",
-            source_key="metric_open_period:2:2",
-            source_revision=1,
-            source={
-                "type": "metric_open_period",
-                "snapshot": {"project": {"id": str(self.create_project().id)}},
-            },
-        )
-        client, _ = self.service_account_client(project_ids=[self.project.id])
-        url = self.url("sentry-api-0-organization-notebooks")
-        page = client.get(url, {"per_page": 1})
-        assert page.status_code == 200
-        assert [item["id"] for item in page.data] == [str(visible.id)]
-        next_url = next(
-            url for url, attrs in parse_link_header(page["Link"]).items() if attrs["rel"] == "next"
-        )
-        following = client.get(next_url)
-        assert [item["id"] for item in following.data] == [str(self.notebook.id)]
-        assert str(hidden.id) not in [item["id"] for item in following.data]
-        assert 'rel="next"; results="false"' in following["Link"]
