@@ -26,7 +26,6 @@ class QueuedAutofixFeedback(BaseModel):
     feedback: Feedback
     referrer: AutofixReferrer
     actor_user_id: int | None = None
-    held_for_credits: bool = False  # A drain refused this item for Seer credits and put it back.
 
 
 def _feedback_queue_key(run_id: int) -> str:

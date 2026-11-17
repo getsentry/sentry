@@ -5,17 +5,14 @@ from enum import StrEnum
 from typing import Any
 
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.pr_iteration.iterations import (
-    get_latest_iteration_index,
-    is_pr_feedback_turn,
-)
-from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
+from sentry.seer.autofix.pr_iteration.iterations import is_pr_feedback_turn
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra, record_run_extras
 from sentry.seer.autofix.types import PrIterationUnfinishedAction
 from sentry.seer.credits import OUT_OF_CREDITS
 from sentry.seer.models.run import SeerRun
 
-# Run-level SeerRun.extras key. No key means that iteration isn't stopped on credits.
+# Run-level SeerRun.extras key. Set when Seer credits refuse the run's next step, which holds
+# its queue and can strand unfinished actions; taken when the next drain dispatches.
 OUT_OF_CREDITS_EXTRA = "pr_iteration_out_of_credits"
 
 
@@ -32,12 +29,9 @@ class OutOfCreditsMarker:
 
 
 @dataclass(frozen=True)
-class OutOfCreditsSummary:
-    """What running out of credits left undone on a PR iteration, as the run stands now."""
-
-    # What the latest iteration left unfinished.
-    unfinished_action: PrIterationUnfinishedAction
-    unfinished_iteration_index: int | None
+class PrIterationOutOfCredits:
+    # What the latest PR iteration left unfinished, if anything.
+    unfinished_action: PrIterationUnfinishedAction | None
 
 
 def _get_seer_run(run_id: int, organization_id: int) -> SeerRun | None:
@@ -86,18 +80,17 @@ def out_of_credits_marker(seer_run: SeerRun) -> OutOfCreditsMarker | None:
 
 
 def _unfinished_action(
-    state: SeerRunState, run: SeerRun | None
+    state: SeerRunState, marker: OutOfCreditsMarker
 ) -> PrIterationUnfinishedAction | None:
     """What the latest iteration left unfinished for credits. Checked against the run state,
     so a marker that outlived the work it records is ignored."""
-    # Only report when the latest turn is a PR iteration that isn't still running.
-    if state.status == "processing" or not is_pr_feedback_turn(state):
+    # Only report when the latest turn is a PR iteration.
+    if not is_pr_feedback_turn(state):
         return None
 
     # Check if Sentry refused a push or branch-moved retry, or Seer's push failed, because
     # we ran out of credits.
-    marker = out_of_credits_marker(run) if run is not None else None
-    stranded_action = marker.stranded_action if marker is not None else None
+    stranded_action = marker.stranded_action
     # Pushed changes mean the stranded work happened since, before any drain took the marker.
     # Eg, the UI's Retry PR skips draining.
     _, synced = state.has_code_changes()
@@ -118,21 +111,14 @@ def _unfinished_action(
     return None
 
 
-def is_held_for_credits(state: SeerRunState, item: QueuedAutofixFeedback) -> bool:
-    """Whether a queued item is waiting on credits."""
-    return item.held_for_credits and state.status != "processing"
-
-
-def out_of_credits_summary(state: SeerRunState, run: SeerRun | None) -> OutOfCreditsSummary | None:
-    """What running out of credits left unfinished on the run's PR iteration, or None when
-    nothing is unfinished."""
-    unfinished_action = _unfinished_action(state, run)
-    if unfinished_action is None:
+def pr_iteration_out_of_credits(
+    state: SeerRunState, run: SeerRun | None
+) -> PrIterationOutOfCredits | None:
+    """The run's out-of-credits state, or None if it isn't marked or a turn is running."""
+    marker = out_of_credits_marker(run) if run is not None else None
+    if marker is None or state.status == "processing":
         return None
-    return OutOfCreditsSummary(
-        unfinished_action=unfinished_action,
-        unfinished_iteration_index=get_latest_iteration_index(state),
-    )
+    return PrIterationOutOfCredits(unfinished_action=_unfinished_action(state, marker))
 
 
 def take_out_of_credits(*, run_id: int, organization_id: int) -> OutOfCreditsMarker | None:

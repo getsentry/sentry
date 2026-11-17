@@ -1742,10 +1742,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         self._call()
 
-        assert [
-            (item.feedback.text, item.held_for_credits)
-            for item in peek_queued_autofix_feedback(67890)
-        ] == [("fix it", True)]
+        assert [item.feedback.text for item in peek_queued_autofix_feedback(67890)] == ["fix it"]
         assert get_out_of_credits(
             run_id=67890, organization_id=self.organization.id
         ) == OutOfCreditsMarker(stranded_action=None)
