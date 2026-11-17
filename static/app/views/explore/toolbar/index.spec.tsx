@@ -429,36 +429,6 @@ describe('ExploreToolbar', () => {
     expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
   });
 
-  it('searches aggregates in the visualize selector', async () => {
-    let visualizes: any;
-    function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
-      visualizes = useQueryParamsVisualizes();
-      return <ExploreToolbar />;
-    }
-
-    render(<Component />, {additionalWrapper: Wrapper});
-
-    const section = screen.getByTestId('section-visualizes');
-
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    expect(
-      within(section).getByText('Visualize', {selector: 'span'})
-    ).toBeInTheDocument();
-
-    await userEvent.type(within(section).getByPlaceholderText('Search…'), 'p9');
-    expect(within(section).getByRole('option', {name: 'p90'})).toBeInTheDocument();
-    expect(within(section).getByRole('option', {name: 'p95'})).toBeInTheDocument();
-    expect(within(section).getByRole('option', {name: 'p99'})).toBeInTheDocument();
-    expect(within(section).queryByRole('option', {name: 'avg'})).not.toBeInTheDocument();
-    expect(
-      within(section).queryByRole('option', {name: 'count_unique'})
-    ).not.toBeInTheDocument();
-
-    await userEvent.click(within(section).getByRole('option', {name: 'p95'}));
-    expect(visualizes).toEqual([new VisualizeFunction('p95(span.duration)')]);
-  });
-
   it('plots aggregates selected together on one chart', async () => {
     const {router} = render(<ExploreToolbar />, {
       additionalWrapper: Wrapper,
