@@ -111,26 +111,29 @@ describe('markScrubbedValue', () => {
     expect(marked).toBe(value);
   });
 
-  it.each(['gen_ai.request.messages', 'gen_ai.tool.input', 'gen_ai.tool.output'])(
-    'marks %s, a name the attribute had before',
-    attribute => {
-      const marked = markScrubbedValue(
-        attribute,
-        'Mail [email]',
-        {
-          [attribute]: {
-            meta: {value: {'': {rem: [['@email:replace', 's', 5, 12]], len: 0}}},
-          },
+  it.each([
+    'gen_ai.request.messages',
+    'gen_ai.response.text',
+    'gen_ai.response.tool_calls',
+    'gen_ai.tool.input',
+    'gen_ai.tool.output',
+  ])('marks %s, a name the attribute had before', attribute => {
+    const marked = markScrubbedValue(
+      attribute,
+      'Mail [email]',
+      {
+        [attribute]: {
+          meta: {value: {'': {rem: [['@email:replace', 's', 5, 12]], len: 0}}},
         },
-        'project'
-      );
+      },
+      'project'
+    );
 
-      expect(splitAnnotations(marked)).toEqual([
-        'Mail ',
-        expect.objectContaining({text: '[email]'}),
-      ]);
-    }
-  );
+    expect(splitAnnotations(marked)).toEqual([
+      'Mail ',
+      expect.objectContaining({text: '[email]'}),
+    ]);
+  });
 
   it('leaves attributes that are not rendered as AI content alone', () => {
     const marked = markScrubbedValue(
