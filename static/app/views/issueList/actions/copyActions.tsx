@@ -20,7 +20,7 @@ const LAST_COPY_TYPE_KEY = 'issue-list-bulk-copy-type';
 const COPY_TYPES: CopyType[] = ['short_ids', 'links'];
 
 const COPY_OPTIONS: Record<CopyType, {buttonLabel: string; menuLabel: string}> = {
-  short_ids: {buttonLabel: t('Copy IDs'), menuLabel: t('Copy Issue IDs')},
+  short_ids: {buttonLabel: t('Copy Short-IDs'), menuLabel: t('Copy Issue Short-IDs')},
   links: {buttonLabel: t('Copy Links'), menuLabel: t('Copy Issue Links')},
 };
 
@@ -57,8 +57,8 @@ export function CopyActions({
       successMessage:
         copyType === 'short_ids'
           ? tn(
-              'Copied %s issue ID to clipboard',
-              'Copied %s issue IDs to clipboard',
+              'Copied %s issue Short-ID to clipboard',
+              'Copied %s issue Short-IDs to clipboard',
               selectedIssues.length
             )
           : tn(

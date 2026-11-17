@@ -598,7 +598,7 @@ describe('IssueListActions', () => {
     it('copies selected issue IDs from the top level button by default', async () => {
       render(<WrappedComponent selectedIds={['1', '2']} />);
 
-      await userEvent.click(screen.getByRole('button', {name: 'Copy IDs'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Copy Short-IDs'}));
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('PROJ-1\nPROJ-2');
       expect(analytics.trackAnalytics).toHaveBeenCalledWith(
@@ -650,7 +650,7 @@ describe('IssueListActions', () => {
         screen.getByText(/Select the first 1,000 issues that match this search query/)
       );
 
-      expect(screen.getByRole('button', {name: 'Copy IDs'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Copy Short-IDs'})).toHaveAttribute(
         'aria-disabled',
         'true'
       );
