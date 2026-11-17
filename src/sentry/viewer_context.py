@@ -161,6 +161,17 @@ def set_viewer_context_superuser(
         )
 
 
+def set_viewer_context_actor(actor: Actor) -> None:
+    """Replace the caller, e.g. when an endpoint authenticates after the middleware did."""
+    ctx = get_viewer_context()
+    if ctx is None or ctx.actor == actor:
+        return
+    if actor.superuser is None and dataclasses.replace(ctx.actor, superuser=None) == actor:
+        # Same caller: keep the elevation the access checks granted.
+        return
+    _viewer_context_var.set(dataclasses.replace(ctx, actor=actor))
+
+
 def set_viewer_context_organization(organization_id: int) -> None:
     """Update the current ``ViewerContext`` with a resolved organization id."""
     ctx = get_viewer_context()

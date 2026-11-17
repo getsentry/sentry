@@ -13,8 +13,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import {LeadHint} from 'sentry/components/events/interfaces/frame/leadHint';
-import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
@@ -34,7 +32,9 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 
 import {Context} from './context';
 import {DefaultTitle} from './defaultTitle';
+import {LeadHint} from './leadHint';
 import {OpenInContextLine} from './openInContextLine';
+import {StacktraceLink} from './stacktraceLink';
 import {
   getPlatform,
   hasAssembly,

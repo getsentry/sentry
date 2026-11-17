@@ -14,7 +14,6 @@ from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
-    MonitorCheckIn,
     MonitorEnvBrokenDetection,
     MonitorEnvironment,
     MonitorIncident,
@@ -45,7 +44,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         super().tearDown()
         self._run_tasks.__exit__(None, None, None)
 
-    def create_monitor_env(self, monitor, environment_id):
+    def create_monitor_env(self, monitor: Monitor, environment_id: int) -> MonitorEnvironment:
         return MonitorEnvironment.objects.create(
             monitor=monitor,
             environment_id=environment_id,
@@ -59,8 +58,12 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         )
 
     def create_monitor_and_env(
-        self, name="test monitor", organization_id=None, project_id=None, environment_id=None
-    ):
+        self,
+        name: str = "test monitor",
+        organization_id: int | None = None,
+        project_id: int | None = None,
+        environment_id: int | None = None,
+    ) -> tuple[Monitor, MonitorEnvironment]:
         if organization_id is None:
             organization_id = self.organization.id
         if project_id is None:
@@ -93,8 +96,10 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         self.detector_ids[monitor.slug] = detector.id
         return (monitor, self.create_monitor_env(monitor=monitor, environment_id=environment_id))
 
-    def create_incident_for_monitor_env(self, monitor, monitor_environment):
-        first_checkin = MonitorCheckIn.objects.create(
+    def create_incident_for_monitor_env(
+        self, monitor: Monitor, monitor_environment: MonitorEnvironment
+    ) -> MonitorIncident:
+        first_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=timezone.now() - timedelta(days=14),
@@ -107,7 +112,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             grouphash=hash_from_values([uuid.uuid4()]),
         )
         for i in range(3, -1, -1):
-            MonitorCheckIn.objects.create(
+            self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.ERROR,
                 date_added=timezone.now() - timedelta(days=i),
@@ -205,7 +210,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
     def test_does_not_create_broken_detection_insufficient_duration(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
 
-        first_checkin = MonitorCheckIn.objects.create(
+        first_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=timezone.now() - timedelta(days=10),
@@ -219,7 +224,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         )
 
         for _ in range(4):
-            MonitorCheckIn.objects.create(
+            self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.ERROR,
                 date_added=timezone.now() - timedelta(days=1),
@@ -231,7 +236,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
     def test_does_not_create_broken_detection_insufficient_checkins(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
 
-        first_checkin = MonitorCheckIn.objects.create(
+        first_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=timezone.now() - timedelta(days=14),
@@ -245,7 +250,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         )
 
         for i in range(1, -1, -1):
-            MonitorCheckIn.objects.create(
+            self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.ERROR,
                 date_added=timezone.now() - timedelta(days=i),

@@ -17,7 +17,8 @@ import {GlobalModal} from '@sentry/scraps/modal';
 
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
-import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
+
+import {MethodType, RuleType} from './types';
 
 const relayPiiConfig = JSON.stringify(DataScrubbingRelayPiiConfigFixture());
 const relayPiiConfigWithConstructorSource = JSON.stringify({

@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useTransactionAsSpans} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
+import {useTransactionAsSpans} from './useTransactionAsSpans';
 
 const ORG_SLUG = OrganizationFixture().slug;
 

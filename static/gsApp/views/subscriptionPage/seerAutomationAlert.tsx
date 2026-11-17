@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -9,15 +10,14 @@ import {Link} from '@sentry/scraps/link';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
-import {useLocation} from 'sentry/utils/useLocation';
 
 interface SeerAutomationAlertProps {
   organization: Organization;
 }
 
 export function SeerAutomationAlert({organization}: SeerAutomationAlertProps) {
-  const location = useLocation();
-  const isRedirectedFromCheckout = !!location.query.showSeerAutomationAlert;
+  const [showSeerAutomationAlert] = useQueryState('showSeerAutomationAlert');
+  const isRedirectedFromCheckout = !!showSeerAutomationAlert;
 
   const {dismiss, isDismissed} = useDismissAlert({
     key: `${organization.id}:seer-automation-billing-alert`,

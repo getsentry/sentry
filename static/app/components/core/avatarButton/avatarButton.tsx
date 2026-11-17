@@ -136,7 +136,6 @@ const AvatarContainer = styled('div')<{
   height: 100%;
   overflow: hidden;
   border: 1px ${p => p.borderStyle} ${p => p.borderColor};
-  will-change: transform;
   border-radius: ${p =>
     p.round
       ? '50%'

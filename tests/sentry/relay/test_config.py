@@ -1,6 +1,9 @@
 import time
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
 
@@ -24,6 +27,7 @@ from sentry.models.custominboundfilter import LegacyFilter
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
 from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_config
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
@@ -90,7 +94,7 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
 }
 
 
-def _validate_project_config(config):
+def _validate_project_config(config: dict[str, Any]) -> None:
     # Relay uses a BTreeSet for features:
     if features := config.get("features"):
         config["features"] = sorted(features)
@@ -114,7 +118,7 @@ def _lowercase_glob_values(node: object) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_get_project_config_non_visible(default_project) -> None:
+def test_get_project_config_non_visible(default_project: Project) -> None:
     keys = ProjectKey.objects.filter(project=default_project)
     default_project.update(status=ObjectStatus.PENDING_DELETION)
     cfg = get_project_config(default_project, project_keys=keys)
@@ -154,7 +158,9 @@ SOME_EXCEPTION = RuntimeError("foo")
 @cell_silo_test
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.experimental.logger")
-def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -> None:
+def test_get_experimental_config_dyn_sampling(
+    mock_logger: MagicMock, _: MagicMock, default_project: Project
+) -> None:
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
@@ -172,8 +178,11 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -
 @pytest.mark.parametrize("has_blacklisted_ips", [False, True])
 @pytest.mark.parametrize("has_generic_ip_filter", [False, True])
 def test_project_config_uses_filter_features(
-    default_project, has_custom_filters, has_blacklisted_ips, has_generic_ip_filter
-):
+    default_project: Project,
+    has_custom_filters: bool,
+    has_blacklisted_ips: bool,
+    has_generic_ip_filter: bool,
+) -> None:
     log_messages = ["some log"]
     trace_metric_names = ["some metric"]
     error_messages = ["some_error"]
@@ -257,8 +266,11 @@ def test_project_config_uses_filter_features(
 @pytest.mark.parametrize("has_custom_filters", [False, True])
 @pytest.mark.parametrize("has_inbound_filters_v2", [False, True])
 def test_project_config_custom_inbound_filters_v2(
-    default_project, factories, has_custom_filters, has_inbound_filters_v2
-):
+    default_project: Project,
+    factories: Factories,
+    has_custom_filters: bool,
+    has_inbound_filters_v2: bool,
+) -> None:
     active_filter = factories.create_project_custom_inbound_filter(
         default_project,
         name="Block old releases",
@@ -342,8 +354,8 @@ def test_project_config_exposed_features_raise_exc(default_project: MagicMock) -
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
 def test_project_config_with_all_biases_enabled(
-    eval_dynamic_factor_lr, default_project, default_team
-):
+    eval_dynamic_factor_lr: MagicMock, default_project: Project, default_team: Team
+) -> None:
     """
     Tests that dynamic sampling information return correct uniform rules
     """
@@ -390,10 +402,10 @@ def test_project_config_with_all_biases_enabled(
     for release_id in release_ids[1:]:
         boosted_releases.append((release_id, ts))
 
-    for release, timestamp in boosted_releases:
+    for release_id, timestamp in boosted_releases:
         redis_client.hset(
             f"ds::p:{default_project.id}:boosted_releases",
-            f"ds::r:{release}:e:prod",
+            f"ds::r:{release_id}:e:prod",
             timestamp,
         )
 
@@ -525,8 +537,8 @@ def test_project_config_with_all_biases_enabled(
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
 def test_project_config_with_trace_health_checks_enabled(
-    eval_dynamic_factor_lr, default_project, default_team
-):
+    eval_dynamic_factor_lr: MagicMock, default_project: Project, default_team: Team
+) -> None:
     eval_dynamic_factor_lr.return_value = 1.5
 
     default_project.update_option(
@@ -609,8 +621,10 @@ def test_project_config_with_breakdown(default_project: Project) -> None:
 @cell_silo_test
 @pytest.mark.parametrize("abnormal_mechanism_rollout", (0, 1))
 def test_project_config_with_organizations_metrics_extraction(
-    default_project, set_sentry_option, abnormal_mechanism_rollout
-):
+    default_project: Project,
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+    abnormal_mechanism_rollout: int,
+) -> None:
     with set_sentry_option(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
@@ -627,7 +641,7 @@ def test_project_config_with_organizations_metrics_extraction(
 
 @pytest.mark.parametrize("num_clusterer_runs", [9, 10])
 @django_db_all
-def test_txnames_ready(default_project, num_clusterer_runs) -> None:
+def test_txnames_ready(default_project: Project, num_clusterer_runs: int) -> None:
     with mock.patch(
         "sentry.relay.config.get_clusterer_meta",
         return_value={"runs": num_clusterer_runs},
@@ -642,7 +656,7 @@ def test_txnames_ready(default_project, num_clusterer_runs) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_project_config_setattr(default_project) -> None:
+def test_project_config_setattr(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project)
     with pytest.raises(Exception) as exc_info:
         project_cfg.foo = "bar"
@@ -651,14 +665,14 @@ def test_project_config_setattr(default_project) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_project_config_getattr(default_project) -> None:
+def test_project_config_getattr(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert project_cfg.foo == "bar"
 
 
 @django_db_all
 @cell_silo_test
-def test_project_config_str(default_project) -> None:
+def test_project_config_str(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert str(project_cfg) == '{"foo":"bar"}'
 
@@ -670,21 +684,21 @@ def test_project_config_str(default_project) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_project_config_repr(default_project) -> None:
+def test_project_config_repr(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert repr(project_cfg) == '(ProjectConfig){"foo":"bar"}'
 
 
 @django_db_all
 @cell_silo_test
-def test_project_config_to_json_string(default_project) -> None:
+def test_project_config_to_json_string(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert project_cfg.to_json_string() == '{"foo":"bar"}'
 
 
 @django_db_all
 @cell_silo_test
-def test_project_config_get_at_path(default_project) -> None:
+def test_project_config_get_at_path(default_project: Project) -> None:
     project_cfg = ProjectConfig(default_project, a=1, b="The b", foo="bar")
     assert project_cfg.get_at_path("b") == "The b"
     assert project_cfg.get_at_path("bb") is None
@@ -698,7 +712,7 @@ def test_project_config_get_at_path(default_project) -> None:
     [True, False],
     ids=["healthcheck set", "healthcheck not set"],
 )
-def test_healthcheck_filter(default_project, health_check_set) -> None:
+def test_healthcheck_filter(default_project: Project, health_check_set: bool) -> None:
     """
     Tests that the project config properly returns healthcheck filters when the
     user has enabled healthcheck filters.
@@ -720,7 +734,7 @@ def test_healthcheck_filter(default_project, health_check_set) -> None:
 
 
 @django_db_all
-def test_desktop_performance_calculate_score(default_project) -> None:
+def test_desktop_performance_calculate_score(default_project: Project) -> None:
     config = get_project_config(default_project).to_dict()["config"]
 
     # Set a version field that is returned even though it's optional.
@@ -1074,7 +1088,7 @@ def test_desktop_performance_calculate_score(default_project) -> None:
 
 
 @django_db_all
-def test_mobile_performance_calculate_score(default_project) -> None:
+def test_mobile_performance_calculate_score(default_project: Project) -> None:
     config = get_project_config(default_project).to_dict()["config"]
 
     # Set a version field that is returned even though it's optional.
@@ -1418,7 +1432,7 @@ def test_mobile_performance_calculate_score(default_project) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_project_config_with_generic_filters(default_project) -> None:
+def test_project_config_with_generic_filters(default_project: Project) -> None:
     config = get_project_config(default_project).to_dict()
     _validate_project_config(config["config"])
 
@@ -1429,8 +1443,8 @@ def test_project_config_with_generic_filters(default_project) -> None:
 @cell_silo_test
 @mock.patch("sentry.relay.config.get_transaction_names_config")
 def test_project_config_with_transaction_name_clustering_disabled(
-    mock_get_transaction_name_config, default_project
-):
+    mock_get_transaction_name_config: MagicMock, default_project: Project
+) -> None:
     mock_get_transaction_name_config.return_value = [
         TransactionNameRule(
             pattern="dummy_rule",
@@ -1454,7 +1468,7 @@ def test_project_config_with_transaction_name_clustering_disabled(
 
 @django_db_all
 @cell_silo_test
-def test_project_config_trusted_relay_settings_enabled(default_project):
+def test_project_config_trusted_relay_settings_enabled(default_project: Project) -> None:
     default_project.organization.update_option(
         "sentry:ingest-through-trusted-relays-only", "enabled"
     )
@@ -1468,7 +1482,7 @@ def test_project_config_trusted_relay_settings_enabled(default_project):
 
 @django_db_all
 @cell_silo_test
-def test_project_config_trusted_relay_settings_disabled(default_project):
+def test_project_config_trusted_relay_settings_disabled(default_project: Project) -> None:
     default_project.organization.update_option(
         "sentry:ingest-through-trusted-relays-only", "disabled"
     )
@@ -1483,7 +1497,9 @@ def test_project_config_trusted_relay_settings_disabled(default_project):
 @django_db_all
 @cell_silo_test
 @pytest.mark.parametrize("trimming_configs", [{}, {"span": {"maxSize": 17}}])
-def test_project_config_trimming(default_project, trimming_configs):
+def test_project_config_trimming(
+    default_project: Project, trimming_configs: dict[str, object]
+) -> None:
     with patch.object(
         quotas.backend,
         "get_trimming_configs",
@@ -1503,7 +1519,7 @@ def test_project_config_trimming(default_project, trimming_configs):
 
 @django_db_all
 @cell_silo_test
-def test_project_config_skips_the_row_of_a_legacy_list(default_project) -> None:
+def test_project_config_skips_the_row_of_a_legacy_list(default_project: Project) -> None:
     default_project.update_option("sentry:log_messages", ["*DEBUG*"])
     Factories.create_project_custom_inbound_filter(
         default_project,
@@ -1536,7 +1552,7 @@ def test_project_config_skips_the_row_of_a_legacy_list(default_project) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_project_config_serves_release_comparisons(default_project) -> None:
+def test_project_config_serves_release_comparisons(default_project: Project) -> None:
     comparison = Factories.create_project_custom_inbound_filter(
         default_project,
         data_type="all",
@@ -1564,7 +1580,9 @@ def test_project_config_serves_release_comparisons(default_project) -> None:
 
 @django_db_all
 @cell_silo_test
-def test_project_config_reads_a_legacy_list_at_v2_from_its_row(default_project, factories):
+def test_project_config_reads_a_legacy_list_at_v2_from_its_row(
+    default_project: Project, factories: Factories
+) -> None:
     default_project.update_option("sentry:releases", ["stale"])
     default_project.update_option("sentry:error_messages", ["stale"])
     default_project.update_option("sentry:log_messages", ["stale"])

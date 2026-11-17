@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 import requests
 from django.http import HttpRequest
 from jwt import (
+    DecodeError,
     ExpiredSignatureError,
     InvalidAlgorithmError,
     InvalidSignatureError,
@@ -18,6 +19,8 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri, percent_encode
+
+INSTALL_KEY_FETCH_TIMEOUT = 10
 
 
 class AtlassianConnectValidationError(Exception):
@@ -78,8 +81,11 @@ def get_integration_from_jwt(
         raise AtlassianConnectValidationError("No token parameter")
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
-    claims = jwt.peek_claims(token)
-    headers = jwt.peek_header(token)
+    try:
+        claims = jwt.peek_claims(token)
+        headers = jwt.peek_header(token)
+    except DecodeError as e:
+        raise AtlassianConnectValidationError("Malformed token") from e
 
     # Extract the issuer ('iss') claim from the decoded, unverified
     # claims object. This is the clientKey for the tenant - an identifier
@@ -103,16 +109,20 @@ def get_integration_from_jwt(
     if not key_id and alg != EXPECTED_ALG_FORMAT:
         raise AtlassianConnectValidationError("Invalid algorithm in JWT header")
 
+    shared_secret = integration.metadata.get("shared_secret")
+
     try:
         # We only authenticate asymmetrically (through the CDN) if the event provides a key ID
         # in its JWT headers. This should only appear for install/uninstall events.
         # authenticate_asymmetric_jwt hardcodes algorithms=["RS256"], so the algorithm-confusion
         # attack (forcing an asymmetric public key to be used as an HMAC secret) is not possible.
-        decoded_claims = (
-            authenticate_asymmetric_jwt(token, key_id)
-            if key_id
-            else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
-        )
+        if key_id:
+            decoded_claims = authenticate_asymmetric_jwt(token, key_id)
+        elif shared_secret:
+            decoded_claims = jwt.decode(token, shared_secret, audience=False)
+        else:
+            # Forge-only integrations have no Connect secret, so no Connect JWT can name them.
+            raise AtlassianConnectValidationError("No Connect secret for this integration")
     except InvalidSignatureError as e:
         raise AtlassianConnectValidationError("Signature is invalid") from e
     except ExpiredSignatureError as e:
@@ -147,7 +157,9 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     """
     if token is None:
         raise AtlassianConnectValidationError("No token parameter")
-    key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
+    key_response = requests.get(
+        f"https://connect-install-keys.atlassian.com/{key_id}", timeout=INSTALL_KEY_FETCH_TIMEOUT
+    )
     public_key = key_response.content.decode("utf-8").strip()
     decoded_claims = jwt.decode(token, public_key, audience=absolute_uri(), algorithms=["RS256"])
     if not decoded_claims:
@@ -173,4 +185,4 @@ def parse_integration_from_request(request: HttpRequest, provider: str) -> Integ
         query_params=request.GET,
         method=request.method if request.method else "POST",
     )
-    return Integration.objects.filter(id=rpc_integration.id).first()
+    return Integration.objects.get_or_none(id=rpc_integration.id)

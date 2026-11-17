@@ -51,7 +51,7 @@ class RepositorySettingsSerializer(serializers.Serializer):
         help_text="List of triggers for code review",
     )
 
-    def validate(self, data):
+    def validate(self, data: dict[str, object]) -> dict[str, object]:
         if "enabledCodeReview" not in data and "codeReviewTriggers" not in data:
             raise serializers.ValidationError(
                 "At least one of 'enabledCodeReview' or 'codeReviewTriggers' must be provided."
@@ -68,6 +68,7 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationIntegrationsPermission,)
 
     @extend_schema(
@@ -185,7 +186,7 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
         previous_triggers: set[str],
         updated_enabled_code_review: bool | None,
         updated_code_review_triggers: list[str] | None,
-    ) -> dict:
+    ) -> dict[str, object]:
         code_review_change = self._format_code_review_change(
             previous_triggers,
             updated_enabled_code_review,

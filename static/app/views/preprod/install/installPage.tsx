@@ -1,3 +1,5 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -6,36 +8,32 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';
 import {InstallDetailsContent} from 'sentry/views/preprod/components/installDetailsContent';
-import {BuildInstallHeader} from 'sentry/views/preprod/install/buildInstallHeader';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+
+import {BuildInstallHeader} from './buildInstallHeader';
 
 export default function InstallPage() {
   const {artifactId} = useParams<{artifactId: string}>();
   const organization = useOrganization();
 
-  const buildDetailsQuery = useApiQuery<BuildDetailsApiResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            headArtifactId: artifactId,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: 0,
-      enabled: !!artifactId,
-    }
-  );
+  const buildDetailsQuery = useQuery({
+    ...apiOptions.as<BuildDetailsApiResponse>()(
+      '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          headArtifactId: artifactId,
+        },
+        staleTime: 0,
+      }
+    ),
+    enabled: !!artifactId,
+  });
   return (
     <SentryDocumentTitle title="Install">
       <Stack flex={1}>

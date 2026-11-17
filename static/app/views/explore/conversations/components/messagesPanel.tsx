@@ -20,10 +20,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
-import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
-import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/transcriptSpanRow';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
@@ -44,6 +40,11 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {SpanFields} from 'sentry/views/insights/types';
 import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+
+import {ConversationMissingMessagesAlert} from './conversationMissingMessagesAlert';
+import {MessageToolCalls} from './messageToolCalls';
+import {ToolTag} from './toolTag';
+import {TranscriptSpanRow} from './transcriptSpanRow';
 
 interface MessagesPanelProps {
   nodes: AITraceSpanNode[];

@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
 
-import type {AskSeerStrategy} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import type {AskSeerStrategy} from './types';
 
 interface AiQueryContextValue {
   /**

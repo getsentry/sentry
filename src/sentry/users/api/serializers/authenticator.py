@@ -83,7 +83,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
 
 
 class SmsInterfaceSerializerResponse(AuthenticatorInterfaceSerializerResponse):
-    phone: str
+    phone: str | None
 
 
 @register(SmsInterface)

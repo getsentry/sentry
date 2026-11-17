@@ -16,6 +16,7 @@ export enum DisplayModes {
 
 export enum DiscoverDatasets {
   DISCOVER = 'discover',
+  ENRICHMENT_ATTRIBUTES = 'enrichment_attributes',
   ERRORS = 'errors',
   METRICS = 'metrics',
   METRICS_ENHANCED = 'metricsEnhanced',
@@ -30,6 +31,22 @@ export enum DiscoverDatasets {
 export const DiscoverDatasetsToDatasetMap = {
   [DiscoverDatasets.ERRORS]: Dataset.ERRORS,
   [DiscoverDatasets.TRANSACTIONS]: Dataset.TRANSACTIONS,
+};
+
+// Public, user-facing name for each dataset, used in URLs. Keeps internal keys
+// (ourlogs, tracemetrics) out of user-facing URLs.
+export const DiscoverDatasetToUrlParam: Record<DiscoverDatasets, string> = {
+  [DiscoverDatasets.DISCOVER]: 'discover',
+  [DiscoverDatasets.ENRICHMENT_ATTRIBUTES]: 'enrichment_attributes',
+  [DiscoverDatasets.ERRORS]: 'errors',
+  [DiscoverDatasets.METRICS]: 'metrics',
+  [DiscoverDatasets.METRICS_ENHANCED]: 'metricsEnhanced',
+  [DiscoverDatasets.ISSUE_PLATFORM]: 'issuePlatform',
+  [DiscoverDatasets.OURLOGS]: 'logs',
+  [DiscoverDatasets.PREPROD_SIZE]: 'preprodSize',
+  [DiscoverDatasets.SPANS]: 'spans',
+  [DiscoverDatasets.TRANSACTIONS]: 'transactions',
+  [DiscoverDatasets.TRACEMETRICS]: 'metrics',
 };
 
 export enum SavedQueryDatasets {

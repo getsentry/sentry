@@ -3,17 +3,16 @@ import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
 
 type Props = {
   location: Location;
-  selection: PageFilters;
 };
 
-function ReleaseCardStatsPeriod({location, selection}: Props) {
+export function ReleaseCardStatsPeriod({location}: Props) {
+  const {selection} = usePageFilters();
   const activePeriod = location.query.healthStatsPeriod || HealthStatsPeriodOption.AUTO;
   const {pathname, query} = location;
 
@@ -68,5 +67,3 @@ const Period = styled(Link)<{selected: boolean}>`
       p.selected ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
   }
 `;
-
-export default withPageFilters(ReleaseCardStatsPeriod);

@@ -16,6 +16,7 @@ class GroupReprocessingTest(APITestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.group = event.group
         self.url = (
             f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/reprocessing/"

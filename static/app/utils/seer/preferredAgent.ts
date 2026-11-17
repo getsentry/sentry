@@ -11,11 +11,12 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+
 import type {
   AutofixAgentSelectOption,
   AgentIntegration,
   PreferredAgentProvider,
-} from 'sentry/utils/seer/types';
+} from './types';
 
 export function coalesePreferredAgent(
   agent: 'seer' | CodingAgentProvider,

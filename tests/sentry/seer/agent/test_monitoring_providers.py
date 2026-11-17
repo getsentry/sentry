@@ -1,11 +1,16 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+import responses
 from cryptography.fernet import Fernet
 from django.test import override_settings
+from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
+from sentry.integrations.linear.client import LINEAR_TOKEN_URL
+from sentry.integrations.supabase.client import SUPABASE_TOKEN_URL
 from sentry.models.organization import Organization
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.testutils.cases import TestCase
@@ -675,4 +680,242 @@ class TestGetMonitoringProviderConnections(TestCase):
     @with_feature({"organizations:seer-infra-telemetry": False})
     def test_org_grafana_connection_requires_infra_telemetry_flag(self) -> None:
         self._create_org_grafana_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def _create_org_linear_integration(
+        self,
+        metadata: dict[str, str] | None = None,
+        org_integration_status: int = ObjectStatus.ACTIVE,
+        **kwargs: object,
+    ) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="linear",
+            external_id="linear-workspace-id",
+            name="Linear (Example)",
+            metadata=metadata
+            if metadata is not None
+            else {
+                "refresh_token": "linear-refresh-token",
+                "access_token": "linear-app-token",
+                "expires_at": (timezone.now() + timedelta(hours=1)).isoformat(),
+            },
+            oi_params={"status": org_integration_status},
+            **kwargs,
+        )
+
+    def test_org_linear_connection(self) -> None:
+        self._create_org_linear_integration()
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        conn = result[0]
+        assert conn["type"] == "header_auth"
+        assert conn["provider_key"] == "linear"
+        assert conn["url"] == "https://mcp.linear.app/mcp/readonly"
+        assert conn["identity_id"] is None
+        assert conn["integration_id"] is not None
+        assert conn["auth_method"] == "oauth"
+        assert conn["refreshable"] is True
+
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        authorization = conn["encrypted_auth_headers"]["Authorization"]
+        assert fernet.decrypt(authorization.encode()).decode() == "Bearer linear-app-token"
+        assert "linear-refresh-token" not in str(conn)
+
+    def test_org_linear_and_grafana_together(self) -> None:
+        self._create_org_linear_integration()
+        self._create_org_grafana_integration()
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert sorted(c["provider_key"] for c in result) == ["grafana", "linear"]
+
+    def test_org_linear_connection_ignores_non_active_integration(self) -> None:
+        self._create_org_linear_integration(status=ObjectStatus.DISABLED)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_linear_connection_ignores_uninstalled_org_integration(self) -> None:
+        # Credentials stay in Integration.metadata until async deletion runs.
+        self._create_org_linear_integration(org_integration_status=ObjectStatus.PENDING_DELETION)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_linear_connection_skips_missing_credentials(self) -> None:
+        self._create_org_linear_integration(metadata={})
+
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    @responses.activate
+    @override_settings(LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret")
+    def test_org_linear_connection_skips_token_refresh_failure(self) -> None:
+        self._create_org_linear_integration(metadata={"refresh_token": "linear-refresh-token"})
+        responses.add(responses.POST, LINEAR_TOKEN_URL, status=503)
+
+        assert get_monitoring_provider_connections(self.organization, None) == []
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @override_settings(LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret")
+    def test_org_linear_refreshes_expired_token_without_user(self) -> None:
+        self._create_org_linear_integration(metadata={"refresh_token": "linear-refresh-token"})
+        responses.add(
+            responses.POST,
+            LINEAR_TOKEN_URL,
+            json={
+                "access_token": "renewed-app-token",
+                "refresh_token": "renewed-refresh-token",
+                "expires_in": 86400,
+                "token_type": "Bearer",
+                "scope": "read write",
+            },
+        )
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        assert result[0]["identity_id"] is None
+        authorization = result[0]["encrypted_auth_headers"]["Authorization"]
+        assert Fernet(TEST_FERNET_KEY.encode()).decrypt(authorization.encode()).decode() == (
+            "Bearer renewed-app-token"
+        )
+        assert "renewed-refresh-token" not in str(result)
+
+    @override_settings(SEER_GHE_ENCRYPT_KEY=None)
+    def test_org_linear_connection_skipped_when_encryption_fails(self) -> None:
+        self._create_org_linear_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    @with_feature({"organizations:seer-infra-telemetry": False})
+    def test_org_linear_connection_requires_infra_telemetry_flag(self) -> None:
+        self._create_org_linear_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+
+@override_settings(
+    SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY,
+    SUPABASE_FOR_SEER_CLIENT_ID="sentry-app-id",
+    SUPABASE_FOR_SEER_CLIENT_SECRET="sentry-app-secret",
+)
+@with_feature(["organizations:seer-infra-telemetry", "organizations:integrations-supabase"])
+class TestSupabaseMonitoringConnections(TestCase):
+    def create_supabase(
+        self,
+        *,
+        status: int = ObjectStatus.ACTIVE,
+        org_integration_status: int = ObjectStatus.ACTIVE,
+        metadata: dict[str, str] | None = None,
+    ) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="supabase",
+            external_id="org-slug",
+            metadata=metadata
+            if metadata is not None
+            else {
+                "access_token": "supabase-token",
+                "refresh_token": "supabase-refresh-token",
+                "expires_at": (timezone.now() + timedelta(hours=1)).isoformat(),
+            },
+            status=status,
+            oi_params={"status": org_integration_status},
+        )
+
+    def test_shared_read_only_cross_project_observability_connection(self) -> None:
+        self.create_supabase()
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        connection = result[0]
+        assert connection["type"] == "header_auth"
+        assert connection["provider_key"] == "supabase"
+        assert connection["url"] == (
+            "https://mcp.supabase.com/mcp?read_only=true&features=account,debugging"
+        )
+        assert connection["identity_id"] is None
+        assert connection["integration_id"] is not None
+        assert connection["auth_method"] == "oauth"
+        assert connection["refreshable"] is True
+        assert (
+            Fernet(TEST_FERNET_KEY.encode())
+            .decrypt(connection["encrypted_auth_headers"]["Authorization"].encode())
+            .decode()
+            == "Bearer supabase-token"
+        )
+        assert "supabase-refresh-token" not in str(result)
+        [user_connection] = get_monitoring_provider_connections(self.organization, self.user.id)
+        assert user_connection["integration_id"] == connection["integration_id"]
+        assert user_connection["identity_id"] is None
+        assert (
+            Fernet(TEST_FERNET_KEY.encode())
+            .decrypt(user_connection["encrypted_auth_headers"]["Authorization"].encode())
+            .decode()
+            == "Bearer supabase-token"
+        )
+
+    def test_disabled_integration_is_not_connected(self) -> None:
+        self.create_supabase(status=ObjectStatus.DISABLED)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_uninstalled_integration_is_not_connected(self) -> None:
+        self.create_supabase(org_integration_status=ObjectStatus.PENDING_DELETION)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_does_not_share_credentials_with_unconnected_organization(self) -> None:
+        self.create_supabase()
+        other_org = self.create_organization()
+        assert get_monitoring_provider_connections(other_org, None) == []
+
+    def test_missing_credentials_are_skipped(self) -> None:
+        self.create_supabase(metadata={})
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    @responses.activate
+    def test_refreshes_without_a_user_identity(self) -> None:
+        self.create_supabase(metadata={"refresh_token": "supabase-refresh-token"})
+        responses.add(
+            responses.POST,
+            SUPABASE_TOKEN_URL,
+            status=201,
+            json={
+                "access_token": "renewed-token",
+                "refresh_token": "renewed-refresh-token",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+            },
+        )
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        assert result[0]["identity_id"] is None
+        assert (
+            Fernet(TEST_FERNET_KEY.encode())
+            .decrypt(result[0]["encrypted_auth_headers"]["Authorization"].encode())
+            .decode()
+            == "Bearer renewed-token"
+        )
+        assert "renewed-refresh-token" not in str(result)
+
+    @responses.activate
+    def test_refresh_failure_does_not_fail_seer_run(self) -> None:
+        self.create_supabase(metadata={"refresh_token": "supabase-refresh-token"})
+        responses.add(responses.POST, SUPABASE_TOKEN_URL, status=503)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+        assert len(responses.calls) == 1
+
+    @override_settings(SEER_GHE_ENCRYPT_KEY=None)
+    def test_encryption_failure_does_not_expose_credentials(self) -> None:
+        self.create_supabase()
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    @with_feature({"organizations:integrations-supabase": False})
+    def test_requires_supabase_feature(self) -> None:
+        self.create_supabase()
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    @with_feature({"organizations:seer-infra-telemetry": False})
+    def test_requires_infra_telemetry_feature(self) -> None:
+        self.create_supabase()
         assert get_monitoring_provider_connections(self.organization, None) == []

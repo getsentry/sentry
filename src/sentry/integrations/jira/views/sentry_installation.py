@@ -1,5 +1,5 @@
+from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
@@ -24,7 +24,7 @@ class JiraSentryInstallationView(JiraSentryUIBaseView):
 
     html_file = "sentry/integrations/jira-config.html"
 
-    def get(self, request: Request, *args, **kwargs) -> Response:
+    def get(self, request: Request, *args: object, **kwargs: object) -> HttpResponse:
         try:
             integration = get_integration_from_request(request, IntegrationProviderSlug.JIRA.value)
         except AtlassianConnectTokenExpiredError:

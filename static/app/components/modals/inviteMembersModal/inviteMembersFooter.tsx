@@ -1,8 +1,8 @@
 import {Flex} from '@sentry/scraps/layout';
 
-import {InviteButton} from 'sentry/components/modals/inviteMembersModal/inviteButton';
-import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import {InviteStatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
+import {InviteButton} from './inviteButton';
+import {useInviteMembersContext} from './inviteMembersContext';
+import {InviteStatusMessage} from './inviteStatusMessage';
 
 interface Props {
   canSend: boolean;

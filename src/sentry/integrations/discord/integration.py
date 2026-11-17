@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlencode
 
 from django.http.request import HttpRequest
@@ -84,7 +84,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient):
+class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient[DiscordRenderable]):
     def get_client(self) -> DiscordClient:
         return DiscordClient()
 
@@ -142,13 +142,25 @@ class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient)
             return
 
 
-class DiscordOAuthApiSerializer(CamelSnakeSerializer):
+class DiscordOAuthApiData(TypedDict):
+    code: str
+    state: str
+    guild_id: str
+
+
+class DiscordOAuthApiSerializer(CamelSnakeSerializer[DiscordOAuthApiData]):
     code = CharField(required=True)
     state = CharField(required=True)
     guild_id = CharField(required=True)
 
 
-class DiscordInitialDataSerializer(CamelSnakeSerializer):
+class DiscordInitialData(TypedDict, total=False):
+    code: str
+    guild_id: str
+    use_configure: str
+
+
+class DiscordInitialDataSerializer(CamelSnakeSerializer[DiscordInitialData]):
     """Initial pipeline data for App Directory-originated Discord installs.
 
     When a user installs from Discord's App Directory, Discord initiates OAuth

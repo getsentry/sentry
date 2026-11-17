@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 import orjson
 import responses
 from django.http import HttpResponse
-from django.test import override_settings
 from django.urls import reverse
 from requests import PreparedRequest
 from rest_framework.response import Response
@@ -133,7 +132,8 @@ class StatusActionTest(APITestCase):
         }
 
         webhook_url = reverse("sentry-integration-msteams-webhooks")
-        return self.client.post(webhook_url, data=payload)
+        response: Response[Any] = self.client.post(webhook_url, data=payload)
+        return response
 
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_vaue=True)
     @patch("sentry.integrations.msteams.link_identity.sign")
@@ -614,7 +614,6 @@ class StatusActionTest(APITestCase):
         assert_mock_called_once_with_partial(client_put, data=expected_data)
 
     @responses.activate
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_action_submitted_sets_viewer_context(self, verify: MagicMock) -> None:
         """ViewerContext is set with org_id and actor_type=INTEGRATION during action handling."""

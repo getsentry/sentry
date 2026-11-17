@@ -34,11 +34,6 @@ import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttri
 import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
-  OurLogKnownFieldKey,
-  type OurLogsAggregate,
-} from 'sentry/views/explore/logs/types';
-import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
-import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
   useSetQueryParamsGroupBys,
@@ -69,6 +64,8 @@ import {
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 import {HiddenLogSearchFields} from './constants';
+import {OurLogKnownFieldKey, type OurLogsAggregate} from './types';
+import {useValidateLogsTab} from './useValidateLogsTab';
 
 export const LOG_AGGREGATES: Array<SelectOption<OurLogsAggregate>> = [
   {

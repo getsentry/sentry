@@ -4,10 +4,11 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {AdjustedFiltersAlert} from 'sentry/views/dashboards/adjustedFiltersAlert';
+
+import {AdjustedFiltersAlert} from './adjustedFiltersAlert';
 
 describe('AdjustedFiltersAlert', () => {
-  afterEach(() => {
+  beforeEach(() => {
     PageFiltersStore.reset();
   });
 

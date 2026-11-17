@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase
 
 
@@ -16,6 +18,23 @@ class OrganizationIntegrationReposTest(APITestCase):
         self.path = (
             f"/api/0/organizations/{self.org.slug}/integrations/{self.integration.id}/repos/"
         )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        side_effect=IntegrationError("Unable to retrieve repositories"),
+    )
+    def test_expected_error_halts_lifecycle(
+        self, _get_repositories: MagicMock, record_event: MagicMock
+    ) -> None:
+        response = self.client.get(self.path, format="json")
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Unable to retrieve repositories"}
+        assert [call.args[0] for call in record_event.call_args_list] == [
+            EventLifecycleOutcome.STARTED,
+            EventLifecycleOutcome.HALTED,
+        ]
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]

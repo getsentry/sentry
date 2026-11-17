@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 import time
 from abc import ABC
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import NotRequired, TypedDict, cast
 from urllib.parse import urlencode
 
 from requests import PreparedRequest
@@ -18,6 +19,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.utils import metrics
 
@@ -25,6 +27,32 @@ logger = logging.getLogger(__name__)
 
 # five minutes which is industry standard clock skew tolerance
 CLOCK_SKEW = 60 * 5
+
+
+class _TeamChannel(TypedDict, total=False):
+    id: str
+    name: str
+
+
+class _TeamMember(TypedDict):
+    id: str
+    name: str
+    tenantId: str
+
+
+class _PagedMembersResponse(TypedDict):
+    members: list[_TeamMember]
+    continuationToken: NotRequired[str]
+
+
+class _TokenResponse(TypedDict):
+    access_token: str
+    expires_in: int
+
+
+class _OpenIDConfig(TypedDict):
+    jwks_uri: str
+    id_token_signing_alg_values_supported: list[str]
 
 
 # MsTeamsClientABC abstract client does not handle setting the base url or auth token
@@ -37,29 +65,35 @@ class MsTeamsClientABC(ApiClient, ABC):
     CONVERSATION_URL = "/v3/conversations"
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
-    def get_channel_list(self, team_id: str):
-        resp = self.get(self.CHANNEL_URL % team_id)
-        return resp.get("conversations")
+    def get_channel_list(self, team_id: str) -> list[_TeamChannel]:
+        resp = self.get_mapping(self.CHANNEL_URL % team_id)
+        return cast("list[_TeamChannel]", resp.get("conversations"))
 
-    def get_member_list(self, team_id: str, continuation_token: str | None = None):
+    def get_member_list(
+        self, team_id: str, continuation_token: str | None = None
+    ) -> _PagedMembersResponse:
         url = self.MEMBER_URL % team_id
         params: dict[str, int | str] = {"pageSize": 500}
         if continuation_token:
             params["continuationToken"] = continuation_token
-        return self.get(url, params=params)
+        return cast("_PagedMembersResponse", self.get_mapping(url, params=params))
 
-    def get_user_conversation_id(self, user_id: str, tenant_id: str):
+    def get_user_conversation_id(self, user_id: str, tenant_id: str) -> str:
         data = {"members": [{"id": user_id}], "channelData": {"tenant": {"id": tenant_id}}}
-        resp = self.post(self.CONVERSATION_URL, data=data)
-        return resp.get("id")
+        resp = self.post_mapping(self.CONVERSATION_URL, data=data)
+        return cast(str, resp.get("id"))
 
-    def send_message(self, conversation_id: str, data):
-        return self.post(self.ACTIVITY_URL % conversation_id, data=data)
+    def send_message(self, conversation_id: str, data: Mapping[str, object]) -> object:
+        response: object = self.post(self.ACTIVITY_URL % conversation_id, data=data)
+        return response
 
-    def update_message(self, conversation_id: str, activity_id: str, data):
-        return self.put(self.MESSAGE_URL % (conversation_id, activity_id), data=data)
+    def update_message(
+        self, conversation_id: str, activity_id: str, data: Mapping[str, object]
+    ) -> object:
+        response: object = self.put(self.MESSAGE_URL % (conversation_id, activity_id), data=data)
+        return response
 
-    def send_card(self, conversation_id: str, card):
+    def send_card(self, conversation_id: str, card: Mapping[str, object]) -> object:
         payload = {
             "type": "message",
             "attachments": [
@@ -68,7 +102,9 @@ class MsTeamsClientABC(ApiClient, ABC):
         }
         return self.send_message(conversation_id, payload)
 
-    def update_card(self, conversation_id: str, activity_id: str, card):
+    def update_card(
+        self, conversation_id: str, activity_id: str, card: Mapping[str, object]
+    ) -> object:
         payload = {
             "type": "message",
             "attachments": [
@@ -83,12 +119,18 @@ class MsTeamsClientABC(ApiClient, ABC):
 class MsTeamsPreInstallClient(MsTeamsClientABC):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
-    def __init__(self, access_token: str, service_url: str):
+    def __init__(self, access_token: str, service_url: str) -> None:
         super().__init__()
         self.access_token = access_token
         self.base_url = service_url.rstrip("/")
 
-    def request(self, method, path, data=None, params=None):
+    def request(
+        self,
+        method: str,
+        path: str,
+        data: Mapping[str, object] | None = None,
+        params: Mapping[str, str | int] | None = None,
+    ) -> BaseApiResponse:
         headers = {"Authorization": f"Bearer {self.access_token}"}
         return self._request(method, path, headers=headers, data=data, params=params)
 
@@ -97,7 +139,7 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
 class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
-    def request(self, *args, **kwargs):
+    def request(self, *args: object, **kwargs: object) -> BaseApiResponse:
         try:
             return super().request(*args, **kwargs)
         except ApiError as error:
@@ -105,7 +147,7 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
                 raise
             translate_msteams_api_error(error)
 
-    def __init__(self, integration: Integration | RpcIntegration):
+    def __init__(self, integration: Integration | RpcIntegration) -> None:
         self.integration = integration
         self.metadata = self.integration.metadata
         self.base_url = self.metadata["service_url"].rstrip("/")
@@ -114,8 +156,8 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
 
     @property
     def access_token(self) -> str:
-        access_token = self.metadata["access_token"]
-        expires_at = self.metadata["expires_at"]
+        access_token: str = self.metadata["access_token"]
+        expires_at: int = self.metadata["expires_at"]
 
         # We don't refresh the access token in cell silos.
         if SiloMode.get_current_mode() != SiloMode.CELL:
@@ -156,7 +198,7 @@ class OAuthMsTeamsClient(ApiClient):
 
     TOKEN_URL = "/oauth2/v2.0/token"
 
-    def __init__(self, client_id, client_secret):
+    def __init__(self, client_id: str, client_secret: str) -> None:
         super().__init__()
         self.client_id = client_id
         self.client_secret = client_secret
@@ -166,7 +208,7 @@ class OAuthMsTeamsClient(ApiClient):
         if tenant_id:
             self.base_url = f"https://login.microsoftonline.com/{tenant_id}"
 
-    def exchange_token(self):
+    def exchange_token(self) -> _TokenResponse:
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = {
             "client_id": self.client_id,
@@ -174,7 +216,10 @@ class OAuthMsTeamsClient(ApiClient):
             "grant_type": "client_credentials",
             "scope": "https://api.botframework.com/.default",
         }
-        return self.post(self.TOKEN_URL, data=urlencode(data), headers=headers, json=False)
+        return cast(
+            "_TokenResponse",
+            self.post_mapping(self.TOKEN_URL, data=urlencode(data), headers=headers, json=False),
+        )
 
 
 class TokenData(TypedDict):
@@ -222,5 +267,5 @@ class MsTeamsJwtClient(ApiClient):
     cache_time = 60 * 60 * 24
     OPEN_ID_CONFIG_URL = "https://login.botframework.com/v1/.well-known/openidconfiguration"
 
-    def get_open_id_config(self):
-        return self.get_cached(self.OPEN_ID_CONFIG_URL)
+    def get_open_id_config(self) -> _OpenIDConfig:
+        return cast("_OpenIDConfig", self.get_cached_mapping(self.OPEN_ID_CONFIG_URL))

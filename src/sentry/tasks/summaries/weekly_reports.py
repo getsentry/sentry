@@ -4,7 +4,7 @@ import heapq
 import logging
 import uuid
 import zoneinfo
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
@@ -46,6 +46,7 @@ from sentry.tasks.summaries.utils import (
     PAST_ISSUES_LINK_BOOST,
     OrganizationReportContext,
     ProjectContext,
+    key_performance_issue_with_history,
 )
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
@@ -193,7 +194,7 @@ def prepare_organization_report(
     dry_run: bool = False,
     target_user: int | None = None,
     email_override: str | None = None,
-):
+) -> None:
     traces.new_trace()
     propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
     prev_sampling_context = propagation_context.custom_sampling_context
@@ -662,7 +663,7 @@ def _top_spans_chart_url(
 
 
 def render_template_context(
-    ctx,
+    ctx: OrganizationReportContext,
     user_id: int | None,
     excluded_project_ids: set[int] | None = None,
     spans_chart_cache: dict[frozenset[str], str | None] | None = None,
@@ -698,7 +699,7 @@ def render_template_context(
 
     def _multi_project_substatus_url(project_ctxs: list[ProjectContext], query: str) -> str:
         path = f"/organizations/{ctx.organization.slug}/issues/"
-        params = [
+        params: list[tuple[str, str | int]] = [
             ("referrer", "weekly_report"),
             ("notification_uuid", notification_uuid),
             ("query", query),
@@ -707,9 +708,9 @@ def render_template_context(
             params.append(("project", pc.project.id))
         return ctx.organization.absolute_url(path, query=urlencode(params))
 
-    def trends():
+    def trends() -> dict[str, Any]:
         # Given an iterator of event counts, sum up their accepted errors/transaction counts.
-        def sum_error_counts(project_ctxs):
+        def sum_error_counts(project_ctxs: Sequence[ProjectContext]) -> int:
             return sum(project_ctx.accepted_error_count for project_ctx in project_ctxs)
 
         # Highest volume projects go first
@@ -799,10 +800,10 @@ def render_template_context(
             )
 
         # Calculate series
-        series = []
+        series: list[tuple[datetime, list[dict[str, Any]]]] = []
         for i in range(0, 7):
             t = int(ctx.start.timestamp()) + ONE_DAY * i
-            project_series = [
+            project_series: list[dict[str, Any]] = [
                 {
                     "color": project_breakdown_colors[i],
                     "error_count": project_ctx.error_count_by_day.get(t, 0),
@@ -847,8 +848,8 @@ def render_template_context(
             ),
         }
 
-    def top_issues():
-        def all_issues():
+    def top_issues() -> list[dict[str, Any]]:
+        def all_issues() -> Iterator[dict[str, Any]]:
             for project_ctx in user_projects:
                 for group, count in project_ctx.key_error_issues:
                     display = get_group_display(group)
@@ -870,7 +871,8 @@ def render_template_context(
                         "group_substatus_text_color": substatus_text_color,
                     }
 
-                for group, group_history, count in project_ctx.key_performance_issues:
+                for issue in project_ctx.key_performance_issues:
+                    group, group_history, count = key_performance_issue_with_history(issue)
                     display = get_group_display(group)
                     (
                         substatus,
@@ -897,8 +899,8 @@ def render_template_context(
 
         return heapq.nlargest(5, all_issues(), lambda d: d["count"])
 
-    def past_issues():
-        def all_past_issues():
+    def past_issues() -> list[dict[str, Any]]:
+        def all_past_issues() -> Iterator[dict[str, Any]]:
             for project_ctx in user_projects:
                 for (
                     group,
@@ -920,7 +922,7 @@ def render_template_context(
 
         return heapq.nlargest(3, all_past_issues(), lambda d: d["_relevance"])
 
-    def issue_summary():
+    def issue_summary() -> dict[str, int]:
         new_substatus_count = 0
         escalating_substatus_count = 0
         ongoing_substatus_count = 0
@@ -940,7 +942,7 @@ def render_template_context(
             "total_substatus_count": total_substatus_count,
         }
 
-    def top_spans():
+    def top_spans() -> dict[str, Any]:
         user_total_spans_count = sum(
             count for pid, count in ctx.spans_count_by_project.items() if pid in user_project_ids
         )
@@ -1039,7 +1041,7 @@ def render_template_context(
 
 def prepare_template_context(
     ctx: OrganizationReportContext, user_ids: Sequence[int | None]
-) -> list[Mapping[str, Any]] | list:
+) -> list[dict[str, Any]]:
     exclusions_by_user: dict[int, set[int]] = {}
     valid_user_ids = [uid for uid in user_ids if uid is not None]
     if valid_user_ids:
@@ -1050,7 +1052,7 @@ def prepare_template_context(
             exclusions_by_user.setdefault(exc_user_id, set()).add(exc_project_id)
 
     spans_chart_cache: dict[frozenset[str], str | None] = {}
-    user_template_context_by_user_id_list = []
+    user_template_context_by_user_id_list: list[dict[str, Any]] = []
     for user_id in user_ids:
         excluded = exclusions_by_user.get(user_id) if isinstance(user_id, int) else None
         template_ctx = render_template_context(

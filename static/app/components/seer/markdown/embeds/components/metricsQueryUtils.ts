@@ -1,8 +1,3 @@
-import {
-  toAggregateFields,
-  toMode,
-  toPageFilters,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -19,6 +14,8 @@ import {
   getMetricYAxis,
   makeMetricsPathname,
 } from 'sentry/views/explore/metrics/utils';
+
+import {toAggregateFields, toMode, toPageFilters} from './queryEmbedParams';
 
 export type MetricsQueryData = EmbedOutput<'metricsQuery'>;
 

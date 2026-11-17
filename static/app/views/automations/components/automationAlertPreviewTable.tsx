@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {AlertPreviewResponse} from 'sentry/types/workflowEngine/automations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
@@ -167,18 +168,20 @@ export function AutomationAlertPreviewTable({
       {rows.length > PREVIEW_PAGE_SIZE && (
         <Pagination
           disabled={isLoading || isGroupsError}
-          pageLinks={getPaginationPageLink({
-            numRows: rows.length,
-            pageSize: PREVIEW_PAGE_SIZE,
-            offset,
-          })}
+          {...getPaginationProps(
+            getPaginationPageLink({
+              numRows: rows.length,
+              pageSize: PREVIEW_PAGE_SIZE,
+              offset,
+            })
+          )}
           caption={getPaginationCaption({
             cursor: `0:${page}:0`,
             limit: PREVIEW_PAGE_SIZE,
             pageLength: pageRows.length,
             total: rows.length,
           })}
-          onCursor={(_cursor, _path, _query, delta) => setPage(page + delta)}
+          onCursor={(_cursor, delta) => setPage(page + delta)}
         />
       )}
     </Fragment>

@@ -1,11 +1,12 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
 
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxEventData, InboxEventType, InboxItemType
+from sentry.inbox.types import InboxEventData, InboxEventSummary, InboxEventType, InboxItemType
+from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.notifications.types import NotificationSettingEnum
 
 
 class IssueItemType(InboxItemType[Group]):
@@ -25,12 +26,18 @@ class IssueItemType(InboxItemType[Group]):
         return {str(group.id): group.title for group in groups}
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
-        return organization.absolute_url(f"/organizations/{organization.slug}/issues/{subject_id}/")
+        return organization.absolute_url(
+            f"/organizations/{organization.slug}/inbox/issue/{subject_id}/"
+        )
+
+    def filter_recipients(self, *, subject: Group, user_ids: Sequence[int]) -> list[int]:
+        return list(user_ids)
 
 
 @dataclass(frozen=True, kw_only=True)
 class IssueAssignedData(InboxEventData):
-    assignment_source: Literal["user", "ownership_rule", "seer_suggestion"]
+    assignment_source: ActivityIntegration | None
+    activity_id: int
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -47,18 +54,48 @@ class IssuePRReadyForReviewData(InboxEventData):
 ISSUE = IssueItemType()
 inbox_item_type_registry.register(ISSUE.subject_type)(ISSUE)
 
-ISSUE_ASSIGNED = InboxEventType(
-    event_type="issue.assigned", item_type=ISSUE, data_class=IssueAssignedData
+ISSUE_USER_ASSIGNED = InboxEventType(
+    event_type="issue.user_assigned",
+    summary=InboxEventSummary.ISSUE_USER_ASSIGNED,
+    item_type=ISSUE,
+    data_class=IssueAssignedData,
+    notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
 )
-ISSUE_MENTIONED = InboxEventType(
-    event_type="issue.mentioned", item_type=ISSUE, data_class=IssueMentionedData
+ISSUE_TEAM_ASSIGNED = InboxEventType(
+    recipient="team",
+    event_type="issue.team_assigned",
+    summary=InboxEventSummary.ISSUE_TEAM_ASSIGNED,
+    item_type=ISSUE,
+    data_class=IssueAssignedData,
+    notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
+)
+ISSUE_USER_MENTIONED = InboxEventType(
+    event_type="issue.user_mentioned",
+    summary=InboxEventSummary.ISSUE_USER_MENTIONED,
+    item_type=ISSUE,
+    data_class=IssueMentionedData,
+    notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
+)
+ISSUE_TEAM_MENTIONED = InboxEventType(
+    recipient="team",
+    event_type="issue.team_mentioned",
+    summary=InboxEventSummary.ISSUE_TEAM_MENTIONED,
+    item_type=ISSUE,
+    data_class=IssueMentionedData,
+    notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 ISSUE_PR_READY_FOR_REVIEW = InboxEventType(
-    event_type="issue.pr_ready_for_review", item_type=ISSUE, data_class=IssuePRReadyForReviewData
+    event_type="issue.pr_ready_for_review",
+    summary=InboxEventSummary.ISSUE_PR_READY_FOR_REVIEW,
+    item_type=ISSUE,
+    data_class=IssuePRReadyForReviewData,
+    notification_setting=NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,
 )
 
-inbox_item_event_type_registry.register(ISSUE_ASSIGNED.event_type)(ISSUE_ASSIGNED)
-inbox_item_event_type_registry.register(ISSUE_MENTIONED.event_type)(ISSUE_MENTIONED)
+inbox_item_event_type_registry.register(ISSUE_USER_ASSIGNED.event_type)(ISSUE_USER_ASSIGNED)
+inbox_item_event_type_registry.register(ISSUE_TEAM_ASSIGNED.event_type)(ISSUE_TEAM_ASSIGNED)
+inbox_item_event_type_registry.register(ISSUE_USER_MENTIONED.event_type)(ISSUE_USER_MENTIONED)
+inbox_item_event_type_registry.register(ISSUE_TEAM_MENTIONED.event_type)(ISSUE_TEAM_MENTIONED)
 inbox_item_event_type_registry.register(ISSUE_PR_READY_FOR_REVIEW.event_type)(
     ISSUE_PR_READY_FOR_REVIEW
 )

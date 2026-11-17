@@ -7,11 +7,11 @@ import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
-import {InlineJsonHighlight} from 'sentry/views/explore/components/traceItemAttributes/inlineJsonHighlight';
-import {getAttributeItem} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {hasScrubbedValue} from 'sentry/views/explore/utils';
 
 import type {AttributesFieldRender, AttributesTreeContent} from './attributesTree';
+import {InlineJsonHighlight} from './inlineJsonHighlight';
+import {getAttributeItem} from './utils';
 
 function tryParseJson(value: unknown) {
   if (typeof value !== 'string') {

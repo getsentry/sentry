@@ -1,6 +1,6 @@
 import {Fragment, lazy, useMemo, useRef} from 'react';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -21,6 +21,7 @@ import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreen
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
+import {EventGpuCrashReport} from 'sentry/components/events/gpuCrashReport';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
@@ -158,6 +159,9 @@ export function EventDetailsContent({
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
       )}
+      <ErrorBoundary mini>
+        <EventGpuCrashReport event={event} />
+      </ErrorBoundary>
       <EventStackTrace event={event} group={group} projectSlug={projectSlug} />
       <ScreenshotDataSection event={event} projectSlug={project.slug} />
       {isANR && (
@@ -183,7 +187,7 @@ export function EventDetailsContent({
       {issueTypeConfig.profilingDurationRegression.enabled && (
         <Fragment>
           <ErrorBoundary mini>
-            <EventFunctionBreakpointChart event={event} />
+            <EventFunctionBreakpointChart event={event} group={group} />
           </ErrorBoundary>
           <ErrorBoundary mini>
             <FoldSection
@@ -196,7 +200,7 @@ export function EventDetailsContent({
             frame with the largest increase in call stack population likely
             contributed to the cause for the duration regression.`)}
               </p>
-              <EventDifferentialFlamegraph event={event} />
+              <EventDifferentialFlamegraph event={event} group={group} />
             </FoldSection>
           </ErrorBoundary>
         </Fragment>
@@ -219,22 +223,20 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
-      <BreadcrumbsDataSection event={event} group={group} project={project} />
+      <BreadcrumbsDataSection event={event} />
       <ErrorBoundary mini message={t('There was a problem loading logs.')}>
         <Feature features="ourlogs-enabled" organization={organization}>
-          <OurlogsSection event={event} group={group} project={project} />
+          <OurlogsSection event={event} group={group} />
         </Feature>
       </ErrorBoundary>
       <ErrorBoundary mini message={t('There was a problem loading metrics.')}>
         <Feature features="tracemetrics-enabled" organization={organization}>
-          <MetricsSection event={event} group={group} project={project} />
+          <MetricsSection event={event} />
         </Feature>
       </ErrorBoundary>
-      {issueTypeConfig.trace.enabled &&
-        event.contexts.trace?.trace_id &&
-        organization.features.includes('performance-view') && (
-          <EventTraceView group={group} event={event} organization={organization} />
-        )}
+      {issueTypeConfig.trace.enabled && event.contexts.trace?.trace_id && (
+        <EventTraceView group={group} event={event} organization={organization} />
+      )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />

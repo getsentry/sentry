@@ -2,17 +2,18 @@ import {IconDelete} from '@sentry/icons/delete';
 import {IconDownload} from '@sentry/icons/download';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
-import {Confirm} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import type {ImageCandidate} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 
 const noPermissionToDownloadDebugFilesInfo = t(
   'You do not have permission to download debug files'
@@ -25,7 +26,6 @@ const noPermissionToDeleteDebugFilesInfo = t(
 const debugFileDeleteConfirmationInfo = t('Are you sure you wish to delete this file?');
 
 type Props = {
-  baseUrl: string;
   candidate: ImageCandidate;
   isInternalSource: boolean;
   onDelete: (debugFileId: string) => void;
@@ -37,7 +37,6 @@ export function Actions({
   candidate,
   organization,
   isInternalSource,
-  baseUrl,
   projSlug,
   onDelete,
 }: Props) {
@@ -50,7 +49,9 @@ export function Actions({
   }
 
   const deleted = status === CandidateDownloadStatus.DELETED;
-  const downloadUrl = `${baseUrl}/projects/${organization.slug}/${projSlug}/files/dsyms/?id=${debugFileId}`;
+  const downloadUrl = resolveHostname(
+    `/api/0/projects/${organization.slug}/${projSlug}/files/dsyms/?id=${debugFileId}`
+  );
 
   const actions = (
     <Access access={['project:write']}>

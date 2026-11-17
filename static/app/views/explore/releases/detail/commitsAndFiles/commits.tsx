@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -22,7 +23,6 @@ import {useReleaseRepositories} from 'sentry/utils/useReleaseRepositories';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleaseContext} from 'sentry/views/explore/releases/detail';
-import {ReleaseCommit} from 'sentry/views/explore/releases/detail/commitsAndFiles/releaseCommit';
 import {
   getCommitsByRepository,
   getQuery,
@@ -31,6 +31,7 @@ import {
 import {useReleaseCommits} from 'sentry/views/explore/releases/utils/useReleaseCommits';
 
 import {EmptyState, NoReleaseRepos, NoRepositories} from './emptyState';
+import {ReleaseCommit} from './releaseCommit';
 import {RepositorySwitcher} from './repositorySwitcher';
 
 interface CommitsProps {
@@ -94,7 +95,7 @@ function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
                 ))}
               </PanelBody>
             </Panel>
-            <Pagination pageLinks={data?.headers.Link} />
+            <Pagination {...getPaginationProps(data?.headers.Link)} />
           </Fragment>
         ) : (
           <EmptyState>

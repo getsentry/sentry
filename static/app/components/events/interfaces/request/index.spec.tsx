@@ -335,7 +335,6 @@ describe('Request entry', () => {
 
     it('should remove any non-tuple values from array', () => {
       const user = UserFixture();
-      user.options.prefersIssueDetailsStreamlinedUI = true;
       ConfigStore.set('user', user);
 
       const data: EntryRequest['data'] = {
@@ -480,7 +479,6 @@ describe('Request entry', () => {
 
   it('should display url fragment', () => {
     const user = UserFixture();
-    user.options.prefersIssueDetailsStreamlinedUI = true;
     ConfigStore.set('user', user);
 
     const data: EntryRequest['data'] = {

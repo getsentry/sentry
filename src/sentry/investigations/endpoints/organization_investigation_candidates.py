@@ -11,35 +11,27 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationsBaseEndpoint,
-    can_request_actor_create_investigation,
-    organization_project_ids,
-    service_error,
-)
-from sentry.investigations.endpoints.serializers import (
-    orchestration_summaries_by_investigation,
-)
+from sentry.investigations.endpoints.serializers import orchestration_summaries_by_investigation
 from sentry.investigations.endpoints.serializers.responses import (
     InvestigationCandidateResponse,
     InvestigationCandidatesResponse,
 )
 from sentry.investigations.endpoints.validators import InvestigationCandidatesValidator
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationSourceType,
-    InvestigationStatus,
-)
-from sentry.investigations.services import (
-    agentic_breached_metric_source_key,
-    resolve_investigation_sources,
-)
+from sentry.investigations.services import agentic_breached_metric_source_key
+from sentry.investigations.services.breached_metrics import resolve_investigation_sources
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationNotebooksBaseEndpoint,
+    can_request_actor_create_notebook,
+    organization_project_ids,
+    service_error,
+)
+from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookStatus
 
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBaseEndpoint):
+class OrganizationInvestigationCandidatesEndpoint(OrganizationNotebooksBaseEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
@@ -80,9 +72,7 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         values = validator.validated_data
         sources = values["sources"]
-        if any(
-            source.get("type") != InvestigationSourceType.METRIC_OPEN_PERIOD for source in sources
-        ):
+        if any(source.get("type") != NotebookSourceType.METRIC_OPEN_PERIOD for source in sources):
             return Response(
                 {"detail": "Unsupported source type."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -105,9 +95,9 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             if source is not None
         }
         existing = list(
-            Investigation.objects.filter(
+            Notebook.objects.filter(
                 organization=organization,
-                status=InvestigationStatus.ACTIVE,
+                status=NotebookStatus.ACTIVE,
                 source_key__in=source_keys,
             )
         )
@@ -115,7 +105,7 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             investigation.source_key: investigation for investigation in existing
         }
         orchestration_by_investigation = orchestration_summaries_by_investigation(existing)
-        can_create = can_request_actor_create_investigation(request)
+        can_create = can_request_actor_create_notebook(request)
         items: list[InvestigationCandidateResponse] = []
         for source in resolved_sources:
             if source is None:

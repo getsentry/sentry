@@ -17,6 +17,10 @@ import {LegacyOnboarding, Onboarding} from './onboarding';
 jest.mock('sentry/utils/analytics');
 
 describe('Performance Onboarding View > Unsupported Banner', () => {
+  beforeEach(() => {
+    PageFiltersStore.reset();
+  });
+
   const organization = OrganizationFixture();
 
   it('Displays unsupported banner for unsupported projects', () => {
@@ -54,10 +58,6 @@ describe('Testing new onboarding ui', () => {
     });
 
     PageFiltersStore.init();
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('Renders updated ui', async () => {
@@ -304,7 +304,7 @@ describe('Testing new onboarding ui', () => {
       ],
     });
 
-    const traceHref = `/?table=${Tab.TRACE}&query=trace%3A${trace.trace}`;
+    const traceHref = `/?table=${Tab.TRACE}&query=trace:${trace.trace}`;
 
     render(<Onboarding organization={organization} project={projectMock} />, {
       initialRouterConfig: {

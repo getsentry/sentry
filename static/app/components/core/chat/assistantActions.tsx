@@ -2,9 +2,8 @@ import {IconCopy} from '@sentry/icons/copy';
 import {IconThumb} from '@sentry/icons/thumb';
 
 import {Button, ButtonBar, type ButtonBarProps} from '@sentry/scraps/button';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 
 type AssistantFeedback = 'positive' | 'negative';
 

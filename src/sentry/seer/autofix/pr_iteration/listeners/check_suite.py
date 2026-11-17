@@ -18,16 +18,12 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     ResolvedGreenCheckSuite,
     confirm_green_check_suite,
     green_review_side_effects_enabled,
-    resolve_check_suite_flag_gate,
     resolve_green_check_suite,
     should_defer_pr_iteration,
 )
-from sentry.seer.autofix.pr_iteration.constants import (
-    FAILING_CHECK_SUITE_FLAGS,
-    GREEN_CHECK_SUITE_FLAGS,
-)
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER_SLUG
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
-from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, feedback_allowed_by_project
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
@@ -37,6 +33,7 @@ from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import (
     enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
+    record_skipped_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
@@ -135,19 +132,17 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent) -
             attributes={"sentry.op": "function"},
             parent_span=None,
         ):
+            # GitHub Enterprise delivers the same check_suite events; turn it away
+            # before queueing a task. See ``PR_ITERATION_PROVIDER``.
+            if check_suite_event.subscription_event["type"] != PR_ITERATION_PROVIDER_SLUG:
+                return None
+
             if check_suite_event.action != "completed":
                 return None
 
             conclusion = check_suite_event.check_suite["conclusion"]
             is_green = conclusion in GREEN_CONCLUSIONS
             if not is_green and conclusion not in FAILURE_CONCLUSIONS:
-                return None
-
-            # Drop suites nobody behind the installation can act on
-            gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
-            if not resolve_check_suite_flag_gate(
-                check_suite_event, gate_flags
-            ).flagged_organization_ids:
                 return None
 
             # Lazy: the task module can't load while this listener registers in AppConfig.ready.
@@ -264,14 +259,30 @@ def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
             return None
 
         feedback = Feedback(source=source)
+        project_decision = feedback_allowed_by_project(
+            organization_id=organization_id,
+            group_id=autofix_run.group_id,
+            feedback=feedback,
+        )
         # One identity for both decisions below, so the queue line and the trigger
-        # line of a single check suite are found by the same search.
+        # line of a single check suite are found by the same search. A suite the
+        # project gate turns away opens no iteration row: nothing will run it.
         log_ctx = bootstrap_iteration(
             logger=logger,
             run_state=agent_state,
             organization_id=organization_id,
             group_id=autofix_run.group_id,
+            create=project_decision.ok,
         )
+        if not project_decision.ok:
+            record_skipped_autofix_feedback(
+                log_ctx=log_ctx,
+                feedback=feedback,
+                reason=project_decision.reason,
+                referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
+                run_state=agent_state,
+            )
+            return None
 
         # Report failures here so they are searchable under the PR-iteration
         # identity, and swallow them so the task worker does not report the same

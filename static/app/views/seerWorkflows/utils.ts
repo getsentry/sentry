@@ -9,6 +9,10 @@ export function getAutomationRunsPath(organizationSlug: string) {
   return normalizeUrl(`/organizations/${organizationSlug}/seer/automations/runs/`);
 }
 
+export function getAutomationCreatePath(organizationSlug: string) {
+  return normalizeUrl(`/organizations/${organizationSlug}/seer/automations/new/`);
+}
+
 export function getAutomationDetailPath(organizationSlug: string, automationId: string) {
   return normalizeUrl(
     `/organizations/${organizationSlug}/seer/automations/${encodeURIComponent(automationId)}/`

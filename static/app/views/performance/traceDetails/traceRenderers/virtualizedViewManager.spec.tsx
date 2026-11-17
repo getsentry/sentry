@@ -2,10 +2,11 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-import {TraceScheduler} from 'sentry/views/performance/traceDetails/traceRenderers/traceScheduler';
-import {TraceTimeCompression} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
-import {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
+
+import {TraceScheduler} from './traceScheduler';
+import {TraceTimeCompression} from './traceTimeCompression';
+import {TraceView} from './traceView';
+import {VirtualizedViewManager} from './virtualizedViewManager';
 
 describe('VirtualizedViewManger', () => {
   it('initializes space', () => {

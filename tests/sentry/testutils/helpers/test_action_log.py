@@ -13,8 +13,30 @@ from sentry.issues.action_log.types import (
     ViewAction,
 )
 from sentry.issues.derived.gate import should_serve_action_log_activity
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.action_log import action_log_activity_enabled, capture_action_log
+from sentry.testutils.helpers.action_log import (
+    action_log_activity_enabled,
+    capture_action_log,
+    publish_action_for_test,
+)
+from sentry.testutils.helpers.features import with_feature
+
+
+class TestPublishActionForTest(TestCase):
+    @with_feature("projects:issue-action-log-write-to-db")
+    def test_custom_source_and_payload(self) -> None:
+        group = self.group
+
+        publish_action_for_test(
+            group=group,
+            action=SetPriorityAction(priority="high"),
+            source=ActionSource.WEB,
+        )
+
+        entry = GroupActionLogEntry.objects.get(group_id=group.id)
+        assert entry.source == ActionSource.WEB
+        assert entry.data == {"priority": "high", "reason": None}
 
 
 class TestCaptureActionLog(TestCase):

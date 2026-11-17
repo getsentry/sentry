@@ -2,7 +2,7 @@ import logging
 from uuid import UUID
 
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
+from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -36,10 +36,10 @@ class BitbucketInstalledEndpoint(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, *args, **kwargs) -> Response:
+    def post(self, request: Request, *args: object, **kwargs: object) -> Response:
         state = request.data
         if not state:
             return self.respond(status=400)
@@ -48,10 +48,10 @@ class BitbucketInstalledEndpoint(Endpoint):
         if not client_key:
             return self.respond(status=400)
 
-        existing = Integration.objects.filter(
+        existing = Integration.objects.get_or_none(
             provider=IntegrationProviderSlug.BITBUCKET.value,
             external_id=client_key,
-        ).first()
+        )
 
         if existing:
             try:

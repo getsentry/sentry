@@ -3,7 +3,7 @@ from typing import NotRequired, TypedDict, cast
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
+from django.http.response import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -53,11 +53,11 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = ()
 
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         self.active_organization = determine_active_organization(request)
         return super().dispatch(request, *args, **kwargs)
 
-    def get(self, request: Request, *args, **kwargs) -> Response:
+    def get(self, request: Request, *args: object, **kwargs: object) -> Response:
         """
         Get context required to show a login page. Registration is handled elsewhere.
         """
@@ -97,7 +97,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
 
         return response
 
-    def respond_authenticated(self, request: Request):
+    def respond_authenticated(self, request: Request) -> Response:
         next_uri = self.get_next_uri(request, consume=False)
 
         if not is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
@@ -113,7 +113,9 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         )
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback) or ""
 
-    def prepare_login_context(self, request: Request, *args, **kwargs) -> AuthConfigResponse:
+    def prepare_login_context(
+        self, request: Request, *args: object, **kwargs: object
+    ) -> AuthConfigResponse:
         can_register = bool(has_user_registration() or request.session.get("can_register"))
 
         context: dict[str, object] = {

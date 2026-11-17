@@ -317,7 +317,7 @@ class TestOrganizationSeerAgentUpdateCommitAuthor(APITestCase):
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
         )
 
-    def _sent_payload(self, mock_request: MagicMock, payload_type: str) -> dict:
+    def _sent_payload(self, mock_request: MagicMock, payload_type: str) -> dict[str, object]:
         mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {}
         spoofed = {"name": "Someone Else", "email": "victim@example.com"}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import sentry_sdk
@@ -11,12 +12,18 @@ from rest_framework.permissions import SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_SEER_AGENT,
+)
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.auth.principal import acting_user, acting_user_id
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -27,7 +34,25 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
-from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
+from sentry.seer.autofix.constants import (
+    AUTOFIX_RUN_SCOPES,
+    PUBLISH_SCOPES,
+    AutofixReferrer,
+)
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import continue_single_run, get_run_billing_feature
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
+from sentry.seer.autofix.prompt_redaction import redact_autofix_prompts
+from sentry.seer.autofix.single_run import is_single_run
+from sentry.seer.credits import SeerOperation, check_seer_operation, get_denial_reason
+from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
+from sentry.seer.endpoints.utils import (
+    SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL,
+    ResolvedSeerRun,
+    refuse_service_account_token,
+    resolve_seer_run,
+    seer_out_of_credits_response,
+)
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -41,13 +66,20 @@ _CODE_MODE_VALUES = frozenset({"off", "only"})
 
 _DASHBOARD_GENERATE_RUN_SOURCE = "dashboard_generate"
 
+# The UI entry point that started a chat (e.g. "command_palette.tab"), recorded as
+# SeerRun.referrer. Entry points are frontend-owned and keep growing (command palette,
+# Autofix, "Ask Seer" prompts, investigations), so any dotted identifier is accepted without
+# a backend change; anything else is dropped rather than rejected so it never fails a chat.
+_CHAT_REFERRER_RE = re.compile(r"[a-z0-9_]+(?:\.[a-z0-9_]+)*")
+
 
 class SeerAgentChatStateResponse(BaseModel):
     session: SeerRunState
     sentry_run_id: str | None
+    feature_id: str | None = None
 
 
-class CodeModeField(serializers.Field):
+class CodeModeField(serializers.Field[str | None, str | None, str | None, object]):
     """Accepts 'off'|'only', plus the retired 'on' and booleans from stored frontend settings.
 
     True and 'on' read as 'only'. DRF's CharField rejects raw booleans before the field-level
@@ -168,6 +200,14 @@ class SeerAgentChatSerializer(serializers.Serializer):
         default=None,
         help_text="JSON-encoded context for the chat prompt: what the entry point was about.",
     )
+    referrer = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        default=None,
+        max_length=64,
+        help_text="The UI entry point that started a new chat. Ignored when continuing a run.",
+    )
 
 
 class OrganizationSeerAgentChatPermission(OrganizationPermission):
@@ -184,6 +224,8 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
             if not is_demo_mode_enabled() or request.method not in self.DEMO_ALLOWED_METHODS:
                 return False
             return True
+        if request.method == "POST":
+            refuse_service_account_token(request)
         return super().has_permission(request, view)
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
@@ -208,6 +250,63 @@ def _is_dashboard_generate_run(organization: Organization, resolved: ResolvedSee
         run__seer_run_state_id=resolved.seer_run_state_id,
         source=_DASHBOARD_GENERATE_RUN_SOURCE,
     ).exists()
+
+
+def _maybe_reply_to_single_run(
+    request: Request, organization: Organization, resolved: ResolvedSeerRun, reply: str
+) -> Response | None:
+    """Continue an Autofix single run with the reply; None if the run isn't one."""
+    single_run = (
+        SeerAgentRun.objects.filter(
+            run__organization_id=organization.id,
+            run__seer_run_state_id=resolved.seer_run_state_id,
+            source=SINGLE_RUN_FEATURE_ID,
+            group__isnull=False,
+        )
+        .select_related("run", "group__project")
+        .first()
+    )
+    replier = acting_user(request.user)
+    if single_run is None or single_run.group is None or replier is None:
+        return None
+
+    project = single_run.group.project
+    if not request.access.has_any_project_scope(project, AUTOFIX_RUN_SCOPES):
+        raise PermissionDenied("You do not have access to this run.")
+    try:
+        run_state = SeerAgentClient(organization, request.user).get_run(
+            run_id=resolved.seer_run_state_id
+        )
+        if run_state.status == "processing":
+            return Response(
+                {
+                    "detail": "This run is still working",
+                    "code": RUN_IN_FLIGHT_CODE,
+                    "run_id": resolved.seer_run_state_id,
+                    "sentry_run_id": resolved.uuid,
+                },
+                status=409,
+            )
+        continue_single_run(
+            single_run,
+            single_run.group,
+            reply,
+            referrer=AutofixReferrer.SEER_EXPLORER,
+            billing_feature=get_run_billing_feature(run_state),
+            user=replier,
+            can_publish=request.access.has_any_project_scope(project, PUBLISH_SCOPES),
+        )
+    except SeerOutOfCreditsException as e:
+        return seer_out_of_credits_response(SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, e.denial_reason)
+    except SeerApiError as e:
+        if e.status == 404:
+            return Response({"session": None}, status=404)
+        sentry_sdk.capture_exception(e)
+        return Response({"detail": "Failed to start or continue chat session"}, status=500)
+    except ValueError:
+        logger.exception("Error getting agent run state")
+        return Response({"session": None}, status=404)
+    return Response({"run_id": resolved.seer_run_state_id, "sentry_run_id": resolved.uuid})
 
 
 @cell_silo_endpoint
@@ -262,8 +361,13 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=resolved.seer_run_state_id)
+            session = state if has_elevated_mode(request) else redact_autofix_prompts(state)
             return Response(
-                SeerAgentChatStateResponse(session=state, sentry_run_id=resolved.uuid).dict()
+                SeerAgentChatStateResponse(
+                    session=session,
+                    sentry_run_id=resolved.uuid,
+                    feature_id=SINGLE_RUN_FEATURE_ID if is_single_run(state) else None,
+                ).dict()
             )
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
@@ -318,6 +422,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         ui_tools = validated_data.get("ui_tools")
         chat_prompt = validated_data.get("chat_prompt")
         chat_prompt_context = validated_data.get("chat_prompt_context")
+        referrer = validated_data.get("referrer")
 
         # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
         if on_page_context:
@@ -347,7 +452,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
 
         resolved: ResolvedSeerRun | None = None
         if run_id:
-            user_id = request.user.id
+            user_id = acting_user_id(request.user)
             if user_id is None:
                 raise PermissionDenied("A user account is required to continue a conversation.")
             result = resolve_seer_run(run_id, organization, for_continue=True, user_id=user_id)
@@ -355,10 +460,24 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 return result
             resolved = result
 
-        if not has_access and not (
-            resolved is not None and _is_dashboard_generate_run(organization, resolved)
-        ):
+            single_run_response = _maybe_reply_to_single_run(request, organization, resolved, query)
+            if single_run_response is not None:
+                return single_run_response
+
+        is_dashboard_generate_run = resolved is not None and _is_dashboard_generate_run(
+            organization, resolved
+        )
+        if not has_access and not is_dashboard_generate_run:
             raise PermissionDenied(error)
+        # Do not bill for dashboard generation.
+        if not is_dashboard_generate_run:
+            credits = check_seer_operation(
+                organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
+            )
+            if not credits.has_enough_credits:
+                return seer_out_of_credits_response(
+                    SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, get_denial_reason(credits)
+                )
 
         try:
             # Seer only exposes write_pull_request when coding and bash mode are also on.
@@ -366,33 +485,27 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 "organizations:ask-seer-create-pr", organization, actor=request.user
             )
             enable_coding = has_create_pr and organization.get_option(
-                "sentry:enable_seer_coding", False
+                "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
             )
 
-            has_code_mode_feature = features.has(
-                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
-            )
-            if not has_code_mode_feature:
-                enable_code_mode_tools = "off"
-            elif override_code_mode_enable is not None:
-                enable_code_mode_tools = override_code_mode_enable
-            else:
-                # Code Mode only, not alongside the classic tools: with both, the agent has
-                # two ways to do everything and mixes them, so the surface being dogfooded is
-                # never the one that ships. The frontend override can still turn it off for
-                # comparison.
-                enable_code_mode_tools = "only"
+            # The frontend override can still turn Code Mode off to compare with the classic tools.
+            enable_code_mode_tools = override_code_mode_enable or "only"
 
             client = SeerAgentClient(
                 organization,
                 request.user,
                 is_interactive=True,
-                # The client still requires seer-explorer-allow-bash-mode.
                 enable_bash_mode=override_bash_mode_enabled or has_create_pr,
                 enable_coding=enable_coding,
                 enable_write_pull_request=has_create_pr,
                 enable_code_mode_tools=enable_code_mode_tools,
                 enable_investigation_tools=True,
+                enable_inbox_tools=True,
+                # Only users who can install integrations are asked to fix repo access.
+                enable_scm_connect_prompt=features.has(
+                    "organizations:ask-seer-scm-connect-prompt", organization, actor=request.user
+                )
+                and request.access.has_scope("org:integrations"),
                 reasoning_effort="medium",
             )
             if resolved is not None:
@@ -423,6 +536,11 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 sent_at=sent_at,
                 ui_tools=ui_tools,
                 override_ce_enable=override_ce_enable,
+                metadata=(
+                    {"referrer": referrer}
+                    if referrer and _CHAT_REFERRER_RE.fullmatch(referrer)
+                    else None
+                ),
                 request=request,
             )
             return Response({"run_id": run.seer_run_state_id, "sentry_run_id": str(run.uuid)})

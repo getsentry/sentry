@@ -5,7 +5,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import type {SeerAutomationHandoffConfiguration} from 'sentry/components/events/autofix/types';
 import {Placeholder} from 'sentry/components/placeholder';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
@@ -20,6 +19,8 @@ import {
 } from 'sentry/utils/seer/seerProjectSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+
+import type {SeerAutomationHandoffConfiguration} from './types';
 
 interface CodingAgentIntegrationCtaProps {
   project: Project;

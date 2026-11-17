@@ -10,10 +10,8 @@ import {
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
-import {
-  TraceViewMetricsProviderWrapper,
-  TraceViewMetricsSection,
-} from 'sentry/views/performance/traceDetails/traceMetrics';
+
+import {TraceViewMetricsProviderWrapper, TraceViewMetricsSection} from './traceMetrics';
 
 function CurrentMetricsQuery() {
   const query = useQueryParamsQuery();
@@ -199,6 +197,7 @@ describe('TraceViewMetricsSection', () => {
       expect(router.location.query.metricsQuery).toBeUndefined();
     });
     expect(router.location.query.query).toBe('unrelated:value');
+    expect(router.historyAction).toBe('PUSH');
   });
 
   it('preserves the initial metrics query from the URL', async () => {

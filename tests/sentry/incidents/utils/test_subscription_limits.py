@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
@@ -10,7 +11,7 @@ class TestIsMetricSubscriptionAllowed:
     org = MagicMock(spec=Organization)
 
     @contextmanager
-    def fake_features(self, enabled: set[str]):
+    def fake_features(self, enabled: set[str]) -> Iterator[None]:
         with patch("sentry.incidents.utils.subscription_limits.features") as mock_features:
             mock_features.has.side_effect = lambda name, *a, **kw: name in enabled
             yield

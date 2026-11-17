@@ -15,8 +15,9 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
+
+import {combineWidgetQueryResults} from './utils/combineWidgetQueryResults';
+import {getTimeseriesWidgetQueryOptions} from './utils/getTimeseriesWidgetQueryOptions';
 
 const EMPTY_ARRAY: any[] = [];
 

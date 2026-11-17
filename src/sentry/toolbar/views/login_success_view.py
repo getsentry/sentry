@@ -1,6 +1,7 @@
 from django.conf import settings
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 
+from sentry.models.organization import Organization
 from sentry.web.frontend.base import OrganizationView, cell_silo_view
 
 TEMPLATE = "sentry/toolbar/login-success.html"
@@ -11,7 +12,9 @@ csrf_cookie_name = settings.CSRF_COOKIE_NAME
 
 @cell_silo_view
 class LoginSuccessView(OrganizationView):
-    def get(self, request: HttpRequest, organization, project_id_or_slug):
+    def get(
+        self, request: HttpRequest, organization: Organization, project_id_or_slug: str
+    ) -> HttpResponse:
         delay_ms = int(request.GET.get("delay") or 3000)
         return self.respond(
             TEMPLATE,

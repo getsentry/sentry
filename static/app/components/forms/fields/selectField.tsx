@@ -1,11 +1,11 @@
 import {Component, createContext, useContext} from 'react';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import type {ControlProps, SelectValue} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';

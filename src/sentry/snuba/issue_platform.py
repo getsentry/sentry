@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 
 from sentry_sdk import traces
+from snuba_sdk import Condition
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -17,27 +18,27 @@ from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries, get_snuba_colu
 
 
 def query(
-    selected_columns,
-    query,
-    snuba_params,
-    equations=None,
-    orderby=None,
-    offset=None,
-    limit=50,
-    auto_fields=False,
-    auto_aggregations=False,
-    include_equation_fields=False,
-    allow_metric_aggregates=False,
-    use_aggregate_conditions=False,
-    conditions=None,
-    functions_acl=None,
-    transform_alias_to_input_format=False,
-    sample=None,
-    has_metrics=False,
-    skip_tag_resolution=False,
-    on_demand_metrics_enabled=False,
+    selected_columns: list[str],
+    query: str,
+    snuba_params: SnubaParams,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int | None = None,
+    limit: int = 50,
+    auto_fields: bool = False,
+    auto_aggregations: bool = False,
+    include_equation_fields: bool = False,
+    allow_metric_aggregates: bool = False,
+    use_aggregate_conditions: bool = False,
+    conditions: list[Condition] | None = None,
+    functions_acl: list[str] | None = None,
+    transform_alias_to_input_format: bool = False,
+    sample: float | None = None,
+    has_metrics: bool = False,
+    skip_tag_resolution: bool = False,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
-    fallback_to_transactions=False,
+    fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
     *,
     referrer: str,
@@ -115,16 +116,16 @@ def timeseries_query(
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
-    allow_metric_aggregates=False,
-    has_metrics=False,
-    on_demand_metrics_enabled=False,
+    allow_metric_aggregates: bool = False,
+    has_metrics: bool = False,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
     *,
     referrer: str,
-):
+) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
 

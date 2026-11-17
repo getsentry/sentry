@@ -1,4 +1,6 @@
+from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -9,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 
 @contextmanager
-def catch_signal(signal):
+def catch_signal(signal: Any) -> Generator[mock.Mock]:
     handler = mock.Mock()
     signal.connect(handler)
     yield handler

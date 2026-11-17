@@ -1,5 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
-import {localStorageWrapper} from 'sentry/utils/localStorage';
+
+import {localStorageWrapper} from './localStorage';
 
 type OverrideState = Record<string, boolean>;
 

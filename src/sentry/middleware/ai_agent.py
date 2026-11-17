@@ -3,9 +3,11 @@ from __future__ import annotations
 import json  # noqa: S003 - need stdlib json for indent support
 import logging
 import re
+from collections.abc import Callable
 from typing import Any
 
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBase
+from django.utils.deprecation import MiddlewareMixin
 
 logger = logging.getLogger(__name__)
 
@@ -93,34 +95,40 @@ def _accepts_markdown(request: HttpRequest) -> bool:
     return "text/markdown" in accept or "text/x-markdown" in accept
 
 
-class AIAgentMiddleware:
+class AIAgentMiddleware(MiddlewareMixin):
     """
     Middleware that intercepts unauthenticated frontend requests from AI agents
     and returns helpful markdown guidance instead of HTML.
 
     Detection criteria:
-    1. Request path does NOT start with /api/ or /oauth/ (frontend routes only)
-    2. Accept header contains text/markdown or text/x-markdown
-    3. Request is anonymous (no authenticated user, no auth token)
+    1. The view is not marked ai_machine_readable
+    2. Request path does NOT start with /api/ (frontend routes only)
+    3. Accept header contains text/markdown or text/x-markdown
+    4. Request is anonymous (no authenticated user, no auth token)
     """
 
-    def __init__(self, get_response):
-        self.get_response = get_response
+    def process_view(
+        self,
+        request: HttpRequest,
+        view_func: Callable[..., HttpResponseBase],
+        view_args: tuple[Any, ...],
+        view_kwargs: dict[str, Any],
+    ) -> HttpResponse | None:
+        view_class = getattr(view_func, "view_class", None)
+        if getattr(view_func, "ai_machine_readable", False) or getattr(
+            view_class, "ai_machine_readable", False
+        ):
+            return None
 
-    def __call__(self, request: HttpRequest) -> HttpResponse:
         # Skip API routes - only intercept frontend UI routes
         if request.path.startswith("/api/"):
-            return self.get_response(request)
-
-        # Skip OAuth routes - legitimate machine-to-machine endpoints
-        if request.path.startswith("/oauth/"):
-            return self.get_response(request)
+            return None
 
         if not _accepts_markdown(request):
-            return self.get_response(request)
+            return None
 
         if request.auth is not None or request.user.is_authenticated:
-            return self.get_response(request)
+            return None
 
         logger.info(
             "ai_agent.guidance_served",

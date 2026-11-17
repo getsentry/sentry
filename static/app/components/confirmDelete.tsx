@@ -2,11 +2,12 @@ import {Fragment, useId} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {InlineCode} from '@sentry/scraps/code';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Input} from '@sentry/scraps/input';
 
-import {Confirm} from 'sentry/components/confirm';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
+
+import {FieldGroup} from './forms/fieldGroup';
 
 interface Props extends Omit<
   React.ComponentProps<typeof Confirm>,

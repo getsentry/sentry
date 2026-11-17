@@ -1,15 +1,12 @@
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  AGENTS_LANDING_SUB_PATH,
-  AGENTS_SIDEBAR_LABEL,
-  MODULES,
-} from 'sentry/views/insights/pages/agents/settings';
-import {
   DomainViewHeader,
   type Props as HeaderProps,
 } from 'sentry/views/insights/pages/domainViewHeader';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+
+import {AGENTS_LANDING_SUB_PATH, AGENTS_SIDEBAR_LABEL, MODULES} from './settings';
 
 type Props = {
   module?: HeaderProps['selectedModule'];

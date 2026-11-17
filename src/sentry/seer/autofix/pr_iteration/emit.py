@@ -80,6 +80,11 @@ class PrIterationOutcome(StrEnum):
     PR_CLOSED = "pr_closed"
     PR_CREATION_ERRORED = "pr_creation_errored"
     PUSH_FAILED = "push_failed"
+    NOT_PUSHED = "not_pushed"
+    # Seer ran out of credits mid-step. Matches Seer's failure_reason.
+    SEER_OUT_OF_CREDITS = "out_of_credits"
+    # Sentry's credit check refused a step.
+    SENTRY_OUT_OF_CREDITS = "sentry_out_of_credits"
     TIMEOUT = "timeout"
     STALLED = "stalled"
     ERRORED = "errored"
@@ -179,7 +184,7 @@ def bootstrap_iteration(
         project_id = (
             Group.objects.filter(id=group_id, project__organization_id=organization_id)
             .values_list("project_id", flat=True)
-            .first()
+            .get_or_none()
         )
         if project_id is None:
             raise ValueError(f"No group {group_id} in organization {organization_id}")

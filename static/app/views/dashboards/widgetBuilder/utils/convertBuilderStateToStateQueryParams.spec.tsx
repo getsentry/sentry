@@ -1,7 +1,8 @@
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {convertBuilderStateToStateQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToStateQueryParams';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+import {convertBuilderStateToStateQueryParams} from './convertBuilderStateToStateQueryParams';
 
 describe('convertBuilderStateToStateQueryParams', () => {
   it('returns the query params with the provided widget queries state', () => {

@@ -9,8 +9,8 @@ import orderBy from 'lodash/orderBy';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchFeatureFlagValues} from 'sentry/actionCreators/tags';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
@@ -38,20 +38,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {fetchIssueTagValues} from 'sentry/views/issueDetails/utils';
-import {IssueListMarkAllCommandPaletteAction} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
-import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
-import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
-import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
-import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
-import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {
-  FOR_REVIEW_QUERIES,
-  getSortLabel,
-  IssueSortOptions,
-} from 'sentry/views/issueList/utils';
-import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
+
+import {createIssueViewFromUrl} from './issueViews/createIssueViewFromUrl';
+import {CreateIssueViewModal} from './issueViews/createIssueViewModal';
+import {useIssueViewUnsavedChanges} from './issueViews/useIssueViewUnsavedChanges';
+import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {canEditIssueView} from './issueViews/utils';
+import {useUpdateGroupSearchView} from './mutations/useUpdateGroupSearchView';
+import {useIssueListFilterKeys} from './utils/useIssueListFilterKeys';
+import {IssueListMarkAllCommandPaletteAction} from './issueListBulkCommandPaletteActions';
+import type {IssueUpdateData} from './types';
+import {FOR_REVIEW_QUERIES, getSortLabel, IssueSortOptions} from './utils';
 
 interface IssueListCommandPaletteActionsProps {
   groupIds: string[];
@@ -356,7 +353,7 @@ function SaveViewActions({
         },
         {
           onSuccess: () => {
-            addSuccessMessage(t('Saved changes'));
+            toast.success(t('Saved changes'));
           },
         }
       );

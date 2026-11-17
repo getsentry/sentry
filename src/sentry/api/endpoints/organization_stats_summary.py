@@ -1,7 +1,8 @@
 import csv
+from collections.abc import Iterator
 from contextlib import contextmanager
 from io import StringIO
-from typing import Any, TypedDict
+from typing import Annotated, TypedDict, cast
 
 from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
@@ -18,6 +19,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -28,6 +30,7 @@ from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
     COLUMN_MAP,
     QueryDefinition,
+    _CategoryStats,
     massage_sessions_result_summary,
     run_outcomes_query_totals,
 )
@@ -110,16 +113,18 @@ class OrgStatsSummaryQueryParamsSerializer(serializers.Serializer):
     )
 
 
-class _ProjectSummaryStats(TypedDict):  # this response is pretty dynamic, leaving generic
-    id: str
-    slug: str
-    stats: list[dict[str, Any]]
+class _ProjectSummaryStats(TypedDict):
+    id: Annotated[int, ApiDescription("ID of the project")]
+    slug: Annotated[str, ApiDescription("Slug of the project")]
+    stats: Annotated[
+        list[_CategoryStats], ApiDescription("Outcome counts of the project by data category")
+    ]
 
 
 class StatsSummaryApiResponse(TypedDict):
-    start: str
-    end: str
-    projects: list[_ProjectSummaryStats]
+    start: Annotated[str, ApiDescription("Start of the queried time range (ISO 8601)")]
+    end: Annotated[str, ApiDescription("End of the queried time range (ISO 8601)")]
+    projects: Annotated[list[_ProjectSummaryStats], ApiDescription("Outcome stats of each project")]
 
 
 @extend_schema(tags=["Organizations"])
@@ -169,7 +174,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
                 )
 
             if request.GET.get("download"):
-                csv_content = self._generate_csv(projects)
+                csv_content = cast(str, self._generate_csv(projects))
                 response = HttpResponse(content_type="text/csv", status=200)
                 response["Content-Disposition"] = 'attachment; filename="stats_summary.csv"'
                 response.write(csv_content)
@@ -177,8 +182,8 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
 
             return Response(result, status=200)
 
-    def build_outcomes_query(self, request: Request, organization):
-        params = {"organization_id": organization.id}
+    def build_outcomes_query(self, request: Request, organization: Organization) -> QueryDefinition:
+        params: dict[str, int | list[int]] = {"organization_id": organization.id}
         project_ids = self._get_projects_for_orgstats_query(request, organization)
 
         query_dict = request.GET.copy()
@@ -193,7 +198,9 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
 
         return QueryDefinition.from_query_dict(query_dict, params)
 
-    def _get_projects_for_orgstats_query(self, request: Request, organization):
+    def _get_projects_for_orgstats_query(
+        self, request: Request, organization: Organization
+    ) -> list[int]:
         # the projects table always filters by project
         # the projects in the table should be those the user has access to
 
@@ -202,14 +209,16 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
             raise NoProjects("No projects available")
         return [p.id for p in projects]
 
-    def _generate_csv(self, projects):
+    def _generate_csv(
+        self, projects: dict[int, dict[str, dict[str, _CategoryStats]]]
+    ) -> str | None:
         if not len(projects):
-            return
+            return None
 
         output = StringIO()
         csv_writer = csv.writer(output)
 
-        longest_key = None
+        longest_key: int | None = None
         max_length = 0
         for key, value in projects.items():
             if len(value) > max_length:
@@ -217,7 +226,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
                 longest_key = key
 
         headers = ["project_id", "project_slug"]
-        longest_key_project = projects[longest_key]
+        longest_key_project = projects[cast(int, longest_key)]
         for category_stats in longest_key_project.values():
             for category, stats in category_stats.items():
                 for outcome in stats["outcomes"]:
@@ -232,7 +241,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
 
         for project_id, project_stats in projects.items():
             slug = project_id_to_slug[project_id]
-            row = {"project_id": project_id, "project_slug": slug}
+            row: dict[str, object] = {"project_id": project_id, "project_slug": slug}
             for category_stats in project_stats.values():
                 for category, stats in category_stats.items():
                     for outcome, val in stats["outcomes"].items():
@@ -247,7 +256,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
                             row[header_name] = val
                         else:
                             row[header_name] = 0
-            formatted_row = []
+            formatted_row: list[object] = []
             for header in headers:
                 if header in row:
                     formatted_row.append(row[header])
@@ -259,7 +268,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
         return output.getvalue()
 
     @contextmanager
-    def handle_query_errors(self):
+    def handle_query_errors(self) -> Iterator[None]:
         try:
             with handle_query_errors():
                 yield

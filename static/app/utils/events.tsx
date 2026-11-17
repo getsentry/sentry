@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {
+  EntryBreadcrumbs,
   EntryException,
   EntryRequest,
   EntryThreads,
@@ -19,16 +20,14 @@ import type {
   SimpleGroup,
 } from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
-import {uniq} from 'sentry/utils/array/uniq';
-import {defined} from 'sentry/utils/defined';
-import {
-  getExceptionGroupHeight,
-  getExceptionGroupWidth,
-} from 'sentry/utils/eventExceptionGroup';
-import {getDaysSinceDate, getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
-import {isMobilePlatform} from 'sentry/utils/platform';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+
+import type {BaseEventAnalyticsParams} from './analytics/workflowAnalyticsEvents';
+import {uniq} from './array/uniq';
+import {getReplayIdFromEvent} from './replays/getReplayIdFromEvent';
+import {defined} from './defined';
+import {getExceptionGroupHeight, getExceptionGroupWidth} from './eventExceptionGroup';
+import {getDaysSinceDate, getDaysSinceDatePrecise} from './getDaysSinceDate';
+import {isMobilePlatform} from './platform';
 
 const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
   EventOrGroupType.ERROR,
@@ -360,6 +359,13 @@ function eventExceptionGroupWidth(event: Event) {
   }
 }
 
+function getNumberOfBreadcrumbs(event: Event): number {
+  const breadcrumbsEntry = event.entries?.find(
+    (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
+  );
+  return breadcrumbsEntry?.data?.values?.length ?? 0;
+}
+
 function eventHasGraphQlRequest(event: Event) {
   const requestEntry = event.entries?.find(entry => entry.type === EntryType.REQUEST) as
     | EntryRequest
@@ -393,6 +399,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
     num_event_tags: event?.tags?.length ?? 0,
+    num_breadcrumbs: event ? getNumberOfBreadcrumbs(event) : 0,
     num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,

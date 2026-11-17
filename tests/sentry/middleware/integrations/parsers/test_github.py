@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -1294,6 +1295,6 @@ class GithubRequestParserTypeRoutingTest(GithubRequestParserTest):
     """
 
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def setup(self) -> Iterator[None]:
         with override_options({"github.webhook-type-routing.enabled": True}):
             yield

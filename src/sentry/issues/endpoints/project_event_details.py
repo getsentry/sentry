@@ -11,7 +11,7 @@ from snuba_sdk import Condition
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, IssueEventSerializer, serialize
 from sentry.api.serializers.models.event import EventSerializerResponse, GroupEventDetailsResponse
@@ -113,6 +113,7 @@ def wrap_event_response(
 @cell_silo_endpoint
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -135,6 +136,11 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
             GlobalParams.ENVIRONMENT,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             EventParams.EVENT_DETAILS_COLLAPSE,
         ],
         responses={
@@ -206,6 +212,7 @@ from rest_framework.response import Response
 @cell_silo_endpoint
 class EventJsonEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

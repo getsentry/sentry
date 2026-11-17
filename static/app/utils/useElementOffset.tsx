@@ -1,7 +1,7 @@
 import type {RefObject} from 'react';
 import {useLayoutEffect, useState} from 'react';
 
-import {getOffsetRect} from 'sentry/utils/getOffsetRect';
+import {getOffsetRect} from './getOffsetRect';
 
 interface ElementOffset {
   left: number;

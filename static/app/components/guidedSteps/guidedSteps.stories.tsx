@@ -2,14 +2,12 @@ import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
-import {
-  GuidedSteps,
-  useGuidedStepsContext,
-} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Storybook from 'sentry/stories';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {GuidedSteps, useGuidedStepsContext} from './guidedSteps';
 
 export default Storybook.story('GuidedSteps', story => {
   story('Default', () => (

@@ -40,13 +40,6 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
-import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel';
-import {MetricListBoxOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricListBoxOption';
-import {
-  isMetricSelectorOption,
-  type MetricSelectorItem,
-  type MetricSelectorOption,
-} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
   isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
@@ -56,6 +49,14 @@ import {
   hasDisplayMetricUnit,
   makeMetricSelectValue,
 } from 'sentry/views/explore/metrics/utils';
+
+import {MetricDetailPanel} from './metricDetailPanel';
+import {MetricListBoxOption} from './metricListBoxOption';
+import {
+  isMetricSelectorOption,
+  type MetricSelectorItem,
+  type MetricSelectorOption,
+} from './types';
 
 const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;

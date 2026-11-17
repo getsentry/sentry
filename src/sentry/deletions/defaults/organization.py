@@ -11,6 +11,8 @@ from sentry.deletions.base import (
 from sentry.models.environment import Environment
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
@@ -33,7 +35,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.discover.models import DiscoverSavedQuery, TeamKeyTransaction
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.integrations.models.external_issue import ExternalIssue
-        from sentry.investigations.models import Investigation
         from sentry.models.artifactbundle import ArtifactBundle
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.dashboard import Dashboard
@@ -48,7 +49,15 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.workflow_engine.models import Detector, Workflow
 
         # Team must come first
-        relations: list[BaseRelation] = [ModelRelation(Team, {"organization_id": instance.id})]
+        relations: list[BaseRelation] = [
+            ModelRelation(Team, {"organization_id": instance.id}),
+            ModelRelation(
+                InboxItemEvent,
+                {"inbox_item__organization_id": instance.id},
+                BulkModelDeletionTask,
+            ),
+            ModelRelation(InboxItem, {"organization_id": instance.id}, BulkModelDeletionTask),
+        ]
 
         pre_environment_models = (
             OrganizationMember,
@@ -56,7 +65,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
             CommitAuthor,
             AlertRule,
             Release,
-            Investigation,
             Notebook,
             Project,
             Workflow,

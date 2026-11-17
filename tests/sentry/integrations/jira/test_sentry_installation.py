@@ -1,6 +1,8 @@
 import re
 from unittest.mock import MagicMock, patch
 
+from django.http import HttpResponse
+
 from sentry.integrations.jira.views import SALT, UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectTokenExpiredError,
@@ -66,7 +68,7 @@ class JiraSentryInstallationViewTest(JiraSentryInstallationViewTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def assert_no_errors(self, response):
+    def assert_no_errors(self, response: HttpResponse) -> None:
         assert REFRESH_REQUIRED not in response.content
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() not in response.content
 

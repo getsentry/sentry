@@ -23,6 +23,7 @@ from sentry.api.serializers.rest_framework.base import (
     convert_dict_key_case,
     snake_to_camel_case,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.integrations.gcp.client import verify_gcp_connection
 from sentry.integrations.gcp.utils import parse_customer_sa_email, validate_gcp_project_id
@@ -180,7 +181,7 @@ class OrganizationMonitoringProviderVerifyConnectionEndpoint(OrganizationEndpoin
             mark_investigation_telemetry_connected.delay(
                 organization_id=organization.id,
                 provider="gcp",
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 retry=False,
             )
 

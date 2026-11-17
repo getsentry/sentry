@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
@@ -32,9 +33,8 @@ import {
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
-  ToolbarRow,
+  ToolbarVisualizeRow,
 } from 'sentry/views/explore/components/toolbar/styles';
-import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import type {SavedFormula} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
@@ -44,6 +44,8 @@ import {
   getFormulaArgumentParams,
 } from 'sentry/views/explore/utils/formulaAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
+
+import {ExpandableFilterSearchBar} from './expandableFilterSearchBar';
 
 const NO_FORMULAS: SavedFormula[] = [];
 
@@ -109,6 +111,7 @@ export function ToolbarVisualizeDropdown({
   formulas = NO_FORMULAS,
   fieldDefinitionType = 'span',
 }: ToolbarVisualizeDropdownProps) {
+  const theme = useTheme();
   const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: dragColumnId ?? 0,
     transition: null,
@@ -133,7 +136,6 @@ export function ToolbarVisualizeDropdown({
             label: stripNamePrefix(savedFormula.name),
             value: savedFormula.name,
             textValue: savedFormula.name,
-            details: savedFormula.description,
             disabled: buildFormulaYAxis(savedFormula, formulaDefaultColumn) === null,
             trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
           })),
@@ -155,7 +157,7 @@ export function ToolbarVisualizeDropdown({
   };
 
   return (
-    <ToolbarRow
+    <ToolbarVisualizeRow
       ref={setNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
@@ -166,7 +168,9 @@ export function ToolbarVisualizeDropdown({
       {...attributes}
     >
       {dragColumnId === undefined ? null : (
-        <DragReorderButton iconSize="sm" {...listeners} />
+        <Flex align="center" height={theme.form.md.height} flexShrink={0}>
+          <DragReorderButton iconSize="sm" {...listeners} />
+        </Flex>
       )}
       {label}
       <Stack
@@ -253,15 +257,17 @@ export function ToolbarVisualizeDropdown({
         ) : null}
       </Stack>
       {onDelete ? (
-        <Button
-          variant="transparent"
-          icon={<IconDelete size="sm" />}
-          size="zero"
-          onClick={onDelete}
-          aria-label={deleteLabel ?? t('Remove Overlay')}
-        />
+        <Flex align="center" height={theme.form.md.height} flexShrink={0}>
+          <Button
+            variant="transparent"
+            icon={<IconDelete size="sm" />}
+            size="zero"
+            onClick={onDelete}
+            aria-label={deleteLabel ?? t('Remove Overlay')}
+          />
+        </Flex>
       ) : null}
-    </ToolbarRow>
+    </ToolbarVisualizeRow>
   );
 }
 

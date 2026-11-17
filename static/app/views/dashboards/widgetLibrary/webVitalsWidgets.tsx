@@ -1,7 +1,12 @@
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
+import {
+  WEB_VITAL_SCORE_COUNT_FIELDS,
+  WEB_VITAL_SCORE_FIELDS,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+
+import type {WidgetTemplate} from './types';
 
 /**
  * Shared widget definitions for Web Vitals
@@ -52,6 +57,30 @@ export const SCORE_BREAKDOWN_WHEEL_WIDGET: WidgetTemplate = {
         'count_scores(measurements.score.cls)',
         'count_scores(measurements.score.ttfb)',
       ],
+      orderby: '',
+    },
+  ],
+};
+
+const SCORE_BREAKDOWN_WHEEL_TRACE_METRICS_FIELDS = [
+  ...WEB_VITAL_SCORE_FIELDS,
+  ...WEB_VITAL_SCORE_COUNT_FIELDS,
+];
+
+/**
+ * Trace metrics version of the performance score wheel. Reads the
+ * browser.web_vital.* metrics instead of spans.
+ */
+export const SCORE_BREAKDOWN_WHEEL_TRACE_METRICS_WIDGET: WidgetTemplate = {
+  ...SCORE_BREAKDOWN_WHEEL_WIDGET,
+  widgetType: WidgetType.TRACEMETRICS,
+  queries: [
+    {
+      name: '',
+      conditions: '',
+      fields: SCORE_BREAKDOWN_WHEEL_TRACE_METRICS_FIELDS,
+      aggregates: [],
+      columns: SCORE_BREAKDOWN_WHEEL_TRACE_METRICS_FIELDS,
       orderby: '',
     },
   ],

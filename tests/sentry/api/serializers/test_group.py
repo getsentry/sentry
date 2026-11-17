@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Any
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 from django.utils import timezone
 
@@ -22,6 +22,7 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -372,6 +373,16 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         result = serialize(group)
         assert not result["isSubscribed"]
 
+    def test_service_account(self) -> None:
+        group = self.create_group()
+        principal: Any = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=group.project.organization_id, name="deploy-bot"
+        )
+        result = serialize(group, principal)
+        assert result["isBookmarked"] is False
+        assert result["hasSeen"] is False
+        assert result["isSubscribed"] is False
+
     def test_reprocessing(self) -> None:
         from sentry.reprocessing2 import start_group_reprocessing
 
@@ -427,7 +438,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
 
 class GroupSerializerDerivedDataTest(TestCase):
     @patch("sentry.issues.derived.serialization.metrics.incr")
-    def test_derived_data_served_metric(self, mock_metrics_incr) -> None:
+    def test_derived_data_served_metric(self, mock_metrics_incr: MagicMock) -> None:
         fresh_group = self.create_group()
         self.create_group_derived_data(
             group=fresh_group,
@@ -479,10 +490,24 @@ class GroupSerializerDerivedDataTest(TestCase):
                 "has_open_fix_pr": False,
                 "blocker": IssueBlocker.APPROVE_PLAN.value,
                 "last_completed_autofix_step": IssueAutofixStep.SOLUTION.value,
+                "impact": {
+                    "score": 50,
+                    "level": "moderate",
+                    "description": "Users cannot view monitor details.",
+                    "citations": [
+                        {
+                            "reference": "trace:span-40",
+                            "claim": "The trace contains a user-generated frontend span showing a crash with a 500 status code",
+                            "source": "span",
+                        }
+                    ],
+                    "sourceEventId": "a" * 32,
+                },
             },
         )
 
-        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+        with self.feature("organizations:seer-impact-assessment"):
+            result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
 
         assert result["derivedData"] == {
             "blocker": IssueBlocker.APPROVE_PLAN.value,
@@ -494,7 +519,24 @@ class GroupSerializerDerivedDataTest(TestCase):
             "hasRootCause": True,
             "lastCompletedAutofixStep": IssueAutofixStep.SOLUTION.value,
             "lastProgressedAt": last_progressed_at,
+            "impact": {
+                "score": 50,
+                "level": "moderate",
+                "description": "Users cannot view monitor details.",
+                "citations": [
+                    {
+                        "reference": "trace:span-40",
+                        "claim": "The trace contains a user-generated frontend span showing a crash with a 500 status code",
+                        "source": "span",
+                    }
+                ],
+                "sourceEventId": "a" * 32,
+            },
         }
+
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+
+        assert "impact" not in result["derivedData"]
 
     def test_derived_data_fix_applied_progress_for_closed_issue(self) -> None:
         group = self.create_group()

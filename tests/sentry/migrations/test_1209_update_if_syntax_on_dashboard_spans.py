@@ -1,5 +1,6 @@
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import TestMigrations
 
 
@@ -9,7 +10,7 @@ class UpdateIfSyntaxOnDashboardSpansTest(TestMigrations):
     migrate_from = "1208_sentryappinstallation_uuid_index"
     migrate_to = "1209_update_if_syntax_on_dashboard_spans"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Dashboard = apps.get_model("sentry", "Dashboard")
         DashboardWidget = apps.get_model("sentry", "DashboardWidget")
         DashboardWidgetQuery = apps.get_model("sentry", "DashboardWidgetQuery")
@@ -125,7 +126,7 @@ class UpdateIfSyntaxOnDashboardSpansTest(TestMigrations):
             orderby="",
         )
 
-    def test_rewrites_spans_widget_queries(self):
+    def test_rewrites_spans_widget_queries(self) -> None:
         self.spans_query.refresh_from_db()
         self.field_link.refresh_from_db()
         self.migrated_query.refresh_from_db()

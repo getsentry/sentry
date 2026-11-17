@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 from sentry.constants import ObjectStatus
@@ -11,6 +12,7 @@ from sentry.integrations.types import (
     ExternalProviders,
     IntegrationProviderSlug,
 )
+from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import no_silo_test
@@ -25,7 +27,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
     github_id = "583231"
     external_name = "@octocat"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.create_user())
@@ -33,7 +35,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
             self.create_member(user=self.user, organization=self.organization)
         assert not ExternalActor.objects.exists()
 
-    def _github_integration(self, organization=None, **kwargs):
+    def _github_integration(self, organization: Organization | None = None, **kwargs: Any) -> Any:
         return self.create_integration(
             organization=organization or self.organization,
             provider=IntegrationProviderSlug.GITHUB.value,
@@ -41,10 +43,10 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
             **kwargs,
         )
 
-    def _external_actors(self, **filters):
+    def _external_actors(self, **filters: Any) -> Any:
         return ExternalActor.objects.filter(**filters)
 
-    def test_creates_external_actor_for_github_integrated_org(self):
+    def test_creates_external_actor_for_github_integrated_org(self) -> None:
         integration = self._github_integration()
 
         ensure_external_actors_for_github_identity(
@@ -60,7 +62,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         assert actor.integration_id == integration.id
         assert actor.source == ExternalActorSource.IDENTITY.value
 
-    def test_null_github_id_yields_null_external_id(self):
+    def test_null_github_id_yields_null_external_id(self) -> None:
         self._github_integration()
 
         ensure_external_actors_for_github_identity(
@@ -71,7 +73,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         assert actor.external_name == self.external_name
         assert actor.external_id is None
 
-    def test_idempotent(self):
+    def test_idempotent(self) -> None:
         self._github_integration()
 
         for _ in range(2):
@@ -81,7 +83,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
 
         assert self._external_actors(user_id=self.user.id).count() == 1
 
-    def test_skips_org_without_github_integration(self):
+    def test_skips_org_without_github_integration(self) -> None:
         # Org membership exists but no GitHub integration is installed.
         ensure_external_actors_for_github_identity(
             user_id=self.user.id, github_login=self.github_login, github_id=self.github_id
@@ -89,7 +91,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
 
         assert not self._external_actors(user_id=self.user.id).exists()
 
-    def test_skips_org_user_is_not_a_member_of(self):
+    def test_skips_org_user_is_not_a_member_of(self) -> None:
         other_org = self.create_organization(owner=self.create_user())
         self._github_integration(organization=other_org)
 
@@ -99,7 +101,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
 
         assert not self._external_actors(organization_id=other_org.id).exists()
 
-    def test_skips_disabled_github_integration(self):
+    def test_skips_disabled_github_integration(self) -> None:
         self._github_integration(oi_params={"status": ObjectStatus.DISABLED})
 
         ensure_external_actors_for_github_identity(
@@ -108,7 +110,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
 
         assert not self._external_actors(user_id=self.user.id).exists()
 
-    def test_only_maps_github_provider_integrations(self):
+    def test_only_maps_github_provider_integrations(self) -> None:
         # A non-GitHub integration in the same org must not produce a mapping.
         self.create_integration(
             organization=self.organization,
@@ -122,7 +124,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
 
         assert not self._external_actors(user_id=self.user.id).exists()
 
-    def test_fans_out_across_multiple_github_orgs(self):
+    def test_fans_out_across_multiple_github_orgs(self) -> None:
         second_org = self.create_organization(owner=self.create_user())
         with outbox_runner():
             self.create_member(user=self.user, organization=second_org)
@@ -135,7 +137,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
 
         assert self._external_actors(user_id=self.user.id).count() == 2
 
-    def test_missing_login_is_noop(self):
+    def test_missing_login_is_noop(self) -> None:
         self._github_integration()
 
         ensure_external_actors_for_github_identity(
@@ -144,7 +146,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
 
         assert not self._external_actors(user_id=self.user.id).exists()
 
-    def test_user_with_no_memberships_is_noop(self):
+    def test_user_with_no_memberships_is_noop(self) -> None:
         loner = self.create_user()
 
         ensure_external_actors_for_github_identity(
@@ -153,7 +155,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
 
         assert not self._external_actors(user_id=loner.id).exists()
 
-    def test_rpc_failure_is_swallowed_best_effort(self):
+    def test_rpc_failure_is_swallowed_best_effort(self) -> None:
         self._github_integration()
 
         with mock.patch(
@@ -170,7 +172,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
 
 @no_silo_test
 class GitHubIdentityProviderPostLinkTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.create_user())
@@ -182,7 +184,7 @@ class GitHubIdentityProviderPostLinkTest(TestCase):
             external_id="github:1",
         )
 
-    def test_post_link_identity_creates_external_actor(self):
+    def test_post_link_identity_creates_external_actor(self) -> None:
         provider = GitHubIdentityProvider()
 
         provider.post_link_identity(
@@ -196,7 +198,7 @@ class GitHubIdentityProviderPostLinkTest(TestCase):
         assert actor.external_id == "583231"
         assert actor.provider == ExternalProviders.GITHUB.value
 
-    def test_post_link_identity_without_github_id_sets_null_external_id(self):
+    def test_post_link_identity_without_github_id_sets_null_external_id(self) -> None:
         provider = GitHubIdentityProvider()
 
         # A payload without a numeric "id" still yields a mapping keyed on the login.

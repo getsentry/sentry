@@ -4,7 +4,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+
+import {useIsSentryEmployee} from './useIsSentryEmployee';
 
 describe('useIsSentryEmployee', () => {
   it('should return true if the user is a Sentry employee', () => {

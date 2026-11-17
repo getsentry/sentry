@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
+from sentry.apidocs.error_codes import SENTRY_API_ERROR_COMPONENT, sentry_api_error_schema
 from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
     _EXPERIMENTAL_OPERATIONS,
@@ -20,6 +21,7 @@ from sentry.apidocs.hooks import (
     _fix_nullable_enums,
     custom_postprocessing_hook,
     custom_preprocessing_hook,
+    relative_paths_hook,
 )
 from sentry.apidocs.utils import SentryApiBuildError
 from sentry.core.endpoints.organization_index import OrganizationIndexEndpoint
@@ -27,25 +29,57 @@ from sentry.core.endpoints.project_details import ProjectDetailsEndpoint
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
 from sentry.investigations.apidocs import investigation_endpoints
 from sentry.issues.endpoints.group_details import GroupDetailsEndpoint
+from sentry.notebooks.endpoints.base import OrganizationNotebooksBaseEndpoint
 
 
 @pytest.mark.django_db
 def test_investigation_schema_selects_only_private_frontend_routes() -> None:
     with patched_settings({"PREPROCESSING_HOOKS": []}):
-        endpoints = CustomEndpointEnumerator().get_api_endpoints()
+        endpoints = CustomEndpointEnumerator().collect_endpoints()
     selected = investigation_endpoints(endpoints)
     assert selected
     assert all(
-        path.startswith("/api/0/organizations/{organization_id_or_slug}/investigations/")
+        path.startswith(
+            (
+                "/api/0/organizations/{organization_id_or_slug}/investigations/",
+                "/api/0/organizations/{organization_id_or_slug}/notebooks/",
+            )
+        )
         for path, _regex, _method, _callback in selected
     )
     assert all(
-        callback.view_class.publish_status[method] is ApiPublishStatus.PRIVATE
+        not callback.view_class.publish_status[method].is_published
         for _path, _regex, method, callback in selected
     )
     with patch("sentry.apidocs.hooks.__write_ownership_data"):
         published = custom_preprocessing_hook(endpoints)
-    assert not {entry[0] for entry in selected}.intersection(entry[0] for entry in published)
+    assert not {(entry[0], entry[2]) for entry in selected}.intersection(
+        (entry[0], entry[2]) for entry in published
+    )
+
+
+def test_investigation_schema_keeps_unpublished_notebook_methods() -> None:
+    view_class = type(
+        "FakeNotebookEndpoint",
+        (OrganizationNotebooksBaseEndpoint,),
+        {
+            "publish_status": {
+                "GET": ApiPublishStatus.PRIVATE,
+                "POST": ApiPublishStatus.EXPERIMENTAL,
+                "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+                "DELETE": ApiPublishStatus.PUBLIC,
+            }
+        },
+    )
+    callback = type("FakeCallback", (), {"view_class": view_class})
+    endpoints = [
+        ("/api/0/notebooks/", "/api/0/notebooks/", method, callback)
+        for method in ("GET", "POST", "PUT", "DELETE")
+    ]
+
+    selected = investigation_endpoints(endpoints)
+
+    assert [method for _path, _regex, method, _callback in selected] == ["GET", "POST"]
 
 
 class EndpointServersTest(TestCase):
@@ -89,6 +123,35 @@ class EndpointServersTest(TestCase):
         ]
         # Servers should NOT be applied to non-matching endpoint
         assert "servers" not in processed["paths"]["/api/0/other/endpoint/"]["get"]
+
+
+class RelativePathsHookTest(TestCase):
+    def test_paths_are_relative_to_the_server_path(self) -> None:
+        endpoint_servers = [{"url": "https://{region}.sentry.io"}]
+        result = {
+            "servers": [{"url": "https://{region}.sentry.io/api/0"}],
+            "paths": {
+                "/api/0/seer/models/": {"get": {"servers": endpoint_servers}},
+                "/api/0/organizations/": {"get": {}},
+            },
+        }
+
+        processed = relative_paths_hook(result, None)
+
+        assert processed["paths"] == {
+            "/seer/models/": {"get": {"servers": [{"url": "https://{region}.sentry.io/api/0"}]}},
+            "/organizations/": {"get": {}},
+        }
+        assert endpoint_servers == [{"url": "https://{region}.sentry.io"}]
+
+    def test_rejects_a_path_outside_the_base_path(self) -> None:
+        result = {
+            "servers": [{"url": "https://{region}.sentry.io/api/0"}],
+            "paths": {"/oauth/token/": {}},
+        }
+
+        with pytest.raises(SentryApiBuildError, match="not under the API base path /api/0"):
+            relative_paths_hook(result, None)
 
 
 class PublishStatusFilterTest(TestCase):
@@ -185,7 +248,7 @@ class IdempotentOperationsTest(TestCase):
         _OPERATION_SILOS.clear()
 
     def _endpoints(
-        self, path: str, methods: dict[str, ApiPublishStatus], idempotent: frozenset[str]
+        self, path: str, methods: dict[str, ApiPublishStatus], idempotent: frozenset[str] | None
     ) -> list[tuple[Any, Any, str, Any]]:
         view_class = type(
             "FakeEndpoint",
@@ -260,6 +323,24 @@ class IdempotentOperationsTest(TestCase):
 
         with pytest.raises(SentryApiBuildError, match="does not implement"):
             custom_preprocessing_hook(endpoints)
+
+    def test_published_write_without_declaration_raises(self, _write_ownership: Any) -> None:
+        endpoints = self._endpoints("/api/0/assemble/", {"POST": ApiPublishStatus.PUBLIC}, None)
+
+        with pytest.raises(SentryApiBuildError, match="does not declare idempotent_methods"):
+            custom_preprocessing_hook(endpoints)
+
+    def test_undeclared_reads_and_private_writes_are_allowed(self, _write_ownership: Any) -> None:
+        filtered = custom_preprocessing_hook(
+            self._endpoints(
+                "/api/0/assemble/",
+                {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE},
+                None,
+            )
+        )
+
+        assert [method for _, _, method, _ in filtered] == ["GET"]
+        assert _IDEMPOTENT_OPERATIONS == set()
 
     def test_safe_method_raises(self, _write_ownership: Any) -> None:
         endpoints = self._endpoints(
@@ -424,9 +505,40 @@ class FixIssueRoutesTest(TestCase):
                     }
                 },
             },
-            "components": {"schemas": {}},
+            "components": {"schemas": {SENTRY_API_ERROR_COMPONENT: sentry_api_error_schema()}},
         }
         assert custom_postprocessing_hook(BEFORE, None) == AFTER
+
+    def test_shared_issue_route_fixes(self) -> None:
+        operation = {
+            "tags": ["Events"],
+            "description": "Get a shared issue",
+            "operationId": "get shared issue",
+            "parameters": [
+                {
+                    "in": "path",
+                    "name": "var",
+                    "schema": {"type": "string"},
+                    "description": "Issues or groups",
+                    "required": True,
+                },
+            ],
+        }
+        BEFORE = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/organizations/{organization_id_or_slug}/shared/{var}/{share_id}/": {
+                    "get": operation
+                },
+            },
+        }
+
+        result = custom_postprocessing_hook(BEFORE, None)
+
+        assert list(result["paths"]) == [
+            "/api/0/organizations/{organization_id_or_slug}/shared/issues/{share_id}/"
+        ]
+        assert next(iter(result["paths"].values()))["get"]["parameters"] == []
 
 
 class UnannotatedRoutingEndpoint(Endpoint):

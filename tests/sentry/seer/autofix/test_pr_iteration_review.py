@@ -17,12 +17,19 @@ from sentry.seer.autofix.pr_iteration.listeners.review import (
     handle_pull_request_review_for_autofix_iteration,
 )
 from sentry.seer.models import SeerUnavailableError
+from sentry.seer.models.run import SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import _REVIEW_PAGE_SIZE, trigger_pr_iteration_from_review
 from sentry.testutils.cases import TestCase
 from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 REVIEW_PATH = "sentry.seer.autofix.pr_iteration.listeners.review"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
+
+# Both flags behind ``is_seer_token_based_billing_onboarding_enabled``.
+TOKEN_BILLING_FEATURES = {
+    "organizations:seer-token-based-billing-onboarding": True,
+    "organizations:token-billed-seer-enabled": True,
+}
 
 
 class HandlePullRequestReviewForAutofixIterationTest(TestCase):
@@ -86,8 +93,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            handle_pull_request_review_for_autofix_iteration(self._event())
+        handle_pull_request_review_for_autofix_iteration(self._event())
 
         mock_delay.assert_called_once()
         kwargs = mock_delay.call_args.kwargs
@@ -112,8 +118,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         contexts: list[ViewerContext | None] = []
         mock_delay.side_effect = lambda **_kwargs: contexts.append(get_viewer_context())
 
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            handle_pull_request_review_for_autofix_iteration(self._event())
+        handle_pull_request_review_for_autofix_iteration(self._event())
 
         assert contexts == [
             ViewerContext(
@@ -127,8 +132,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            handle_pull_request_review_for_autofix_iteration(self._event(action="edited"))
+        handle_pull_request_review_for_autofix_iteration(self._event(action="edited"))
         mock_delay.assert_not_called()
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
@@ -139,10 +143,9 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self._mock_org_contexts(mock_contexts)
         # The listener dispatches every submitted review, bots included; the repo
         # write-access gate is enforced downstream in the task, not here.
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            handle_pull_request_review_for_autofix_iteration(
-                self._event(author_id="333333", is_bot=True)
-            )
+        handle_pull_request_review_for_autofix_iteration(
+            self._event(author_id="333333", is_bot=True)
+        )
         mock_delay.assert_called_once()
         # Bot authorship is threaded through so the task can apply the streak cap.
         assert mock_delay.call_args.kwargs["author_is_bot"] is True
@@ -154,24 +157,11 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            handle_pull_request_review_for_autofix_iteration(
-                self._event(is_bot=True, skipped_authentication=True)
-            )
+        handle_pull_request_review_for_autofix_iteration(
+            self._event(is_bot=True, skipped_authentication=True)
+        )
         mock_delay.assert_called_once()
         assert mock_delay.call_args.kwargs["delivery_authenticated"] is False
-
-    @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
-    @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
-    def test_skips_when_manual_feature_disabled(
-        self, mock_contexts: MagicMock, mock_delay: MagicMock
-    ) -> None:
-        self._mock_org_contexts(mock_contexts)
-        # Automated CI iteration on, manual off: the review trigger is manual-only,
-        # so the automated flag must not enable it.
-        with self.feature("organizations:autofix-pr-iteration"):
-            handle_pull_request_review_for_autofix_iteration(self._event())
-        mock_delay.assert_not_called()
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
@@ -179,8 +169,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         mock_contexts.return_value = MagicMock(integration=None, organization_integrations=[])
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            handle_pull_request_review_for_autofix_iteration(self._event())
+        handle_pull_request_review_for_autofix_iteration(self._event())
         mock_delay.assert_not_called()
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
@@ -190,10 +179,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         # pull_request_review events. It must be dropped here, before the
         # control-silo integration lookup and before any task is scheduled.
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            handle_pull_request_review_for_autofix_iteration(
-                self._event(provider="github_enterprise")
-            )
+        handle_pull_request_review_for_autofix_iteration(self._event(provider="github_enterprise"))
         assert mock_contexts.call_count == 0
         mock_delay.assert_not_called()
 
@@ -201,8 +187,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
     def test_skips_when_missing_ids(self, mock_contexts: MagicMock, mock_delay: MagicMock) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            handle_pull_request_review_for_autofix_iteration(self._event(installation_id=None))
+        handle_pull_request_review_for_autofix_iteration(self._event(installation_id=None))
         mock_delay.assert_not_called()
 
 
@@ -867,3 +852,70 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_actions.get_repository_user_permission.assert_not_called()
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
+
+    def test_opt_in_with_pr_iteration_off_skips_a_review_that_does_not_mention_sentry(
+        self,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        with self.feature(TOKEN_BILLING_FEATURES):
+            self._run()
+
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()
+        self.mock_actions.create_review_comment_reaction.assert_not_called()
+        self.mock_actions.create_pull_request_review_reaction.assert_not_called()
+        # Nothing will run this review, so no iteration row waits for it.
+        assert not SeerRunPrIteration.objects.filter(seer_run__seer_run_state_id=67890).exists()
+
+    def test_opt_in_with_pr_iteration_off_queues_only_the_comment_that_mentions_sentry(
+        self,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [
+                self._review_comment(comment_id="1", body="@sentry fix this"),
+                self._review_comment(comment_id="2", body="and this"),
+            ]
+        )
+
+        with self.feature(TOKEN_BILLING_FEATURES):
+            self._run()
+
+        # The summary body doesn't mention @sentry either, so only comment 1 is queued.
+        self.mock_enqueue.assert_called_once()
+        source = self.mock_enqueue.call_args.kwargs["feedback"].source
+        assert isinstance(source, GithubPrReviewCommentFeedbackSource)
+        assert source.comment.id == 1
+        self.mock_consume.assert_called_once()
+        self.mock_actions.create_review_comment_reaction.assert_called_once_with(
+            self.mock_make_scm.return_value, "7", "1", "eyes"
+        )
+        self.mock_actions.create_pull_request_review_reaction.assert_not_called()
+
+    def test_opt_in_with_pr_iteration_on_queues_the_whole_review(self) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", True)
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        with self.feature(TOKEN_BILLING_FEATURES):
+            self._run()
+
+        assert self.mock_enqueue.call_count == 2
+        self.mock_consume.assert_called_once()
+
+    def test_human_review_still_queued_without_the_flag_when_pr_iteration_is_off(self) -> None:
+        # Without the flag the setting only ever held back automated feedback.
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        self._run()
+
+        assert self.mock_enqueue.call_count == 2
+        self.mock_consume.assert_called_once()

@@ -1,11 +1,11 @@
-import {deriveUpdatedManagedFields} from 'sentry/views/explore/queryParams/managedFields';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {deriveUpdatedManagedFields} from './managedFields';
+import {Mode} from './mode';
 import {
   ReadableQueryParams,
   type ReadableQueryParamsOptions,
-} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+} from './readableQueryParams';
+import {VisualizeFunction} from './visualize';
+import type {WritableQueryParams} from './writableQueryParams';
 
 const defaultReadableQueryParamsOptions: ReadableQueryParamsOptions = {
   extrapolate: true,

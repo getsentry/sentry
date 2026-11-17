@@ -3,8 +3,9 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {IssueReplayCount} from 'sentry/components/group/issueReplayCount';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
+
+import {IssueReplayCount} from './issueReplayCount';
 
 jest.mock('sentry/utils/replayCount/useReplayCountForIssues');
 

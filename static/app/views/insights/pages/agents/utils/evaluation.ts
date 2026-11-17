@@ -13,9 +13,10 @@ import {z} from 'zod';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {getTraceNodeAttribute} from './aiTraceNodes';
+import type {AITraceSpanNode} from './types';
 
 // Schemas describe the valid shape only and keep values as sent; ordering and
 // other presentation happens when rendering. Optional fields may be missing,

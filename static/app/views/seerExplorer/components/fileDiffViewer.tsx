@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
-import {getPrismLanguage} from '@sentry/scraps/code';
+import {getPrismLanguage} from '@sentry/scraps/codeBlock';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -17,7 +17,8 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
-import {OpenFileButton} from 'sentry/views/seerExplorer/components/openFileButton';
+
+import {OpenFileButton} from './openFileButton';
 
 interface FileDiffViewerProps {
   patch: FilePatch;

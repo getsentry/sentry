@@ -91,7 +91,7 @@ class BaseMetricIssueTest(TestCase):
         )
 
     def process_packet_and_return_result(
-        self, data_packet: DataPacket
+        self, data_packet: DataPacket[ProcessedSubscriptionUpdate]
     ) -> IssueOccurrence | StatusChangeMessage | None:
         results = process_data_packet(data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
         if not results:

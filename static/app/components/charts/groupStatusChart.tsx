@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
-import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+
+import {markLine as createMarkLine} from './components/markLine';
+import {MiniBarChart} from './miniBarChart';
 
 function asChartPoint(point: [number, number]): {name: number | string; value: number} {
   return {

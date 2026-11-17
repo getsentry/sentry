@@ -8,12 +8,13 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
+import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
+
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
+} from './context';
 
 interface PlainTextQueryInputProps {
   label?: string;

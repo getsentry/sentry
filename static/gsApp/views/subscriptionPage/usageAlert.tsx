@@ -11,7 +11,7 @@ import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-import AddEventsCTA from 'getsentry/components/addEventsCTA';
+import {AddEventsCTA} from 'getsentry/components/addEventsCTA';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
 import type {CustomerUsage, Subscription} from 'getsentry/types';

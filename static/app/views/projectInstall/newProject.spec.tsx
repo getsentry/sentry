@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import NewProject from 'sentry/views/projectInstall/newProject';
+import NewProject from './newProject';
 
 jest.mock('sentry/views/projectInstall/createProject', () => ({
   CreateProject: () => <div>Legacy project creation</div>,

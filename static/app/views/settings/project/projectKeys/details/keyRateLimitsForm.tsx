@@ -6,9 +6,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -69,15 +69,15 @@ export function KeyRateLimitsForm({
 
   function getAllowedRateLimitValues(currentRateLimit?: number) {
     const {rateLimit} = data;
-    const {window} = rateLimit ?? {};
+    const {window: rateLimitWindow} = rateLimit ?? {};
 
-    if (defined(window)) {
-      if (currentRateLimit !== window) {
+    if (defined(rateLimitWindow)) {
+      if (currentRateLimit !== rateLimitWindow) {
         return PREDEFINED_RATE_LIMIT_VALUES;
       }
 
-      if (!PREDEFINED_RATE_LIMIT_VALUES.includes(window)) {
-        return sortBy([...PREDEFINED_RATE_LIMIT_VALUES, window]);
+      if (!PREDEFINED_RATE_LIMIT_VALUES.includes(rateLimitWindow)) {
+        return sortBy([...PREDEFINED_RATE_LIMIT_VALUES, rateLimitWindow]);
       }
     }
 
@@ -92,7 +92,7 @@ export function KeyRateLimitsForm({
         data: submitData,
       }),
     onSuccess: responseData => {
-      addSuccessMessage(t('Successfully saved rate limit.'));
+      toast.success(t('Successfully saved rate limit.'));
       updateData(responseData);
       form.reset();
     },
@@ -102,7 +102,7 @@ export function KeyRateLimitsForm({
         const detail = error.responseJSON?.detail;
         message = typeof detail === 'string' ? detail : detail?.message;
       }
-      addErrorMessage(message ?? t('Unable to save rate limit.'));
+      toast.error(message ?? t('Unable to save rate limit.'));
     },
   });
 

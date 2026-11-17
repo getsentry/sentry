@@ -6,9 +6,10 @@ import {
   useSetQueryParamsGroupBys,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
-import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
-import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
-import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
+
+import {ToolbarGroupBy} from './toolbarGroupBy';
+import {ToolbarSortBy} from './toolbarSortBy';
+import {ToolbarVisualize} from './toolbarVisualize';
 
 type Extras = 'equations';
 

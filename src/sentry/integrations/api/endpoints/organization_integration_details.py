@@ -51,6 +51,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="getOrganizationIntegration",
@@ -107,11 +108,21 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         # integrations and all linked issues.
 
         # NOTE(hybrid-cloud): Deletions require the ORM object, not API versions
-        org_integration: OrganizationIntegration | None = OrganizationIntegration.objects.filter(
-            integration_id=integration_id, organization_id=organization_context.organization.id
-        ).first()
+        org_integration: OrganizationIntegration | None = (
+            OrganizationIntegration.objects.get_or_none(
+                integration_id=integration_id, organization_id=organization_context.organization.id
+            )
+        )
         if not org_integration:
             raise Http404
+        # A repeated DELETE must not uninstall again. Uninstall hooks that skip
+        # pending rows when counting installs (Discord, Cursor Origin) would see
+        # another org as the last one and tear down the install it still uses.
+        if org_integration.status in (
+            ObjectStatus.PENDING_DELETION,
+            ObjectStatus.DELETION_IN_PROGRESS,
+        ):
+            return self.respond(status=204)
         integration = self.get_integration(organization_context.organization.id, integration_id)
         # do any integration specific deleting steps
         integration.get_installation(

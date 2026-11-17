@@ -26,7 +26,6 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {useApi} from 'sentry/utils/useApi';
 import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
@@ -37,6 +36,7 @@ import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 import {ActionSet} from './actionSet';
+import {BULK_LIMIT, BULK_LIMIT_STR} from './constants';
 import {TrendHeader} from './headers';
 import {ConfirmAction, invalidateIssueQueries, performBulkUpdate} from './utils';
 
