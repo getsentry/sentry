@@ -1,30 +1,26 @@
 import {Fragment, type ReactNode} from 'react';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {unreachable} from 'sentry/utils/unreachable';
 
-import {AgentHandoffFlow, type AgentHandoffContext} from './useAgentHandoff';
+import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 
 type WrapCode<T> = (code: string) => T;
 
-/**
- * Pairs each flow with the context it carries. Useful for functions that
- * need to discriminate on the flow and use the context together.
- */
-export type HandoffPromptTarget<Flow extends AgentHandoffFlow = AgentHandoffFlow> = {
-  [F in Flow]: {context: AgentHandoffContext<F> | null; flow: F};
-}[Flow];
-
-function getPromptPurpose(target: HandoffPromptTarget): string {
-  switch (target.flow) {
+function getInstruction(
+  flow: AgentHandoffFlow,
+  context: AgentHandoffContext | null,
+  guideUrl: string
+): string {
+  switch (flow) {
     case AgentHandoffFlow.ADD_FEATURE:
-      return target.context ? ` to set up ${target.context.product}` : '';
-    case AgentHandoffFlow.CREATE_PROJECT:
-    case AgentHandoffFlow.ONBOARDING:
-      return '';
+      if (context && 'product' in context) {
+        return `Read and follow ${guideUrl} verbatim to set up ${context.product}.`;
+      }
+      break;
     default:
-      return unreachable(target);
+      break;
   }
+  return `Read and follow ${guideUrl} verbatim.`;
 }
 
 /**
@@ -38,22 +34,25 @@ function getPromptPurpose(target: HandoffPromptTarget): string {
  */
 export function getHandoffPrompt(
   code: string,
-  target: HandoffPromptTarget,
+  flow: AgentHandoffFlow,
+  context: AgentHandoffContext | null,
   wrapCode: WrapCode<string>
 ): string;
 export function getHandoffPrompt(
   code: string,
-  target: HandoffPromptTarget,
+  flow: AgentHandoffFlow,
+  context: AgentHandoffContext | null,
   wrapCode: WrapCode<ReactNode>
 ): ReactNode;
 export function getHandoffPrompt(
   code: string,
-  target: HandoffPromptTarget,
+  flow: AgentHandoffFlow,
+  context: AgentHandoffContext | null,
   wrapCode: WrapCode<ReactNode>
 ): ReactNode {
   const guideUrl = `${ConfigStore.get('urlPrefix').replace(/\/$/, '')}/agent-handoff.md`;
-  const purpose = getPromptPurpose(target);
-  const start = `Read and follow ${guideUrl} verbatim${purpose}. Your handoff code is `;
+  const instruction = getInstruction(flow, context, guideUrl);
+  const start = `${instruction} Your handoff code is `;
   const end = '.';
   const wrappedCode = wrapCode(code);
 

@@ -2,7 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AgentHandoffFlow, useAgentHandoff} from './useAgentHandoff';
+import {AgentHandoffFlow} from './types';
+import {useAgentHandoff} from './useAgentHandoff';
 
 const addFeaturePrompt =
   'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim to set up tracing. Your handoff code is `sntryh_example`.';

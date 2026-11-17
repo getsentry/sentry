@@ -19,7 +19,7 @@ import {
   HandoffPromptAlerts,
   HandoffPromptBox,
 } from './handoffPromptParts';
-import {AgentHandoffFlow, type AddFeatureContext} from './useAgentHandoff';
+import {AgentHandoffFlow, type AddFeatureContext} from './types';
 import {useHandoffPromptCopy} from './useHandoffPromptCopy';
 
 interface AgentHandoffProductPromptProps {

@@ -17,7 +17,7 @@ import {
   HandoffPromptAlerts,
   HandoffPromptBox,
 } from './handoffPromptParts';
-import {AgentHandoffFlow, type AgentHandoffContext} from './useAgentHandoff';
+import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 import {useHandoffPromptCopy} from './useHandoffPromptCopy';
 
 interface AgentHandoffPromptProps<Flow extends AgentHandoffFlow> {

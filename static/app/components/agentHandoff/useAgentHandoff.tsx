@@ -7,23 +7,15 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {type HandoffPromptTarget, getHandoffPrompt} from './handoffPrompt';
+import {getHandoffPrompt} from './handoffPrompt';
+import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 
-function formatPrompt<F extends AgentHandoffFlow>(
+function formatPrompt(
   code: string,
-  target: HandoffPromptTarget<F>
+  flow: AgentHandoffFlow,
+  context: AgentHandoffContext | null
 ) {
-  return getHandoffPrompt(
-    code,
-    target as unknown as HandoffPromptTarget,
-    handoffCode => `\`${handoffCode}\``
-  );
-}
-
-export enum AgentHandoffFlow {
-  CREATE_PROJECT = 'create_project',
-  ONBOARDING = 'onboarding',
-  ADD_FEATURE = 'add_feature',
+  return getHandoffPrompt(code, flow, context, handoffCode => `\`${handoffCode}\``);
 }
 
 interface Handoff {
@@ -36,26 +28,6 @@ interface PreparedPrompt {
   handoffId: string;
   text: string;
 }
-
-interface ProjectSetupContext {
-  runId: string;
-}
-
-type AddFeatureProduct = 'tracing';
-
-export interface AddFeatureContext {
-  product: AddFeatureProduct;
-  projectId: string;
-}
-
-interface HandoffContexts {
-  [AgentHandoffFlow.CREATE_PROJECT]: ProjectSetupContext;
-  [AgentHandoffFlow.ONBOARDING]: ProjectSetupContext;
-  [AgentHandoffFlow.ADD_FEATURE]: AddFeatureContext;
-}
-
-export type AgentHandoffContext<Flow extends AgentHandoffFlow = AgentHandoffFlow> =
-  HandoffContexts[Flow];
 
 interface HandoffPromptOptions<Flow extends AgentHandoffFlow> {
   context: AgentHandoffContext<Flow>;
@@ -123,13 +95,11 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       organizationSlug: organization.slug,
     };
 
-    const target = {flow, context: options.context} as HandoffPromptTarget<Flow>;
-
     const cachedHandoff = handoff.current;
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
       return {
         handoffId: cachedHandoff.handoffId,
-        text: formatPrompt(cachedHandoff.code, target),
+        text: formatPrompt(cachedHandoff.code, flow, options.context),
       };
     }
 
@@ -147,7 +117,10 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       });
       handoff.current = {...minted, ...promptContext};
 
-      return {handoffId: minted.handoffId, text: formatPrompt(minted.code, target)};
+      return {
+        handoffId: minted.handoffId,
+        text: formatPrompt(minted.code, flow, options.context),
+      };
     } catch {
       throw new Error(t('Unable to create your agent prompt. Try again.'));
     }

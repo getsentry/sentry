@@ -4,11 +4,8 @@ import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
 
-import {
-  AgentHandoffFlow,
-  type AgentHandoffContext,
-  useAgentHandoff,
-} from './useAgentHandoff';
+import {AgentHandoffFlow, type AgentHandoffContext} from './types';
+import {useAgentHandoff} from './useAgentHandoff';
 
 interface UseHandoffPromptCopyOptions<Flow extends AgentHandoffFlow> {
   context: AgentHandoffContext<Flow> | null;
