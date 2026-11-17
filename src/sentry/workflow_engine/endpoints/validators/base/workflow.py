@@ -5,9 +5,10 @@ from rest_framework import serializers
 
 from sentry import audit_log, features, options
 from sentry.api.fields.actor import OwnerActorField
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
-from sentry.auth.principal import acting_user_id, has_user
+from sentry.auth.principal import has_user
 from sentry.db import models
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
@@ -446,7 +447,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 organization_id=organization.id,
                 environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
-                created_by_id=acting_user_id(request.user),
+                **get_creator_reference(request),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
             )
