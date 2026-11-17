@@ -501,8 +501,15 @@ export function TourGuide({
       }
     };
     // Runs after the page handles the click, so the click still goes through.
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
+    // Listening starts after the current event, so the click that opened this
+    // guide, such as "Next" on the previous step, does not dismiss it.
+    const timeout = window.setTimeout(() =>
+      document.addEventListener('click', handleClick)
+    );
+    return () => {
+      window.clearTimeout(timeout);
+      document.removeEventListener('click', handleClick);
+    };
   }, [isOpen, onClickOutside, overlayRef]);
 
   // Scroll the highlighted element rather than the guide. The element may live in
