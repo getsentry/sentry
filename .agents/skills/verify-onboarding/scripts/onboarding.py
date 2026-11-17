@@ -11,6 +11,8 @@ Commands: launch, doctor, seed, login, state, event, stop. See ../SKILL.md.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import hmac
 import json  # noqa: S003  # stdlib on purpose: launch, doctor, and stop run before Django is set up
 import os
 import re
@@ -274,6 +276,13 @@ def configure_django() -> None:
     configure()
 
 
+def dev_password(email: str) -> str:
+    """Derive a seeded user's password from the local SECRET_KEY, so it is never written or printed."""
+    from django.conf import settings
+
+    return hmac.new(settings.SECRET_KEY.encode(), email.encode(), hashlib.sha256).hexdigest()
+
+
 def seed(args: argparse.Namespace) -> None:
     run = read_run()
     configure_django()
@@ -289,13 +298,11 @@ def seed(args: argparse.Namespace) -> None:
         application.update(client_secret=None)
 
     suffix = run["run_id"].replace("-", "")[-10:] + secrets.token_hex(2)
-    password = f"verify-{secrets.token_hex(8)}"
 
     def user(role: str) -> User:
-        created = Factories.create_user(
-            email=f"verify-{role}-{suffix}@example.com", is_superuser=False
-        )
-        created.set_password(password)
+        email = f"verify-{role}-{suffix}@example.com"
+        created = Factories.create_user(email=email, is_superuser=False)
+        created.set_password(dev_password(email))
         created.save()
         return created
 
@@ -330,7 +337,6 @@ def seed(args: argparse.Namespace) -> None:
     )
 
     seeded = {
-        "password": password,
         "owner_email": owner.email,
         "member_email": member.email,
         "new_orgs": new_orgs,
@@ -402,7 +408,7 @@ def event(args: argparse.Namespace) -> None:
         emit(f"HTTP {response.status} {response.read().decode()}")
 
 
-def browser(session: str, *command: str) -> str:
+def browser(session: str, *command: str, check: bool = True) -> str:
     try:
         result = subprocess.run(
             ["agent-browser", "--session", session, *command],
@@ -413,7 +419,7 @@ def browser(session: str, *command: str) -> str:
         )
     except subprocess.TimeoutExpired:
         fail(f"agent-browser {' '.join(command)} timed out")
-    if result.returncode != 0:
+    if check and result.returncode != 0:
         fail(f"agent-browser {' '.join(command)} failed: {result.stderr.strip()}")
     return result.stdout
 
@@ -421,6 +427,9 @@ def browser(session: str, *command: str) -> str:
 def login(args: argparse.Namespace) -> None:
     """Open a browser session and sign in through the real login form as a seeded user."""
     seeded = json.loads((RUN_DIR / "seed.json").read_text())
+    email = seeded[f"{args.role}_email"]
+    configure_django()
+    password = dev_password(email)
     session = args.session or f"verify-onboarding-{args.role}"
     subprocess.run(
         ["agent-browser", "--session", session, "close"],
@@ -437,14 +446,38 @@ def login(args: argparse.Namespace) -> None:
         f"{BASE_URL}/auth/login/",
     )
     browser(session, "wait", 'input[name="email"]')
-    browser(session, "find", "label", "Email", "fill", seeded[f"{args.role}_email"])
-    browser(session, "find", "label", "Password", "fill", seeded["password"])
+    browser(session, "find", "label", "Email", "fill", email)
+    # Not through browser(): its error message would echo the password.
+    try:
+        filled = (
+            subprocess.run(
+                [
+                    "agent-browser",
+                    "--session",
+                    session,
+                    "find",
+                    "label",
+                    "Password",
+                    "fill",
+                    password,
+                ],
+                capture_output=True,
+                check=False,
+                timeout=90,
+            ).returncode
+            == 0
+        )
+    except subprocess.TimeoutExpired:
+        filled = False
+    if not filled:
+        fail("agent-browser could not fill the password field")
     browser(session, "find", "role", "button", "click", "--name", "Log in to Sentry")
-    browser(session, "wait", "--load", "networkidle")
+    # The landing page can poll forever, so wait for the URL to change instead of for network idle.
+    browser(session, "wait", "--fn", "!location.pathname.startsWith('/auth/login/')", check=False)
     url = browser(session, "get", "url").strip()
     if "/auth/login/" in url:
         fail(f"login as {args.role} did not leave the login page ({url})")
-    emit(f"session {session} signed in as {seeded[f'{args.role}_email']} at {url}")
+    emit(f"session {session} signed in as {email} at {url}")
 
 
 def stop(args: argparse.Namespace) -> None:

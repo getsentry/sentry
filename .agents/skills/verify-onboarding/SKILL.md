@@ -33,7 +33,7 @@ Feature flags. Sentry-only dev has no flag handler, so `SENTRY_FEATURES` in the 
 
 The overlay always turns on `organizations:session-replay`, `organizations:ourlogs-enabled`, and `organizations:tracemetrics-enabled`, because SaaS plans grant them and the product toggles render disabled without them. It also sets the agent handoff options `onboarding.agent-handoff.client-id` and `oauth.setup-code.allowed-client-ids` to `verify-onboarding-agent-cli`. `seed` creates that public OAuth application. To change flags, run `stop`, then `launch` again.
 
-`seed` creates, with one shared password:
+`seed` creates the following. Passwords are derived from the instance's `SECRET_KEY` and are never written to disk or printed; `login` derives them again.
 
 - An owner user and a member user (`verify-owner-<suffix>@example.com`, `verify-member-<suffix>@example.com`).
 - `--new-orgs N` fresh orgs (`verify-new-<suffix>-1..N`, default 6) with team `onboarding` and no projects. Use one fresh org per journey: onboarding state cannot be reset in place.
