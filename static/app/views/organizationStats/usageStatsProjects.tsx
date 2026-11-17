@@ -315,6 +315,7 @@ export function UsageStatsProjects({
           stat[SortBy.ACCEPTED_STORED] > 0 &&
           stat[SortBy.ACCEPTED_STORED] !== stat[SortBy.ACCEPTED]
         ) {
+          // oxlint-disable-next-line react/immutability
           hasStoredOutcome = true;
         }
         return {

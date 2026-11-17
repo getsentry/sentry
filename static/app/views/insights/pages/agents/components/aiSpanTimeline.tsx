@@ -90,7 +90,6 @@ export function AiSpanTimeline({
         }
         visited.add(parent);
         if (getIsAiAgentNode(parent)) {
-          // oxlint-disable-next-line react/todo
           indent++;
         }
         return false;
